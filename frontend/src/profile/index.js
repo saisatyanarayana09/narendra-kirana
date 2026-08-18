@@ -1,0 +1,11 @@
+export { default as ProfileLayout } from './layouts/ProfileLayout';
+export { default as DashboardHome } from './pages/DashboardHome';
+export { default as AccountSettings } from './pages/AccountSettings';
+export { default as OrdersHistory } from './pages/OrdersHistory';
+export { default as SavedAddresses } from './pages/SavedAddresses';
+export { default as Favorites } from './pages/Favorites';
+export { default as Notifications } from './pages/Notifications';
+export { default as Feedback } from './pages/Feedback';
+export { default as HelpCenter } from './pages/HelpCenter';
+export { default as Wallet } from './pages/Wallet';
+export { default as ReferAndEarn } from './pages/ReferAndEarn';

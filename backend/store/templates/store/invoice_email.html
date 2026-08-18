@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Invoice</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+        table {
+            border-collapse: collapse;
+        }
+        .email-wrapper {
+            width: 100%;
+            background-color: #f3f4f6;
+            padding: 40px 0;
+        }
+        .email-content {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        .header {
+            background-color: #064e3b; /* Emerald Darker */
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            color: #ffffff;
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+        }
+        .body-padding {
+            padding: 40px 30px;
+        }
+        .greeting {
+            color: #111827;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            margin-top: 0;
+        }
+        .message {
+            color: #4b5563;
+            font-size: 16px;
+            line-height: 24px;
+            margin-bottom: 30px;
+        }
+        .order-summary {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .order-summary-title {
+            color: #111827;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 0;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 10px;
+        }
+        .summary-row {
+            display: table;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .summary-label {
+            display: table-cell;
+            color: #6b7280;
+            font-size: 14px;
+        }
+        .summary-value {
+            display: table-cell;
+            text-align: right;
+            color: #111827;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        .summary-total {
+            border-top: 1px dashed #d1d5db;
+            padding-top: 15px;
+            margin-top: 5px;
+        }
+        .summary-total .summary-label,
+        .summary-total .summary-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #047857; /* Emerald */
+        }
+        .btn-container {
+            text-align: center;
+            margin-top: 40px;
+            margin-bottom: 20px;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #10b981; /* Emerald Primary */
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 16px;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .footer {
+            background-color: #f9fafb;
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid #e5e7eb;
+        }
+        .footer-text {
+            color: #6b7280;
+            font-size: 13px;
+            line-height: 20px;
+            margin: 0;
+        }
+        .footer-link {
+            color: #10b981;
+            text-decoration: none;
+        }
+        
+        /* Mobile adjustments */
+        @media only screen and (max-width: 600px) {
+            .email-content {
+                width: 100% !important;
+                border-radius: 0 !important;
+            }
+            .body-padding {
+                padding: 30px 20px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <table class="email-wrapper" cellpadding="0" cellspacing="0" role="presentation">
+        <tr>
+            <td align="center">
+                <table class="email-content" cellpadding="0" cellspacing="0" role="presentation">
+                    <!-- Header -->
+                    <tr>
+                        <td class="header">
+                            <h1>{{ settings.store_name }}</h1>
+                        </td>
+                    </tr>
+                    
+                    <!-- Body -->
+                    <tr>
+                        <td class="body-padding">
+                            <h2 class="greeting">Hello {{ order.customer.first_name }},</h2>
+                            
+                            <p class="message">
+                                Thank you for shopping with us! Your order <strong>#{{ order.id }}</strong> has been successfully processed and is now complete. You can view your official invoice online or download it as a PDF at any time.
+                            </p>
+                            
+                            <!-- Order Summary Box -->
+                            <div class="order-summary">
+                                <h3 class="order-summary-title">Order Summary</h3>
+                                
+                                <div class="summary-row">
+                                    <div class="summary-label">Order Date</div>
+                                    <div class="summary-value">{{ order.created_at|date:"M d, Y" }}</div>
+                                </div>
+                                <div class="summary-row">
+                                    <div class="summary-label">Total Items</div>
+                                    <div class="summary-value">{{ items.count }}</div>
+                                </div>
+                                
+                                {% if discount_applied > 0 %}
+                                <div class="summary-row">
+                                    <div class="summary-label">Subtotal</div>
+                                    <div class="summary-value">₹{{ subtotal|floatformat:2 }}</div>
+                                </div>
+                                <div class="summary-row">
+                                    <div class="summary-label">Discount</div>
+                                    <div class="summary-value" style="color: #ef4444;">-₹{{ discount_applied|floatformat:2 }}</div>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="summary-row summary-total">
+                                    <div class="summary-label">Total Amount</div>
+                                    <div class="summary-value">₹{{ order.total_amount|floatformat:2 }}</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Call to Action Button -->
+                            <div class="btn-container">
+                                <a href="{{ invoice_link }}" class="btn" target="_blank">View & Download Invoice</a>
+                            </div>
+                            
+                            <p class="message" style="font-size: 14px; text-align: center; margin-bottom: 0;">
+                                We would love to hear about your experience.<br>Please let us know how we did!
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td class="footer">
+                            <p class="footer-text">
+                                &copy; {% now "Y" %} {{ settings.store_name }}. All rights reserved.<br>
+                                {% if settings.store_address %}{{ settings.store_address }}<br>{% endif %}
+                                <a href="mailto:{{ settings.store_email }}" class="footer-link">Contact Support</a>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
