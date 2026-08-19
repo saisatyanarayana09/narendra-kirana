@@ -178,7 +178,7 @@ function BannerCarousel({ banners }) {
  <a 
  key={banner.id} 
  href={banner.link || '#'} 
- className="w-full flex-shrink-0 block aspect-[16/7] sm:aspect-[21/9] md:aspect-[4/1] max-h-[300px] sm:max-h-[350px] md:max-h-[400px]"
+ className="w-full flex-shrink-0 block aspect-[16/7] sm:aspect-[21/9] md:aspect-[4/1] max-h-[180px] sm:max-h-[200px] md:max-h-[240px]"
  >
  <img 
  src={banner.image} 
@@ -248,7 +248,7 @@ export function HomePage() {
    
     {banners.length === 0 && (
     <GSAPFadeUp delay={0.2}>
-    <section className="bg-gradient-to-br from-emerald-600 via-teal-600 to-blue-700 text-white shadow-xl relative overflow-hidden w-full mb-6 max-h-[350px] md:max-h-[400px] flex flex-col justify-center">
+    <section className="bg-gradient-to-br from-emerald-600 via-teal-600 to-blue-700 text-white shadow-xl relative overflow-hidden w-full mb-6 max-h-[200px] md:max-h-[240px] flex flex-col justify-center">
     {/* Animated decorative shapes */}
     <div className="absolute top-0 right-0 -mr-10 -mt-10 w-48 h-48 rounded-full bg-white/10 animate-pulse"></div>
     <div className="absolute bottom-0 right-20 -mb-8 w-32 h-32 rounded-full bg-white/10 animate-pulse" style={{animationDelay: '1s'}}></div>
@@ -256,14 +256,14 @@ export function HomePage() {
     <div className="absolute top-4 right-32 text-4xl opacity-20 animate-bounce" style={{animationDuration: '2.5s'}}>🛒</div>
     <div className="absolute bottom-6 right-8 text-3xl opacity-20 animate-bounce" style={{animationDuration: '3.5s'}}>🥬</div>
     
-    <div className="relative z-10 mx-auto w-full max-w-screen-2xl px-4 py-10 sm:px-6 sm:py-16 lg:px-12">
-    <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-1.5 mb-4">
-      <Sparkles size={14} className="text-yellow-300" />
-      <p className="text-xs font-black uppercase tracking-[0.15em] text-white">{settings?.store_name || 'Narendra Kirana Store'}</p>
+    <div className="relative z-10 mx-auto w-full max-w-screen-2xl px-4 py-6 sm:px-6 sm:py-8 lg:px-12">
+    <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 mb-2">
+      <Sparkles size={12} className="text-yellow-300" />
+      <p className="text-[10px] font-black uppercase tracking-[0.15em] text-white">{settings?.store_name || 'Narendra Kirana Store'}</p>
     </div>
-    <h1 className="max-w-2xl text-4xl font-extrabold leading-tight sm:text-5xl text-white tracking-tight drop-shadow-sm">Everyday essentials, <span className="text-yellow-300">ready when you are.</span></h1>
-    <p className="mt-4 max-w-xl text-base text-emerald-100 font-medium leading-relaxed">Order online and collect from your local store. Quality products, straightforward pricing, and reliable service.</p>
-    <Link to="/products" className="mt-8 inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 font-extrabold text-emerald-700 transition-all hover:bg-yellow-300 hover:text-emerald-900 active:scale-95 shadow-lg hover:shadow-xl group">
+    <h1 className="max-w-2xl text-2xl font-extrabold leading-tight sm:text-4xl text-white tracking-tight drop-shadow-sm">Everyday essentials, <span className="text-yellow-300">ready when you are.</span></h1>
+    <p className="mt-2 max-w-xl text-sm text-emerald-100 font-medium leading-relaxed hidden sm:block">Order online and collect from your local store. Quality products, straightforward pricing, and reliable service.</p>
+    <Link to="/products" className="mt-4 inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-extrabold text-emerald-700 transition-all hover:bg-yellow-300 hover:text-emerald-900 active:scale-95 shadow-md hover:shadow-lg group">
       Explore Catalog <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform"/>
     </Link>
     </div>
