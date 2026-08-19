@@ -178,7 +178,7 @@ function BannerCarousel({ banners }) {
  <a 
  key={banner.id} 
  href={banner.link || '#'} 
- className="w-full flex-shrink-0 block aspect-[16/7] sm:aspect-[21/9] md:aspect-[4/1]"
+ className="w-full flex-shrink-0 block aspect-[16/7] sm:aspect-[21/9] md:aspect-[4/1] max-h-[300px] sm:max-h-[350px] md:max-h-[400px]"
  >
  <img 
  src={banner.image} 
@@ -248,7 +248,7 @@ export function HomePage() {
    
     {banners.length === 0 && (
     <GSAPFadeUp delay={0.2}>
-    <section className="bg-gradient-to-br from-emerald-600 via-teal-600 to-blue-700 text-white shadow-xl relative overflow-hidden w-full mb-6">
+    <section className="bg-gradient-to-br from-emerald-600 via-teal-600 to-blue-700 text-white shadow-xl relative overflow-hidden w-full mb-6 max-h-[350px] md:max-h-[400px] flex flex-col justify-center">
     {/* Animated decorative shapes */}
     <div className="absolute top-0 right-0 -mr-10 -mt-10 w-48 h-48 rounded-full bg-white/10 animate-pulse"></div>
     <div className="absolute bottom-0 right-20 -mb-8 w-32 h-32 rounded-full bg-white/10 animate-pulse" style={{animationDelay: '1s'}}></div>
