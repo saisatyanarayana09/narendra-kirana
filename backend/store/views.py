@@ -1,9 +1,46 @@
+import time
+
+from django.db import connection
+from django.http import JsonResponse
+from django.utils import timezone
+from django.views import View
+from django.views.generic import TemplateView
 from rest_framework import views, response, status, viewsets
 from rest_framework.permissions import AllowAny
 from rest_framework.decorators import action
 from accounts.permissions import IsOwnerUser
 from .models import StoreSettings, Feedback, HomepageSection
 from .serializers import StoreSettingsSerializer, FeedbackSerializer, HomepageSectionSerializer
+
+
+class BackendMonitorPageView(TemplateView):
+    """Public, non-sensitive operational dashboard shown at the service root."""
+
+    template_name = 'store/backend_monitor.html'
+
+
+class BackendHealthView(View):
+    """Small public health endpoint consumed by the root monitor page."""
+
+    def get(self, request):
+        started = time.perf_counter()
+        database_status = 'connected'
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT 1')
+                cursor.fetchone()
+        except Exception:
+            database_status = 'unavailable'
+
+        latency_ms = round((time.perf_counter() - started) * 1000, 1)
+        is_healthy = database_status == 'connected'
+        return JsonResponse({
+            'status': 'operational' if is_healthy else 'degraded',
+            'database': database_status,
+            'latency_ms': latency_ms,
+            'timestamp': timezone.now().isoformat(),
+            'api_base': '/api/v1/',
+        }, status=200 if is_healthy else 503)
 
 
 class StoreSettingsView(views.APIView):
