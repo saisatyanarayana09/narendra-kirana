@@ -30,7 +30,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
         return Response({'status': 'reordered'})
 
 class ProductViewSet(viewsets.ModelViewSet):
-    queryset = Product.objects.all().order_by('display_order', '-created_at')
+    queryset = Product.objects.select_related('category').all().order_by('display_order', '-created_at')
     serializer_class = ProductSerializer
     permission_classes = [IsOwnerOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
@@ -59,7 +59,7 @@ class FavoriteViewSet(viewsets.ModelViewSet):
     serializer_class = FavoriteSerializer
 
     def get_queryset(self):
-        return Favorite.objects.filter(user=self.request.user)
+        return Favorite.objects.select_related('product', 'product__category').filter(user=self.request.user)
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
