@@ -2,8 +2,10 @@ import os
 from pathlib import Path
 from datetime import timedelta
 import dj_database_url
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / '.env')
 
 # ─── Environment Detection ───
 # Set DJANGO_ENV=production on PythonAnywhere
@@ -79,12 +81,13 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # ─── Database ───
 # Development: SQLite | Production: Neon PostgreSQL
-if IS_PRODUCTION:
-    if not os.environ.get('DATABASE_URL'):
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if IS_PRODUCTION and not DATABASE_URL:
         raise RuntimeError('DATABASE_URL must be set when DJANGO_ENV=production.')
+if DATABASE_URL:
     DATABASES = {
         'default': dj_database_url.config(
-            default=os.environ.get('DATABASE_URL'),
+            default=DATABASE_URL,
             conn_max_age=600,
         )
     }
