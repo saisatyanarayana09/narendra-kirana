@@ -256,7 +256,7 @@ export function HomePage() {
     <div className="absolute top-4 right-32 text-4xl opacity-20 animate-bounce" style={{animationDuration: '2.5s'}}>🛒</div>
     <div className="absolute bottom-6 right-8 text-3xl opacity-20 animate-bounce" style={{animationDuration: '3.5s'}}>🥬</div>
     
-    <div className="relative z-10 mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-16">
+    <div className="relative z-10 mx-auto w-full max-w-screen-2xl px-4 py-10 sm:px-6 sm:py-16 lg:px-12">
     <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-1.5 mb-4">
       <Sparkles size={14} className="text-yellow-300" />
       <p className="text-xs font-black uppercase tracking-[0.15em] text-white">{settings?.store_name || 'Narendra Kirana Store'}</p>
@@ -272,7 +272,7 @@ export function HomePage() {
     )}
   </div>
 
-  <main className="mx-auto max-w-6xl px-4 pb-5 sm:px-6 sm:pb-8 overflow-hidden">
+  <main className="mx-auto w-full max-w-screen-2xl px-4 pb-5 sm:px-6 sm:pb-8 lg:px-12 overflow-hidden">
   
   {error && <GSAPFadeUp><p className="rounded-xl bg-red-50 p-4 text-sm text-red-700 border border-red-100 mb-6">{error}</p></GSAPFadeUp>}
 
@@ -358,17 +358,17 @@ export function CategoriesPage() {
 
  return (
  <CustomerLayout>
-  <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-  <div className="max-w-4xl mx-auto mb-6 flex flex-col items-start gap-2">
+  <main className="mx-auto w-full max-w-screen-2xl px-4 py-8 sm:px-6 lg:px-12">
+  <div className="w-full mb-6 flex flex-col items-start gap-2">
     <button onClick={() => navigate(-1)} className="text-sm font-bold text-emerald-700 hover:underline bg-transparent border-none cursor-pointer p-0 flex items-center gap-1"><ArrowLeft size={16} /> Back</button>
     <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">All Categories</h1>
   </div>
   {loading ? (
- <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 max-w-4xl mx-auto">
+ <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 w-full">
  {Array.from({length: 10}).map((_, i) => <CategorySkeleton key={i} />)}
  </div>
  ) : (
- <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 max-w-4xl mx-auto">
+ <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 w-full">
  {categories.map((category, index) => {
  return (
  <Link 
@@ -410,7 +410,7 @@ export function CategoriesPage() {
   
   return (
   <CustomerLayout>
-    <main className="mx-auto max-w-6xl px-4 py-4 sm:px-6">
+    <main className="mx-auto w-full max-w-screen-2xl px-4 py-4 sm:px-6 lg:px-12">
       <div className="sticky top-[60px] sm:top-[68px] z-20 -mx-4 px-4 sm:mx-0 sm:px-0 bg-slate-50 py-3 mb-4 border-b border-slate-200/60 shadow-sm sm:shadow-none sm:border-none sm:bg-transparent sm:py-0">
         <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar items-center">
           <Link to="/"className="flex shrink-0 items-center justify-center rounded-full bg-white text-slate-600 shadow-sm border border-slate-200/60 hover:bg-slate-50 transition w-9 h-9 mr-1" aria-label="Back to home"><ArrowLeft size={18} /></Link>
@@ -447,7 +447,7 @@ export function CategoriesPage() {
  const maxAllowed = product.max_order_quantity > 0 ? Math.min(product.stock_quantity, product.max_order_quantity) : product.stock_quantity;
  const isMaxReached = cartItem && cartItem.quantity >= maxAllowed;
 
- return <CustomerLayout><main className="mx-auto max-w-5xl px-4 py-6 sm:px-6"><button onClick={() => navigate(-1)} className="mb-4 flex items-center gap-2 text-sm font-bold text-emerald-700 hover:underline bg-transparent border-none cursor-pointer"><ArrowLeft size={16} /> Back</button><article className="mt-5 overflow-hidden rounded-2xl bg-white shadow-lg border border-slate-200 relative flex flex-col md:flex-row">
+ return <CustomerLayout><main className="mx-auto w-full max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-12"><button onClick={() => navigate(-1)} className="mb-4 flex items-center gap-2 text-sm font-bold text-emerald-700 hover:underline bg-transparent border-none cursor-pointer"><ArrowLeft size={16} /> Back</button><article className="mt-5 overflow-hidden rounded-2xl bg-white shadow-lg border border-slate-200 relative flex flex-col md:flex-row">
  {discountPercent > 0 && (
  <div className="absolute top-0 left-0 z-10 bg-gradient-to-r from-red-500 to-orange-500 text-white text-xs font-extrabold px-4 py-2 rounded-br-2xl shadow-lg tracking-wider flex items-center gap-1.5">
  <Zap size={12} fill="currentColor" />

@@ -230,7 +230,7 @@ export function CustomerLayout({ children }) {
  <div className="min-h-screen bg-slate-50 pb-20 sm:pb-0 text-slate-900 transition-colors duration-200">
  <WelcomeScreen />
  <header className="sticky top-0 z-30 border-b border-slate-200/60 bg-white/80 backdrop-blur-xl shadow-sm transition-colors duration-200">
- <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+ <div className="mx-auto flex w-full max-w-screen-2xl items-center justify-between px-4 py-3 sm:px-6 lg:px-12">
  <Link to="/"className="text-2xl sm:text-3xl font-black tracking-tighter whitespace-nowrap shrink-0 drop-shadow-sm hover:opacity-80 transition-opacity">
  <span className="text-emerald-900">Narendra</span>
  <span className="text-primary-600">Kirana</span>
