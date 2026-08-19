@@ -16,9 +16,15 @@ IS_PRODUCTION = ENVIRONMENT == 'production'
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-local-development-only-change-me')
 DEBUG = not IS_PRODUCTION
 
+default_allowed_hosts = 'localhost,127.0.0.1'
+if IS_PRODUCTION:
+    default_allowed_hosts = os.environ.get(
+        'RENDER_EXTERNAL_HOSTNAME',
+        os.environ.get('PYTHONANYWHERE_DOMAIN', ''),
+    )
 ALLOWED_HOSTS = [host.strip() for host in os.environ.get(
     'DJANGO_ALLOWED_HOSTS',
-    'localhost,127.0.0.1' if not IS_PRODUCTION else os.environ.get('PYTHONANYWHERE_DOMAIN', '')
+    default_allowed_hosts,
 ).split(',') if host.strip()]
 
 # ─── Apps ───
