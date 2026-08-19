@@ -9,4 +9,7 @@ backend/venv/
 .DS_Store
 .env
 .env.*
+!.env.example
+!backend/.env.example
+!frontend/.env.example
 .pytest_cache/
