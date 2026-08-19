@@ -1,3 +1,4 @@
+import { optimizeImage } from './utils/image';
 import { useEffect, useState } from 'react'
 import { GSAPFadeUp, GSAPZoomIn } from './components/GSAPScroll'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
