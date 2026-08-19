@@ -67,7 +67,7 @@ class HomepageSectionViewSet(viewsets.ModelViewSet):
     """
     ViewSet for dynamic homepage sections.
     """
-    queryset = HomepageSection.objects.prefetch_related('products', 'products__category').all()
+    queryset = HomepageSection.objects.prefetch_related('section_products__product').all()
     serializer_class = HomepageSectionSerializer
     pagination_class = None
 
