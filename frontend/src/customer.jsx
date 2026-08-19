@@ -169,7 +169,7 @@ function BannerCarousel({ banners }) {
  if (!banners.length) return null;
 
  return (
- <section className="mb-6 relative rounded-2xl overflow-hidden shadow-lg group bg-slate-100 ring-1 ring-slate-900/5">
+ <section className="relative overflow-hidden group bg-slate-100 w-full mb-2 sm:mb-6 shadow-sm">
  <div 
  className="flex transition-transform duration-500 ease-out h-full"
  style={{ transform: `translateX(-${currentIndex * 100}%)` }}
@@ -178,7 +178,7 @@ function BannerCarousel({ banners }) {
  <a 
  key={banner.id} 
  href={banner.link || '#'} 
- className="w-full flex-shrink-0 block aspect-[2/1] sm:aspect-[3/1] md:aspect-[4/1]"
+ className="w-full flex-shrink-0 block aspect-[16/7] sm:aspect-[21/9] md:aspect-[4/1]"
  >
  <img 
  src={banner.image} 
@@ -190,7 +190,7 @@ function BannerCarousel({ banners }) {
  </div>
  
  {banners.length > 1 && (
- <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10">
+ <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-10">
  {banners.map((_, idx) => (
  <button
  key={idx}
@@ -240,41 +240,44 @@ export function HomePage() {
   // Section icons
   const sectionIcons = ['🔥', '⭐', '🆕', '💎', '🎯', '🌟', '✨', '🏷️'];
 
-  return <CustomerLayout><main className="mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-8 overflow-hidden">
-  
-  <GSAPFadeUp>
-    <BannerCarousel banners={banners} />
-  </GSAPFadeUp>
- 
-  {banners.length === 0 && (
-  <GSAPFadeUp delay={0.2}>
-  <section className="rounded-3xl bg-gradient-to-br from-emerald-600 via-teal-600 to-blue-700 p-8 sm:p-12 text-white shadow-xl relative overflow-hidden">
-  {/* Animated decorative shapes */}
-  <div className="absolute top-0 right-0 -mr-10 -mt-10 w-48 h-48 rounded-full bg-white/10 animate-pulse"></div>
-  <div className="absolute bottom-0 right-20 -mb-8 w-32 h-32 rounded-full bg-white/10 animate-pulse" style={{animationDelay: '1s'}}></div>
-  <div className="absolute top-1/2 left-10 w-16 h-16 rounded-full bg-yellow-400/20 animate-bounce" style={{animationDuration: '3s'}}></div>
-  <div className="absolute top-4 right-32 text-4xl opacity-20 animate-bounce" style={{animationDuration: '2.5s'}}>🛒</div>
-  <div className="absolute bottom-6 right-8 text-3xl opacity-20 animate-bounce" style={{animationDuration: '3.5s'}}>🥬</div>
-  
-  <div className="relative z-10">
-  <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-1.5 mb-4">
-    <Sparkles size={14} className="text-yellow-300" />
-    <p className="text-xs font-black uppercase tracking-[0.15em] text-white">{settings?.store_name || 'Narendra Kirana Store'}</p>
+  return <CustomerLayout>
+  <div className="w-full">
+    <GSAPFadeUp>
+      <BannerCarousel banners={banners} />
+    </GSAPFadeUp>
+   
+    {banners.length === 0 && (
+    <GSAPFadeUp delay={0.2}>
+    <section className="bg-gradient-to-br from-emerald-600 via-teal-600 to-blue-700 text-white shadow-xl relative overflow-hidden w-full mb-6">
+    {/* Animated decorative shapes */}
+    <div className="absolute top-0 right-0 -mr-10 -mt-10 w-48 h-48 rounded-full bg-white/10 animate-pulse"></div>
+    <div className="absolute bottom-0 right-20 -mb-8 w-32 h-32 rounded-full bg-white/10 animate-pulse" style={{animationDelay: '1s'}}></div>
+    <div className="absolute top-1/2 left-10 w-16 h-16 rounded-full bg-yellow-400/20 animate-bounce" style={{animationDuration: '3s'}}></div>
+    <div className="absolute top-4 right-32 text-4xl opacity-20 animate-bounce" style={{animationDuration: '2.5s'}}>🛒</div>
+    <div className="absolute bottom-6 right-8 text-3xl opacity-20 animate-bounce" style={{animationDuration: '3.5s'}}>🥬</div>
+    
+    <div className="relative z-10 mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-16">
+    <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-1.5 mb-4">
+      <Sparkles size={14} className="text-yellow-300" />
+      <p className="text-xs font-black uppercase tracking-[0.15em] text-white">{settings?.store_name || 'Narendra Kirana Store'}</p>
+    </div>
+    <h1 className="max-w-2xl text-4xl font-extrabold leading-tight sm:text-5xl text-white tracking-tight drop-shadow-sm">Everyday essentials, <span className="text-yellow-300">ready when you are.</span></h1>
+    <p className="mt-4 max-w-xl text-base text-emerald-100 font-medium leading-relaxed">Order online and collect from your local store. Quality products, straightforward pricing, and reliable service.</p>
+    <Link to="/products" className="mt-8 inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 font-extrabold text-emerald-700 transition-all hover:bg-yellow-300 hover:text-emerald-900 active:scale-95 shadow-lg hover:shadow-xl group">
+      Explore Catalog <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform"/>
+    </Link>
+    </div>
+    </section>
+    </GSAPFadeUp>
+    )}
   </div>
-  <h1 className="max-w-2xl text-4xl font-extrabold leading-tight sm:text-5xl text-white tracking-tight drop-shadow-sm">Everyday essentials, <span className="text-yellow-300">ready when you are.</span></h1>
-  <p className="mt-4 max-w-xl text-base text-emerald-100 font-medium leading-relaxed">Order online and collect from your local store. Quality products, straightforward pricing, and reliable service.</p>
-  <Link to="/products" className="mt-8 inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 font-extrabold text-emerald-700 transition-all hover:bg-yellow-300 hover:text-emerald-900 active:scale-95 shadow-lg hover:shadow-xl group">
-    Explore Catalog <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform"/>
-  </Link>
-  </div>
-  </section>
-  </GSAPFadeUp>
-  )}
+
+  <main className="mx-auto max-w-6xl px-4 pb-5 sm:px-6 sm:pb-8 overflow-hidden">
   
-  {error && <GSAPFadeUp><p className="mt-6 rounded-xl bg-red-50 p-4 text-sm text-red-700 border border-red-100">{error}</p></GSAPFadeUp>}
+  {error && <GSAPFadeUp><p className="rounded-xl bg-red-50 p-4 text-sm text-red-700 border border-red-100 mb-6">{error}</p></GSAPFadeUp>}
 
   {/* Categories */}
-  <section className="mt-8">
+  <section className="mt-4">
   <div className="flex justify-between items-center">
     <div className="flex items-center gap-2">
       <span className="text-2xl">🏪</span>
