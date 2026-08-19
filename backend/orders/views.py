@@ -286,11 +286,41 @@ class OrderViewSet(ModelViewSet):
                         
             order.save(update_fields=['total_amount', 'wallet_discount', 'updated_at'])
             
-            # Restore inventory
+            # Restore inventory for the rejected item
             if item.product:
                 item.product.stock_quantity += item.quantity
                 item.product.is_in_stock = True
                 item.product.save(update_fields=['stock_quantity', 'is_in_stock'])
+            
+            # If ALL items are now rejected, reject the entire order
+            all_rejected = not order.items.exclude(status='REJECTED').exists()
+            if all_rejected:
+                order.status = Order.Status.REJECTED
+                order.save(update_fields=['status', 'updated_at'])
+                
+                # Refund any remaining wallet discount
+                if order.wallet_discount > 0:
+                    try:
+                        wallet = order.customer.wallet
+                        wallet.balance += order.wallet_discount
+                        wallet.save()
+                        from accounts.models import WalletTransaction
+                        WalletTransaction.objects.create(
+                            wallet=wallet,
+                            amount=order.wallet_discount,
+                            transaction_type=WalletTransaction.TransactionType.REFUND,
+                            description=f"Refund for fully rejected order #{order.id}"
+                        )
+                        order.wallet_discount = Decimal('0.00')
+                        order.save(update_fields=['wallet_discount'])
+                    except Exception as e:
+                        print("Error refunding wallet on full rejection:", e)
+                
+                Notification.objects.create(
+                    user=order.customer,
+                    title=f"Order #{order.id} Cancelled",
+                    message=f"Hi {order.customer.first_name}, all items in your order were unavailable so the order has been cancelled. Any wallet balance used has been refunded."
+                )
                 
         return Response(OrderSerializer(order, context=self.get_serializer_context()).data)
 
