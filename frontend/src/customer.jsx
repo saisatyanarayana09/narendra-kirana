@@ -152,7 +152,7 @@ export function CategorySkeleton() {
 
 export function HomeCategorySkeleton() {
  return (
- <div className="min-w-32 h-20 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 animate-pulse border border-slate-100"></div>
+ <div className="w-24 h-24 sm:w-32 sm:h-24 md:w-40 md:h-[120px] shrink-0 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 animate-pulse border border-slate-100"></div>
  );
 }
 
@@ -297,7 +297,7 @@ export function HomePage() {
         <Link 
           key={category.id} 
           to={`/products?category=${category.id}`} 
-          className="w-28 sm:w-32 h-32 flex flex-col items-center justify-end p-3 relative rounded-2xl overflow-hidden shadow-md ring-1 ring-black/5 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:scale-105 group shrink-0"
+          className="w-24 h-24 sm:w-32 sm:h-24 md:w-40 md:h-[120px] flex flex-col items-center justify-end p-2 sm:p-3 relative rounded-2xl overflow-hidden shadow-sm ring-1 ring-black/5 transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:scale-105 group shrink-0"
         >
         <div className="absolute inset-0">
           {category.image ? (
@@ -365,17 +365,17 @@ export function CategoriesPage() {
     <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">All Categories</h1>
   </div>
   {loading ? (
- <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 w-full">
- {Array.from({length: 10}).map((_, i) => <CategorySkeleton key={i} />)}
+ <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4 w-full">
+ {Array.from({length: 12}).map((_, i) => <CategorySkeleton key={i} />)}
  </div>
  ) : (
- <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 w-full">
+ <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4 w-full">
  {categories.map((category, index) => {
  return (
  <Link 
  key={category.id} 
  to={`/products?category=${category.id}`} 
- className="aspect-square sm:aspect-[4/3] flex flex-col items-center justify-end p-3 sm:p-4 relative rounded-2xl overflow-hidden shadow-md ring-1 ring-black/5 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:scale-105 group bg-slate-50 w-full"
+ className="aspect-square sm:aspect-[4/3] flex flex-col items-center justify-end p-2 sm:p-3 relative rounded-2xl overflow-hidden shadow-sm ring-1 ring-black/5 transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:scale-105 group bg-slate-50 w-full"
  >
  <div className="absolute inset-0">
  {category.image ? (
