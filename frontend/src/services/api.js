@@ -45,4 +45,38 @@ api.interceptors.response.use(
   }
 );
 
+
+// Catalog Cache System for Instant Navigation
+const cache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHEABLE_URLS = [
+  '/products/', 
+  '/categories/', 
+  '/offers/banners/', 
+  '/store/settings/', 
+  '/store/homepage-sections/'
+];
+
+const originalGet = api.get;
+api.get = async (url, config = {}) => {
+  // Check if it's an exact match for one of our cacheable catalog endpoints
+  const shouldCache = CACHEABLE_URLS.includes(url) && (!config.params || Object.keys(config.params).length === 0);
+  
+  if (shouldCache && cache.has(url)) {
+    const { data, timestamp } = cache.get(url);
+    if (Date.now() - timestamp < CACHE_TTL) {
+      return Promise.resolve({ data, fromCache: true }); // Return mock response with cached data
+    }
+  }
+
+  const response = await originalGet.call(api, url, config);
+  
+  if (shouldCache && response.status === 200) {
+    cache.set(url, { data: response.data, timestamp: Date.now() });
+  }
+  
+  return response;
+};
+
 export default api;
+
