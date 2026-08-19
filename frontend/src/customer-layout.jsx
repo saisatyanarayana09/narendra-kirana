@@ -1,3 +1,4 @@
+import { optimizeImage } from './utils/image';
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Home, Search, ShoppingBasket, ShoppingCart, User, X, Heart, Bell, LayoutGrid, Trash2, ShoppingBag, Leaf, Coffee, Package } from 'lucide-react'
@@ -83,7 +84,7 @@ function GlobalSearchBar() {
  className="flex items-center gap-3 p-3 hover:bg-slate-50 border-b border-slate-50 last:border-0 transition"
  >
  <div className="w-10 h-10 rounded bg-slate-100 overflow-hidden shrink-0 flex items-center justify-center font-bold text-slate-400 text-xs">
- {product.image ? <img src={product.image} className="w-full h-full object-cover"alt=""/> : 'IMG'}
+ {product.image ? <img src={optimizeImage(product.image)} className="w-full h-full object-cover"alt=""/> : 'IMG'}
  </div>
  <div className="flex-1 min-w-0">
  <p className="text-sm font-bold text-slate-900 truncate">{product.name}</p>
