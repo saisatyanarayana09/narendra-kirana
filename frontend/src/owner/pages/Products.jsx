@@ -37,33 +37,57 @@ const Products = () => {
     const file = e.target.files[0];
     if (!file) return;
     
-    toast.loading('AI is analyzing the product...', {id: 'ai-scan'});
-    const formData = new FormData();
-    formData.append('image', file);
+    toast.loading('Preparing image...', {id: 'ai-scan'});
     
-    try {
-        const res = await api.post('/products/vision_lookup/', formData);
-        toast.dismiss('ai-scan');
-        if (res.data.success) {
-            toast.success('AI successfully extracted details!');
-            openForm(null);
-            setTimeout(() => {
-              setFormData(prev => ({
-                  ...prev,
-                  name: res.data.product.name || '',
-                  brand: res.data.product.brand || '',
-                  unit: res.data.product.unit || '',
-                  description: res.data.product.description || ''
-              }));
-            }, 100);
-        } else {
-            toast.error(res.data.error || 'AI could not read the product.');
+    // Compress image to prevent Payload Too Large and speed up upload
+    const img = new window.Image();
+    img.src = URL.createObjectURL(file);
+    img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 800;
+        let scaleSize = 1;
+        if (img.width > MAX_WIDTH) {
+            scaleSize = MAX_WIDTH / img.width;
         }
-    } catch (err) {
+        canvas.width = img.width * scaleSize;
+        canvas.height = img.height * scaleSize;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        canvas.toBlob(async (blob) => {
+            toast.loading('AI is analyzing the product...', {id: 'ai-scan'});
+            const formData = new FormData();
+            formData.append('image', blob, 'photo.jpg');
+            
+            try {
+                const res = await api.post('/products/vision_lookup/', formData);
+                toast.dismiss('ai-scan');
+                if (res.data.success) {
+                    toast.success('AI successfully extracted details!');
+                    openForm(null);
+                    setTimeout(() => {
+                      setFormData(prev => ({
+                          ...prev,
+                          name: res.data.product.name || '',
+                          brand: res.data.product.brand || '',
+                          unit: res.data.product.unit || '',
+                          description: res.data.product.description || ''
+                      }));
+                    }, 100);
+                } else {
+                    toast.error(res.data.error || 'AI could not read the product.');
+                }
+            } catch (err) {
+                toast.dismiss('ai-scan');
+                toast.error('AI Scan failed. Check connection.');
+            }
+            e.target.value = '';
+        }, 'image/jpeg', 0.8);
+    };
+    img.onerror = () => {
         toast.dismiss('ai-scan');
-        toast.error('AI Scan failed. Check connection.');
-    }
-    e.target.value = '';
+        toast.error('Failed to load image.');
+    };
  };
 
  const handleBarcodeScan = async (decodedText) => {
