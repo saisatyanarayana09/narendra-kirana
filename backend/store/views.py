@@ -15,8 +15,16 @@ from .serializers import StoreSettingsSerializer, FeedbackSerializer, HomepageSe
 
 class BackendMonitorPageView(TemplateView):
     """Public, non-sensitive operational dashboard shown at the service root."""
-
     template_name = 'store/backend_monitor.html'
+    
+    def get(self, request, *args, **kwargs):
+        # Extremely lightweight query to prevent Neon database from auto-suspending (Scale to Zero)
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT 1')
+        except Exception:
+            pass
+        return super().get(request, *args, **kwargs)
 
 
 class BackendHealthView(View):
