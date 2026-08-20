@@ -71,7 +71,7 @@ export function ProductCard({ product, ...props }) {
  }
  };
 
- return <Link to={`/product/${product.id}`} {...props} className="block group relative overflow-hidden rounded-2xl bg-white shadow-sm border border-slate-200/80 transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 hover:border-emerald-200 hover:ring-2 hover:ring-emerald-100 flex flex-col h-full">
+ return <div {...props} className="group relative overflow-hidden rounded-2xl bg-white shadow-sm border border-slate-200/80 transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 hover:border-emerald-200 hover:ring-2 hover:ring-emerald-100 flex flex-col h-full">
  {discountPercent > 0 && (
  <div className="absolute top-0 left-0 z-10 bg-gradient-to-r from-red-500 to-orange-500 text-white text-[10px] font-extrabold px-2.5 py-1.5 rounded-br-xl rounded-tl-xl shadow-lg tracking-wider flex items-center gap-1">
  <Zap size={10} fill="currentColor" />
@@ -82,12 +82,12 @@ export function ProductCard({ product, ...props }) {
  {isCustomer && (
  <button 
  onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(product.id); }} 
- className="absolute top-2 right-2 z-20 p-1.5 rounded-full bg-white/90 backdrop-blur shadow-md transition-all hover:scale-125 hover:bg-white active:scale-95"
+ className="absolute top-2 right-2 z-10 p-1.5 rounded-full bg-white/90 backdrop-blur shadow-md transition-all hover:scale-125 hover:bg-white active:scale-95"
  >
  <Heart size={18} fill={isFav ?"currentColor":"none"} className={isFav ?"text-rose-500 drop-shadow-sm":"text-slate-300"} />
  </button>
  )}
- <div className="flex flex-col flex-grow relative z-0">
+ <Link to={`/product/${product.id}`} className="flex flex-col flex-grow">
  <div className="overflow-hidden bg-slate-50 relative rounded-t-2xl">
  <ProductImage product={product} />
  </div>
@@ -113,21 +113,21 @@ export function ProductCard({ product, ...props }) {
  
  {product.is_in_stock ? (
  <button 
- onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleAddToCart(e); }}
+ onClick={handleAddToCart}
  disabled={adding || added || isMaxReached}
- className={`relative z-20 w-full rounded-xl py-2.5 min-h-[44px] sm:min-h-0 sm:py-2 text-sm font-extrabold transition-all active:scale-95 flex items-center justify-center gap-1.5 ${added ? 'bg-green-500 text-white shadow-md' : isMaxReached ? 'bg-slate-50 text-slate-400 border border-slate-100 cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-lg shadow-emerald-200 shadow-md'} disabled:opacity-60 disabled:active:scale-100`}
+ className={`w-full rounded-xl py-2.5 min-h-[44px] sm:min-h-0 sm:py-2 text-sm font-extrabold transition-all active:scale-95 flex items-center justify-center gap-1.5 ${added ? 'bg-green-500 text-white shadow-md' : isMaxReached ? 'bg-slate-50 text-slate-400 border border-slate-100 cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-lg shadow-emerald-200 shadow-md'} disabled:opacity-60 disabled:active:scale-100`}
  >
  {isMaxReached ? 'Max in cart' : added ? '✓ Added!' : adding ? 'Adding...' : <><ShoppingCart size={14} /> Add to Cart</>}
  </button>
  ) : (
- <div className="w-full text-center rounded-xl bg-slate-50 border border-slate-100 py-2 text-sm font-extrabold text-slate-400 relative z-20">
+ <div className="w-full text-center rounded-xl bg-slate-50 border border-slate-100 py-2 text-sm font-extrabold text-slate-400">
  Out of stock
  </div>
  )}
  </div>
  </div>
- </div>
  </Link>
+ </div>
 }
 
 export function ProductSkeleton() {
@@ -170,7 +170,7 @@ function BannerCarousel({ banners }) {
  if (!banners.length) return null;
 
  return (
- <section className="relative overflow-hidden group bg-slate-100 w-full shadow-sm">
+ <section className="relative overflow-hidden group bg-slate-100 w-full mb-2 sm:mb-6 shadow-sm">
  <div 
  className="flex transition-transform duration-500 ease-out h-full"
  style={{ transform: `translateX(-${currentIndex * 100}%)` }}
@@ -231,7 +231,6 @@ export function HomePage() {
     <GSAPFadeUp>
       <BannerCarousel banners={banners} />
     </GSAPFadeUp>
-
    
     {banners.length === 0 && (
     <GSAPFadeUp delay={0.2}>
@@ -264,13 +263,13 @@ export function HomePage() {
   {error && <GSAPFadeUp><p className="rounded-xl bg-red-50 p-4 text-sm text-red-700 border border-red-100 mb-6">{error}</p></GSAPFadeUp>}
 
   {/* Categories */}
-  <section className="mt-2">
-  <div className="sticky top-[56px] sm:top-[68px] z-20 bg-slate-50 py-3 -mx-4 px-4 sm:mx-0 sm:px-0 flex justify-between items-center border-b border-transparent shadow-none transition-all">
+  <section className="mt-4">
+  <div className="flex justify-between items-center">
     <div className="flex items-center gap-2">
-      <span className="text-xl">🏪</span>
-      <h2 className="text-lg font-bold text-slate-900">Shop by Category</h2>
+      <span className="text-2xl">🏪</span>
+      <h2 className="text-xl font-extrabold text-slate-900">Shop by Category</h2>
     </div>
-    <Link to="/products" className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition flex items-center gap-1">See all <ChevronRight size={14} /></Link>
+    <Link to="/products" className="text-sm font-bold text-emerald-600 hover:text-emerald-700 transition flex items-center gap-1">See all <ChevronRight size={14} /></Link>
   </div>
   
   {loading ? (
@@ -308,13 +307,13 @@ export function HomePage() {
     if (sectionProducts.length === 0 && !loading) return null;
 
     return (
-      <section key={section.id} className="mt-6 sm:mt-8 pt-2 sm:pt-4 border-t border-slate-200/60">
-          <div className="sticky top-[56px] sm:top-[68px] z-20 bg-slate-50 py-3 -mx-4 px-4 sm:mx-0 sm:px-0 flex justify-between items-center transition-all border-b border-transparent">
+      <section key={section.id} className={index === 0 ? "mt-8" : "mt-8 pt-8 border-t border-slate-100"}>
+          <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <span className="text-lg">{sectionIcons[index % sectionIcons.length]}</span>
-              <h2 className="text-lg font-bold text-slate-900">{section.title}</h2>
+              <span className="text-xl">{sectionIcons[index % sectionIcons.length]}</span>
+              <h2 className="text-xl font-extrabold text-slate-900">{section.title}</h2>
             </div>
-            <Link to="/products" className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition flex items-center gap-1">View all <ChevronRight size={14} /></Link>
+            <Link to="/products" className="text-sm font-bold text-emerald-600 hover:text-emerald-700 transition flex items-center gap-1">View all <ChevronRight size={14} /></Link>
           </div>
           {loading ? (
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
