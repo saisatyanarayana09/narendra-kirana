@@ -46,9 +46,9 @@ api.interceptors.response.use(
 );
 
 
-// Catalog Cache System for Instant Navigation
-const cache = new Map();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+// Advanced Persistent Cache (Stale-While-Revalidate)
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes validity for fresh data
 const CACHEABLE_URLS = [
   '/products/', 
   '/categories/', 
@@ -57,26 +57,66 @@ const CACHEABLE_URLS = [
   '/store/homepage-sections/'
 ];
 
+// Memory cache for the current session to avoid JSON parsing repeatedly
+const memoryCache = new Map();
+
 const originalGet = api.get;
 api.get = async (url, config = {}) => {
-  // Check if it's an exact match for one of our cacheable catalog endpoints
   const shouldCache = CACHEABLE_URLS.includes(url) && (!config.params || Object.keys(config.params).length === 0);
   
-  if (shouldCache && cache.has(url)) {
-    const { data, timestamp } = cache.get(url);
-    if (Date.now() - timestamp < CACHE_TTL) {
-      return Promise.resolve({ data, fromCache: true }); // Return mock response with cached data
+  if (!shouldCache) {
+    return originalGet.call(api, url, config);
+  }
+
+  const cacheKey = sk_cache_;
+  let cachedData = memoryCache.get(cacheKey);
+
+  // Fallback to LocalStorage if not in memory (e.g., after a page reload)
+  if (!cachedData) {
+    try {
+      const stored = localStorage.getItem(cacheKey);
+      if (stored) {
+        cachedData = JSON.parse(stored);
+        memoryCache.set(cacheKey, cachedData);
+      }
+    } catch (e) {
+      console.warn('Local storage cache read failed', e);
     }
   }
 
+  // If we have cached data, return it INSTANTLY
+  if (cachedData) {
+    const isStale = Date.now() - cachedData.timestamp > CACHE_TTL;
+    
+    // If it's stale (older than 5 mins), fetch fresh data in the background SILENTLY
+    if (isStale) {
+      originalGet.call(api, url, config).then(response => {
+        if (response.status === 200) {
+          const newData = { data: response.data, timestamp: Date.now() };
+          memoryCache.set(cacheKey, newData);
+          localStorage.setItem(cacheKey, JSON.stringify(newData));
+        }
+      }).catch(() => { /* Ignore background fetch errors */ });
+    }
+    
+    // Always return the cached data immediately to keep UI instantly responsive
+    return Promise.resolve({ data: cachedData.data, fromCache: true, isStale });
+  }
+
+  // If absolutely no cache exists (very first visit), await the network request
   const response = await originalGet.call(api, url, config);
   
-  if (shouldCache && response.status === 200) {
-    cache.set(url, { data: response.data, timestamp: Date.now() });
+  if (response.status === 200) {
+    const newData = { data: response.data, timestamp: Date.now() };
+    memoryCache.set(cacheKey, newData);
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify(newData));
+    } catch(e) {
+      console.warn('Local storage cache write failed', e);
+    }
   }
   
   return response;
 };
 
 export default api;
-
