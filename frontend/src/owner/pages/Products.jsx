@@ -237,7 +237,7 @@ const Products = () => {
  </div>
  <div className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 bg-slate-50 rounded-xl overflow-hidden flex items-center justify-center border border-slate-100 group-hover:border-indigo-100 transition-colors">
  {product.image ? (
- <img src={product.image} alt={product.name} className="w-full h-full object-contain p-1 transition-transform duration-500 group-hover:scale-110"/>
+ <img loading='lazy' decoding='async' src={product.image} alt={product.name} className="w-full h-full object-contain p-1 transition-transform duration-500 group-hover:scale-110"/>
  ) : (
  <ImageIcon className="w-8 h-8 text-slate-300"/>
  )}

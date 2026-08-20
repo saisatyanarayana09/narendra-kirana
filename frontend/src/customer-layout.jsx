@@ -263,7 +263,7 @@ export function CustomerLayout({ children }) {
  <Link to="/login"className="hidden sm:block text-sm font-semibold text-primary-700">Sign in</Link>
  )}
  <Link to="/cart"aria-label="Cart"className="relative hidden sm:flex h-11 w-16 items-center justify-center rounded-xl bg-primary-600 text-white hover:bg-primary-700 transition-all ml-2 shadow-sm hover:shadow active:scale-95 group">
- <i className="fa-solid fa-cart-shopping text-xl mt-0.5"></i>
+ <ShoppingCart size={20} strokeWidth={2.5} className="mt-0.5" />
  {cart?.items?.length > 0 && (
  <span className="absolute -top-2 -right-2 flex h-[22px] min-w-[22px] px-1.5 items-center justify-center rounded-lg bg-slate-900 text-[11px] font-black text-white shadow-sm ring-2 ring-white">
  {cart.items.length}
@@ -294,7 +294,7 @@ export function CustomerLayout({ children }) {
  </Link>
  <Link className={`relative flex flex-1 flex-col items-center justify-center gap-1 text-xs font-bold transition-all ${location.pathname === '/cart' ? 'text-primary-700' : 'text-slate-500 hover:text-primary-700'}`} to="/cart">
  <div className="relative">
- <i className={`fa-solid fa-cart-shopping text-2xl ${location.pathname === '/cart' ? 'text-primary-700' : 'text-slate-500'}`}></i>
+ <ShoppingCart size={24} strokeWidth={2.5} className={location.pathname === '/cart' ? 'text-primary-700' : 'text-slate-500'} />
  {cart?.items?.length > 0 && <span className="absolute -right-2 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-md bg-slate-900 px-1 text-[10px] font-black text-white border-2 border-white shadow-sm">{cart.items.length}</span>}
  </div>
  <span>Cart</span>

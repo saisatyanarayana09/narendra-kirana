@@ -1,25 +1,45 @@
+import React, { Suspense } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, Outlet } from 'react-router-dom';
-import { HomePage, ProductDetailPage, ProductsPage, CategoriesPage } from './customer';
-import { CartPage, CheckoutPage, CustomerLoginPage, CustomerSignupPage, OrderDetailPage } from './cart';
-import { ProfileLayout, DashboardHome, AccountSettings, OrdersHistory, SavedAddresses, Favorites, Notifications, Feedback as CustomerFeedback, HelpCenter, Wallet, ReferAndEarn } from './profile';
 import { CartProvider } from './cart-context';
 import { Toaster } from 'react-hot-toast';
 
-// Modular Owner UI
-import OwnerLayout from './owner/layouts/OwnerLayout';
-import OwnerLogin from './owner/pages/Login';
-import Dashboard from './owner/pages/Dashboard';
-import Categories from './owner/pages/Categories';
-import Products from './owner/pages/Products';
-import Orders from './owner/pages/Orders';
-import OrderDetails from './owner/pages/OrderDetails';
-import Invoice from './owner/pages/Invoice';
-import Offers from './owner/pages/Offers';
-import Referrals from './owner/pages/Referrals';
-import Customers from './owner/pages/Customers';
-import Feedback from './owner/pages/Feedback';
-import Settings from './owner/pages/Settings';
-import Showcase from './owner/pages/Showcase';
+const HomePage = React.lazy(() => import('./customer').then(m => ({ default: m.HomePage })));
+const ProductDetailPage = React.lazy(() => import('./customer').then(m => ({ default: m.ProductDetailPage })));
+const ProductsPage = React.lazy(() => import('./customer').then(m => ({ default: m.ProductsPage })));
+const CategoriesPage = React.lazy(() => import('./customer').then(m => ({ default: m.CategoriesPage })));
+
+const CartPage = React.lazy(() => import('./cart').then(m => ({ default: m.CartPage })));
+const CheckoutPage = React.lazy(() => import('./cart').then(m => ({ default: m.CheckoutPage })));
+const CustomerLoginPage = React.lazy(() => import('./cart').then(m => ({ default: m.CustomerLoginPage })));
+const CustomerSignupPage = React.lazy(() => import('./cart').then(m => ({ default: m.CustomerSignupPage })));
+const OrderDetailPage = React.lazy(() => import('./cart').then(m => ({ default: m.OrderDetailPage })));
+
+const ProfileLayout = React.lazy(() => import('./profile').then(m => ({ default: m.ProfileLayout })));
+const DashboardHome = React.lazy(() => import('./profile').then(m => ({ default: m.DashboardHome })));
+const AccountSettings = React.lazy(() => import('./profile').then(m => ({ default: m.AccountSettings })));
+const OrdersHistory = React.lazy(() => import('./profile').then(m => ({ default: m.OrdersHistory })));
+const SavedAddresses = React.lazy(() => import('./profile').then(m => ({ default: m.SavedAddresses })));
+const Favorites = React.lazy(() => import('./profile').then(m => ({ default: m.Favorites })));
+const Notifications = React.lazy(() => import('./profile').then(m => ({ default: m.Notifications })));
+const CustomerFeedback = React.lazy(() => import('./profile').then(m => ({ default: m.Feedback })));
+const HelpCenter = React.lazy(() => import('./profile').then(m => ({ default: m.HelpCenter })));
+const Wallet = React.lazy(() => import('./profile').then(m => ({ default: m.Wallet })));
+const ReferAndEarn = React.lazy(() => import('./profile').then(m => ({ default: m.ReferAndEarn })));
+
+const OwnerLayout = React.lazy(() => import('./owner/layouts/OwnerLayout'));
+const OwnerLogin = React.lazy(() => import('./owner/pages/Login'));
+const Dashboard = React.lazy(() => import('./owner/pages/Dashboard'));
+const Categories = React.lazy(() => import('./owner/pages/Categories'));
+const Products = React.lazy(() => import('./owner/pages/Products'));
+const Orders = React.lazy(() => import('./owner/pages/Orders'));
+const OrderDetails = React.lazy(() => import('./owner/pages/OrderDetails'));
+const Invoice = React.lazy(() => import('./owner/pages/Invoice'));
+const Offers = React.lazy(() => import('./owner/pages/Offers'));
+const Referrals = React.lazy(() => import('./owner/pages/Referrals'));
+const Customers = React.lazy(() => import('./owner/pages/Customers'));
+const Feedback = React.lazy(() => import('./owner/pages/Feedback'));
+const Settings = React.lazy(() => import('./owner/pages/Settings'));
+const Showcase = React.lazy(() => import('./owner/pages/Showcase'));
 
 const ownerToken = () => localStorage.getItem('smart-kirana-owner-token'); // updated to use access_token from our api.js interceptor
 
@@ -43,6 +63,7 @@ function App() {
  return (
  <BrowserRouter>
  <Toaster position="top-center"toastOptions={{ style: { borderRadius: '12px', background: '#333', color: '#fff' } }} />
+ <Suspense fallback={null}>
  <Routes>
   {/* Customer Routes with CartProvider */}
   <Route element={<CustomerApp />}>
@@ -96,6 +117,7 @@ function App() {
 
  <Route path="*"element={<Navigate to="/"replace />} />
  </Routes>
+ </Suspense>
  </BrowserRouter>
  );
 }
