@@ -28,7 +28,7 @@ function ProductImage({ product, large = false }) {
  </div>
  );
  }
- return <div className={`grid w-full place-items-center bg-gradient-to-br from-emerald-50 to-teal-50 text-3xl font-bold text-emerald-300 ${large ? 'h-72 sm:h-80 md:h-full' : 'h-32 sm:h-36'}`}>{product.name?.charAt(0)?.toUpperCase()}</div>
+ return <div className={`grid w-full place-items-center bg-slate-100 text-3xl font-bold text-slate-300 ${large ? 'h-72 sm:h-80 md:h-full' : 'h-32 sm:h-36'}`}>{product.name?.charAt(0)?.toUpperCase()}</div>
 }
 
 function SearchBox({ value, onChange }) {
@@ -447,7 +447,7 @@ export function CategoriesPage() {
 
  return <CustomerLayout><main className="mx-auto w-full max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-12"><button onClick={() => navigate(-1)} className="mb-4 flex items-center gap-2 text-sm font-bold text-emerald-700 hover:underline bg-transparent border-none cursor-pointer"><ArrowLeft size={16} /> Back</button><article className="mt-5 overflow-hidden rounded-2xl bg-white shadow-lg border border-slate-200 relative flex flex-col md:flex-row">
  {discountPercent > 0 && (
- <div className="absolute top-0 left-0 z-10 bg-gradient-to-r from-red-500 to-orange-500 text-white text-xs font-extrabold px-4 py-2 rounded-br-2xl shadow-lg tracking-wider flex items-center gap-1.5">
+ <div className="absolute top-0 left-0 z-10 bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-br-2xl shadow-sm tracking-wide flex items-center gap-1.5">
  <Zap size={12} fill="currentColor" />
  {discountPercent}% OFF
  </div>
