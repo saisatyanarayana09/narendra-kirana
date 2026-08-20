@@ -68,7 +68,7 @@ api.get = async (url, config = {}) => {
     return originalGet.call(api, url, config);
   }
 
-  const cacheKey = sk_cache_;
+  const cacheKey = "sk_cache_" + url;
   let cachedData = memoryCache.get(cacheKey);
 
   // Fallback to LocalStorage if not in memory (e.g., after a page reload)
