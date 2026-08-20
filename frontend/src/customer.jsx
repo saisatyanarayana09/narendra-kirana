@@ -232,21 +232,6 @@ export function HomePage() {
       <BannerCarousel banners={banners} />
     </GSAPFadeUp>
 
-    {/* Sticky Horizontal Categories */}
-    <div className="sticky top-[56px] sm:top-[68px] z-20 w-full bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm py-3 px-4 sm:px-6 lg:px-12 flex gap-3 overflow-x-auto hide-scrollbar items-center transition-all -mx-4 sm:mx-0 sm:w-full w-screen">
-      <Link to="/products" className="shrink-0 px-5 py-2 rounded-full bg-emerald-600 text-white text-sm font-bold shadow-md hover:bg-emerald-700 transition">
-        All Products
-      </Link>
-      {categories.map(cat => (
-        <Link 
-          key={cat.id} 
-          to={`/products?category=${cat.id}`} 
-          className="shrink-0 px-4 py-2 rounded-full bg-slate-100 text-slate-700 text-sm font-bold border border-slate-200/60 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition"
-        >
-          {cat.name}
-        </Link>
-      ))}
-    </div>
    
     {banners.length === 0 && (
     <GSAPFadeUp delay={0.2}>
