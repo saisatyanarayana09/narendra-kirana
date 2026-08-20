@@ -170,7 +170,7 @@ function BannerCarousel({ banners }) {
  if (!banners.length) return null;
 
  return (
- <section className="relative overflow-hidden group bg-slate-100 w-full mb-2 sm:mb-6 shadow-sm">
+ <section className="relative overflow-hidden group bg-slate-100 w-full shadow-sm">
  <div 
  className="flex transition-transform duration-500 ease-out h-full"
  style={{ transform: `translateX(-${currentIndex * 100}%)` }}
@@ -264,13 +264,13 @@ export function HomePage() {
   {error && <GSAPFadeUp><p className="rounded-xl bg-red-50 p-4 text-sm text-red-700 border border-red-100 mb-6">{error}</p></GSAPFadeUp>}
 
   {/* Categories */}
-  <section className="sticky top-[56px] sm:top-[68px] z-20 bg-slate-50/95 backdrop-blur-xl pt-4 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 border-b border-slate-200/50 shadow-sm sm:border-none sm:shadow-none sm:bg-slate-50">
-  <div className="flex justify-between items-center">
+  <section className="mt-2">
+  <div className="sticky top-[56px] sm:top-[68px] z-20 bg-slate-50 py-3 -mx-4 px-4 sm:mx-0 sm:px-0 flex justify-between items-center border-b border-transparent shadow-none transition-all">
     <div className="flex items-center gap-2">
-      <span className="text-2xl">🏪</span>
-      <h2 className="text-xl font-extrabold text-slate-900">Shop by Category</h2>
+      <span className="text-xl">🏪</span>
+      <h2 className="text-lg font-bold text-slate-900">Shop by Category</h2>
     </div>
-    <Link to="/products" className="text-sm font-bold text-emerald-600 hover:text-emerald-700 transition flex items-center gap-1">See all <ChevronRight size={14} /></Link>
+    <Link to="/products" className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition flex items-center gap-1">See all <ChevronRight size={14} /></Link>
   </div>
   
   {loading ? (
@@ -308,13 +308,13 @@ export function HomePage() {
     if (sectionProducts.length === 0 && !loading) return null;
 
     return (
-      <section key={section.id} className={index === 0 ? "mt-8" : "mt-8 pt-8 border-t border-slate-100"}>
-          <div className="flex justify-between items-center">
+      <section key={section.id} className="mt-6 sm:mt-8 pt-2 sm:pt-4 border-t border-slate-200/60">
+          <div className="sticky top-[56px] sm:top-[68px] z-20 bg-slate-50 py-3 -mx-4 px-4 sm:mx-0 sm:px-0 flex justify-between items-center transition-all border-b border-transparent">
             <div className="flex items-center gap-2">
-              <span className="text-xl">{sectionIcons[index % sectionIcons.length]}</span>
-              <h2 className="text-xl font-extrabold text-slate-900">{section.title}</h2>
+              <span className="text-lg">{sectionIcons[index % sectionIcons.length]}</span>
+              <h2 className="text-lg font-bold text-slate-900">{section.title}</h2>
             </div>
-            <Link to="/products" className="text-sm font-bold text-emerald-600 hover:text-emerald-700 transition flex items-center gap-1">View all <ChevronRight size={14} /></Link>
+            <Link to="/products" className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition flex items-center gap-1">View all <ChevronRight size={14} /></Link>
           </div>
           {loading ? (
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
