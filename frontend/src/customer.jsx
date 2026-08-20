@@ -258,7 +258,7 @@ export function HomePage() {
     )}
   </div>
 
-  <main className="mx-auto w-full max-w-screen-2xl px-4 pb-5 sm:px-6 sm:pb-8 lg:px-12 overflow-hidden">
+  <main className="mx-auto w-full max-w-screen-2xl px-4 pb-5 sm:px-6 sm:pb-8 lg:px-12">
   
   {error && <GSAPFadeUp><p className="rounded-xl bg-red-50 p-4 text-sm text-red-700 border border-red-100 mb-6">{error}</p></GSAPFadeUp>}
 
@@ -309,10 +309,7 @@ export function HomePage() {
     return (
       <section key={section.id} className={index === 0 ? "mt-4 relative" : "mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-slate-100 relative"}>
           <div className="sticky top-[56px] sm:top-[68px] z-20 bg-slate-50/95 backdrop-blur-sm py-2 flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">{sectionIcons[index % sectionIcons.length]}</span>
-              <h2 className="text-lg font-bold text-slate-900">{section.title}</h2>
-            </div>
+            <h2 className="text-lg font-bold text-slate-900">{section.title}</h2>
             <Link to="/products" className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition flex items-center gap-1">View all <ChevronRight size={14} /></Link>
           </div>
           {loading ? (
