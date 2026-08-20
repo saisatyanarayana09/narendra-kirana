@@ -103,6 +103,51 @@ class ProductViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print('UPCitemdb API error:', str(e))
             
+        # 4. Check Gemini AI (Ultimate Fallback for Indian Products)
+        import os
+        gemini_key = os.environ.get('GEMINI_API_KEY')
+        if gemini_key:
+            try:
+                import google.generativeai as genai
+                genai.configure(api_key=gemini_key)
+                model = genai.GenerativeModel('gemini-3.6-flash')
+                
+                prompt = f"""
+                Identify the FMCG grocery product commonly sold in India with the barcode (EAN/UPC) {barcode}.
+                Return ONLY raw JSON (no markdown, no backticks) with the following structure:
+                {{
+                  "name": "Product Name (e.g. Tide Plus Jasmine & Rose)",
+                  "brand": "Brand Name (e.g. Tide)",
+                  "unit": "Size/Weight (e.g. 1kg, 500ml)"
+                }}
+                If you absolutely do not know, return {{"error": "not found"}}
+                """
+                response = model.generate_content(prompt)
+                
+                # Clean up response
+                result_text = response.text.strip()
+                if result_text.startswith('```json'):
+                    result_text = result_text[7:]
+                if result_text.endswith('```'):
+                    result_text = result_text[:-3]
+                    
+                import json
+                data_ai = json.loads(result_text.strip())
+                
+                if 'error' not in data_ai and data_ai.get('name'):
+                    return Response({
+                        'source': 'external',
+                        'product': {
+                            'name': data_ai.get('name', ''),
+                            'brand': data_ai.get('brand', ''),
+                            'unit': data_ai.get('unit', ''),
+                            'image_url': '',
+                            'sku': barcode
+                        }
+                    })
+            except Exception as e:
+                print('Gemini AI Barcode error:', str(e))
+                
         return Response({'source': 'not_found'})
 
     @action(detail=False, methods=['post'], permission_classes=[IsOwnerOrReadOnly])
@@ -122,8 +167,8 @@ class ProductViewSet(viewsets.ModelViewSet):
             import google.generativeai as genai
             genai.configure(api_key=gemini_key)
             
-            # Use gemini-2.5-flash for fast multimodal tasks
-            model = genai.GenerativeModel('gemini-2.5-flash')
+            # Use gemini-3.6-flash for fast multimodal tasks
+            model = genai.GenerativeModel('gemini-3.6-flash')
             
             image_data = {
                 "mime_type": image_file.content_type or 'image/jpeg',
