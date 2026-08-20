@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, X, Image as ImageIcon, Package, GripVertical } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Image as ImageIcon, Package, GripVertical, ScanLine } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import ImageCropper from '../components/ImageCropper';
+import BarcodeScanner from '../../components/BarcodeScanner';
 
 const Products = () => {
  const [products, setProducts] = useState([]);
  const [categories, setCategories] = useState([]);
  const [loading, setLoading] = useState(true);
+ const [isScanning, setIsScanning] = useState(false);
  
  const [isFormOpen, setIsFormOpen] = useState(false);
  const [editingId, setEditingId] = useState(null);
@@ -30,6 +32,38 @@ const Products = () => {
  };
 
  useEffect(() => { fetchData(); }, []);
+
+ const handleBarcodeScan = async (decodedText) => {
+    setIsScanning(false);
+    toast.loading('Looking up product...', {id: 'scan-toast'});
+    try {
+        const res = await api.get(`/products/barcode_lookup/?barcode=${decodedText}`);
+        toast.dismiss('scan-toast');
+        if (res.data.source === 'local') {
+            toast.success('Found in inventory! You can update stock.');
+            openForm(res.data.product);
+        } else if (res.data.source === 'external') {
+            toast.success('Found product online! Auto-filling details...');
+            openForm(null);
+            setTimeout(() => {
+              setFormData(prev => ({
+                  ...prev,
+                  name: res.data.product.name || '',
+                  brand: res.data.product.brand || '',
+                  unit: res.data.product.unit || '',
+                  sku: res.data.product.sku || decodedText
+              }));
+            }, 100);
+        } else {
+            toast.error('Product not found. Please add manually.');
+            openForm(null);
+            setTimeout(() => setFormData(prev => ({ ...prev, sku: decodedText })), 100);
+        }
+    } catch (e) {
+        toast.dismiss('scan-toast');
+        toast.error('Error looking up barcode');
+    }
+ };
 
  const openForm = (product = null) => {
  if (product) {
@@ -107,12 +141,17 @@ const Products = () => {
 
  return (
  <div className="max-w-7xl mx-auto space-y-6">
- <div className="flex justify-between items-center">
- <h1 className="text-2xl font-bold text-gray-900">Products</h1>
- <button onClick={() => openForm()} className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition">
- <Plus className="w-5 h-5 mr-2"/>Add Product
- </button>
- </div>
+   <div className="flex justify-between items-center">
+   <h1 className="text-2xl font-bold text-gray-900">Products</h1>
+   <div className="flex gap-2">
+     <button onClick={() => setIsScanning(true)} className="flex items-center px-4 py-2 bg-emerald-100 text-emerald-700 font-bold rounded-xl hover:bg-emerald-200 transition shadow-sm">
+       <ScanLine className="w-5 h-5 sm:mr-2"/><span className="hidden sm:inline">Scan Barcode</span>
+     </button>
+     <button onClick={() => openForm()} className="flex items-center px-4 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow-sm">
+       <Plus className="w-5 h-5 sm:mr-2"/><span className="hidden sm:inline">Add Product</span>
+     </button>
+   </div>
+   </div>
 
  {isFormOpen && (
  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
@@ -292,6 +331,7 @@ const Products = () => {
  </button>
  </div>
  )}
+ {isScanning && <BarcodeScanner onScan={handleBarcodeScan} onClose={() => setIsScanning(false)} />}
  </div>
  );
 };
