@@ -45,4 +45,50 @@ api.interceptors.response.use(
   }
 );
 
+
+
+// Ultra-Safe Memory Cache (No LocalStorage, No JSON Parsing)
+const memoryCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000;
+const CACHEABLE_URLS = [
+  '/products/', 
+  '/categories/', 
+  '/offers/banners/', 
+  '/store/settings/', 
+  '/store/homepage-sections/'
+];
+
+const originalGet = api.get;
+api.get = async (url, config = {}) => {
+  const safeUrl = url || '';
+  const isOwner = localStorage.getItem('smart-kirana-owner-token');
+  
+  // Only cache if it's an exact match in our safe list, has no query params, and is NOT owner
+  const isCacheable = !isOwner && CACHEABLE_URLS.includes(safeUrl) && (!config || !config.params || Object.keys(config.params).length === 0);
+
+  if (isCacheable && memoryCache.has(safeUrl)) {
+    const cached = memoryCache.get(safeUrl);
+    if (Date.now() - cached.timestamp < CACHE_TTL) {
+      // Mock exactly what Axios returns (data, status, headers)
+      return Promise.resolve({ 
+        data: cached.data, 
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: config,
+        fromCache: true 
+      });
+    }
+  }
+
+  const response = await originalGet.call(api, url, config);
+  
+  if (isCacheable && response && response.status === 200) {
+    memoryCache.set(safeUrl, { data: response.data, timestamp: Date.now() });
+  }
+  
+  return response;
+};
+
 export default api;
+
