@@ -264,7 +264,7 @@ export function HomePage() {
   {error && <GSAPFadeUp><p className="rounded-xl bg-red-50 p-4 text-sm text-red-700 border border-red-100 mb-6">{error}</p></GSAPFadeUp>}
 
   {/* Categories */}
-  <section className="mt-4">
+  <section className="sticky top-[56px] sm:top-[68px] z-20 bg-slate-50/95 backdrop-blur-xl pt-4 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 border-b border-slate-200/50 shadow-sm sm:border-none sm:shadow-none sm:bg-slate-50">
   <div className="flex justify-between items-center">
     <div className="flex items-center gap-2">
       <span className="text-2xl">🏪</span>
