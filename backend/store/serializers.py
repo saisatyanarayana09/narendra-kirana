@@ -26,10 +26,15 @@ class HomepageSectionProductSerializer(serializers.ModelSerializer):
     regular_price = serializers.DecimalField(source='product.regular_price', max_digits=10, decimal_places=2, read_only=True)
     offer_price = serializers.DecimalField(source='product.offer_price', max_digits=10, decimal_places=2, read_only=True)
     is_in_stock = serializers.BooleanField(source='product.is_in_stock', read_only=True)
+    brand = serializers.CharField(source='product.brand', read_only=True)
+    unit = serializers.CharField(source='product.unit', read_only=True)
+    tags = serializers.CharField(source='product.tags', read_only=True)
+    max_order_quantity = serializers.IntegerField(source='product.max_order_quantity', read_only=True)
+    stock_quantity = serializers.IntegerField(source='product.stock_quantity', read_only=True)
 
     class Meta:
         model = HomepageSectionProduct
-        fields = ['id', 'name', 'image', 'regular_price', 'offer_price', 'is_in_stock', 'position']
+        fields = ['id', 'name', 'image', 'regular_price', 'offer_price', 'is_in_stock', 'position', 'brand', 'unit', 'tags', 'max_order_quantity', 'stock_quantity']
 
 
 class HomepageSectionSerializer(serializers.ModelSerializer):

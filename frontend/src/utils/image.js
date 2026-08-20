@@ -6,8 +6,8 @@ export function optimizeImage(url, width = null) {
 
   let params = 'f_auto,q_auto';
   if (width) {
-    params += \,w_\,c_limit\;
+    params += ',w_' + width + ',c_limit';
   }
   
-  return url.replace('/upload/', \/upload/\/\);
+  return url.replace('/upload/', '/upload/' + params + '/');
 }

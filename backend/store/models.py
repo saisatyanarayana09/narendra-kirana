@@ -49,10 +49,16 @@ class StoreSettings(models.Model):
     def save(self, *args, **kwargs):
         self.pk = 1
         super().save(*args, **kwargs)
+        from django.core.cache import cache
+        cache.delete('store_settings')
 
     @classmethod
     def load(cls):
-        obj, created = cls.objects.get_or_create(pk=1)
+        from django.core.cache import cache
+        obj = cache.get('store_settings')
+        if not obj:
+            obj, created = cls.objects.get_or_create(pk=1)
+            cache.set('store_settings', obj, timeout=3600)
         return obj
 
     def __str__(self):

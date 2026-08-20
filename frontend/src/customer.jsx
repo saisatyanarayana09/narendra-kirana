@@ -207,8 +207,7 @@ function BannerCarousel({ banners }) {
 }
 
 export function HomePage() {
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
+    const [categories, setCategories] = useState([]);
   const [banners, setBanners] = useState([]);
   const [settings, setSettings] = useState(null);
   const [sections, setSections] = useState([]);
@@ -216,27 +215,13 @@ export function HomePage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    Promise.all([
-      api.get('/products/'),
-      api.get('/categories/'),
-      api.get('/offers/banners/'),
-      api.get('/store/settings/'),
-      api.get('/store/homepage-sections/'),
-    ]).then(([productsRes, catsRes, bannersRes, settingsRes, sectionsRes]) => {
-      setProducts(unpack(productsRes));
-      setCategories(unpack(catsRes));
-      setBanners(unpack(bannersRes));
-      setSettings(settingsRes.data);
-      setSections(sectionsRes.data.filter(s => s.is_active).sort((a, b) => a.display_order - b.display_order));
-    }).catch(() => setError('The catalog is temporarily unavailable.')).finally(() => setLoading(false));
+    let done = 0;
+    const tick = () => { done++; if (done >= 4) setLoading(false); };
+    api.get('/categories/').then(r => setCategories(unpack(r))).catch(console.error).finally(tick);
+    api.get('/offers/banners/').then(r => setBanners(unpack(r))).catch(console.error).finally(tick);
+    api.get('/store/settings/').then(r => setSettings(r.data)).catch(console.error).finally(tick);
+    api.get('/store/homepage-sections/').then(r => setSections(r.data.filter(s => s.is_active).sort((a, b) => a.display_order - b.display_order))).catch(console.error).finally(tick);
   }, []);
-
-  // Map curated section items back to full products (to keep ProductCard compatible)
-  const resolveProducts = (items) => {
-    return items
-      .filter(item => item.is_in_stock)
-      .map(item => products.find(p => p.id === item.id) || item);
-  };
 
   // Section icons
   const sectionIcons = ['🔥', '⭐', '🆕', '💎', '🎯', '🌟', '✨', '🏷️'];
@@ -318,7 +303,7 @@ export function HomePage() {
   
   {/* Dynamic Homepage Sections */}
   {sections.map((section, index) => {
-    const sectionProducts = resolveProducts(section.items || []);
+    const sectionProducts = (section.items || []).filter(item => item.is_in_stock);
     if (sectionProducts.length === 0 && !loading) return null;
 
     return (

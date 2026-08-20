@@ -55,7 +55,9 @@ const CACHEABLE_URLS = [
   '/categories/', 
   '/offers/banners/', 
   '/store/settings/', 
-  '/store/homepage-sections/'
+  '/store/homepage-sections/',
+  '/notifications/',
+  '/favorites/',
 ];
 
 const originalGet = api.get;

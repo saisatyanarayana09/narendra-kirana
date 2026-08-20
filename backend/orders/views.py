@@ -329,6 +329,11 @@ class OrderViewSet(ModelViewSet):
 
     @action(detail=False, methods=['get'], permission_classes=[IsOwnerUser])
     def analytics(self, request):
+        from django.core.cache import cache
+        cached = cache.get('owner_analytics')
+        if cached:
+            return Response(cached)
+
         from django.utils import timezone
         from django.db.models import Sum
         from datetime import timedelta
@@ -360,10 +365,12 @@ class OrderViewSet(ModelViewSet):
                 'Sales': day_sales
             })
 
-        return Response({
+        data = {
             'today_sales': today_sales,
             'weekly_sales': weekly_sales,
             'monthly_sales': monthly_sales,
             'yearly_sales': yearly_sales,
             'chart_data': chart_data
-        })
+        }
+        cache.set('owner_analytics', data, timeout=60)
+        return Response(data)

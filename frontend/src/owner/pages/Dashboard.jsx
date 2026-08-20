@@ -14,16 +14,16 @@ const Dashboard = () => {
 
  useEffect(() => {
  const fetchDashboard = () => {
- api.get('/orders/', { params: { t: Date.now() } })
+ api.get('/orders/')
  .then(res => setOrders(res.data.results || res.data))
  .catch(() => {});
- api.get('/orders/analytics/', { params: { t: Date.now() } })
+ api.get('/orders/analytics/')
  .then(res => setAnalytics(res.data))
  .catch(() => {})
  .finally(() => setLoading(false));
  };
  fetchDashboard();
- const interval = setInterval(fetchDashboard, 10000);
+ const interval = setInterval(fetchDashboard, 60000);
  return () => clearInterval(interval);
  }, []);
 
