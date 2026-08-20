@@ -263,13 +263,13 @@ export function HomePage() {
   {error && <GSAPFadeUp><p className="rounded-xl bg-red-50 p-4 text-sm text-red-700 border border-red-100 mb-6">{error}</p></GSAPFadeUp>}
 
   {/* Categories */}
-  <section className="mt-4">
+  <section className="mt-1">
   <div className="flex justify-between items-center">
     <div className="flex items-center gap-2">
-      <span className="text-2xl">🏪</span>
-      <h2 className="text-xl font-extrabold text-slate-900">Shop by Category</h2>
+      <span className="text-xl">🏪</span>
+      <h2 className="text-lg font-bold text-slate-900">Shop by Category</h2>
     </div>
-    <Link to="/products" className="text-sm font-bold text-emerald-600 hover:text-emerald-700 transition flex items-center gap-1">See all <ChevronRight size={14} /></Link>
+    <Link to="/products" className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition flex items-center gap-1">See all <ChevronRight size={14} /></Link>
   </div>
   
   {loading ? (
@@ -307,13 +307,13 @@ export function HomePage() {
     if (sectionProducts.length === 0 && !loading) return null;
 
     return (
-      <section key={section.id} className={index === 0 ? "mt-8" : "mt-8 pt-8 border-t border-slate-100"}>
+      <section key={section.id} className={index === 0 ? "mt-4" : "mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-slate-100"}>
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <span className="text-xl">{sectionIcons[index % sectionIcons.length]}</span>
-              <h2 className="text-xl font-extrabold text-slate-900">{section.title}</h2>
+              <span className="text-lg">{sectionIcons[index % sectionIcons.length]}</span>
+              <h2 className="text-lg font-bold text-slate-900">{section.title}</h2>
             </div>
-            <Link to="/products" className="text-sm font-bold text-emerald-600 hover:text-emerald-700 transition flex items-center gap-1">View all <ChevronRight size={14} /></Link>
+            <Link to="/products" className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition flex items-center gap-1">View all <ChevronRight size={14} /></Link>
           </div>
           {loading ? (
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
