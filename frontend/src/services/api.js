@@ -47,7 +47,7 @@ api.interceptors.response.use(
 
 
 
-// Ultra-Safe Memory Cache (No LocalStorage, No JSON Parsing)
+// Advanced Persistent Cache (Stale-While-Revalidate)
 const memoryCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000;
 const CACHEABLE_URLS = [
@@ -62,31 +62,63 @@ const originalGet = api.get;
 api.get = async (url, config = {}) => {
   const safeUrl = url || '';
   const isOwner = localStorage.getItem('smart-kirana-owner-token');
-  
-  // Only cache if it's an exact match in our safe list, has no query params, and is NOT owner
   const isCacheable = !isOwner && CACHEABLE_URLS.includes(safeUrl) && (!config || !config.params || Object.keys(config.params).length === 0);
 
-  if (isCacheable && memoryCache.has(safeUrl)) {
-    const cached = memoryCache.get(safeUrl);
-    if (Date.now() - cached.timestamp < CACHE_TTL) {
-      // Mock exactly what Axios returns (data, status, headers)
-      return Promise.resolve({ 
-        data: cached.data, 
-        status: 200,
-        statusText: 'OK',
-        headers: {},
-        config: config,
-        fromCache: true 
-      });
+  if (!isCacheable) {
+    return originalGet.call(api, url, config);
+  }
+
+  const cacheKey = 'sk_cache_' + safeUrl;
+  let cachedData = memoryCache.get(cacheKey);
+
+  // 1. If not in memory, check LocalStorage (happens on every page reload)
+  if (!cachedData) {
+    try {
+      const stored = localStorage.getItem(cacheKey);
+      if (stored) {
+        cachedData = JSON.parse(stored);
+        memoryCache.set(cacheKey, cachedData);
+      }
+    } catch (e) {
+      console.warn('Cache read error', e);
     }
   }
 
-  const response = await originalGet.call(api, url, config);
-  
-  if (isCacheable && response && response.status === 200) {
-    memoryCache.set(safeUrl, { data: response.data, timestamp: Date.now() });
+  // 2. If we found data (either in memory or LocalStorage), return it INSTANTLY
+  if (cachedData) {
+    const isStale = Date.now() - cachedData.timestamp > CACHE_TTL;
+    
+    // 3. If the data is old (stale), silently fetch fresh data in the background
+    if (isStale) {
+      originalGet.call(api, url, config)
+        .then(response => {
+          if (response && response.status === 200) {
+            const newData = { data: response.data, timestamp: Date.now() };
+            memoryCache.set(cacheKey, newData);
+            try { localStorage.setItem(cacheKey, JSON.stringify(newData)); } catch(e) {}
+          }
+        })
+        .catch(() => { /* Ignore background errors, user still sees cached data */ });
+    }
+    
+    // Return cached data instantly (0-second wait)
+    return Promise.resolve({ 
+      data: cachedData.data, 
+      status: 200, 
+      statusText: 'OK', 
+      headers: {}, 
+      config: config, 
+      fromCache: true 
+    });
   }
-  
+
+  // 4. If absolutely no cache exists (very first time visiting the site ever)
+  const response = await originalGet.call(api, url, config);
+  if (response && response.status === 200) {
+    const newData = { data: response.data, timestamp: Date.now() };
+    memoryCache.set(cacheKey, newData);
+    try { localStorage.setItem(cacheKey, JSON.stringify(newData)); } catch(e) {}
+  }
   return response;
 };
 
