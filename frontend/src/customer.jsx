@@ -12,12 +12,9 @@ const unpack = (response) => response.data.results ?? response.data
 
 // Vibrant color palette for category cards
 const CATEGORY_COLORS = [
-  'from-emerald-500 to-teal-600',
-  'from-orange-500 to-red-500',
-  'from-violet-500 to-purple-600',
-  'from-rose-500 to-pink-600',
-  'from-amber-500 to-yellow-600',
-  'from-blue-500 to-indigo-600',
+  'from-emerald-700 to-emerald-800',
+  'from-emerald-800 to-emerald-900',
+  'from-emerald-600 to-emerald-700',
   'from-cyan-500 to-blue-500',
   'from-fuchsia-500 to-pink-500',
 ];
@@ -73,7 +70,7 @@ export function ProductCard({ product, ...props }) {
 
  return <div {...props} className="group relative overflow-hidden rounded-2xl bg-white shadow-sm border border-slate-200/80 transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 hover:border-emerald-200 hover:ring-2 hover:ring-emerald-100 flex flex-col h-full">
  {discountPercent > 0 && (
- <div className="absolute top-0 left-0 z-10 bg-gradient-to-r from-red-500 to-orange-500 text-white text-[10px] font-extrabold px-2.5 py-1.5 rounded-br-xl rounded-tl-xl shadow-lg tracking-wider flex items-center gap-1">
+ <div className="absolute top-0 left-0 z-10 bg-red-600 text-white text-[10px] font-extrabold px-2.5 py-1.5 rounded-br-xl rounded-tl-xl shadow-lg tracking-wider flex items-center gap-1">
  <Zap size={10} fill="currentColor" />
  {discountPercent}% OFF
  </div>
@@ -98,7 +95,7 @@ export function ProductCard({ product, ...props }) {
  {product.tags && (
  <div className="flex flex-wrap gap-1 mt-2">
  {product.tags.split(',').map((tag, i) => (
- <span key={i} className="px-1.5 py-0.5 bg-violet-50 text-violet-700 text-[9px] font-extrabold uppercase tracking-widest rounded-md">{tag.trim()}</span>
+ <span key={i} className="px-1.5 py-0.5 bg-red-50 text-red-600 border border-red-100 text-[9px] font-extrabold uppercase tracking-widest rounded-md">{tag.trim()}</span>
  ))}
  </div>
  )}
@@ -115,7 +112,7 @@ export function ProductCard({ product, ...props }) {
  <button 
  onClick={handleAddToCart}
  disabled={adding || added || isMaxReached}
- className={`w-full rounded-xl py-2.5 min-h-[44px] sm:min-h-0 sm:py-2 text-sm font-extrabold transition-all active:scale-95 flex items-center justify-center gap-1.5 ${added ? 'bg-green-500 text-white shadow-md' : isMaxReached ? 'bg-slate-50 text-slate-400 border border-slate-100 cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-lg shadow-emerald-200 shadow-md'} disabled:opacity-60 disabled:active:scale-100`}
+ className={`w-full rounded-xl py-2.5 min-h-[44px] sm:min-h-0 sm:py-2 text-sm font-bold transition-all active:scale-95 flex items-center justify-center gap-1.5 ${added ? 'bg-slate-100 text-slate-800 border border-slate-200 shadow-sm' : isMaxReached ? 'bg-slate-50 text-slate-400 border border-slate-100 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-lg shadow-red-200 shadow-md'} disabled:opacity-60 disabled:active:scale-100`}
  >
  {isMaxReached ? 'Max in cart' : added ? '✓ Added!' : adding ? 'Adding...' : <><ShoppingCart size={14} /> Add to Cart</>}
  </button>
@@ -234,7 +231,7 @@ export function HomePage() {
    
     {banners.length === 0 && (
     <GSAPFadeUp delay={0.2}>
-    <section className="bg-gradient-to-br from-emerald-600 via-teal-600 to-blue-700 text-white shadow-xl relative overflow-hidden w-full mb-6 max-h-[200px] md:max-h-[240px] flex flex-col justify-center">
+    <section className="bg-emerald-800 text-white shadow-xl relative overflow-hidden w-full mb-6 max-h-[200px] md:max-h-[240px] flex flex-col justify-center">
     {/* Animated decorative shapes */}
     <div className="absolute top-0 right-0 -mr-10 -mt-10 w-48 h-48 rounded-full bg-white/10 animate-pulse"></div>
     <div className="absolute bottom-0 right-20 -mb-8 w-32 h-32 rounded-full bg-white/10 animate-pulse" style={{animationDelay: '1s'}}></div>
@@ -249,7 +246,7 @@ export function HomePage() {
     </div>
     <h1 className="max-w-2xl text-2xl font-extrabold leading-tight sm:text-4xl text-white tracking-tight drop-shadow-sm">Everyday essentials, <span className="text-yellow-300">ready when you are.</span></h1>
     <p className="mt-2 max-w-xl text-sm text-emerald-100 font-medium leading-relaxed hidden sm:block">Order online and collect from your local store. Quality products, straightforward pricing, and reliable service.</p>
-    <Link to="/products" className="mt-4 inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-extrabold text-emerald-700 transition-all hover:bg-yellow-300 hover:text-emerald-900 active:scale-95 shadow-md hover:shadow-lg group">
+    <Link to="/products" className="mt-4 inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-extrabold text-emerald-900 transition-all hover:bg-slate-100 hover:text-emerald-900 active:scale-95 shadow-md hover:shadow-lg group">
       Explore Catalog <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform"/>
     </Link>
     </div>
@@ -473,7 +470,7 @@ export function CategoriesPage() {
  <p className="text-lg font-bold text-slate-400 line-through mt-1">₹{product.regular_price}</p>
  )}
  </div>
- <button onClick={addToCart} disabled={!product.is_in_stock || adding || added || isMaxReached} className={`mt-8 hidden md:flex items-center justify-center gap-2 min-h-14 w-full rounded-xl px-4 py-3 text-lg font-extrabold transition-all active:scale-[0.98] ${added ? 'bg-green-500 text-white shadow-md' : isMaxReached ? 'bg-slate-100 text-slate-400 border border-slate-200 shadow-none cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-xl shadow-lg shadow-emerald-200 disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none border border-transparent disabled:border-slate-200 disabled:active:scale-100'}`}>{product.is_in_stock ? (isMaxReached ? 'Max in cart' : added ? '✓ Added to cart' : adding ? 'Adding...' : <><ShoppingCart size={20} /> Add to Cart</>) : 'Out of stock'}</button>
+ <button onClick={addToCart} disabled={!product.is_in_stock || adding || added || isMaxReached} className={`mt-8 hidden md:flex items-center justify-center gap-2 min-h-14 w-full rounded-xl px-4 py-3 text-lg font-extrabold transition-all active:scale-[0.98] ${added ? 'bg-slate-100 text-slate-800 border border-slate-200 shadow-sm' : isMaxReached ? 'bg-slate-100 text-slate-400 border border-slate-200 shadow-none cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-xl shadow-lg shadow-red-200 disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none border border-transparent disabled:border-slate-200 disabled:active:scale-100'}`}>{product.is_in_stock ? (isMaxReached ? 'Max in cart' : added ? '✓ Added to cart' : adding ? 'Adding...' : <><ShoppingCart size={20} /> Add to Cart</>) : 'Out of stock'}</button>
  <div className="mt-8 pt-6 border-t border-slate-100 mb-8 md:mb-0">
  <h3 className="text-sm font-extrabold text-slate-900 mb-2">Product Description</h3>
  <p className="text-sm leading-relaxed text-slate-600 pb-12 md:pb-0">{product.description || 'Fresh, quality essentials from your local store.'}</p>
@@ -482,7 +479,7 @@ export function CategoriesPage() {
 
  {/* Mobile Sticky Add to Cart */}
  <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-30 bg-white border-t border-slate-200 p-3 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] md:hidden">
-   <button onClick={addToCart} disabled={!product.is_in_stock || adding || added || isMaxReached} className={`w-full min-h-[44px] rounded-xl px-4 py-2.5 text-base font-extrabold transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 ${added ? 'bg-green-500 text-white' : isMaxReached ? 'bg-slate-100 text-slate-400 border border-slate-200 shadow-none cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-md disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none border border-transparent disabled:border-slate-200 disabled:active:scale-100'}`}>{product.is_in_stock ? (isMaxReached ? 'Max in cart' : added ? '✓ Added to cart' : adding ? 'Adding...' : <><ShoppingCart size={16} /> Add to Cart · ₹{price}</>) : 'Out of stock'}</button>
+   <button onClick={addToCart} disabled={!product.is_in_stock || adding || added || isMaxReached} className={`w-full min-h-[44px] rounded-xl px-4 py-2.5 text-base font-extrabold transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 ${added ? 'bg-slate-100 text-slate-800 border border-slate-200 shadow-sm' : isMaxReached ? 'bg-slate-100 text-slate-400 border border-slate-200 shadow-none cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-md disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none border border-transparent disabled:border-slate-200 disabled:active:scale-100'}`}>{product.is_in_stock ? (isMaxReached ? 'Max in cart' : added ? '✓ Added to cart' : adding ? 'Adding...' : <><ShoppingCart size={16} /> Add to Cart · ₹{price}</>) : 'Out of stock'}</button>
  </div>
 
  </main></CustomerLayout>
