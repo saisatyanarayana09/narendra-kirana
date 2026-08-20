@@ -11,9 +11,9 @@ const getPrefix = () => window.location.pathname.startsWith('/owner') ? 'smart-k
 api.interceptors.request.use(
   (config) => {
     const prefix = getPrefix();
-    const token = localStorage.getItem(${prefix}-token);
+    const token = localStorage.getItem(`${prefix}-token`);
     if (token) {
-      config.headers['Authorization'] = Bearer ;
+      config.headers['Authorization'] = `Bearer ${token}`;
     }
     return config;
   },
@@ -32,9 +32,9 @@ api.interceptors.response.use(
       if (!requestUrl.includes('/auth/login/')) {
         const prefix = getPrefix();
         // Clear token and redirect to login
-        localStorage.removeItem(${prefix}-token);
-        localStorage.removeItem(${prefix}-refresh);
-        localStorage.removeItem(${prefix}-user);
+        localStorage.removeItem(`${prefix}-token`);
+        localStorage.removeItem(`${prefix}-refresh`);
+        localStorage.removeItem(`${prefix}-user`);
         // Redirect logic
         if (prefix === 'smart-kirana-owner') {
           window.location.href = '/owner/login';
