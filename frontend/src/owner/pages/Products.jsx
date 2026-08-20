@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, X, Image as ImageIcon, Package, GripVertical, ScanLine } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Image as ImageIcon, Package, GripVertical, ScanLine, Camera } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
@@ -32,6 +32,39 @@ const Products = () => {
  };
 
  useEffect(() => { fetchData(); }, []);
+
+ const handleAIPhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    toast.loading('AI is analyzing the product...', {id: 'ai-scan'});
+    const formData = new FormData();
+    formData.append('image', file);
+    
+    try {
+        const res = await api.post('/products/vision_lookup/', formData);
+        toast.dismiss('ai-scan');
+        if (res.data.success) {
+            toast.success('AI successfully extracted details!');
+            openForm(null);
+            setTimeout(() => {
+              setFormData(prev => ({
+                  ...prev,
+                  name: res.data.product.name || '',
+                  brand: res.data.product.brand || '',
+                  unit: res.data.product.unit || '',
+                  description: res.data.product.description || ''
+              }));
+            }, 100);
+        } else {
+            toast.error(res.data.error || 'AI could not read the product.');
+        }
+    } catch (err) {
+        toast.dismiss('ai-scan');
+        toast.error('AI Scan failed. Check connection.');
+    }
+    e.target.value = '';
+ };
 
  const handleBarcodeScan = async (decodedText) => {
     setIsScanning(false);
@@ -144,6 +177,10 @@ const Products = () => {
    <div className="flex justify-between items-center">
    <h1 className="text-2xl font-bold text-gray-900">Products</h1>
    <div className="flex gap-2">
+     <input type="file" accept="image/*" capture="environment" id="ai-photo-upload" className="hidden" onChange={handleAIPhotoUpload} />
+     <button onClick={() => document.getElementById('ai-photo-upload').click()} className="flex items-center px-4 py-2 bg-purple-100 text-purple-700 font-bold rounded-xl hover:bg-purple-200 transition shadow-sm">
+       <Camera className="w-5 h-5 sm:mr-2"/><span className="hidden sm:inline">AI Scan</span>
+     </button>
      <button onClick={() => setIsScanning(true)} className="flex items-center px-4 py-2 bg-emerald-100 text-emerald-700 font-bold rounded-xl hover:bg-emerald-200 transition shadow-sm">
        <ScanLine className="w-5 h-5 sm:mr-2"/><span className="hidden sm:inline">Scan Barcode</span>
      </button>

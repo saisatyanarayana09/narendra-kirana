@@ -106,6 +106,62 @@ class ProductViewSet(viewsets.ModelViewSet):
         return Response({'source': 'not_found'})
 
     @action(detail=False, methods=['post'], permission_classes=[IsOwnerOrReadOnly])
+    def vision_lookup(self, request):
+        import os
+        import json
+        
+        image_file = request.FILES.get('image')
+        if not image_file:
+            return Response({'success': False, 'error': 'No image provided'})
+            
+        gemini_key = os.environ.get('GEMINI_API_KEY')
+        if not gemini_key:
+            return Response({'success': False, 'error': 'AI is not configured. Missing API Key.'})
+            
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=gemini_key)
+            
+            # Use gemini-1.5-flash for fast multimodal tasks
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            
+            image_data = {
+                "mime_type": image_file.content_type or 'image/jpeg',
+                "data": image_file.read()
+            }
+            
+            prompt = """
+            Analyze this product image and extract the following details in raw JSON format (no markdown tags, no code blocks):
+            {
+              "name": "Product Name (e.g. Tide Plus Jasmine & Rose)",
+              "brand": "Brand Name (e.g. Tide)",
+              "unit": "Size/Weight (e.g. 1kg, 500ml)",
+              "description": "A very brief 1-sentence description."
+            }
+            If you cannot identify the product, return {"error": "Could not identify product"}
+            """
+            
+            response = model.generate_content([prompt, image_data])
+            
+            # Clean up the response text in case it includes markdown json blocks
+            result_text = response.text.strip()
+            if result_text.startswith('```json'):
+                result_text = result_text[7:]
+            if result_text.endswith('```'):
+                result_text = result_text[:-3]
+                
+            data = json.loads(result_text.strip())
+            
+            if 'error' in data:
+                return Response({'success': False, 'error': data['error']})
+                
+            return Response({'success': True, 'product': data})
+            
+        except Exception as e:
+            print('Gemini API Error:', str(e))
+            return Response({'success': False, 'error': str(e)})
+
+    @action(detail=False, methods=['post'], permission_classes=[IsOwnerOrReadOnly])
     def reorder(self, request):
         updates = request.data
         products = []
