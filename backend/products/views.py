@@ -44,6 +44,44 @@ class ProductViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(is_active=True)
         return queryset
 
+    @action(detail=False, methods=['get'], permission_classes=[IsOwnerOrReadOnly])
+    def barcode_lookup(self, request):
+        barcode = request.query_params.get('barcode')
+        if not barcode:
+            return Response({'error': 'Barcode is required'}, status=400)
+            
+        # 1. Check local DB
+        local_product = Product.objects.filter(sku=barcode).first()
+        if local_product:
+            return Response({
+                'source': 'local',
+                'product': ProductSerializer(local_product, context={'request': request}).data
+            })
+            
+        # 2. Check Open Food Facts API (Global Grocery Database)
+        import requests
+        try:
+            url = f"https://world.openfoodfacts.org/api/v2/product/{barcode}.json"
+            response = requests.get(url, timeout=5)
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('status') == 1:
+                    product_data = data.get('product', {})
+                    return Response({
+                        'source': 'external',
+                        'product': {
+                            'name': product_data.get('product_name', ''),
+                            'brand': product_data.get('brands', ''),
+                            'unit': product_data.get('quantity', ''),
+                            'image_url': product_data.get('image_front_url', ''),
+                            'sku': barcode
+                        }
+                    })
+        except Exception as e:
+            print('Open Food Facts API error:', str(e))
+            
+        return Response({'source': 'not_found'})
+
     @action(detail=False, methods=['post'], permission_classes=[IsOwnerOrReadOnly])
     def reorder(self, request):
         updates = request.data
