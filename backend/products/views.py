@@ -59,10 +59,11 @@ class ProductViewSet(viewsets.ModelViewSet):
             })
             
         # 2. Check Open Food Facts API (Global Grocery Database)
-        import requests
         try:
+            import requests
+            headers = {'User-Agent': 'SmartKirana/1.0'}
             url = f"https://world.openfoodfacts.org/api/v2/product/{barcode}.json"
-            response = requests.get(url, timeout=5)
+            response = requests.get(url, headers=headers, timeout=5)
             if response.status_code == 200:
                 data = response.json()
                 if data.get('status') == 1:
