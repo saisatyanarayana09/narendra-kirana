@@ -263,8 +263,8 @@ export function HomePage() {
   {error && <GSAPFadeUp><p className="rounded-xl bg-red-50 p-4 text-sm text-red-700 border border-red-100 mb-6">{error}</p></GSAPFadeUp>}
 
   {/* Categories */}
-  <section className="mt-1">
-  <div className="flex justify-between items-center">
+  <section className="mt-1 relative">
+  <div className="flex justify-between items-center py-2">
     <div className="flex items-center gap-2">
       <span className="text-xl">🏪</span>
       <h2 className="text-lg font-bold text-slate-900">Shop by Category</h2>
@@ -307,8 +307,8 @@ export function HomePage() {
     if (sectionProducts.length === 0 && !loading) return null;
 
     return (
-      <section key={section.id} className={index === 0 ? "mt-4" : "mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-slate-100"}>
-          <div className="flex justify-between items-center">
+      <section key={section.id} className={index === 0 ? "mt-4 relative" : "mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-slate-100 relative"}>
+          <div className="sticky top-[56px] sm:top-[68px] z-20 bg-slate-50/95 backdrop-blur-sm py-2 flex justify-between items-center">
             <div className="flex items-center gap-2">
               <span className="text-lg">{sectionIcons[index % sectionIcons.length]}</span>
               <h2 className="text-lg font-bold text-slate-900">{section.title}</h2>
