@@ -409,19 +409,19 @@ export function CategoriesPage() {
     }, []);
 
     useEffect(() => {
-      setLoading(true);
+      let loadingTimeout = setTimeout(() => setLoading(true), 50);
       const params = {};
       if (query) params.search = query;
       if (category) params.category = category;
       
       const timer = setTimeout(() => {
         api.get('/products/', { params })
-           .then(res => { setProducts(unpack(res)); setError(''); })
+           .then(res => { clearTimeout(loadingTimeout); setProducts(unpack(res)); setError(''); })
            .catch(() => setError('Could not load products.'))
-           .finally(() => setLoading(false));
+           .finally(() => { clearTimeout(loadingTimeout); setLoading(false); });
       }, query ? 300 : 0);
 
-      return () => clearTimeout(timer);
+      return () => { clearTimeout(timer); clearTimeout(loadingTimeout); };
     }, [query, category]);
   function updateSearch(value) { const next = new URLSearchParams(searchParams); if (value) next.set('search', value); else next.delete('search'); setSearchParams(next) }
   
