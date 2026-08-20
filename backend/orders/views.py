@@ -146,8 +146,11 @@ class OrderViewSet(ModelViewSet):
             message=f"Hi {request.user.first_name}, thank you for your purchase! We've received your order and will start processing it shortly."
         )
         
-        # Dispatch email asynchronously
-        threading.Thread(target=send_order_confirmation_email, args=(order,), daemon=True).start()
+        # Dispatch email asynchronously but ONLY after the transaction commits
+        def send_email_task():
+            threading.Thread(target=send_order_confirmation_email, args=(order,), daemon=True).start()
+        
+        transaction.on_commit(send_email_task)
         
         return Response(OrderSerializer(order, context=self.get_serializer_context()).data, status=status.HTTP_201_CREATED)
 

@@ -66,8 +66,8 @@ export function CartProvider({ children }) {
    setUser(getUser());
  }, []);
 
- const add = async (product) => { await api.post('/cart/items/', { product: product.id, quantity: 1 }); await refreshCart(); }
- const update = async (item, quantity) => { if (quantity < 1) await api.delete(`/cart/items/${item.id}/`); else await api.patch(`/cart/items/${item.id}/`, { quantity }); await refreshCart(); }
+ const add = async (product) => { await api.post('/cart/items/', { product: product.id, quantity: 1 }); refreshCart().catch(console.error); }
+ const update = async (item, quantity) => { if (quantity < 1) await api.delete(`/cart/items/${item.id}/`); else await api.patch(`/cart/items/${item.id}/`, { quantity }); refreshCart().catch(console.error); }
  
  const applyPromo = async (code) => {
    const response = await api.post('/cart/apply-promo/', { code });
@@ -82,7 +82,7 @@ export function CartProvider({ children }) {
    } else {
      await api.post('/favorites/', { product: productId });
    }
-   await refreshFavorites();
+   refreshFavorites().catch(console.error);
  };
 
  return (

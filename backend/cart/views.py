@@ -17,7 +17,8 @@ class CartDetailView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated, IsCustomerUser]
 
     def get_object(self):
-        return customer_cart(self.request.user)
+        cart = customer_cart(self.request.user)
+        return Cart.objects.prefetch_related('items__product').get(id=cart.id)
 
 
 class CartItemCreateView(generics.CreateAPIView):

@@ -52,7 +52,7 @@ class CartSerializer(serializers.ModelSerializer):
 
     def _items(self, cart):
         if not hasattr(cart, '_prefetched_items'):
-            cart._prefetched_items = list(cart.items.select_related('product').all())
+            cart._prefetched_items = list(cart.items.all())
         return cart._prefetched_items
 
     def get_subtotal(self, cart):
