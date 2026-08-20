@@ -47,31 +47,40 @@ api.interceptors.response.use(
 
 
 
-// Advanced Persistent Cache (Stale-While-Revalidate)
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes validity for fresh data
-const CACHEABLE_URLS = [
-  '/products/', 
-  '/categories/', 
-  '/offers/banners/', 
-  '/store/settings/', 
-  '/store/homepage-sections/'
+
+// Advanced Persistent Cache (Stale-While-Revalidate) - Site-wide
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes validity
+
+// We cache ALL GET requests except for sensitive user data
+const DO_NOT_CACHE = [
+  '/accounts/',
+  '/cart/',
+  '/orders/',
+  '/wallet/',
+  '/favorites/',
+  '/referrals/'
 ];
 
-// Memory cache for the current session to avoid JSON parsing repeatedly
 const memoryCache = new Map();
 
 const originalGet = api.get;
 api.get = async (url, config = {}) => {
-  const shouldCache = CACHEABLE_URLS.includes(url) && (!config.params || Object.keys(config.params).length === 0);
+  // Never cache for the store owner (they need real-time data)
+  const isOwner = localStorage.getItem('smart-kirana-owner-token');
   
-  if (!shouldCache) {
+  // Never cache sensitive user endpoints
+  const isBlacklisted = DO_NOT_CACHE.some(endpoint => url.includes(endpoint));
+  
+  if (isOwner || isBlacklisted) {
     return originalGet.call(api, url, config);
   }
 
-  const cacheKey = "sk_cache_" + url;
+  // Create a unique key that includes search/filter parameters
+  const queryString = config.params ? '?' + new URLSearchParams(config.params).toString() : '';
+  const cacheKey = 'sk_cache_' + url + queryString;
+  
   let cachedData = memoryCache.get(cacheKey);
 
-  // Fallback to LocalStorage if not in memory (e.g., after a page reload)
   if (!cachedData) {
     try {
       const stored = localStorage.getItem(cacheKey);
@@ -84,26 +93,24 @@ api.get = async (url, config = {}) => {
     }
   }
 
-  // If we have cached data, return it INSTANTLY
   if (cachedData) {
     const isStale = Date.now() - cachedData.timestamp > CACHE_TTL;
     
-    // If it's stale (older than 5 mins), fetch fresh data in the background SILENTLY
     if (isStale) {
       originalGet.call(api, url, config).then(response => {
         if (response.status === 200) {
           const newData = { data: response.data, timestamp: Date.now() };
           memoryCache.set(cacheKey, newData);
-          localStorage.setItem(cacheKey, JSON.stringify(newData));
+          try {
+            localStorage.setItem(cacheKey, JSON.stringify(newData));
+          } catch(e) {}
         }
-      }).catch(() => { /* Ignore background fetch errors */ });
+      }).catch(() => {});
     }
     
-    // Always return the cached data immediately to keep UI instantly responsive
     return Promise.resolve({ data: cachedData.data, fromCache: true, isStale });
   }
 
-  // If absolutely no cache exists (very first visit), await the network request
   const response = await originalGet.call(api, url, config);
   
   if (response.status === 200) {
@@ -111,9 +118,7 @@ api.get = async (url, config = {}) => {
     memoryCache.set(cacheKey, newData);
     try {
       localStorage.setItem(cacheKey, JSON.stringify(newData));
-    } catch(e) {
-      console.warn('Local storage cache write failed', e);
-    }
+    } catch(e) {}
   }
   
   return response;
