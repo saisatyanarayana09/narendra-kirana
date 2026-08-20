@@ -122,8 +122,8 @@ class ProductViewSet(viewsets.ModelViewSet):
             import google.generativeai as genai
             genai.configure(api_key=gemini_key)
             
-            # Use gemini-1.5-flash for fast multimodal tasks
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            # Use gemini-2.5-flash for fast multimodal tasks
+            model = genai.GenerativeModel('gemini-2.5-flash')
             
             image_data = {
                 "mime_type": image_file.content_type or 'image/jpeg',
