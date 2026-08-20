@@ -404,7 +404,25 @@ export function CategoriesPage() {
 
  export function ProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams(); const [products, setProducts] = useState([]); const [categories, setCategories] = useState([]); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const query = searchParams.get('search') || ''; const category = searchParams.get('category') || ''
-  useEffect(() => { const timer = setTimeout(() => { const params = {}; if (query) params.search = query; if (category) params.category = category; Promise.all([api.get('/products/', { params }), api.get('/categories/')]).then(([productsResult, categoriesResult]) => { setProducts(unpack(productsResult)); setCategories(unpack(categoriesResult)); setError('') }).catch(() => setError('Could not load products.')).finally(() => setLoading(false)) }, 300); return () => clearTimeout(timer) }, [query, category])
+    useEffect(() => {
+      api.get('/categories/').then(res => setCategories(unpack(res))).catch(console.error);
+    }, []);
+
+    useEffect(() => {
+      setLoading(true);
+      const params = {};
+      if (query) params.search = query;
+      if (category) params.category = category;
+      
+      const timer = setTimeout(() => {
+        api.get('/products/', { params })
+           .then(res => { setProducts(unpack(res)); setError(''); })
+           .catch(() => setError('Could not load products.'))
+           .finally(() => setLoading(false));
+      }, query ? 300 : 0);
+
+      return () => clearTimeout(timer);
+    }, [query, category]);
   function updateSearch(value) { const next = new URLSearchParams(searchParams); if (value) next.set('search', value); else next.delete('search'); setSearchParams(next) }
   
   const activeCategoryName = category && categories.length ? categories.find(c => String(c.id) === category)?.name : 'All products';
