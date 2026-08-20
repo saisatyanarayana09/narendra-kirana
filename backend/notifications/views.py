@@ -9,12 +9,6 @@ class NotificationViewSet(viewsets.ModelViewSet):
     serializer_class = NotificationSerializer
 
     def get_queryset(self):
-        from django.utils import timezone
-        from datetime import timedelta
-        # Delete notifications older than 7 days for this user
-        seven_days_ago = timezone.now() - timedelta(days=7)
-        Notification.objects.filter(user=self.request.user, created_at__lt=seven_days_ago).delete()
-        
         return Notification.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):

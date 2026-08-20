@@ -29,20 +29,35 @@ export function CartProvider({ children }) {
    } catch (e) { console.error('Failed to load profile'); }
  }, [isCustomer]);
 
+ 
+ const refreshCart = async () => {
+   if (!isCustomer) return;
+   const res = await api.get('/cart/');
+   setCart(res.data);
+ }
+
+ const refreshFavorites = async () => {
+   if (!isCustomer) return;
+   const res = await api.get('/favorites/');
+   setFavorites(res.data.results || res.data || []);
+ }
+ 
+ const refreshNotifications = async () => {
+   if (!isCustomer) return;
+   const res = await api.get('/notifications/');
+   setNotifications(res.data.results || res.data || []);
+ }
+
  const refresh = useCallback(async () => {
-   if (!isCustomer) { setCart(null); setFavorites([]); return }
-   const [cartRes, favRes, notifRes] = await Promise.all([
-     api.get('/cart/'),
-     api.get('/favorites/'),
-     api.get('/notifications/')
-   ]);
-   setCart(cartRes.data)
-   setFavorites(favRes.data.results || favRes.data || [])
-   setNotifications(notifRes.data.results || notifRes.data || [])
+   if (!isCustomer) { setCart(null); setFavorites([]); setNotifications([]); return }
+   // Run them independently so one slow request doesn't block the others
+   refreshCart().catch(console.error);
+   refreshFavorites().catch(console.error);
+   refreshNotifications().catch(console.error);
  }, [isCustomer])
 
  useEffect(() => { 
-   refresh().catch(() => { setCart(null); setFavorites([]); setNotifications([]); });
+   refresh();
    fetchSettings();
    fetchProfile();
  }, [refresh, fetchSettings, fetchProfile])
@@ -51,8 +66,8 @@ export function CartProvider({ children }) {
    setUser(getUser());
  }, []);
 
- const add = async (product) => { await api.post('/cart/items/', { product: product.id, quantity: 1 }); await refresh() }
- const update = async (item, quantity) => { if (quantity < 1) await api.delete(`/cart/items/${item.id}/`); else await api.patch(`/cart/items/${item.id}/`, { quantity }); await refresh() }
+ const add = async (product) => { await api.post('/cart/items/', { product: product.id, quantity: 1 }); await refreshCart(); }
+ const update = async (item, quantity) => { if (quantity < 1) await api.delete(/cart/items//); else await api.patch(/cart/items//, { quantity }); await refreshCart(); }
  
  const applyPromo = async (code) => {
    const response = await api.post('/cart/apply-promo/', { code });
@@ -63,11 +78,11 @@ export function CartProvider({ children }) {
    if (!isCustomer) return;
    const isFav = favorites.find(f => f.product === productId);
    if (isFav) {
-     await api.delete(`/favorites/${isFav.id}/`);
+     await api.delete(/favorites//);
    } else {
      await api.post('/favorites/', { product: productId });
    }
-   await refresh();
+   await refreshFavorites();
  };
 
  return (
