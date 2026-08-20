@@ -81,7 +81,7 @@ export function ProductCard({ product, ...props }) {
  
  {isCustomer && (
  <button 
- onClick={(e) => { e.preventDefault(); toggleFavorite(product.id); }} 
+ onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(product.id); }} 
  className="absolute top-2 right-2 z-10 p-1.5 rounded-full bg-white/90 backdrop-blur shadow-md transition-all hover:scale-125 hover:bg-white active:scale-95"
  >
  <Heart size={18} fill={isFav ?"currentColor":"none"} className={isFav ?"text-rose-500 drop-shadow-sm":"text-slate-300"} />
