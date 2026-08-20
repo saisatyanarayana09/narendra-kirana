@@ -66,18 +66,16 @@ const memoryCache = new Map();
 const originalGet = api.get;
 api.get = async (url, config = {}) => {
   // Never cache for the store owner (they need real-time data)
+  const safeUrl = url || '';
   const isOwner = localStorage.getItem('smart-kirana-owner-token');
-  
-  // Never cache sensitive user endpoints
-  const isBlacklisted = DO_NOT_CACHE.some(endpoint => url.includes(endpoint));
+  const isBlacklisted = DO_NOT_CACHE.some(endpoint => safeUrl.includes(endpoint));
   
   if (isOwner || isBlacklisted) {
     return originalGet.call(api, url, config);
   }
 
-  // Create a unique key that includes search/filter parameters
-  const queryString = config.params ? '?' + new URLSearchParams(config.params).toString() : '';
-  const cacheKey = 'sk_cache_' + url + queryString;
+  const queryString = (config && config.params) ? '?' + new URLSearchParams(config.params).toString() : '';
+  const cacheKey = 'sk_cache_' + safeUrl + queryString;
   
   let cachedData = memoryCache.get(cacheKey);
 
