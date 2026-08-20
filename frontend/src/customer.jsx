@@ -71,7 +71,7 @@ export function ProductCard({ product, ...props }) {
  }
  };
 
- return <div {...props} className="group relative overflow-hidden rounded-2xl bg-white shadow-sm border border-slate-200/80 transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 hover:border-emerald-200 hover:ring-2 hover:ring-emerald-100 flex flex-col h-full">
+ return <Link to={`/product/${product.id}`} {...props} className="block group relative overflow-hidden rounded-2xl bg-white shadow-sm border border-slate-200/80 transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 hover:border-emerald-200 hover:ring-2 hover:ring-emerald-100 flex flex-col h-full">
  {discountPercent > 0 && (
  <div className="absolute top-0 left-0 z-10 bg-gradient-to-r from-red-500 to-orange-500 text-white text-[10px] font-extrabold px-2.5 py-1.5 rounded-br-xl rounded-tl-xl shadow-lg tracking-wider flex items-center gap-1">
  <Zap size={10} fill="currentColor" />
@@ -82,12 +82,12 @@ export function ProductCard({ product, ...props }) {
  {isCustomer && (
  <button 
  onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(product.id); }} 
- className="absolute top-2 right-2 z-10 p-1.5 rounded-full bg-white/90 backdrop-blur shadow-md transition-all hover:scale-125 hover:bg-white active:scale-95"
+ className="absolute top-2 right-2 z-20 p-1.5 rounded-full bg-white/90 backdrop-blur shadow-md transition-all hover:scale-125 hover:bg-white active:scale-95"
  >
  <Heart size={18} fill={isFav ?"currentColor":"none"} className={isFav ?"text-rose-500 drop-shadow-sm":"text-slate-300"} />
  </button>
  )}
- <Link to={`/product/${product.id}`} className="flex flex-col flex-grow">
+ <div className="flex flex-col flex-grow relative z-0">
  <div className="overflow-hidden bg-slate-50 relative rounded-t-2xl">
  <ProductImage product={product} />
  </div>
@@ -113,21 +113,21 @@ export function ProductCard({ product, ...props }) {
  
  {product.is_in_stock ? (
  <button 
- onClick={handleAddToCart}
+ onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleAddToCart(e); }}
  disabled={adding || added || isMaxReached}
- className={`w-full rounded-xl py-2.5 min-h-[44px] sm:min-h-0 sm:py-2 text-sm font-extrabold transition-all active:scale-95 flex items-center justify-center gap-1.5 ${added ? 'bg-green-500 text-white shadow-md' : isMaxReached ? 'bg-slate-50 text-slate-400 border border-slate-100 cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-lg shadow-emerald-200 shadow-md'} disabled:opacity-60 disabled:active:scale-100`}
+ className={`relative z-20 w-full rounded-xl py-2.5 min-h-[44px] sm:min-h-0 sm:py-2 text-sm font-extrabold transition-all active:scale-95 flex items-center justify-center gap-1.5 ${added ? 'bg-green-500 text-white shadow-md' : isMaxReached ? 'bg-slate-50 text-slate-400 border border-slate-100 cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-lg shadow-emerald-200 shadow-md'} disabled:opacity-60 disabled:active:scale-100`}
  >
  {isMaxReached ? 'Max in cart' : added ? '✓ Added!' : adding ? 'Adding...' : <><ShoppingCart size={14} /> Add to Cart</>}
  </button>
  ) : (
- <div className="w-full text-center rounded-xl bg-slate-50 border border-slate-100 py-2 text-sm font-extrabold text-slate-400">
+ <div className="w-full text-center rounded-xl bg-slate-50 border border-slate-100 py-2 text-sm font-extrabold text-slate-400 relative z-20">
  Out of stock
  </div>
  )}
  </div>
  </div>
- </Link>
  </div>
+ </Link>
 }
 
 export function ProductSkeleton() {
