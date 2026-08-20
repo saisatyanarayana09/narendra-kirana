@@ -67,7 +67,7 @@ export function CartProvider({ children }) {
  }, []);
 
  const add = async (product) => { await api.post('/cart/items/', { product: product.id, quantity: 1 }); await refreshCart(); }
- const update = async (item, quantity) => { if (quantity < 1) await api.delete(/cart/items//); else await api.patch(/cart/items//, { quantity }); await refreshCart(); }
+ const update = async (item, quantity) => { if (quantity < 1) await api.delete(`/cart/items/${item.id}/`); else await api.patch(`/cart/items/${item.id}/`, { quantity }); await refreshCart(); }
  
  const applyPromo = async (code) => {
    const response = await api.post('/cart/apply-promo/', { code });
@@ -78,7 +78,7 @@ export function CartProvider({ children }) {
    if (!isCustomer) return;
    const isFav = favorites.find(f => f.product === productId);
    if (isFav) {
-     await api.delete(/favorites//);
+     await api.delete(`/favorites/${isFav.id}/`);
    } else {
      await api.post('/favorites/', { product: productId });
    }
