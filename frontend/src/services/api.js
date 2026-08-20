@@ -62,13 +62,17 @@ const originalGet = api.get;
 api.get = async (url, config = {}) => {
   const safeUrl = url || '';
   const isOwner = localStorage.getItem('smart-kirana-owner-token');
-  const isCacheable = !isOwner && CACHEABLE_URLS.includes(safeUrl) && (!config || !config.params || Object.keys(config.params).length === 0);
+  const isCacheable = !isOwner && CACHEABLE_URLS.some(u => safeUrl.startsWith(u));
 
   if (!isCacheable) {
     return originalGet.call(api, url, config);
   }
 
-  const cacheKey = 'sk_cache_' + safeUrl;
+  let queryString = '';
+  if (config && config.params && Object.keys(config.params).length > 0) {
+    queryString = '?' + new URLSearchParams(config.params).toString();
+  }
+  const cacheKey = 'sk_cache_' + safeUrl + queryString;
   let cachedData = memoryCache.get(cacheKey);
 
   // 1. If not in memory, check LocalStorage (happens on every page reload)
