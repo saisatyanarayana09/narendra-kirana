@@ -58,16 +58,17 @@ class ProductViewSet(viewsets.ModelViewSet):
                 'product': ProductSerializer(local_product, context={'request': request}).data
             })
             
-        # 2. Check Open Food Facts API (Global Grocery Database)
+        import requests
+        headers = {'User-Agent': 'SmartKirana/1.0'}
+        
+        # 2. Check Open Food Facts API (Primary)
         try:
-            import requests
-            headers = {'User-Agent': 'SmartKirana/1.0'}
-            url = f"https://world.openfoodfacts.org/api/v2/product/{barcode}.json"
-            response = requests.get(url, headers=headers, timeout=5)
-            if response.status_code == 200:
-                data = response.json()
-                if data.get('status') == 1:
-                    product_data = data.get('product', {})
+            url_off = f"https://world.openfoodfacts.org/api/v2/product/{barcode}.json"
+            response_off = requests.get(url_off, headers=headers, timeout=5)
+            if response_off.status_code == 200:
+                data_off = response_off.json()
+                if data_off.get('status') == 1:
+                    product_data = data_off.get('product', {})
                     return Response({
                         'source': 'external',
                         'product': {
@@ -80,6 +81,27 @@ class ProductViewSet(viewsets.ModelViewSet):
                     })
         except Exception as e:
             print('Open Food Facts API error:', str(e))
+            
+        # 3. Check UPCitemdb API (Fallback)
+        try:
+            url_upc = f"https://api.upcitemdb.com/prod/trial/lookup?upc={barcode}"
+            response_upc = requests.get(url_upc, headers=headers, timeout=5)
+            if response_upc.status_code == 200:
+                data_upc = response_upc.json()
+                if data_upc.get('code') == 'OK' and len(data_upc.get('items', [])) > 0:
+                    item = data_upc['items'][0]
+                    return Response({
+                        'source': 'external',
+                        'product': {
+                            'name': item.get('title', ''),
+                            'brand': item.get('brand', ''),
+                            'unit': item.get('size', ''),
+                            'image_url': item.get('images', [])[0] if item.get('images') else '',
+                            'sku': barcode
+                        }
+                    })
+        except Exception as e:
+            print('UPCitemdb API error:', str(e))
             
         return Response({'source': 'not_found'})
 
