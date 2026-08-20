@@ -27,7 +27,7 @@ function ProductImage({ product, large = false }) {
  return (
  <div className={`w-full flex items-center justify-center relative overflow-hidden bg-gradient-to-b from-transparent to-slate-50/50 ${large ? 'h-72 sm:h-80 md:h-full' : 'h-32 sm:h-36'}`}>
  <div className="absolute inset-0 bg-slate-900/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-t-xl z-10 mix-blend-overlay"></div>
- <img loading='lazy' decoding='async' src={optimizeImage(product.image)} alt={product.name} className="w-full h-full object-cover mix-blend-multiply transition-transform duration-700 group-hover:scale-110"/>
+ <img loading='lazy' decoding='async' src={optimizeImage(product.image, 600)} alt={product.name} className="w-full h-full object-cover mix-blend-multiply transition-transform duration-700 group-hover:scale-110"/>
  </div>
  );
  }
@@ -182,7 +182,7 @@ function BannerCarousel({ banners }) {
  className="w-full flex-shrink-0 block aspect-[16/7] sm:aspect-[21/9] md:aspect-[4/1] max-h-[180px] sm:max-h-[200px] md:max-h-[240px]"
  >
  <img loading='lazy' decoding='async' 
- src={optimizeImage(banner.image)} 
+ src={optimizeImage(banner.image, 1200)} 
  alt={banner.title} 
  className="w-full h-full object-cover"
  />
@@ -301,7 +301,7 @@ export function HomePage() {
         >
         <div className="absolute inset-0">
           {category.image ? (
-            <img loading='lazy' decoding='async' src={optimizeImage(category.image)} alt={category.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"/>
+            <img loading='lazy' decoding='async' src={optimizeImage(category.image, 300)} alt={category.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"/>
           ) : (
             <div className={`w-full h-full bg-gradient-to-br ${CATEGORY_COLORS[index % CATEGORY_COLORS.length]}`}></div>
           )}
@@ -379,7 +379,7 @@ export function CategoriesPage() {
  >
  <div className="absolute inset-0">
  {category.image ? (
- <img loading='lazy' decoding='async' src={optimizeImage(category.image)} alt={category.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"/>
+ <img loading='lazy' decoding='async' src={optimizeImage(category.image, 300)} alt={category.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"/>
  ) : (
  <div className={`w-full h-full bg-gradient-to-br ${CATEGORY_COLORS[index % CATEGORY_COLORS.length]}`}>
    <div className="w-full h-full flex items-center justify-center opacity-30">
