@@ -85,8 +85,13 @@ export function ProductCard({ product, ...props }) {
  </button>
  )}
  <Link to={`/product/${product.id}`} className="flex flex-col flex-grow">
- <div className="overflow-hidden bg-slate-50 relative rounded-t-2xl">
- <ProductImage product={product} />
+ <div className={`overflow-hidden bg-slate-50 relative rounded-t-2xl ${isOutOfStock ? "grayscale opacity-80" : ""}`}>
+    {isOutOfStock && (
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 bg-slate-900/80 backdrop-blur-sm text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-xl tracking-widest whitespace-nowrap border border-white/20">
+         OUT OF STOCK
+      </div>
+   )}
+   <ProductImage product={product} />
  </div>
  <div className="p-3 flex flex-col flex-grow bg-white">
  <p className="line-clamp-2 text-sm font-bold leading-tight text-slate-800 group-hover:text-slate-600 transition-colors">{product.name}</p>
