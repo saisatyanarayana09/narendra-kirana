@@ -6,7 +6,8 @@ import {
 } from 'recharts';
 import { 
   PackageSearch, Clock, TrendingUp, ChevronRight, 
-  AlertTriangle, Power, Plus, Gift, Tag, Activity
+  AlertTriangle, Power, Plus, Gift, Tag, Activity,
+  BrainCircuit, Users, Target, PlusCircle
 } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
@@ -59,10 +60,53 @@ const Dashboard = () => {
     }
   };
 
+  const handleQuickRestock = async (e, product, amount) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Optimistic UI update
+    const previousStock = product.stock_quantity;
+    const newStock = previousStock + amount;
+    setProducts(products.map(p => p.id === product.id ? { ...p, stock_quantity: newStock } : p));
+    
+    try {
+      await api.patch(`/products/${product.id}/`, { stock_quantity: newStock });
+      toast.success(`Restocked ${amount}x ${product.name}!`);
+    } catch (err) {
+      setProducts(products.map(p => p.id === product.id ? { ...p, stock_quantity: previousStock } : p));
+      toast.error('Failed to restock items');
+    }
+  };
+
+  // Base metrics
   const newOrders = orders.filter(o => o.status === 'NEW').length;
   const preparing = orders.filter(o => o.status === 'ACCEPTED' || o.status === 'PREPARING').length;
   const recentOrders = [...orders].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5);
   const lowStockProducts = products.filter(p => p.stock_quantity <= 5).sort((a, b) => a.stock_quantity - b.stock_quantity).slice(0, 5);
+
+  // Advanced Smart Insights Calculations
+  const todayOrders = orders.filter(o => new Date(o.created_at).toDateString() === new Date().toDateString());
+  const aov = todayOrders.length > 0 ? (todayOrders.reduce((sum, o) => sum + parseFloat(o.total_amount || 0), 0) / todayOrders.length).toFixed(0) : 0;
+  
+  const hourCounts = orders.reduce((acc, o) => {
+    const hr = new Date(o.created_at).getHours();
+    acc[hr] = (acc[hr] || 0) + 1;
+    return acc;
+  }, {});
+  let peakHour = null;
+  let maxCount = 0;
+  Object.entries(hourCounts).forEach(([hr, count]) => {
+    if (count > maxCount) { maxCount = count; peakHour = hr; }
+  });
+  const formatHour = h => h === null ? '--' : (h % 12 || 12) + (h < 12 ? ' AM' : ' PM');
+
+  const customerSpends = orders.reduce((acc, o) => {
+    if (o.customer_name) {
+      acc[o.customer_name] = (acc[o.customer_name] || 0) + parseFloat(o.total_amount || 0);
+    }
+    return acc;
+  }, {});
+  const topCustomer = Object.entries(customerSpends).sort((a,b) => b[1] - a[1])[0];
 
   const getStatusColor = (status) => {
     const colors = {
@@ -119,6 +163,40 @@ const Dashboard = () => {
           <div className="p-2 bg-amber-50 text-amber-600 rounded-lg group-hover:scale-110 transition-transform"><Activity size={18}/></div>
           Active Orders
         </Link>
+      </div>
+
+      {/* Smart Insights (Advanced AI-style features) */}
+      <div className="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-2xl shadow-sm border border-slate-800 p-6 relative overflow-hidden">
+        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-indigo-500/20 blur-3xl rounded-full"></div>
+        <div className="flex items-center gap-2 mb-6">
+          <BrainCircuit size={24} className="text-indigo-400" />
+          <h2 className="text-xl font-extrabold text-white tracking-tight">Smart Insights</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/10">
+            <div className="flex items-center gap-2 text-indigo-300 mb-2 font-bold text-sm">
+              <Target size={16} /> Average Order Value
+            </div>
+            <p className="text-2xl font-black text-white">?{loading ? '...' : aov}</p>
+            <p className="text-xs text-indigo-200/60 mt-1">Based on today's orders</p>
+          </div>
+          <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/10">
+            <div className="flex items-center gap-2 text-indigo-300 mb-2 font-bold text-sm">
+              <Clock size={16} /> Peak Ordering Hour
+            </div>
+            <p className="text-2xl font-black text-white">{loading ? '...' : formatHour(peakHour)}</p>
+            <p className="text-xs text-indigo-200/60 mt-1">When most orders arrive</p>
+          </div>
+          <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/10">
+            <div className="flex items-center gap-2 text-indigo-300 mb-2 font-bold text-sm">
+              <Users size={16} /> Top Customer
+            </div>
+            <p className="text-2xl font-black text-white truncate" title={topCustomer ? topCustomer[0] : ''}>
+              {loading ? '...' : (topCustomer ? topCustomer[0] : 'None yet')}
+            </p>
+            <p className="text-xs text-indigo-200/60 mt-1">Highest total spend</p>
+          </div>
+        </div>
       </div>
       
       {/* Primary Metrics Row */}
@@ -177,7 +255,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Low Stock Alerts (33%) */}
+        {/* Low Stock Alerts (33%) with Quick Restock */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -196,24 +274,41 @@ const Dashboard = () => {
             ) : (
               <div className="space-y-3">
                 {lowStockProducts.map(product => (
-                  <Link key={product.id} to={`/owner/products`} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-100 rounded-xl hover:border-amber-200 hover:bg-amber-50 transition-colors group">
-                    <div className="flex items-center gap-3 overflow-hidden">
-                      <div className="w-10 h-10 bg-white rounded-lg p-1 border border-slate-200 flex-shrink-0">
-                        {product.image ? (
-                          <img src={product.image} alt={product.name} className="w-full h-full object-contain" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-slate-300 font-bold">{product.name.charAt(0)}</div>
-                        )}
+                  <Link key={product.id} to={`/owner/products`} className="flex flex-col p-3 bg-slate-50 border border-slate-100 rounded-xl hover:border-amber-200 hover:bg-amber-50 transition-colors group">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="w-8 h-8 bg-white rounded-lg p-1 border border-slate-200 flex-shrink-0">
+                          {product.image ? (
+                            <img src={product.image} alt={product.name} className="w-full h-full object-contain" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-300 font-bold">{product.name.charAt(0)}</div>
+                          )}
+                        </div>
+                        <div className="overflow-hidden">
+                          <p className="text-sm font-bold text-slate-900 truncate">{product.name}</p>
+                          <p className="text-xs text-slate-500 truncate">{product.stock_quantity} {product.unit} left</p>
+                        </div>
                       </div>
-                      <div className="overflow-hidden">
-                        <p className="text-sm font-bold text-slate-900 truncate">{product.name}</p>
-                        <p className="text-xs text-slate-500 truncate">{product.unit}</p>
-                      </div>
-                    </div>
-                    <div className="flex-shrink-0 text-right ml-2">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-black ${product.stock_quantity === 0 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                        {product.stock_quantity} left
+                      <span className={`flex-shrink-0 inline-flex items-center px-2 py-1 rounded-md text-xs font-black ${product.stock_quantity === 0 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                        {product.stock_quantity === 0 ? 'OUT' : 'LOW'}
                       </span>
+                    </div>
+                    
+                    {/* Quick Restock Actions */}
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200/60 mt-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-auto">Restock:</span>
+                      <button 
+                        onClick={(e) => handleQuickRestock(e, product, 10)}
+                        className="flex items-center gap-1 px-2 py-1 bg-white border border-slate-200 rounded text-xs font-bold text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-colors"
+                      >
+                        <PlusCircle size={12} /> 10
+                      </button>
+                      <button 
+                        onClick={(e) => handleQuickRestock(e, product, 50)}
+                        className="flex items-center gap-1 px-2 py-1 bg-white border border-slate-200 rounded text-xs font-bold text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-colors"
+                      >
+                        <PlusCircle size={12} /> 50
+                      </button>
                     </div>
                   </Link>
                 ))}
