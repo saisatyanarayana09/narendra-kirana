@@ -263,8 +263,7 @@ export function HomePage() {
   <section className="mt-1 relative">
   <div className="flex justify-between items-center py-2">
     <div className="flex items-center gap-2">
-      <span className="text-xl">🏪</span>
-      <h2 className="text-lg font-bold text-slate-900">Shop by Category</h2>
+      <h2 className="text-lg font-bold text-slate-900">Explore Aisles</h2>
     </div>
     <Link to="/products" className="text-xs font-bold text-slate-500 hover:text-slate-600 transition flex items-center gap-1">See all <ChevronRight size={14} /></Link>
   </div>
