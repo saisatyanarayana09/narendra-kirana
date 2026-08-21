@@ -57,10 +57,16 @@ export function CartProvider({ children }) {
  }, [isCustomer])
 
  useEffect(() => { 
-   refresh();
-   fetchSettings();
-   fetchProfile();
- }, [refresh, fetchSettings, fetchProfile])
+    refresh();
+    fetchSettings();
+    fetchProfile();
+    
+    // Poll settings every 30s so store open/close is live
+    const interval = setInterval(() => {
+        fetchSettings();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [refresh, fetchSettings, fetchProfile])
 
  const syncUser = useCallback(() => {
    setUser(getUser());
