@@ -327,7 +327,7 @@ const Offers = () => {
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-1.5">Banner Image (3:1)</label>
               <div className="bg-slate-50 p-2 border border-slate-200 rounded-xl">
-                <ImageCropper onCropComplete={setBannerFile} aspectRatio={3/1} />
+                <ImageCropper onCropComplete={setBannerFile} aspect={3} />
               </div>
             </div>
             <label className="flex items-center gap-2 pt-2">
