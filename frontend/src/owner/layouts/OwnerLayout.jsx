@@ -48,7 +48,13 @@ const OwnerLayout = () => {
         }`}
       >
         <div className="flex items-center justify-between h-16 px-6 bg-slate-950 border-b border-slate-800 shrink-0">
-          <span className="text-xl font-bold text-white tracking-wide">Owner Portal</span>
+          <div className="flex flex-col justify-center">
+            <Link to="/owner" className="text-xl font-black tracking-tighter whitespace-nowrap leading-tight">
+              <span className="text-white">Narendra</span>
+              <span className="text-primary-500 ml-1">Kirana</span>
+            </Link>
+            <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mt-0.5">Store Manager</span>
+          </div>
           <button className="lg:hidden text-slate-400 hover:text-white transition-colors" onClick={() => setIsSidebarOpen(false)}>
             <X className="w-6 h-6"/>
           </button>
