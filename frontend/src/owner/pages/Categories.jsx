@@ -125,7 +125,7 @@ const Categories = () => {
  <h1 className="text-2xl font-bold text-gray-900">Categories</h1>
  <button 
  onClick={() => openForm()}
- className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition"
+ className="flex items-center px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition"
  >
  <Plus className="w-5 h-5 mr-2"/>
  Add Category
@@ -153,7 +153,7 @@ const Categories = () => {
  required
  value={formData.name}
  onChange={(e) => setFormData({...formData, name: e.target.value})}
- className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+ className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
  placeholder="e.g. Rice & Grains"
  />
  </div>
@@ -181,7 +181,7 @@ const Categories = () => {
  id="isActive"
  checked={formData.is_active}
  onChange={(e) => setFormData({...formData, is_active: e.target.checked})}
- className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+ className="w-5 h-5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
  />
  <label htmlFor="isActive"className="ml-2 block text-sm font-medium text-slate-700">
  Active (visible to customers)
@@ -198,7 +198,7 @@ const Categories = () => {
  </button>
  <button
  type="submit"
- className="px-5 py-2.5 text-white font-bold bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-colors shadow-sm"
+ className="px-5 py-2.5 text-white font-bold bg-emerald-600 rounded-xl hover:bg-emerald-700 transition-colors shadow-sm"
  >
  Save Category
  </button>
@@ -234,7 +234,7 @@ const Categories = () => {
                   <tr 
                     ref={provided.innerRef}
                     {...provided.draggableProps}
-                    className={`hover:bg-slate-50 transition-colors group ${snapshot.isDragging ? 'bg-indigo-50 shadow-lg ring-1 ring-indigo-500 z-10' : ''}`}
+                    className={`hover:bg-slate-50 transition-colors group ${snapshot.isDragging ? 'bg-emerald-50 shadow-lg ring-1 ring-emerald-500 z-10' : ''}`}
                     style={provided.draggableProps.style}
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-slate-400">
@@ -243,8 +243,18 @@ const Categories = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-bold text-slate-900 group-hover:text-indigo-700 transition-colors">{category.name}</div>
-                      <div className="text-xs font-medium text-slate-500">Slug: {category.slug}</div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden shrink-0">
+                          {category.image ? (
+                            <img src={category.image} alt={category.name} className="w-full h-full object-cover mix-blend-multiply" />
+                          ) : (
+                            <span className="text-slate-300 font-bold text-lg">{category.name?.charAt(0)}</span>
+                          )}
+                        </div>
+                        <div className="text-sm font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
+                          {category.name}
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2.5 py-0.5 inline-flex text-[10px] uppercase tracking-wider font-extrabold rounded-md ${
@@ -256,7 +266,7 @@ const Categories = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                       <button 
                         onClick={() => openForm(category)}
-                        className="p-2 text-indigo-600 hover:text-white bg-indigo-50 hover:bg-indigo-600 rounded-xl transition-colors inline-flex items-center"
+                        className="p-2 text-emerald-600 hover:text-white bg-emerald-50 hover:bg-emerald-600 rounded-xl transition-colors inline-flex items-center"
                       >
                         <Edit2 className="w-4 h-4"/>
                       </button>
