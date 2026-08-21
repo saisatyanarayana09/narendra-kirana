@@ -55,7 +55,7 @@ export default function HomepageSectionEditor({
         <button
           type="button"
           onClick={() => setPickerOpen(true)}
-          className="flex items-center gap-2 text-sm font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-xl hover:bg-indigo-100 transition"
+          className="flex items-center gap-2 text-sm font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl hover:bg-emerald-100 transition"
         >
           <Plus className="w-4 h-4" />
           Add Products
@@ -65,7 +65,7 @@ export default function HomepageSectionEditor({
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-1.5 text-sm font-bold bg-indigo-600 text-white px-5 py-2 rounded-xl hover:bg-indigo-700 transition disabled:opacity-60 whitespace-nowrap shadow-sm shadow-indigo-200"
+          className="flex items-center gap-1.5 text-sm font-bold bg-emerald-600 text-white px-5 py-2 rounded-xl hover:bg-emerald-700 transition disabled:opacity-60 whitespace-nowrap shadow-sm shadow-emerald-200"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           Save {section.title}
@@ -86,7 +86,7 @@ export default function HomepageSectionEditor({
               <div 
                 {...provided.droppableProps}
                 ref={provided.innerRef}
-                className={`flex gap-4 overflow-x-auto pb-4 hide-scrollbar snap-x ${snapshot.isDraggingOver ? 'bg-indigo-50/50 rounded-2xl' : ''}`}
+                className={`flex gap-4 overflow-x-auto pb-4 hide-scrollbar snap-x ${snapshot.isDraggingOver ? 'bg-emerald-50/50 rounded-2xl' : ''}`}
               >
                 {items.map((item, idx) => (
                   <Draggable key={`product-${item.id}`} draggableId={`product-${section.id}-${item.id}`} index={idx}>
@@ -95,8 +95,8 @@ export default function HomepageSectionEditor({
                         ref={provided.innerRef}
                         {...provided.draggableProps}
                         {...provided.dragHandleProps}
-                        className={`w-40 sm:w-48 shrink-0 snap-start bg-white border rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing group hover:border-indigo-300 hover:shadow-lg transition-all relative ${
-                          snapshot.isDragging ? 'shadow-2xl ring-2 ring-indigo-500 border-indigo-500 z-50' : 'border-gray-200'
+                        className={`w-40 sm:w-48 shrink-0 snap-start bg-white border rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing group hover:border-emerald-300 hover:shadow-lg transition-all relative ${
+                          snapshot.isDragging ? 'shadow-2xl ring-2 ring-emerald-500 border-emerald-500 z-50' : 'border-gray-200'
                         }`}
                         style={provided.draggableProps.style}
                       >
@@ -164,7 +164,7 @@ export default function HomepageSectionEditor({
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Search products by name or category…"
-                  className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm text-sm font-medium"
+                  className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all shadow-sm text-sm font-medium"
                 />
               </div>
             </div>
@@ -188,12 +188,12 @@ export default function HomepageSectionEditor({
                         onClick={() => toggleProduct(p)}
                         className={`relative p-3 rounded-2xl cursor-pointer transition-all ${
                           isAdded 
-                            ? 'bg-indigo-50 ring-2 ring-indigo-500 shadow-md' 
-                            : 'bg-white border border-slate-200 hover:border-indigo-300 hover:shadow-lg'
+                            ? 'bg-emerald-50 ring-2 ring-emerald-500 shadow-md' 
+                            : 'bg-white border border-slate-200 hover:border-emerald-300 hover:shadow-lg'
                         }`}
                       >
                         {isAdded && (
-                          <div className="absolute top-2 right-2 w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center z-10 shadow-sm">
+                          <div className="absolute top-2 right-2 w-6 h-6 bg-emerald-600 rounded-full flex items-center justify-center z-10 shadow-sm">
                             <span className="text-white text-xs font-black">✓</span>
                           </div>
                         )}
@@ -217,7 +217,7 @@ export default function HomepageSectionEditor({
               <button 
                 type="button" 
                 onClick={() => { setPickerOpen(false); setSearch(''); }} 
-                className="px-6 py-2.5 text-sm font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200"
+                className="px-6 py-2.5 text-sm font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition-colors shadow-sm shadow-emerald-200"
               >
                 Done
               </button>
