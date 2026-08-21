@@ -28,11 +28,11 @@ function ProductImage({ product, large = false }) {
  </div>
  );
  }
- return <div className={`grid w-full place-items-center bg-slate-100 text-3xl font-bold text-slate-300 ${large ? 'h-72 sm:h-80 md:h-full' : 'h-32 sm:h-36'}`}>{product.name?.charAt(0)?.toUpperCase()}</div>
+ return <div className={`grid w-full place-items-center bg-emerald-100 text-3xl font-bold text-emerald-400 ${large ? 'h-72 sm:h-80 md:h-full' : 'h-32 sm:h-36'}`}>{product.name?.charAt(0)?.toUpperCase()}</div>
 }
 
 function SearchBox({ value, onChange }) {
- return <div className="flex items-center gap-2 rounded-full border-2 border-slate-200 bg-white px-4 shadow-sm focus-within:border-emerald-400 focus-within:ring-4 focus-within:ring-emerald-100 transition-all duration-300"><Search className="text-slate-400 group-focus-within:text-emerald-500 transition-colors"size={20} /><input value={value} onChange={(event) => onChange(event.target.value)} placeholder="Search rice, milk, snacks..."className="min-h-12 w-full bg-transparent text-sm outline-none font-medium"/>{value && <button onClick={() => onChange('')} className="p-1 text-slate-500 hover:text-red-500 transition-colors"><X size={18} /></button>}</div>
+ return <div className="flex items-center gap-2 rounded-full border-2 border-emerald-200 bg-white px-4 shadow-sm focus-within:border-emerald-400 focus-within:ring-4 focus-within:ring-emerald-100 transition-all duration-300"><Search className="text-emerald-500 group-focus-within:text-emerald-500 transition-colors"size={20} /><input value={value} onChange={(event) => onChange(event.target.value)} placeholder="Search rice, milk, snacks..."className="min-h-12 w-full bg-transparent text-sm outline-none font-medium"/>{value && <button onClick={() => onChange('')} className="p-1 text-emerald-600 hover:text-red-500 transition-colors"><X size={18} /></button>}</div>
 }
 
 export function ProductCard({ product, ...props }) {
@@ -68,7 +68,7 @@ export function ProductCard({ product, ...props }) {
  }
  };
 
- return <div {...props} className="group relative overflow-hidden rounded-2xl bg-white shadow-sm border border-slate-200/80 transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 hover:border-emerald-200 hover:ring-2 hover:ring-emerald-100 flex flex-col h-full">
+ return <div {...props} className="group relative overflow-hidden rounded-2xl bg-white shadow-sm border border-emerald-200/80 transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 hover:border-emerald-200 hover:ring-2 hover:ring-emerald-100 flex flex-col h-full">
  {discountPercent > 0 && (
  <div className="absolute top-0 left-0 z-10 bg-red-600 text-white text-[10px] font-extrabold px-2.5 py-1.5 rounded-br-xl rounded-tl-xl shadow-lg tracking-wider flex items-center gap-1">
  <Zap size={10} fill="currentColor" />
@@ -81,16 +81,16 @@ export function ProductCard({ product, ...props }) {
  onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(product.id); }} 
  className="absolute top-2 right-2 z-10 p-1.5 rounded-full bg-white/90 backdrop-blur shadow-md transition-all hover:scale-125 hover:bg-white active:scale-95"
  >
- <Heart size={18} fill={isFav ?"currentColor":"none"} className={isFav ?"text-rose-500 drop-shadow-sm":"text-slate-300"} />
+ <Heart size={18} fill={isFav ?"currentColor":"none"} className={isFav ?"text-rose-500 drop-shadow-sm":"text-emerald-400"} />
  </button>
  )}
  <Link to={`/product/${product.id}`} className="flex flex-col flex-grow">
- <div className="overflow-hidden bg-slate-50 relative rounded-t-2xl">
+ <div className="overflow-hidden bg-emerald-50 relative rounded-t-2xl">
  <ProductImage product={product} />
  </div>
  <div className="p-3 flex flex-col flex-grow bg-white">
- <p className="line-clamp-2 text-sm font-bold leading-tight text-slate-800 group-hover:text-emerald-700 transition-colors">{product.name}</p>
- <p className="mt-1 text-xs text-slate-500 font-medium">{product.brand && `${product.brand} · `}{product.unit}</p>
+ <p className="line-clamp-2 text-sm font-bold leading-tight text-emerald-900 group-hover:text-emerald-700 transition-colors">{product.name}</p>
+ <p className="mt-1 text-xs text-emerald-600 font-medium">{product.brand && `${product.brand} · `}{product.unit}</p>
  
  {product.tags && (
  <div className="flex flex-wrap gap-1 mt-2">
@@ -104,7 +104,7 @@ export function ProductCard({ product, ...props }) {
  <div className="flex items-center gap-2 mb-3">
  <span className="text-lg font-black text-emerald-700">₹{price}</span>
  {product.offer_price && (
- <span className="text-xs text-slate-400 line-through font-semibold">₹{product.regular_price}</span>
+ <span className="text-xs text-emerald-500 line-through font-semibold">₹{product.regular_price}</span>
  )}
  </div>
  
@@ -112,12 +112,12 @@ export function ProductCard({ product, ...props }) {
  <button 
  onClick={handleAddToCart}
  disabled={adding || added || isMaxReached}
- className={`w-full rounded-xl py-2.5 min-h-[44px] sm:min-h-0 sm:py-2 text-sm font-bold transition-all active:scale-95 flex items-center justify-center gap-1.5 ${added ? 'bg-slate-100 text-slate-800 border border-slate-200 shadow-sm' : isMaxReached ? 'bg-slate-50 text-slate-400 border border-slate-100 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-lg shadow-red-200 shadow-md'} disabled:opacity-60 disabled:active:scale-100`}
+ className={`w-full rounded-xl py-2.5 min-h-[44px] sm:min-h-0 sm:py-2 text-sm font-bold transition-all active:scale-95 flex items-center justify-center gap-1.5 ${added ? 'bg-emerald-100 text-emerald-900 border border-emerald-200 shadow-sm' : isMaxReached ? 'bg-emerald-50 text-emerald-500 border border-emerald-100 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-lg shadow-red-200 shadow-md'} disabled:opacity-60 disabled:active:scale-100`}
  >
  {isMaxReached ? 'Max in cart' : added ? '✓ Added!' : adding ? 'Adding...' : <><ShoppingCart size={14} /> Add to Cart</>}
  </button>
  ) : (
- <div className="w-full text-center rounded-xl bg-slate-50 border border-slate-100 py-2 text-sm font-extrabold text-slate-400">
+ <div className="w-full text-center rounded-xl bg-emerald-50 border border-emerald-100 py-2 text-sm font-extrabold text-emerald-500">
  Out of stock
  </div>
  )}
@@ -129,12 +129,12 @@ export function ProductCard({ product, ...props }) {
 
 export function ProductSkeleton() {
  return (
- <div className="rounded-2xl bg-white shadow-sm border border-slate-100 p-3 animate-pulse h-full flex flex-col min-h-[280px]">
+ <div className="rounded-2xl bg-white shadow-sm border border-emerald-100 p-3 animate-pulse h-full flex flex-col min-h-[280px]">
  <div className="bg-gradient-to-br from-slate-100 to-slate-50 rounded-xl h-32 sm:h-36 w-full mb-3"></div>
- <div className="h-4 bg-slate-100 rounded-lg w-3/4 mb-2"></div>
- <div className="h-3 bg-slate-100 rounded-lg w-1/2 mb-4"></div>
+ <div className="h-4 bg-emerald-100 rounded-lg w-3/4 mb-2"></div>
+ <div className="h-3 bg-emerald-100 rounded-lg w-1/2 mb-4"></div>
  <div className="mt-auto">
- <div className="h-5 bg-slate-100 rounded-lg w-1/3 mb-3"></div>
+ <div className="h-5 bg-emerald-100 rounded-lg w-1/3 mb-3"></div>
  <div className="h-10 bg-emerald-50 rounded-xl w-full"></div>
  </div>
  </div>
@@ -143,13 +143,13 @@ export function ProductSkeleton() {
 
 export function CategorySkeleton() {
  return (
- <div className="aspect-square sm:aspect-[4/3] rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 animate-pulse border border-slate-200 shadow-sm w-full h-full"></div>
+ <div className="aspect-square sm:aspect-[4/3] rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 animate-pulse border border-emerald-200 shadow-sm w-full h-full"></div>
  );
 }
 
 export function HomeCategorySkeleton() {
  return (
- <div className="w-24 h-24 sm:w-32 sm:h-24 md:w-40 md:h-[120px] shrink-0 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 animate-pulse border border-slate-100"></div>
+ <div className="w-24 h-24 sm:w-32 sm:h-24 md:w-40 md:h-[120px] shrink-0 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 animate-pulse border border-emerald-100"></div>
  );
 }
 
@@ -167,7 +167,7 @@ function BannerCarousel({ banners }) {
  if (!banners.length) return null;
 
  return (
- <section className="relative overflow-hidden group bg-slate-100 w-full mb-2 sm:mb-6 shadow-sm">
+ <section className="relative overflow-hidden group bg-emerald-100 w-full mb-2 sm:mb-6 shadow-sm">
  <div 
  className="flex transition-transform duration-500 ease-out h-full"
  style={{ transform: `translateX(-${currentIndex * 100}%)` }}
@@ -246,7 +246,7 @@ export function HomePage() {
     </div>
     <h1 className="max-w-2xl text-2xl font-extrabold leading-tight sm:text-4xl text-white tracking-tight drop-shadow-sm">Everyday essentials, <span className="text-yellow-300">ready when you are.</span></h1>
     <p className="mt-2 max-w-xl text-sm text-emerald-100 font-medium leading-relaxed hidden sm:block">Order online and collect from your local store. Quality products, straightforward pricing, and reliable service.</p>
-    <Link to="/products" className="mt-4 inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-extrabold text-emerald-900 transition-all hover:bg-slate-100 hover:text-emerald-900 active:scale-95 shadow-md hover:shadow-lg group">
+    <Link to="/products" className="mt-4 inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-extrabold text-emerald-900 transition-all hover:bg-emerald-100 hover:text-emerald-900 active:scale-95 shadow-md hover:shadow-lg group">
       Explore Catalog <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform"/>
     </Link>
     </div>
@@ -264,7 +264,7 @@ export function HomePage() {
   <div className="flex justify-between items-center py-2">
     <div className="flex items-center gap-2">
       <span className="text-xl">🏪</span>
-      <h2 className="text-lg font-bold text-slate-900">Shop by Category</h2>
+      <h2 className="text-lg font-bold text-emerald-950">Shop by Category</h2>
     </div>
     <Link to="/products" className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition flex items-center gap-1">See all <ChevronRight size={14} /></Link>
   </div>
@@ -304,9 +304,9 @@ export function HomePage() {
     if (sectionProducts.length === 0 && !loading) return null;
 
     return (
-      <section key={section.id} className={index === 0 ? "mt-4 relative" : "mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-slate-100 relative"}>
-          <div className="sticky top-[56px] sm:top-[68px] z-20 bg-slate-50/95 backdrop-blur-sm py-2 flex justify-between items-center">
-            <h2 className="text-lg font-bold text-slate-900">{section.title}</h2>
+      <section key={section.id} className={index === 0 ? "mt-4 relative" : "mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-emerald-100 relative"}>
+          <div className="sticky top-[56px] sm:top-[68px] z-20 bg-emerald-50/95 backdrop-blur-sm py-2 flex justify-between items-center">
+            <h2 className="text-lg font-bold text-emerald-950">{section.title}</h2>
             <Link to="/products" className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition flex items-center gap-1">View all <ChevronRight size={14} /></Link>
           </div>
           {loading ? (
@@ -341,7 +341,7 @@ export function CategoriesPage() {
   <main className="mx-auto w-full max-w-screen-2xl px-4 py-8 sm:px-6 lg:px-12">
   <div className="w-full mb-6 flex flex-col items-start gap-2">
     <button onClick={() => navigate(-1)} className="text-sm font-bold text-emerald-700 hover:underline bg-transparent border-none cursor-pointer p-0 flex items-center gap-1"><ArrowLeft size={16} /> Back</button>
-    <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">All Categories</h1>
+    <h1 className="text-2xl sm:text-3xl font-extrabold text-emerald-950">All Categories</h1>
   </div>
   {loading ? (
  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4 w-full">
@@ -354,7 +354,7 @@ export function CategoriesPage() {
  <Link 
  key={category.id} 
  to={`/products?category=${category.id}`} 
- className="aspect-square sm:aspect-[4/3] flex flex-col items-center justify-end p-2 sm:p-3 relative rounded-2xl overflow-hidden shadow-sm ring-1 ring-black/5 transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:scale-105 group bg-slate-50 w-full"
+ className="aspect-square sm:aspect-[4/3] flex flex-col items-center justify-end p-2 sm:p-3 relative rounded-2xl overflow-hidden shadow-sm ring-1 ring-black/5 transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:scale-105 group bg-emerald-50 w-full"
  >
  <div className="absolute inset-0">
  {category.image ? (
@@ -409,16 +409,16 @@ export function CategoriesPage() {
   return (
   <CustomerLayout>
     <main className="mx-auto w-full max-w-screen-2xl px-4 py-4 sm:px-6 lg:px-12">
-      <div className="sticky top-[60px] sm:top-[68px] z-20 -mx-4 px-4 sm:mx-0 sm:px-0 bg-slate-50 py-3 mb-4 border-b border-slate-200/60 shadow-sm sm:shadow-none sm:border-none sm:bg-transparent sm:py-0">
+      <div className="sticky top-[60px] sm:top-[68px] z-20 -mx-4 px-4 sm:mx-0 sm:px-0 bg-emerald-50 py-3 mb-4 border-b border-emerald-200/60 shadow-sm sm:shadow-none sm:border-none sm:bg-transparent sm:py-0">
         <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar items-center">
-          <Link to="/"className="flex shrink-0 items-center justify-center rounded-full bg-white text-slate-600 shadow-sm border border-slate-200/60 hover:bg-slate-50 transition w-9 h-9 mr-1" aria-label="Back to home"><ArrowLeft size={18} /></Link>
-          <button onClick={() => { const next = new URLSearchParams(searchParams); next.delete('category'); setSearchParams(next) }} className={`rounded-full px-4 py-2 text-sm font-bold shrink-0 transition-all ${!category ? 'bg-emerald-600 text-white shadow-md' : 'bg-white text-slate-600 shadow-sm border border-slate-200/60 hover:bg-slate-50'}`}>All</button>
-          {categories.map((item) => <button key={item.id} onClick={() => { const next = new URLSearchParams(searchParams); next.set('category', item.id); setSearchParams(next) }} className={`rounded-full px-4 py-2 text-sm font-bold shrink-0 transition-all ${category === String(item.id) ? 'bg-emerald-600 text-white shadow-md' : 'bg-white text-slate-600 shadow-sm border border-slate-200/60 hover:bg-slate-50'}`}>{item.name}</button>)}
+          <Link to="/"className="flex shrink-0 items-center justify-center rounded-full bg-white text-emerald-700 shadow-sm border border-emerald-200/60 hover:bg-emerald-50 transition w-9 h-9 mr-1" aria-label="Back to home"><ArrowLeft size={18} /></Link>
+          <button onClick={() => { const next = new URLSearchParams(searchParams); next.delete('category'); setSearchParams(next) }} className={`rounded-full px-4 py-2 text-sm font-bold shrink-0 transition-all ${!category ? 'bg-emerald-600 text-white shadow-md' : 'bg-white text-emerald-700 shadow-sm border border-emerald-200/60 hover:bg-emerald-50'}`}>All</button>
+          {categories.map((item) => <button key={item.id} onClick={() => { const next = new URLSearchParams(searchParams); next.set('category', item.id); setSearchParams(next) }} className={`rounded-full px-4 py-2 text-sm font-bold shrink-0 transition-all ${category === String(item.id) ? 'bg-emerald-600 text-white shadow-md' : 'bg-white text-emerald-700 shadow-sm border border-emerald-200/60 hover:bg-emerald-50'}`}>{item.name}</button>)}
         </div>
       </div>
       <div className="flex items-baseline justify-between mt-2">
-        <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900">{activeCategoryName}</h1>
-        {!loading && <p className="text-sm font-medium text-slate-500">{products.length} products</p>}
+        <h1 className="text-xl sm:text-2xl font-extrabold text-emerald-950">{activeCategoryName}</h1>
+        {!loading && <p className="text-sm font-medium text-emerald-600">{products.length} products</p>}
       </div>
       {error && <p className="mt-6 rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
@@ -434,7 +434,7 @@ export function CategoriesPage() {
  useEffect(() => { window.scrollTo(0, 0); api.get(`/products/${id}/`).then((response) => setProduct(response.data)).catch(() => setError('This product is unavailable or no longer active.')) }, [id])
  async function addToCart() { if (!isCustomer) { navigate('/login'); return } setAdding(true); try { await add(product); setAdded(true); toast.success('Added to cart'); setTimeout(() => setAdded(false), 3000); } catch (requestError) { toast.error(requestError.response?.data?.detail || 'Could not add this item.') } finally { setAdding(false) } }
  if (error) return <CustomerLayout><main className="mx-auto max-w-3xl p-6"><Link to="/products"className="font-bold text-emerald-700">Back to products</Link><p className="mt-6 rounded-xl bg-red-50 p-4 text-red-700">{error}</p></main></CustomerLayout>
- if (!product) return <CustomerLayout><main className="mx-auto max-w-3xl p-6 text-slate-500">Loading product...</main></CustomerLayout>
+ if (!product) return <CustomerLayout><main className="mx-auto max-w-3xl p-6 text-emerald-600">Loading product...</main></CustomerLayout>
  const price = product.offer_price || product.regular_price
  const isFav = favorites?.find(f => f.product === product.id);
  const regPrice = Number(product.regular_price);
@@ -445,7 +445,7 @@ export function CategoriesPage() {
  const maxAllowed = product.max_order_quantity > 0 ? Math.min(product.stock_quantity, product.max_order_quantity) : product.stock_quantity;
  const isMaxReached = cartItem && cartItem.quantity >= maxAllowed;
 
- return <CustomerLayout><main className="mx-auto w-full max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-12"><button onClick={() => navigate(-1)} className="mb-4 flex items-center gap-2 text-sm font-bold text-emerald-700 hover:underline bg-transparent border-none cursor-pointer"><ArrowLeft size={16} /> Back</button><article className="mt-5 overflow-hidden rounded-2xl bg-white shadow-lg border border-slate-200 relative flex flex-col md:flex-row">
+ return <CustomerLayout><main className="mx-auto w-full max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-12"><button onClick={() => navigate(-1)} className="mb-4 flex items-center gap-2 text-sm font-bold text-emerald-700 hover:underline bg-transparent border-none cursor-pointer"><ArrowLeft size={16} /> Back</button><article className="mt-5 overflow-hidden rounded-2xl bg-white shadow-lg border border-emerald-200 relative flex flex-col md:flex-row">
  {discountPercent > 0 && (
  <div className="absolute top-0 left-0 z-10 bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-br-2xl shadow-sm tracking-wide flex items-center gap-1.5">
  <Zap size={12} fill="currentColor" />
@@ -455,8 +455,8 @@ export function CategoriesPage() {
  <div className="w-full md:w-1/2 md:min-h-[400px]">
  <ProductImage product={product} large />
  </div>
- <div className="w-full md:w-1/2 p-6 sm:p-8 border-t md:border-t-0 md:border-l border-slate-100 flex flex-col justify-center">
- <div className="flex justify-between items-start"><p className="text-sm font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">{product.category_name || 'Grocery'}</p>{isCustomer && <button onClick={() => toggleFavorite(product.id)} className="p-2 -mr-2 rounded-full hover:bg-rose-50 transition"><Heart size={24} fill={isFav ?"currentColor":"none"} className={isFav ?"text-rose-500":"text-slate-300"} /></button>}</div><h1 className="mt-3 text-2xl sm:text-3xl font-extrabold text-slate-900">{product.name}</h1><p className="mt-1 text-sm font-medium text-slate-500">{product.brand && `${product.brand} · `}{product.unit}</p>
+ <div className="w-full md:w-1/2 p-6 sm:p-8 border-t md:border-t-0 md:border-l border-emerald-100 flex flex-col justify-center">
+ <div className="flex justify-between items-start"><p className="text-sm font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">{product.category_name || 'Grocery'}</p>{isCustomer && <button onClick={() => toggleFavorite(product.id)} className="p-2 -mr-2 rounded-full hover:bg-rose-50 transition"><Heart size={24} fill={isFav ?"currentColor":"none"} className={isFav ?"text-rose-500":"text-emerald-400"} /></button>}</div><h1 className="mt-3 text-2xl sm:text-3xl font-extrabold text-emerald-950">{product.name}</h1><p className="mt-1 text-sm font-medium text-emerald-600">{product.brand && `${product.brand} · `}{product.unit}</p>
  {product.tags && (
  <div className="flex flex-wrap gap-2 mt-3">
  {product.tags.split(',').map((tag, i) => (
@@ -467,19 +467,19 @@ export function CategoriesPage() {
  <div className="mt-6 flex items-center gap-3">
  <p className="text-4xl font-black text-emerald-700">₹{price}</p>
  {product.offer_price && (
- <p className="text-lg font-bold text-slate-400 line-through mt-1">₹{product.regular_price}</p>
+ <p className="text-lg font-bold text-emerald-500 line-through mt-1">₹{product.regular_price}</p>
  )}
  </div>
- <button onClick={addToCart} disabled={!product.is_in_stock || adding || added || isMaxReached} className={`mt-8 hidden md:flex items-center justify-center gap-2 min-h-14 w-full rounded-xl px-4 py-3 text-lg font-extrabold transition-all active:scale-[0.98] ${added ? 'bg-slate-100 text-slate-800 border border-slate-200 shadow-sm' : isMaxReached ? 'bg-slate-100 text-slate-400 border border-slate-200 shadow-none cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-xl shadow-lg shadow-red-200 disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none border border-transparent disabled:border-slate-200 disabled:active:scale-100'}`}>{product.is_in_stock ? (isMaxReached ? 'Max in cart' : added ? '✓ Added to cart' : adding ? 'Adding...' : <><ShoppingCart size={20} /> Add to Cart</>) : 'Out of stock'}</button>
- <div className="mt-8 pt-6 border-t border-slate-100 mb-8 md:mb-0">
- <h3 className="text-sm font-extrabold text-slate-900 mb-2">Product Description</h3>
- <p className="text-sm leading-relaxed text-slate-600 pb-12 md:pb-0">{product.description || 'Fresh, quality essentials from your local store.'}</p>
+ <button onClick={addToCart} disabled={!product.is_in_stock || adding || added || isMaxReached} className={`mt-8 hidden md:flex items-center justify-center gap-2 min-h-14 w-full rounded-xl px-4 py-3 text-lg font-extrabold transition-all active:scale-[0.98] ${added ? 'bg-emerald-100 text-emerald-900 border border-emerald-200 shadow-sm' : isMaxReached ? 'bg-emerald-100 text-emerald-500 border border-emerald-200 shadow-none cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-xl shadow-lg shadow-red-200 disabled:bg-emerald-100 disabled:text-emerald-500 disabled:shadow-none border border-transparent disabled:border-emerald-200 disabled:active:scale-100'}`}>{product.is_in_stock ? (isMaxReached ? 'Max in cart' : added ? '✓ Added to cart' : adding ? 'Adding...' : <><ShoppingCart size={20} /> Add to Cart</>) : 'Out of stock'}</button>
+ <div className="mt-8 pt-6 border-t border-emerald-100 mb-8 md:mb-0">
+ <h3 className="text-sm font-extrabold text-emerald-950 mb-2">Product Description</h3>
+ <p className="text-sm leading-relaxed text-emerald-700 pb-12 md:pb-0">{product.description || 'Fresh, quality essentials from your local store.'}</p>
  </div>
  </div></article>
 
  {/* Mobile Sticky Add to Cart */}
- <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-30 bg-white border-t border-slate-200 p-3 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] md:hidden">
-   <button onClick={addToCart} disabled={!product.is_in_stock || adding || added || isMaxReached} className={`w-full min-h-[44px] rounded-xl px-4 py-2.5 text-base font-extrabold transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 ${added ? 'bg-slate-100 text-slate-800 border border-slate-200 shadow-sm' : isMaxReached ? 'bg-slate-100 text-slate-400 border border-slate-200 shadow-none cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-md disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none border border-transparent disabled:border-slate-200 disabled:active:scale-100'}`}>{product.is_in_stock ? (isMaxReached ? 'Max in cart' : added ? '✓ Added to cart' : adding ? 'Adding...' : <><ShoppingCart size={16} /> Add to Cart · ₹{price}</>) : 'Out of stock'}</button>
+ <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-30 bg-white border-t border-emerald-200 p-3 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] md:hidden">
+   <button onClick={addToCart} disabled={!product.is_in_stock || adding || added || isMaxReached} className={`w-full min-h-[44px] rounded-xl px-4 py-2.5 text-base font-extrabold transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 ${added ? 'bg-emerald-100 text-emerald-900 border border-emerald-200 shadow-sm' : isMaxReached ? 'bg-emerald-100 text-emerald-500 border border-emerald-200 shadow-none cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-md disabled:bg-emerald-100 disabled:text-emerald-500 disabled:shadow-none border border-transparent disabled:border-emerald-200 disabled:active:scale-100'}`}>{product.is_in_stock ? (isMaxReached ? 'Max in cart' : added ? '✓ Added to cart' : adding ? 'Adding...' : <><ShoppingCart size={16} /> Add to Cart · ₹{price}</>) : 'Out of stock'}</button>
  </div>
 
  </main></CustomerLayout>
