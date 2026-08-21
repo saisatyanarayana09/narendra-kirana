@@ -89,7 +89,7 @@ function GlobalSearchBar() {
  <p className="text-sm font-bold text-slate-900 truncate">{product.name}</p>
  <p className="text-xs text-slate-500">{product.unit}</p>
  </div>
- <div className="text-sm font-bold text-primary-700 whitespace-nowrap">Rs. {product.offer_price || product.regular_price}</div>
+ <div className="text-sm font-bold text-primary-700 whitespace-nowrap">₹{product.offer_price || product.regular_price}</div>
  </Link>
  ))}
  <button 

@@ -233,7 +233,7 @@ const Dashboard = () => {
             <div className="flex items-center gap-2 text-indigo-300 mb-2 font-bold text-sm">
               <Target size={16} /> Average Order Value
             </div>
-            <p className="text-2xl font-black text-white">?{loading ? '...' : aov}</p>
+            <p className="text-2xl font-black text-white">₹{loading ? '...' : aov}</p>
             <p className="text-xs text-indigo-200/60 mt-1">Based on today's orders</p>
           </div>
           <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/10">
@@ -282,7 +282,7 @@ const Dashboard = () => {
           <div className="flex justify-between items-start">
             <div>
               <p className="text-sm font-bold text-slate-500">Today's Sales</p>
-              <p className="text-4xl font-extrabold text-slate-900 mt-2 tracking-tight">?{loading || !analytics ? '...' : analytics.today_sales}</p>
+              <p className="text-4xl font-extrabold text-slate-900 mt-2 tracking-tight">₹{loading || !analytics ? '...' : analytics.today_sales}</p>
             </div>
             <div className="p-3 bg-emerald-50 rounded-xl text-emerald-600 group-hover:scale-110 transition-transform"><TrendingUp size={24}/></div>
           </div>
@@ -296,7 +296,7 @@ const Dashboard = () => {
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 lg:col-span-2">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-lg font-bold text-slate-900">Sales (Last 7 Days)</h2>
-            <p className="text-sm font-bold text-slate-500">Total: ?{loading || !analytics ? '...' : analytics.weekly_sales}</p>
+            <p className="text-sm font-bold text-slate-500">Total: ₹{loading || !analytics ? '...' : analytics.weekly_sales}</p>
           </div>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -411,7 +411,7 @@ const Dashboard = () => {
                 </div>
                 <div className="mt-4 pt-3 border-t border-slate-200/60 flex justify-between items-end">
                   <span className="text-xs font-bold text-slate-400">{new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                  <span className="text-base font-black text-emerald-600">?{order.total_amount}</span>
+                  <span className="text-base font-black text-emerald-600">₹{order.total_amount}</span>
                 </div>
               </Link>
             ))}

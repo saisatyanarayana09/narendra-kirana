@@ -73,7 +73,7 @@ export function CartPage() {
  </div>
  <div className="min-w-0 flex-1">
  <p className="truncate font-bold text-slate-800 text-lg">{item.product_name}</p>
- <p className="text-sm text-slate-500 font-medium">Rs. {item.unit_price} · {item.product_unit}</p>
+ <p className="text-sm text-slate-500 font-medium">₹{item.unit_price} · {item.product_unit}</p>
  </div>
  <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 shadow-sm shrink-0 overflow-hidden">
  <button onClick={() => change(item, item.quantity - 1)} className="p-2.5 text-slate-600 hover:text-primary-700 hover:bg-primary-100 transition-colors active:bg-primary-200"><Minus size={18} /></button>
@@ -108,17 +108,17 @@ export function CartPage() {
  <section className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
  <h2 className="text-lg font-extrabold text-slate-900 mb-4">Order Summary</h2>
  <div className="space-y-3">
- <div className="flex justify-between text-sm text-slate-600 font-medium"><span>Subtotal</span><span className="text-slate-900 font-bold">Rs. {cart?.subtotal || '0.00'}</span></div>
- <div className="flex justify-between text-sm text-primary-700 font-medium"><span>Product Savings</span><span className="font-bold">Rs. {cart?.discount || '0.00'}</span></div>
- {cart?.promo_discount > 0 && <div className="flex justify-between text-sm text-green-600 font-bold"><span>Promo Discount</span><span>- Rs. {cart.promo_discount}</span></div>}
- {cart?.packaging_fee > 0 && <div className="flex justify-between text-sm text-slate-600 font-medium"><span>Packaging Fee</span><span className="text-slate-900 font-bold">Rs. {cart.packaging_fee}</span></div>}
+ <div className="flex justify-between text-sm text-slate-600 font-medium"><span>Subtotal</span><span className="text-slate-900 font-bold">₹{cart?.subtotal || '0.00'}</span></div>
+ <div className="flex justify-between text-sm text-primary-700 font-medium"><span>Product Savings</span><span className="font-bold">₹{cart?.discount || '0.00'}</span></div>
+ {cart?.promo_discount > 0 && <div className="flex justify-between text-sm text-green-600 font-bold"><span>Promo Discount</span><span>- ₹{cart.promo_discount}</span></div>}
+ {cart?.packaging_fee > 0 && <div className="flex justify-between text-sm text-slate-600 font-medium"><span>Packaging Fee</span><span className="text-slate-900 font-bold">₹{cart.packaging_fee}</span></div>}
  </div>
- <div className="mt-5 flex justify-between border-t border-slate-100 pt-5 text-xl font-black text-slate-900"><span>Total Due</span><span>Rs. {cart?.total || '0.00'}</span></div>
+ <div className="mt-5 flex justify-between border-t border-slate-100 pt-5 text-xl font-black text-slate-900"><span>Total Due</span><span>₹{cart?.total || '0.00'}</span></div>
  
  {storeSettings?.is_open === false ? (
  <div className="mt-6 rounded-xl bg-red-50 p-4 text-center font-bold text-red-700 border border-red-100">The store is currently closed.</div>
  ) : Number(storeSettings?.min_order_amount) > 0 && Number(cart.subtotal) < Number(storeSettings.min_order_amount) ? (
- <div className="mt-6 rounded-xl bg-amber-50 p-4 text-center font-bold text-amber-700 border border-amber-100">Minimum order amount is Rs. {storeSettings.min_order_amount}</div>
+ <div className="mt-6 rounded-xl bg-amber-50 p-4 text-center font-bold text-amber-700 border border-amber-100">Minimum order amount is ₹{storeSettings.min_order_amount}</div>
  ) : (
  <>
  <button onClick={() => navigate('/checkout')} className="mt-6 hidden lg:block min-h-14 w-full rounded-xl bg-primary-600 font-bold text-white shadow-sm hover:bg-primary-700 hover:shadow-md transition-all active:scale-[0.98] text-lg">Continue to pickup</button>
@@ -182,13 +182,13 @@ export function CheckoutPage() {
    </div>
  )}
 
- <div className="mt-5 space-y-2 text-sm text-slate-600 border-t pt-4"><div className="flex justify-between"><span>Subtotal</span><span>Rs. {cart?.subtotal || '0.00'}</span></div><div className="flex justify-between text-primary-700"><span>Product Savings</span><span>Rs. {cart?.discount || '0.00'}</span></div>{cart?.promo_discount > 0 && <div className="flex justify-between text-green-600 font-bold"><span>Promo Discount</span><span>- Rs. {cart.promo_discount}</span></div>}{cart?.packaging_fee > 0 && <div className="flex justify-between"><span>Packaging Fee</span><span>Rs. {cart.packaging_fee}</span></div>}
- {useWallet && walletApplied > 0 && <div className="flex justify-between text-emerald-600 font-bold"><span>Wallet Applied</span><span>- Rs. {walletApplied.toFixed(2)}</span></div>}
- <div className="flex justify-between text-lg font-extrabold text-black pt-2"><span>Total Due</span><span>Rs. {finalTotal.toFixed(2)}</span></div></div>
+ <div className="mt-5 space-y-2 text-sm text-slate-600 border-t pt-4"><div className="flex justify-between"><span>Subtotal</span><span>₹{cart?.subtotal || '0.00'}</span></div><div className="flex justify-between text-primary-700"><span>Product Savings</span><span>₹{cart?.discount || '0.00'}</span></div>{cart?.promo_discount > 0 && <div className="flex justify-between text-green-600 font-bold"><span>Promo Discount</span><span>- ₹{cart.promo_discount}</span></div>}{cart?.packaging_fee > 0 && <div className="flex justify-between"><span>Packaging Fee</span><span>₹{cart.packaging_fee}</span></div>}
+ {useWallet && walletApplied > 0 && <div className="flex justify-between text-emerald-600 font-bold"><span>Wallet Applied</span><span>- ₹{walletApplied.toFixed(2)}</span></div>}
+ <div className="flex justify-between text-lg font-extrabold text-black pt-2"><span>Total Due</span><span>₹{finalTotal.toFixed(2)}</span></div></div>
  {storeSettings?.is_open === false ? (
  <div className="mt-5 rounded-xl bg-red-50 p-4 text-center font-bold text-red-700 border border-red-100">The store is currently closed. Cannot place order.</div>
  ) : Number(storeSettings?.min_order_amount) > 0 && Number(cart.subtotal) < Number(storeSettings.min_order_amount) ? (
- <div className="mt-5 rounded-xl bg-amber-50 p-4 text-center font-bold text-amber-700 border border-amber-100">Minimum order amount is Rs. {storeSettings.min_order_amount}</div>
+ <div className="mt-5 rounded-xl bg-amber-50 p-4 text-center font-bold text-amber-700 border border-amber-100">Minimum order amount is ₹{storeSettings.min_order_amount}</div>
  ) : (
  <button onClick={submit} disabled={loading} className="mt-5 min-h-12 w-full rounded-xl bg-primary-600 font-bold text-white disabled:bg-slate-300 hover:bg-primary-700 active:scale-[0.98] transition-all">{loading ? 'Processing...' : (finalTotal > 0 ? 'Place order (Pay at store)' : 'Place order (Paid via Wallet)')}</button>
  )}
@@ -206,18 +206,18 @@ export function OrderDetailPage() {
  {order.owner_note && <div className="mt-2 p-4 bg-primary-50 border border-primary-200 rounded-xl"><p className="text-xs font-extrabold uppercase text-primary-600 mb-1">Store Reply</p><p className="text-sm text-primary-900">{order.owner_note}</p></div>}
  <div className="mt-5 rounded-xl bg-white p-5 shadow-sm">
  <h2 className="text-lg font-bold text-slate-900 border-b pb-3 mb-3">Order Items</h2>
- {order.items.map((item) => <div key={item.id} className="flex justify-between py-2 text-sm"><span className={item.status === 'REJECTED' ? 'line-through text-slate-400' : 'text-slate-800'}>{item.quantity} x {item.product_name_snapshot} {item.status === 'REJECTED' && <span className="ml-2 text-xs font-bold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-md">Unavailable</span>}</span><span className={item.status === 'REJECTED' ? 'line-through text-slate-400' : 'text-slate-800'}>Rs. {item.subtotal}</span></div>)}
+ {order.items.map((item) => <div key={item.id} className="flex justify-between py-2 text-sm"><span className={item.status === 'REJECTED' ? 'line-through text-slate-400' : 'text-slate-800'}>{item.quantity} x {item.product_name_snapshot} {item.status === 'REJECTED' && <span className="ml-2 text-xs font-bold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-md">Unavailable</span>}</span><span className={item.status === 'REJECTED' ? 'line-through text-slate-400' : 'text-slate-800'}>₹{item.subtotal}</span></div>)}
  
  <div className="mt-6 border-t pt-4">
    <h2 className="text-lg font-bold text-slate-900 mb-3">Billing Summary</h2>
    <div className="space-y-2 text-sm text-slate-600">
-     <div className="flex justify-between"><span>Subtotal</span><span>Rs. {order.items.reduce((sum, item) => sum + (item.status !== 'REJECTED' ? parseFloat(item.subtotal) : 0), 0).toFixed(2)}</span></div>
-     {parseFloat(order.discount_applied) > 0 && <div className="flex justify-between text-primary-700"><span>Product Savings</span><span>- Rs. {order.discount_applied}</span></div>}
-     {parseFloat(order.promo_discount) > 0 && <div className="flex justify-between text-green-600 font-bold"><span>Promo Discount</span><span>- Rs. {order.promo_discount}</span></div>}
-     {parseFloat(order.packaging_fee) > 0 && <div className="flex justify-between"><span>Packaging Fee</span><span>Rs. {order.packaging_fee}</span></div>}
-     {parseFloat(order.wallet_discount) > 0 && <div className="flex justify-between text-emerald-600 font-bold"><span>Wallet Applied</span><span>- Rs. {order.wallet_discount}</span></div>}
+     <div className="flex justify-between"><span>Subtotal</span><span>₹{order.items.reduce((sum, item) => sum + (item.status !== 'REJECTED' ? parseFloat(item.subtotal) : 0), 0).toFixed(2)}</span></div>
+     {parseFloat(order.discount_applied) > 0 && <div className="flex justify-between text-primary-700"><span>Product Savings</span><span>- ₹{order.discount_applied}</span></div>}
+     {parseFloat(order.promo_discount) > 0 && <div className="flex justify-between text-green-600 font-bold"><span>Promo Discount</span><span>- ₹{order.promo_discount}</span></div>}
+     {parseFloat(order.packaging_fee) > 0 && <div className="flex justify-between"><span>Packaging Fee</span><span>₹{order.packaging_fee}</span></div>}
+     {parseFloat(order.wallet_discount) > 0 && <div className="flex justify-between text-emerald-600 font-bold"><span>Wallet Applied</span><span>- ₹{order.wallet_discount}</span></div>}
    </div>
-   <div className="flex justify-between font-extrabold text-lg pt-3 mt-3 border-t"><span>{order.status === 'COMPLETED' ? 'Total Amount Paid' : 'Total Due'}</span><span>Rs. {order.total_amount}</span></div>
+   <div className="flex justify-between font-extrabold text-lg pt-3 mt-3 border-t"><span>{order.status === 'COMPLETED' ? 'Total Amount Paid' : 'Total Due'}</span><span>₹{order.total_amount}</span></div>
  </div>
  </div><p className="mt-5 text-center text-sm text-slate-600">Pickup: {order.pickup_time || 'As soon as possible'} • Pay at store</p></>}</main></CustomerLayout>
 }

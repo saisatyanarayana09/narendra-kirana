@@ -224,7 +224,7 @@ const Offers = () => {
                   </div>
                   <div className="text-sm text-slate-500 font-medium flex items-center gap-4 flex-wrap">
                     <span>Discount: <strong className="text-slate-700">{promo.discount_type === 'PERCENTAGE' ? `${promo.discount_value}%` : `Rs. ${promo.discount_value}`}</strong></span>
-                    <span>Min. Order: <strong className="text-slate-700">Rs. {promo.min_order_amount}</strong></span>
+                    <span>Min. Order: <strong className="text-slate-700">₹{promo.min_order_amount}</strong></span>
                     {promo.applicable_category && <span>Category: <strong className="text-slate-700">{categories.find(c => c.id === promo.applicable_category)?.name || 'Specific'}</strong></span>}
                   </div>
                 </div>

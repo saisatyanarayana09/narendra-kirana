@@ -141,7 +141,7 @@ export default function Sales() {
           <div className="p-4 bg-emerald-50 rounded-xl text-emerald-600"><IndianRupee size={28} /></div>
           <div>
             <p className="text-sm font-bold text-slate-500">Gross Revenue</p>
-            <p className="text-3xl font-black text-slate-900 mt-1">?{totalSales.toLocaleString()}</p>
+            <p className="text-3xl font-black text-slate-900 mt-1">₹{totalSales.toLocaleString()}</p>
           </div>
         </div>
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
@@ -155,7 +155,7 @@ export default function Sales() {
           <div className="p-4 bg-amber-50 rounded-xl text-amber-600"><Trophy size={28} /></div>
           <div>
             <p className="text-sm font-bold text-slate-500">Average Order Value</p>
-            <p className="text-3xl font-black text-slate-900 mt-1">?{aov.toFixed(0)}</p>
+            <p className="text-3xl font-black text-slate-900 mt-1">₹{aov.toFixed(0)}</p>
           </div>
         </div>
       </div>
@@ -201,7 +201,7 @@ export default function Sales() {
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-black text-emerald-600">?{product.revenue.toFixed(0)}</p>
+                    <p className="text-sm font-black text-emerald-600">₹{product.revenue.toFixed(0)}</p>
                   </div>
                 </div>
               ))
