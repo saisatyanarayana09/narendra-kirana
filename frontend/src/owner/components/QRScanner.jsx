@@ -1,13 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import jsQR from 'jsqr';
 import { X, Camera } from 'lucide-react';
+import { createPortal } from 'react-dom';
 
 export default function QRScanner({ onScan, onClose }) {
-  const videoRef = useRef(null);
-  const canvasRef = useRef(null);
-  const [error, setError] = useState(null);
+  const videoRef = useRef(null), document.body);
+  const canvasRef = useRef(null), document.body);
+  const [error, setError] = useState(null), document.body);
 
-  const streamRef = useRef(null);
+  const streamRef = useRef(null), document.body);
 
   useEffect(() => {
     let animationFrameId;
@@ -15,24 +16,24 @@ export default function QRScanner({ onScan, onClose }) {
 
     const startVideo = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }), document.body);
         
         if (!isMounted) {
           // The user clicked "Close" while we were waiting for the camera to start!
-          stream.getTracks().forEach(track => track.stop());
+          stream.getTracks().forEach(track => track.stop()), document.body);
           return;
         }
 
         streamRef.current = stream; // Store in ref immediately
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          videoRef.current.setAttribute("playsinline", true);
-          videoRef.current.play();
-          requestAnimationFrame(tick);
+          videoRef.current.setAttribute("playsinline", true), document.body);
+          videoRef.current.play(), document.body);
+          requestAnimationFrame(tick), document.body);
         }
       } catch (err) {
         if (isMounted) {
-          setError('Please grant camera permission to scan QR codes.');
+          setError('Please grant camera permission to scan QR codes.'), document.body);
         }
       }
     };
@@ -44,36 +45,36 @@ export default function QRScanner({ onScan, onClose }) {
         const video = videoRef.current;
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const ctx = canvas.getContext('2d'), document.body);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height), document.body);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height), document.body);
         const code = jsQR(imageData.data, imageData.width, imageData.height, {
           inversionAttempts: "dontInvert",
-        });
+        }), document.body);
         
         if (code) {
-          onScan(code.data);
+          onScan(code.data), document.body);
           return; // stop scanning after success
         }
       }
-      animationFrameId = requestAnimationFrame(tick);
+      animationFrameId = requestAnimationFrame(tick), document.body);
     };
 
-    startVideo();
+    startVideo(), document.body);
 
-    return () => {
+    return createPortal() => {
       isMounted = false; // Prevent orphaned streams from starting!
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => {
-          track.stop();
-        });
+          track.stop(), document.body);
+        }), document.body);
         streamRef.current = null;
       }
-      cancelAnimationFrame(animationFrameId);
+      cancelAnimationFrame(animationFrameId), document.body);
     };
-  }, [onScan]);
+  }, [onScan]), document.body);
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm px-4">
       <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden relative">
         <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
@@ -117,12 +118,12 @@ export default function QRScanner({ onScan, onClose }) {
       </div>
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes scan {
-          0% { transform: translateY(-100px); opacity: 0; }
+          0% { transform: translateY(-100px), document.body); opacity: 0; }
           10% { opacity: 1; }
           90% { opacity: 1; }
-          100% { transform: translateY(100px); opacity: 0; }
+          100% { transform: translateY(100px), document.body); opacity: 0; }
         }
       `}} />
     </div>
-  );
+  ), document.body);
 }

@@ -4,6 +4,7 @@ import 'react-image-crop/dist/ReactCrop.css';
 import imageCompression from 'browser-image-compression';
 import { Image as ImageIcon, Upload, X, Crop, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { createPortal } from 'react-dom';
 
 export default function ImageCropper({ 
   aspect = 1, 
@@ -166,7 +167,7 @@ export default function ImageCropper({
       </div>
 
       {/* Crop Modal */}
-      {modalOpen && (
+      {modalOpen && createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/90 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between p-4 border-b border-slate-100">
@@ -227,7 +228,7 @@ export default function ImageCropper({
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </div>
   );
 }

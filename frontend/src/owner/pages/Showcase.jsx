@@ -4,6 +4,7 @@ import { GripVertical, Layout, Loader2, Plus, Edit2, Trash2, X } from 'lucide-re
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import HomepageSectionEditor from '../components/HomepageSectionEditor';
+import { createPortal } from 'react-dom';
 
 export default function Showcase() {
   const [sections, setSections] = useState([]);
@@ -261,7 +262,7 @@ export default function Showcase() {
       </DragDropContext>
 
       {/* Rename Modal */}
-      {renamingSection && (
+      {renamingSection && createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Rename Section</h3>
@@ -279,7 +280,7 @@ export default function Showcase() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </div>
   );
 }

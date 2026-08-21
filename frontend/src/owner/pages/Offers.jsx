@@ -4,6 +4,7 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import ImageCropper from '../components/ImageCropper';
+import { createPortal } from 'react-dom';
 
 const Offers = () => {
  const [promos, setPromos] = useState([]);
@@ -247,7 +248,7 @@ const Offers = () => {
     </section>
 
   {/* Promo Code Modal */}
-  {isPromoModalOpen && (
+  {isPromoModalOpen && createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm transition-opacity">
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-slate-100 overflow-hidden">
         <div className="flex justify-between items-center p-6 border-b border-slate-100">
@@ -301,10 +302,10 @@ const Offers = () => {
         </div>
       </div>
     </div>
-  )}
+  , document.body)}
 
   {/* Banner Modal */}
-  {isBannerModalOpen && (
+  {isBannerModalOpen && createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm transition-opacity">
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-slate-100 overflow-hidden">
         <div className="flex justify-between items-center p-6 border-b border-slate-100">
@@ -342,7 +343,7 @@ const Offers = () => {
         </div>
       </div>
     </div>
-  )}
+  , document.body)}
 
   </div>
   );

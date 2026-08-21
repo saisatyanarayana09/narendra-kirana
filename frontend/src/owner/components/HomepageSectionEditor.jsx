@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Plus, Search, Save, Loader2, ArrowRightLeft } from 'lucide-react';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
+import { createPortal } from 'react-dom';
 
 export default function HomepageSectionEditor({ 
   section, 
@@ -142,7 +143,7 @@ export default function HomepageSectionEditor({
       )}
 
       {/* ── Add Products Modal ──────────────────────────────────────────── */}
-      {pickerOpen && (
+      {pickerOpen && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm transition-opacity">
           <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl border border-slate-100 flex flex-col h-[85vh]">
             <div className="flex justify-between items-center p-6 border-b border-slate-100 flex-shrink-0">
@@ -224,7 +225,7 @@ export default function HomepageSectionEditor({
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </div>
   );
 }

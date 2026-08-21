@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import api from '../../services/api';
 import ImageCropper from '../components/ImageCropper';
 import BarcodeScanner from '../../components/BarcodeScanner';
+import { createPortal } from 'react-dom';
 
 const Products = () => {
  const [products, setProducts] = useState([]);
@@ -190,7 +191,7 @@ const Products = () => {
    </div>
    </div>
 
- {isFormOpen && (
+ {isFormOpen && createPortal(
  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
  <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]">
  <div className="flex justify-between items-center p-6 md:px-8 md:py-6 border-b border-slate-100 flex-shrink-0">
@@ -289,7 +290,7 @@ const Products = () => {
  </div>
  </div>
  </div>
- )}
+ , document.body)}
 
  {/* Products List */}
  {products.length > 0 ? (

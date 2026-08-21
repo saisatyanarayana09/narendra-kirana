@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Users, User as UserIcon, Bell, X } from 'lucide-react';
 import api from '../../services/api';
+import { createPortal } from 'react-dom';
 
 const Customers = () => {
  const [customers, setCustomers] = useState([]);
@@ -112,7 +113,7 @@ const Customers = () => {
  )}
  </div>
 
- {notifyUser && (
+ {notifyUser && createPortal(
  <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
  <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden border border-slate-100">
  <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
@@ -137,7 +138,7 @@ const Customers = () => {
  </form>
  </div>
  </div>
- )}
+ , document.body)}
  </div>
  );
 };

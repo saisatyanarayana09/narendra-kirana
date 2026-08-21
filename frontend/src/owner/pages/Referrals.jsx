@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { Settings, Users, Award, QrCode, Edit, Trash2, Check, XCircle } from 'lucide-react';
 
 import QRScanner from '../components/QRScanner';
+import { createPortal } from 'react-dom';
 
 export default function Referrals() {
   const [activeTab, setActiveTab] = useState('settings');
@@ -127,7 +128,7 @@ export default function Referrals() {
         <QRScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
       )}
 
-      {scannedReferralId && scannedReferral && scannedReferral.status === 'AWAITING_APPROVAL' && (
+      {scannedReferralId && scannedReferral && scannedReferral.status === 'AWAITING_APPROVAL' && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-md px-4">
           <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full p-8 relative overflow-hidden">
             <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
@@ -179,9 +180,9 @@ export default function Referrals() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
-      {scannedReferralId && scannedReferral && scannedReferral.status !== 'AWAITING_APPROVAL' && (
+      {scannedReferralId && scannedReferral && scannedReferral.status !== 'AWAITING_APPROVAL' && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-md px-4">
           <div className="bg-white rounded-[2rem] shadow-2xl max-w-sm w-full p-8 text-center relative overflow-hidden border-t-8 border-red-500">
             <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
@@ -212,7 +213,7 @@ export default function Referrals() {
             </button>
           </div>
         </div>
-      )}
+      , document.body)}
 
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Referral Program</h1>
