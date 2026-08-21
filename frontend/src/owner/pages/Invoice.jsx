@@ -39,9 +39,9 @@ const Invoice = () => {
  // Logic Fix: Robust Date Parsing
  const orderDateObj = new Date(order.created_at);
  const isOrderDateValid = !isNaN(orderDateObj.getTime());
- const orderDate = isOrderDateValid ? orderDateObj.toLocaleDateString('en-IN', {
- year: 'numeric', month: 'long', day: 'numeric',
- hour: '2-digit', minute: '2-digit'
+ const orderDate = isOrderDateValid ? orderDateObj.toLocaleString('en-IN', {
+   year: 'numeric', month: 'long', day: 'numeric',
+   hour: '2-digit', minute: '2-digit', hour12: true
  }) : 'N/A';
 
  const invoiceDateObj = new Date();
