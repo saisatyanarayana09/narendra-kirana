@@ -45,8 +45,9 @@ const Invoice = () => {
  }) : 'N/A';
 
  const invoiceDateObj = new Date();
- const invoiceDate = invoiceDateObj.toLocaleDateString('en-IN', {
- year: 'numeric', month: 'long', day: 'numeric'
+ const invoiceDate = invoiceDateObj.toLocaleString('en-IN', {
+   year: 'numeric', month: 'long', day: 'numeric',
+   hour: '2-digit', minute: '2-digit', hour12: true
  });
 
  // Logic Fix: Professional Invoice Number Formatting
