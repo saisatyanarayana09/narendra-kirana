@@ -4,11 +4,11 @@ import { X, Camera } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
 export default function QRScanner({ onScan, onClose }) {
-  const videoRef = useRef(null), document.body);
-  const canvasRef = useRef(null), document.body);
-  const [error, setError] = useState(null), document.body);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const [error, setError] = useState(null);
 
-  const streamRef = useRef(null), document.body);
+  const streamRef = useRef(null);
 
   useEffect(() => {
     let animationFrameId;
@@ -16,24 +16,24 @@ export default function QRScanner({ onScan, onClose }) {
 
     const startVideo = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }), document.body);
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
         
         if (!isMounted) {
           // The user clicked "Close" while we were waiting for the camera to start!
-          stream.getTracks().forEach(track => track.stop()), document.body);
+          stream.getTracks().forEach(track => track.stop());
           return;
         }
 
         streamRef.current = stream; // Store in ref immediately
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          videoRef.current.setAttribute("playsinline", true), document.body);
-          videoRef.current.play(), document.body);
-          requestAnimationFrame(tick), document.body);
+          videoRef.current.setAttribute("playsinline", true);
+          videoRef.current.play();
+          requestAnimationFrame(tick);
         }
       } catch (err) {
         if (isMounted) {
-          setError('Please grant camera permission to scan QR codes.'), document.body);
+          setError('Please grant camera permission to scan QR codes.');
         }
       }
     };
@@ -45,34 +45,34 @@ export default function QRScanner({ onScan, onClose }) {
         const video = videoRef.current;
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
-        const ctx = canvas.getContext('2d'), document.body);
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height), document.body);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height), document.body);
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const code = jsQR(imageData.data, imageData.width, imageData.height, {
           inversionAttempts: "dontInvert",
-        }), document.body);
+        });
         
         if (code) {
-          onScan(code.data), document.body);
+          onScan(code.data);
           return; // stop scanning after success
         }
       }
-      animationFrameId = requestAnimationFrame(tick), document.body);
+      animationFrameId = requestAnimationFrame(tick);
     };
 
-    startVideo(), document.body);
+    startVideo();
 
-    return createPortal() => {
+    return () => {
       isMounted = false; // Prevent orphaned streams from starting!
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => {
-          track.stop(), document.body);
-        }), document.body);
+          track.stop();
+        });
         streamRef.current = null;
       }
-      cancelAnimationFrame(animationFrameId), document.body);
+      cancelAnimationFrame(animationFrameId);
     };
-  }, [onScan]), document.body);
+  }, [onScan]);
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm px-4">
@@ -118,10 +118,10 @@ export default function QRScanner({ onScan, onClose }) {
       </div>
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes scan {
-          0% { transform: translateY(-100px), document.body); opacity: 0; }
+          0% { transform: translateY(-100px); opacity: 0; }
           10% { opacity: 1; }
           90% { opacity: 1; }
-          100% { transform: translateY(100px), document.body); opacity: 0; }
+          100% { transform: translateY(100px); opacity: 0; }
         }
       `}} />
     </div>
