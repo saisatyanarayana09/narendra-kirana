@@ -11,9 +11,18 @@
 }
 
 @layer base {
+  html {
+    @apply bg-slate-50;
+  }
   body {
     @apply bg-slate-50 text-slate-900 font-sans antialiased;
   }
+}
+
+/* Hide Vercel Toolbar which can render as a broken white iframe if blocked by adblockers */
+#vercel-toolbar-wrapper,
+vercel-live-feedback {
+  display: none !important;
 }
 
 .hide-scrollbar::-webkit-scrollbar {
