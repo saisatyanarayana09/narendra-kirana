@@ -1,11 +1,12 @@
 from rest_framework import viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.throttling import AnonRateThrottle
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.permissions import IsAuthenticated
 from .models import Category, Product, Favorite
 from .serializers import CategorySerializer, ProductSerializer, FavoriteSerializer
-from accounts.permissions import IsOwnerOrReadOnly
+from accounts.permissions import IsOwnerOrReadOnly, IsOwnerUser
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all().order_by('display_order', 'name')
