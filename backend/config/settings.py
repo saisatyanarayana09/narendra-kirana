@@ -31,7 +31,14 @@ if IS_PRODUCTION:
         'RENDER_EXTERNAL_HOSTNAME',
         os.environ.get('PYTHONANYWHERE_DOMAIN', ''),
     )
-ALLOWED_HOSTS = [host.strip() for host in os.environ.get(
+
+def clean_host(host):
+    host = host.strip().rstrip('/')
+    if host.startswith('http://'): return host[7:]
+    if host.startswith('https://'): return host[8:]
+    return host
+
+ALLOWED_HOSTS = [clean_host(host) for host in os.environ.get(
     'DJANGO_ALLOWED_HOSTS',
     default_allowed_hosts,
 ).split(',') if host.strip()]
@@ -163,7 +170,7 @@ if IS_PRODUCTION:
     # Safely get origins, fallback to localhost if nothing is configured
     raw_origins = os.environ.get('CORS_ALLOWED_ORIGINS', os.environ.get('FRONTEND_URL', 'http://localhost:5173,http://localhost:5174,http://localhost:5175'))
     CORS_ALLOWED_ORIGINS = [
-        origin.strip() for origin in raw_origins.split(',') if origin.strip()
+        origin.strip().rstrip('/') for origin in raw_origins.split(',') if origin.strip()
     ]
     CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 else:
