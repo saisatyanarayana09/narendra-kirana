@@ -125,5 +125,5 @@ export default function QRScanner({ onScan, onClose }) {
         }
       `}} />
     </div>
-  ), document.body);
+  , document.body);
 }
