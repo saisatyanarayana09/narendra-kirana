@@ -78,7 +78,7 @@ const Dashboard = () => {
         const res = await api.patch(`/store/homepage-sections/${broadcast.id}/`, { title, is_active: active });
         setBroadcast(res.data);
       } else {
-        const res = await api.post('/store/homepage-sections/', { title, display_order: -1, is_active: active });
+        const res = await api.post('/store/homepage-sections/', { title, display_order: 0, is_active: active });
         setBroadcast(res.data);
       }
       toast.success(active ? 'Broadcast is live!' : 'Broadcast cleared');

@@ -2,7 +2,7 @@ import { optimizeImage } from './utils/image';
 import { useEffect, useState } from 'react'
 import { GSAPFadeUp, GSAPZoomIn } from './components/GSAPScroll'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { ChevronRight, Search, X, Heart, ArrowLeft, ShoppingCart, Sparkles, Zap, Star } from 'lucide-react'
+import { ChevronRight, Search, X, Heart, ArrowLeft, ShoppingCart, Sparkles, Zap, Star, Megaphone } from 'lucide-react'
 import api from './services/api'
 import { CustomerLayout } from './customer-layout'
 import { useCart } from './cart-context'
@@ -313,6 +313,18 @@ export function HomePage() {
   
   {/* Dynamic Homepage Sections */}
   {sections.map((section, index) => {
+    if (section.title.startsWith('BROADCAST::')) {
+        return (
+          <div key={section.id} className="mx-4 sm:mx-6 md:mx-8 my-6 p-4 sm:p-5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl shadow-xl flex items-center gap-4 relative overflow-hidden">
+              <div className="absolute top-0 right-0 -mr-4 -mt-4 w-24 h-24 bg-white opacity-10 rounded-full animate-pulse"></div>
+              <div className="bg-white/20 p-2 sm:p-3 rounded-xl flex-shrink-0 backdrop-blur-sm">
+                  <Megaphone size={28} className="animate-pulse drop-shadow-md" />
+              </div>
+              <p className="font-extrabold text-sm sm:text-lg leading-snug tracking-wide drop-shadow-sm">{section.title.replace('BROADCAST::', '')}</p>
+          </div>
+        );
+    }
+    
     const sectionProducts = (section.items || []).filter(item => item.is_in_stock);
     if (sectionProducts.length === 0 && !loading) return null;
 
