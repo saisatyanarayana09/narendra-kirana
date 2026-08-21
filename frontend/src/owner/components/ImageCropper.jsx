@@ -48,6 +48,7 @@ export default function ImageCropper({
       height
     );
     setCrop(initialCrop);
+    setCompletedCrop(initialCrop);
   }
 
   const handleApplyCrop = async () => {
@@ -61,21 +62,30 @@ export default function ImageCropper({
       const canvas = document.createElement('canvas');
       const scaleX = image.naturalWidth / image.width;
       const scaleY = image.naturalHeight / image.height;
+      const pixelRatio = window.devicePixelRatio || 1;
       
-      canvas.width = completedCrop.width * scaleX;
-      canvas.height = completedCrop.height * scaleY;
+      canvas.width = Math.floor(completedCrop.width * scaleX * pixelRatio);
+      canvas.height = Math.floor(completedCrop.height * scaleY * pixelRatio);
+      
       const ctx = canvas.getContext('2d');
+      ctx.scale(pixelRatio, pixelRatio);
+      ctx.imageSmoothingQuality = 'high';
+      
+      const cropX = completedCrop.x * scaleX;
+      const cropY = completedCrop.y * scaleY;
+      const cropWidth = completedCrop.width * scaleX;
+      const cropHeight = completedCrop.height * scaleY;
       
       ctx.drawImage(
         image,
-        completedCrop.x * scaleX,
-        completedCrop.y * scaleY,
-        completedCrop.width * scaleX,
-        completedCrop.height * scaleY,
+        cropX,
+        cropY,
+        cropWidth,
+        cropHeight,
         0,
         0,
-        completedCrop.width * scaleX,
-        completedCrop.height * scaleY
+        cropWidth,
+        cropHeight
       );
 
       // Convert to blob
@@ -176,7 +186,7 @@ export default function ImageCropper({
               {imgSrc && (
                 <ReactCrop
                   crop={crop}
-                  onChange={(_, percentCrop) => setCrop(percentCrop)}
+                  onChange={(c) => setCrop(c)}
                   onComplete={(c) => setCompletedCrop(c)}
                   aspect={aspect}
                   className="max-h-[60vh] object-contain rounded shadow-sm"
