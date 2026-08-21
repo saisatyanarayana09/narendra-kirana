@@ -7,10 +7,13 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import User, Address
 from .serializers import CustomerSignupSerializer, UserSerializer, AddressSerializer
 
+from rest_framework.throttling import AnonRateThrottle
+
 class CustomerSignupView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = (AllowAny,)
     serializer_class = CustomerSignupSerializer
+    throttle_classes = [AnonRateThrottle]
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
@@ -20,6 +23,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+    throttle_classes = [AnonRateThrottle]
 
 class ProfileView(generics.RetrieveUpdateAPIView):
     permission_classes = (IsAuthenticated,)

@@ -43,10 +43,14 @@ class CategoryViewSet(viewsets.ModelViewSet):
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.select_related('category').all().order_by('display_order', '-created_at')
     serializer_class = ProductSerializer
-    permission_classes = [IsOwnerOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['category', 'is_active', 'is_in_stock']
     search_fields = ['name', 'brand', 'description']
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve', 'barcode_lookup']:
+            return [AllowAny()]
+        return [IsOwnerUser()]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -55,8 +59,13 @@ class ProductViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(is_active=True)
         return queryset
 
-    @action(detail=False, methods=['get'], permission_classes=[IsOwnerOrReadOnly])
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny])
     def barcode_lookup(self, request):
+        # Throttle manually for this specific action to prevent AI abuse
+        if not request.user.is_authenticated:
+            throttle = AnonRateThrottle()
+            if not throttle.allow_request(request, self):
+                return Response({'error': 'Rate limit exceeded. Please wait.'}, status=429)
         barcode = request.query_params.get('barcode')
         if not barcode:
             return Response({'error': 'Barcode is required'}, status=400)

@@ -36,6 +36,12 @@ class OrderViewSet(ModelViewSet):
 
     @transaction.atomic
     def create(self, request, *args, **kwargs):
+        # Prevent order spamming
+        from rest_framework.throttling import UserRateThrottle
+        throttle = UserRateThrottle()
+        if not throttle.allow_request(request, self):
+            return Response({'detail': 'You are creating orders too quickly. Please wait a minute.'}, status=429)
+            
         checkout = CheckoutSerializer(data=request.data)
         checkout.is_valid(raise_exception=True)
         try:
