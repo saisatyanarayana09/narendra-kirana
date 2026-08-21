@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, Tags, ShoppingCart, Users, Settings, Menu, X, LogOut, PercentCircle, MessageSquare, Layout, Gift } from 'lucide-react';
+import { LayoutDashboard, Package, Tags, ShoppingCart, Users, Settings, Menu, X, LogOut, PercentCircle, MessageSquare, Layout, Gift, TrendingUp } from 'lucide-react';
 
 const OwnerLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -8,6 +8,7 @@ const OwnerLayout = () => {
 
   const navigation = [
     { name: 'Dashboard', href: '/owner', icon: LayoutDashboard },
+    { name: 'Sales', href: '/owner/sales', icon: TrendingUp },
     { name: 'Orders', href: '/owner/orders', icon: ShoppingCart },
     { name: 'Products', href: '/owner/products', icon: Package },
     { name: 'Showcase', href: '/owner/showcase', icon: Layout },
