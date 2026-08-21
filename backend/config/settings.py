@@ -22,7 +22,6 @@ if IS_PRODUCTION:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
 
@@ -66,8 +65,8 @@ INSTALLED_APPS = [
 
 # ─── Middleware ───
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.gzip.GZipMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -161,8 +160,10 @@ AUTH_USER_MODEL = 'accounts.User'
 
 # ─── CORS ───
 if IS_PRODUCTION:
+    # Safely get origins, fallback to localhost if nothing is configured
+    raw_origins = os.environ.get('CORS_ALLOWED_ORIGINS', os.environ.get('FRONTEND_URL', 'http://localhost:5173,http://localhost:5174,http://localhost:5175'))
     CORS_ALLOWED_ORIGINS = [
-        origin.strip() for origin in os.environ.get('CORS_ALLOWED_ORIGINS', os.environ.get('FRONTEND_URL', '')).split(',') if origin.strip()
+        origin.strip() for origin in raw_origins.split(',') if origin.strip()
     ]
     CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 else:
