@@ -23,6 +23,21 @@ class UserSerializer(serializers.ModelSerializer):
 
     profile_picture = serializers.ImageField(write_only=True, required=False)
 
+    def validate_profile_picture(self, value):
+        if not value:
+            return value
+        
+        # Security: Enforce max file size (5MB)
+        if value.size > 5 * 1024 * 1024:
+            raise serializers.ValidationError("Profile picture cannot exceed 5MB in size.")
+            
+        # Security: Enforce allowed MIME types
+        allowed_formats = ['image/jpeg', 'image/png', 'image/webp']
+        if getattr(value, 'content_type', None) not in allowed_formats:
+            raise serializers.ValidationError("Only JPEG, PNG, and WebP images are allowed.")
+            
+        return value
+
     def update(self, instance, validated_data):
         import json
         profile_data = self.initial_data.get('customer_profile', {})
@@ -54,8 +69,6 @@ class UserSerializer(serializers.ModelSerializer):
             # Allow top-level profile_picture in multipart form data
             if 'profile_picture' in validated_data:
                 profile.profile_picture = validated_data.pop('profile_picture')
-            elif 'profile_picture' in profile_data:
-                profile.profile_picture = profile_data['profile_picture']
                 
             profile.save()
             
