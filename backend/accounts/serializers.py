@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.db import transaction
+from django.contrib.auth.password_validation import validate_password
 from .models import User, CustomerProfile, Address
 
 class CustomerProfileSerializer(serializers.ModelSerializer):
@@ -14,7 +15,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_customer', 'is_owner', 'customer_profile', 'password', 'profile_picture']
         extra_kwargs = {
-            'password': {'write_only': True, 'required': False},
+            'password': {'write_only': True, 'required': False, 'validators': [validate_password]},
             'username': {'required': False},
             'email': {'required': False},
             'first_name': {'required': False},
@@ -68,7 +69,7 @@ class AddressSerializer(serializers.ModelSerializer):
 
 class CustomerSignupSerializer(serializers.ModelSerializer):
     mobile_number = serializers.CharField(max_length=15, required=True, write_only=True)
-    password = serializers.CharField(write_only=True, required=True)
+    password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     referral_code = serializers.CharField(max_length=20, required=False, allow_blank=True, write_only=True)
 
     class Meta:

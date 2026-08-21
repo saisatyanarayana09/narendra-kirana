@@ -22,11 +22,22 @@ class CategoryViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'], permission_classes=[IsOwnerOrReadOnly])
     def reorder(self, request):
         updates = request.data
+        if not isinstance(updates, list):
+            return Response({'error': 'Expected a list of updates'}, status=400)
+            
         categories = []
         for update in updates:
-            cat = Category(id=update['id'], display_order=update['display_order'])
-            categories.append(cat)
-        Category.objects.bulk_update(categories, ['display_order'])
+            try:
+                cat = Category(
+                    id=int(update['id']), 
+                    display_order=int(update.get('display_order', 0))
+                )
+                categories.append(cat)
+            except (KeyError, ValueError, TypeError):
+                continue
+                
+        if categories:
+            Category.objects.bulk_update(categories, ['display_order'])
         return Response({'status': 'reordered'})
 
 class ProductViewSet(viewsets.ModelViewSet):
@@ -159,6 +170,15 @@ class ProductViewSet(viewsets.ModelViewSet):
         if not image_file:
             return Response({'success': False, 'error': 'No image provided'})
             
+        # Security: Validate file size (max 5MB) to prevent Memory Exhaustion DoS
+        if image_file.size > 5 * 1024 * 1024:
+            return Response({'success': False, 'error': 'File too large. Maximum size is 5MB.'})
+            
+        # Security: Validate MIME type to prevent malicious uploads
+        allowed_types = ['image/jpeg', 'image/png', 'image/webp']
+        if image_file.content_type not in allowed_types:
+            return Response({'success': False, 'error': 'Invalid file type. Only JPEG, PNG, and WebP are allowed.'})
+            
         gemini_key = os.environ.get('GEMINI_API_KEY')
         if not gemini_key:
             return Response({'success': False, 'error': 'AI is not configured. Missing API Key.'})
@@ -209,11 +229,22 @@ class ProductViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'], permission_classes=[IsOwnerOrReadOnly])
     def reorder(self, request):
         updates = request.data
+        if not isinstance(updates, list):
+            return Response({'error': 'Expected a list of updates'}, status=400)
+            
         products = []
         for update in updates:
-            prod = Product(id=update['id'], display_order=update['display_order'])
-            products.append(prod)
-        Product.objects.bulk_update(products, ['display_order'])
+            try:
+                prod = Product(
+                    id=int(update['id']), 
+                    display_order=int(update.get('display_order', 0))
+                )
+                products.append(prod)
+            except (KeyError, ValueError, TypeError):
+                continue
+                
+        if products:
+            Product.objects.bulk_update(products, ['display_order'])
         return Response({'status': 'reordered'})
 
 class FavoriteViewSet(viewsets.ModelViewSet):

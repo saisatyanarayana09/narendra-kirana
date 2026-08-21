@@ -89,8 +89,17 @@ class HomepageSectionViewSet(viewsets.ModelViewSet):
         """
         Expects a list of dicts: [{'id': 1, 'display_order': 0}, ...]
         """
-        for item in request.data:
-            HomepageSection.objects.filter(id=item.get('id')).update(display_order=item.get('display_order', 0))
+        updates = request.data
+        if not isinstance(updates, list):
+            return response.Response({'error': 'Expected a list of updates'}, status=400)
+            
+        for item in updates:
+            try:
+                section_id = int(item.get('id'))
+                display_order = int(item.get('display_order', 0))
+                HomepageSection.objects.filter(id=section_id).update(display_order=display_order)
+            except (ValueError, TypeError):
+                continue
         return response.Response({'status': 'order updated'})
 
 
