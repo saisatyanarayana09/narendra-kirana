@@ -32,7 +32,7 @@ const OwnerLayout = () => {
   };
 
   return (
-    <div className="absolute inset-0 flex bg-gray-50 overflow-hidden">
+    <div className="flex h-[100dvh] w-full bg-slate-50 overflow-hidden">
       {/* Mobile sidebar overlay */}
       {isSidebarOpen && (
         <div 

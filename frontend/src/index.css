@@ -11,8 +11,8 @@
 }
 
 @layer base {
-  html, body, #root {
-    @apply min-h-full w-full bg-slate-50 text-slate-900 font-sans antialiased;
+  body {
+    @apply bg-slate-50 text-slate-900 font-sans antialiased;
   }
 }
 
