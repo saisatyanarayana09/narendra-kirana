@@ -85,7 +85,17 @@ const Invoice = () => {
   </div>
 
   {/* Printable A4 Invoice Container */}
-  <div data-testid="invoice-container" className="max-w-4xl mx-auto bg-white p-4 sm:p-8 md:p-12 shadow-xl shadow-slate-200/50 rounded-sm print:shadow-none print:border-none print:rounded-none print:p-0 print:m-0 text-slate-800">
+ <div data-testid="invoice-container" className="relative max-w-4xl mx-auto bg-white p-4 sm:p-8 md:p-12 shadow-xl shadow-slate-200/50 rounded-sm print:shadow-none print:border-none print:rounded-none print:p-0 print:m-0 text-slate-800 overflow-hidden">
+
+ {order.status === 'REJECTED' && (
+   <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none opacity-40 mix-blend-multiply print:opacity-30">
+     <div className="border-[6px] sm:border-[10px] border-red-600 text-red-600 text-[60px] sm:text-[100px] font-black tracking-widest uppercase py-4 px-8 sm:py-6 sm:px-12 rounded-3xl transform -rotate-45 select-none text-center">
+       REJECTED
+     </div>
+   </div>
+ )}
+ 
+ <div className={order.status === 'REJECTED' ? 'opacity-70 grayscale-[30%]' : ''}>
   
   {/* Header Section */}
   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end border-b-2 border-emerald-900 pb-6 mb-8 gap-4">
@@ -109,7 +119,7 @@ const Invoice = () => {
   <div>
   <h3 className="font-bold text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-200 pb-1 inline-block">Billed To</h3>
   <p className="text-lg font-bold text-slate-900 mt-2">{order.customer_name || `Customer ID: ${order.customer}`}</p>
-  <p className="text-slate-600 mt-1">Order Status: <span className="font-semibold text-slate-800">{order.status}</span></p>
+  <p className="text-slate-600 mt-1">Order Status: <span className={`font-semibold ${order.status === 'REJECTED' ? 'text-red-600 font-bold' : 'text-slate-800'}`}>{order.status}</span></p>
   </div>
   <div className="sm:text-right">
   <div className="inline-block w-full sm:w-auto text-left bg-slate-50 p-4 rounded-md border border-slate-100 print:bg-transparent print:border-none print:p-0">
@@ -247,6 +257,7 @@ const Invoice = () => {
  </div>
  </div>
  
+ </div>
  </div>
  </div>
  );
