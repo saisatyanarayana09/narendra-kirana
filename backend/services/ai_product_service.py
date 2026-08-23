@@ -66,6 +66,9 @@ class AIProductService:
               "brand": "Brand Name (e.g. Aashirvaad)",
               "category": "Broad category (e.g. Rice & Grains, Snacks, Beverages)",
               "unit": "Package size or weight (e.g. 1 kg, 500 g, 1 L)",
+              "sku": "Any visible barcode or SKU number",
+              "expiry_date": "Visible Expiry Date (YYYY-MM-DD)",
+              "regular_price": "Visible MRP or Price (numbers only)",
               "confidence": 0.95
             }
             """

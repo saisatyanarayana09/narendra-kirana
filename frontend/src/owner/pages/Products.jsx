@@ -136,7 +136,10 @@ const Products = () => {
          ...prev,
          name: res.data.data.name || prev.name,
          brand: res.data.data.brand || prev.brand,
-         unit: res.data.data.unit || prev.unit
+         unit: res.data.data.unit || prev.unit,
+         sku: res.data.data.sku || prev.sku,
+         expiry_date: res.data.data.expiry_date || prev.expiry_date,
+         regular_price: res.data.data.regular_price || prev.regular_price
        }));
        if (res.data.data.category) {
          const matchedCat = categories.find(c => c.name.toLowerCase().includes(res.data.data.category.toLowerCase()) || res.data.data.category.toLowerCase().includes(c.name.toLowerCase()));
@@ -171,6 +174,32 @@ const Products = () => {
      toast.error('Generation request failed.', { id: toastId });
    }
  };
+
+  const handleGenerateImage = async () => {
+    if (!formData.name) {
+      toast.error('Please analyze or enter product details first.');
+      return;
+    }
+    const toastId = toast.loading('Generating AI product image...');
+    try {
+      const prompt = `Professional e-commerce product photography of ${formData.brand || ''} ${formData.name} ${formData.unit || ''}, highly detailed, pure white background, studio lighting, photorealistic, 4k`;
+      const encodedPrompt = encodeURIComponent(prompt);
+      const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true`;
+      
+      const response = await fetch(url);
+      const blob = await response.blob();
+      
+      if (blob) {
+        toast.success('Product image generated!', { id: toastId });
+        const blobUrl = URL.createObjectURL(blob);
+        setEnhancedPreview({ url: blobUrl, blob: blob });
+      } else {
+        toast.error('Failed to generate image.', { id: toastId });
+      }
+    } catch (err) {
+      toast.error('Generation request failed.', { id: toastId });
+    }
+  };
 
  const handleEnhanceImage = async () => {
    if (!formData.image || !(formData.image instanceof File || formData.image instanceof Blob)) {
@@ -366,6 +395,9 @@ const Products = () => {
         </button>
         <button type="button" onClick={handleEnhanceImage} className="flex items-center gap-1.5 px-3.5 py-2 bg-white text-indigo-700 border border-indigo-200 rounded-xl text-xs sm:text-sm font-bold hover:bg-indigo-50 transition-colors shadow-sm">
            <Wand2 size={16} /> Enhance Photo
+        </button>
+        <button type="button" onClick={handleGenerateImage} className="flex items-center gap-1.5 px-3.5 py-2 bg-white text-indigo-700 border border-indigo-200 rounded-xl text-xs sm:text-sm font-bold hover:bg-indigo-50 transition-colors shadow-sm">
+           <Sparkles size={16} /> Generate Image
         </button>
      </div>
      
