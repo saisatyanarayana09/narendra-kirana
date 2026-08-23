@@ -1,18 +1,49 @@
 import io
+import os
 import logging
+import requests
 from PIL import Image, ImageEnhance
 
 logger = logging.getLogger(__name__)
 
 class ImageEnhancementService:
     @staticmethod
+    def _remove_background_api(image_bytes):
+        api_key = os.environ.get('REMOVE_BG_API_KEY')
+        if not api_key:
+            return None
+            
+        try:
+            response = requests.post(
+                'https://api.remove.bg/v1.0/removebg',
+                files={'image_file': image_bytes},
+                data={'size': 'auto', 'bg_color': 'white', 'format': 'jpg'},
+                headers={'X-Api-Key': api_key},
+                timeout=15
+            )
+            if response.status_code == 200:
+                return response.content
+            else:
+                logger.error(f"Remove.bg API error: {response.text}")
+                return None
+        except Exception as e:
+            logger.error(f"Remove.bg request failed: {e}")
+            return None
+
+    @staticmethod
     def enhance_product_image(image_bytes, original_mime='image/jpeg'):
         """
-        Enhances the product image using Pillow.
-        Adjusts contrast, sharpness, and brightness to simulate a clean e-commerce studio look.
-        Provides a fast, zero-dependency (other than PIL) enhancement pipeline.
+        Enhances the product image using an AI background removal API (if configured)
+        to simulate a clean e-commerce studio look. Falls back to Pillow for basic
+        enhancement (contrast, sharpness, brightness).
         """
         try:
+            # 1. Attempt True E-Commerce Background Removal/Replacement
+            processed_bytes = ImageEnhancementService._remove_background_api(image_bytes)
+            if processed_bytes:
+                return processed_bytes, 'image/jpeg'
+
+            # 2. Fallback to Basic Image Enhancement (Pillow)
             image = Image.open(io.BytesIO(image_bytes))
             
             # Convert to RGB if necessary (e.g., if it's RGBA/PNG with transparency)
@@ -25,25 +56,22 @@ class ImageEnhancementService:
                     background.paste(image)
                 image = background
 
-            # 1. Enhance Brightness slightly
+            # Enhance Brightness
             enhancer = ImageEnhance.Brightness(image)
             image = enhancer.enhance(1.05)
             
-            # 2. Enhance Contrast
+            # Enhance Contrast
             enhancer = ImageEnhance.Contrast(image)
             image = enhancer.enhance(1.1)
             
-            # 3. Enhance Sharpness
+            # Enhance Sharpness
             enhancer = ImageEnhance.Sharpness(image)
             image = enhancer.enhance(1.2)
             
-            # Save back to bytes
             output = io.BytesIO()
-            # Default to JPEG for output, maintaining good quality
             image.save(output, format='JPEG', quality=90)
             return output.getvalue(), 'image/jpeg'
             
         except Exception as e:
             logger.warning(f"Image Enhancement failed (likely unsupported format like HEIC). Returning original: {e}")
-            # Fallback: Just return the original image untouched
             return image_bytes, original_mime
