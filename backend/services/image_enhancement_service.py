@@ -38,10 +38,10 @@ class ImageEnhancementService:
 
     @staticmethod
     def enhance_product_image(image_bytes, original_mime='image/jpeg'):
-        \"\"\"
+        """
         Removes the background using Hugging Face's free Inference API (RMBG-1.4)
         and applies Pillow enhancements (contrast, sharpness) for an interactive look.
-        \"\"\"
+        """
         try:
             # 1. AI Background Removal via Hugging Face (Zero RAM cost on Render)
             processed_bytes = ImageEnhancementService._hf_remove_background(image_bytes)
