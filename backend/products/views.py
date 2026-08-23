@@ -219,13 +219,11 @@ class ProductViewSet(viewsets.ModelViewSet):
             response = model.generate_content([prompt, image_data])
             
             # Clean up the response text in case it includes markdown json blocks
-            result_text = response.text.strip()
-            if result_text.startswith('```json'):
-                result_text = result_text[7:]
-            if result_text.endswith('```'):
-                result_text = result_text[:-3]
-                
-            data = json.loads(result_text.strip())
+            import re
+            match = re.search(r'\{.*\}', response.text, re.DOTALL)
+            if not match:
+                return Response({'success': False, 'error': 'Could not parse JSON'})
+            data = json.loads(match.group(0))
             
             if 'error' in data:
                 return Response({'success': False, 'error': data['error']})

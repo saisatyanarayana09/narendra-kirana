@@ -23,7 +23,7 @@ class AIProductService:
         try:
             model = AIProductService._get_model()
             
-            prompt = \"\"\"
+            prompt = """
             Analyze this grocery/e-commerce product image. 
             Extract the following details and return ONLY a raw JSON object (no markdown, no backticks).
             If you cannot confidently determine a field, leave it as an empty string.
@@ -34,23 +34,20 @@ class AIProductService:
               "unit": "Package size or weight (e.g. 1 kg, 500 g, 1 L)",
               "confidence": 0.95
             }
-            \"\"\"
+            """
             
             response = model.generate_content([
                 {"mime_type": mime_type, "data": image_bytes},
                 prompt
             ])
             
-            # Clean response text from possible markdown wrappers
-            text = response.text.strip()
-            if text.startswith('`json'):
-                text = text[7:]
-            if text.startswith('`'):
-                text = text[3:]
-            if text.endswith('`'):
-                text = text[:-3]
-                
-            data = json.loads(text.strip())
+            # Extract JSON from potential markdown/babble
+            import re
+            match = re.search(r'\{.*\}', response.text, re.DOTALL)
+            if not match:
+                raise ValueError("Could not parse JSON from AI response")
+            
+            data = json.loads(match.group(0))
             return data
             
         except Exception as e:
@@ -67,7 +64,7 @@ class AIProductService:
             category = product_data.get('category', '')
             unit = product_data.get('unit', '')
             
-            prompt = f\"\"\"
+            prompt = f"""
             Write a professional, concise, and engaging e-commerce description for a grocery product.
             Product Details:
             - Name: {name}
@@ -80,7 +77,7 @@ class AIProductService:
             2. Do not invent health claims, nutritional info, or ingredients not typical for this product.
             3. Make it friendly for a local Indian Kirana/Supermarket audience.
             4. Return ONLY the description text, no quotes or intro.
-            \"\"\"
+            """
             
             response = model.generate_content(prompt)
             return response.text.strip()
