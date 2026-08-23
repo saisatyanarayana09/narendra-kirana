@@ -27,6 +27,10 @@ const Settings = () => {
     great_deals_title: 'Great Deals',
     show_new_arrivals: true,
     new_arrivals_title: 'New Arrivals',
+    gemini_api_key: '',
+    gemini_vision_model: 'gemini-1.5-flash',
+    groq_api_key: '',
+    groq_text_model: 'llama3-8b-8192',
   });
 
   const [loading, setLoading] = useState(true);

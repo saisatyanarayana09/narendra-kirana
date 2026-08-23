@@ -46,6 +46,13 @@ class StoreSettings(models.Model):
         default="popular_picks,great_deals,new_arrivals"
     )
 
+
+    # AI Management
+    gemini_api_key = models.CharField(max_length=255, blank=True, null=True, help_text="Google Gemini API Key for Vision")
+    gemini_vision_model = models.CharField(max_length=50, default="gemini-1.5-flash")
+    groq_api_key = models.CharField(max_length=255, blank=True, null=True, help_text="Groq API Key for Text Generation")
+    groq_text_model = models.CharField(max_length=50, default="llama3-8b-8192")
+
     def save(self, *args, **kwargs):
         self.pk = 1
         super().save(*args, **kwargs)

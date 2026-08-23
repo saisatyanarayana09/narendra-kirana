@@ -8,21 +8,25 @@ class AIProductService:
     @staticmethod
     def _generate_with_fallback(payload):
         import google.generativeai as genai
-        api_key = os.environ.get('GEMINI_API_KEY')
+        from store.models import StoreSettings
+        
+        settings = StoreSettings.load()
+        api_key = settings.gemini_api_key or os.environ.get('GEMINI_API_KEY')
+        
         if not api_key:
-            raise ValueError("AI API Key not configured")
+            raise ValueError("AI API Key not configured. Please add it in Owner Settings.")
         genai.configure(api_key=api_key)
         
         # Check if payload contains any dicts (images)
         is_vision = any(isinstance(p, dict) for p in payload)
         
+        vision_model = settings.gemini_vision_model or 'gemini-1.5-flash'
+        
         models_to_try = [
+            vision_model,
             'gemini-1.5-flash',
-            'gemini-1.5-flash-latest',
             'gemini-1.5-pro',
-            'gemini-1.5-pro-latest',
             'gemini-pro-vision' if is_vision else 'gemini-pro',
-            'gemini-1.0-pro-vision-latest' if is_vision else 'gemini-1.0-pro-latest'
         ]
         
         try:
@@ -135,10 +139,15 @@ class AIProductService:
             
             try:
                 from groq import Groq
-                api_key = os.environ.get('GROQ_API_KEY', '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')
+                from store.models import StoreSettings
+                settings = StoreSettings.load()
+                
+                api_key = settings.groq_api_key or os.environ.get('GROQ_API_KEY', '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')
+                text_model = settings.groq_text_model or 'llama3-8b-8192'
+                
                 client = Groq(api_key=api_key)
                 completion = client.chat.completions.create(
-                    model="openai/gpt-oss-120b",
+                    model=text_model,
                     messages=[{"role": "user", "content": prompt}]
                 )
                 return completion.choices[0].message.content.strip()
