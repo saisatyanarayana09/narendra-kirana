@@ -362,17 +362,10 @@ const Products = () => {
         Upload a product photo above, then use AI to instantly fill out the details, write a description, and enhance the image quality.
      </p>
      <div className="flex flex-wrap gap-2.5">
-        <button type="button" onClick={handleAnalyzeProduct} className="flex items-center gap-1.5 px-3.5 py-2 bg-white text-indigo-700 border border-indigo-200 rounded-xl text-xs sm:text-sm font-bold hover:bg-indigo-50 transition-colors shadow-sm">
-           <ScanLine size={16} /> Analyze Details
-        </button>
-        <button type="button" onClick={handleGenerateDescription} className="flex items-center gap-1.5 px-3.5 py-2 bg-white text-indigo-700 border border-indigo-200 rounded-xl text-xs sm:text-sm font-bold hover:bg-indigo-50 transition-colors shadow-sm">
-           <FileText size={16} /> Write Description
-        </button>
-        <button type="button" onClick={handleEnhanceImage} className="flex items-center gap-1.5 px-3.5 py-2 bg-white text-indigo-700 border border-indigo-200 rounded-xl text-xs sm:text-sm font-bold hover:bg-indigo-50 transition-colors shadow-sm">
-           <Wand2 size={16} /> Enhance Photo
-        </button>
-
-     </div>
+         <button type="button" onClick={handleMagicAI} className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl text-sm font-bold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md transform hover:-translate-y-0.5">
+            <Sparkles size={18} /> 1-Click AI Auto-Fill & Studio Render
+         </button>
+       </div>
      
      {enhancedPreview && (
        <div className="mt-4 p-4 bg-white rounded-xl border border-indigo-100 shadow-sm flex flex-col sm:flex-row gap-4 items-center">
