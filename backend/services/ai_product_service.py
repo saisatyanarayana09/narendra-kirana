@@ -48,7 +48,7 @@ class AIProductService:
                 return response
             except Exception as e:
                 error_str = str(e).lower()
-                if "404" in error_str or "not found" in error_str or "not supported" in error_str:
+                if any(err in error_str for err in ["404", "400", "not found", "not supported", "not enabled", "modality"]):
                     last_error = e
                     continue
                 raise e

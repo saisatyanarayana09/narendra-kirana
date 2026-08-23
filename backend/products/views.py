@@ -129,10 +129,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         gemini_key = os.environ.get('GEMINI_API_KEY')
         if gemini_key:
             try:
-                import google.generativeai as genai
-                genai.configure(api_key=gemini_key)
-                model = genai.GenerativeModel('gemini-1.5-flash-latest')
-                
+                from services.ai_product_service import AIProductService
                 prompt = f"""
                 Identify the FMCG grocery product commonly sold in India with the barcode (EAN/UPC) {barcode}.
                 Return ONLY raw JSON (no markdown, no backticks) with the following structure:
@@ -143,7 +140,7 @@ class ProductViewSet(viewsets.ModelViewSet):
                 }}
                 If you absolutely do not know, return {{"error": "not found"}}
                 """
-                response = model.generate_content(prompt)
+                response = AIProductService._generate_with_fallback(prompt)
                 
                 # Clean up response
                 result_text = response.text.strip()
@@ -194,16 +191,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             return Response({'success': False, 'error': 'AI is not configured. Missing API Key.'})
             
         try:
-            import google.generativeai as genai
-            genai.configure(api_key=gemini_key)
-            
-            # Use gemini-1.5-flash-latest for fast multimodal tasks
-            model = genai.GenerativeModel('gemini-1.5-flash-latest')
-            
-            image_data = {
-                "mime_type": image_file.content_type or 'image/jpeg',
-                "data": image_file.read()
-            }
+            from services.ai_product_service import AIProductService
             
             prompt = """
             Analyze this product image and extract the following details in raw JSON format (no markdown tags, no code blocks):
@@ -216,7 +204,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             If you cannot identify the product, return {"error": "Could not identify product"}
             """
             
-            response = model.generate_content([prompt, image_data])
+            response = AIProductService._generate_with_fallback(prompt, image_file.read(), image_file.content_type or 'image/jpeg')
             
             # Clean up the response text in case it includes markdown json blocks
             import re
