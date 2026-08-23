@@ -6,23 +6,48 @@ logger = logging.getLogger(__name__)
 
 class AIProductService:
     @staticmethod
-    def _get_model():
-        try:
-            import google.generativeai as genai
-            api_key = os.environ.get('GEMINI_API_KEY')
-            if not api_key:
-                raise ValueError("AI API Key not configured")
-            genai.configure(api_key=api_key)
-            # Use gemini-1.5-flash for very fast vision and text processing
-            return genai.GenerativeModel('gemini-1.5-flash')
-        except ImportError:
-            raise RuntimeError("Google Generative AI SDK is not installed.")
+    def _generate_with_fallback(prompt, image_bytes=None, mime_type=None):
+        import google.generativeai as genai
+        api_key = os.environ.get('GEMINI_API_KEY')
+        if not api_key:
+            raise ValueError("AI API Key not configured")
+        genai.configure(api_key=api_key)
+        
+        is_vision = image_bytes is not None
+        
+        models_to_try = [
+            'gemini-1.5-flash',
+            'gemini-1.5-flash-latest',
+            'gemini-1.5-pro',
+            'gemini-1.5-pro-latest',
+            'gemini-pro-vision' if is_vision else 'gemini-pro',
+            'gemini-1.0-pro-vision-latest' if is_vision else 'gemini-1.0-pro-latest'
+        ]
+        
+        last_error = None
+        for model_name in models_to_try:
+            try:
+                model = genai.GenerativeModel(model_name)
+                if is_vision:
+                    response = model.generate_content([
+                        {"mime_type": mime_type, "data": image_bytes},
+                        prompt
+                    ])
+                else:
+                    response = model.generate_content(prompt)
+                return response
+            except Exception as e:
+                error_str = str(e).lower()
+                if "404" in error_str or "not found" in error_str or "not supported" in error_str:
+                    last_error = e
+                    continue
+                raise e
+                
+        raise RuntimeError(f"All AI models failed or are unsupported. Last error: {last_error}")
 
     @staticmethod
     def analyze_product_image(image_bytes, mime_type):
         try:
-            model = AIProductService._get_model()
-            
             prompt = """
             Analyze this grocery/e-commerce product image. 
             Extract the following details and return ONLY a raw JSON object (no markdown, no backticks).
@@ -36,10 +61,7 @@ class AIProductService:
             }
             """
             
-            response = model.generate_content([
-                {"mime_type": mime_type, "data": image_bytes},
-                prompt
-            ])
+            response = AIProductService._generate_with_fallback(prompt, image_bytes, mime_type)
             
             # Extract JSON from potential markdown/babble
             import re
@@ -57,8 +79,6 @@ class AIProductService:
     @staticmethod
     def generate_description(product_data):
         try:
-            model = AIProductService._get_model()
-            
             name = product_data.get('name', 'Product')
             brand = product_data.get('brand', '')
             category = product_data.get('category', '')
@@ -79,7 +99,7 @@ class AIProductService:
             4. Return ONLY the description text, no quotes or intro.
             """
             
-            response = model.generate_content(prompt)
+            response = AIProductService._generate_with_fallback(prompt)
             return response.text.strip()
             
         except Exception as e:

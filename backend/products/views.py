@@ -131,7 +131,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             try:
                 import google.generativeai as genai
                 genai.configure(api_key=gemini_key)
-                model = genai.GenerativeModel('gemini-3.6-flash')
+                model = genai.GenerativeModel('gemini-1.5-flash-latest')
                 
                 prompt = f"""
                 Identify the FMCG grocery product commonly sold in India with the barcode (EAN/UPC) {barcode}.
@@ -197,8 +197,8 @@ class ProductViewSet(viewsets.ModelViewSet):
             import google.generativeai as genai
             genai.configure(api_key=gemini_key)
             
-            # Use gemini-3.6-flash for fast multimodal tasks
-            model = genai.GenerativeModel('gemini-3.6-flash')
+            # Use gemini-1.5-flash-latest for fast multimodal tasks
+            model = genai.GenerativeModel('gemini-1.5-flash-latest')
             
             image_data = {
                 "mime_type": image_file.content_type or 'image/jpeg',
