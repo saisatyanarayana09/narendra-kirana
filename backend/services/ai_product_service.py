@@ -24,6 +24,16 @@ class AIProductService:
             'gemini-1.0-pro-vision-latest' if is_vision else 'gemini-1.0-pro-latest'
         ]
         
+        try:
+            for m in genai.list_models():
+                if 'generateContent' in m.supported_generation_methods:
+                    name = m.name.replace('models/', '')
+                    if name not in models_to_try:
+                        # Append dynamically discovered models to the end
+                        models_to_try.append(name)
+        except Exception as e:
+            logger.warning(f"Could not list dynamic models: {e}")
+        
         last_error = None
         for model_name in models_to_try:
             try:

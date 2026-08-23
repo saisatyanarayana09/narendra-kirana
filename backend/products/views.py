@@ -299,7 +299,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             return Response({"success": False, "error": "File too large. Maximum size is 10MB."})
             
         try:
-            enhanced_bytes, mime_type = ImageEnhancementService.enhance_product_image(image_file.read())
+            enhanced_bytes, mime_type = ImageEnhancementService.enhance_product_image(image_file.read(), image_file.content_type)
             response = HttpResponse(enhanced_bytes, content_type=mime_type)
             # Custom header to indicate success if needed
             response["X-Enhancement-Success"] = "True"

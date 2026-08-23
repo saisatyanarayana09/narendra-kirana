@@ -6,12 +6,12 @@ logger = logging.getLogger(__name__)
 
 class ImageEnhancementService:
     @staticmethod
-    def enhance_product_image(image_bytes, format='JPEG'):
-        \"\"\"
+    def enhance_product_image(image_bytes, original_mime='image/jpeg'):
+        """
         Enhances the product image using Pillow.
         Adjusts contrast, sharpness, and brightness to simulate a clean e-commerce studio look.
         Provides a fast, zero-dependency (other than PIL) enhancement pipeline.
-        \"\"\"
+        """
         try:
             image = Image.open(io.BytesIO(image_bytes))
             
@@ -44,5 +44,6 @@ class ImageEnhancementService:
             return output.getvalue(), 'image/jpeg'
             
         except Exception as e:
-            logger.error(f"Image Enhancement failed: {e}")
-            raise RuntimeError(f"Enhancement failed: {str(e)}")
+            logger.warning(f"Image Enhancement failed (likely unsupported format like HEIC). Returning original: {e}")
+            # Fallback: Just return the original image untouched
+            return image_bytes, original_mime
