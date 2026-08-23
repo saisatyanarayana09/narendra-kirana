@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 class ImageEnhancementService:
     @staticmethod
     def _hf_remove_background(image_bytes):
-        hf_token = os.environ.get('HF_TOKEN')
+        hf_token = os.environ.get('HF_TOKEN', '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')
         if not hf_token:
             return None
             
