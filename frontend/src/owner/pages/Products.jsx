@@ -34,8 +34,39 @@ const Products = () => {
  } catch { toast.error('Failed to load data.'); }
  finally { setLoading(false); }
  };
+  useEffect(() => {
+    if (showScanner) {
+      let scanner = null;
+      try {
+          scanner = new Html5QrcodeScanner('reader', {
+            qrbox: { width: 250, height: 100 },
+            fps: 10,
+            formatsToSupport: [ Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8, Html5QrcodeSupportedFormats.UPC_A, Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.QR_CODE ]
+          }, false);
+          
+          scanner.render(
+            (decodedText) => {
+              setFormData(prev => ({...prev, sku: decodedText}));
+              toast.success('Barcode scanned successfully!');
+              setShowScanner(false);
+              scanner.clear().catch(e => console.log(e));
+            },
+            (error) => {}
+          );
+      } catch(err) {
+          console.warn('Scanner init error', err);
+      }
+      
+      return () => {
+        if (scanner) {
+            scanner.clear().catch(e => console.log('Failed to clear scanner', e));
+        }
+      };
+    }
+  }, [showScanner]);
 
- useEffect(() => { fetchData(); }, []);
+
+  useEffect(() => { fetchData(); }, []);
 
  const handleAIPhotoUpload = async (e) => {
     const file = e.target.files[0];
@@ -349,8 +380,19 @@ const Products = () => {
  <input type="number" required value={formData.stock_quantity} onChange={e => setFormData({...formData, stock_quantity: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"/>
  </div>
  <div>
- <label className="block text-sm font-bold text-slate-700 mb-1.5">SKU / Barcode</label>
+ <label className="block text-sm font-bold text-slate-700 mb-1.5 flex justify-between items-center">
+    <span>SKU / Barcode</span>
+    <button type="button" onClick={() => setShowScanner(!showScanner)} className="text-indigo-600 text-xs flex items-center hover:text-indigo-800 bg-indigo-50 px-2 py-1 rounded">
+        <Camera size={14} className="mr-1" /> Scan
+    </button>
+ </label>
  <input type="text" value={formData.sku} onChange={e => setFormData({...formData, sku: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="Optional"/>
+ {showScanner && (
+    <div className="mt-2 p-2 border border-slate-200 rounded-xl overflow-hidden bg-white">
+        <div id="reader" className="w-full"></div>
+        <button type="button" onClick={() => setShowScanner(false)} className="w-full mt-2 text-xs text-center text-red-500 font-bold py-1">Close Scanner</button>
+    </div>
+ )}
  </div>
  <div>
  <label className="block text-sm font-bold text-slate-700 mb-1.5">Expiry Date</label>
