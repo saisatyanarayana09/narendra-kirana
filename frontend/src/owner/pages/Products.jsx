@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { Plus, Edit2, Trash2, X, Image as ImageIcon, Package, GripVertical, ScanLine, Camera, Sparkles, Wand2, FileText } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import toast from 'react-hot-toast';
@@ -12,15 +13,16 @@ const Products = () => {
  const [categories, setCategories] = useState([]);
  const [loading, setLoading] = useState(true);
  const [isScanning, setIsScanning] = useState(false);
- const [enhancedPreview, setEnhancedPreview] = useState(null);
+ 
  
  const [isFormOpen, setIsFormOpen] = useState(false);
+   const [showScanner, setShowScanner] = useState(false);
  const [editingId, setEditingId] = useState(null);
  const [formData, setFormData] = useState({
  name: '', category: '', brand: '', description: '', unit: '',
  regular_price: '', offer_price: '', is_active: true, is_in_stock: true,
  stock_quantity: 0, sku: '', cost_price: '', expiry_date: '', tags: '',
- max_order_quantity: 10, image: null
+ max_order_quantity: 10, image: null, imageBack: null
  });
 
  const fetchData = async () => {
@@ -115,7 +117,7 @@ const Products = () => {
  setEditingId(null);
  setFormData({ name: '', category: '', brand: '', description: '', unit: '', regular_price: '',
  offer_price: '', is_active: true, is_in_stock: true, stock_quantity: 0, sku: '', cost_price: '',
- expiry_date: '', tags: '', max_order_quantity: 10, image: null });
+ expiry_date: '', tags: '', max_order_quantity: 10, image: null, imageBack: null });
  }
  setIsFormOpen(true);
  };
@@ -201,24 +203,26 @@ const Products = () => {
 
 
   const handleMagicAI = async () => {
-    if (!formData.image || !(formData.image instanceof File || formData.image instanceof Blob)) {
-      toast.error('Please upload a new image first.');
+    if (!formData.image && !formData.imageBack) {
+      toast.error('Please upload at least one image first.');
       return;
     }
-    const toastId = toast.loading('✨ AI is processing product...');
+    const toastId = toast.loading('✨ AI is highly analyzing front & back details...');
     try {
       const formPayload = new FormData();
-      formPayload.append('image', formData.image);
+      if (formData.image instanceof File || formData.image instanceof Blob) {
+          formPayload.append('imageFront', formData.image);
+      }
+      if (formData.imageBack instanceof File || formData.imageBack instanceof Blob) {
+          formPayload.append('imageBack', formData.imageBack);
+      }
 
-      const [analyzeRes, enhanceRes] = await Promise.allSettled([
-        api.post('/products/analyze_image/', formPayload),
-        api.post('/products/enhance_image/', formPayload, { responseType: 'blob' })
-      ]);
+      const analyzeRes = await api.post('/products/analyze_image/', formPayload);
 
       let newFormData = { ...formData };
 
-      if (analyzeRes.status === 'fulfilled' && analyzeRes.value.data.success) {
-        const extracted = analyzeRes.value.data.extracted_data || {};
+      if (analyzeRes.data.success) {
+        const extracted = analyzeRes.data.extracted_data || {};
         newFormData = {
           ...newFormData,
           name: extracted.name || newFormData.name,
@@ -232,12 +236,6 @@ const Products = () => {
         };
       }
 
-      if (enhanceRes.status === 'fulfilled' && enhanceRes.value.status === 200) {
-        const blob = enhanceRes.value.data;
-        const blobUrl = URL.createObjectURL(blob);
-        setEnhancedPreview({ url: blobUrl, blob: blob });
-      }
-
       try {
           const descRes = await api.post('/products/generate_description/', newFormData);
           if (descRes.data.success) {
@@ -248,14 +246,14 @@ const Products = () => {
       }
 
       setFormData(newFormData);
-      toast.success('✨ Product instantly processed and studio rendered!', { id: toastId });
+      toast.success('✨ Product details extracted accurately!', { id: toastId });
 
     } catch (err) {
       toast.error('AI processing failed.', { id: toastId });
     }
   };
 
- const closeForm = () => { setIsFormOpen(false); setEditingId(null); setEnhancedPreview(null); };
+ const closeForm = () => { setIsFormOpen(false); setEditingId(null);  };
 
  const handleSubmit = async (e) => {
  e.preventDefault();
@@ -439,7 +437,7 @@ const Products = () => {
              <button type="button" onClick={() => {
                  const file = new File([enhancedPreview.blob], 'enhanced.jpg', { type: 'image/jpeg' });
                  setFormData({...formData, image: file});
-                 setEnhancedPreview(null);
+                 
                  toast.success('Enhanced image applied!');
              }} className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition shadow-sm">Use Enhanced</button>
              <button type="button" onClick={() => setEnhancedPreview(null)} className="flex-1 px-4 py-2 bg-slate-100 text-slate-600 border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-200 transition">Keep Original</button>
