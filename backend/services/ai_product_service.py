@@ -47,11 +47,10 @@ class AIProductService:
                     response = model.generate_content(prompt)
                 return response
             except Exception as e:
-                error_str = str(e).lower()
-                if any(err in error_str for err in ["404", "400", "not found", "not supported", "not enabled", "modality"]):
-                    last_error = e
-                    continue
-                raise e
+                # Catch ALL errors (404 missing, 400 unsupported modality, 429 quota exceeded, 403, 500, etc.)
+                # and gracefully skip to the next model. If they all fail, the last one bubbles up.
+                last_error = e
+                continue
                 
         raise RuntimeError(f"All AI models failed or are unsupported. Last error: {last_error}")
 
