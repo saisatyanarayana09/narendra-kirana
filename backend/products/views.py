@@ -274,27 +274,6 @@ class ProductViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({"success": False, "error": str(e)})
 
-    @action(detail=False, methods=["post"], permission_classes=[IsOwnerOrReadOnly])
-    def enhance_image(self, request):
-        from services.image_enhancement_service import ImageEnhancementService
-        from django.http import HttpResponse
-        
-        image_file = request.FILES.get("image")
-        if not image_file:
-            return Response({"success": False, "error": "No image provided"})
-            
-        if image_file.size > 10 * 1024 * 1024:
-            return Response({"success": False, "error": "File too large. Maximum size is 10MB."})
-            
-        try:
-            enhanced_bytes, mime_type = ImageEnhancementService.enhance_product_image(image_file.read(), image_file.content_type)
-            response = HttpResponse(enhanced_bytes, content_type=mime_type)
-            # Custom header to indicate success if needed
-            response["X-Enhancement-Success"] = "True"
-            return response
-        except Exception as e:
-            return Response({"success": False, "error": str(e)}, status=400)
-
 class FavoriteViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = FavoriteSerializer

@@ -153,68 +153,15 @@ const Products = () => {
  setIsFormOpen(true);
  };
 
- const handleAnalyzeProduct = async () => {
-   if (!formData.image || !(formData.image instanceof File || formData.image instanceof Blob)) {
-     toast.error('Please upload a new image first.');
-     return;
-   }
-   const toastId = toast.loading('Analyzing product...');
-   try {
-     const uploadData = new FormData();
-     uploadData.append('image', formData.image);
-     const res = await api.post('/products/analyze_image/', uploadData);
-     if (res.data.success) {
-       toast.success('Product details extracted!', { id: toastId });
-       setFormData(prev => ({
-         ...prev,
-         name: res.data.data.name || prev.name,
-         brand: res.data.data.brand || prev.brand,
-         unit: res.data.data.unit || prev.unit,
-         sku: res.data.data.sku || prev.sku,
-         expiry_date: res.data.data.expiry_date || prev.expiry_date,
-         regular_price: res.data.data.regular_price || prev.regular_price
-       }));
-       if (res.data.data.category) {
-         const matchedCat = categories.find(c => c.name.toLowerCase().includes(res.data.data.category.toLowerCase()) || res.data.data.category.toLowerCase().includes(c.name.toLowerCase()));
-         if (matchedCat) {
-           setFormData(prev => ({...prev, category: matchedCat.id}));
-         } else {
-           toast('Suggested Category: ' + res.data.data.category + ' (No exact match)', { icon: 'ℹ️', duration: 4000 });
-         }
-       }
-     } else {
-       toast.error(res.data.error || 'Failed to analyze.', { id: toastId });
-     }
-   } catch (err) {
-     toast.error('Analysis request failed.', { id: toastId });
-   }
- };
-
- const handleGenerateDescription = async () => {
-   const toastId = toast.loading('Generating description...');
-   try {
-     const res = await api.post('/products/generate_description/', {
-       name: formData.name, brand: formData.brand, unit: formData.unit, 
-       category: categories.find(c => String(c.id) === String(formData.category))?.name || ''
-     });
-     if (res.data.success) {
-       toast.success('Description generated!', { id: toastId });
-       setFormData(prev => ({ ...prev, description: res.data.description }));
-     } else {
-       toast.error(res.data.error || 'Failed to generate.', { id: toastId });
-     }
-   } catch (err) {
-     toast.error('Generation request failed.', { id: toastId });
-   }
- };
 
 
-  const handleMagicAI = async () => {
+
+  const handleAnalyzeProduct = async () => {
     if (!formData.image && !formData.imageBack) {
       toast.error('Please upload at least one image first.');
       return;
     }
-    const toastId = toast.loading('✨ AI is highly analyzing front & back details...');
+    const toastId = toast.loading('✨ AI is analyzing image details...');
     try {
       const formPayload = new FormData();
       if (formData.image instanceof File || formData.image instanceof Blob) {
@@ -225,7 +172,6 @@ const Products = () => {
       }
 
       const analyzeRes = await api.post('/products/analyze_image/', formPayload);
-
       let newFormData = { ...formData };
 
       if (analyzeRes.data.success) {
@@ -241,22 +187,32 @@ const Products = () => {
           sku: extracted.sku || newFormData.sku,
           expiry_date: extracted.expiry_date || newFormData.expiry_date,
         };
+        setFormData(newFormData);
+        toast.success('✨ Product details extracted accurately!', { id: toastId });
+      } else {
+        toast.error('AI extraction failed.', { id: toastId });
       }
-
-      try {
-          const descRes = await api.post('/products/generate_description/', newFormData);
-          if (descRes.data.success) {
-            newFormData.description = descRes.data.description || newFormData.description;
-          }
-      } catch (descErr) {
-          console.warn("Description generation failed", descErr);
-      }
-
-      setFormData(newFormData);
-      toast.success('✨ Product details extracted accurately!', { id: toastId });
-
     } catch (err) {
       toast.error('AI processing failed.', { id: toastId });
+    }
+  };
+
+  const handleGenerateDescription = async () => {
+    if (!formData.name && !formData.category) {
+        toast.error('Please fill in Name and Category first.');
+        return;
+    }
+    const toastId = toast.loading('✨ Generating description...');
+    try {
+        const descRes = await api.post('/products/generate_description/', formData);
+        if (descRes.data.success) {
+            setFormData(prev => ({ ...prev, description: descRes.data.description }));
+            toast.success('Description generated!', { id: toastId });
+        } else {
+            toast.error('Failed to generate description.', { id: toastId });
+        }
+    } catch (err) {
+        toast.error('Description generation failed.', { id: toastId });
     }
   };
 
@@ -433,11 +389,15 @@ const Products = () => {
      <p className="text-xs sm:text-sm text-indigo-700/80 font-medium mb-4">
         Upload a product photo above, then use AI to instantly fill out the details, write a description, and enhance the image quality.
      </p>
-     <div className="flex flex-wrap gap-2.5">
-         <button type="button" onClick={handleMagicAI} className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl text-sm font-bold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md transform hover:-translate-y-0.5">
-            <Sparkles size={18} /> 1-Click AI Auto-Fill & Studio Render
+       <div className="flex flex-wrap gap-2.5">
+         <button type="button" onClick={handleAnalyzeProduct} className="flex items-center gap-1.5 px-3.5 py-2 bg-white text-indigo-700 border border-indigo-200 rounded-xl text-xs sm:text-sm font-bold hover:bg-indigo-50 transition-colors shadow-sm">
+            <ScanLine size={16} /> Auto-Fill Details by Image
+         </button>
+         <button type="button" onClick={handleGenerateDescription} className="flex items-center gap-1.5 px-3.5 py-2 bg-white text-indigo-700 border border-indigo-200 rounded-xl text-xs sm:text-sm font-bold hover:bg-indigo-50 transition-colors shadow-sm">
+            <FileText size={16} /> Create Product Description
          </button>
        </div>
+
      
 
    </div>
