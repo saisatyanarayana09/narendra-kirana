@@ -178,30 +178,6 @@ const Products = () => {
  };
 
 
- const handleEnhanceImage = async () => {
-   if (!formData.image || !(formData.image instanceof File || formData.image instanceof Blob)) {
-     toast.error('Please upload a new image first.');
-     return;
-   }
-   const toastId = toast.loading('Enhancing image (this may take a moment)...');
-   try {
-     const uploadData = new FormData();
-     uploadData.append('image', formData.image);
-     const res = await api.post('/products/enhance_image/', uploadData, { responseType: 'blob' });
-     
-     if (res.status === 200 && res.data.type.startsWith('image/')) {
-       toast.success('Image enhanced successfully!', { id: toastId });
-       const blobUrl = URL.createObjectURL(res.data);
-       setEnhancedPreview({ url: blobUrl, blob: res.data });
-     } else {
-       toast.error('Failed to enhance image.', { id: toastId });
-     }
-   } catch (err) {
-     toast.error('Enhancement request failed.', { id: toastId });
-   }
- };
-
-
   const handleMagicAI = async () => {
     if (!formData.image && !formData.imageBack) {
       toast.error('Please upload at least one image first.');
@@ -421,29 +397,7 @@ const Products = () => {
          </button>
        </div>
      
-     {enhancedPreview && (
-       <div className="mt-4 p-4 bg-white rounded-xl border border-indigo-100 shadow-sm flex flex-col sm:flex-row gap-4 items-center">
-          <div className="flex gap-4 flex-1 justify-center sm:justify-start">
-             <div className="text-center">
-                <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-1.5">Original</p>
-                <img src={URL.createObjectURL(formData.image)} className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-lg shadow-sm border border-slate-100" />
-             </div>
-             <div className="text-center">
-                <p className="text-[10px] uppercase tracking-wider font-bold text-emerald-600 mb-1.5">✨ Enhanced</p>
-                <img src={enhancedPreview.url} className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-lg shadow-sm border-2 border-emerald-400" />
-             </div>
-          </div>
-          <div className="flex sm:flex-col gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-             <button type="button" onClick={() => {
-                 const file = new File([enhancedPreview.blob], 'enhanced.jpg', { type: 'image/jpeg' });
-                 setFormData({...formData, image: file});
-                 
-                 toast.success('Enhanced image applied!');
-             }} className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition shadow-sm">Use Enhanced</button>
-             <button type="button" onClick={() => setEnhancedPreview(null)} className="flex-1 px-4 py-2 bg-slate-100 text-slate-600 border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-200 transition">Keep Original</button>
-          </div>
-       </div>
-     )}
+
    </div>
    <div className="flex items-center space-x-6 pt-4 md:col-span-2">
  <div className="flex items-center">
