@@ -156,10 +156,7 @@ class CustomerSignupSerializer(serializers.ModelSerializer):
         try:
             send_mail(
                 'Activate Your Narendra Kirana Account',
-                f'Welcome to Narendra Kirana!
-
-Please click the link below to activate your account:
-{verify_link}',
+                f'Welcome to Narendra Kirana!\n\nPlease click the link below to activate your account:\n{verify_link}',
                 getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@narendra-kirana.com'),
                 [user.email],
                 fail_silently=True,
