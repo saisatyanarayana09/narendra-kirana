@@ -30,7 +30,11 @@ export default function Showcase() {
         api.get('/offers/banners/'),
         api.get('/store/settings/')
       ]);
-      setSections(secRes.data.sort((a, b) => a.display_order - b.display_order));
+      const mappedSections = secRes.data.map(sec => ({
+          ...sec,
+          items: (sec.section_products || []).sort((a, b) => a.position - b.position).map(sp => sp.product_details)
+        }));
+        setSections(mappedSections.sort((a, b) => a.display_order - b.display_order));
       const pList = Array.isArray(prodRes.data) ? prodRes.data : (prodRes.data?.results ?? []);
       setAllProducts(pList);
       setAnnouncements(annRes.data.results || annRes.data || []);
@@ -282,7 +286,8 @@ export default function Showcase() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <DragDropContext onDragEnd={handleDragEnd}>
+      <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
@@ -335,8 +340,7 @@ export default function Showcase() {
         </div>
         
         <div className="p-5">
-          <DragDropContext onDragEnd={handleDragEnd}>
-            <Droppable droppableId="announcements-list" type="announcement">
+          <Droppable droppableId="announcements-list" type="announcement">
               {(provided) => (
                 <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-3">
                   {announcements.length === 0 ? (
@@ -373,7 +377,6 @@ export default function Showcase() {
                 </div>
               )}
             </Droppable>
-          </DragDropContext>
           <button onClick={handleAddAnnouncement} className="mt-4 flex items-center justify-center w-full py-2.5 border-2 border-dashed border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 font-bold rounded-xl transition-colors text-sm">
             <Plus size={16} className="mr-1" /> Add New Text Announcement
           </button>
@@ -390,8 +393,7 @@ export default function Showcase() {
         </div>
         
         <div className="p-5">
-          <DragDropContext onDragEnd={handleDragEnd}>
-            <Droppable droppableId="banners-list" type="banner">
+          <Droppable droppableId="banners-list" type="banner">
               {(provided) => (
                 <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-3">
                   {banners.length === 0 ? (
@@ -431,7 +433,6 @@ export default function Showcase() {
                 </div>
               )}
             </Droppable>
-          </DragDropContext>
           <label className="mt-4 flex items-center justify-center w-full py-4 border-2 border-dashed border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 font-bold rounded-xl transition-colors text-sm cursor-pointer">
             <Plus size={16} className="mr-1" /> Upload New Image Banner
             <input type="file" accept="image/*" className="hidden" onChange={handleAddBanner} />
@@ -441,8 +442,7 @@ export default function Showcase() {
 
       {/* Draggable section cards */}
 
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="homepage-sections" type="section">
+      <Droppable droppableId="homepage-sections" type="section">
           {(provided) => (
             <div
               {...provided.droppableProps}
@@ -518,7 +518,6 @@ export default function Showcase() {
             </div>
           )}
         </Droppable>
-      </DragDropContext>
 
       {/* Rename Modal */}
       {renamingSection && createPortal(
@@ -541,5 +540,6 @@ export default function Showcase() {
         </div>
       , document.body)}
     </div>
+      </DragDropContext>
   );
 }
