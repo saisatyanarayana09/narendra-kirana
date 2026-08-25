@@ -247,20 +247,26 @@ class ProductViewSet(viewsets.ModelViewSet):
     def analyze_image(self, request):
         from services.ai_product_service import AIProductService
         
-        image_file = request.FILES.get("image")
-        if not image_file:
-            return Response({"success": False, "error": "No image provided"})
-            
-        if image_file.size > 5 * 1024 * 1024:
-            return Response({"success": False, "error": "File too large. Maximum size is 5MB."})
-            
-        allowed_types = ["image/jpeg", "image/png", "image/webp"]
-        if image_file.content_type not in allowed_types:
-            return Response({"success": False, "error": "Invalid file type. Only JPEG, PNG, and WebP are allowed."})
+        images_data = []
+        for key in ['imageFront', 'imageBack', 'image']:
+            image_file = request.FILES.get(key)
+            if image_file:
+                if image_file.size > 10 * 1024 * 1024:
+                    continue
+                allowed_types = ["image/jpeg", "image/png", "image/webp"]
+                if image_file.content_type in allowed_types:
+                    images_data.append({
+                        'bytes': image_file.read(),
+                        'mime': image_file.content_type
+                    })
+                    
+        if not images_data:
+            return Response({"success": False, "error": "No valid image provided"})
             
         try:
-            data = AIProductService.analyze_product_image(image_file.read(), image_file.content_type)
-            return Response({"success": True, "data": data})
+            data = AIProductService.analyze_product_image(images_data)
+            # The frontend expects extracted_data in data.extracted_data
+            return Response({"success": True, "extracted_data": data})
         except Exception as e:
             return Response({"success": False, "error": str(e)})
 

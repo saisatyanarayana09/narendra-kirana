@@ -10,8 +10,13 @@ class AIProductService:
         import google.generativeai as genai
         from store.models import StoreSettings
         
-        settings = StoreSettings.load()
-        api_key = settings.gemini_api_key or os.environ.get('GEMINI_API_KEY')
+        try:
+            settings = StoreSettings.load()
+            api_key = settings.gemini_api_key or os.environ.get('GEMINI_API_KEY')
+            vision_model = settings.gemini_vision_model or 'gemini-1.5-flash'
+        except Exception:
+            api_key = os.environ.get('GEMINI_API_KEY')
+            vision_model = 'gemini-1.5-flash'
         
         if not api_key:
             raise ValueError("AI API Key not configured. Please add it in Owner Settings.")
@@ -19,8 +24,6 @@ class AIProductService:
         
         # Check if payload contains any dicts (images)
         is_vision = any(isinstance(p, dict) for p in payload)
-        
-        vision_model = settings.gemini_vision_model or 'gemini-1.5-flash'
         
         models_to_try = [
             vision_model,
@@ -140,10 +143,13 @@ class AIProductService:
             try:
                 from groq import Groq
                 from store.models import StoreSettings
-                settings = StoreSettings.load()
-                
-                api_key = settings.groq_api_key or os.environ.get('GROQ_API_KEY', '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')
-                text_model = settings.groq_text_model or 'llama3-8b-8192'
+                try:
+                    settings = StoreSettings.load()
+                    api_key = settings.groq_api_key or os.environ.get('GROQ_API_KEY', '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')
+                    text_model = settings.groq_text_model or 'llama3-8b-8192'
+                except Exception:
+                    api_key = os.environ.get('GROQ_API_KEY', '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')
+                    text_model = 'llama3-8b-8192'
                 
                 client = Groq(api_key=api_key)
                 completion = client.chat.completions.create(
