@@ -68,6 +68,14 @@ class StoreSettings(models.Model):
 
 
 class HomepageSection(models.Model):
+    SECTION_TYPES = (
+        ('products', 'Product Grid'),
+        ('banner', 'Mid-Page Banner'),
+    )
+    section_type = models.CharField(max_length=20, choices=SECTION_TYPES, default='products')
+    banner_image = models.ImageField(upload_to='banners/', null=True, blank=True)
+    banner_link = models.CharField(max_length=500, null=True, blank=True, help_text="Optional URL to navigate to when clicked")
+
     title = models.CharField(max_length=100, default='New Section')
     display_order = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)

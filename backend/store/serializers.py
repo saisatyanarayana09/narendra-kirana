@@ -22,7 +22,7 @@ class HomepageSectionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = HomepageSection
-        fields = ['id', 'title', 'display_order', 'is_active', 'section_products']
+        fields = ['id', 'title', 'section_type', 'banner_image', 'banner_link', 'display_order', 'is_active', 'section_products']
 
 class FeedbackSerializer(serializers.ModelSerializer):
     customer_name = serializers.CharField(source='customer.get_full_name', read_only=True, default='Anonymous')

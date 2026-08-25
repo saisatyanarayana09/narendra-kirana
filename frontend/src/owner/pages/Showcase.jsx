@@ -4,6 +4,7 @@ import { GripVertical, Layout, Loader2, Plus, Edit2, Trash2, X } from 'lucide-re
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import HomepageSectionEditor from '../components/HomepageSectionEditor';
+import MidPageBannerEditor from '../components/MidPageBannerEditor';
 import { createPortal } from 'react-dom';
 
 export default function Showcase() {
@@ -405,12 +406,19 @@ export default function Showcase() {
 
                       {/* Section editor body */}
                       <div className="p-5">
-                        <HomepageSectionEditor
-                          section={section}
-                          allProducts={allProducts}
-                          onUpdateItems={handleUpdateItems}
-                          onSave={handleSaveSection}
-                        />
+                        {section.section_type === 'banner' ? (
+                          <MidPageBannerEditor 
+                            section={section}
+                            onUpdateSection={(updated) => setSections(prev => prev.map(s => s.id === updated.id ? updated : s))}
+                          />
+                        ) : (
+                          <HomepageSectionEditor
+                            section={section}
+                            allProducts={allProducts}
+                            onUpdateItems={handleUpdateItems}
+                            onSave={handleSaveSection}
+                          />
+                        )}
                       </div>
                     </div>
                   )}
