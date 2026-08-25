@@ -1,4 +1,3 @@
-from rest_framework.permissions import AllowAny
 from rest_framework import viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -21,7 +20,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(is_active=True)
         return queryset
 
-    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
+    @action(detail=False, methods=['post'], permission_classes=[IsOwnerOrReadOnly])
     def reorder(self, request):
         updates = request.data
         if not isinstance(updates, list):
@@ -169,7 +168,7 @@ class ProductViewSet(viewsets.ModelViewSet):
                 
         return Response({'source': 'not_found'})
 
-    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
+    @action(detail=False, methods=['post'], permission_classes=[IsOwnerOrReadOnly])
     def vision_lookup(self, request):
         import os
         import json
@@ -223,7 +222,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             print('Gemini API Error:', str(e))
             return Response({'success': False, 'error': str(e)})
 
-    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
+    @action(detail=False, methods=['post'], permission_classes=[IsOwnerOrReadOnly])
     def reorder(self, request):
         updates = request.data
         if not isinstance(updates, list):
@@ -243,6 +242,10 @@ class ProductViewSet(viewsets.ModelViewSet):
         if products:
             Product.objects.bulk_update(products, ['display_order'])
         return Response({'status': 'reordered'})
+
+class FavoriteViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    serializer_class = FavoriteSerializer
 
     def get_queryset(self):
         return Favorite.objects.select_related('product', 'product__category').filter(user=self.request.user)
