@@ -131,6 +131,7 @@ function App() {
 
  {/* Owner Portal Routes (No CartProvider needed) */}
  <Route path="/owner/login"element={<OwnerLogin />} />
+        <Route path="/owner/welcome" element={<Guard><Welcome /></Guard>} />
  
  <Route path="/owner"element={<Guard><OwnerLayout /></Guard>}>
  <Route index element={<Dashboard />} />
