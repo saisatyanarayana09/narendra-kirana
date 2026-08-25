@@ -2,6 +2,11 @@
 from .models import StoreSettings, HomepageSection, HomepageSectionProduct, Feedback, FlashAnnouncement
 from products.serializers import ProductSerializer
 
+class FlashAnnouncementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FlashAnnouncement
+        fields = '__all__'
+
 class StoreSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = StoreSettings
