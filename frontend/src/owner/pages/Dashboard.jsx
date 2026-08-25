@@ -121,6 +121,23 @@ const Dashboard = () => {
     return colors[status] || 'bg-gray-100 text-gray-700';
   };
 
+
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
+  const emoji = hour < 12 ? '🌅' : hour < 17 ? '☀️' : '🌙';
+  
+  const getOwnerName = () => {
+    try {
+      const user = JSON.parse(localStorage.getItem('smart-kirana-owner-user'));
+      return user?.first_name || user?.username || 'Owner';
+    } catch {
+      return 'Owner';
+    }
+  };
+  const ownerName = getOwnerName();
+  
+  const pendingCount = orders.filter(o => ['NEW', 'ACCEPTED', 'PREPARING'].includes(o.status)).length;
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       
