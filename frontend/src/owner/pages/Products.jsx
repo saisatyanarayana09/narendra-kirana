@@ -156,6 +156,8 @@ const Products = () => {
 
 
 
+ const closeForm = () => { setIsFormOpen(false); setEditingId(null); };
+
  const handleSubmit = async (e) => {
  e.preventDefault();
  const data = new FormData();
