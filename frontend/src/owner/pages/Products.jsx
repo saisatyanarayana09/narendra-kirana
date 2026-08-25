@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from 'html5-qrcode';
-import { Plus, Edit2, Trash2, X, Image as ImageIcon, Package, GripVertical, ScanLine, Camera, Sparkles, Wand2, FileText } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Image as ImageIcon, Package, GripVertical, Camera, Sparkles, Wand2, FileText } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
@@ -155,68 +155,6 @@ const Products = () => {
 
 
 
-
-  const handleAnalyzeProduct = async () => {
-    if (!formData.image && !formData.imageBack) {
-      toast.error('Please upload at least one image first.');
-      return;
-    }
-    const toastId = toast.loading('✨ AI is analyzing image details...');
-    try {
-      const formPayload = new FormData();
-      if (formData.image instanceof File || formData.image instanceof Blob) {
-          formPayload.append('imageFront', formData.image);
-      }
-      if (formData.imageBack instanceof File || formData.imageBack instanceof Blob) {
-          formPayload.append('imageBack', formData.imageBack);
-      }
-
-      const analyzeRes = await api.post('/products/analyze_image/', formPayload);
-      let newFormData = { ...formData };
-
-      if (analyzeRes.data.success) {
-        const extracted = analyzeRes.data.extracted_data || {};
-        newFormData = {
-          ...newFormData,
-          name: extracted.name || newFormData.name,
-          brand: extracted.brand || newFormData.brand,
-          category: extracted.category || newFormData.category,
-          unit: extracted.unit || newFormData.unit,
-          regular_price: extracted.regular_price || extracted.price || newFormData.regular_price,
-          stock_quantity: extracted.stock || newFormData.stock_quantity,
-          sku: extracted.sku || newFormData.sku,
-          expiry_date: extracted.expiry_date || newFormData.expiry_date,
-        };
-        setFormData(newFormData);
-        toast.success('✨ Product details extracted accurately!', { id: toastId });
-      } else {
-        toast.error('AI extraction failed.', { id: toastId });
-      }
-    } catch (err) {
-      toast.error('AI processing failed: ' + (err.response?.data?.detail || err.message), { id: toastId }); console.error('Analyze Error:', err);
-    }
-  };
-
-  const handleGenerateDescription = async () => {
-    if (!formData.name && !formData.category) {
-        toast.error('Please fill in Name and Category first.');
-        return;
-    }
-    const toastId = toast.loading('✨ Generating description...');
-    try {
-        const descRes = await api.post('/products/generate_description/', formData);
-        if (descRes.data.success) {
-            setFormData(prev => ({ ...prev, description: descRes.data.description }));
-            toast.success('Description generated!', { id: toastId });
-        } else {
-            toast.error('Failed to generate description.', { id: toastId });
-        }
-    } catch (err) {
-        toast.error('Description generation failed: ' + (err.response?.data?.detail || err.message), { id: toastId }); console.error('Desc Error:', err);
-    }
-  };
-
- const closeForm = () => { setIsFormOpen(false); setEditingId(null);  };
 
  const handleSubmit = async (e) => {
  e.preventDefault();

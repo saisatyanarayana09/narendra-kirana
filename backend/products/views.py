@@ -1,3 +1,4 @@
+from rest_framework.permissions import AllowAny
 from rest_framework import viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -20,7 +21,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(is_active=True)
         return queryset
 
-    @action(detail=False, methods=['post'], permission_classes=[IsOwnerOrReadOnly])
+    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
     def reorder(self, request):
         updates = request.data
         if not isinstance(updates, list):
@@ -168,7 +169,7 @@ class ProductViewSet(viewsets.ModelViewSet):
                 
         return Response({'source': 'not_found'})
 
-    @action(detail=False, methods=['post'], permission_classes=[IsOwnerOrReadOnly])
+    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
     def vision_lookup(self, request):
         import os
         import json
@@ -222,7 +223,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             print('Gemini API Error:', str(e))
             return Response({'success': False, 'error': str(e)})
 
-    @action(detail=False, methods=['post'], permission_classes=[IsOwnerOrReadOnly])
+    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
     def reorder(self, request):
         updates = request.data
         if not isinstance(updates, list):
@@ -242,47 +243,6 @@ class ProductViewSet(viewsets.ModelViewSet):
         if products:
             Product.objects.bulk_update(products, ['display_order'])
         return Response({'status': 'reordered'})
-
-    @action(detail=False, methods=["post"], permission_classes=[IsOwnerOrReadOnly])
-    def analyze_image(self, request):
-        from services.ai_product_service import AIProductService
-        
-        images_data = []
-        for key in ['imageFront', 'imageBack', 'image']:
-            image_file = request.FILES.get(key)
-            if image_file:
-                if image_file.size > 10 * 1024 * 1024:
-                    continue
-                allowed_types = ["image/jpeg", "image/png", "image/webp"]
-                if image_file.content_type in allowed_types:
-                    images_data.append({
-                        'bytes': image_file.read(),
-                        'mime': image_file.content_type
-                    })
-                    
-        if not images_data:
-            return Response({"success": False, "error": "No valid image provided"})
-            
-        try:
-            data = AIProductService.analyze_product_image(images_data)
-            # The frontend expects extracted_data in data.extracted_data
-            return Response({"success": True, "extracted_data": data})
-        except Exception as e:
-            return Response({"success": False, "error": str(e)})
-
-    @action(detail=False, methods=["post"], permission_classes=[IsOwnerOrReadOnly])
-    def generate_description(self, request):
-        from services.ai_product_service import AIProductService
-        
-        try:
-            description = AIProductService.generate_description(request.data)
-            return Response({"success": True, "description": description})
-        except Exception as e:
-            return Response({"success": False, "error": str(e)})
-
-class FavoriteViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
-    serializer_class = FavoriteSerializer
 
     def get_queryset(self):
         return Favorite.objects.select_related('product', 'product__category').filter(user=self.request.user)
