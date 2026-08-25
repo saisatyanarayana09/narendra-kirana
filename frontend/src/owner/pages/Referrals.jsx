@@ -363,7 +363,8 @@ export default function Referrals() {
           </div>
           <div className="md:col-span-2">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
+              <div className="overflow-x-auto">
+<table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Referrals Needed</th>
@@ -385,6 +386,7 @@ export default function Referrals() {
                   ))}
                 </tbody>
               </table>
+</div>
             </div>
           </div>
         </div>
@@ -435,7 +437,8 @@ export default function Referrals() {
             <div className="p-4 border-b border-gray-100 bg-gray-50/50">
               <h3 className="font-semibold text-gray-900">Referral Ledger</h3>
             </div>
-            <table className="min-w-full divide-y divide-gray-200">
+            <div className="overflow-x-auto">
+<table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date Initiated</th>
@@ -474,6 +477,7 @@ export default function Referrals() {
                 ))}
               </tbody>
             </table>
+</div>
           </div>
         </div>
       )}
