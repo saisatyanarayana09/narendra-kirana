@@ -193,7 +193,7 @@ const Products = () => {
         toast.error('AI extraction failed.', { id: toastId });
       }
     } catch (err) {
-      toast.error(AI processing failed: , { id: toastId }); console.error('Analyze Error:', err);
+      toast.error('AI processing failed: ' + (err.response?.data?.detail || err.message), { id: toastId }); console.error('Analyze Error:', err);
     }
   };
 
@@ -212,7 +212,7 @@ const Products = () => {
             toast.error('Failed to generate description.', { id: toastId });
         }
     } catch (err) {
-        toast.error(Description generation failed: , { id: toastId }); console.error('Desc Error:', err);
+        toast.error('Description generation failed: ' + (err.response?.data?.detail || err.message), { id: toastId }); console.error('Desc Error:', err);
     }
   };
 
