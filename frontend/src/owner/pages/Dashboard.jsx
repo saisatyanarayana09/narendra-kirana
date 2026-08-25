@@ -141,26 +141,12 @@ const Dashboard = () => {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       
-      {/* Top Header & Store Status */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-        <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Store Overview</h1>
-          <p className="text-slate-500 mt-1">Here is what's happening with your store today.</p>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          <div className="flex flex-col items-end">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Store Status</span>
-            <button 
-              onClick={toggleStoreStatus}
-              disabled={toggling || !storeSettings}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all ${storeSettings?.is_open ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-red-100 text-red-700 hover:bg-red-200'} ${toggling ? 'opacity-50' : ''}`}
-            >
-              <Power size={18} />
-              {storeSettings?.is_open ? 'ONLINE' : 'OFFLINE'}
-            </button>
-          </div>
-        </div>
+      {/* Welcome Header */}
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{greeting}, {ownerName}! {emoji}</h1>
+        <p className="text-slate-500 mt-1">
+          You have <span className="font-bold text-indigo-600">{pendingCount}</span> active {pendingCount === 1 ? 'order' : 'orders'} in the queue today.
+        </p>
       </div>
 
       {/* Action Center */}
