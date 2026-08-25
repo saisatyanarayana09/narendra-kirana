@@ -158,6 +158,37 @@ const Products = () => {
 
  const closeForm = () => { setIsFormOpen(false); setEditingId(null); };
 
+ 
+   const handleGalleryUpload = (e) => {
+     const files = Array.from(e.target.files);
+     setFormData(prev => ({
+       ...prev,
+       gallery_images: [...prev.gallery_images, ...files]
+     }));
+   };
+ 
+   const handleRemoveGalleryImage = async (index, imageObj) => {
+     if (imageObj.id) {
+       if (!window.confirm('Delete this image permanently?')) return;
+       try {
+         const res = await api.delete(`/products/${editingId}/delete_gallery_image/`, {
+           data: { image_id: imageObj.id }
+         });
+         if (res.data.success) {
+           toast.success('Image deleted');
+         }
+       } catch (err) {
+         toast.error('Failed to delete image');
+         return;
+       }
+     }
+     
+     setFormData(prev => ({
+       ...prev,
+       gallery_images: prev.gallery_images.filter((_, i) => i !== index)
+     }));
+   };
+ 
  const handleSubmit = async (e) => {
  e.preventDefault();
  const data = new FormData();
@@ -171,6 +202,14 @@ const Products = () => {
  }
  });
  try {
+ 
+     if (formData.gallery_images) {
+       formData.gallery_images.forEach(file => {
+         if (file instanceof File || file instanceof Blob) {
+           data.append('gallery_images', file, file.name);
+         }
+       });
+     }
  const savePromise = editingId
  ? api.patch(`/products/${editingId}/`, data)
  : api.post('/products/', data);
