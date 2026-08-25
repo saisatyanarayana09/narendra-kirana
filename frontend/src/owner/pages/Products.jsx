@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from 'html5-qrcode';
-import { Plus, Edit2, Trash2, X, Image as ImageIcon, Package, GripVertical, Camera, Sparkles, Wand2, FileText } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Image as ImageIcon, Package, GripVertical, Camera, Sparkles, Wand2, FileText, ScanLine } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
