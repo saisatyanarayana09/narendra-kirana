@@ -318,28 +318,7 @@ const Products = () => {
  onCropComplete={(file) => setFormData({...formData, image: file})}
  />
  </div>
-   {/* Smart AI Creation Panel */}
-   <div className="md:col-span-2 bg-gradient-to-br from-indigo-50 to-purple-50 p-4 sm:p-5 rounded-2xl border border-indigo-100 mt-2">
-     <div className="flex items-center gap-2 mb-3">
-        <Sparkles className="text-indigo-600" size={20} />
-        <h3 className="font-extrabold text-indigo-900 text-sm sm:text-base">AI Product Assistant</h3>
-     </div>
-     <p className="text-xs sm:text-sm text-indigo-700/80 font-medium mb-4">
-        Upload a product photo above, then use AI to instantly fill out the details, write a description, and enhance the image quality.
-     </p>
-       <div className="flex flex-wrap gap-2.5">
-         <button type="button" onClick={handleAnalyzeProduct} className="flex items-center gap-1.5 px-3.5 py-2 bg-white text-indigo-700 border border-indigo-200 rounded-xl text-xs sm:text-sm font-bold hover:bg-indigo-50 transition-colors shadow-sm">
-            <ScanLine size={16} /> Auto-Fill Details by Image
-         </button>
-         <button type="button" onClick={handleGenerateDescription} className="flex items-center gap-1.5 px-3.5 py-2 bg-white text-indigo-700 border border-indigo-200 rounded-xl text-xs sm:text-sm font-bold hover:bg-indigo-50 transition-colors shadow-sm">
-            <FileText size={16} /> Create Product Description
-         </button>
-       </div>
-
-     
-
-   </div>
-   <div className="flex items-center space-x-6 pt-4 md:col-span-2">
+<div className="flex items-center space-x-6 pt-4 md:col-span-2">
  <div className="flex items-center">
  <input type="checkbox" id="isActiveProd" checked={formData.is_active} onChange={e => setFormData({...formData, is_active: e.target.checked})} className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500"/>
  <label htmlFor="isActiveProd" className="ml-2 text-sm text-gray-900">Active (Visible)</label>
