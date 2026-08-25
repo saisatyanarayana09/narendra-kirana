@@ -213,10 +213,6 @@ const Products = () => {
    <div className="flex justify-between items-center">
    <h1 className="text-2xl font-bold text-gray-900">Products</h1>
    <div className="flex gap-2">
-     <input type="file" accept="image/*" capture="environment" id="ai-photo-upload" className="hidden" onChange={handleAIPhotoUpload} />
-     <button onClick={() => document.getElementById('ai-photo-upload').click()} className="flex items-center px-4 py-2 bg-purple-100 text-purple-700 font-bold rounded-xl hover:bg-purple-200 transition shadow-sm">
-       <Camera className="w-5 h-5 sm:mr-2"/><span className="hidden sm:inline">AI Scan</span>
-     </button>
      <button onClick={() => setIsScanning(true)} className="flex items-center px-4 py-2 bg-emerald-100 text-emerald-700 font-bold rounded-xl hover:bg-emerald-200 transition shadow-sm">
        <ScanLine className="w-5 h-5 sm:mr-2"/><span className="hidden sm:inline">Scan Barcode</span>
      </button>

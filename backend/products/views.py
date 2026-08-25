@@ -169,60 +169,6 @@ class ProductViewSet(viewsets.ModelViewSet):
         return Response({'source': 'not_found'})
 
     @action(detail=False, methods=['post'], permission_classes=[IsOwnerOrReadOnly])
-    def vision_lookup(self, request):
-        import os
-        import json
-        
-        image_file = request.FILES.get('image')
-        if not image_file:
-            return Response({'success': False, 'error': 'No image provided'})
-            
-        # Security: Validate file size (max 5MB) to prevent Memory Exhaustion DoS
-        if image_file.size > 5 * 1024 * 1024:
-            return Response({'success': False, 'error': 'File too large. Maximum size is 5MB.'})
-            
-        # Security: Validate MIME type to prevent malicious uploads
-        allowed_types = ['image/jpeg', 'image/png', 'image/webp']
-        if image_file.content_type not in allowed_types:
-            return Response({'success': False, 'error': 'Invalid file type. Only JPEG, PNG, and WebP are allowed.'})
-            
-        gemini_key = os.environ.get('GEMINI_API_KEY')
-        if not gemini_key:
-            return Response({'success': False, 'error': 'AI is not configured. Missing API Key.'})
-            
-        try:
-            from services.ai_product_service import AIProductService
-            
-            prompt = """
-            Analyze this product image and extract the following details in raw JSON format (no markdown tags, no code blocks):
-            {
-              "name": "Product Name (e.g. Tide Plus Jasmine & Rose)",
-              "brand": "Brand Name (e.g. Tide)",
-              "unit": "Size/Weight (e.g. 1kg, 500ml)",
-              "description": "A very brief 1-sentence description."
-            }
-            If you cannot identify the product, return {"error": "Could not identify product"}
-            """
-            
-            response = AIProductService._generate_with_fallback(prompt, image_file.read(), image_file.content_type or 'image/jpeg')
-            
-            # Clean up the response text in case it includes markdown json blocks
-            import re
-            match = re.search(r'\{.*\}', response.text, re.DOTALL)
-            if not match:
-                return Response({'success': False, 'error': 'Could not parse JSON'})
-            data = json.loads(match.group(0))
-            
-            if 'error' in data:
-                return Response({'success': False, 'error': data['error']})
-                
-            return Response({'success': True, 'product': data})
-            
-        except Exception as e:
-            print('Gemini API Error:', str(e))
-            return Response({'success': False, 'error': str(e)})
-
-    @action(detail=False, methods=['post'], permission_classes=[IsOwnerOrReadOnly])
     def reorder(self, request):
         updates = request.data
         if not isinstance(updates, list):
