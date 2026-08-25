@@ -18,7 +18,7 @@ const OwnerLogin = () => {
  localStorage.setItem('smart-kirana-owner-token', data.access);
  localStorage.setItem('smart-kirana-owner-refresh', data.refresh);
  localStorage.setItem('smart-kirana-owner-user', JSON.stringify(data.user));
- navigate('/owner');
+ navigate('/owner/welcome');
  } catch (requestError) {
  setError(requestError.response?.data?.detail || requestError.message || 'Unable to sign in.');
  } finally {

@@ -28,7 +28,8 @@ const ReferAndEarn = React.lazy(() => import('./profile').then(m => ({ default: 
 
 const OwnerLayout = React.lazy(() => import('./owner/layouts/OwnerLayout'));
 const OwnerLogin = React.lazy(() => import('./owner/pages/Login'));
-const Dashboard = React.lazy(() => import('./owner/pages/Dashboard'));
+const Welcome = React.lazy(() => import('./owner/pages/Welcome'));
+  const Dashboard = React.lazy(() => import('./owner/pages/Dashboard'));
 const Sales = React.lazy(() => import('./owner/pages/Sales'));
 const Categories = React.lazy(() => import('./owner/pages/Categories'));
 const Products = React.lazy(() => import('./owner/pages/Products'));
@@ -133,6 +134,7 @@ function App() {
  
  <Route path="/owner"element={<Guard><OwnerLayout /></Guard>}>
  <Route index element={<Dashboard />} />
+            <Route path="welcome" element={<Welcome />} />
           <Route path="sales" element={<Sales />} />
  <Route path="categories"element={<Categories />} />
  <Route path="products"element={<Products />} />
