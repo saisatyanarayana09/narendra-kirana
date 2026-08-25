@@ -9,8 +9,8 @@ from rest_framework import views, response, status, viewsets
 from rest_framework.permissions import AllowAny
 from rest_framework.decorators import action
 from accounts.permissions import IsOwnerUser, IsOwnerOrReadOnly
-from .models import StoreSettings, Feedback, HomepageSection, FlashAnnouncement
-from .serializers import StoreSettingsSerializer, FeedbackSerializer, HomepageSectionSerializer, FlashAnnouncementSerializer
+from .models import StoreSettings, Feedback, HomepageSection
+from .serializers import StoreSettingsSerializer, FeedbackSerializer, HomepageSectionSerializer
 
 
 class BackendMonitorPageView(TemplateView):
@@ -116,30 +116,3 @@ class FeedbackViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         customer = self.request.user if self.request.user.is_authenticated and not getattr(self.request.user, 'is_owner', False) else None
         serializer.save(customer=customer)
-
-
-class FlashAnnouncementViewSet(viewsets.ModelViewSet):
-    queryset = FlashAnnouncement.objects.all()
-    serializer_class = FlashAnnouncementSerializer
-    permission_classes = [IsOwnerOrReadOnly]
-    pagination_class = None
-
-    def get_queryset(self):
-        qs = super().get_queryset()
-        if self.request.user.is_staff or getattr(self.request.user, 'is_owner', False):
-            return qs
-        return qs.filter(is_active=True)
-
-    @action(detail=False, methods=['post'], permission_classes=[IsOwnerUser])
-    def reorder(self, request):
-        updates = request.data
-        anns = []
-        for update in updates:
-            try:
-                a = FlashAnnouncement(id=int(update['id']), display_order=int(update['display_order']))
-                anns.append(a)
-            except (KeyError, ValueError, TypeError):
-                continue
-        if anns:
-            FlashAnnouncement.objects.bulk_update(anns, ['display_order'])
-        return Response({'status': 'reordered'})

@@ -48,10 +48,6 @@ class StoreSettings(models.Model):
     announcement_bg_color = models.CharField(max_length=20, default="#ef4444")
     announcement_text_color = models.CharField(max_length=20, default="#ffffff")
     
-    # Flash Announcement Theme
-    announcement_bg_color = models.CharField(max_length=20, default="#ef4444")
-    announcement_text_color = models.CharField(max_length=20, default="#ffffff")
-
     def save(self, *args, **kwargs):
         self.pk = 1
         super().save(*args, **kwargs)
@@ -70,17 +66,6 @@ class StoreSettings(models.Model):
     def __str__(self):
         return f"{self.store_name} Settings"
 
-class FlashAnnouncement(models.Model):
-    text = models.CharField(max_length=255)
-    is_active = models.BooleanField(default=True)
-    display_order = models.IntegerField(default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['display_order', '-created_at']
-
-    def __str__(self):
-        return self.text
 
 class HomepageSection(models.Model):
     title = models.CharField(max_length=100, default='New Section')
@@ -120,16 +105,3 @@ class Feedback(models.Model):
 
     def __str__(self):
         return f"{self.rating} Star - {self.customer if self.customer else 'Anonymous'}"
-
-class FlashAnnouncement(models.Model):
-    text = models.CharField(max_length=500, help_text="The text to display in the marquee")
-    link = models.CharField(max_length=255, blank=True, null=True, help_text="Optional URL to navigate to when clicked")
-    is_active = models.BooleanField(default=True)
-    display_order = models.IntegerField(default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['display_order', '-created_at']
-
-    def __str__(self):
-        return self.text

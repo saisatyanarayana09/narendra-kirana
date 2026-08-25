@@ -1,21 +1,13 @@
 ﻿from rest_framework import serializers
-from .models import StoreSettings, HomepageSection, HomepageSectionProduct, Feedback, FlashAnnouncement
+from .models import StoreSettings, HomepageSection, HomepageSectionProduct, Feedback
 from products.serializers import ProductSerializer
 
-class FlashAnnouncementSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = FlashAnnouncement
-        fields = '__all__'
 
 class StoreSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = StoreSettings
         fields = '__all__'
 
-class FlashAnnouncementSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = FlashAnnouncement
-        fields = '__all__'
 
 class HomepageSectionProductSerializer(serializers.ModelSerializer):
     product_details = ProductSerializer(source='product', read_only=True)
