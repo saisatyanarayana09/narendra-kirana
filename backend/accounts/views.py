@@ -96,3 +96,63 @@ class VerifyEmailView(APIView):
             return Response({'message': 'Account activated successfully.'}, status=status.HTTP_200_OK)
         else:
             return Response({'error': 'Activation link is invalid or expired.'}, status=status.HTTP_400_BAD_REQUEST)
+
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
+from django.conf import settings
+
+class PasswordResetRequestView(APIView):
+    permission_classes = [AllowAny]
+    throttle_classes = [AnonRateThrottle]
+
+    def post(self, request):
+        email = request.data.get('email')
+        if not email:
+            return Response({'error': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        user = User.objects.filter(email=email).first()
+        if user:
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+            
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')
+            reset_link = f"{frontend_url}/reset-password?uid={uid}&token={token}"
+            
+            try:
+                send_mail(
+                    'Password Reset Request - Narendra Kirana',
+                    f'You are receiving this email because you requested a password reset.\n\nPlease click the link below to set a new password:\n{reset_link}\n\nIf you did not request this, please ignore this email.',
+                    getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@narendra-kirana.com'),
+                    [user.email],
+                    fail_silently=True,
+                )
+            except Exception as e:
+                print("Email sending failed:", str(e))
+                
+        # Always return success to prevent email enumeration
+        return Response({'message': 'If an account with that email exists, we have sent a password reset link.'}, status=status.HTTP_200_OK)
+
+class PasswordResetConfirmView(APIView):
+    permission_classes = [AllowAny]
+    throttle_classes = [AnonRateThrottle]
+
+    def post(self, request):
+        uidb64 = request.data.get('uid')
+        token = request.data.get('token')
+        new_password = request.data.get('new_password')
+        
+        if not uidb64 or not token or not new_password:
+            return Response({'error': 'Missing required fields.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            user = None
+
+        if user is not None and default_token_generator.check_token(user, token):
+            user.set_password(new_password)
+            user.save()
+            return Response({'message': 'Password has been reset successfully.'}, status=status.HTTP_200_OK)
+        else:
+            return Response({'error': 'The reset link is invalid, possibly because it has already been used.'}, status=status.HTTP_400_BAD_REQUEST)
