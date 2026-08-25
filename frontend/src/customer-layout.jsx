@@ -231,12 +231,8 @@ export function CustomerLayout({ children }) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [annRes, setRes] = await Promise.all([
-          api.get('/store/announcements/'),
-          api.get('/store/settings/')
-        ]);
-        setAnnouncements(annRes.data.filter(a => a.is_active).sort((a, b) => a.display_order - b.display_order));
-        setSettings(setRes.data);
+        const res = await api.get('/store/settings/');
+        setSettings(res.data);
       } catch (err) {
         console.error('Failed to load flash announcements', err);
       }
@@ -249,34 +245,6 @@ export function CustomerLayout({ children }) {
 
  <div className="min-h-screen bg-slate-50 pb-20 sm:pb-0 text-slate-900 transition-colors duration-200">
  <WelcomeScreen />
- {announcements.length > 0 && (
-    <div 
-      className="w-full flex items-center overflow-hidden z-[60] relative py-1.5"
-      style={{ backgroundColor: settings?.announcement_bg_color || '#ef4444', color: settings?.announcement_text_color || '#ffffff' }}
-    >
-      <div className="flex whitespace-nowrap animate-marquee group cursor-default text-xs font-bold tracking-wide uppercase">
-        {announcements.map((ann, idx) => (
-          <span key={idx} className="mx-6 flex items-center gap-3">
-            {ann.text} {idx !== announcements.length - 1 && <span className="text-white/60">★</span>}
-          </span>
-        ))}
-        {/* Duplicate for infinite seamless scroll */}
-        {announcements.map((ann, idx) => (
-          <span key={`dup-${idx}`} className="mx-6 flex items-center gap-3">
-            <span className="text-white/60 mr-3">★</span>
-            {ann.text} {idx !== announcements.length - 1 && <span className="text-white/60">★</span>}
-          </span>
-        ))}
-        {/* Triple for very wide screens */}
-        {announcements.map((ann, idx) => (
-          <span key={`trip-${idx}`} className="mx-6 flex items-center gap-3">
-            <span className="text-white/60 mr-3">★</span>
-            {ann.text} {idx !== announcements.length - 1 && <span className="text-white/60">★</span>}
-          </span>
-        ))}
-      </div>
-    </div>
- )}
  <header className="sticky top-0 z-30 border-b border-slate-200/60 bg-white/80 backdrop-blur-xl shadow-sm transition-colors duration-200">
  <div className="mx-auto flex w-full max-w-screen-2xl items-center justify-between px-4 py-3 sm:px-6 lg:px-12">
  <Link to="/"className="text-2xl sm:text-3xl font-black tracking-tighter whitespace-nowrap shrink-0 drop-shadow-sm hover:opacity-80 transition-opacity">

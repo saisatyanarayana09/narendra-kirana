@@ -24,7 +24,7 @@ export default function Showcase() {
       const [secRes, prodRes, annRes, setRes] = await Promise.all([
         api.get('/store/homepage-sections/'),
         api.get('/products/'),
-        api.get('/store/announcements/'),
+        api.get('/offers/banners/'),
         api.get('/store/settings/')
       ]);
       setSections(secRes.data.sort((a, b) => a.display_order - b.display_order));
@@ -44,22 +44,33 @@ export default function Showcase() {
   }, []);
 
 
-  const handleAddAnnouncement = async () => {
-    const text = window.prompt("Enter flash announcement text:");
-    if (!text) return;
+  const handleAddBanner = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const formData = new FormData();
+    formData.append('image', file);
+    formData.append('title', file.name || 'Banner');
+    formData.append('display_order', announcements.length);
+    formData.append('is_active', true);
+    
+    const loadingToast = toast.loading('Uploading banner...');
     try {
-      const res = await api.post('/store/announcements/', { text, display_order: announcements.length, is_active: true });
+      const res = await api.post('/offers/banners/', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
       setAnnouncements([...announcements, res.data]);
-      toast.success('Announcement added!');
+      toast.success('Banner added!', { id: loadingToast });
     } catch {
-      toast.error('Failed to add announcement.');
+      toast.error('Failed to upload banner.', { id: loadingToast });
     }
+    e.target.value = ''; // reset
   };
 
   const handleDeleteAnnouncement = async (id) => {
     if (!window.confirm("Delete this announcement?")) return;
     try {
-      await api.delete(`/store/announcements/${id}/`);
+      await api.delete(`/offers/banners/${id}/`);
       setAnnouncements(announcements.filter(a => a.id !== id));
       toast.success('Announcement deleted!');
     } catch {
@@ -69,7 +80,7 @@ export default function Showcase() {
 
   const handleToggleAnnouncement = async (id, currentStatus) => {
     try {
-      const res = await api.patch(`/store/announcements/${id}/`, { is_active: !currentStatus });
+      const res = await api.patch(`/offers/banners/${id}/`, { is_active: !currentStatus });
       setAnnouncements(announcements.map(a => a.id === id ? res.data : a));
     } catch {
       toast.error('Failed to toggle announcement.');
@@ -100,7 +111,7 @@ export default function Showcase() {
       setAnnouncements(newlyOrdered);
       setSavingAnnouncements(true);
       try {
-        await api.post('/store/announcements/reorder/', newlyOrdered.map(a => ({ id: a.id, display_order: a.display_order })));
+        await api.post('/offers/banners/reorder/', newlyOrdered.map(a => ({ id: a.id, display_order: a.display_order })));
       } catch {
         toast.error('Failed to save announcement order.');
         loadData();
@@ -250,22 +261,12 @@ export default function Showcase() {
       </div>
 
 
-      {/* Flash Announcements */}
+            {/* Promotional Banners */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50">
           <div>
-            <h2 className="text-lg font-extrabold text-slate-900">Flash Announcements Ticker</h2>
-            <p className="text-sm text-slate-500">Manage the scrolling marquee at the very top of your store.</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
-              <label className="text-xs font-bold text-slate-600">Background</label>
-              <input type="color" value={settings?.announcement_bg_color || '#ef4444'} onBlur={(e) => handleUpdateSetting('announcement_bg_color', e.target.value)} onChange={(e) => setSettings({...settings, announcement_bg_color: e.target.value})} className="w-6 h-6 rounded cursor-pointer border-0 p-0" />
-            </div>
-            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
-              <label className="text-xs font-bold text-slate-600">Text</label>
-              <input type="color" value={settings?.announcement_text_color || '#ffffff'} onBlur={(e) => handleUpdateSetting('announcement_text_color', e.target.value)} onChange={(e) => setSettings({...settings, announcement_text_color: e.target.value})} className="w-6 h-6 rounded cursor-pointer border-0 p-0" />
-            </div>
+            <h2 className="text-lg font-extrabold text-slate-900">Promotional Banners (Carousel)</h2>
+            <p className="text-sm text-slate-500">Upload large promotional graphics for the top of the storefront homepage.</p>
           </div>
         </div>
         
@@ -275,7 +276,7 @@ export default function Showcase() {
               {(provided) => (
                 <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-3">
                   {announcements.length === 0 ? (
-                    <p className="text-sm text-slate-400 text-center py-4">No announcements running.</p>
+                    <p className="text-sm text-slate-400 text-center py-4">No promotional banners yet.</p>
                   ) : (
                     announcements.map((ann, index) => (
                       <Draggable key={ann.id.toString()} draggableId={`ann-${ann.id}`} index={index}>
@@ -288,8 +289,11 @@ export default function Showcase() {
                             <div {...provided.dragHandleProps} className="p-1 text-slate-400 hover:text-indigo-600 rounded">
                               <GripVertical size={18} />
                             </div>
-                            <div className="flex-1 font-medium text-sm text-slate-800">
-                              {ann.text}
+                            <div className="w-32 h-16 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0">
+                               {ann.image && <img src={ann.image} className="w-full h-full object-cover" alt="Banner" />}
+                            </div>
+                            <div className="flex-1 text-xs text-slate-500 truncate px-2">
+                               {ann.image ? ann.image.split('/').pop() : 'No image'}
                             </div>
                             <div className="flex items-center gap-2">
                               <button onClick={() => handleToggleAnnouncement(ann.id, ann.is_active)} className={`text-xs font-bold px-3 py-1 rounded-full ${ann.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
@@ -309,9 +313,10 @@ export default function Showcase() {
               )}
             </Droppable>
           </DragDropContext>
-          <button onClick={handleAddAnnouncement} className="mt-4 flex items-center justify-center w-full py-2.5 border-2 border-dashed border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 font-bold rounded-xl transition-colors text-sm">
-            <Plus size={16} className="mr-1" /> Add New Announcement
-          </button>
+          <label className="mt-4 flex items-center justify-center w-full py-4 border-2 border-dashed border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 font-bold rounded-xl transition-colors text-sm cursor-pointer">
+            <Plus size={16} className="mr-1" /> Upload New Banner
+            <input type="file" accept="image/*" className="hidden" onChange={handleAddBanner} />
+          </label>
         </div>
       </div>
 
