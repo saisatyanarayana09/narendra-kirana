@@ -33,7 +33,7 @@ export default function Showcase() {
       setSections(secRes.data.sort((a, b) => a.display_order - b.display_order));
       const pList = Array.isArray(prodRes.data) ? prodRes.data : (prodRes.data?.results ?? []);
       setAllProducts(pList);
-      setAnnouncements(annRes.data || []);
+      setAnnouncements(annRes.data.results || annRes.data || []);
       setBanners(banRes.data.results || banRes.data || []);
       setSettings(setRes.data);
     } catch {
