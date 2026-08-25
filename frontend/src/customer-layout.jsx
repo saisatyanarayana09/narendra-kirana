@@ -235,7 +235,8 @@ export function CustomerLayout({ children }) {
           api.get('/store/announcements/'),
           api.get('/store/settings/')
         ]);
-        setAnnouncements(annRes.data.filter(a => a.is_active).sort((a, b) => a.display_order - b.display_order));
+        const annData = annRes.data.results || annRes.data || [];
+        setAnnouncements(annData.filter(a => a.is_active).sort((a, b) => a.display_order - b.display_order));
         setSettings(setRes.data);
       } catch (err) {
         console.error('Failed to load flash announcements', err);
