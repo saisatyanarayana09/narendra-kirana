@@ -134,7 +134,7 @@ function App() {
  
  <Route path="/owner"element={<Guard><OwnerLayout /></Guard>}>
  <Route index element={<Dashboard />} />
-            <Route path="welcome" element={<Welcome />} />
+            
           <Route path="sales" element={<Sales />} />
  <Route path="categories"element={<Categories />} />
  <Route path="products"element={<Products />} />
