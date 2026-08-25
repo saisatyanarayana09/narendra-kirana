@@ -133,11 +133,15 @@ class AIProductService:
             - Size/Unit: {unit}
             
             Rules:
-            1. Keep it under 3-4 sentences.
-            2. Do not invent health claims, nutritional info, or ingredients not typical for this product.
+            1. Keep it under 3 sentences.
+            2. Do not invent health claims, nutritional info, or ingredients.
             3. Make it friendly for a local Indian Kirana/Supermarket audience.
-            4. ABSOLUTELY NO MARKDOWN. Do not use asterisks (**), bolding, bullet points, or hashes. 
-            5. Return pure plain text only. No quotes, no intro, no emojis.
+            4. ABSOLUTELY NO MARKDOWN. Do not use asterisks, bolding, bullet points, or hashes.
+            
+            CRITICAL INSTRUCTION: 
+            Output EXACTLY the final description and absolutely nothing else. 
+            Do NOT include your thinking process, do NOT verify the constraints in your output, and do NOT write an introduction. 
+            Start immediately with the first word of the product description.
             """
             
             try:
@@ -154,7 +158,10 @@ class AIProductService:
                 client = Groq(api_key=api_key)
                 completion = client.chat.completions.create(
                     model=text_model,
-                    messages=[{"role": "user", "content": prompt}]
+                    messages=[
+                        {"role": "system", "content": "You are an API that ONLY outputs the final product description. You MUST NOT output any internal thoughts, reasoning, formatting, quotes, or conversational text. Output ONLY the 3-sentence description."},
+                        {"role": "user", "content": prompt}
+                    ]
                 )
                 return completion.choices[0].message.content.strip()
             except Exception as groq_err:
