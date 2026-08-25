@@ -21,7 +21,27 @@ export function CustomerSignupPage() {
   });
   const [error, setError] = useState(''); 
   const [submitting, setSubmitting] = useState(false)
- async function submit(event) { event.preventDefault(); if (form.password !== form.confirm_password) { setError('Passwords do not match.'); return; } setSubmitting(true); setError(''); try { await api.post('/auth/signup/', { ...form, username: form.email }); navigate('/login') } catch (requestError) { const details = requestError.response?.data; setError(details ? Object.values(details).flat().join(' ') : 'Unable to create account.') } finally { setSubmitting(false) } }
+ 
+async function submit(event) {
+  event.preventDefault();
+  if (form.password !== form.confirm_password) {
+    setError('Passwords do not match.');
+    return;
+  }
+  setSubmitting(true);
+  setError('');
+  try {
+    await api.post('/auth/signup/', { ...form, username: form.email });
+    alert('Success! Please check your email to activate your account.');
+    navigate('/login');
+  } catch (requestError) {
+    const details = requestError.response?.data;
+    setError(details ? Object.values(details).flat().join(' ') : 'Unable to create account.');
+  } finally {
+    setSubmitting(false);
+  }
+}
+
  return <CustomerLayout><main className="mx-auto max-w-md px-4 py-10"><button onClick={() => navigate(-1)} className="mb-4 flex items-center gap-2 text-sm font-bold text-primary-700 hover:underline"><ArrowLeft size={16} /> Back</button><form onSubmit={submit} className="rounded-2xl bg-white p-6 shadow-sm"><h1 className="text-2xl font-extrabold">Create account</h1>{error && <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}<div className="mt-5 grid gap-4"><label className="text-sm font-bold">Name<input required value={form.first_name} onChange={(event) => setForm({ ...form, first_name: event.target.value })} className="mt-1 w-full rounded-lg border p-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"/></label><label className="text-sm font-bold">Email address<input required type="email"value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} className="mt-1 w-full rounded-lg border p-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"/></label><label className="text-sm font-bold">Mobile number<input required value={form.mobile_number} onChange={(event) => setForm({ ...form, mobile_number: event.target.value })} className="mt-1 w-full rounded-lg border p-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"/></label><label className="text-sm font-bold">Password<input required type="password"value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} className="mt-1 w-full rounded-lg border p-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"/></label><label className="text-sm font-bold">Confirm password<input required type="password"value={form.confirm_password} onChange={(event) => setForm({ ...form, confirm_password: event.target.value })} className="mt-1 w-full rounded-lg border p-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"/></label>
  <label className="text-sm font-bold">Referral Code (Optional)
 <input name="referral_code" value={form.referral_code} onChange={(event) => setForm({ ...form, referral_code: event.target.value })} placeholder="E.g. REF-A1B2C" className="mt-1 w-full rounded-lg border p-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-5"/>

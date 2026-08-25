@@ -132,13 +132,41 @@ class CustomerSignupSerializer(serializers.ModelSerializer):
         mobile_number = validated_data.pop('mobile_number')
         password = validated_data.pop('password')
         referral_code = validated_data.pop('referral_code', None)
-        
         validated_data['is_customer'] = True
         validated_data['is_owner'] = False
         
         user = User.objects.create(**validated_data)
+        user.is_active = False
         user.set_password(password)
         user.save()
+
+        # Send Activation Email
+        from django.utils.http import urlsafe_base64_encode
+        from django.utils.encoding import force_bytes
+        from django.core.mail import send_mail
+        from django.conf import settings
+        from .utils import email_verification_token
+        
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = email_verification_token.make_token(user)
+        
+        frontend_url = settings.FRONTEND_URL if hasattr(settings, 'FRONTEND_URL') else 'http://localhost:5173'
+        verify_link = f"{frontend_url}/verify-email?uid={uid}&token={token}"
+        
+        try:
+            send_mail(
+                'Activate Your Narendra Kirana Account',
+                f'Welcome to Narendra Kirana!
+
+Please click the link below to activate your account:
+{verify_link}',
+                getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@narendra-kirana.com'),
+                [user.email],
+                fail_silently=True,
+            )
+        except Exception as e:
+            print("Email sending failed:", str(e))
+
         
         # Profile & Wallet
         CustomerProfile.objects.create(user=user, mobile_number=mobile_number)
