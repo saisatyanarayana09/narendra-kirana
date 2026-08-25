@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.throttling import AnonRateThrottle
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import Category, Product, Favorite
+from .models import Category, Product, ProductImage, Favorite
 from .serializers import CategorySerializer, ProductSerializer, FavoriteSerializer
 from accounts.permissions import IsOwnerOrReadOnly, IsOwnerUser
 
@@ -19,6 +19,40 @@ class CategoryViewSet(viewsets.ModelViewSet):
         if not (self.request.user and self.request.user.is_authenticated and getattr(self.request.user, 'is_owner', False)):
             queryset = queryset.filter(is_active=True)
         return queryset
+
+
+    def _handle_gallery_images(self, product, request):
+        images = request.FILES.getlist('gallery_images')
+        for img in images:
+            ProductImage.objects.create(product=product, image=img)
+
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        product = Product.objects.get(id=response.data['id'])
+        self._handle_gallery_images(product, request)
+        # re-serialize to include the new images
+        response.data = self.get_serializer(product).data
+        return response
+
+    def update(self, request, *args, **kwargs):
+        response = super().update(request, *args, **kwargs)
+        product = self.get_object()
+        self._handle_gallery_images(product, request)
+        response.data = self.get_serializer(product).data
+        return response
+
+    @action(detail=True, methods=['delete'], permission_classes=[IsOwnerUser])
+    def delete_gallery_image(self, request, pk=None):
+        product = self.get_object()
+        image_id = request.data.get('image_id')
+        if not image_id:
+            return Response({'error': 'image_id is required'}, status=400)
+        try:
+            image = ProductImage.objects.get(id=image_id, product=product)
+            image.delete()
+            return Response({'success': True})
+        except ProductImage.DoesNotExist:
+            return Response({'error': 'Image not found'}, status=404)
 
     @action(detail=False, methods=['post'], permission_classes=[IsOwnerOrReadOnly])
     def reorder(self, request):
@@ -124,48 +158,6 @@ class ProductViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print('UPCitemdb API error:', str(e))
             
-        # 4. Check Gemini AI (Ultimate Fallback for Indian Products)
-        import os
-        gemini_key = os.environ.get('GEMINI_API_KEY')
-        if gemini_key:
-            try:
-                from services.ai_product_service import AIProductService
-                prompt = f"""
-                Identify the FMCG grocery product commonly sold in India with the barcode (EAN/UPC) {barcode}.
-                Return ONLY raw JSON (no markdown, no backticks) with the following structure:
-                {{
-                  "name": "Product Name (e.g. Tide Plus Jasmine & Rose)",
-                  "brand": "Brand Name (e.g. Tide)",
-                  "unit": "Size/Weight (e.g. 1kg, 500ml)"
-                }}
-                If you absolutely do not know, return {{"error": "not found"}}
-                """
-                response = AIProductService._generate_with_fallback(prompt)
-                
-                # Clean up response
-                result_text = response.text.strip()
-                if result_text.startswith('```json'):
-                    result_text = result_text[7:]
-                if result_text.endswith('```'):
-                    result_text = result_text[:-3]
-                    
-                import json
-                data_ai = json.loads(result_text.strip())
-                
-                if 'error' not in data_ai and data_ai.get('name'):
-                    return Response({
-                        'source': 'external',
-                        'product': {
-                            'name': data_ai.get('name', ''),
-                            'brand': data_ai.get('brand', ''),
-                            'unit': data_ai.get('unit', ''),
-                            'image_url': '',
-                            'sku': barcode
-                        }
-                    })
-            except Exception as e:
-                print('Gemini AI Barcode error:', str(e))
-                
         return Response({'source': 'not_found'})
 
     @action(detail=False, methods=['post'], permission_classes=[IsOwnerOrReadOnly])

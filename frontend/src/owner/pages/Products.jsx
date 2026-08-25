@@ -22,7 +22,7 @@ const Products = () => {
  name: '', category: '', brand: '', description: '', unit: '',
  regular_price: '', offer_price: '', is_active: true, is_in_stock: true,
  stock_quantity: 0, sku: '', cost_price: '', expiry_date: '', tags: '',
- max_order_quantity: 10, image: null, imageBack: null
+ max_order_quantity: 10, image: null, gallery_images: [], imageBack: null
  });
 
  const fetchData = async () => {
@@ -142,13 +142,13 @@ const Products = () => {
  offer_price: product.offer_price || '', is_active: product.is_active, is_in_stock: product.is_in_stock,
  stock_quantity: product.stock_quantity || 0, sku: product.sku || '', cost_price: product.cost_price || '',
  expiry_date: product.expiry_date || '', tags: product.tags || '',
- max_order_quantity: product.max_order_quantity || 10, image: product.image || null
+ max_order_quantity: product.max_order_quantity || 10, image: product.image || null, gallery_images: product.gallery_images || []
  });
  } else {
  setEditingId(null);
  setFormData({ name: '', category: '', brand: '', description: '', unit: '', regular_price: '',
  offer_price: '', is_active: true, is_in_stock: true, stock_quantity: 0, sku: '', cost_price: '',
- expiry_date: '', tags: '', max_order_quantity: 10, image: null, imageBack: null });
+ expiry_date: '', tags: '', max_order_quantity: 10, image: null, gallery_images: [], imageBack: null });
  }
  setIsFormOpen(true);
  };
@@ -315,7 +315,32 @@ const Products = () => {
  }
  onCropComplete={(file) => setFormData({...formData, image: file})}
  />
+
  </div>
+ 
+ <div className="md:col-span-2 mt-4">
+    <label className="block text-sm font-bold text-slate-700 mb-1.5">Gallery Images (Optional)</label>
+    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+        {formData.gallery_images.map((img, idx) => (
+            <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 group">
+                <img 
+                    src={img instanceof File || img instanceof Blob ? URL.createObjectURL(img) : (img.image || img)} 
+                    className="w-full h-full object-cover" 
+                    alt="Gallery item"
+                />
+                <button type="button" onClick={() => handleRemoveGalleryImage(idx, img)} className="absolute top-1 right-1 p-1 bg-red-500/80 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                    <X className="w-4 h-4"/>
+                </button>
+            </div>
+        ))}
+        <label className="aspect-square rounded-xl border-2 border-dashed border-slate-300 hover:border-indigo-500 bg-slate-50 hover:bg-indigo-50 transition-colors flex flex-col items-center justify-center cursor-pointer text-slate-400 hover:text-indigo-500">
+            <Plus className="w-6 h-6 mb-1"/>
+            <span className="text-xs font-medium">Add Photos</span>
+            <input type="file" multiple accept="image/*" onChange={handleGalleryUpload} className="hidden" />
+        </label>
+    </div>
+ </div>
+
 <div className="flex items-center space-x-6 pt-4 md:col-span-2">
  <div className="flex items-center">
  <input type="checkbox" id="isActiveProd" checked={formData.is_active} onChange={e => setFormData({...formData, is_active: e.target.checked})} className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500"/>

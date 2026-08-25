@@ -1,4 +1,4 @@
-from django.db import models
+﻿from django.db import models
 from django.utils.text import slugify
 from django.conf import settings
 
@@ -45,6 +45,18 @@ class Product(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.unit}"
+
+class ProductImage(models.Model):
+    product = models.ForeignKey(Product, related_name='gallery_images', on_delete=models.CASCADE)
+    image = models.ImageField(upload_to='products/gallery/')
+    display_order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['display_order', 'created_at']
+
+    def __str__(self):
+        return f"Gallery image for {self.product.name}"
 
 class Favorite(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='favorites')
