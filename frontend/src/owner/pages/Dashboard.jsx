@@ -146,33 +146,6 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Broadcast Banner Tool */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 md:p-6 flex flex-col sm:flex-row items-center gap-4">
-        <div className="flex items-center gap-3 text-amber-600 bg-amber-50 p-3 rounded-xl flex-shrink-0">
-          <Megaphone size={24} className="animate-pulse" />
-        </div>
-        <div className="flex-1 w-full">
-          <h2 className="text-base font-extrabold text-slate-900">Live Flash Announcement</h2>
-          <p className="text-xs text-slate-500 mb-2">Type a message to instantly broadcast it to all customers on the app.</p>
-          <div className="flex gap-2">
-            <input 
-              type="text" 
-              value={broadcastText}
-              onChange={(e) => setBroadcastText(e.target.value)}
-              placeholder="e.g. Fresh paneer just arrived! Order now."
-              className="flex-1 px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-medium"
-            />
-            <button 
-              onClick={handleBroadcast}
-              disabled={broadcasting}
-              className="px-6 py-2 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-colors shadow-sm disabled:opacity-50"
-            >
-              {broadcasting ? 'Saving...' : 'Broadcast'}
-            </button>
-          </div>
-        </div>
-      </div>
-
       {/* Action Center */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Link to="/owner/products" className="flex items-center justify-center gap-2 p-4 bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md hover:border-emerald-200 transition-all text-slate-700 font-bold group">
