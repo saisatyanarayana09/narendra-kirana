@@ -22,10 +22,9 @@ export default function Showcase() {
 
   const loadData = async () => {
     try {
-      const [secRes, prodRes, annRes, banRes, setRes] = await Promise.all([
+      const [secRes, prodRes, banRes, setRes] = await Promise.all([
         api.get('/store/homepage-sections/'),
         api.get('/products/'),
-        api.get('/store/announcements/'),
         api.get('/offers/banners/'),
         api.get('/store/settings/')
       ]);
@@ -109,24 +108,6 @@ export default function Showcase() {
 
     if (source.droppableId === destination.droppableId && source.index === destination.index) return;
 
-    if (type === 'announcement') {
-      const updated = Array.from(announcements);
-      const [moved] = updated.splice(source.index, 1);
-      updated.splice(destination.index, 0, moved);
-      const newlyOrdered = updated.map((ann, idx) => ({ ...ann, display_order: idx }));
-      setAnnouncements(newlyOrdered);
-      setSavingAnnouncements(true);
-      try {
-        await api.post('/store/announcements/reorder/', newlyOrdered.map(a => ({ id: a.id, display_order: a.display_order })));
-      } catch {
-        toast.error('Failed to save announcement order.');
-        loadData();
-      } finally {
-        setSavingAnnouncements(false);
-      }
-      return;
-    }
-    
     if (type === 'banner') {
       const updated = Array.from(banners);
       const [moved] = updated.splice(source.index, 1);
