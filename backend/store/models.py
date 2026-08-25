@@ -1,8 +1,6 @@
-from django.db import models
+﻿from django.db import models
 
 class StoreSettings(models.Model):
-    # Singleton pattern - only one record exists
-    
     # General Info
     store_name = models.CharField(max_length=100, default="Narendra Kirana")
     store_address = models.TextField(blank=True, default="123 Market Street, City Center")
@@ -46,7 +44,9 @@ class StoreSettings(models.Model):
         default="popular_picks,great_deals,new_arrivals"
     )
 
-
+    # Flash Announcement Theme
+    announcement_bg_color = models.CharField(max_length=20, default="#ef4444")
+    announcement_text_color = models.CharField(max_length=20, default="#ffffff")
     
     def save(self, *args, **kwargs):
         self.pk = 1
@@ -65,6 +65,18 @@ class StoreSettings(models.Model):
 
     def __str__(self):
         return f"{self.store_name} Settings"
+
+class FlashAnnouncement(models.Model):
+    text = models.CharField(max_length=255)
+    is_active = models.BooleanField(default=True)
+    display_order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['display_order', '-created_at']
+
+    def __str__(self):
+        return self.text
 
 class HomepageSection(models.Model):
     title = models.CharField(max_length=100, default='New Section')
@@ -93,7 +105,7 @@ class HomepageSectionProduct(models.Model):
         unique_together = [['section', 'product']]
 
     def __str__(self):
-        return f"{self.section.section_key} — {self.product.name} (pos {self.position})"
+        return f"{self.section.section_key} - {self.product.name} (pos {self.position})"
 
 
 class Feedback(models.Model):
@@ -104,4 +116,3 @@ class Feedback(models.Model):
 
     def __str__(self):
         return f"{self.rating} Star - {self.customer if self.customer else 'Anonymous'}"
-

@@ -8,9 +8,9 @@ from django.views.generic import TemplateView
 from rest_framework import views, response, status, viewsets
 from rest_framework.permissions import AllowAny
 from rest_framework.decorators import action
-from accounts.permissions import IsOwnerUser
-from .models import StoreSettings, Feedback, HomepageSection
-from .serializers import StoreSettingsSerializer, FeedbackSerializer, HomepageSectionSerializer
+from accounts.permissions import IsOwnerUser, IsOwnerOrReadOnly
+from .models import StoreSettings, Feedback, HomepageSection, FlashAnnouncement
+from .serializers import StoreSettingsSerializer, FeedbackSerializer, HomepageSectionSerializer, FlashAnnouncementSerializer
 
 
 class BackendMonitorPageView(TemplateView):
@@ -102,6 +102,40 @@ class HomepageSectionViewSet(viewsets.ModelViewSet):
                 continue
         return response.Response({'status': 'order updated'})
 
+
+
+class FlashAnnouncementViewSet(viewsets.ModelViewSet):
+    queryset = FlashAnnouncement.objects.all()
+    serializer_class = FlashAnnouncementSerializer
+    permission_classes = [IsOwnerOrReadOnly]
+    pagination_class = None
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if not (self.request.user and self.request.user.is_authenticated and getattr(self.request.user, 'is_owner', False)):
+            qs = qs.filter(is_active=True)
+        return qs
+
+    @action(detail=False, methods=['post'], permission_classes=[IsOwnerOrReadOnly])
+    def reorder(self, request):
+        updates = request.data
+        if not isinstance(updates, list):
+            return Response({'error': 'Expected a list of updates'}, status=400)
+            
+        announcements = []
+        for update in updates:
+            try:
+                ann = FlashAnnouncement(
+                    id=int(update['id']), 
+                    display_order=int(update.get('display_order', 0))
+                )
+                announcements.append(ann)
+            except (KeyError, ValueError, TypeError):
+                continue
+                
+        if announcements:
+            FlashAnnouncement.objects.bulk_update(announcements, ['display_order'])
+        return Response({'status': 'reordered'})
 
 class FeedbackViewSet(viewsets.ModelViewSet):
     queryset = Feedback.objects.all().order_by('-created_at')

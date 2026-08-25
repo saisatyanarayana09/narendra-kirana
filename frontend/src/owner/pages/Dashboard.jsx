@@ -19,9 +19,6 @@ const Dashboard = () => {
   const [storeSettings, setStoreSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
-  const [broadcast, setBroadcast] = useState(null);
-  const [broadcastText, setBroadcastText] = useState('');
-  const [broadcasting, setBroadcasting] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -42,11 +39,6 @@ const Dashboard = () => {
       setStoreSettings(settingsRes.data);
       setProducts(productsRes.data.results || productsRes.data);
       
-      const bcast = (sectionsRes.data || []).find(s => s.title.startsWith('BROADCAST::'));
-      if (bcast) {
-        setBroadcast(bcast);
-        setBroadcastText(bcast.title.replace('BROADCAST::', ''));
-      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -66,26 +58,6 @@ const Dashboard = () => {
       toast.error('Failed to update store status');
     } finally {
       setToggling(false);
-    }
-  };
-
-  const handleBroadcast = async () => {
-    setBroadcasting(true);
-    try {
-      const active = broadcastText.trim().length > 0;
-      const title = `BROADCAST::${broadcastText}`;
-      if (broadcast) {
-        const res = await api.patch(`/store/homepage-sections/${broadcast.id}/`, { title, is_active: active });
-        setBroadcast(res.data);
-      } else {
-        const res = await api.post('/store/homepage-sections/', { title, display_order: 0, is_active: active });
-        setBroadcast(res.data);
-      }
-      toast.success(active ? 'Broadcast is live!' : 'Broadcast cleared');
-    } catch (err) {
-      toast.error('Failed to update broadcast');
-    } finally {
-      setBroadcasting(false);
     }
   };
 
