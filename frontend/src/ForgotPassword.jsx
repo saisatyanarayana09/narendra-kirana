@@ -16,11 +16,14 @@ export function ForgotPassword() {
 
     try {
       const res = await api.post('/auth/password-reset/', { email });
+      const msg = typeof res.data === 'string' ? res.data : (res.data?.message || 'If an account exists, a reset link has been sent.');
       setStatus('success');
-      setMessage(res.data.message || 'If an account exists, a reset link has been sent.');
+      setMessage(String(msg));
     } catch (err) {
       setStatus('error');
-      setMessage(err.response?.data?.error || (err.response ? 'Server (' + err.response.status + ')' : 'Network Error to ' + api.defaults.baseURL) || 'Failed');
+      const errData = err.response?.data;
+      const errMsg = typeof errData === 'string' ? errData : (errData?.error || errData?.detail || errData?.message || '');
+      setMessage(String(errMsg || (err.response ? 'Server (' + err.response.status + ')' : 'Network Error') || 'Something went wrong.'));
     }
   }
 
