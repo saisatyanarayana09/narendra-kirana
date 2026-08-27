@@ -197,7 +197,7 @@ const Settings = () => {
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-1">Free Threshold (₹)</label>
                     <input type="number" step="0.01" name="free_delivery_threshold" value={settings.free_delivery_threshold} onChange={handleChange} required className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 bg-white"/>
-                    <p className="text-xs text-slate-500 mt-1">Waive fee if order > this amount.</p>
+                    <p className="text-xs text-slate-500 mt-1">Waive fee if order &gt; this amount.</p>
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-1">Minimum Order (₹)</label>
