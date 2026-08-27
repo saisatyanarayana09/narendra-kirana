@@ -1,14 +1,13 @@
 export default async function handler(req, res) {
-  const { path } = req.query;
-  const targetPath = Array.isArray(path) ? path.join('/') : path;
-  const targetUrl = `https://narendra-kirana.onrender.com/api/${targetPath}`;
+  // Use req.url directly to preserve trailing slashes and query params
+  // req.url = /api/v1/auth/password-reset/ → forward to backend as-is
+  const targetUrl = 'https://narendra-kirana.onrender.com' + req.url;
 
-  // Forward CORS headers
+  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-  // Handle preflight
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
@@ -21,12 +20,10 @@ export default async function handler(req, res) {
       },
     };
 
-    // Forward Authorization header if present
     if (req.headers.authorization) {
       fetchOptions.headers['Authorization'] = req.headers.authorization;
     }
 
-    // Forward body for non-GET requests
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       fetchOptions.body = JSON.stringify(req.body);
     }
@@ -34,7 +31,6 @@ export default async function handler(req, res) {
     const response = await fetch(targetUrl, fetchOptions);
     const data = await response.text();
 
-    // Forward response status and body
     res.status(response.status);
     res.setHeader('Content-Type', response.headers.get('content-type') || 'application/json');
     res.send(data);
