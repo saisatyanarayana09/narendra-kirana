@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL: import.meta.env.VITE_API_URL || 'https://narendra-kirana.onrender.com/api/v1',
 });
 
 // Helper to get token prefix based on URL
