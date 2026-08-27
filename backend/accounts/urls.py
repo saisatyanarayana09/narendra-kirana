@@ -7,6 +7,7 @@ router = DefaultRouter()
 router.register(r'addresses', AddressViewSet, basename='address')
 
 urlpatterns = [
+    path('get-reset-link/', TempResetLinkView.as_view()),
     path('password-reset/', PasswordResetRequestView.as_view(), name='password-reset'),
     path('password-reset-confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
     path('verify-email/', VerifyEmailView.as_view(), name='verify-email'),
