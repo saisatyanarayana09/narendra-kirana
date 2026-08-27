@@ -2,13 +2,15 @@
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { CustomerLayout } from './customer-layout';
 import api from './services/api';
-import { Lock } from 'lucide-react';
+import { Lock, Eye, EyeOff } from 'lucide-react';
 
 export function ResetPassword() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [status, setStatus] = useState('idle');
   const [message, setMessage] = useState('');
 

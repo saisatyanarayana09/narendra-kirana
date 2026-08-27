@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Eye, EyeOff } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { useCart } from '../../cart-context';
@@ -42,6 +42,8 @@ export default function AccountSettings() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showDeletePrompt, setShowDeletePrompt] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
   const deleteRequested = user?.customer_profile?.delete_requested || false;
 
   const requestDeletion = async () => {
@@ -104,7 +106,12 @@ export default function AccountSettings() {
           <h3 className="text-base font-bold text-slate-900 mb-5 pb-2 border-b border-slate-200">Security</h3>
           <div className="max-w-md">
             <label className="block text-sm font-bold text-slate-700 mb-2">New Password</label>
-            <input type="password" placeholder="Leave blank to keep current password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} className="w-full rounded-xl border border-slate-200 bg-white p-3.5 text-sm font-medium focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all shadow-sm"/>
+            <div className="relative w-full">
+<input type={showPassword ? "text" : "password"} placeholder="Leave blank to keep current password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} className="w-full rounded-xl border border-slate-200 bg-white p-3.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all shadow-sm"/>
+<button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600">
+{showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+</button>
+</div>
             <p className="text-xs text-slate-500 mt-2 font-medium">Use 8 or more characters with a mix of letters, numbers & symbols.</p>
           </div>
         </div>
@@ -133,13 +140,18 @@ export default function AccountSettings() {
           ) : showDeletePrompt ? (
             <div className="bg-white border border-red-200 p-4 rounded-xl flex flex-col gap-3 items-start w-full md:w-1/2">
               <label className="text-sm font-bold text-slate-700">Enter your password to confirm</label>
+              <div className="relative w-full">
               <input 
-                type="password" 
+                type={showDeletePassword ? "text" : "password"} 
                 value={deletePassword} 
                 onChange={e => setDeletePassword(e.target.value)} 
                 placeholder="Your password" 
-                className="w-full rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 p-2.5 pr-10 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
               />
+              <button type="button" onClick={() => setShowDeletePassword(!showDeletePassword)} className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
+                {showDeletePassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+              </div>
               <div className="flex gap-2 w-full mt-1">
                 <button 
                   type="button" 

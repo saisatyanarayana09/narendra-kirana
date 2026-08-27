@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../../services/api';
+import { Eye, EyeOff } from 'lucide-react';
 
 const OwnerLogin = () => {
  const navigate = useNavigate();
  const [form, setForm] = useState({ username: '', password: '' });
  const [error, setError] = useState('');
  const [submitting, setSubmitting] = useState(false);
+ const [showPassword, setShowPassword] = useState(false);
 
  const submit = async (event) => {
  event.preventDefault();
