@@ -142,10 +142,10 @@ class PasswordResetRequestView(APIView):
                 "sender": {"name": "Narendra Kirana", "email": sender_email},
                 "to": [{"email": user.email}],
                 "subject": 'Password Reset Request - Narendra Kirana',
-                "textContent": f'You are receiving this email because you requested a password reset.
+                "textContent": f"""You are receiving this email because you requested a password reset.
 
 Please click the link below to set a new password:
-{reset_link}'
+{reset_link}"""
             }).encode('utf-8')
             
             with urllib.request.urlopen(req, data=data, timeout=10) as response:
