@@ -20,7 +20,7 @@ export function ForgotPassword() {
       setMessage(res.data.message || 'If an account exists, a reset link has been sent.');
     } catch (err) {
       setStatus('error');
-      setMessage(err.response?.data?.error || 'Something went wrong. Please try again.');
+      setMessage(err.response?.data?.error || (err.response ? 'Server Error (' + err.response.status + ')' : err.message) || 'Something went wrong. Please try again.');
     }
   }
 

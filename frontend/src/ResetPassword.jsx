@@ -42,7 +42,7 @@ export function ResetPassword() {
       setTimeout(() => navigate('/login'), 3000);
     } catch (err) {
       setStatus('error');
-      setMessage(err.response?.data?.error || 'Failed to reset password. The link may have expired.');
+      setMessage(err.response?.data?.error || (err.response ? 'Server Error (' + err.response.status + ')' : err.message) || 'Failed to reset password.');
     }
   }
 
