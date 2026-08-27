@@ -6,7 +6,7 @@ from .models import User, CustomerProfile, Address
 class CustomerProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomerProfile
-        fields = ['mobile_number', 'pickup_preference', 'dob', 'profile_picture', 'referral_code']
+        fields = ['mobile_number', 'pickup_preference', 'dob', 'profile_picture', 'referral_code', 'delete_requested']
 
 class UserSerializer(serializers.ModelSerializer):
     customer_profile = CustomerProfileSerializer(read_only=True)

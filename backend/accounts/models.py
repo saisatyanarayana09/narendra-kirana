@@ -17,6 +17,7 @@ class CustomerProfile(models.Model):
     profile_picture = models.ImageField(upload_to='profiles/', null=True, blank=True)
     pickup_preference = models.CharField(max_length=50, blank=True, null=True, help_text="e.g., ASAP, 30 minutes, 1 hour")
     referral_code = models.CharField(max_length=20, unique=True, null=True, blank=True)
+    delete_requested = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         if not self.referral_code:
