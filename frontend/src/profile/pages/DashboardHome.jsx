@@ -19,7 +19,7 @@ export default function DashboardHome() {
     { name: 'Your Orders', desc: 'Track, return, or buy things again', icon: Package, path: '/profile/orders', color: 'text-blue-600', bg: 'bg-blue-50' },
     { name: 'Digital Wallet', desc: 'Check your balance and transactions', icon: Wallet, path: '/profile/wallet', color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { name: 'Refer & Earn', desc: 'Invite friends, earn real money!', icon: Gift, path: '/profile/refer-and-earn', color: 'text-teal-600', bg: 'bg-teal-50' },
-    { name: 'Account Settings', desc: 'Manage password & personal details', icon: User, path: '/profile', color: 'text-primary-600', bg: 'bg-primary-50' },
+    { name: 'Account Settings', desc: 'Manage password & personal details', icon: User, path: '/profile/account', color: 'text-primary-600', bg: 'bg-primary-50' },
     { name: 'Saved Addresses', desc: 'Edit addresses for quick checkout', icon: MapPin, path: '/profile/addresses', color: 'text-amber-600', bg: 'bg-amber-50' },
     { name: 'Favorites', desc: 'View your saved products', icon: Heart, path: '/profile/favorites', color: 'text-rose-600', bg: 'bg-rose-50' },
     { name: 'Notifications', desc: 'Offers and order updates', icon: Bell, path: '/profile/notifications', color: 'text-indigo-600', bg: 'bg-indigo-50' },
