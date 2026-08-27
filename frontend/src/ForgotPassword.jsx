@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CustomerLayout } from './customer-layout';
 import api from './services/api';
@@ -15,7 +15,7 @@ export function ForgotPassword() {
     setMessage('');
 
     try {
-      const res = await api.post('/auth/reset-password-request/', { email });
+      const res = await api.post('/auth/password-reset/', { email });
       setStatus('success');
       setMessage(res.data.message || 'If an account exists, a reset link has been sent.');
     } catch (err) {
