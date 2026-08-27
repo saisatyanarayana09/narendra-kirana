@@ -120,16 +120,21 @@ class PasswordResetRequestView(APIView):
             frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')
             reset_link = f"{frontend_url}/reset-password?uid={uid}&token={token}"
             
-            try:
-                send_mail(
-                    'Password Reset Request - Narendra Kirana',
-                    f'You are receiving this email because you requested a password reset.\n\nPlease click the link below to set a new password:\n{reset_link}\n\nIf you did not request this, please ignore this email.',
-                    getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@narendra-kirana.com'),
-                    [user.email],
-                    fail_silently=True,
-                )
-            except Exception as e:
-                print("Email sending failed:", str(e))
+            import threading
+            def send_reset_email():
+                try:
+                    send_mail(
+                        'Password Reset Request - Narendra Kirana',
+                        f'You are receiving this email because you requested a password reset.\n\nPlease click the link below to set a new password:\n{reset_link}\n\nIf you did not request this, please ignore this email.',
+                        getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@narendra-kirana.com'),
+                        [user.email],
+                        fail_silently=True,
+                    )
+                except Exception as e:
+                    print("Email sending failed:", str(e))
+            
+            # Run in a background thread to prevent Gunicorn timeout (Render blocks SMTP port 587)
+            threading.Thread(target=send_reset_email).start()
                 
         # Always return success to prevent email enumeration
         return Response({'message': 'If an account with that email exists, we have sent a password reset link.'}, status=status.HTTP_200_OK)
