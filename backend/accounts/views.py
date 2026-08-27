@@ -163,17 +163,3 @@ class PasswordResetConfirmView(APIView):
             return Response({'message': 'Password has been reset successfully.'}, status=status.HTTP_200_OK)
         else:
             return Response({'error': 'The reset link is invalid, possibly because it has already been used.'}, status=status.HTTP_400_BAD_REQUEST)
-
-class TempResetLinkView(APIView):
-    permission_classes = [AllowAny]
-    
-    def post(self, request):
-        email = request.data.get('email')
-        user = User.objects.filter(email=email).first()
-        if user:
-            uid = urlsafe_base64_encode(force_bytes(user.pk))
-            token = default_token_generator.make_token(user)
-            frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')
-            reset_link = f"{frontend_url}/reset-password?uid={uid}&token={token}"
-            return Response({'link': reset_link})
-        return Response({'error': 'User not found'})
