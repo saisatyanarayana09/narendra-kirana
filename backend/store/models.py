@@ -24,6 +24,8 @@ class StoreSettings(models.Model):
     delivery_mode = models.CharField(max_length=20, choices=[('PICKUP', 'Store Pickup Only'), ('DELIVERY', 'Delivery Only'), ('BOTH', 'Both')], default='PICKUP')
     delivery_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     free_delivery_threshold = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    min_delivery_order_amount = models.DecimalField(max_digits=10, decimal_places=2, default=150.00)
+    allowed_pincodes = models.TextField(blank=True, default="", help_text="Comma-separated list of allowed pincodes")
     
     # Automation
     auto_accept_orders = models.BooleanField(default=False, help_text="Automatically accept new orders")

@@ -32,6 +32,13 @@ class Order(models.Model):
     id = models.CharField(primary_key=True, max_length=20, default=order_id, editable=False)
     customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='orders')
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.NEW)
+    
+    # Delivery Info
+    order_type = models.CharField(max_length=15, choices=[('PICKUP', 'Store Pickup'), ('DELIVERY', 'Home Delivery')], default='PICKUP')
+    delivery_address = models.TextField(blank=True)
+    delivery_pincode = models.CharField(max_length=20, blank=True)
+    delivery_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     discount_applied = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     promo_discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)

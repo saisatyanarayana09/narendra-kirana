@@ -286,14 +286,29 @@ const OrderDetails = () => {
  <p className="font-bold text-slate-900">User ID: {order.customer}</p>
  </div>
  <div>
- <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Pickup Time</h3>
+ <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">{order.order_type === 'DELIVERY' ? 'Delivery Time' : 'Pickup Time'}</h3>
  <p className="font-bold text-slate-900">{order.pickup_time || 'As soon as possible'}</p>
  </div>
+ {order.order_type === 'DELIVERY' && (
+ <div className="col-span-1 md:col-span-2 mt-2 p-3 bg-indigo-50 border border-indigo-100 rounded-xl">
+ <h3 className="text-xs font-extrabold text-indigo-800 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+   <Package size={14} /> Delivery Address
+ </h3>
+ <p className="font-bold text-indigo-900 whitespace-pre-line text-sm">{order.delivery_address}</p>
+ {order.delivery_pincode && <p className="text-xs text-indigo-700 mt-1 font-semibold">Pincode: {order.delivery_pincode}</p>}
+ </div>
+ )}
  <div className="border-t border-slate-100 pt-5 mt-5">
  <div className="flex justify-between text-sm font-medium mb-3">
  <span className="text-slate-500">Subtotal</span>
  <span className="text-slate-900">₹{activeItems.reduce((acc, item) => acc + parseFloat(item.subtotal), 0).toFixed(2)}</span>
  </div>
+ {parseFloat(order.delivery_fee) > 0 && (
+ <div className="flex justify-between text-sm font-medium mb-3">
+ <span className="text-slate-500">Delivery Fee</span>
+ <span className="text-slate-900">₹{order.delivery_fee}</span>
+ </div>
+ )}
  {parseFloat(order.packaging_fee) > 0 && (
  <div className="flex justify-between text-sm font-medium mb-3">
  <span className="text-slate-500">Packaging Fee</span>

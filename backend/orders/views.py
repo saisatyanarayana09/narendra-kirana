@@ -113,7 +113,11 @@ class OrderViewSet(ModelViewSet):
             packaging_fee=packaging_fee,
             pickup_time=checkout.validated_data.get('pickup_time', ''),
             customer_note=checkout.validated_data.get('customer_note', ''),
-            status=initial_status
+            status=initial_status,
+            order_type=order_type,
+            delivery_address=delivery_address,
+            delivery_pincode=delivery_pincode,
+            delivery_fee=delivery_fee
         )
         
         # Record Promo Usage
