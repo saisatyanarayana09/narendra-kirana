@@ -3,6 +3,11 @@ import { BrowserRouter, Navigate, Route, Routes, Outlet } from 'react-router-dom
 import { CartProvider } from './cart-context';
 import { Toaster } from 'react-hot-toast';
 
+import { VerifyEmail } from './VerifyEmail';
+import { ForgotPassword } from './ForgotPassword';
+import { ResetPassword } from './ResetPassword';
+
+
 const HomePage = React.lazy(() => import('./customer').then(m => ({ default: m.HomePage })));
 const ProductDetailPage = React.lazy(() => import('./customer').then(m => ({ default: m.ProductDetailPage })));
 const ProductsPage = React.lazy(() => import('./customer').then(m => ({ default: m.ProductsPage })));
@@ -126,6 +131,10 @@ function App() {
     
     <Route path="/login" element={<CustomerLoginPage />} />
     <Route path="/signup" element={<CustomerSignupPage />} />
+    <Route path="/verify-email" element={<VerifyEmail />} />
+    <Route path="/forgot-password" element={<ForgotPassword />} />
+    <Route path="/reset-password" element={<ResetPassword />} />
+
     <Route path="/orders/:id/invoice" element={<Invoice />} />
  </Route>
 

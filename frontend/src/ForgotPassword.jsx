@@ -1,7 +1,7 @@
 ﻿import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CustomerLayout } from './customer-layout';
-import { api } from './vendor-http';
+import api from './services/api';
 import { ArrowLeft, Mail } from 'lucide-react';
 
 export function ForgotPassword() {

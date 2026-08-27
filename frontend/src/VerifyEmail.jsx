@@ -1,7 +1,7 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { CustomerLayout } from './customer-layout';
-import { api } from './vendor-http';
+import api from './services/api';
 import { CheckCircle, XCircle } from 'lucide-react';
 
 export function VerifyEmail() {
