@@ -211,3 +211,6 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
 
 # ─── Frontend URL ───
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
+
+# Password Reset Link Expiration (10 minutes = 600 seconds)
+PASSWORD_RESET_TIMEOUT = 600
