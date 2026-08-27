@@ -133,6 +133,7 @@ class PasswordResetRequestView(APIView):
                 if resend_api_key:
                     try:
                         req = urllib.request.Request('https://api.resend.com/emails', method='POST')
+                        req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)')
                         req.add_header('Authorization', f'Bearer {resend_api_key}')
                         req.add_header('Content-Type', 'application/json')
                         data = json.dumps({
