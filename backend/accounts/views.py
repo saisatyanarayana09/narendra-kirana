@@ -129,7 +129,7 @@ class PasswordResetRequestView(APIView):
                 resend_api_key = os.environ.get('RESEND_API_KEY')
                 subject = 'Password Reset Request - Narendra Kirana'
                 message = f'You are receiving this email because you requested a password reset.\n\nPlease click the link below to set a new password:\n{reset_link}\n\nIf you did not request this, please ignore this email.'
-                sender_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'saisatyanarayana2004@gmail.com')
+                sender_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or 'saisatyanarayana2004@gmail.com'
                 
                 # 1. Try Brevo HTTPS API (Sends to anyone for free)
                 if brevo_api_key:
