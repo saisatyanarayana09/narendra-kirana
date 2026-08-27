@@ -169,6 +169,13 @@ class RequestDeleteView(APIView):
     permission_classes = [IsAuthenticated]
     
     def post(self, request):
+        password = request.data.get('password')
+        if not password:
+            return Response({'error': 'Password is required to request deletion.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        if not request.user.check_password(password):
+            return Response({'error': 'Incorrect password.'}, status=status.HTTP_401_UNAUTHORIZED)
+            
         user = request.user
         if hasattr(user, 'customer_profile'):
             user.customer_profile.delete_requested = True

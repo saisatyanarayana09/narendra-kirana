@@ -40,21 +40,28 @@ export default function AccountSettings() {
 
   
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [showDeletePrompt, setShowDeletePrompt] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
   const deleteRequested = user?.customer_profile?.delete_requested || false;
 
   const requestDeletion = async () => {
-    if (!window.confirm('Are you sure you want to request account deletion? This action cannot be undone once approved by the owner.')) return;
+    if (!deletePassword) {
+      toast.error('Please enter your password to confirm.');
+      return;
+    }
     setDeleteLoading(true);
     try {
-      await api.post('/auth/request-delete/');
+      await api.post('/auth/request-delete/', { password: deletePassword });
       toast.success('Account deletion requested successfully.');
       
       // Update local storage user object
       const updatedUser = { ...user, customer_profile: { ...user.customer_profile, delete_requested: true } };
       localStorage.setItem('smart-kirana-customer-user', JSON.stringify(updatedUser));
       syncUser();
+      setShowDeletePrompt(false);
+      setDeletePassword('');
     } catch (err) {
-      toast.error('Failed to request deletion.');
+      toast.error(err.response?.data?.error || 'Failed to request deletion.');
     } finally {
       setDeleteLoading(false);
     }
@@ -123,14 +130,42 @@ export default function AccountSettings() {
               </span>
               Deletion Pending Approval
             </div>
+          ) : showDeletePrompt ? (
+            <div className="bg-white border border-red-200 p-4 rounded-xl flex flex-col gap-3 items-start w-full md:w-1/2">
+              <label className="text-sm font-bold text-slate-700">Enter your password to confirm</label>
+              <input 
+                type="password" 
+                value={deletePassword} 
+                onChange={e => setDeletePassword(e.target.value)} 
+                placeholder="Your password" 
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
+              />
+              <div className="flex gap-2 w-full mt-1">
+                <button 
+                  type="button" 
+                  onClick={requestDeletion}
+                  disabled={deleteLoading}
+                  className="bg-red-600 text-white hover:bg-red-700 px-4 py-2 rounded-lg font-bold text-sm transition-colors flex-1 disabled:opacity-50"
+                >
+                  {deleteLoading ? 'Processing...' : 'Confirm Deletion'}
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => { setShowDeletePrompt(false); setDeletePassword(''); }}
+                  disabled={deleteLoading}
+                  className="bg-slate-100 text-slate-600 hover:bg-slate-200 px-4 py-2 rounded-lg font-bold text-sm transition-colors flex-1 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           ) : (
             <button 
               type="button" 
-              onClick={requestDeletion}
-              disabled={deleteLoading}
-              className="bg-white text-red-600 border-2 border-red-200 hover:border-red-600 hover:bg-red-50 px-6 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm disabled:opacity-50"
+              onClick={() => setShowDeletePrompt(true)}
+              className="bg-white text-red-600 border-2 border-red-200 hover:border-red-600 hover:bg-red-50 px-6 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm"
             >
-              {deleteLoading ? 'Processing...' : 'Request Account Deletion'}
+              Request Account Deletion
             </button>
           )}
         </div>
