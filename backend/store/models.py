@@ -22,6 +22,7 @@ class StoreSettings(models.Model):
     
     # Delivery (For future use or V1)
     delivery_mode = models.CharField(max_length=20, choices=[('PICKUP', 'Store Pickup Only'), ('DELIVERY', 'Delivery Only'), ('BOTH', 'Both')], default='PICKUP')
+    is_home_delivery_active = models.BooleanField(default=False)
     delivery_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     free_delivery_threshold = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     min_delivery_order_amount = models.DecimalField(max_digits=10, decimal_places=2, default=150.00)
