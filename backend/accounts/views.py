@@ -1,4 +1,3 @@
-import os
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from rest_framework import generics, viewsets
@@ -122,70 +121,19 @@ class PasswordResetRequestView(APIView):
             reset_link = f"{frontend_url}/reset-password?uid={uid}&token={token}"
             
             import threading
-            import urllib.request
-            import json
-            
             def send_reset_email():
-                brevo_api_key = os.environ.get('BREVO_API_KEY')
-                resend_api_key = os.environ.get('RESEND_API_KEY')
-                subject = 'Password Reset Request - Narendra Kirana'
-                message = f'You are receiving this email because you requested a password reset.\n\nPlease click the link below to set a new password:\n{reset_link}\n\nIf you did not request this, please ignore this email.'
-                sender_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or 'saisatyanarayana2004@gmail.com'
-                
-                # 1. Try Brevo HTTPS API (Sends to anyone for free)
-                if brevo_api_key:
-                    try:
-                        req = urllib.request.Request('https://api.brevo.com/v3/smtp/email', method='POST')
-                        req.add_header('api-key', brevo_api_key)
-                        req.add_header('Accept', 'application/json')
-                        req.add_header('Content-Type', 'application/json')
-                        req.add_header('User-Agent', 'Mozilla/5.0')
-                        
-                        data = json.dumps({
-                            "sender": {"name": "Narendra Kirana", "email": sender_email},
-                            "to": [{"email": user.email}],
-                            "subject": subject,
-                            "textContent": message
-                        }).encode('utf-8')
-                        
-                        urllib.request.urlopen(req, data=data, timeout=10)
-                        print("Email sent successfully via Brevo HTTPS API")
-                        return
-                    except Exception as e:
-                        print("Brevo API failed:", str(e))
-
-                # 2. Try Resend HTTPS API
-                if resend_api_key:
-                    try:
-                        req = urllib.request.Request('https://api.resend.com/emails', method='POST')
-                        req.add_header('User-Agent', 'Mozilla/5.0')
-                        req.add_header('Authorization', f'Bearer {resend_api_key}')
-                        req.add_header('Content-Type', 'application/json')
-                        data = json.dumps({
-                            "from": "onboarding@resend.dev",
-                            "to": user.email,
-                            "subject": subject,
-                            "text": message
-                        }).encode('utf-8')
-                        urllib.request.urlopen(req, data=data, timeout=10)
-                        print("Email sent successfully via Resend HTTPS API")
-                        return
-                    except Exception as e:
-                        print("Resend API failed:", str(e))
-                
-                # 3. Fallback to Standard Django SMTP
                 try:
                     send_mail(
-                        subject,
-                        message,
-                        sender_email,
+                        'Password Reset Request - Narendra Kirana',
+                        f'You are receiving this email because you requested a password reset.\n\nPlease click the link below to set a new password:\n{reset_link}\n\nIf you did not request this, please ignore this email.',
+                        getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@narendra-kirana.com'),
                         [user.email],
                         fail_silently=True,
                     )
                 except Exception as e:
-                    print("SMTP failed:", str(e))
+                    print("Email sending failed:", str(e))
             
-            # Run in a background thread to prevent Gunicorn timeout
+            # Run in a background thread to prevent Gunicorn timeout (Render blocks SMTP port 587)
             threading.Thread(target=send_reset_email).start()
                 
         # Always return success to prevent email enumeration
@@ -215,15 +163,3 @@ class PasswordResetConfirmView(APIView):
             return Response({'message': 'Password has been reset successfully.'}, status=status.HTTP_200_OK)
         else:
             return Response({'error': 'The reset link is invalid, possibly because it has already been used.'}, status=status.HTTP_400_BAD_REQUEST)
-
-class EnvCheckView(APIView):
-    permission_classes = [AllowAny]
-    def get(self, request):
-        has_brevo = bool(os.environ.get('BREVO_API_KEY'))
-        brevo_prefix = os.environ.get('BREVO_API_KEY', '')[:10] if has_brevo else None
-        return Response({
-            'has_brevo_key': has_brevo,
-            'brevo_key_starts_with': brevo_prefix,
-            'email_host_user': os.environ.get('EMAIL_HOST_USER', 'NOT SET'),
-            'default_from_email': os.environ.get('DEFAULT_FROM_EMAIL', 'NOT SET')
-        })
