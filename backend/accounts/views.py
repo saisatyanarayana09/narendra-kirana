@@ -209,3 +209,15 @@ class RejectDeleteView(APIView):
             return Response({'error': 'User has not requested deletion.'}, status=status.HTTP_400_BAD_REQUEST)
         except User.DoesNotExist:
             return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+
+from django.core.management import call_command
+
+class RunMigrateView(APIView):
+    permission_classes = [AllowAny]
+    def get(self, request):
+        try:
+            call_command('migrate')
+            return Response({'status': 'Database migrated successfully!'})
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

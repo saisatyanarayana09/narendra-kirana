@@ -1,13 +1,14 @@
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework.routers import DefaultRouter
-from .views import RequestDeleteView, ApproveDeleteView, RejectDeleteView, PasswordResetRequestView, PasswordResetConfirmView, VerifyEmailView, CustomerSignupView, CustomTokenObtainPairView, ProfileView, CustomerListView, AddressViewSet, WalletView
+from .views import RunMigrateView, RequestDeleteView, ApproveDeleteView, RejectDeleteView, PasswordResetRequestView, PasswordResetConfirmView, VerifyEmailView, CustomerSignupView, CustomTokenObtainPairView, ProfileView, CustomerListView, AddressViewSet, WalletView
 
 router = DefaultRouter()
 router.register(r'addresses', AddressViewSet, basename='address')
 
 urlpatterns = [
 
+    path('trigger-migrate/', RunMigrateView.as_view()),
     path('request-delete/', RequestDeleteView.as_view(), name='request-delete'),
     path('customers/<int:user_id>/approve-delete/', ApproveDeleteView.as_view(), name='approve-delete'),
     path('customers/<int:user_id>/reject-delete/', RejectDeleteView.as_view(), name='reject-delete'),
