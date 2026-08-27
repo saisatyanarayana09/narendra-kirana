@@ -190,6 +190,9 @@ export function CartPage() {
 export function CheckoutPage() {
  const navigate = useNavigate(); const { cart, isCustomer, storeSettings, refresh } = useCart(); const [time, setTime] = useState('As soon as possible'); const [note, setNote] = useState(''); const [error, setError] = useState(''); const [loading, setLoading] = useState(false)
  const [walletBalance, setWalletBalance] = useState(0); const [useWallet, setUseWallet] = useState(false);
+ const [orderType, setOrderType] = useState('PICKUP');
+ const [deliveryAddress, setDeliveryAddress] = useState('');
+ const [deliveryPincode, setDeliveryPincode] = useState('');
  
  useEffect(() => {
    if (isCustomer) {
