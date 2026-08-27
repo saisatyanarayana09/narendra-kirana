@@ -80,7 +80,8 @@ class OrderViewSet(ModelViewSet):
         wallet_discount = Decimal('0.00')
         if checkout.validated_data.get('use_wallet', False):
             try:
-                wallet = request.user.wallet
+                from accounts.models import Wallet
+                wallet = Wallet.objects.select_for_update().get(user=request.user)
                 if wallet.balance > 0:
                     if wallet.balance >= total:
                         wallet_discount = total
@@ -114,6 +115,18 @@ class OrderViewSet(ModelViewSet):
             customer_note=checkout.validated_data.get('customer_note', ''),
             status=initial_status
         )
+        
+        # Record Promo Usage
+        if cart.promo_code:
+            try:
+                from offers.models import PromoUsage
+                PromoUsage.objects.create(promo_code=cart.promo_code, user=request.user)
+            except Exception as e:
+                print("Error recording promo usage:", e)
+                
+        # Clear cart promo code after successful checkout
+        cart.promo_code = None
+        cart.save(update_fields=['promo_code'])
         
         from cart.serializers import current_price
         order_items_to_create = []

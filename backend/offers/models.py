@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 from django.core.validators import MinValueValidator
 
 class Banner(models.Model):
@@ -24,6 +25,7 @@ class PromoCode(models.Model):
     applicable_category = models.ForeignKey('products.Category', null=True, blank=True, on_delete=models.CASCADE, help_text="If set, discount only applies to items in this category")
     is_active = models.BooleanField(default=True)
     expiration_date = models.DateTimeField(blank=True, null=True)
+    max_uses_per_user = models.IntegerField(default=1, help_text="0 means unlimited uses per user")
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -88,3 +90,11 @@ class Referral(models.Model):
 
     def __str__(self):
         return f"{self.referrer.username} referred {self.referred_user.username} ({self.status})"
+
+class PromoUsage(models.Model):
+    promo_code = models.ForeignKey(PromoCode, on_delete=models.CASCADE, related_name='usages')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='promo_usages')
+    used_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-used_at']
