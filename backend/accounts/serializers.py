@@ -179,23 +179,29 @@ class CustomerSignupSerializer(serializers.ModelSerializer):
                     referrer_profile = CustomerProfile.objects.get(referral_code=referral_code.upper())
                     referrer_user = referrer_profile.user
                     
-                    # Create Pending Referral
-                    Referral.objects.create(
-                        referrer=referrer_user,
-                        referred_user=user,
-                        status=Referral.Status.PENDING
-                    )
+                    # --- MEMORY CHECK FOR ABUSE ---
+                    # Check if this mobile number belonged to a deleted account in the past
+                    has_been_here_before = User.objects.filter(username__contains=f"del_{mobile_number}_").exists()
                     
-                    # Issue Referee Reward instantly
-                    if settings.referee_reward > 0:
-                        wallet.balance += settings.referee_reward
-                        wallet.save()
-                        WalletTransaction.objects.create(
-                            wallet=wallet,
-                            amount=settings.referee_reward,
-                            transaction_type=WalletTransaction.TransactionType.REFERRAL_REWARD,
-                            description=f"Welcome bonus for using referral code {referral_code.upper()}"
+                    if not has_been_here_before:
+                        # Create Pending Referral ONLY if they are a truly new human
+                        Referral.objects.create(
+                            referrer=referrer_user,
+                            referred_user=user,
+                            status=Referral.Status.PENDING
                         )
+                        
+                        # Issue Referee Reward instantly
+                        if settings.referee_reward > 0:
+                            wallet.balance += settings.referee_reward
+                            wallet.save()
+                            WalletTransaction.objects.create(
+                                wallet=wallet,
+                                amount=settings.referee_reward,
+                                transaction_type=WalletTransaction.TransactionType.REFERRAL_REWARD,
+                                description=f"Welcome bonus for using referral code {referral_code.upper()}"
+                            )
+                    # --- END MEMORY CHECK ---
                 except CustomerProfile.DoesNotExist:
                     pass
 

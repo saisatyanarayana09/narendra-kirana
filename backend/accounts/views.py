@@ -190,9 +190,16 @@ class ApproveDeleteView(APIView):
         try:
             user = User.objects.get(id=user_id, is_customer=True)
             if hasattr(user, 'customer_profile') and user.customer_profile.delete_requested:
-                # Soft delete
                 user.is_active = False
+                
+                # Free up the email and mobile for future signups, but STORE the mobile in username for memory
+                old_mobile = user.customer_profile.mobile_number or "none"
+                user.username = f"del_{old_mobile}_{user.username}"[:150]
+                user.email = f"del_{user.id}_{user.email}"[:254]
+                
+                user.customer_profile.mobile_number = None
                 user.customer_profile.delete_requested = False
+                
                 user.customer_profile.save()
                 user.save()
                 return Response({'message': 'Account successfully deactivated (soft deleted).'}, status=status.HTTP_200_OK)
