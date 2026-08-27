@@ -31,7 +31,7 @@ const Customers = () => {
  const approveDeletion = async (userId) => {
    if(!window.confirm("Are you sure you want to PERMANENTLY delete this customer and all their data? This cannot be undone.")) return;
    try {
-     await api.post(/auth/customers//approve-delete/);
+     await api.post(`/auth/customers/${userId}/approve-delete/`);
      fetchCustomers();
    } catch(err) {
      alert("Failed to approve deletion.");
@@ -41,7 +41,7 @@ const Customers = () => {
  const rejectDeletion = async (userId) => {
    if(!window.confirm("Are you sure you want to reject this deletion request?")) return;
    try {
-     await api.post(/auth/customers//reject-delete/);
+     await api.post(`/auth/customers/${userId}/reject-delete/`);
      fetchCustomers();
    } catch(err) {
      alert("Failed to reject deletion.");
