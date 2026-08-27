@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useLocation } from 'react-router-dom'
-import { Minus, Plus, Trash2, ShoppingBasket, ArrowLeft } from 'lucide-react'
+import { Minus, Plus, Trash2, ShoppingBasket, ArrowLeft , Eye, EyeOff } from 'lucide-react'
 import api from './services/api'
 import { CustomerLayout } from './customer-layout'
 import { useCart } from './cart-context'
