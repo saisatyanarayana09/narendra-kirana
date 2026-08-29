@@ -13,7 +13,7 @@ const OrderDetails = () => {
   const [isUpdating, setIsUpdating] = useState(false);
  const [ownerNote, setOwnerNote] = useState('');
  const [savingNote, setSavingNote] = useState(false);
-
+ const [gettingLocation, setGettingLocation] = useState(false);
   const fetchOrder = useCallback(async (isPoll = false) => {
     try {
       if (!isPoll) setLoading(true);
@@ -71,6 +71,30 @@ const OrderDetails = () => {
  } catch (err) {
  alert(err.response?.data?.detail || 'Failed to reject item.');
  }
+ };
+
+ const handleGetDirections = (e) => {
+   e.preventDefault();
+   const destination = `${order.delivery_latitude},${order.delivery_longitude}`;
+   if (!navigator.geolocation) {
+     window.open(`https://www.google.com/maps/dir/?api=1&destination=${destination}`, '_blank');
+     return;
+   }
+
+   setGettingLocation(true);
+   navigator.geolocation.getCurrentPosition(
+     (position) => {
+       setGettingLocation(false);
+       const origin = `${position.coords.latitude},${position.coords.longitude}`;
+       window.open(`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`, '_blank');
+     },
+     (error) => {
+       setGettingLocation(false);
+       console.warn("Location error:", error);
+       window.open(`https://www.google.com/maps/dir/?api=1&destination=${destination}`, '_blank');
+     },
+     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+   );
  };
 
  if (loading) return <div className="p-12 text-center text-gray-500">Loading order...</div>;
@@ -299,14 +323,14 @@ const OrderDetails = () => {
  {order.delivery_pincode && <p className="text-xs text-indigo-700 mt-1 font-semibold">Pincode: {order.delivery_pincode}</p>}
  
  {order.delivery_latitude && order.delivery_longitude && (
-   <a 
-     href={`https://www.google.com/maps/dir/?api=1&destination=${order.delivery_latitude},${order.delivery_longitude}`}
-     target="_blank"
-     rel="noreferrer"
-     className="mt-3 flex items-center justify-center w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors text-sm"
+   <button 
+     onClick={handleGetDirections}
+     disabled={gettingLocation}
+     className="mt-3 flex items-center justify-center w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors text-sm disabled:opacity-70 disabled:cursor-not-allowed"
    >
-     <MapPin className="w-4 h-4 mr-2" /> Get Delivery Directions
-   </a>
+     <MapPin className="w-4 h-4 mr-2" /> 
+     {gettingLocation ? 'Getting Location...' : 'Get Delivery Directions'}
+   </button>
  )}
  </div>
  )}
