@@ -195,10 +195,21 @@ export function CheckoutPage() {
  const [deliveryPincode, setDeliveryPincode] = useState('');
  
  useEffect(() => {
-   if (isCustomer) {
-     api.get('/auth/wallet/').then(res => setWalletBalance(parseFloat(res.data.balance))).catch(console.error);
-   }
- }, [isCustomer]);
+     if (isCustomer) {
+       api.get('/auth/wallet/').then(res => setWalletBalance(parseFloat(res.data.balance))).catch(console.error);
+       
+       // Auto-fill delivery address from customer's saved addresses
+       api.get('/auth/addresses/').then(res => {
+         const addresses = res.data.results || res.data;
+         if (addresses && addresses.length > 0) {
+           const defaultAddr = addresses.find(a => a.is_default) || addresses[0];
+           const formatted = [defaultAddr.street, defaultAddr.landmark, defaultAddr.city, defaultAddr.state].filter(Boolean).join(', ');
+           setDeliveryAddress(prev => prev || formatted); // only overwrite if currently empty
+           setDeliveryPincode(prev => prev || defaultAddr.zip_code || ''); // only overwrite if currently empty
+         }
+       }).catch(console.error);
+     }
+   }, [isCustomer]);
 
  if (!isCustomer) return <CartPage />
  
