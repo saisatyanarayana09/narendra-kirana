@@ -1,31 +1,58 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Plus, X, Trash2, ChevronRight } from 'lucide-react';
+import { ChevronRight, MapPin, Trash2, Plus, X, Edit2 } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
-export default function SavedAddresses() {
+export function SavedAddresses() {
   const [addresses, setAddresses] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ title: 'Home', street: '', landmark: '', city: '', district: '', state: '', country: 'India', zip_code: '' });
+  const [form, setForm] = useState({ title: 'Home', street: '', landmark: '', city: '', district: '', state: '', country: 'India', zip_code: '', latitude: null, longitude: null });
 
   const fetchAddresses = () => api.get('/auth/addresses/').then(res => { setAddresses(res.data.results || res.data); setLoading(false); }).catch(() => setLoading(false));
   useEffect(() => { fetchAddresses(); }, []);
 
+  const captureLocation = () => {
+     if (navigator.geolocation) {
+       navigator.geolocation.getCurrentPosition(
+         (pos) => setForm({...form, latitude: parseFloat(pos.coords.latitude.toFixed(6)), longitude: parseFloat(pos.coords.longitude.toFixed(6))}),
+         (err) => alert("Could not fetch location. Please ensure location services are enabled.")
+       );
+     } else {
+       alert("Geolocation is not supported by your browser.");
+     }
+   };
+
   const submit = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/auth/addresses/', form);
+      if (editingId) {
+         await api.put(`/auth/addresses/${editingId}/`, form);
+         toast.success('Address updated.');
+      } else {
+         await api.post('/auth/addresses/', form);
+         toast.success('Address saved.');
+      }
       setShowAdd(false);
-      setForm({ title: 'Home', street: '', landmark: '', city: '', district: '', state: '', country: 'India', zip_code: '' });
+      setEditingId(null);
+      setForm({ title: 'Home', street: '', landmark: '', city: '', district: '', state: '', country: 'India', zip_code: '', latitude: null, longitude: null });
       fetchAddresses();
-      toast.success('Address saved.');
-    } catch (err) { toast.error('Could not save address.'); }
+    } catch (err) { 
+        toast.error(err.response?.data?.latitude?.[0] || err.response?.data?.detail || 'Could not save address.'); 
+    }
   };
 
   const remove = async (id) => {
     try { await api.delete(`/auth/addresses/${id}/`); fetchAddresses(); toast.success('Address removed.'); } catch (err) {}
+  };
+
+  const startEdit = (a) => {
+      setForm(a);
+      setEditingId(a.id);
+      setShowAdd(true);
+      window.scrollTo(0, 0);
   };
 
   return (
@@ -39,7 +66,7 @@ export default function SavedAddresses() {
             <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Saved Addresses</h2>
             <p className="text-sm text-slate-500 mt-1">Manage delivery locations for quick checkout.</p>
           </div>
-          <button onClick={() => setShowAdd(!showAdd)} className={`text-sm font-bold flex items-center px-4 py-2 rounded-xl transition-all shadow-sm ${showAdd ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-primary-600 text-white hover:bg-primary-700'}`}>
+          <button onClick={() => { setShowAdd(!showAdd); if(showAdd) { setEditingId(null); setForm({ title: 'Home', street: '', landmark: '', city: '', district: '', state: '', country: 'India', zip_code: '', latitude: null, longitude: null }); } }} className={`text-sm font-bold flex items-center px-4 py-2 rounded-xl transition-all shadow-sm ${showAdd ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-primary-600 text-white hover:bg-primary-700'}`}>
             {showAdd ? <X size={16} className="mr-1.5"/> : <Plus size={16} className="mr-1.5"/>}
             {showAdd ? 'Cancel' : 'Add New'}
           </button>
@@ -47,8 +74,14 @@ export default function SavedAddresses() {
       </div>
 
       {showAdd && (
-        <form onSubmit={submit} className="bg-white rounded-2xl shadow-sm p-6 md:p-8 mb-8 border border-slate-200">
-          <h3 className="text-base font-bold text-slate-900 mb-5 pb-2 border-b border-slate-100">Address Details</h3>
+        <form onSubmit={submit} className="bg-white rounded-2xl shadow-sm p-6 md:p-8 mb-8 border border-slate-200 animate-in fade-in slide-in-from-top-2">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 pb-4 border-b border-slate-100 gap-3">
+             <h3 className="text-base font-bold text-slate-900">{editingId ? 'Edit Address' : 'Address Details'}</h3>
+             <button type="button" onClick={captureLocation} className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs py-2 px-4 rounded-lg flex items-center justify-center gap-1.5 transition-all border border-slate-200">
+                <MapPin size={14} className={form.latitude ? "text-green-600" : "text-slate-500"} />
+                {form.latitude ? "📍 Location Captured" : "📍 Capture My Exact Location"}
+              </button>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div className="sm:col-span-2">
               <label className="block text-sm font-bold text-slate-700 mb-1.5">Label (e.g. Home, Work)</label>
@@ -56,7 +89,7 @@ export default function SavedAddresses() {
             </div>
             <div className="sm:col-span-2">
               <label className="block text-sm font-bold text-slate-700 mb-1.5">Street Address</label>
-              <input required value={form.street} onChange={e=>setForm({...form, street:e.target.value})} className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-sm focus:bg-white focus:ring-2 focus:ring-primary-500 outline-none transition-all"/>
+              <textarea required value={form.street} onChange={e=>setForm({...form, street:e.target.value})} className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-sm focus:bg-white focus:ring-2 focus:ring-primary-500 outline-none transition-all resize-none h-20"/>
             </div>
             <div className="sm:col-span-2">
               <label className="block text-sm font-bold text-slate-700 mb-1.5">Landmark</label>
@@ -84,7 +117,7 @@ export default function SavedAddresses() {
             </div>
           </div>
           <div className="mt-6 flex justify-end">
-            <button type="submit" className="w-full sm:w-auto bg-primary-600 text-white font-bold py-3.5 px-8 rounded-xl hover:bg-primary-700 transition-all shadow-sm">Save Address</button>
+            <button type="submit" className="w-full sm:w-auto bg-primary-600 text-white font-bold py-3.5 px-8 rounded-xl hover:bg-primary-700 transition-all shadow-sm">{editingId ? 'Update Address' : 'Save Address'}</button>
           </div>
         </form>
       )}
@@ -108,9 +141,14 @@ export default function SavedAddresses() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {addresses.map(a => (
             <div key={a.id} className="group bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:border-primary-300 hover:shadow-md transition-all relative">
-              <button onClick={() => remove(a.id)} className="absolute top-4 right-4 text-slate-300 hover:text-red-500 bg-white hover:bg-red-50 p-2 rounded-xl transition-colors" title="Delete address">
-                <Trash2 size={16}/>
-              </button>
+              <div className="absolute top-4 right-4 flex gap-1">
+                  <button onClick={() => startEdit(a)} className="text-slate-300 hover:text-indigo-600 bg-white hover:bg-indigo-50 p-2 rounded-xl transition-colors" title="Edit address">
+                    <Edit2 size={16}/>
+                  </button>
+                  <button onClick={() => remove(a.id)} className="text-slate-300 hover:text-red-500 bg-white hover:bg-red-50 p-2 rounded-xl transition-colors" title="Delete address">
+                    <Trash2 size={16}/>
+                  </button>
+              </div>
               <div className="flex items-center mb-3">
                 <div className="w-8 h-8 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center mr-3">
                   <MapPin size={16} />
@@ -122,6 +160,7 @@ export default function SavedAddresses() {
                 {a.landmark && <p>Landmark: {a.landmark}</p>}
                 <p>{a.city}{a.district ? `, ${a.district}` : ''}</p>
                 <p>{a.state}, {a.country} {a.zip_code}</p>
+                {a.latitude && <p className="text-xs text-green-600 mt-2 font-bold flex items-center gap-1"><MapPin size={12}/> Exact Location Saved</p>}
               </div>
             </div>
           ))}
