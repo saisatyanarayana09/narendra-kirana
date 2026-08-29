@@ -204,7 +204,7 @@ export function CheckoutPage() {
       const captureLocation = () => {
      if (navigator.geolocation) {
        navigator.geolocation.getCurrentPosition(
-         (pos) => setAddressForm({...addressForm, latitude: pos.coords.latitude, longitude: pos.coords.longitude}),
+         (pos) => setAddressForm({...addressForm, latitude: parseFloat(pos.coords.latitude.toFixed(6)), longitude: parseFloat(pos.coords.longitude.toFixed(6))}),
          (err) => alert("Could not fetch location. Please ensure location services are enabled.")
        );
      } else {
@@ -256,7 +256,7 @@ export function CheckoutPage() {
        setEditingAddressId(null);
        fetchAddresses();
      } catch (err) {
-       setError('Failed to save address.');
+       setError(err.response?.data?.latitude?.[0] || err.response?.data?.detail || 'Failed to save address.');
      } finally {
        setLoading(false);
      }
