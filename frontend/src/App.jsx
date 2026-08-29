@@ -102,7 +102,6 @@ class ErrorBoundary extends React.Component {
 
 
 import { useState, useEffect } from 'react';
-import { WifiOff } from 'lucide-react';
 
 function OfflineBanner() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
