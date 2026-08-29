@@ -210,12 +210,15 @@ function WelcomeScreen() {
  return (
  <div className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white transition-opacity duration-700 ease-in-out ${stage === 'fade-out' ? 'opacity-0 pointer-events-none' : 'opacity-100'} overflow-hidden`}>
  <div className={`flex flex-col items-center justify-center relative z-10 transition-all duration-700 ease-out transform ${stage === 'fade-in' ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'}`}>
- <div className="text-sm font-bold tracking-[0.2em] uppercase text-slate-400 mb-6 drop-shadow-sm">
- <div className="flex items-center justify-center gap-3"><img src="/logo.jpg" className="w-12 h-12 object-contain mix-blend-multiply" alt="Logo" /><span className="text-slate-700">Narendra</span> <span className="text-primary-600">Kirana</span></div>
- </div>
- <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight text-center">
- {greeting}, {name}.
- </h1>
+ <div className="flex flex-col items-center justify-center mb-8">
+     <img src="/logo.jpg" className="w-20 h-20 sm:w-24 sm:h-24 object-contain mix-blend-multiply mb-4 drop-shadow-md" alt="Logo" />
+     <div className="text-sm sm:text-base font-black tracking-[0.25em] uppercase text-slate-400 drop-shadow-sm text-center ml-2">
+       <span className="text-emerald-900">Narendra</span> <span className="text-primary-600">Kirana</span>
+     </div>
+   </div>
+   <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight text-center px-6 leading-tight">
+   {greeting},<br className="sm:hidden" /> {name}.
+   </h1>
  </div>
  </div>
  );
