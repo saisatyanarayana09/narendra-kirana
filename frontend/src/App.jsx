@@ -2,6 +2,7 @@ import React, { Suspense } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, Outlet } from 'react-router-dom';
 import { CartProvider } from './cart-context';
 import { Toaster } from 'react-hot-toast';
+import { WifiOff } from 'lucide-react';
 
 import { VerifyEmail } from './VerifyEmail';
 import { ForgotPassword } from './ForgotPassword';
@@ -60,7 +61,8 @@ function Guard({ children }) {
 
 function CustomerApp() {
  return (
- <CartProvider>
+ <OfflineBanner />
+      <CartProvider>
  <Outlet />
  </CartProvider>
  );
@@ -94,6 +96,33 @@ class ErrorBoundary extends React.Component {
     }
     return this.props.children;
   }
+}
+
+
+import { useState, useEffect } from 'react';
+import { WifiOff } from 'lucide-react';
+
+function OfflineBanner() {
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  if (!isOffline) return null;
+
+  return (
+    <div className="fixed top-0 left-0 right-0 z-[9999] bg-rose-600 text-white p-2 text-center text-sm font-bold flex items-center justify-center gap-2 shadow-lg animate-in slide-in-from-top">
+      <WifiOff size={16} /> You are offline. Please check your internet connection.
+    </div>
+  );
 }
 
 function App() {

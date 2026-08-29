@@ -384,7 +384,7 @@ export function CheckoutPage() {
           <button type="submit" disabled={loading} className="w-full mt-2 bg-indigo-600 text-white font-bold text-sm py-2.5 rounded-lg hover:bg-indigo-700 disabled:opacity-50">Save Address</button>
         </form>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
             {addresses.length === 0 ? (
                 <div className="p-4 border border-slate-200 border-dashed rounded-xl text-center text-sm text-slate-500">No saved addresses. Please add one.</div>
             ) : (
