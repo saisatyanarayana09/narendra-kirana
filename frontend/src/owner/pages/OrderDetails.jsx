@@ -300,12 +300,12 @@ const OrderDetails = () => {
  
  {order.delivery_latitude && order.delivery_longitude && (
    <a 
-     href={`https://maps.google.com/?q=${order.delivery_latitude},${order.delivery_longitude}`}
+     href={`https://www.google.com/maps/dir/?api=1&destination=${order.delivery_latitude},${order.delivery_longitude}`}
      target="_blank"
      rel="noreferrer"
      className="mt-3 flex items-center justify-center w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors text-sm"
    >
-     <MapPin className="w-4 h-4 mr-2" /> View Customer Location
+     <MapPin className="w-4 h-4 mr-2" /> Get Delivery Directions
    </a>
  )}
  </div>
