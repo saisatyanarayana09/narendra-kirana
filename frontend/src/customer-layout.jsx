@@ -211,7 +211,7 @@ function WelcomeScreen() {
  <div className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white transition-opacity duration-700 ease-in-out ${stage === 'fade-out' ? 'opacity-0 pointer-events-none' : 'opacity-100'} overflow-hidden`}>
  <div className={`flex flex-col items-center justify-center relative z-10 transition-all duration-700 ease-out transform ${stage === 'fade-in' ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'}`}>
  <div className="text-sm font-bold tracking-[0.2em] uppercase text-slate-400 mb-6 drop-shadow-sm">
- <span className="text-slate-700">Narendra</span> <span className="text-primary-600">Kirana</span>
+ <div className="flex items-center justify-center gap-3"><img src="/logo.jpg" className="w-12 h-12 object-contain mix-blend-multiply" alt="Logo" /><span className="text-slate-700">Narendra</span> <span className="text-primary-600">Kirana</span></div>
  </div>
  <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight text-center">
  {greeting}, {name}.

@@ -4,8 +4,8 @@
   "description": "Your local grocery store, now online.",
   "icons": [
     {
-      "src": "/favicon.svg",
-      "type": "image/svg+xml",
+      "src": "/favicon.jpg",
+      "type": "image/jpeg",
       "sizes": "192x192 512x512"
     }
   ],
