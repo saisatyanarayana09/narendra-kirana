@@ -4,7 +4,7 @@ import { ChevronRight, MapPin, Trash2, Plus, X, Edit2 } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
-export function SavedAddresses() {
+export default function SavedAddresses() {
   const [addresses, setAddresses] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
   const [editingId, setEditingId] = useState(null);
