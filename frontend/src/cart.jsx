@@ -251,6 +251,8 @@ export function CheckoutPage() {
        } else {
          const res = await api.post('/auth/addresses/', addressForm);
          setSelectedAddressId(res.data.id);
+         // Immediately inject into local state to prevent race conditions during checkout
+         setAddresses(prev => [...prev, res.data]);
        }
        setShowAddressForm(false);
        setEditingAddressId(null);
