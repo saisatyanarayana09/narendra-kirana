@@ -297,6 +297,17 @@ const OrderDetails = () => {
  </h3>
  <p className="font-bold text-indigo-900 whitespace-pre-line text-sm">{order.delivery_address}</p>
  {order.delivery_pincode && <p className="text-xs text-indigo-700 mt-1 font-semibold">Pincode: {order.delivery_pincode}</p>}
+ 
+ {order.delivery_latitude && order.delivery_longitude && (
+   <a 
+     href={`https://maps.google.com/?q=${order.delivery_latitude},${order.delivery_longitude}`}
+     target="_blank"
+     rel="noreferrer"
+     className="mt-3 flex items-center justify-center w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors text-sm"
+   >
+     <MapPin className="w-4 h-4 mr-2" /> View Customer Location
+   </a>
+ )}
  </div>
  )}
  <div className="border-t border-slate-100 pt-5 mt-5">
