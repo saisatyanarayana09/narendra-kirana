@@ -10,6 +10,7 @@ const OrderDetails = () => {
  const [loading, setLoading] = useState(true);
  const [error, setError] = useState(null);
  const [packedItems, setPackedItems] = useState({});
+  const [isUpdating, setIsUpdating] = useState(false);
  const [ownerNote, setOwnerNote] = useState('');
  const [savingNote, setSavingNote] = useState(false);
 
@@ -230,17 +231,17 @@ const OrderDetails = () => {
  
  {order.status === 'NEW' && (
  <div className="space-y-3">
- <button onClick={() => updateStatus('ACCEPTED')} className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-sm flex items-center justify-center">
+ <button onClick={() => updateStatus('ACCEPTED')} disabled={isUpdating} className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-sm flex items-center justify-center">
  Accept Order <ChevronRight className="w-5 h-5 ml-1"/>
  </button>
- <button onClick={() => updateStatus('REJECTED')} className="w-full py-3 bg-rose-50 text-rose-700 rounded-xl font-bold hover:bg-rose-100 transition-colors">
+ <button onClick={() => updateStatus('REJECTED')} disabled={isUpdating} className="w-full py-3 bg-rose-50 text-rose-700 rounded-xl font-bold hover:bg-rose-100 transition-colors">
  Reject
  </button>
  </div>
  )}
 
  {order.status === 'ACCEPTED' && (
- <button onClick={() => updateStatus('PREPARING')} className="w-full py-4 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition flex items-center justify-center shadow-sm">
+ <button onClick={() => updateStatus('PREPARING')} disabled={isUpdating} className="w-full py-4 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition flex items-center justify-center shadow-sm">
  <Package className="w-5 h-5 mr-2"/> Start Packing
  </button>
  )}
@@ -248,7 +249,7 @@ const OrderDetails = () => {
  {order.status === 'PREPARING' && (
  <div className="space-y-2">
  <button 
- onClick={() => updateStatus('READY')} 
+ onClick={() => updateStatus('READY')} disabled={isUpdating || !allPacked} 
  disabled={!allPacked}
  className={`w-full py-4 rounded-xl font-bold transition flex items-center justify-center ${
  allPacked ? 'bg-emerald-500 text-white shadow-sm hover:bg-emerald-600' : 'bg-slate-100 text-slate-400 cursor-not-allowed'
@@ -271,7 +272,7 @@ const OrderDetails = () => {
  <>Order fully paid via <strong className="text-emerald-600">Wallet</strong>.</>
  )}
  </p>
- <button onClick={() => updateStatus('COMPLETED')} className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-black transition-colors flex items-center justify-center shadow-sm">
+ <button onClick={() => updateStatus('COMPLETED')} disabled={isUpdating} className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-black transition-colors flex items-center justify-center shadow-sm">
  {parseFloat(order.total_amount) > 0 ? 'Payment Received & Complete' : 'Handover & Complete'}
  </button>
  </div>

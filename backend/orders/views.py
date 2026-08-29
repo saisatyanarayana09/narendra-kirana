@@ -224,6 +224,9 @@ class OrderViewSet(ModelViewSet):
             Order.Status.READY: {Order.Status.COMPLETED},
         }
         next_status = serializer.validated_data['status']
+        if next_status == order.status:
+            return Response(OrderSerializer(order).data) # Silently succeed if already in this state
+            
         if next_status not in allowed.get(order.status, set()):
             return Response({'detail': f'Cannot change {order.status} to {next_status}.'}, status=status.HTTP_400_BAD_REQUEST)
             
