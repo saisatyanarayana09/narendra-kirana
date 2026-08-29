@@ -96,7 +96,12 @@ const Invoice = () => {
    </div>
  )}
  
- <div className={order.status === 'REJECTED' ? 'opacity-70 grayscale-[30%]' : ''}>
+   {/* Watermark Logo */}
+  <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none opacity-[0.04] print:opacity-[0.06] mix-blend-multiply select-none">
+    <img src="/logo.jpg" alt="Watermark" className="w-[80%] max-w-lg object-contain grayscale" />
+  </div>
+ 
+ <div className={`relative z-10 ${order.status === 'REJECTED' ? 'opacity-70 grayscale-[30%]' : ''}`}>
   
   {/* Header Section */}
   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end border-b-2 border-emerald-900 pb-6 mb-8 gap-4">
