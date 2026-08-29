@@ -77,9 +77,9 @@ export default function SavedAddresses() {
         <form onSubmit={submit} className="bg-white rounded-2xl shadow-sm p-6 md:p-8 mb-8 border border-slate-200 animate-in fade-in slide-in-from-top-2">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 pb-4 border-b border-slate-100 gap-3">
              <h3 className="text-base font-bold text-slate-900">{editingId ? 'Edit Address' : 'Address Details'}</h3>
-             <button type="button" onClick={captureLocation} className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs py-2 px-4 rounded-lg flex items-center justify-center gap-1.5 transition-all border border-slate-200">
-                <MapPin size={14} className={form.latitude ? "text-green-600" : "text-slate-500"} />
-                {form.latitude ? "📍 Location Captured" : "📍 Capture My Exact Location"}
+             <button type="button" onClick={captureLocation} className={`w-full sm:w-auto font-extrabold text-sm py-3 px-5 rounded-xl flex items-center justify-center gap-2 transition-all border-2 active:scale-[0.98] ${form.latitude ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'}`}>
+                <MapPin size={18} className={form.latitude ? "text-emerald-600" : "text-indigo-600"} />
+                {form.latitude ? "✅ Location Saved (Tap to Relocate)" : "📍 Capture My Exact Location"}
               </button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
