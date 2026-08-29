@@ -61,10 +61,12 @@ function Guard({ children }) {
 
 function CustomerApp() {
  return (
- <OfflineBanner />
-      <CartProvider>
- <Outlet />
- </CartProvider>
+   <>
+     <OfflineBanner />
+     <CartProvider>
+       <Outlet />
+     </CartProvider>
+   </>
  );
 }
 
