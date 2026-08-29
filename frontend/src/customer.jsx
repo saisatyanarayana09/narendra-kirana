@@ -1,6 +1,6 @@
 import { optimizeImage } from './utils/image';
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 
 import { GSAPFadeUp, GSAPZoomIn } from './components/GSAPScroll'
 
@@ -815,9 +815,11 @@ export function CategoriesPage() {
 
 
 
- export function ProductsPage() {
+export function ProductsPage() {
 
-  const [searchParams, setSearchParams] = useSearchParams(); const [products, setProducts] = useState([]); const [categories, setCategories] = useState([]); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const query = searchParams.get('search') || ''; const category = searchParams.get('category') || ''
+  const [searchParams, setSearchParams] = useSearchParams(); const [products, setProducts] = useState([]); const [categories, setCategories] = useState([]); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [sortOption, setSortOption] = useState('default'); const query = searchParams.get('search') || ''; const category = searchParams.get('category') || ''
+
+
 
     useEffect(() => {
 
@@ -865,6 +867,18 @@ export function CategoriesPage() {
 
   
 
+  const sortedProducts = useMemo(() => {
+    if (sortOption === 'default') return products;
+    return [...products].sort((a, b) => {
+      const priceA = parseFloat(a.offer_price || a.regular_price);
+      const priceB = parseFloat(b.offer_price || b.regular_price);
+      if (sortOption === 'price_low') return priceA - priceB;
+      if (sortOption === 'price_high') return priceB - priceA;
+      if (sortOption === 'newest') return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+      return 0;
+    });
+  }, [products, sortOption]);
+
   return (
 
   <CustomerLayout>
@@ -885,11 +899,25 @@ export function CategoriesPage() {
 
       </div>
 
-      <div className="flex items-baseline justify-between mt-2">
+      <div className="flex items-center justify-between mt-2 flex-wrap gap-3">
 
         <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900">{activeCategoryName}</h1>
 
-        {!loading && <p className="text-sm font-medium text-slate-500">{products.length} products</p>}
+        {!loading && (
+          <div className="flex items-center gap-3">
+            <select 
+              value={sortOption} 
+              onChange={e => setSortOption(e.target.value)}
+              className="text-sm font-bold text-slate-700 bg-white border border-slate-200 rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm"
+            >
+              <option value="default">Relevance</option>
+              <option value="price_low">Price: Low to High</option>
+              <option value="price_high">Price: High to Low</option>
+              <option value="newest">Newest Arrivals</option>
+            </select>
+            <p className="text-sm font-medium text-slate-500 hidden sm:block">{products.length} products</p>
+          </div>
+        )}
 
       </div>
 
@@ -897,7 +925,7 @@ export function CategoriesPage() {
 
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
 
-        {loading ? Array.from({length: 8}).map((_, i) => <ProductSkeleton key={i} />) : products.map((product) => <ProductCard key={product.id} product={product} />)}
+        {loading ? Array.from({length: 8}).map((_, i) => <ProductSkeleton key={i} />) : sortedProducts.map((product) => <ProductCard key={product.id} product={product} />)}
 
       </div>
 

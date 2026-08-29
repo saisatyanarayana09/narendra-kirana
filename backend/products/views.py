@@ -78,9 +78,10 @@ class CategoryViewSet(viewsets.ModelViewSet):
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.select_related('category').prefetch_related('gallery_images').all().order_by('display_order', '-created_at')
     serializer_class = ProductSerializer
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['category', 'is_active', 'is_in_stock']
     search_fields = ['name', 'brand', 'description']
+    ordering_fields = ['offer_price', 'regular_price', 'created_at', 'name']
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve', 'barcode_lookup']:
