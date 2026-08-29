@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, MapPin, Trash2, Plus, X, Edit2 } from 'lucide-react';
+import { ChevronRight, MapPin, Trash2, Plus, X, Edit2, RefreshCw, CheckCircle2 } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -15,13 +15,19 @@ export default function SavedAddresses() {
   useEffect(() => { fetchAddresses(); }, []);
 
   const captureLocation = () => {
+     const loadingToast = toast.loading("Getting your exact location...");
      if (navigator.geolocation) {
        navigator.geolocation.getCurrentPosition(
-         (pos) => setForm({...form, latitude: parseFloat(pos.coords.latitude.toFixed(6)), longitude: parseFloat(pos.coords.longitude.toFixed(6))}),
-         (err) => alert("Could not fetch location. Please ensure location services are enabled.")
+         (pos) => {
+             setForm({...form, latitude: parseFloat(pos.coords.latitude.toFixed(6)), longitude: parseFloat(pos.coords.longitude.toFixed(6))});
+             toast.success("Location captured successfully!", { id: loadingToast });
+         },
+         (err) => {
+             toast.error("Could not fetch location. Please enable GPS.", { id: loadingToast });
+         }
        );
      } else {
-       alert("Geolocation is not supported by your browser.");
+       toast.error("Geolocation not supported.", { id: loadingToast });
      }
    };
 
@@ -77,10 +83,22 @@ export default function SavedAddresses() {
         <form onSubmit={submit} className="bg-white rounded-2xl shadow-sm p-6 md:p-8 mb-8 border border-slate-200 animate-in fade-in slide-in-from-top-2">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 pb-4 border-b border-slate-100 gap-3">
              <h3 className="text-base font-bold text-slate-900">{editingId ? 'Edit Address' : 'Address Details'}</h3>
-             <button type="button" onClick={captureLocation} className={`w-full sm:w-auto font-extrabold text-sm py-3 px-5 rounded-xl flex items-center justify-center gap-2 transition-all border-2 active:scale-[0.98] ${form.latitude ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'}`}>
-                <MapPin size={18} className={form.latitude ? "text-emerald-600" : "text-indigo-600"} />
-                {form.latitude ? "✅ Location Saved (Tap to Relocate)" : "📍 Capture My Exact Location"}
-              </button>
+             {!form.latitude ? (
+                <button type="button" onClick={captureLocation} className="w-full sm:w-auto font-extrabold text-sm py-3 px-5 rounded-xl flex items-center justify-center gap-2 transition-all border-2 active:scale-[0.98] bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100">
+                  <MapPin size={18} className="text-indigo-600" />
+                  📍 Capture My Exact Location
+                </button>
+              ) : (
+                <div className="w-full sm:w-auto flex items-center justify-between gap-4 bg-emerald-50 border-2 border-emerald-200 rounded-xl p-2.5 animate-in zoom-in-95 duration-300">
+                  <div className="flex items-center gap-2 text-emerald-700 font-extrabold text-sm pl-2">
+                    <CheckCircle2 size={18} className="text-emerald-500" />
+                    <span>GPS Secured</span>
+                  </div>
+                  <button type="button" onClick={captureLocation} className="flex items-center gap-1.5 text-xs font-bold bg-white text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-colors shadow-sm active:scale-95">
+                    <RefreshCw size={14} /> Relocate
+                  </button>
+                </div>
+              )}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div className="sm:col-span-2">

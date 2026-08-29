@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useLocation } from 'react-router-dom'
-import { Minus, Plus, Trash2, ShoppingBasket, ArrowLeft, Eye, EyeOff, CheckCircle2, PackageSearch, Truck, Store, XCircle, MapPin, Edit2 } from 'lucide-react'
+import { Minus, Plus, Trash2, ShoppingBasket, ArrowLeft, Eye, EyeOff, CheckCircle2, PackageSearch, Truck, Store, XCircle, MapPin, Edit2, RefreshCw } from 'lucide-react'
+import toast from 'react-hot-toast'
 import api from './services/api'
 import { CustomerLayout } from './customer-layout'
 import { useCart } from './cart-context'
@@ -202,13 +203,19 @@ export function CheckoutPage() {
    const [addressForm, setAddressForm] = useState({ title: 'Home', street: '', landmark: '', city: '', district: '', state: '', country: 'India', zip_code: '', latitude: null, longitude: null });
    
       const captureLocation = () => {
+     const loadingToast = toast.loading("Getting your exact location...");
      if (navigator.geolocation) {
        navigator.geolocation.getCurrentPosition(
-         (pos) => setAddressForm({...addressForm, latitude: parseFloat(pos.coords.latitude.toFixed(6)), longitude: parseFloat(pos.coords.longitude.toFixed(6))}),
-         (err) => alert("Could not fetch location. Please ensure location services are enabled.")
+         (pos) => {
+             setAddressForm({...addressForm, latitude: parseFloat(pos.coords.latitude.toFixed(6)), longitude: parseFloat(pos.coords.longitude.toFixed(6))});
+             toast.success("Location captured successfully!", { id: loadingToast });
+         },
+         (err) => {
+             toast.error("Could not fetch location. Please enable GPS.", { id: loadingToast });
+         }
        );
      } else {
-       alert("Geolocation is not supported by your browser.");
+       toast.error("Geolocation not supported.", { id: loadingToast });
      }
    };
 
@@ -338,10 +345,22 @@ export function CheckoutPage() {
             <h4 className="font-bold text-sm text-slate-900">{editingAddressId ? 'Edit Address' : 'New Address'}</h4>
             <button type="button" onClick={() => setShowAddressForm(false)} className="text-xs font-bold text-slate-500 hover:text-slate-700">Cancel</button>
           </div>
-          <button type="button" onClick={captureLocation} className={`w-full font-extrabold text-sm py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all border-2 active:scale-[0.98] ${addressForm.latitude ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'}`}>
-            <MapPin size={18} className={addressForm.latitude ? "text-emerald-600" : "text-indigo-600"} />
-            {addressForm.latitude ? "✅ Location Saved (Tap to Relocate)" : "📍 Capture My Exact Location"}
-          </button>
+          {!addressForm.latitude ? (
+            <button type="button" onClick={captureLocation} className="w-full font-extrabold text-sm py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all border-2 active:scale-[0.98] bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100">
+              <MapPin size={18} className="text-indigo-600" />
+              📍 Capture My Exact Location
+            </button>
+          ) : (
+            <div className="flex items-center justify-between bg-emerald-50 border-2 border-emerald-200 rounded-xl p-3 animate-in zoom-in-95 duration-300">
+              <div className="flex items-center gap-2 text-emerald-700 font-extrabold text-sm">
+                <CheckCircle2 size={18} className="text-emerald-500" />
+                <span>GPS Secured</span>
+              </div>
+              <button type="button" onClick={captureLocation} className="flex items-center gap-1.5 text-xs font-bold bg-white text-emerald-700 border border-emerald-200 px-4 py-2 rounded-lg hover:bg-emerald-100 transition-colors shadow-sm active:scale-95">
+                <RefreshCw size={14} /> Relocate
+              </button>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
              <div className="col-span-2">
                <input placeholder="Title (e.g. Home, Office)" value={addressForm.title} onChange={e => setAddressForm({...addressForm, title: e.target.value})} required className="w-full text-sm rounded-lg border p-2.5 outline-none focus:ring-2 focus:ring-indigo-500"/>
