@@ -20,6 +20,15 @@ export default defineConfig({
           if (id.includes('node_modules/axios')) {
             return 'vendor-http';
           }
+          if (id.includes('node_modules/gsap') || id.includes('node_modules/@gsap')) {
+            return 'vendor-gsap';
+          }
+          if (id.includes('node_modules/html5-qrcode')) {
+            return 'vendor-scanner';
+          }
+          if (id.includes('node_modules/@hello-pangea')) {
+            return 'vendor-dnd';
+          }
         },
       },
     },

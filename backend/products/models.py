@@ -1,4 +1,4 @@
-﻿from django.db import models
+from django.db import models
 from django.utils.text import slugify
 from django.conf import settings
 
@@ -24,7 +24,7 @@ class Category(models.Model):
 
 class Product(models.Model):
     category = models.ForeignKey(Category, related_name='products', on_delete=models.SET_NULL, null=True)
-    name = models.CharField(max_length=200)
+    name = models.CharField(max_length=200, db_index=True)
     brand = models.CharField(max_length=100, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     unit = models.CharField(max_length=50, help_text="e.g., 1 kg, 500 g, 1 L")
@@ -36,12 +36,17 @@ class Product(models.Model):
     is_in_stock = models.BooleanField(default=True, db_index=True)
     stock_quantity = models.IntegerField(default=0, help_text="Available stock quantity")
     max_order_quantity = models.IntegerField(default=10, blank=True, null=True, help_text="Max items a user can order at once")
-    sku = models.CharField(max_length=100, blank=True, null=True, help_text="Barcode / SKU")
+    sku = models.CharField(max_length=100, blank=True, null=True, db_index=True, help_text="Barcode / SKU")
     expiry_date = models.DateField(blank=True, null=True)
     tags = models.CharField(max_length=200, blank=True, null=True, help_text="Comma separated tags (e.g., Bestseller, Organic)")
-    display_order = models.IntegerField(default=0)
+    display_order = models.IntegerField(default=0, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['is_active', 'display_order'], name='product_active_order_idx'),
+        ]
 
     def __str__(self):
         return f"{self.name} - {self.unit}"

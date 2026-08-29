@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import api from './services/api'
 
 const CartContext = createContext(null)
@@ -30,23 +30,23 @@ export function CartProvider({ children }) {
  }, [isCustomer]);
 
  
- const refreshCart = async () => {
+ const refreshCart = useCallback(async () => {
    if (!isCustomer) return;
    const res = await api.get('/cart/');
    setCart(res.data);
- }
+ }, [isCustomer])
 
- const refreshFavorites = async () => {
+ const refreshFavorites = useCallback(async () => {
    if (!isCustomer) return;
    const res = await api.get('/favorites/');
    setFavorites(res.data.results || res.data || []);
- }
+ }, [isCustomer])
  
- const refreshNotifications = async () => {
+ const refreshNotifications = useCallback(async () => {
    if (!isCustomer) return;
    const res = await api.get('/notifications/');
    setNotifications(res.data.results || res.data || []);
- }
+ }, [isCustomer])
 
  const refresh = useCallback(async () => {
    if (!isCustomer) { setCart(null); setFavorites([]); setNotifications([]); return }
@@ -54,17 +54,18 @@ export function CartProvider({ children }) {
    refreshCart().catch(console.error);
    refreshFavorites().catch(console.error);
    refreshNotifications().catch(console.error);
- }, [isCustomer])
+ }, [isCustomer, refreshCart, refreshFavorites, refreshNotifications])
 
  useEffect(() => { 
     refresh();
     fetchSettings();
     fetchProfile();
     
-    // Poll settings every 30s so store open/close is live
+    // Poll settings every 60s (reduced from 30s — settings rarely change)
     const interval = setInterval(() => {
-        fetchSettings();
-    }, 30000);
+        // Skip polling when tab is not visible to save bandwidth
+        if (!document.hidden) fetchSettings();
+    }, 60000);
     return () => clearInterval(interval);
   }, [refresh, fetchSettings, fetchProfile])
 
@@ -72,15 +73,23 @@ export function CartProvider({ children }) {
    setUser(getUser());
  }, []);
 
- const add = async (product) => { await api.post('/cart/items/', { product: product.id, quantity: 1 }); refreshCart().catch(console.error); }
- const update = async (item, quantity) => { if (quantity < 1) await api.delete(`/cart/items/${item.id}/`); else await api.patch(`/cart/items/${item.id}/`, { quantity }); refreshCart().catch(console.error); }
+ const add = useCallback(async (product) => {
+   await api.post('/cart/items/', { product: product.id, quantity: 1 });
+   refreshCart().catch(console.error);
+ }, [refreshCart])
+
+ const update = useCallback(async (item, quantity) => {
+   if (quantity < 1) await api.delete(`/cart/items/${item.id}/`);
+   else await api.patch(`/cart/items/${item.id}/`, { quantity });
+   refreshCart().catch(console.error);
+ }, [refreshCart])
  
- const applyPromo = async (code) => {
+ const applyPromo = useCallback(async (code) => {
    const response = await api.post('/cart/apply-promo/', { code });
    setCart(response.data);
- };
+ }, [])
 
- const toggleFavorite = async (productId) => {
+ const toggleFavorite = useCallback(async (productId) => {
    if (!isCustomer) return;
    const isFav = favorites.find(f => f.product === productId);
    if (isFav) {
@@ -89,10 +98,17 @@ export function CartProvider({ children }) {
      await api.post('/favorites/', { product: productId });
    }
    refreshFavorites().catch(console.error);
- };
+ }, [isCustomer, favorites, refreshFavorites])
+
+ // Memoize the context value to prevent unnecessary re-renders of all consumers
+ const value = useMemo(() => ({
+   cart, add, update, refresh, user, isCustomer, syncUser,
+   applyPromo, storeSettings, favorites, toggleFavorite, notifications
+ }), [cart, add, update, refresh, user, isCustomer, syncUser,
+      applyPromo, storeSettings, favorites, toggleFavorite, notifications])
 
  return (
-   <CartContext.Provider value={{ cart, add, update, refresh, user, isCustomer, syncUser, applyPromo, storeSettings, favorites, toggleFavorite, notifications }}>
+   <CartContext.Provider value={value}>
      {children}
    </CartContext.Provider>
  )

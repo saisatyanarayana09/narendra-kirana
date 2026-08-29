@@ -31,7 +31,7 @@ class Order(models.Model):
 
     id = models.CharField(primary_key=True, max_length=20, default=order_id, editable=False)
     customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='orders')
-    status = models.CharField(max_length=12, choices=Status.choices, default=Status.NEW)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.NEW, db_index=True)
     
     # Delivery Info
     order_type = models.CharField(max_length=15, choices=[('PICKUP', 'Store Pickup'), ('DELIVERY', 'Home Delivery')], default='PICKUP')

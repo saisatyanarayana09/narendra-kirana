@@ -76,7 +76,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
         return Response({'status': 'reordered'})
 
 class ProductViewSet(viewsets.ModelViewSet):
-    queryset = Product.objects.select_related('category').all().order_by('display_order', '-created_at')
+    queryset = Product.objects.select_related('category').prefetch_related('gallery_images').all().order_by('display_order', '-created_at')
     serializer_class = ProductSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['category', 'is_active', 'is_in_stock']

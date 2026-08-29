@@ -48,23 +48,43 @@ api.interceptors.response.use(
 
 
 // Advanced Persistent Cache (Stale-While-Revalidate)
+// FIXED: Removed /notifications/ and /favorites/ — these are user-specific and must NOT be cached across users
 const memoryCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000;
+const MAX_CACHE_ENTRIES = 20; // Prevent localStorage quota exhaustion
 const CACHEABLE_URLS = [
   '/products/', 
   '/categories/', 
   '/offers/banners/', 
   '/store/settings/', 
   '/store/homepage-sections/',
-  '/notifications/',
-  '/favorites/',
 ];
+
+// Evict oldest cache entries when limit is reached
+function evictOldestCache() {
+  const cacheKeys = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('sk_cache_')) {
+      try {
+        const val = JSON.parse(localStorage.getItem(key));
+        cacheKeys.push({ key, timestamp: val?.timestamp || 0 });
+      } catch (e) { cacheKeys.push({ key, timestamp: 0 }); }
+    }
+  }
+  if (cacheKeys.length > MAX_CACHE_ENTRIES) {
+    cacheKeys.sort((a, b) => a.timestamp - b.timestamp);
+    const toRemove = cacheKeys.slice(0, cacheKeys.length - MAX_CACHE_ENTRIES);
+    toRemove.forEach(entry => localStorage.removeItem(entry.key));
+  }
+}
 
 const originalGet = api.get;
 api.get = async (url, config = {}) => {
   const safeUrl = url || '';
   const isOwner = localStorage.getItem('smart-kirana-owner-token');
-  const isCacheable = !isOwner && CACHEABLE_URLS.some(u => safeUrl.startsWith(u));
+  const hasSearchParams = config?.params?.search || config?.params?.t; // Don't cache search queries or cache-busted requests
+  const isCacheable = !isOwner && !hasSearchParams && CACHEABLE_URLS.some(u => safeUrl.startsWith(u));
 
   if (!isCacheable) {
     return originalGet.call(api, url, config);
@@ -85,9 +105,7 @@ api.get = async (url, config = {}) => {
         cachedData = JSON.parse(stored);
         memoryCache.set(cacheKey, cachedData);
       }
-    } catch (e) {
-      console.warn('Cache read error', e);
-    }
+    } catch (e) { /* ignore corrupt cache entries */ }
   }
 
   // 2. If we found data (either in memory or LocalStorage), return it INSTANTLY
@@ -101,7 +119,7 @@ api.get = async (url, config = {}) => {
           if (response && response.status === 200) {
             const newData = { data: response.data, timestamp: Date.now() };
             memoryCache.set(cacheKey, newData);
-            try { localStorage.setItem(cacheKey, JSON.stringify(newData)); } catch(e) {}
+            try { evictOldestCache(); localStorage.setItem(cacheKey, JSON.stringify(newData)); } catch(e) {}
           }
         })
         .catch(() => { /* Ignore background errors, user still sees cached data */ });
@@ -123,10 +141,9 @@ api.get = async (url, config = {}) => {
   if (response && response.status === 200) {
     const newData = { data: response.data, timestamp: Date.now() };
     memoryCache.set(cacheKey, newData);
-    try { localStorage.setItem(cacheKey, JSON.stringify(newData)); } catch(e) {}
+    try { evictOldestCache(); localStorage.setItem(cacheKey, JSON.stringify(newData)); } catch(e) {}
   }
   return response;
 };
 
 export default api;
-

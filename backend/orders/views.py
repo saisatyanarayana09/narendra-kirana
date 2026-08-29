@@ -1,5 +1,7 @@
 from decimal import Decimal
+import logging
 from django.db import transaction
+from django.db.models import F
 from rest_framework import generics, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -14,6 +16,8 @@ from notifications.models import Notification
 import threading
 from .utils import send_order_confirmation_email, send_final_invoice_email
 
+logger = logging.getLogger(__name__)
+
 
 class OrderViewSet(ModelViewSet):
     serializer_class = OrderSerializer
@@ -21,7 +25,6 @@ class OrderViewSet(ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'head', 'options']
 
     def get_permissions(self):
-        print("ACTION CALLED:", self.action)
         if self.action == 'status':
             return [IsOwnerUser()]
         if self.action == 'create':
@@ -29,7 +32,7 @@ class OrderViewSet(ModelViewSet):
         return [IsAuthenticated()]
 
     def get_queryset(self):
-        queryset = Order.objects.select_related('customer').prefetch_related('items').all()
+        queryset = Order.objects.select_related('customer').prefetch_related('items__product').all()
         if self.request.user.is_owner:
             return queryset
         return queryset.filter(customer=self.request.user)
@@ -133,7 +136,7 @@ class OrderViewSet(ModelViewSet):
                         description="Used for order checkout"
                     )
             except Exception as e:
-                print("Wallet error:", e)
+                logger.error("Wallet error: %s", e)
 
         initial_status = Order.Status.ACCEPTED if settings.auto_accept_orders else Order.Status.NEW
 
@@ -161,7 +164,7 @@ class OrderViewSet(ModelViewSet):
                 from offers.models import PromoUsage
                 PromoUsage.objects.create(promo_code=cart.promo_code, user=request.user)
             except Exception as e:
-                print("Error recording promo usage:", e)
+                logger.error("Error recording promo usage: %s", e)
                 
         # Clear cart promo code after successful checkout
         cart.promo_code = None
@@ -258,7 +261,7 @@ class OrderViewSet(ModelViewSet):
                                 message=f"Your friend {order.customer.first_name} completed their first order. Click here to claim your reward!"
                             )
                 except Exception as e:
-                    print("Error processing referral reward:", str(e))
+                    logger.error("Error processing referral reward: %s", str(e))
                 
                 # Send final PDF invoice asynchronously
                 threading.Thread(target=send_final_invoice_email, args=(order,), daemon=True).start()
@@ -289,7 +292,7 @@ class OrderViewSet(ModelViewSet):
                             description=f"Refund for cancelled order #{order.id}"
                         )
                     except Exception as e:
-                        print("Error refunding wallet:", e)
+                        logger.error("Error refunding wallet: %s", e)
                         
                 Notification.objects.create(
                     user=order.customer,
@@ -346,7 +349,7 @@ class OrderViewSet(ModelViewSet):
                             description=f"Partial refund for rejected item in order #{order.id}"
                         )
                     except Exception as e:
-                        print("Error in partial refund:", e)
+                        logger.error("Error in partial refund: %s", e)
                         
             order.save(update_fields=['total_amount', 'wallet_discount', 'updated_at'])
             
@@ -378,7 +381,7 @@ class OrderViewSet(ModelViewSet):
                         order.wallet_discount = Decimal('0.00')
                         order.save(update_fields=['wallet_discount'])
                     except Exception as e:
-                        print("Error refunding wallet on full rejection:", e)
+                        logger.error("Error refunding wallet on full rejection: %s", e)
                 
                 Notification.objects.create(
                     user=order.customer,

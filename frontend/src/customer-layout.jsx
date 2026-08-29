@@ -24,22 +24,23 @@ function GlobalSearchBar() {
  }, []);
 
  useEffect(() => {
+ const controller = new AbortController();
  const timer = setTimeout(() => {
  if (query.trim().length > 1) {
  setLoading(true);
- api.get(`/products/?search=${encodeURIComponent(query)}`)
+ api.get(`/products/?search=${encodeURIComponent(query)}`, { signal: controller.signal })
  .then(res => {
  setResults(res.data.results?.slice(0, 5) || res.data?.slice(0, 5) || []);
  setIsOpen(true);
  })
- .catch(() => {})
+ .catch((err) => { if (err.name !== 'CanceledError' && err.code !== 'ERR_CANCELED') console.error(err); })
  .finally(() => setLoading(false));
  } else {
  setResults([]);
  setIsOpen(false);
  }
  }, 300);
- return () => clearTimeout(timer);
+ return () => { clearTimeout(timer); controller.abort(); };
  }, [query]);
 
  const handleSubmit = (e) => {
@@ -228,19 +229,6 @@ export function CustomerLayout({ children }) {
   const { cart, isCustomer, favorites, notifications } = useCart()
   const [showNotifications, setShowNotifications] = useState(false)
   const location = useLocation();
-  const [settings, setSettings] = useState(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await api.get('/store/settings/');
-        setSettings(res.data);
-      } catch (err) {
-        console.error('Failed to load flash announcements', err);
-      }
-    };
-    fetchData();
-  }, []);
 
  
  return (
