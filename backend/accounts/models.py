@@ -43,6 +43,8 @@ class Address(models.Model):
     country = models.CharField(max_length=100, default="India")
     zip_code = models.CharField(max_length=20, verbose_name="Pincode")
     is_default = models.BooleanField(default=False)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

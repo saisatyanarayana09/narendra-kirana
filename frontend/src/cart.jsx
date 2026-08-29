@@ -199,8 +199,19 @@ export function CheckoutPage() {
    const [selectedAddressId, setSelectedAddressId] = useState(null);
    const [showAddressForm, setShowAddressForm] = useState(false);
    const [editingAddressId, setEditingAddressId] = useState(null);
-   const [addressForm, setAddressForm] = useState({ title: 'Home', street: '', landmark: '', city: '', district: '', state: '', country: 'India', zip_code: '' });
+   const [addressForm, setAddressForm] = useState({ title: 'Home', street: '', landmark: '', city: '', district: '', state: '', country: 'India', zip_code: '', latitude: null, longitude: null });
    
+      const captureLocation = () => {
+     if (navigator.geolocation) {
+       navigator.geolocation.getCurrentPosition(
+         (pos) => setAddressForm({...addressForm, latitude: pos.coords.latitude, longitude: pos.coords.longitude}),
+         (err) => alert("Could not fetch location. Please ensure location services are enabled.")
+       );
+     } else {
+       alert("Geolocation is not supported by your browser.");
+     }
+   };
+
    const fetchAddresses = () => {
      api.get('/auth/addresses/').then(res => {
        const data = res.data.results || res.data;
@@ -267,7 +278,9 @@ export function CheckoutPage() {
       use_wallet: useWallet,
       order_type: orderType,
       delivery_address: deliveryAddress,
-      delivery_pincode: deliveryPincode
+      delivery_pincode: deliveryPincode,
+      delivery_latitude: selectedAddressId ? addresses.find(a => a.id === selectedAddressId)?.latitude : null,
+      delivery_longitude: selectedAddressId ? addresses.find(a => a.id === selectedAddressId)?.longitude : null
     }); 
     await refresh(); 
     navigate(`/orders/${response.data.id}`) 
@@ -313,7 +326,7 @@ export function CheckoutPage() {
       <div className="flex items-center justify-between mb-2">
         <label className="text-sm font-bold">Select Delivery Address</label>
         {!showAddressForm && (
-            <button onClick={() => { setAddressForm({ title: 'Home', street: '', landmark: '', city: '', district: '', state: '', country: 'India', zip_code: '' }); setEditingAddressId(null); setShowAddressForm(true); }} className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1">+ Add New</button>
+            <button onClick={() => { setAddressForm({ title: 'Home', street: '', landmark: '', city: '', district: '', state: '', country: 'India', zip_code: '', latitude: null, longitude: null }); setEditingAddressId(null); setShowAddressForm(true); }} className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1">+ Add New</button>
         )}
       </div>
 
@@ -323,6 +336,10 @@ export function CheckoutPage() {
             <h4 className="font-bold text-sm text-slate-900">{editingAddressId ? 'Edit Address' : 'New Address'}</h4>
             <button type="button" onClick={() => setShowAddressForm(false)} className="text-xs font-bold text-slate-500 hover:text-slate-700">Cancel</button>
           </div>
+          <button type="button" onClick={captureLocation} className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs py-2 rounded-lg flex items-center justify-center gap-1 transition-all border border-slate-200">
+            <MapPin size={14} className={addressForm.latitude ? "text-green-600" : "text-slate-500"} />
+            {addressForm.latitude ? "📍 Location Captured" : "📍 Capture My Exact Location"}
+          </button>
           <div className="grid grid-cols-2 gap-3">
              <div className="col-span-2">
                <input placeholder="Title (e.g. Home, Office)" value={addressForm.title} onChange={e => setAddressForm({...addressForm, title: e.target.value})} required className="w-full text-sm rounded-lg border p-2.5 outline-none focus:ring-2 focus:ring-indigo-500"/>

@@ -22,6 +22,11 @@ class CheckoutSerializer(serializers.Serializer):
     pickup_time = serializers.CharField(max_length=80, required=False, allow_blank=True)
     customer_note = serializers.CharField(required=False, allow_blank=True)
     use_wallet = serializers.BooleanField(default=False)
+    order_type = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    delivery_address = serializers.CharField(required=False, allow_blank=True)
+    delivery_pincode = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    delivery_latitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
+    delivery_longitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
 
 
 class OrderStatusSerializer(serializers.Serializer):

@@ -75,6 +75,8 @@ class OrderViewSet(ModelViewSet):
         order_type = checkout.validated_data.get('order_type', 'PICKUP')
         delivery_address = checkout.validated_data.get('delivery_address', '')
         delivery_pincode = checkout.validated_data.get('delivery_pincode', '').strip()
+        delivery_latitude = checkout.validated_data.get('delivery_latitude')
+        delivery_longitude = checkout.validated_data.get('delivery_longitude')
         delivery_fee = Decimal('0.00')
         
         if order_type == 'DELIVERY':
@@ -148,6 +150,8 @@ class OrderViewSet(ModelViewSet):
             order_type=order_type,
             delivery_address=delivery_address,
             delivery_pincode=delivery_pincode,
+            delivery_latitude=delivery_latitude,
+            delivery_longitude=delivery_longitude,
             delivery_fee=delivery_fee
         )
         

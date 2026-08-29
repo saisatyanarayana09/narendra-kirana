@@ -1,0 +1,122 @@
+export function CheckoutPage() {
+ const navigate = useNavigate(); const { cart, isCustomer, storeSettings, refresh } = useCart(); const [time, setTime] = useState('As soon as possible'); const [note, setNote] = useState(''); const [error, setError] = useState(''); const [loading, setLoading] = useState(false)
+ const [walletBalance, setWalletBalance] = useState(0); const [useWallet, setUseWallet] = useState(false);
+ const [orderType, setOrderType] = useState('PICKUP');
+ const [deliveryAddress, setDeliveryAddress] = useState('');
+ const [deliveryPincode, setDeliveryPincode] = useState('');
+ 
+ useEffect(() => {
+     if (isCustomer) {
+       api.get('/auth/wallet/').then(res => setWalletBalance(parseFloat(res.data.balance))).catch(console.error);
+       
+       // Auto-fill delivery address from customer's saved addresses
+       api.get('/auth/addresses/').then(res => {
+         const addresses = res.data.results || res.data;
+         if (addresses && addresses.length > 0) {
+           const defaultAddr = addresses.find(a => a.is_default) || addresses[0];
+           const formatted = [defaultAddr.street, defaultAddr.landmark, defaultAddr.city, defaultAddr.state].filter(Boolean).join(', ');
+           setDeliveryAddress(prev => prev || formatted); // only overwrite if currently empty
+           setDeliveryPincode(prev => prev || defaultAddr.zip_code || ''); // only overwrite if currently empty
+         }
+       }).catch(console.error);
+     }
+   }, [isCustomer]);
+
+ if (!isCustomer) return <CartPage />
+ 
+ async function submit() { 
+  if (orderType === 'DELIVERY') {
+    if (!deliveryAddress.trim()) { setError('Please enter a delivery address.'); return; }
+    if (!deliveryPincode.trim()) { setError('Please enter your pincode.'); return; }
+  }
+  setLoading(true); setError(''); 
+  try { 
+    const response = await api.post('/orders/', { 
+      pickup_time: time, 
+      customer_note: note, 
+      use_wallet: useWallet,
+      order_type: orderType,
+      delivery_address: deliveryAddress,
+      delivery_pincode: deliveryPincode
+    }); 
+    await refresh(); 
+    navigate(`/orders/${response.data.id}`) 
+  } catch (requestError) { 
+    setError(requestError.response?.data?.detail || 'Could not place your order.') 
+  } finally { 
+    setLoading(false) 
+  } 
+ }
+ 
+ const cartSubtotal = parseFloat(cart?.subtotal || 0);
+ let deliveryFee = 0;
+ if (orderType === 'DELIVERY' && storeSettings?.is_home_delivery_active) {
+   if (parseFloat(storeSettings.free_delivery_threshold) > 0 && cartSubtotal >= parseFloat(storeSettings.free_delivery_threshold)) {
+     deliveryFee = 0;
+   } else {
+     deliveryFee = parseFloat(storeSettings.delivery_fee || 0);
+   }
+ }
+ const cartTotal = parseFloat(cart?.total || 0) + deliveryFee;
+ const finalTotal = useWallet ? Math.max(0, cartTotal - walletBalance) : cartTotal;
+ const walletApplied = useWallet ? Math.min(cartTotal, walletBalance) : 0;
+
+ return <CustomerLayout><main className="mx-auto max-w-xl px-4 py-6"><button onClick={() => navigate(-1)} className="mb-4 flex items-center gap-2 text-sm font-bold text-primary-700 hover:underline"><ArrowLeft size={16} /> Back</button><h1 className="text-3xl font-extrabold">Checkout</h1><p className="mt-2 text-slate-600">Review your order and pick a time.</p>{error && <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}<div className="mt-5 rounded-xl bg-white p-5 shadow-sm">
+  
+  <div className="mb-6">
+    <label className="text-sm font-bold block mb-2">Order Type</label>
+    <div className="flex bg-slate-100 p-1 rounded-xl">
+      <button onClick={() => setOrderType('PICKUP')} className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${orderType === 'PICKUP' ? 'bg-white text-primary-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>🏪 Store Pickup</button>
+      <button 
+        onClick={() => storeSettings?.is_home_delivery_active ? setOrderType('DELIVERY') : null} 
+        className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${orderType === 'DELIVERY' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'} ${!storeSettings?.is_home_delivery_active ? 'opacity-50 cursor-not-allowed' : 'hover:text-slate-700'}`}
+      >
+        🛵 Home Delivery {!storeSettings?.is_home_delivery_active && '(Unavailable)'}
+      </button>
+    </div>
+  </div>
+
+  {orderType === 'PICKUP' ? (
+    <label className="text-sm font-bold block">Pickup time<select value={time} onChange={(event) => setTime(event.target.value)} className="mt-2 w-full rounded-lg border p-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"><option>As soon as possible</option><option>In 30 minutes</option><option>In 1 hour</option></select></label>
+  ) : (
+    <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+      <label className="text-sm font-bold block">Delivery Address<textarea value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} placeholder="House/Flat No, Street, Landmark..." className="mt-2 w-full rounded-lg border p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all resize-none h-20" required></textarea></label>
+      <label className="text-sm font-bold block">Pincode<input type="text" value={deliveryPincode} onChange={(e) => setDeliveryPincode(e.target.value)} placeholder="e.g. 530001" className="mt-2 w-full rounded-lg border p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" required/></label>
+      
+      {parseFloat(storeSettings?.min_delivery_order_amount) > 0 && parseFloat(cart?.subtotal) < parseFloat(storeSettings.min_delivery_order_amount) && (
+        <div className="p-3 bg-red-50 text-red-700 text-sm font-bold rounded-lg border border-red-100">
+          Home Delivery requires a minimum cart total of ₹{storeSettings.min_delivery_order_amount}.
+        </div>
+      )}
+    </div>
+  )}
+  <label className="mt-4 block text-sm font-bold">Note for the store (optional)<textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="E.g., Please pack fragile items carefully..." className="mt-2 w-full rounded-lg border p-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all resize-none h-16" /></label>
+ 
+ {walletBalance > 0 && (
+   <div className="mt-5 p-4 rounded-xl border border-emerald-200 bg-emerald-50 flex items-center justify-between">
+     <div>
+       <div className="font-bold text-emerald-800">Use Wallet Balance</div>
+       <div className="text-sm text-emerald-600">Available: ₹{walletBalance.toFixed(2)}</div>
+     </div>
+     <label className="relative inline-flex items-center cursor-pointer">
+       <input type="checkbox" className="sr-only peer" checked={useWallet} onChange={e => setUseWallet(e.target.checked)} />
+       <div className="w-11 h-6 bg-emerald-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-emerald-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+     </label>
+   </div>
+ )}
+
+ <div className="mt-5 space-y-2 text-sm text-slate-600 border-t pt-4"><div className="flex justify-between"><span>Subtotal</span><span>₹{cart?.subtotal || '0.00'}</span></div><div className="flex justify-between text-primary-700"><span>Product Savings</span><span>₹{cart?.discount || '0.00'}</span></div>{cart?.promo_discount > 0 && <div className="flex justify-between text-green-600 font-bold"><span>Promo Discount</span><span>- ₹{cart.promo_discount}</span></div>}{cart?.packaging_fee > 0 && <div className="flex justify-between"><span>Packaging Fee</span><span>₹{cart.packaging_fee}</span></div>}
+   {orderType === 'DELIVERY' && <div className="flex justify-between"><span>Delivery Fee</span><span className={deliveryFee === 0 ? 'text-green-600 font-bold' : ''}>{deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}</span></div>}
+ {useWallet && walletApplied > 0 && <div className="flex justify-between text-emerald-600 font-bold"><span>Wallet Applied</span><span>- ₹{walletApplied.toFixed(2)}</span></div>}
+ <div className="flex justify-between text-lg font-extrabold text-black pt-2"><span>Total Due</span><span>₹{finalTotal.toFixed(2)}</span></div></div>
+ {storeSettings?.is_open === false ? (
+ <div className="mt-5 rounded-xl bg-red-50 p-4 text-center font-bold text-red-700 border border-red-100">The store is currently closed. Cannot place order.</div>
+ ) : Number(storeSettings?.min_order_amount) > 0 && Number(cart.subtotal) < Number(storeSettings.min_order_amount) ? (
+ <div className="mt-5 rounded-xl bg-amber-50 p-4 text-center font-bold text-amber-700 border border-amber-100">Minimum order amount is ₹{storeSettings.min_order_amount}</div>
+ ) : (
+ <button onClick={submit} disabled={loading} className="mt-5 min-h-12 w-full rounded-xl bg-primary-600 font-bold text-white disabled:bg-slate-300 hover:bg-primary-700 active:scale-[0.98] transition-all">{loading ? 'Processing...' : (finalTotal > 0 ? 'Place order (Pay at store)' : 'Place order (Paid via Wallet)')}</button>
+ )}
+ </div></main></CustomerLayout>
+}
+
+export function OrderDetailPage

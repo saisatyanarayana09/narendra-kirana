@@ -37,6 +37,8 @@ class Order(models.Model):
     order_type = models.CharField(max_length=15, choices=[('PICKUP', 'Store Pickup'), ('DELIVERY', 'Home Delivery')], default='PICKUP')
     delivery_address = models.TextField(blank=True)
     delivery_pincode = models.CharField(max_length=20, blank=True)
+    delivery_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    delivery_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     delivery_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
