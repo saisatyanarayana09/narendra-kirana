@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     # Third-party apps
     'rest_framework',
     'rest_framework_simplejwt',
+    'drf_spectacular',
     'corsheaders',
     'django_filters',
     'cloudinary_storage',
@@ -189,6 +190,8 @@ CSRF_TRUSTED_ORIGINS = ['https://*.vercel.app', 'https://*.onrender.com']
 
 # ─── Django REST Framework ───
 REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
@@ -230,3 +233,11 @@ FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
 
 # Password Reset Link Expiration (10 minutes = 600 seconds)
 PASSWORD_RESET_TIMEOUT = 600
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Narendra Kirana API',
+    'DESCRIPTION': 'Complete backend API for the Narendra Kirana e-commerce platform.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+}
