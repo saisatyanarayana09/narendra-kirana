@@ -7,6 +7,7 @@ const Orders = () => {
  const [orders, setOrders] = useState([]);
  const [loading, setLoading] = useState(true);
  const [filter, setFilter] = useState('ALL'); // ALL, NEW, PREPARING, READY, COMPLETED
+ const [searchTerm, setSearchTerm] = useState('');
 
  const fetchOrders = async (isPoll = false) => {
  try {
@@ -37,7 +38,14 @@ const Orders = () => {
  return () => clearInterval(interval);
  }, []);
 
- const filteredOrders = orders.filter(order => filter === 'ALL' || order.status === filter);
+ const filteredOrders = orders.filter(order => {
+    const matchesStatus = filter === 'ALL' || order.status === filter;
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = !searchTerm || 
+      order.id.toLowerCase().includes(searchLower) || 
+      (order.customer_name && order.customer_name.toLowerCase().includes(searchLower));
+    return matchesStatus && matchesSearch;
+ });
 
  const getStatusColor = (status) => {
  switch (status) {
@@ -53,14 +61,26 @@ const Orders = () => {
 
  return (
  <div className="max-w-7xl mx-auto space-y-6">
- <div className="flex justify-between items-center">
+ <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
  <div>
  <h1 className="text-2xl font-bold text-gray-900">Orders Management</h1>
  <p className="text-sm text-gray-500 mt-1">Manage and pack customer orders</p>
  </div>
- <button onClick={fetchOrders} className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 text-sm font-medium shadow-sm transition">
- Refresh
- </button>
+ <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+   <div className="relative">
+     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+     <input 
+       type="text" 
+       placeholder="Search by ID or Name..." 
+       value={searchTerm}
+       onChange={(e) => setSearchTerm(e.target.value)}
+       className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm w-full sm:w-64 transition-all shadow-sm"
+     />
+   </div>
+   <button onClick={fetchOrders} className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 text-sm font-medium shadow-sm transition whitespace-nowrap">
+   Refresh
+   </button>
+ </div>
  </div>
 
  {/* Tabs */}
@@ -86,7 +106,20 @@ const Orders = () => {
  {/* Orders List */}
  <div className="space-y-4">
  {loading && orders.length === 0 ? (
- <div className="p-12 text-center font-medium text-slate-500 bg-white rounded-2xl border border-slate-100 shadow-sm">Loading orders...</div>
+ <div className="space-y-4">
+   {[1, 2, 3].map(i => (
+     <div key={i} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-pulse">
+       <div className="flex items-start sm:items-center gap-4 w-full">
+         <div className="w-12 h-12 bg-slate-200 rounded-xl flex-shrink-0"></div>
+         <div className="space-y-2 w-full">
+           <div className="h-5 bg-slate-200 rounded w-1/3"></div>
+           <div className="h-4 bg-slate-200 rounded w-1/2"></div>
+         </div>
+       </div>
+       <div className="w-full sm:w-32 h-10 bg-slate-200 rounded-xl flex-shrink-0"></div>
+     </div>
+   ))}
+ </div>
  ) : filteredOrders.length === 0 ? (
  <div className="py-16 px-4 text-center flex flex-col items-center justify-center bg-white rounded-2xl border border-dashed border-slate-200">
  <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">

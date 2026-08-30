@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from 'html5-qrcode';
-import { Plus, Edit2, Trash2, X, Image as ImageIcon, Package, GripVertical, Camera, Sparkles, Wand2, FileText, ScanLine } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Image as ImageIcon, Package, GripVertical, Camera, Sparkles, Wand2, FileText, ScanLine, Search } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
@@ -13,10 +13,10 @@ const Products = () => {
  const [categories, setCategories] = useState([]);
  const [loading, setLoading] = useState(true);
  const [isScanning, setIsScanning] = useState(false);
- 
+ const [searchTerm, setSearchTerm] = useState('');
  
  const [isFormOpen, setIsFormOpen] = useState(false);
-   const [showScanner, setShowScanner] = useState(false);
+ const [showScanner, setShowScanner] = useState(false);
  const [editingId, setEditingId] = useState(null);
  const [formData, setFormData] = useState({
  name: '', category: '', brand: '', description: '', unit: '',
@@ -24,6 +24,16 @@ const Products = () => {
  stock_quantity: 0, sku: '', cost_price: '', expiry_date: '', tags: '',
  max_order_quantity: 10, image: null, gallery_images: [], imageBack: null
  });
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isFormOpen) {
+        closeForm();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFormOpen]);
 
  const fetchData = async () => {
  try {
@@ -254,20 +264,41 @@ const Products = () => {
  } catch { toast.error('Failed to save order'); fetchData(); }
  };
 
- if (loading && products.length === 0) return <div className="p-4">Loading products...</div>;
+ const filteredProducts = products.filter(product => {
+    if (!searchTerm) return true;
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      product.name.toLowerCase().includes(searchLower) ||
+      (product.sku && product.sku.toLowerCase().includes(searchLower)) ||
+      (product.brand && product.brand.toLowerCase().includes(searchLower)) ||
+      (product.category_name && product.category_name.toLowerCase().includes(searchLower))
+    );
+  });
 
  return (
  <div className="max-w-7xl mx-auto space-y-6">
-   <div className="flex justify-between items-center">
-   <h1 className="text-2xl font-bold text-gray-900">Products</h1>
-   <div className="flex gap-2">
-     <button onClick={() => setIsScanning(true)} className="flex items-center px-4 py-2 bg-emerald-100 text-emerald-700 font-bold rounded-xl hover:bg-emerald-200 transition shadow-sm">
-       <ScanLine className="w-5 h-5 sm:mr-2"/><span className="hidden sm:inline">Scan Barcode</span>
-     </button>
-     <button onClick={() => openForm()} className="flex items-center px-4 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow-sm">
-       <Plus className="w-5 h-5 sm:mr-2"/><span className="hidden sm:inline">Add Product</span>
-     </button>
-   </div>
+   <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+     <h1 className="text-2xl font-bold text-gray-900">Products</h1>
+     <div className="flex flex-col sm:flex-row gap-2">
+       <div className="relative">
+         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+         <input 
+           type="text" 
+           placeholder="Search products..." 
+           value={searchTerm}
+           onChange={(e) => setSearchTerm(e.target.value)}
+           className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm w-full sm:w-64 transition-all shadow-sm"
+         />
+       </div>
+       <div className="flex gap-2">
+         <button onClick={() => setIsScanning(true)} className="flex items-center px-4 py-2 bg-emerald-100 text-emerald-700 font-bold rounded-xl hover:bg-emerald-200 transition shadow-sm whitespace-nowrap">
+           <ScanLine className="w-5 h-5 sm:mr-2"/><span className="hidden sm:inline">Scan</span>
+         </button>
+         <button onClick={() => openForm()} className="flex items-center px-4 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow-sm whitespace-nowrap">
+           <Plus className="w-5 h-5 sm:mr-2"/><span className="hidden sm:inline">Add</span>
+         </button>
+       </div>
+     </div>
    </div>
 
  {isFormOpen && createPortal(
@@ -408,13 +439,39 @@ const Products = () => {
  , document.body)}
 
  {/* Products List */}
- {products.length > 0 ? (
+ {loading && products.length === 0 ? (
+   <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden divide-y divide-slate-100">
+     {[1, 2, 3, 4, 5].map(i => (
+       <div key={i} className="p-4 sm:p-5 flex flex-col sm:flex-row gap-4 sm:items-center justify-between animate-pulse">
+         <div className="flex items-center gap-4 flex-1">
+           <div className="w-5 h-5 bg-slate-200 rounded"></div>
+           <div className="w-16 h-16 sm:w-20 sm:h-20 bg-slate-200 rounded-xl flex-shrink-0"></div>
+           <div className="space-y-2 flex-1">
+             <div className="flex gap-2">
+               <div className="w-16 h-4 bg-slate-200 rounded"></div>
+               <div className="w-12 h-4 bg-slate-200 rounded"></div>
+             </div>
+             <div className="w-1/2 h-5 bg-slate-200 rounded"></div>
+             <div className="w-1/3 h-4 bg-slate-200 rounded"></div>
+           </div>
+         </div>
+         <div className="flex items-center justify-between sm:justify-end gap-6 sm:w-64 flex-shrink-0 pt-3 sm:pt-0">
+           <div className="w-16 h-6 bg-slate-200 rounded"></div>
+           <div className="flex space-x-2">
+             <div className="w-16 h-8 bg-slate-200 rounded-xl"></div>
+             <div className="w-9 h-8 bg-slate-200 rounded-xl"></div>
+           </div>
+         </div>
+       </div>
+     ))}
+   </div>
+ ) : filteredProducts.length > 0 ? (
  <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
  <DragDropContext onDragEnd={onDragEnd}>
  <Droppable droppableId="products">
  {(provided) => (
  <div className="divide-y divide-slate-100" {...provided.droppableProps} ref={provided.innerRef}>
- {products.map((product, index) => (
+ {filteredProducts.map((product, index) => (
  <Draggable key={product.id} draggableId={product.id.toString()} index={index}>
  {(provided, snapshot) => (
  <div
