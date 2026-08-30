@@ -22,7 +22,9 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
-    const interval = setInterval(fetchDashboardData, 60000);
+    const interval = setInterval(() => {
+      if (!document.hidden) fetchDashboardData();
+    }, 60000);
     return () => clearInterval(interval);
   }, []);
 

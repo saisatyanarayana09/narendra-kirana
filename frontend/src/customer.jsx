@@ -498,8 +498,9 @@ export function HomePage() {
     
 
     // Poll every 30s for Live Broadcasts & Out of Stock updates
-
-    const intervalId = setInterval(fetchAll, 30000);
+    const intervalId = setInterval(() => {
+      if (!document.hidden) fetchAll();
+    }, 30000);
 
     return () => clearInterval(intervalId);
 
