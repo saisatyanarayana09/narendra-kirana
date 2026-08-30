@@ -40,19 +40,30 @@ class GoogleOwnerLoginView(APIView):
 
     def post(self, request):
         token = request.data.get('credential')
+        token_type = request.data.get('token_type', 'id_token')
+        
         if not token:
             return Response({'detail': 'No credential provided'}, status=400)
             
         try:
-            client_id = os.getenv('GOOGLE_CLIENT_ID')
-            # If CLIENT_ID is not set in env yet, we verify without enforcing audience
-            if client_id:
-                idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), client_id)
+            email = None
+            if token_type == 'access_token':
+                import requests
+                response = requests.get(
+                    'https://www.googleapis.com/oauth2/v3/userinfo',
+                    headers={'Authorization': f'Bearer {token}'}
+                )
+                if not response.ok:
+                    return Response({'detail': 'Invalid Google access token.'}, status=400)
+                email = response.json().get('email')
             else:
-                # Fallback for development if env is not set yet
-                idinfo = id_token.verify_oauth2_token(token, google_requests.Request())
+                client_id = os.getenv('GOOGLE_CLIENT_ID')
+                if client_id:
+                    idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), client_id)
+                else:
+                    idinfo = id_token.verify_oauth2_token(token, google_requests.Request())
+                email = idinfo.get('email')
 
-            email = idinfo.get('email')
             if not email:
                 return Response({'detail': 'Google account has no email.'}, status=400)
                 
