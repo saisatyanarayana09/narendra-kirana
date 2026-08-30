@@ -78,27 +78,44 @@ const OwnerLogin = () => {
   </div>
 
   <div className="space-y-4">
- <div>
- <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
- <input 
- required 
- type="text"
- value={form.username} 
- onChange={(e) => setForm({ ...form, username: e.target.value })} 
- className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
- />
- </div>
- <div>
- <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
- <input 
- required 
- type="password"
- value={form.password} 
- onChange={(e) => setForm({ ...form, password: e.target.value })} 
- className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
- />
- </div>
- </div>
+    <div>
+      <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+      <input 
+        id="username"
+        required 
+        type="text"
+        value={form.username} 
+        onChange={(e) => setForm({ ...form, username: e.target.value })} 
+        className={`w-full rounded-xl border px-4 py-3 outline-none focus:ring-2 transition-colors ${error ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500'}`}
+      />
+    </div>
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
+        <Link to="/forgot-password" className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+          Forgot password?
+        </Link>
+      </div>
+      <div className="relative">
+        <input 
+          id="password"
+          required 
+          type={showPassword ? "text" : "password"}
+          value={form.password} 
+          onChange={(e) => setForm({ ...form, password: e.target.value })} 
+          className={`w-full rounded-xl border px-4 py-3 pr-12 outline-none focus:ring-2 transition-colors ${error ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500'}`}
+        />
+        <button
+          type="button"
+          onClick={() => setShowPassword(!showPassword)}
+          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 focus:outline-none rounded-md hover:bg-gray-100 transition-colors"
+          title={showPassword ? "Hide password" : "Show password"}
+        >
+          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+        </button>
+      </div>
+    </div>
+  </div>
 
  <button 
  disabled={submitting} 

@@ -175,9 +175,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'accounts.User'
 
 # ─── CORS ───
-# Allow all origins to prevent Vercel/Render CORS preflight failures. 
-# Authentication is handled by JWT, so this is safe.
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+frontend_url = os.environ.get('FRONTEND_URL', '').rstrip('/')
+if frontend_url and frontend_url not in CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS.append(frontend_url)
 CSRF_TRUSTED_ORIGINS = ['https://*.vercel.app', 'https://*.onrender.com']
 
 # ─── Django REST Framework ───
