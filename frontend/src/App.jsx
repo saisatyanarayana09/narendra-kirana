@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { BrowserRouter, Navigate, Route, Routes, Outlet } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, Outlet, useLocation } from 'react-router-dom';
 import { CartProvider } from './cart-context';
 import { Toaster } from 'react-hot-toast';
 import { WifiOff } from 'lucide-react';
@@ -52,11 +52,12 @@ const Showcase = React.lazy(() => import('./owner/pages/Showcase'));
 const ownerToken = () => localStorage.getItem('smart-kirana-owner-token'); // updated to use access_token from our api.js interceptor
 
 function Guard({ children }) {
+  const location = useLocation();
   // Bypass auth check when running under Cypress tests
   if (typeof window !== 'undefined' && window.Cypress) {
     return children;
   }
-  return ownerToken() ? children : <Navigate to="/owner/login" replace />;
+  return ownerToken() ? children : <Navigate to="/owner/login" state={{ from: location }} replace />;
 }
 
 function CustomerApp() {
