@@ -56,14 +56,10 @@ class GoogleOwnerLoginView(APIView):
             if not email:
                 return Response({'detail': 'Google account has no email.'}, status=400)
                 
-            # Check if user exists and is owner
-            try:
-                user = User.objects.get(email=email)
-            except User.DoesNotExist:
+            # Check if user exists and is owner (handle cases where they might have a customer account too)
+            user = User.objects.filter(email=email, is_owner=True).first()
+            if not user:
                 return Response({'detail': f'No owner account found for {email}.'}, status=403)
-                
-            if not user.is_owner:
-                return Response({'detail': 'This account does not have owner access.'}, status=403)
                 
             refresh = RefreshToken.for_user(user)
             
