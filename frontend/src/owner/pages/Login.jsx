@@ -4,7 +4,7 @@ import api from '../../services/api';
 import { Eye, EyeOff, Loader2, Store } from 'lucide-react';
 import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
 
-const OwnerLogin = () => {
+const OwnerLoginForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [form, setForm] = useState({ username: localStorage.getItem('smart-kirana-owner-username') || '', password: '' });
@@ -60,7 +60,7 @@ const OwnerLogin = () => {
   });
 
   return (
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || 'dummy-client-id'}>
+    
       <main className="min-h-screen flex bg-white">
         {/* Left Side: Form */}
         <div className="flex-1 flex items-center justify-center p-4 sm:p-8 lg:p-12">
@@ -191,6 +191,15 @@ const OwnerLogin = () => {
           </div>
         </div>
       </main>
+    
+  );
+};
+
+
+const OwnerLogin = () => {
+  return (
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || 'dummy-client-id'}>
+      <OwnerLoginForm />
     </GoogleOAuthProvider>
   );
 };
