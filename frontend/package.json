@@ -12,6 +12,7 @@
   "dependencies": {
     "@gsap/react": "^2.1.2",
     "@hello-pangea/dnd": "^18.0.1",
+    "@react-oauth/google": "^0.13.5",
     "@zxing/browser": "^0.2.1",
     "@zxing/library": "^0.23.0",
     "autoprefixer": "^10.5.4",

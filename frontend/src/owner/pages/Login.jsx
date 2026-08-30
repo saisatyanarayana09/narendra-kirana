@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../../services/api';
 import { Eye, EyeOff } from 'lucide-react';
-
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 const OwnerLogin = () => {
  const navigate = useNavigate();
  const [form, setForm] = useState({ username: '', password: '' });
@@ -28,24 +28,56 @@ const OwnerLogin = () => {
  }
  };
 
- return (
- <main className="grid min-h-screen place-items-center bg-gray-50 p-4">
- <form onSubmit={submit} className="w-full max-w-md rounded-2xl bg-white p-8 shadow-sm border border-gray-100">
- <div className="text-center mb-8">
- <p className="text-sm font-black tracking-[0.2em] uppercase drop-shadow-sm mb-1">
- <span className="text-emerald-900">NARENDRA</span> <span className="text-primary-600">KIRANA</span>
- </p>
- <h1 className="text-2xl font-bold text-gray-900">Owner Portal</h1>
- <p className="text-sm text-gray-500 mt-2">Sign in to manage your store.</p>
- </div>
- 
- {error && (
- <div className="mb-6 p-4 rounded-xl bg-red-50 text-sm text-red-700 border border-red-100">
- {error}
- </div>
- )}
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setError('');
+    setSubmitting(true);
+    try {
+      const { data } = await api.post('/auth/google-login/', { credential: credentialResponse.credential });
+      localStorage.setItem('smart-kirana-owner-token', data.access);
+      localStorage.setItem('smart-kirana-owner-refresh', data.refresh);
+      localStorage.setItem('smart-kirana-owner-user', JSON.stringify(data.user));
+      navigate('/owner/welcome');
+    } catch (requestError) {
+      setError(requestError.response?.data?.detail || 'Unable to sign in with Google.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
- <div className="space-y-4">
+  return (
+  <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || 'dummy-client-id'}>
+  <main className="grid min-h-screen place-items-center bg-gray-50 p-4">
+  <form onSubmit={submit} className="w-full max-w-md rounded-2xl bg-white p-8 shadow-sm border border-gray-100">
+  <div className="text-center mb-8">
+  <p className="text-sm font-black tracking-[0.2em] uppercase drop-shadow-sm mb-1">
+  <span className="text-emerald-900">NARENDRA</span> <span className="text-primary-600">KIRANA</span>
+  </p>
+  <h1 className="text-2xl font-bold text-gray-900">Owner Portal</h1>
+  <p className="text-sm text-gray-500 mt-2">Sign in to manage your store.</p>
+  </div>
+  
+  {error && (
+  <div className="mb-6 p-4 rounded-xl bg-red-50 text-sm text-red-700 border border-red-100">
+  {error}
+  </div>
+  )}
+
+  <div className="mb-6 flex justify-center">
+    <GoogleLogin
+      onSuccess={handleGoogleSuccess}
+      onError={() => {
+        setError('Google Sign-In failed or was cancelled.');
+      }}
+      useOneTap
+    />
+  </div>
+
+  <div className="relative flex items-center justify-center mb-6">
+    <span className="absolute bg-white px-2 text-sm text-gray-400">or sign in with password</span>
+    <div className="w-full border-t border-gray-200"></div>
+  </div>
+
+  <div className="space-y-4">
  <div>
  <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
  <input 
@@ -76,6 +108,7 @@ const OwnerLogin = () => {
  </button>
  </form>
  </main>
+ </GoogleOAuthProvider>
  );
 };
 

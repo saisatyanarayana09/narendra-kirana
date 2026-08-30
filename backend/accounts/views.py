@@ -27,6 +27,57 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
     throttle_classes = [AnonRateThrottle]
 
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
+import os
+
+class GoogleOwnerLoginView(APIView):
+    permission_classes = (AllowAny,)
+    throttle_classes = [AnonRateThrottle]
+
+    def post(self, request):
+        token = request.data.get('credential')
+        if not token:
+            return Response({'detail': 'No credential provided'}, status=400)
+            
+        try:
+            client_id = os.getenv('GOOGLE_CLIENT_ID')
+            # If CLIENT_ID is not set in env yet, we verify without enforcing audience
+            if client_id:
+                idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), client_id)
+            else:
+                # Fallback for development if env is not set yet
+                idinfo = id_token.verify_oauth2_token(token, google_requests.Request())
+
+            email = idinfo.get('email')
+            if not email:
+                return Response({'detail': 'Google account has no email.'}, status=400)
+                
+            # Check if user exists and is owner
+            try:
+                user = User.objects.get(email=email)
+            except User.DoesNotExist:
+                return Response({'detail': f'No owner account found for {email}.'}, status=403)
+                
+            if not user.is_owner:
+                return Response({'detail': 'This account does not have owner access.'}, status=403)
+                
+            refresh = RefreshToken.for_user(user)
+            
+            return Response({
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+                'user': UserSerializer(user).data
+            })
+            
+        except ValueError:
+            return Response({'detail': 'Invalid Google token.'}, status=400)
+        except Exception as e:
+            return Response({'detail': str(e)}, status=500)
+
 class ProfileView(generics.RetrieveUpdateAPIView):
     permission_classes = (IsAuthenticated,)
     serializer_class = UserSerializer
