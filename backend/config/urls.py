@@ -7,7 +7,7 @@ from store.views import BackendHealthView, BackendMonitorPageView
 urlpatterns = [
     path('', BackendMonitorPageView.as_view(), name='backend-monitor'),
     path('health/', BackendHealthView.as_view(), name='backend-health'),
-    path('admin/', admin.site.urls),
+    path('narendra_secure_vault_99/', admin.site.urls),
     path('api/v1/auth/', include('accounts.urls')),
     path('api/v1/', include('products.urls')),
     path('api/v1/cart/', include('cart.urls')),

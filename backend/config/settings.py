@@ -10,7 +10,7 @@ load_dotenv(BASE_DIR / '.env')
 # ─── Environment Detection ───
 # Set DJANGO_ENV=production on PythonAnywhere
 ENVIRONMENT = os.environ.get('DJANGO_ENV', 'development')
-IS_PRODUCTION = ENVIRONMENT == 'production'
+IS_PRODUCTION = ENVIRONMENT == 'production' or os.environ.get('RENDER') is not None
 
 # ─── Security ───
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-local-development-only-change-me')
