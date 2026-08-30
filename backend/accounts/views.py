@@ -358,7 +358,7 @@ def admin_google_login(request):
             
             if user and (user.is_staff or user.is_superuser):
                 login(request, user)
-                return redirect('/narendra_secure_vault_99/')
+                return redirect('/')
             else:
                 return redirect('/narendra_secure_vault_99/login/?error=unauthorized')
         except Exception as e:
