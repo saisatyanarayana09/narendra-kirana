@@ -7,7 +7,7 @@ import api from '../../services/api';
 import ImageCropper from '../components/ImageCropper';
 import BarcodeScanner from '../../components/BarcodeScanner';
 import { createPortal } from 'react-dom';
-
+import { compressImage } from '../../utils/compress';
 const Products = () => {
  const [products, setProducts] = useState([]);
  const [categories, setCategories] = useState([]);
@@ -192,24 +192,31 @@ const Products = () => {
  const handleSubmit = async (e) => {
  e.preventDefault();
  const data = new FormData();
- Object.keys(formData).forEach(key => {
- if (key === 'image') {
- if (formData.image instanceof File || formData.image instanceof Blob) {
- data.append(key, formData.image, formData.image?.name || 'product.jpg');
- }
- } else if (formData[key] !== null && formData[key] !== '') {
- data.append(key, formData[key]);
- }
- });
+
+ const toastId = toast.loading('Processing images...');
+
  try {
- 
-     if (formData.gallery_images) {
-       formData.gallery_images.forEach(file => {
-         if (file instanceof File || file instanceof Blob) {
-           data.append('gallery_images', file, file.name);
-         }
-       });
+   if (formData.image instanceof File || formData.image instanceof Blob) {
+     const compressedImg = await compressImage(formData.image);
+     data.append('image', compressedImg, formData.image?.name || 'product.jpg');
+   }
+
+   Object.keys(formData).forEach(key => {
+     if (key !== 'image' && key !== 'gallery_images' && formData[key] !== null && formData[key] !== '') {
+       data.append(key, formData[key]);
      }
+   });
+
+   if (formData.gallery_images && formData.gallery_images.length > 0) {
+     for (const file of formData.gallery_images) {
+       if (file instanceof File || file instanceof Blob) {
+         const compressedGalleryImg = await compressImage(file);
+         data.append('gallery_images', compressedGalleryImg, file.name);
+       }
+     }
+   }
+
+   toast.loading('Uploading...', { id: toastId });
  const savePromise = editingId
  ? api.patch(`/products/${editingId}/`, data)
  : api.post('/products/', data);

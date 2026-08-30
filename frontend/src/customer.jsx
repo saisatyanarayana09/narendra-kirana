@@ -844,46 +844,44 @@ export function ProductsPage() {
   const initProducts = readCacheSync('/products/', { params });
   const [products, setProducts] = useState(initProducts ? (initProducts.results || initProducts) : []);
   const [loading, setLoading] = useState(() => !initProducts);
+  const [nextPage, setNextPage] = useState(initProducts ? initProducts.next : null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
+  useEffect(() => {
+    api.get('/categories/').then(res => setCategories(unpack(res))).catch(console.error);
+  }, []);
 
+  useEffect(() => {
+    let loadingTimeout = setTimeout(() => setLoading(true), 50);
+    const params = {};
+    if (query) params.search = query;
+    if (category) params.category = category;
+    
+    const timer = setTimeout(() => {
+      api.get('/products/', { params })
+         .then(res => { 
+           clearTimeout(loadingTimeout); 
+           setProducts(res.data.results || res.data || []); 
+           setNextPage(res.data.next || null);
+           setError(''); 
+         })
+         .catch(() => setError('Could not load products.'))
+         .finally(() => { clearTimeout(loadingTimeout); setLoading(false); });
+    }, query ? 300 : 0);
+    return () => { clearTimeout(timer); clearTimeout(loadingTimeout); };
+  }, [query, category]);
 
-    useEffect(() => {
-
-      api.get('/categories/').then(res => setCategories(unpack(res))).catch(console.error);
-
-    }, []);
-
-
-
-    useEffect(() => {
-
-      let loadingTimeout = setTimeout(() => setLoading(true), 50);
-
-      const params = {};
-
-      if (query) params.search = query;
-
-      if (category) params.category = category;
-
-      
-
-      const timer = setTimeout(() => {
-
-        api.get('/products/', { params })
-
-           .then(res => { clearTimeout(loadingTimeout); setProducts(unpack(res)); setError(''); })
-
-           .catch(() => setError('Could not load products.'))
-
-           .finally(() => { clearTimeout(loadingTimeout); setLoading(false); });
-
-      }, query ? 300 : 0);
-
-
-
-      return () => { clearTimeout(timer); clearTimeout(loadingTimeout); };
-
-    }, [query, category]);
+  const loadMore = () => {
+    if (!nextPage || loadingMore) return;
+    setLoadingMore(true);
+    api.get(nextPage)
+      .then(res => {
+        setProducts(prev => [...prev, ...(res.data.results || [])]);
+        setNextPage(res.data.next || null);
+      })
+      .catch(console.error)
+      .finally(() => setLoadingMore(false));
+  };
 
   function updateSearch(value) { const next = new URLSearchParams(searchParams); if (value) next.set('search', value); else next.delete('search'); setSearchParams(next) }
 
@@ -954,6 +952,18 @@ export function ProductsPage() {
         {loading ? Array.from({length: 8}).map((_, i) => <ProductSkeleton key={i} />) : sortedProducts.map((product) => <ProductCard key={product.id} product={product} />)}
 
       </div>
+      
+      {nextPage && (
+        <div className="flex justify-center mt-8 pb-6">
+          <button 
+            onClick={loadMore} 
+            disabled={loadingMore} 
+            className="bg-slate-900 text-white hover:bg-black transition-colors px-8 py-3 rounded-xl font-bold shadow-sm disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center min-w-[200px]"
+          >
+            {loadingMore ? 'Loading more products...' : 'Load More'}
+          </button>
+        </div>
+      )}
 
     </main>
 
