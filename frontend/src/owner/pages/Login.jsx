@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import api from '../../services/api';
 import { Eye, EyeOff, Loader2, Store } from 'lucide-react';
@@ -100,7 +100,7 @@ const OwnerLogin = () => {
                     type="text"
                     value={form.username} 
                     onChange={(e) => setForm({ ...form, username: e.target.value })} 
-                    className={\w-full rounded-xl border px-4 py-3.5 bg-slate-50 outline-none focus:bg-white focus:ring-2 transition-all shadow-sm \\}
+                    className={`w-full rounded-xl border px-4 py-3.5 bg-slate-50 outline-none focus:bg-white focus:ring-2 transition-all shadow-sm ${error ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-slate-200 focus:ring-indigo-500 focus:border-indigo-500'}`}
                   />
                 </div>
                 <div>
@@ -117,7 +117,7 @@ const OwnerLogin = () => {
                       type={showPassword ? "text" : "password"}
                       value={form.password} 
                       onChange={(e) => setForm({ ...form, password: e.target.value })} 
-                      className={\w-full rounded-xl border px-4 py-3.5 bg-slate-50 pr-12 outline-none focus:bg-white focus:ring-2 transition-all shadow-sm \\}
+                      className={`w-full rounded-xl border px-4 py-3.5 bg-slate-50 pr-12 outline-none focus:bg-white focus:ring-2 transition-all shadow-sm ${error ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-slate-200 focus:ring-indigo-500 focus:border-indigo-500'}`}
                     />
                     <button
                       type="button"
