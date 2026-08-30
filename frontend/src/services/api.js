@@ -146,4 +146,21 @@ api.get = async (url, config = {}) => {
   return response;
 };
 
+export const readCacheSync = (url, config = {}) => {
+  const safeUrl = url || '';
+  let queryString = '';
+  if (config && config.params && Object.keys(config.params).length > 0) {
+    queryString = '?' + new URLSearchParams(config.params).toString();
+  }
+  const cacheKey = 'sk_cache_' + safeUrl + queryString;
+  let cachedData = memoryCache.get(cacheKey);
+  if (!cachedData) {
+    try {
+      const stored = localStorage.getItem(cacheKey);
+      if (stored) cachedData = JSON.parse(stored);
+    } catch (e) { /* ignore */ }
+  }
+  return cachedData ? cachedData.data : null;
+};
+
 export default api;

@@ -8,7 +8,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import { ChevronRight, Search, X, Heart, ArrowLeft, ShoppingCart, Sparkles, Zap, Star, Megaphone } from 'lucide-react'
 
-import api from './services/api'
+import api, { readCacheSync } from './services/api'
 
 import { CustomerLayout } from './customer-layout'
 
@@ -439,16 +439,27 @@ function BannerCarousel({ banners }) {
 
 export function HomePage() {
 
-    const [categories, setCategories] = useState([]);
+    const initCats = readCacheSync('/categories/');
+  const [categories, setCategories] = useState(initCats ? (initCats.results || initCats) : []);
 
-  const [banners, setBanners] = useState([]);
+  const initBanners = readCacheSync('/offers/banners/');
+  const [banners, setBanners] = useState(initBanners ? (initBanners.results || initBanners) : []);
 
-  const [settings, setSettings] = useState(null);
+  const initSettings = readCacheSync('/store/settings/');
+  const [settings, setSettings] = useState(initSettings || null);
 
-  const [sections, setSections] = useState([]);
+  const initSectionsRaw = readCacheSync('/store/homepage-sections/');
+  const [sections, setSections] = useState(() => {
+    if (!initSectionsRaw) return [];
+    const d = initSectionsRaw.results || initSectionsRaw || [];
+    const mapped = d.map(sec => ({
+      ...sec,
+      items: (sec.section_products || []).sort((a, b) => a.position - b.position).map(sp => sp.product_details)
+    }));
+    return mapped.filter(s => s.is_active).sort((a, b) => a.display_order - b.display_order);
+  });
 
-  const [loading, setLoading] = useState(true);
-
+  const [loading, setLoading] = useState(() => !initCats || !initBanners || !initSectionsRaw);
   const [error, setError] = useState('');
 
 
@@ -707,9 +718,9 @@ export function CategoriesPage() {
 
  const navigate = useNavigate();
 
- const [categories, setCategories] = useState([]);
-
- const [loading, setLoading] = useState(true);
+ const initCats = readCacheSync('/categories/');
+ const [categories, setCategories] = useState(initCats ? (initCats.results || initCats) : []);
+ const [loading, setLoading] = useState(() => !initCats);
 
 
 
@@ -817,7 +828,22 @@ export function CategoriesPage() {
 
 export function ProductsPage() {
 
-  const [searchParams, setSearchParams] = useSearchParams(); const [products, setProducts] = useState([]); const [categories, setCategories] = useState([]); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [sortOption, setSortOption] = useState('default'); const query = searchParams.get('search') || ''; const category = searchParams.get('category') || ''
+  const [searchParams, setSearchParams] = useSearchParams(); 
+  const query = searchParams.get('search') || ''; 
+  const category = searchParams.get('category') || '';
+  const [sortOption, setSortOption] = useState('default'); 
+  const [error, setError] = useState(''); 
+
+  const params = {};
+  if (query) params.search = query;
+  if (category) params.category = category;
+
+  const initCats = readCacheSync('/categories/');
+  const [categories, setCategories] = useState(initCats ? (initCats.results || initCats) : []);
+
+  const initProducts = readCacheSync('/products/', { params });
+  const [products, setProducts] = useState(initProducts ? (initProducts.results || initProducts) : []);
+  const [loading, setLoading] = useState(() => !initProducts);
 
 
 
