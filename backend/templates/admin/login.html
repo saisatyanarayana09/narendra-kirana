@@ -46,8 +46,8 @@
             </div>
             
             <div id="g_id_onload"
-                 data-client_id="{{ request.META.GOOGLE_CLIENT_ID|default:'' }}"
-                 data-login_uri="/api/v1/auth/admin-google-login/"
+                 data-client_id=""
+                 data-callback="handleCredentialResponse"
                  data-auto_prompt="false">
             </div>
             
@@ -88,12 +88,15 @@
         </div>
     </div>
     
-    <!-- If GOOGLE_CLIENT_ID is available in context, it will render correctly. 
-         But in Django Admin login context, we don't have it directly. 
-         We'll fetch it using JS or assume it's hardcoded if missing. -->
     <script>
-        // Set the actual client ID since Django admin login context doesn't have it
-        // Note: The frontend client ID can safely be public.
+        // Set the actual client ID
+        const clientId = "729937153109-6e8fivp20b3ri2qsah1d6u2a7oi0uls6.apps.googleusercontent.com";
+        document.getElementById('g_id_onload').setAttribute('data-client_id', clientId);
+
+        function handleCredentialResponse(response) {
+            document.getElementById('custom_credential_input').value = response.credential;
+            document.getElementById('customGoogleForm').submit();
+        }
         
         const urlParams = new URLSearchParams(window.location.search);
         const error = urlParams.get('error');
@@ -103,9 +106,6 @@
             errorDiv.innerText = 'Login Failed: ' + error.replace(/_/g, ' ');
             document.querySelector('form').before(errorDiv);
         }
-
-        const clientId = "729937153109-6e8fivp20b3ri2qsah1d6u2a7oi0uls6.apps.googleusercontent.com";
-        document.getElementById('g_id_onload').setAttribute('data-client_id', clientId);
     </script>
 </body>
 </html>
