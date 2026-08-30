@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework.routers import DefaultRouter
-from .views import OwnerCustomerDetailView, RunMigrateView, RequestDeleteView, ApproveDeleteView, RejectDeleteView, PasswordResetRequestView, PasswordResetConfirmView, VerifyEmailView, CustomerSignupView, CustomTokenObtainPairView, ProfileView, CustomerListView, AddressViewSet, WalletView, GoogleOwnerLoginView
+from .views import OwnerCustomerDetailView, RunMigrateView, RequestDeleteView, ApproveDeleteView, RejectDeleteView, PasswordResetRequestView, PasswordResetConfirmView, VerifyEmailView, CustomerSignupView, CustomTokenObtainPairView, ProfileView, CustomerListView, AddressViewSet, WalletView, GoogleOwnerLoginView, admin_google_login
 
 router = DefaultRouter()
 router.register(r'addresses', AddressViewSet, basename='address')
@@ -21,6 +21,7 @@ urlpatterns = [
     path('signup/', CustomerSignupView.as_view(), name='signup'),
     path('login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('google-login/', GoogleOwnerLoginView.as_view(), name='google-login'),
+    path('admin-google-login/', admin_google_login, name='admin-google-login'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('profile/', ProfileView.as_view(), name='profile'),
     path('wallet/', WalletView.as_view(), name='wallet'),

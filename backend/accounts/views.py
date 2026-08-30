@@ -1,3 +1,6 @@
+from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import redirect
+from django.contrib.auth import login
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from rest_framework import generics, viewsets
@@ -334,3 +337,30 @@ class OwnerCustomerDetailView(APIView):
             return Response(data, status=status.HTTP_200_OK)
         except User.DoesNotExist:
             return Response({'error': 'Customer not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+
+@csrf_exempt
+def admin_google_login(request):
+    if request.method == 'POST':
+        token = request.POST.get('credential')
+        if not token:
+            return redirect('/narendra_secure_vault_99/login/?error=missing_token')
+            
+        try:
+            client_id = os.getenv('GOOGLE_CLIENT_ID')
+            if client_id:
+                idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), client_id)
+            else:
+                idinfo = id_token.verify_oauth2_token(token, google_requests.Request())
+                
+            email = idinfo.get('email')
+            user = User.objects.filter(email=email).first()
+            
+            if user and (user.is_staff or user.is_superuser):
+                login(request, user)
+                return redirect('/narendra_secure_vault_99/')
+            else:
+                return redirect('/narendra_secure_vault_99/login/?error=unauthorized')
+        except Exception as e:
+            return redirect('/narendra_secure_vault_99/login/?error=invalid_token')
+    return redirect('/narendra_secure_vault_99/login/')
