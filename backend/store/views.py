@@ -13,11 +13,16 @@ from .models import StoreSettings, Feedback, HomepageSection
 from .serializers import StoreSettingsSerializer, FeedbackSerializer, HomepageSectionSerializer
 
 
-class BackendMonitorPageView(TemplateView):
-    """Public, non-sensitive operational dashboard shown at the service root."""
-    template_name = 'store/backend_monitor.html'
+from django.shortcuts import redirect
+
+class RootDashboardView(TemplateView):
+    """Secure dashboard shown at the service root for authenticated admins."""
+    template_name = 'admin/dashboard.html'
     
     def get(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not request.user.is_staff:
+            return redirect('/narendra_secure_vault_99/login/')
+            
         # Extremely lightweight query to prevent Neon database from auto-suspending (Scale to Zero)
         try:
             with connection.cursor() as cursor:
