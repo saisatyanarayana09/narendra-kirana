@@ -2,10 +2,11 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from store.views import BackendHealthView, BackendMonitorPageView
+from django.views.generic import RedirectView
+from store.views import BackendHealthView
 
 urlpatterns = [
-    path('', BackendMonitorPageView.as_view(), name='backend-monitor'),
+    path('', RedirectView.as_view(url='/narendra_secure_vault_99/', permanent=False), name='root-redirect'),
     path('health/', BackendHealthView.as_view(), name='backend-health'),
     path('narendra_secure_vault_99/', admin.site.urls),
     path('api/v1/auth/', include('accounts.urls')),
