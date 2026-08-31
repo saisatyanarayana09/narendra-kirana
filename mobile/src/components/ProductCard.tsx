@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { Feather } from '@expo/vector-icons';
+import { fixImageUrl } from '../utils/image';
 import { theme } from '../constants/theme';
 
 interface Product {
@@ -28,6 +29,8 @@ export function ProductCard({ product, onPress, onAddToCart }: Props) {
     ? Math.round(((parseFloat(product.mrp) - parseFloat(product.price)) / parseFloat(product.mrp)) * 100)
     : 0;
 
+  const finalPrimaryImage = fixImageUrl(primaryImage);
+
   return (
     <TouchableOpacity 
       style={styles.container} 
@@ -35,8 +38,8 @@ export function ProductCard({ product, onPress, onAddToCart }: Props) {
       activeOpacity={0.7}
     >
       <View style={styles.imageContainer}>
-        {primaryImage ? (
-          <Image source={{ uri: primaryImage }} style={styles.image} resizeMode="contain" />
+        {finalPrimaryImage ? (
+          <Image source={{ uri: finalPrimaryImage }} style={styles.image} resizeMode="contain" />
         ) : (
           <View style={styles.placeholderImage} />
         )}

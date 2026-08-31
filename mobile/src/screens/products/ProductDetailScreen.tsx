@@ -9,6 +9,7 @@ import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { useCart } from '../../context/CartContext';
+import { fixImageUrl } from '../../utils/image';
 
 const { width } = Dimensions.get('window');
 
@@ -46,7 +47,7 @@ export function ProductDetailScreen({ navigation, route }: Props) {
   if (loading) return <LoadingSpinner fullScreen />;
   if (!product) return <View style={styles.center}><Text>Product not found.</Text></View>;
 
-  const primaryImage = product.images.find((img: any) => img.is_primary)?.image || product.images[0]?.image;
+  const primaryImage = fixImageUrl(product.images?.find((img: any) => img.is_primary)?.image || product.images?.[0]?.image);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

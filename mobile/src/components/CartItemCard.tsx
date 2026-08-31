@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { Feather } from '@expo/vector-icons';
+import { fixImageUrl } from '../utils/image';
 import { theme } from '../constants/theme';
 import { CartItem } from '../context/CartContext';
 import { QuantitySelector } from './QuantitySelector';
@@ -14,7 +15,7 @@ interface Props {
 }
 
 export function CartItemCard({ item, onUpdateQuantity, onRemove, isLoading }: Props) {
-  const primaryImage = item.product?.images?.find(img => img.is_primary)?.image || item.product?.images?.[0]?.image;
+  const primaryImage = fixImageUrl(item.product?.images?.find(img => img.is_primary)?.image || item.product?.images?.[0]?.image);
 
   return (
     <View style={styles.container}>

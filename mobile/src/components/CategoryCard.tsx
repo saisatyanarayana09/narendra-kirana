@@ -15,7 +15,11 @@ interface Props {
   onPress: (category: Category) => void;
 }
 
+import { fixImageUrl } from '../utils/image';
+
 export function CategoryCard({ category, onPress }: Props) {
+  const finalImage = fixImageUrl(category.image);
+
   return (
     <TouchableOpacity 
       style={styles.container} 
@@ -23,8 +27,8 @@ export function CategoryCard({ category, onPress }: Props) {
       activeOpacity={0.7}
     >
       <View style={styles.imageContainer}>
-        {category.image ? (
-          <Image source={{ uri: category.image }} style={styles.image} resizeMode="contain" />
+        {finalImage ? (
+          <Image source={{ uri: finalImage }} style={styles.image} resizeMode="contain" />
         ) : (
           <View style={styles.placeholderImage} />
         )}

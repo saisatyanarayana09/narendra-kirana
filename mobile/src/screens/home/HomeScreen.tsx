@@ -14,6 +14,7 @@ import { ProductCard } from '../../components/ProductCard';
 import { CategoryCard } from '../../components/CategoryCard';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { MainTabParamList } from '../../navigation/MainTabs';
+import { fixImageUrl } from '../../utils/image';
 
 // Type definitions could go in a shared types file
 type HomeScreenNavigationProp = CompositeNavigationProp<
@@ -112,7 +113,7 @@ export function HomeScreen({ navigation }: Props) {
           >
             {banners.map((banner: any) => (
               <TouchableOpacity key={banner.id} style={styles.banner}>
-                <Image source={{ uri: banner.image }} style={styles.bannerImage} />
+                <Image source={{ uri: fixImageUrl(banner.image) }} style={styles.bannerImage} />
               </TouchableOpacity>
             ))}
           </ScrollView>
