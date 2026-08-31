@@ -9,7 +9,7 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from .models import User, Address
+from .models import User, Address, CustomerProfile
 from .serializers import CustomerSignupSerializer, UserSerializer, AddressSerializer
 
 from rest_framework.throttling import AnonRateThrottle
@@ -364,3 +364,19 @@ def admin_google_login(request):
         except Exception as e:
             return redirect('/narendra_secure_vault_99/login/?error=invalid_token')
     return redirect('/narendra_secure_vault_99/login/')
+
+
+class ReferralLookupView(APIView):
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        code = request.query_params.get('code')
+        if not code:
+            return response.Response({'error': 'No code provided'}, status=400)
+            
+        try:
+            profile = CustomerProfile.objects.select_related('user').get(referral_code__iexact=code)
+            name = profile.user.first_name or profile.user.username
+            return response.Response({'referrer_name': name})
+        except CustomerProfile.DoesNotExist:
+            return response.Response({'error': 'Invalid referral code'}, status=404)

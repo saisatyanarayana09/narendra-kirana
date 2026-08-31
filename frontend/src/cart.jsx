@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useLocation } from 'react-router-dom'
-import { Minus, Plus, Trash2, ShoppingBasket, ArrowLeft, Eye, EyeOff, CheckCircle2, PackageSearch, Truck, Store, XCircle, MapPin, Edit2, RefreshCw } from 'lucide-react'
+import { Minus, Plus, Trash2, ShoppingBasket, ArrowLeft, Eye, EyeOff, CheckCircle2, PackageSearch, Truck, Store, XCircle, MapPin, Edit2, RefreshCw, Gift } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from './services/api'
 import { CustomerLayout } from './customer-layout'
@@ -29,45 +29,132 @@ export function CustomerSignupPage() {
     return { first_name: '', email: '', mobile_number: '', password: '', confirm_password: '', referral_code: params.get('ref') || '' };
   });
   const [error, setError] = useState(''); 
-  const [submitting, setSubmitting] = useState(false)
+  const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
- 
-async function submit(event) {
-  event.preventDefault();
-  if (form.password !== form.confirm_password) {
-    setError('Passwords do not match.');
-    return;
-  }
-  setSubmitting(true);
-  setError('');
-  try {
-    await api.post('/auth/signup/', { ...form, username: form.email });
-    alert('Success! Please check your email to activate your account.');
-    navigate('/login');
-  } catch (requestError) {
-    const details = requestError.response?.data;
-    setError(details ? Object.values(details).flat().join(' ') : 'Unable to create account.');
-  } finally {
-    setSubmitting(false);
-  }
-}
+  
+  const [referrerName, setReferrerName] = useState('');
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
- return <CustomerLayout><main className="mx-auto max-w-md px-4 py-10"><button onClick={() => navigate(-1)} className="mb-4 flex items-center gap-2 text-sm font-bold text-primary-700 hover:underline"><ArrowLeft size={16} /> Back</button><form onSubmit={submit} className="rounded-2xl bg-white p-6 shadow-sm"><h1 className="text-2xl font-extrabold">Create account</h1>{error && <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}<div className="mt-5 grid gap-4"><label className="text-sm font-bold">Name<input required value={form.first_name} onChange={(event) => setForm({ ...form, first_name: event.target.value })} className="mt-1 w-full rounded-lg border p-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"/></label><label className="text-sm font-bold">Email address<input required type="email"value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} className="mt-1 w-full rounded-lg border p-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"/></label><label className="text-sm font-bold">Mobile number<input required value={form.mobile_number} onChange={(event) => setForm({ ...form, mobile_number: event.target.value })} className="mt-1 w-full rounded-lg border p-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"/></label><label className="text-sm font-bold">Password<div className="relative mt-1 w-full">
-<input required type={showPassword ? "text" : "password"} value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} className="w-full rounded-lg border p-3 pr-10 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"/>
-<button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600">
-{showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-</button>
-</div></label><label className="text-sm font-bold">Confirm password<div className="relative mt-1 w-full">
-<input required type={showConfirmPassword ? "text" : "password"} value={form.confirm_password} onChange={(event) => setForm({ ...form, confirm_password: event.target.value })} className="w-full rounded-lg border p-3 pr-10 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"/>
-<button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600">
-{showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-</button>
-</div></label>
- <label className="text-sm font-bold">Referral Code (Optional)
-<input name="referral_code" value={form.referral_code} onChange={(event) => setForm({ ...form, referral_code: event.target.value })} placeholder="E.g. REF-A1B2C" className="mt-1 w-full rounded-lg border p-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-5"/>
-</label>
- </div><button disabled={submitting} className="mt-6 min-h-12 w-full rounded-xl bg-primary-600 font-bold text-white transition-all hover:bg-primary-700 active:scale-[0.98]">{submitting ? 'Creating...' : 'Create account'}</button></form></main></CustomerLayout>
+  useEffect(() => {
+    const code = form.referral_code?.trim();
+    if (code && code.length >= 5) {
+      const timer = setTimeout(() => {
+        api.get('/auth/referral-lookup/?code=' + code)
+          .then(res => setReferrerName(res.data.referrer_name))
+          .catch(() => setReferrerName(''));
+      }, 500);
+      return () => clearTimeout(timer);
+    } else {
+      setReferrerName('');
+    }
+  }, [form.referral_code]);
+
+  async function submit(event) {
+    event.preventDefault();
+    if (form.password !== form.confirm_password) {
+      setError('Passwords do not match.');
+      return;
+    }
+    
+    if (referrerName) {
+      setShowConfirmModal(true);
+      return;
+    }
+    
+    executeSignup(true);
+  }
+
+  async function executeSignup(includeReferral) {
+    setSubmitting(true);
+    setError('');
+    setShowConfirmModal(false);
+    
+    const payload = { ...form, username: form.email };
+    if (!includeReferral) {
+      payload.referral_code = '';
+    }
+    
+    try {
+      await api.post('/auth/signup/', payload);
+      alert('Success! Please check your email to activate your account.');
+      navigate('/login');
+    } catch (requestError) {
+      const details = requestError.response?.data;
+      setError(details ? Object.values(details).flat().join(' ') : 'Unable to create account.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return <CustomerLayout>
+    <main className="mx-auto max-w-md px-4 py-10">
+      <button onClick={() => navigate(-1)} className="mb-4 flex items-center gap-2 text-sm font-bold text-primary-700 hover:underline"><ArrowLeft size={16} /> Back</button>
+      <form onSubmit={submit} className="rounded-2xl bg-white p-6 shadow-sm">
+        <h1 className="text-2xl font-extrabold">Create account</h1>
+        
+        {referrerName && (
+          <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-start gap-3">
+            <div className="mt-0.5 bg-emerald-100 p-1.5 rounded-full text-emerald-600">
+              <Gift size={16} />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-emerald-800">You were referred by {referrerName}!</p>
+              <p className="text-xs text-emerald-600 mt-1">You'll both earn rewards after you sign up.</p>
+            </div>
+          </div>
+        )}
+        
+        {error && <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+        
+        <div className="mt-5 grid gap-4">
+          <label className="text-sm font-bold">Name<input required value={form.first_name} onChange={(event) => setForm({ ...form, first_name: event.target.value })} className="mt-1 w-full rounded-lg border p-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"/></label>
+          <label className="text-sm font-bold">Email address<input required type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} className="mt-1 w-full rounded-lg border p-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"/></label>
+          <label className="text-sm font-bold">Mobile number<input required value={form.mobile_number} onChange={(event) => setForm({ ...form, mobile_number: event.target.value })} className="mt-1 w-full rounded-lg border p-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"/></label>
+          
+          <label className="text-sm font-bold">Password<div className="relative mt-1 w-full">
+            <input required type={showPassword ? "text" : "password"} value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} className="w-full rounded-lg border p-3 pr-10 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"/>
+            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600">
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div></label>
+          
+          <label className="text-sm font-bold">Confirm password<div className="relative mt-1 w-full">
+            <input required type={showConfirmPassword ? "text" : "password"} value={form.confirm_password} onChange={(event) => setForm({ ...form, confirm_password: event.target.value })} className="w-full rounded-lg border p-3 pr-10 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"/>
+            <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600">
+              {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div></label>
+          
+          <label className="text-sm font-bold">Referral Code (Optional)
+            <input name="referral_code" value={form.referral_code} onChange={(event) => setForm({ ...form, referral_code: event.target.value })} placeholder="E.g. REF-A1B2C" className="mt-1 w-full rounded-lg border p-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"/>
+          </label>
+        </div>
+        
+        <button disabled={submitting} className="mt-6 min-h-12 w-full rounded-xl bg-primary-600 font-bold text-white transition-all hover:bg-primary-700 active:scale-[0.98]">{submitting ? 'Creating...' : 'Create account'}</button>
+      </form>
+      
+      {showConfirmModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+            <h3 className="text-xl font-black text-slate-900 mb-2">Confirm Referral</h3>
+            <p className="text-slate-600 mb-6">You are signing up with a referral from <b>{referrerName}</b> (code: <span className="font-mono bg-slate-100 px-1 rounded">{form.referral_code}</span>).</p>
+            <div className="flex flex-col gap-3">
+              <button onClick={() => executeSignup(true)} disabled={submitting} className="w-full py-3.5 rounded-xl bg-primary-600 text-white font-bold hover:bg-primary-700">
+                {submitting ? 'Processing...' : '✅ Confirm & Create Account'}
+              </button>
+              <button onClick={() => executeSignup(false)} disabled={submitting} className="w-full py-3.5 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200">
+                ❌ Remove Referral & Continue
+              </button>
+              <button onClick={() => setShowConfirmModal(false)} disabled={submitting} className="w-full py-2 text-slate-500 font-medium hover:text-slate-700">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </main>
+  </CustomerLayout>
 }
 
 export function CartPage() {
@@ -114,7 +201,7 @@ export function CartPage() {
  </div>
  <div className="min-w-0 flex-1">
  <p className="truncate font-bold text-slate-800 text-lg">{item.product_name}</p>
- <p className="text-sm text-slate-500 font-medium">₹{item.unit_price} · {item.product_unit}</p>
+ <p className="text-sm text-slate-500 font-medium">â‚¹{item.unit_price} Â· {item.product_unit}</p>
  </div>
  <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 shadow-sm shrink-0 overflow-hidden">
  <button onClick={() => change(item, item.quantity - 1)} className="p-2.5 text-slate-600 hover:text-primary-700 hover:bg-primary-100 transition-colors active:bg-primary-200"><Minus size={18} /></button>
@@ -149,17 +236,17 @@ export function CartPage() {
  <section className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
  <h2 className="text-lg font-extrabold text-slate-900 mb-4">Order Summary</h2>
  <div className="space-y-3">
- <div className="flex justify-between text-sm text-slate-600 font-medium"><span>Subtotal</span><span className="text-slate-900 font-bold">₹{cart?.subtotal || '0.00'}</span></div>
- <div className="flex justify-between text-sm text-primary-700 font-medium"><span>Product Savings</span><span className="font-bold">₹{cart?.discount || '0.00'}</span></div>
- {cart?.promo_discount > 0 && <div className="flex justify-between text-sm text-green-600 font-bold"><span>Promo Discount</span><span>- ₹{cart.promo_discount}</span></div>}
- {cart?.packaging_fee > 0 && <div className="flex justify-between text-sm text-slate-600 font-medium"><span>Packaging Fee</span><span className="text-slate-900 font-bold">₹{cart.packaging_fee}</span></div>}
+ <div className="flex justify-between text-sm text-slate-600 font-medium"><span>Subtotal</span><span className="text-slate-900 font-bold">â‚¹{cart?.subtotal || '0.00'}</span></div>
+ <div className="flex justify-between text-sm text-primary-700 font-medium"><span>Product Savings</span><span className="font-bold">â‚¹{cart?.discount || '0.00'}</span></div>
+ {cart?.promo_discount > 0 && <div className="flex justify-between text-sm text-green-600 font-bold"><span>Promo Discount</span><span>- â‚¹{cart.promo_discount}</span></div>}
+ {cart?.packaging_fee > 0 && <div className="flex justify-between text-sm text-slate-600 font-medium"><span>Packaging Fee</span><span className="text-slate-900 font-bold">â‚¹{cart.packaging_fee}</span></div>}
  </div>
- <div className="mt-5 flex justify-between border-t border-slate-100 pt-5 text-xl font-black text-slate-900"><span>Total Due</span><span>₹{cart?.total || '0.00'}</span></div>
+ <div className="mt-5 flex justify-between border-t border-slate-100 pt-5 text-xl font-black text-slate-900"><span>Total Due</span><span>â‚¹{cart?.total || '0.00'}</span></div>
  
  {storeSettings?.is_open === false ? (
  <div className="mt-6 rounded-xl bg-red-50 p-4 text-center font-bold text-red-700 border border-red-100">The store is currently closed.</div>
  ) : Number(storeSettings?.min_order_amount) > 0 && Number(cart.subtotal) < Number(storeSettings.min_order_amount) ? (
- <div className="mt-6 rounded-xl bg-amber-50 p-4 text-center font-bold text-amber-700 border border-amber-100">Minimum order amount is ₹{storeSettings.min_order_amount}</div>
+ <div className="mt-6 rounded-xl bg-amber-50 p-4 text-center font-bold text-amber-700 border border-amber-100">Minimum order amount is â‚¹{storeSettings.min_order_amount}</div>
  ) : (
  <>
  <button onClick={() => navigate('/checkout')} className="mt-6 hidden lg:block min-h-14 w-full rounded-xl bg-primary-600 font-bold text-white shadow-sm hover:bg-primary-700 hover:shadow-md transition-all active:scale-[0.98] text-lg">Continue to pickup</button>
@@ -175,7 +262,7 @@ export function CartPage() {
       <div className="flex items-center justify-between gap-4 max-w-md mx-auto">
         <div>
           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Due</p>
-          <p className="text-xl font-black text-slate-900 leading-none mt-0.5">₹{cart?.total}</p>
+          <p className="text-xl font-black text-slate-900 leading-none mt-0.5">â‚¹{cart?.total}</p>
         </div>
         <button onClick={() => navigate('/checkout')} className="flex-1 min-h-[44px] rounded-xl bg-primary-600 font-bold text-white shadow-sm active:scale-95 transition-all">
           Checkout
@@ -320,12 +407,12 @@ export function CheckoutPage() {
   <div className="mb-6">
     <label className="text-sm font-bold block mb-2">Order Type</label>
     <div className="flex bg-slate-100 p-1 rounded-xl">
-      <button onClick={() => setOrderType('PICKUP')} className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${orderType === 'PICKUP' ? 'bg-white text-primary-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>🏪 Store Pickup</button>
+      <button onClick={() => setOrderType('PICKUP')} className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${orderType === 'PICKUP' ? 'bg-white text-primary-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>ðŸª Store Pickup</button>
       <button 
         onClick={() => storeSettings?.is_home_delivery_active ? setOrderType('DELIVERY') : null} 
         className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${orderType === 'DELIVERY' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'} ${!storeSettings?.is_home_delivery_active ? 'opacity-50 cursor-not-allowed' : 'hover:text-slate-700'}`}
       >
-        🛵 Home Delivery {!storeSettings?.is_home_delivery_active && '(Unavailable)'}
+        ðŸ›µ Home Delivery {!storeSettings?.is_home_delivery_active && '(Unavailable)'}
       </button>
     </div>
   </div>
@@ -350,7 +437,7 @@ export function CheckoutPage() {
           {!addressForm.latitude ? (
             <button type="button" onClick={captureLocation} className="w-full font-extrabold text-sm py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all border-2 active:scale-[0.98] bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100">
               <MapPin size={18} className="text-indigo-600" />
-              📍 Capture My Exact Location
+              ðŸ“ Capture My Exact Location
             </button>
           ) : (
             <div className="flex items-center justify-between bg-emerald-50 border-2 border-emerald-200 rounded-xl p-3 animate-in zoom-in-95 duration-300">
@@ -414,7 +501,7 @@ export function CheckoutPage() {
       
       {parseFloat(storeSettings?.min_delivery_order_amount) > 0 && parseFloat(cart?.subtotal) < parseFloat(storeSettings.min_delivery_order_amount) && (
         <div className="p-3 bg-red-50 text-red-700 text-sm font-bold rounded-lg border border-red-100 mt-4">
-          Home Delivery requires a minimum cart total of ₹{storeSettings.min_delivery_order_amount}.
+          Home Delivery requires a minimum cart total of â‚¹{storeSettings.min_delivery_order_amount}.
         </div>
       )}
     </div>
@@ -425,7 +512,7 @@ export function CheckoutPage() {
    <div className="mt-5 p-4 rounded-xl border border-emerald-200 bg-emerald-50 flex items-center justify-between">
      <div>
        <div className="font-bold text-emerald-800">Use Wallet Balance</div>
-       <div className="text-sm text-emerald-600">Available: ₹{walletBalance.toFixed(2)}</div>
+       <div className="text-sm text-emerald-600">Available: â‚¹{walletBalance.toFixed(2)}</div>
      </div>
      <label className="relative inline-flex items-center cursor-pointer">
        <input type="checkbox" className="sr-only peer" checked={useWallet} onChange={e => setUseWallet(e.target.checked)} />
@@ -434,14 +521,14 @@ export function CheckoutPage() {
    </div>
  )}
 
- <div className="mt-5 space-y-2 text-sm text-slate-600 border-t pt-4"><div className="flex justify-between"><span>Subtotal</span><span>₹{cart?.subtotal || '0.00'}</span></div><div className="flex justify-between text-primary-700"><span>Product Savings</span><span>₹{cart?.discount || '0.00'}</span></div>{cart?.promo_discount > 0 && <div className="flex justify-between text-green-600 font-bold"><span>Promo Discount</span><span>- ₹{cart.promo_discount}</span></div>}{cart?.packaging_fee > 0 && <div className="flex justify-between"><span>Packaging Fee</span><span>₹{cart.packaging_fee}</span></div>}
-   {orderType === 'DELIVERY' && <div className="flex justify-between"><span>Delivery Fee</span><span className={deliveryFee === 0 ? 'text-green-600 font-bold' : ''}>{deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}</span></div>}
- {useWallet && walletApplied > 0 && <div className="flex justify-between text-emerald-600 font-bold"><span>Wallet Applied</span><span>- ₹{walletApplied.toFixed(2)}</span></div>}
- <div className="flex justify-between text-lg font-extrabold text-black pt-2"><span>Total Due</span><span>₹{finalTotal.toFixed(2)}</span></div></div>
+ <div className="mt-5 space-y-2 text-sm text-slate-600 border-t pt-4"><div className="flex justify-between"><span>Subtotal</span><span>â‚¹{cart?.subtotal || '0.00'}</span></div><div className="flex justify-between text-primary-700"><span>Product Savings</span><span>â‚¹{cart?.discount || '0.00'}</span></div>{cart?.promo_discount > 0 && <div className="flex justify-between text-green-600 font-bold"><span>Promo Discount</span><span>- â‚¹{cart.promo_discount}</span></div>}{cart?.packaging_fee > 0 && <div className="flex justify-between"><span>Packaging Fee</span><span>â‚¹{cart.packaging_fee}</span></div>}
+   {orderType === 'DELIVERY' && <div className="flex justify-between"><span>Delivery Fee</span><span className={deliveryFee === 0 ? 'text-green-600 font-bold' : ''}>{deliveryFee === 0 ? 'FREE' : `â‚¹${deliveryFee}`}</span></div>}
+ {useWallet && walletApplied > 0 && <div className="flex justify-between text-emerald-600 font-bold"><span>Wallet Applied</span><span>- â‚¹{walletApplied.toFixed(2)}</span></div>}
+ <div className="flex justify-between text-lg font-extrabold text-black pt-2"><span>Total Due</span><span>â‚¹{finalTotal.toFixed(2)}</span></div></div>
  {storeSettings?.is_open === false ? (
  <div className="mt-5 rounded-xl bg-red-50 p-4 text-center font-bold text-red-700 border border-red-100">The store is currently closed. Cannot place order.</div>
  ) : Number(storeSettings?.min_order_amount) > 0 && Number(cart.subtotal) < Number(storeSettings.min_order_amount) ? (
- <div className="mt-5 rounded-xl bg-amber-50 p-4 text-center font-bold text-amber-700 border border-amber-100">Minimum order amount is ₹{storeSettings.min_order_amount}</div>
+ <div className="mt-5 rounded-xl bg-amber-50 p-4 text-center font-bold text-amber-700 border border-amber-100">Minimum order amount is â‚¹{storeSettings.min_order_amount}</div>
  ) : (
  <button onClick={submit} disabled={loading || (orderType === 'DELIVERY' && !selectedAddressId && (!deliveryAddress || !deliveryPincode))} className="mt-5 min-h-12 w-full rounded-xl bg-primary-600 font-bold text-white disabled:bg-slate-300 hover:bg-primary-700 active:scale-[0.98] transition-all">{loading ? 'Processing...' : (finalTotal > 0 ? 'Place order (Pay at store)' : 'Place order (Paid via Wallet)')}</button>
  )}
@@ -551,7 +638,7 @@ export function OrderDetailPage() {
                   {item.quantity} x {item.product_name_snapshot} 
                   {item.status === 'REJECTED' && <span className="ml-2 text-xs font-bold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-md">Unavailable</span>}
                 </span>
-                <span className={item.status === 'REJECTED' ? 'line-through text-slate-400' : 'text-slate-800 font-bold'}>₹{item.subtotal}</span>
+                <span className={item.status === 'REJECTED' ? 'line-through text-slate-400' : 'text-slate-800 font-bold'}>â‚¹{item.subtotal}</span>
               </div>
             ))}
             
@@ -560,17 +647,17 @@ export function OrderDetailPage() {
               <div className="space-y-2 text-sm text-slate-600 font-medium">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span className="text-slate-900">₹{order.items.reduce((sum, item) => sum + (item.status !== 'REJECTED' ? parseFloat(item.subtotal) : 0), 0).toFixed(2)}</span>
+                  <span className="text-slate-900">â‚¹{order.items.reduce((sum, item) => sum + (item.status !== 'REJECTED' ? parseFloat(item.subtotal) : 0), 0).toFixed(2)}</span>
                 </div>
-                {parseFloat(order.discount_applied) > 0 && <div className="flex justify-between text-primary-700"><span>Product Savings</span><span>- ₹{order.discount_applied}</span></div>}
-                {parseFloat(order.promo_discount) > 0 && <div className="flex justify-between text-emerald-600 font-bold"><span>Promo Discount</span><span>- ₹{order.promo_discount}</span></div>}
-                {parseFloat(order.packaging_fee) > 0 && <div className="flex justify-between"><span>Packaging Fee</span><span className="text-slate-900">₹{order.packaging_fee}</span></div>}
-                {parseFloat(order.delivery_fee) > 0 && <div className="flex justify-between"><span>Delivery Fee</span><span className="text-slate-900">₹{order.delivery_fee}</span></div>}
-                {parseFloat(order.wallet_discount) > 0 && <div className="flex justify-between text-emerald-600 font-bold"><span>Wallet Applied</span><span>- ₹{order.wallet_discount}</span></div>}
+                {parseFloat(order.discount_applied) > 0 && <div className="flex justify-between text-primary-700"><span>Product Savings</span><span>- â‚¹{order.discount_applied}</span></div>}
+                {parseFloat(order.promo_discount) > 0 && <div className="flex justify-between text-emerald-600 font-bold"><span>Promo Discount</span><span>- â‚¹{order.promo_discount}</span></div>}
+                {parseFloat(order.packaging_fee) > 0 && <div className="flex justify-between"><span>Packaging Fee</span><span className="text-slate-900">â‚¹{order.packaging_fee}</span></div>}
+                {parseFloat(order.delivery_fee) > 0 && <div className="flex justify-between"><span>Delivery Fee</span><span className="text-slate-900">â‚¹{order.delivery_fee}</span></div>}
+                {parseFloat(order.wallet_discount) > 0 && <div className="flex justify-between text-emerald-600 font-bold"><span>Wallet Applied</span><span>- â‚¹{order.wallet_discount}</span></div>}
               </div>
               <div className="flex justify-between font-extrabold text-lg pt-3 mt-3 border-t border-slate-100">
                 <span className="text-slate-900">{order.status === 'COMPLETED' ? 'Total Amount Paid' : 'Total Due'}</span>
-                <span className="text-primary-600">₹{order.total_amount}</span>
+                <span className="text-primary-600">â‚¹{order.total_amount}</span>
               </div>
             </div>
           </div>
@@ -597,3 +684,4 @@ export function OrderDetailPage() {
   </CustomerLayout>
  );
 }
+
