@@ -3,7 +3,7 @@ import { Store, Settings as SettingsIcon, Save, FileText, Truck, AlertTriangle }
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import ImageCropper from '../components/ImageCropper';
-import HomepageSectionEditor from '../components/HomepageSectionEditor';
+
 
 const Settings = () => {
   const [settings, setSettings] = useState({

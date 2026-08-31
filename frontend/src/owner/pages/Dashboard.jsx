@@ -6,7 +6,7 @@ import {
 } from 'recharts';
 import { 
   PackageSearch, Clock, TrendingUp, ChevronRight, 
-  AlertTriangle, Power, Plus, Gift, Tag, Activity, Megaphone,
+  AlertTriangle, Plus, Gift, Tag, Activity,
   BrainCircuit, Users, Target, PlusCircle
 } from 'lucide-react';
 import api from '../../services/api';

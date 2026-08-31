@@ -274,7 +274,6 @@ const OrderDetails = () => {
  <div className="space-y-2">
  <button 
  onClick={() => updateStatus('READY')} disabled={isUpdating || !allPacked} 
- disabled={!allPacked}
  className={`w-full py-4 rounded-xl font-bold transition flex items-center justify-center ${
  allPacked ? 'bg-emerald-500 text-white shadow-sm hover:bg-emerald-600' : 'bg-slate-100 text-slate-400 cursor-not-allowed'
  }`}

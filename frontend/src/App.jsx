@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, Outlet, useLocation } from 'react-router-dom';
 import { CartProvider } from './cart-context';
 import { Toaster } from 'react-hot-toast';
@@ -102,7 +102,6 @@ class ErrorBoundary extends React.Component {
 }
 
 
-import { useState, useEffect } from 'react';
 
 function OfflineBanner() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);

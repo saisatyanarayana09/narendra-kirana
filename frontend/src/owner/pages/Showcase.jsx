@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { GripVertical, Layout, Loader2, Plus, Edit2, Trash2, X } from 'lucide-react';
+import { GripVertical, Layout, Loader2, Plus, Edit2, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import HomepageSectionEditor from '../components/HomepageSectionEditor';
