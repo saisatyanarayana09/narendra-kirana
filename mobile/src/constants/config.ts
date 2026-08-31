@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 export const API_BASE_URL = 'https://narendra-kirana.onrender.com/api/v1';
 
 export const STORAGE_KEYS = {
