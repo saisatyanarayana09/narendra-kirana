@@ -34,21 +34,31 @@ export function CustomerSignupPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const [referrerName, setReferrerName] = useState('');
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [hasShownWelcome, setHasShownWelcome] = useState(false);
 
   useEffect(() => {
     const code = form.referral_code?.trim();
     if (code && code.length >= 5) {
       const timer = setTimeout(() => {
         api.get('/auth/referral-lookup/?code=' + code)
-          .then(res => setReferrerName(res.data.referrer_name))
-          .catch(() => setReferrerName(''));
+          .then(res => {
+            setReferrerName(res.data.referrer_name);
+            if (!hasShownWelcome) {
+              setShowWelcomeModal(true);
+              setHasShownWelcome(true);
+            }
+          })
+          .catch(() => {
+            setReferrerName('');
+          });
       }, 500);
       return () => clearTimeout(timer);
     } else {
       setReferrerName('');
+      setHasShownWelcome(false);
     }
-  }, [form.referral_code]);
+  }, [form.referral_code, hasShownWelcome]);
 
   async function submit(event) {
     event.preventDefault();
@@ -56,19 +66,12 @@ export function CustomerSignupPage() {
       setError('Passwords do not match.');
       return;
     }
-    
-    if (referrerName) {
-      setShowConfirmModal(true);
-      return;
-    }
-    
     executeSignup(true);
   }
 
   async function executeSignup(includeReferral) {
     setSubmitting(true);
     setError('');
-    setShowConfirmModal(false);
     
     const payload = { ...form, username: form.email };
     if (!includeReferral) {
@@ -92,18 +95,6 @@ export function CustomerSignupPage() {
       <button onClick={() => navigate(-1)} className="mb-4 flex items-center gap-2 text-sm font-bold text-primary-700 hover:underline"><ArrowLeft size={16} /> Back</button>
       <form onSubmit={submit} className="rounded-2xl bg-white p-6 shadow-sm">
         <h1 className="text-2xl font-extrabold">Create account</h1>
-        
-        {referrerName && (
-          <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-start gap-3">
-            <div className="mt-0.5 bg-emerald-100 p-1.5 rounded-full text-emerald-600">
-              <Gift size={16} />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-emerald-800">You were referred by {referrerName}!</p>
-              <p className="text-xs text-emerald-600 mt-1">You'll both earn rewards after you sign up.</p>
-            </div>
-          </div>
-        )}
         
         {error && <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
         
@@ -134,22 +125,19 @@ export function CustomerSignupPage() {
         <button disabled={submitting} className="mt-6 min-h-12 w-full rounded-xl bg-primary-600 font-bold text-white transition-all hover:bg-primary-700 active:scale-[0.98]">{submitting ? 'Creating...' : 'Create account'}</button>
       </form>
       
-      {showConfirmModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
-            <h3 className="text-xl font-black text-slate-900 mb-2">Confirm Referral</h3>
-            <p className="text-slate-600 mb-6">You are signing up with a referral from <b>{referrerName}</b> (code: <span className="font-mono bg-slate-100 px-1 rounded">{form.referral_code}</span>).</p>
-            <div className="flex flex-col gap-3">
-              <button onClick={() => executeSignup(true)} disabled={submitting} className="w-full py-3.5 rounded-xl bg-primary-600 text-white font-bold hover:bg-primary-700">
-                {submitting ? 'Processing...' : '✅ Confirm & Create Account'}
-              </button>
-              <button onClick={() => executeSignup(false)} disabled={submitting} className="w-full py-3.5 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200">
-                ❌ Remove Referral & Continue
-              </button>
-              <button onClick={() => setShowConfirmModal(false)} disabled={submitting} className="w-full py-2 text-slate-500 font-medium hover:text-slate-700">
-                Cancel
-              </button>
+      {showWelcomeModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-8 shadow-2xl text-center transform transition-all scale-100">
+            <div className="mx-auto w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-5 text-emerald-600 shadow-inner">
+              <Gift size={32} strokeWidth={2.5} />
             </div>
+            <h3 className="text-2xl font-black text-slate-900 mb-2">You're Invited!</h3>
+            <p className="text-slate-600 mb-8 text-lg leading-relaxed">
+              <b>{referrerName}</b> has invited you to join Narendra Kirana. Sign up now to claim your welcome rewards!
+            </p>
+            <button type="button" onClick={() => setShowWelcomeModal(false)} className="w-full py-4 rounded-xl bg-emerald-600 text-white font-black text-lg hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all active:scale-95">
+              Sign Up Now
+            </button>
           </div>
         </div>
       )}
@@ -684,4 +672,5 @@ export function OrderDetailPage() {
   </CustomerLayout>
  );
 }
+
 
