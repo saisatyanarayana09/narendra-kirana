@@ -20,7 +20,7 @@ export type MainTabParamList = {
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<any>();
 
 function HomeStack() {
   return (

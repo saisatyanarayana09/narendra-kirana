@@ -7,6 +7,7 @@ import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
 import { useDebounce } from '../../hooks/useDebounce';
 import { ProductCard } from '../../components/ProductCard';
+import { useCart } from '../../context/CartContext';
 
 type Props = {
   navigation: NativeStackNavigationProp<any>;
@@ -17,6 +18,7 @@ export function SearchScreen({ navigation }: Props) {
   const debouncedQuery = useDebounce(query, 500);
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const { addToCart } = useCart();
 
   useEffect(() => {
     if (debouncedQuery.length >= 2) {
@@ -84,6 +86,7 @@ export function SearchScreen({ navigation }: Props) {
                 <ProductCard 
                   product={item} 
                   onPress={() => navigation.navigate('ProductDetailScreen', { productId: item.id })} 
+                  onAddToCart={(p) => addToCart(p.id, 1)}
                 />
               </View>
             )}

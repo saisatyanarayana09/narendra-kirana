@@ -7,6 +7,7 @@ import { RouteProp } from '@react-navigation/native';
 import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
 import { ProductCard } from '../../components/ProductCard';
+import { useCart } from '../../context/CartContext';
 
 type Props = {
   navigation: NativeStackNavigationProp<any>;
@@ -18,6 +19,7 @@ export function ProductListScreen({ navigation, route }: Props) {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const { addToCart } = useCart();
   const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
@@ -80,6 +82,7 @@ export function ProductListScreen({ navigation, route }: Props) {
               <ProductCard 
                 product={item} 
                 onPress={() => navigation.navigate('ProductDetailScreen', { productId: item.id })} 
+                onAddToCart={(p) => addToCart(p.id, 1)}
               />
             </View>
           )}

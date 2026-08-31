@@ -23,7 +23,7 @@ type Props = {
   route: RouteProp<RootStackParamList, 'ProductDetailScreen'>;
 };
 
-export function ProductDetailScreen({ navigation, route }: Props) {
+export function ProductDetailScreen({ navigation, route }: any) {
   const { productId } = route.params || {};
   const { addToCart } = useCart();
   const [product, setProduct] = useState<any>(null);

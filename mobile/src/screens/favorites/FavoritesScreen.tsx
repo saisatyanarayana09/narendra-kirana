@@ -6,10 +6,12 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
 import { ProductCard } from '../../components/ProductCard';
+import { useCart } from '../../context/CartContext';
 
 export function FavoritesScreen({ navigation }: { navigation: NativeStackNavigationProp<any> }) {
   const [favorites, setFavorites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { addToCart } = useCart();
 
   useEffect(() => {
     // We should refetch favorites whenever the screen comes into focus
@@ -92,6 +94,7 @@ export function FavoritesScreen({ navigation }: { navigation: NativeStackNavigat
             <ProductCard 
               product={item.product} 
               onPress={() => navigation.navigate('HomeTab', { screen: 'ProductDetailScreen', params: { productId: item.product.id } })} 
+              onAddToCart={(p) => addToCart(p.id, 1)}
             />
             <TouchableOpacity 
               style={styles.removeButton}

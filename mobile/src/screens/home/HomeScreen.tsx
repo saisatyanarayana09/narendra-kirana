@@ -113,7 +113,7 @@ export function HomeScreen({ navigation }: Props) {
           >
             {banners.map((banner: any) => (
               <TouchableOpacity key={banner.id} style={styles.banner}>
-                <Image source={{ uri: fixImageUrl(banner.image) }} style={styles.bannerImage} />
+                <Image source={{ uri: fixImageUrl(banner.image) || '' }} style={styles.bannerImage} />
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -124,10 +124,11 @@ export function HomeScreen({ navigation }: Props) {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Shop by Category</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesContainer}>
-              {categories.map((cat: any) => (
+              {categories.map((cat: any, index: number) => (
                 <CategoryCard 
                   key={cat.id} 
                   category={cat} 
+                  index={index}
                   onPress={(c) => navigation.navigate('CategoriesTab', { screen: 'ProductListScreen', params: { categoryId: c.id } })} 
                 />
               ))}
