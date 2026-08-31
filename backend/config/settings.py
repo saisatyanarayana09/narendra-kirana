@@ -182,6 +182,8 @@ CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:8081",
+    "http://127.0.0.1:8081",
 ]
 frontend_url = os.environ.get('FRONTEND_URL', '').rstrip('/')
 if frontend_url and frontend_url not in CORS_ALLOWED_ORIGINS:
