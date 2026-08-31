@@ -73,6 +73,8 @@ export function ProductListScreen({ navigation, route }: Props) {
           numColumns={2}
           contentContainerStyle={styles.listContainer}
           columnWrapperStyle={styles.row}
+          refreshing={loading && page === 1}
+          onRefresh={() => fetchProducts(1)}
           renderItem={({ item }) => (
             <View style={styles.cardWrapper}>
               <ProductCard 

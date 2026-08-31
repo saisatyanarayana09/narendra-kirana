@@ -87,6 +87,8 @@ export function OrderHistoryScreen({ navigation }: { navigation: NativeStackNavi
           data={orders}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContainer}
+          refreshing={loading && page === 1}
+          onRefresh={() => { setPage(1); fetchOrders(1); }}
           renderItem={({ item }) => (
             <TouchableOpacity 
               style={styles.orderCard}
