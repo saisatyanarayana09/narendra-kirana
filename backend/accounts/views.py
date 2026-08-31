@@ -20,6 +20,8 @@ class CustomerSignupView(generics.CreateAPIView):
     serializer_class = CustomerSignupSerializer
     throttle_classes = [AnonRateThrottle]
 
+    
+
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
@@ -29,6 +31,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
     throttle_classes = [AnonRateThrottle]
+
+    
 
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
@@ -40,6 +44,8 @@ import os
 class GoogleOwnerLoginView(APIView):
     permission_classes = (AllowAny,)
     throttle_classes = [AnonRateThrottle]
+
+    
 
     def post(self, request):
         token = request.data.get('credential')
@@ -138,6 +144,8 @@ class VerifyEmailView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [AnonRateThrottle]
 
+    
+
     def post(self, request):
         uidb64 = request.data.get('uid')
         token = request.data.get('token')
@@ -167,6 +175,8 @@ from django.conf import settings
 class PasswordResetRequestView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [AnonRateThrottle]
+
+    
 
     def post(self, request):
         email = request.data.get('email')
@@ -203,6 +213,8 @@ class PasswordResetRequestView(APIView):
 class PasswordResetConfirmView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [AnonRateThrottle]
+
+    
 
     def post(self, request):
         uidb64 = request.data.get('uid')
@@ -370,13 +382,17 @@ class ReferralLookupView(APIView):
     permission_classes = [AllowAny]
     
     def get(self, request):
-        code = request.query_params.get('code')
-        if not code:
-            return response.Response({'error': 'No code provided'}, status=400)
-            
         try:
+            code = request.query_params.get('code')
+            if not code:
+                return Response({'error': 'No code provided'}, status=400)
+                
             profile = CustomerProfile.objects.select_related('user').get(referral_code__iexact=code)
             name = profile.user.first_name or profile.user.username
-            return response.Response({'referrer_name': name})
+            return Response({'referrer_name': name})
         except CustomerProfile.DoesNotExist:
-            return response.Response({'error': 'Invalid referral code'}, status=404)
+            return Response({'error': 'Invalid referral code'}, status=404)
+        except Exception as e:
+            import traceback
+            return Response({'error': str(e), 'traceback': traceback.format_exc()}, status=500)
+
