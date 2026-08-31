@@ -30,6 +30,8 @@ export function CustomerSignupPage() {
   });
   const [error, setError] = useState(''); 
   const [submitting, setSubmitting] = useState(false)
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
  
 async function submit(event) {
   event.preventDefault();
