@@ -35,30 +35,40 @@ export function CustomerSignupPage() {
   
   const [referrerName, setReferrerName] = useState('');
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
-  const [hasShownWelcome, setHasShownWelcome] = useState(false);
+  const [handledCode, setHandledCode] = useState('');
 
   useEffect(() => {
-    const code = form.referral_code?.trim();
-    if (code && code.length >= 5) {
+    const code = form.referral_code?.trim().toUpperCase();
+    if (code && code.length >= 5 && code !== handledCode) {
       const timer = setTimeout(() => {
         api.get('/auth/referral-lookup/?code=' + code)
           .then(res => {
             setReferrerName(res.data.referrer_name);
-            if (!hasShownWelcome) {
-              setShowWelcomeModal(true);
-              setHasShownWelcome(true);
-            }
+            setShowWelcomeModal(true);
           })
           .catch(() => {
             setReferrerName('');
           });
       }, 500);
       return () => clearTimeout(timer);
-    } else {
+    } else if (!code) {
       setReferrerName('');
-      setHasShownWelcome(false);
     }
-  }, [form.referral_code, hasShownWelcome]);
+  }, [form.referral_code, handledCode]);
+
+  function handleAcceptReferral() {
+    const code = form.referral_code?.trim().toUpperCase();
+    setHandledCode(code);
+    setShowWelcomeModal(false);
+  }
+
+  function handleRejectReferral() {
+    const code = form.referral_code?.trim().toUpperCase();
+    setHandledCode(code);
+    setForm({ ...form, referral_code: '' });
+    setReferrerName('');
+    setShowWelcomeModal(false);
+  }
 
   async function submit(event) {
     event.preventDefault();
@@ -66,17 +76,11 @@ export function CustomerSignupPage() {
       setError('Passwords do not match.');
       return;
     }
-    executeSignup(true);
-  }
-
-  async function executeSignup(includeReferral) {
+    
     setSubmitting(true);
     setError('');
     
     const payload = { ...form, username: form.email };
-    if (!includeReferral) {
-      payload.referral_code = '';
-    }
     
     try {
       await api.post('/auth/signup/', payload);
@@ -131,13 +135,18 @@ export function CustomerSignupPage() {
             <div className="mx-auto w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-5 text-emerald-600 shadow-inner">
               <Gift size={32} strokeWidth={2.5} />
             </div>
-            <h3 className="text-2xl font-black text-slate-900 mb-2">You're Invited!</h3>
-            <p className="text-slate-600 mb-8 text-lg leading-relaxed">
-              <b>{referrerName}</b> has invited you to join Narendra Kirana. Sign up now to claim your welcome rewards!
+            <h3 className="text-2xl font-black text-slate-900 mb-2">Referral Found!</h3>
+            <p className="text-slate-600 mb-8 text-base leading-relaxed">
+              <b>{referrerName}</b> has invited you. Accept this referral to claim your welcome rewards when you sign up!
             </p>
-            <button type="button" onClick={() => setShowWelcomeModal(false)} className="w-full py-4 rounded-xl bg-emerald-600 text-white font-black text-lg hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all active:scale-95">
-              Sign Up Now
-            </button>
+            <div className="flex flex-col gap-3">
+              <button type="button" onClick={handleAcceptReferral} className="w-full py-3.5 rounded-xl bg-emerald-600 text-white font-black text-lg hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all active:scale-95">
+                ✅ Accept Referral
+              </button>
+              <button type="button" onClick={handleRejectReferral} className="w-full py-3 rounded-xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200 transition-all hover:text-slate-900">
+                ❌ Reject
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -672,5 +681,6 @@ export function OrderDetailPage() {
   </CustomerLayout>
  );
 }
+
 
 
