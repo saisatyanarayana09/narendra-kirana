@@ -36,7 +36,11 @@ export function CustomerSignupPage() {
   const [referrerName, setReferrerName] = useState('');
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
 
-  // Only run this on page load/URL change to detect clicks from referral links
+  // New states for inline feedback
+  const [inlineReferrer, setInlineReferrer] = useState(null);
+  const [inlineChecking, setInlineChecking] = useState(false);
+
+  // ONE-TIME effect on mount to handle URL referral codes (Popup)
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const urlRefCode = params.get('ref')?.trim().toUpperCase();
@@ -52,6 +56,32 @@ export function CustomerSignupPage() {
         });
     }
   }, [location.search]);
+
+  // Effect for inline validation as user types
+  useEffect(() => {
+    const code = form.referral_code?.trim().toUpperCase();
+    if (!code || code.length < 5) {
+      setInlineReferrer(null);
+      setInlineChecking(false);
+      return;
+    }
+    
+    setInlineChecking(true);
+    const timer = setTimeout(() => {
+      api.get('/auth/referral-lookup/?code=' + code)
+        .then(res => {
+          setInlineReferrer({ name: res.data.referrer_name, isValid: true });
+        })
+        .catch(() => {
+          setInlineReferrer({ error: 'Invalid referral code', isValid: false });
+        })
+        .finally(() => {
+          setInlineChecking(false);
+        });
+    }, 600);
+    
+    return () => clearTimeout(timer);
+  }, [form.referral_code]);
 
   function handleAcceptReferral() {
     setShowWelcomeModal(false);
@@ -114,12 +144,23 @@ export function CustomerSignupPage() {
             </button>
           </div></label>
           
-          <label className="text-sm font-bold">Referral Code (Optional)
-            <input name="referral_code" value={form.referral_code} onChange={(event) => setForm({ ...form, referral_code: event.target.value })} placeholder="E.g. REF-A1B2C" className="mt-1 w-full rounded-lg border p-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"/>
-          </label>
+          <div className="text-sm font-bold">
+            <label>Referral Code (Optional)
+              <input name="referral_code" value={form.referral_code} onChange={(event) => setForm({ ...form, referral_code: event.target.value })} placeholder="E.g. REF-A1B2C" className="mt-1 w-full rounded-lg border p-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all uppercase"/>
+            </label>
+            {inlineChecking && (
+              <p className="mt-2 text-xs text-slate-500 flex items-center gap-1"><RefreshCw size={12} className="animate-spin" /> Verifying code...</p>
+            )}
+            {!inlineChecking && inlineReferrer?.isValid && (
+              <p className="mt-2 text-xs text-emerald-600 font-medium flex items-center gap-1"><CheckCircle2 size={12} /> Valid code! Referred by {inlineReferrer.name}.</p>
+            )}
+            {!inlineChecking && inlineReferrer?.isValid === false && (
+              <p className="mt-2 text-xs text-red-500 font-medium flex items-center gap-1"><XCircle size={12} /> {inlineReferrer.error}</p>
+            )}
+          </div>
         </div>
         
-        <button disabled={submitting} className="mt-6 min-h-12 w-full rounded-xl bg-primary-600 font-bold text-white transition-all hover:bg-primary-700 active:scale-[0.98]">{submitting ? 'Creating...' : 'Create account'}</button>
+        <button disabled={submitting || (inlineReferrer && !inlineReferrer.isValid)} className="mt-6 min-h-12 w-full rounded-xl bg-primary-600 font-bold text-white transition-all hover:bg-primary-700 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed">{submitting ? 'Creating...' : 'Create account'}</button>
       </form>
       
       {showWelcomeModal && (
@@ -674,6 +715,7 @@ export function OrderDetailPage() {
   </CustomerLayout>
  );
 }
+
 
 
 
