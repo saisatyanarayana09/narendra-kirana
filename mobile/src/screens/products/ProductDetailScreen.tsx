@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from
 import { Image } from 'expo-image';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import { ArrowLeft, ShoppingCart, Heart, Share2 } from 'lucide-react-native';
+import { Feather } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
@@ -51,14 +51,14 @@ export function ProductDetailScreen({ navigation, route }: Props) {
       {/* Header Actions */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <ArrowLeft color={theme.colors.text} size={24} />
+          <Feather name="arrow-left" color={theme.colors.text} size={24} />
         </TouchableOpacity>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.headerButton}>
-            <Share2 color={theme.colors.text} size={22} />
+            <Feather name="share-2" color={theme.colors.text} size={22} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerButton}>
-            <Heart color={theme.colors.text} size={22} />
+            <Feather name="heart" color={theme.colors.text} size={22} />
           </TouchableOpacity>
         </View>
       </View>
@@ -112,7 +112,7 @@ export function ProductDetailScreen({ navigation, route }: Props) {
           style={[styles.addToCartButton, !product.is_in_stock && styles.disabledButton]}
           disabled={!product.is_in_stock}
         >
-          <ShoppingCart color={theme.colors.surface} size={20} />
+          <Feather name="shopping-cart" color={theme.colors.surface} size={20} />
           <Text style={styles.addToCartText}>
             {product.is_in_stock ? 'Add to Cart' : 'Out of Stock'}
           </Text>

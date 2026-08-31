@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, CheckCircle2, Circle, Package, Clock, MapPin, Store } from 'lucide-react-native';
+import { Feather } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { theme } from '../../constants/theme';
@@ -78,7 +78,7 @@ export function OrderTrackingScreen({ navigation, route }: any) {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <ArrowLeft color={theme.colors.text} size={24} />
+          <Feather name="arrow-left" color={theme.colors.text} size={24} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Order #{order.id}</Text>
       </View>
@@ -105,9 +105,9 @@ export function OrderTrackingScreen({ navigation, route }: any) {
                   <View key={stage.id} style={styles.timelineRow}>
                     <View style={styles.timelineIconContainer}>
                       {isCompleted ? (
-                        <CheckCircle2 size={24} color={theme.colors.primary} />
+                        <Feather name="check-circle" size={24} color={theme.colors.primary} />
                       ) : (
-                        <Circle size={24} color={theme.colors.border} />
+                        <Feather name="circle" size={24} color={theme.colors.border} />
                       )}
                       {!isLast && (
                         <View style={[styles.timelineLine, isCompleted && styles.timelineLineActive]} />
@@ -133,9 +133,9 @@ export function OrderTrackingScreen({ navigation, route }: any) {
           <View style={styles.detailRow}>
             <View style={styles.iconBox}>
               {order.order_type === 'DELIVERY' ? (
-                <MapPin size={20} color={theme.colors.primary} />
+                <Feather name="map-pin" size={20} color={theme.colors.primary} />
               ) : (
-                <Store size={20} color={theme.colors.primary} />
+                <Feather name="shopping-bag" size={20} color={theme.colors.primary} />
               )}
             </View>
             <View style={{ flex: 1 }}>
@@ -149,7 +149,7 @@ export function OrderTrackingScreen({ navigation, route }: any) {
           {order.order_type === 'PICKUP' && order.pickup_time && (
             <View style={styles.detailRow}>
               <View style={styles.iconBox}>
-                <Clock size={20} color={theme.colors.primary} />
+                <Feather name="clock" size={20} color={theme.colors.primary} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.detailLabel}>Expected Pickup Time</Text>

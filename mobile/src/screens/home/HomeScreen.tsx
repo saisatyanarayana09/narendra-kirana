@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, FlatList } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, MapPin } from 'lucide-react-native';
+import { Feather } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { CompositeNavigationProp } from '@react-navigation/native';
@@ -72,7 +72,7 @@ export function HomeScreen({ navigation }: Props) {
         <View>
           <Text style={styles.greeting}>Deliver to</Text>
           <View style={styles.locationContainer}>
-            <MapPin size={16} color={theme.colors.primary} />
+            <Feather name="map-pin" size={16} color={theme.colors.primary} />
             <Text style={styles.locationText} numberOfLines={1}>
               Select Location
             </Text>
@@ -90,7 +90,7 @@ export function HomeScreen({ navigation }: Props) {
           activeOpacity={0.9}
           onPress={() => navigation.navigate('SearchScreen')}
         >
-          <Search size={20} color={theme.colors.textSecondary} />
+          <Feather name="search" size={20} color={theme.colors.textSecondary} />
           <Text style={styles.searchText}>Search for groceries...</Text>
         </TouchableOpacity>
       </View>

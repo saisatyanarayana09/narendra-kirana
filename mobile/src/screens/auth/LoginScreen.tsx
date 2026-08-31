@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Eye, EyeOff, ArrowLeft } from 'lucide-react-native';
+import { Feather } from '@expo/vector-icons';
 import { theme } from '../../constants/theme';
 import { AuthStackParamList } from '../../navigation/AuthStack';
 import { useAuth } from '../../context/AuthContext';
@@ -47,7 +47,7 @@ export function LoginScreen({ navigation }: Props) {
         style={styles.backButton} 
         onPress={() => navigation.goBack()}
       >
-        <ArrowLeft color={theme.colors.text} size={24} />
+        <Feather name="arrow-left" color={theme.colors.text} size={24} />
       </TouchableOpacity>
 
       <View style={styles.header}>
@@ -83,9 +83,9 @@ export function LoginScreen({ navigation }: Props) {
               onPress={() => setShowPassword(!showPassword)}
             >
               {showPassword ? (
-                <EyeOff color={theme.colors.textSecondary} size={20} />
+                <Feather name="eye"Off color={theme.colors.textSecondary} size={20} />
               ) : (
-                <Eye color={theme.colors.textSecondary} size={20} />
+                <Feather name="eye" color={theme.colors.textSecondary} size={20} />
               )}
             </TouchableOpacity>
           </View>

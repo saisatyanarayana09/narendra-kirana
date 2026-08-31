@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Gift, Share2, Copy } from 'lucide-react-native';
+import { Feather } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Clipboard from 'expo-clipboard';
 import { theme } from '../../constants/theme';
@@ -61,14 +61,14 @@ export function ReferAndEarnScreen({ navigation }: { navigation: NativeStackNavi
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <ArrowLeft color={theme.colors.text} size={24} />
+          <Feather name="arrow-left" color={theme.colors.text} size={24} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Refer & Earn</Text>
       </View>
 
       <View style={styles.content}>
         <View style={styles.heroBox}>
-          <Gift size={64} color={theme.colors.primary} style={styles.heroIcon} />
+          <Feather name="gift" size={64} color={theme.colors.primary} style={styles.heroIcon} />
           <Text style={styles.heroTitle}>Invite Friends & Earn</Text>
           <Text style={styles.heroSubtitle}>
             Get ₹{settings?.referrer_reward_amount || '50'} when your friend places their first order of ₹{settings?.minimum_order_amount || '500'} or more.
@@ -80,14 +80,14 @@ export function ReferAndEarnScreen({ navigation }: { navigation: NativeStackNavi
           <View style={styles.codeBox}>
             <Text style={styles.codeText}>{referralCode}</Text>
             <TouchableOpacity style={styles.copyButton} onPress={handleCopy}>
-              <Copy size={20} color={theme.colors.primary} />
+              <Feather name="copy" size={20} color={theme.colors.primary} />
               <Text style={styles.copyText}>{copied ? 'Copied!' : 'Copy'}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-          <Share2 size={20} color={theme.colors.surface} />
+          <Feather name="share-2" size={20} color={theme.colors.surface} />
           <Text style={styles.shareText}>Share Referral Link</Text>
         </TouchableOpacity>
         

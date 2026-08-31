@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
-import { WifiOff } from 'lucide-react-native';
+import { Feather } from '@expo/vector-icons';
 import { theme } from '../constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -48,7 +48,7 @@ export function OfflineBanner() {
         }
       ]}
     >
-      <WifiOff size={16} color={theme.colors.surface} />
+      <Feather name="wifi-off" size={16} color={theme.colors.surface} />
       <Text style={styles.text}>No internet connection</Text>
     </Animated.View>
   );

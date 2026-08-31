@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ShoppingBag, Tag, X } from 'lucide-react-native';
+import { Feather } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { theme } from '../../constants/theme';
 import { useCart } from '../../context/CartContext';
@@ -24,7 +24,7 @@ export function CartScreen({ navigation }: any) {
         </View>
         <View style={styles.emptyContent}>
           <View style={styles.emptyIconCircle}>
-            <ShoppingBag size={48} color={theme.colors.primary} />
+            <Feather name="shopping-bag" size={48} color={theme.colors.primary} />
           </View>
           <Text style={styles.emptyTitle}>Your cart is empty</Text>
           <Text style={styles.emptySubtitle}>Looks like you haven't added any groceries yet.</Text>
@@ -77,11 +77,11 @@ export function CartScreen({ navigation }: any) {
           {cart.promo_code ? (
             <View style={styles.activePromo}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Tag size={16} color={theme.colors.success} />
+                <Feather name="tag" size={16} color={theme.colors.success} />
                 <Text style={styles.activePromoText}>{cart.promo_code} Applied</Text>
               </View>
               <TouchableOpacity onPress={removePromo} disabled={isLoading}>
-                <X size={20} color={theme.colors.error} />
+                <Feather name="x" size={20} color={theme.colors.error} />
               </TouchableOpacity>
             </View>
           ) : (

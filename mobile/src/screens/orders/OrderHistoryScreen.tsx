@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Package, Clock, MapPin, ChevronRight } from 'lucide-react-native';
+import { Feather } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
@@ -71,14 +71,14 @@ export function OrderHistoryScreen({ navigation }: { navigation: NativeStackNavi
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <ArrowLeft color={theme.colors.text} size={24} />
+          <Feather name="arrow-left" color={theme.colors.text} size={24} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Order History</Text>
       </View>
       
       {orders.length === 0 ? (
         <View style={styles.emptyContent}>
-          <Package size={64} color={theme.colors.border} />
+          <Feather name="package" size={64} color={theme.colors.border} />
           <Text style={styles.emptyTitle}>No orders yet</Text>
           <Text style={styles.emptySubtitle}>When you place orders, they will appear here.</Text>
         </View>
@@ -121,9 +121,9 @@ export function OrderHistoryScreen({ navigation }: { navigation: NativeStackNavi
                   <Text style={styles.infoLabel}>Type:</Text>
                   <View style={styles.typeBadge}>
                     {item.order_type === 'DELIVERY' ? (
-                      <MapPin size={12} color={theme.colors.textSecondary} />
+                      <Feather name="map-pin" size={12} color={theme.colors.textSecondary} />
                     ) : (
-                      <Clock size={12} color={theme.colors.textSecondary} />
+                      <Feather name="clock" size={12} color={theme.colors.textSecondary} />
                     )}
                     <Text style={styles.typeText}>{item.order_type}</Text>
                   </View>
@@ -132,7 +132,7 @@ export function OrderHistoryScreen({ navigation }: { navigation: NativeStackNavi
 
               <View style={styles.cardFooter}>
                 <Text style={styles.footerText}>View Details</Text>
-                <ChevronRight size={16} color={theme.colors.primary} />
+                <Feather name="chevron-right" size={16} color={theme.colors.primary} />
               </View>
             </TouchableOpacity>
           )}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CheckCircle2 } from 'lucide-react-native';
+import { Feather } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { theme } from '../../constants/theme';
@@ -18,7 +18,7 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.iconContainer}>
-          <CheckCircle2 size={80} color={theme.colors.success} />
+          <Feather name="check-circle" size={80} color={theme.colors.success} />
         </View>
         
         <Text style={styles.title}>Order Placed!</Text>

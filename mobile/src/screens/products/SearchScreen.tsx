@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Search as SearchIcon, X } from 'lucide-react-native';
+import { Feather } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
@@ -42,10 +42,10 @@ export function SearchScreen({ navigation }: Props) {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <ArrowLeft color={theme.colors.text} size={24} />
+          <Feather name="arrow-left" color={theme.colors.text} size={24} />
         </TouchableOpacity>
         <View style={styles.searchBar}>
-          <SearchIcon size={20} color={theme.colors.textSecondary} />
+          <Feather name="search"Icon size={20} color={theme.colors.textSecondary} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search for groceries..."
@@ -56,7 +56,7 @@ export function SearchScreen({ navigation }: Props) {
           />
           {query.length > 0 && (
             <TouchableOpacity onPress={() => setQuery('')}>
-              <X size={20} color={theme.colors.textSecondary} />
+              <Feather name="x" size={20} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           )}
         </View>

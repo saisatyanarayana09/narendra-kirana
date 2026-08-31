@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
-import { Trash2 } from 'lucide-react-native';
+import { Feather } from '@expo/vector-icons';
 import { theme } from '../constants/theme';
 import { CartItem } from '../context/CartContext';
 import { QuantitySelector } from './QuantitySelector';
@@ -52,7 +52,7 @@ export function CartItemCard({ item, onUpdateQuantity, onRemove, isLoading }: Pr
         onPress={() => onRemove(item.id)}
         disabled={isLoading}
       >
-        <Trash2 size={20} color={theme.colors.error} />
+        <Feather name="trash-2" size={20} color={theme.colors.error} />
       </TouchableOpacity>
     </View>
   );

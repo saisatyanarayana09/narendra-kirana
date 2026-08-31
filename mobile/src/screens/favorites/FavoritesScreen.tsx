@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Heart } from 'lucide-react-native';
+import { Feather } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
@@ -59,7 +59,7 @@ export function FavoritesScreen({ navigation }: { navigation: NativeStackNavigat
         </View>
         <View style={styles.emptyContent}>
           <View style={styles.emptyIconCircle}>
-            <Heart size={48} color={theme.colors.primary} />
+            <Feather name="heart" size={48} color={theme.colors.primary} />
           </View>
           <Text style={styles.emptyTitle}>No favorites yet</Text>
           <Text style={styles.emptySubtitle}>Save items you buy regularly to find them quickly later.</Text>
@@ -97,7 +97,7 @@ export function FavoritesScreen({ navigation }: { navigation: NativeStackNavigat
               style={styles.removeButton}
               onPress={() => removeFavorite(item.id)}
             >
-              <Heart size={20} color={theme.colors.error} fill={theme.colors.error} />
+              <Feather name="heart" size={20} color={theme.colors.error} fill={theme.colors.error} />
             </TouchableOpacity>
           </View>
         )}

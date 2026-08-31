@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, MapPin, Store, CreditCard } from 'lucide-react-native';
+import { Feather } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { theme } from '../../constants/theme';
 import { useCart } from '../../context/CartContext';
@@ -98,7 +98,7 @@ export function CheckoutScreen({ navigation }: any) {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <ArrowLeft color={theme.colors.text} size={24} />
+          <Feather name="arrow-left" color={theme.colors.text} size={24} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Checkout</Text>
       </View>
@@ -111,14 +111,14 @@ export function CheckoutScreen({ navigation }: any) {
             style={[styles.typeButton, orderType === 'DELIVERY' && styles.typeButtonActive]}
             onPress={() => setOrderType('DELIVERY')}
           >
-            <MapPin color={orderType === 'DELIVERY' ? theme.colors.primary : theme.colors.textSecondary} size={20} />
+            <Feather name="map-pin" color={orderType === 'DELIVERY' ? theme.colors.primary : theme.colors.textSecondary} size={20} />
             <Text style={[styles.typeText, orderType === 'DELIVERY' && styles.typeTextActive]}>Delivery</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.typeButton, orderType === 'PICKUP' && styles.typeButtonActive]}
             onPress={() => setOrderType('PICKUP')}
           >
-            <Store color={orderType === 'PICKUP' ? theme.colors.primary : theme.colors.textSecondary} size={20} />
+            <Feather name="shopping-bag" color={orderType === 'PICKUP' ? theme.colors.primary : theme.colors.textSecondary} size={20} />
             <Text style={[styles.typeText, orderType === 'PICKUP' && styles.typeTextActive]}>Store Pickup</Text>
           </TouchableOpacity>
         </View>
@@ -156,7 +156,7 @@ export function CheckoutScreen({ navigation }: any) {
 
             {/* GPS Warning */}
             <View style={styles.gpsBox}>
-              <MapPin size={16} color={theme.colors.textSecondary} />
+              <Feather name="map-pin" size={16} color={theme.colors.textSecondary} />
               <Text style={styles.gpsText}>
                 {gpsLocation ? 'Live GPS Location captured ✓' : 'We will capture your GPS location upon checkout to help our rider find you easily.'}
               </Text>
@@ -191,7 +191,7 @@ export function CheckoutScreen({ navigation }: any) {
         {walletBalance > 0 && (
           <View style={styles.walletSection}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <CreditCard size={24} color={theme.colors.primary} />
+              <Feather name="credit-card" size={24} color={theme.colors.primary} />
               <View style={{ marginLeft: theme.spacing.sm }}>
                 <Text style={styles.walletTitle}>Narendra Kirana Wallet</Text>
                 <Text style={styles.walletBalance}>Available Balance: ₹{walletBalance}</Text>

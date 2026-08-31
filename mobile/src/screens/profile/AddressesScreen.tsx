@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Plus, MapPin, Trash2 } from 'lucide-react-native';
+import { Feather } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
@@ -47,7 +47,7 @@ export function AddressesScreen({ navigation }: { navigation: NativeStackNavigat
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <ArrowLeft color={theme.colors.text} size={24} />
+          <Feather name="arrow-left" color={theme.colors.text} size={24} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Saved Addresses</Text>
       </View>
@@ -68,7 +68,7 @@ export function AddressesScreen({ navigation }: { navigation: NativeStackNavigat
                   <Text style={styles.typeText}>{item.address_type}</Text>
                 </View>
                 <TouchableOpacity onPress={() => handleDelete(item.id)}>
-                  <Trash2 size={20} color={theme.colors.error} />
+                  <Feather name="trash-2" size={20} color={theme.colors.error} />
                 </TouchableOpacity>
               </View>
               <Text style={styles.addressLine}>{item.address_line_1}</Text>
@@ -78,7 +78,7 @@ export function AddressesScreen({ navigation }: { navigation: NativeStackNavigat
           )}
           ListEmptyComponent={
             <View style={styles.emptyContent}>
-              <MapPin size={48} color={theme.colors.border} />
+              <Feather name="map-pin" size={48} color={theme.colors.border} />
               <Text style={styles.emptyText}>No saved addresses found</Text>
             </View>
           }
@@ -87,7 +87,7 @@ export function AddressesScreen({ navigation }: { navigation: NativeStackNavigat
 
       {/* Floating Add Button */}
       <TouchableOpacity style={styles.fab} onPress={() => { /* TODO: Open Add Address Modal */ }}>
-        <Plus color={theme.colors.surface} size={24} />
+        <Feather name="plus" color={theme.colors.surface} size={24} />
       </TouchableOpacity>
     </SafeAreaView>
   );

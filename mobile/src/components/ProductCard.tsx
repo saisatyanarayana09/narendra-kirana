@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
-import { ShoppingCart } from 'lucide-react-native';
+import { Feather } from '@expo/vector-icons';
 import { theme } from '../constants/theme';
 
 interface Product {
@@ -70,7 +70,7 @@ export function ProductCard({ product, onPress, onAddToCart }: Props) {
             onPress={() => onAddToCart && onAddToCart(product)}
           >
             {product.is_in_stock ? (
-              <ShoppingCart size={18} color={theme.colors.surface} />
+              <Feather name="shopping-cart" size={18} color={theme.colors.surface} />
             ) : (
               <Text style={styles.outOfStockText}>Out</Text>
             )}

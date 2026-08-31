@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Wallet, ArrowDownLeft, ArrowUpRight } from 'lucide-react-native';
+import { Feather } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
@@ -44,7 +44,7 @@ export function WalletScreen({ navigation }: { navigation: NativeStackNavigation
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <ArrowLeft color={theme.colors.surface} size={24} />
+          <Feather name="arrow-left" color={theme.colors.surface} size={24} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Wallet</Text>
       </View>
@@ -53,7 +53,7 @@ export function WalletScreen({ navigation }: { navigation: NativeStackNavigation
         <View style={styles.balanceCard}>
           <Text style={styles.balanceLabel}>Available Balance</Text>
           <Text style={styles.balanceAmount}>₹{wallet?.balance || '0.00'}</Text>
-          <Wallet size={64} color="rgba(255,255,255,0.2)" style={styles.bgIcon} />
+          <Feather name="briefcase" size={64} color="rgba(255,255,255,0.2)" style={styles.bgIcon} />
         </View>
       </View>
 
@@ -75,9 +75,9 @@ export function WalletScreen({ navigation }: { navigation: NativeStackNavigation
                 <View style={styles.transactionCard}>
                   <View style={[styles.iconBox, { backgroundColor: isCredit ? theme.colors.success + '20' : theme.colors.error + '20' }]}>
                     {isCredit ? (
-                      <ArrowDownLeft size={20} color={theme.colors.success} />
+                      <Feather name="arrow-down-left" size={20} color={theme.colors.success} />
                     ) : (
-                      <ArrowUpRight size={20} color={theme.colors.error} />
+                      <Feather name="arrow-up-right" size={20} color={theme.colors.error} />
                     )}
                   </View>
                   <View style={styles.transactionInfo}>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Minus, Plus } from 'lucide-react-native';
+import { Feather } from '@expo/vector-icons';
 import { theme } from '../constants/theme';
 
 interface Props {
@@ -20,7 +20,7 @@ export function QuantitySelector({ quantity, onIncrease, onDecrease, isLoading =
         onPress={onDecrease}
         disabled={isLoading}
       >
-        <Minus size={16} color={theme.colors.primary} />
+        <Feather name="minus" size={16} color={theme.colors.primary} />
       </TouchableOpacity>
       
       <Text style={styles.quantity}>{quantity}</Text>
@@ -30,7 +30,7 @@ export function QuantitySelector({ quantity, onIncrease, onDecrease, isLoading =
         onPress={onIncrease}
         disabled={isLoading}
       >
-        <Plus size={16} color={theme.colors.primary} />
+        <Feather name="plus" size={16} color={theme.colors.primary} />
       </TouchableOpacity>
     </View>
   );

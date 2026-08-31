@@ -2,7 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View, Text } from 'react-native';
-import { Home, Grid, Heart, ShoppingCart, User } from 'lucide-react-native';
+import { Feather } from '@expo/vector-icons';
 import { theme } from '../constants/theme';
 
 import { HomeScreen } from '../screens/home/HomeScreen';
@@ -123,7 +123,7 @@ export function MainTabs() {
         component={HomeStack}
         options={{
           tabBarLabel: 'Home',
-          tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Feather name="home" color={color} size={size} />,
         }}
       />
       <Tab.Screen 
@@ -131,7 +131,7 @@ export function MainTabs() {
         component={CategoriesStack}
         options={{
           tabBarLabel: 'Categories',
-          tabBarIcon: ({ color, size }) => <Grid color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Feather name="grid" color={color} size={size} />,
         }}
       />
       <Tab.Screen 
@@ -139,7 +139,7 @@ export function MainTabs() {
         component={FavoritesScreen}
         options={{
           tabBarLabel: 'Favorites',
-          tabBarIcon: ({ color, size }) => <Heart color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Feather name="heart" color={color} size={size} />,
         }}
       />
       <Tab.Screen 
@@ -147,7 +147,7 @@ export function MainTabs() {
         component={CartStack}
         options={{
           tabBarLabel: 'Cart',
-          tabBarIcon: ({ color, size }) => <ShoppingCart color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Feather name="shopping-cart" color={color} size={size} />,
         }}
       />
       <Tab.Screen 
@@ -155,7 +155,7 @@ export function MainTabs() {
         component={ProfileStack}
         options={{
           tabBarLabel: 'Profile',
-          tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Feather name="user" color={color} size={size} />,
         }}
       />
     </Tab.Navigator>

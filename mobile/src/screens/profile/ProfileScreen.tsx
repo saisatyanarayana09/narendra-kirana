@@ -1,9 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { 
-  User, MapPin, Wallet, Gift, Bell, Settings, LogOut, ChevronRight, Package 
-} from 'lucide-react-native';
+import { Feather } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { theme } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
@@ -32,22 +30,22 @@ export function ProfileScreen({ navigation }: { navigation: NativeStackNavigatio
   const menuItems = [
     {
       title: 'My Orders',
-      icon: <Package size={22} color={theme.colors.primary} />,
+      icon: <Feather name="package" size={22} color={theme.colors.primary} />,
       onPress: () => navigation.navigate('OrderHistoryScreen'),
     },
     {
       title: 'Saved Addresses',
-      icon: <MapPin size={22} color={theme.colors.primary} />,
+      icon: <Feather name="map-pin" size={22} color={theme.colors.primary} />,
       onPress: () => navigation.navigate('AddressesScreen'),
     },
     {
       title: 'My Wallet',
-      icon: <Wallet size={22} color={theme.colors.primary} />,
+      icon: <Feather name="briefcase" size={22} color={theme.colors.primary} />,
       onPress: () => navigation.navigate('WalletScreen'),
     },
     {
       title: 'Refer & Earn',
-      icon: <Gift size={22} color={theme.colors.primary} />,
+      icon: <Feather name="gift" size={22} color={theme.colors.primary} />,
       onPress: () => navigation.navigate('ReferAndEarnScreen'),
     },
     {
@@ -92,7 +90,7 @@ export function ProfileScreen({ navigation }: { navigation: NativeStackNavigatio
                 <View style={styles.iconBox}>{item.icon}</View>
                 <Text style={styles.menuItemTitle}>{item.title}</Text>
               </View>
-              <ChevronRight size={20} color={theme.colors.textSecondary} />
+              <Feather name="chevron-right" size={20} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           ))}
         </View>
