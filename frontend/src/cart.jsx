@@ -35,36 +35,29 @@ export function CustomerSignupPage() {
   
   const [referrerName, setReferrerName] = useState('');
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
-  const [handledCode, setHandledCode] = useState('');
 
+  // Only run this on page load/URL change to detect clicks from referral links
   useEffect(() => {
-    const code = form.referral_code?.trim().toUpperCase();
-    if (code && code.length >= 5 && code !== handledCode) {
-      const timer = setTimeout(() => {
-        api.get('/auth/referral-lookup/?code=' + code)
-          .then(res => {
-            setReferrerName(res.data.referrer_name);
-            setShowWelcomeModal(true);
-          })
-          .catch(() => {
-            setReferrerName('');
-          });
-      }, 500);
-      return () => clearTimeout(timer);
-    } else if (!code) {
-      setReferrerName('');
+    const params = new URLSearchParams(location.search);
+    const urlRefCode = params.get('ref')?.trim().toUpperCase();
+    
+    if (urlRefCode && urlRefCode.length >= 5) {
+      api.get('/auth/referral-lookup/?code=' + urlRefCode)
+        .then(res => {
+          setReferrerName(res.data.referrer_name);
+          setShowWelcomeModal(true);
+        })
+        .catch(() => {
+          setReferrerName('');
+        });
     }
-  }, [form.referral_code, handledCode]);
+  }, [location.search]);
 
   function handleAcceptReferral() {
-    const code = form.referral_code?.trim().toUpperCase();
-    setHandledCode(code);
     setShowWelcomeModal(false);
   }
 
   function handleRejectReferral() {
-    const code = form.referral_code?.trim().toUpperCase();
-    setHandledCode(code);
     setForm({ ...form, referral_code: '' });
     setReferrerName('');
     setShowWelcomeModal(false);
@@ -681,6 +674,7 @@ export function OrderDetailPage() {
   </CustomerLayout>
  );
 }
+
 
 
 
