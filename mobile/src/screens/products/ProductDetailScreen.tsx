@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
+import { useCart } from '../../context/CartContext';
 
 const { width } = Dimensions.get('window');
 
@@ -22,7 +23,8 @@ type Props = {
 };
 
 export function ProductDetailScreen({ navigation, route }: Props) {
-  const { productId } = route.params;
+  const { productId } = route.params || {};
+  const { addToCart } = useCart();
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -111,6 +113,7 @@ export function ProductDetailScreen({ navigation, route }: Props) {
         <TouchableOpacity 
           style={[styles.addToCartButton, !product.is_in_stock && styles.disabledButton]}
           disabled={!product.is_in_stock}
+          onPress={() => addToCart(product.id, 1)}
         >
           <Feather name="shopping-cart" color={theme.colors.surface} size={20} />
           <Text style={styles.addToCartText}>

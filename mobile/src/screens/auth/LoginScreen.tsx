@@ -83,7 +83,7 @@ export function LoginScreen({ navigation }: Props) {
               onPress={() => setShowPassword(!showPassword)}
             >
               {showPassword ? (
-                <Feather name="eye"Off color={theme.colors.textSecondary} size={20} />
+                <Feather name="eye-off" color={theme.colors.textSecondary} size={20} />
               ) : (
                 <Feather name="eye" color={theme.colors.textSecondary} size={20} />
               )}

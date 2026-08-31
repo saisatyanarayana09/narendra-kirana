@@ -50,12 +50,12 @@ export function ProfileScreen({ navigation }: { navigation: NativeStackNavigatio
     },
     {
       title: 'Notifications',
-      icon: <Bell size={22} color={theme.colors.primary} />,
+      icon: <Feather name="bell" size={22} color={theme.colors.primary} />,
       onPress: () => navigation.navigate('NotificationsScreen'),
     },
     {
       title: 'Account Settings',
-      icon: <Settings size={22} color={theme.colors.primary} />,
+      icon: <Feather name="settings" size={22} color={theme.colors.primary} />,
       onPress: () => navigation.navigate('AccountSettingsScreen'),
     },
   ];
@@ -97,7 +97,7 @@ export function ProfileScreen({ navigation }: { navigation: NativeStackNavigatio
 
         {/* Logout Button */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <LogOut size={20} color={theme.colors.error} />
+          <Feather name="log-out" size={20} color={theme.colors.error} />
           <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
         

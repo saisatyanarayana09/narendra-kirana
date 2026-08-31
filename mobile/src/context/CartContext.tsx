@@ -71,7 +71,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       
       // Check if product is already in cart locally to update instead
       if (cart) {
-        const existingItem = cart.items.find(item => item.product.id === productId);
+        const existingItem = cart.items?.find(item => item.product?.id === productId);
         if (existingItem) {
           await updateQuantity(existingItem.id, existingItem.quantity + quantity);
           return;

@@ -22,7 +22,7 @@ interface Props {
 }
 
 export function ProductCard({ product, onPress, onAddToCart }: Props) {
-  const primaryImage = product.images.find(img => img.is_primary)?.image || product.images[0]?.image;
+  const primaryImage = product.images?.find(img => img.is_primary)?.image || product.images?.[0]?.image;
   
   const discount = product.mrp && parseFloat(product.mrp) > parseFloat(product.price)
     ? Math.round(((parseFloat(product.mrp) - parseFloat(product.price)) / parseFloat(product.mrp)) * 100)

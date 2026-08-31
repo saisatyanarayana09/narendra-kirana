@@ -97,7 +97,7 @@ export function FavoritesScreen({ navigation }: { navigation: NativeStackNavigat
               style={styles.removeButton}
               onPress={() => removeFavorite(item.id)}
             >
-              <Feather name="heart" size={20} color={theme.colors.error} fill={theme.colors.error} />
+              <Feather name="heart" size={20} color={theme.colors.error} />
             </TouchableOpacity>
           </View>
         )}

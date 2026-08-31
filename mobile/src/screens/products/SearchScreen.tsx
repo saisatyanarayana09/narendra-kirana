@@ -45,7 +45,7 @@ export function SearchScreen({ navigation }: Props) {
           <Feather name="arrow-left" color={theme.colors.text} size={24} />
         </TouchableOpacity>
         <View style={styles.searchBar}>
-          <Feather name="search"Icon size={20} color={theme.colors.textSecondary} />
+          <Feather name="search" size={20} color={theme.colors.textSecondary} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search for groceries..."

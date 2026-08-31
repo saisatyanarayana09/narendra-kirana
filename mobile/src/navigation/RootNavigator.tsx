@@ -16,7 +16,7 @@ const linking = {
     screens: {
       Auth: {
         screens: {
-          SignupScreen: 'signup',
+          Signup: 'signup',
         }
       },
       Main: {

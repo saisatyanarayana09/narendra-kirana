@@ -14,7 +14,7 @@ interface Props {
 }
 
 export function CartItemCard({ item, onUpdateQuantity, onRemove, isLoading }: Props) {
-  const primaryImage = item.product.images.find(img => img.is_primary)?.image || item.product.images[0]?.image;
+  const primaryImage = item.product?.images?.find(img => img.is_primary)?.image || item.product?.images?.[0]?.image;
 
   return (
     <View style={styles.container}>

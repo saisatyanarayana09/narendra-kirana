@@ -9,6 +9,7 @@ import { CompositeNavigationProp } from '@react-navigation/native';
 import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
+import { useCart } from '../../context/CartContext';
 import { ProductCard } from '../../components/ProductCard';
 import { CategoryCard } from '../../components/CategoryCard';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
@@ -26,6 +27,7 @@ type Props = {
 
 export function HomeScreen({ navigation }: Props) {
   const { user } = useAuth();
+  const { addToCart } = useCart();
   
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -142,12 +144,12 @@ export function HomeScreen({ navigation }: Props) {
               </TouchableOpacity>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.productsContainer}>
-              {section.section_products.map((sp: any) => (
+              {section.section_products?.map((sp: any) => sp.product && (
                 <ProductCard 
                   key={sp.product.id} 
                   product={sp.product} 
                   onPress={(p) => navigation.navigate('ProductDetailScreen', { productId: p.id })}
-                  onAddToCart={(p) => console.log('Add to cart', p.id)}
+                  onAddToCart={(p) => addToCart(p.id, 1)}
                 />
               ))}
             </ScrollView>
