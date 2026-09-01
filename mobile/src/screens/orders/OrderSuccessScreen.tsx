@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
@@ -12,12 +12,28 @@ type Props = {
 export function OrderSuccessScreen({ navigation, route }: Props) {
   const { orderId } = route.params || {};
 
+  // Prevent navigating back to the Checkout screen via hardware back button
+  useEffect(() => {
+    const onBackPress = () => {
+      navigation.navigate('HomeTab');
+      return true;
+    };
+    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => subscription.remove();
+  }, [navigation]);
+
+  const formattedOrderId = orderId ? (String(orderId).startsWith('#') ? orderId : `#${orderId}`) : '';
+
   const handleTrackOrder = () => {
     if (orderId) {
       navigation.navigate('OrderTrackingScreen', { orderId });
     } else {
       navigation.navigate('OrdersTab', { screen: 'OrderHistoryScreen' });
     }
+  };
+
+  const handleContinueShopping = () => {
+    navigation.navigate('HomeTab');
   };
 
   return (
@@ -29,7 +45,7 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
         
         <Text style={styles.title}>Order Confirmed!</Text>
         <Text style={styles.subtitle}>
-          Your order #{orderId} has been successfully placed. We are preparing it with care.
+          Your order {formattedOrderId} has been successfully placed. We are preparing it with care.
         </Text>
         
         <TouchableOpacity 
@@ -43,7 +59,7 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
         
         <TouchableOpacity 
           style={styles.secondaryButton}
-          onPress={() => navigation.navigate('HomeTab')}
+          onPress={handleContinueShopping}
           activeOpacity={0.85}
         >
           <Text style={styles.secondaryButtonText}>Continue Shopping</Text>

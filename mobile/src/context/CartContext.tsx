@@ -20,6 +20,9 @@ export interface CartItem {
   subtotal: string;
   product_name?: string;
   product_unit?: string;
+  product_image?: string | null;
+  stock_quantity?: number;
+  max_order_quantity?: number;
   unit_price?: string;
 }
 

@@ -137,29 +137,36 @@ export function AddAddressScreen({ navigation, route }: { navigation: AppNavigat
 
         {/* Address Form Card */}
         <View style={styles.formCard}>
-          {/* Label Pills */}
+          {/* Label Pills & Custom Input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Address Label</Text>
+            <Text style={styles.inputLabel}>Label (e.g. Home, Work, Other)</Text>
             <View style={styles.labelPillsRow}>
               {['Home', 'Work', 'Other'].map((lbl) => (
                 <TouchableOpacity
                   key={lbl}
-                  style={[styles.labelPill, title === lbl && styles.labelPillActive]}
-                  onPress={() => setTitle(lbl)}
+                  style={[styles.labelPill, (title === lbl || (lbl === 'Other' && !['Home', 'Work'].includes(title))) && styles.labelPillActive]}
+                  onPress={() => setTitle(lbl === 'Other' ? (['Home', 'Work'].includes(title) ? 'Other' : title) : lbl)}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.labelPillText, title === lbl && styles.labelPillTextActive]}>
+                  <Text style={[styles.labelPillText, (title === lbl || (lbl === 'Other' && !['Home', 'Work'].includes(title))) && styles.labelPillTextActive]}>
                     {lbl}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
+            <TextInput
+              style={[styles.textInput, { marginTop: 8 }]}
+              value={title}
+              onChangeText={setTitle}
+              placeholder="Label name (e.g. Home, Office, Parents)"
+              placeholderTextColor="#94A3B8"
+            />
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Street Address *</Text>
             <TextInput
-              style={[styles.textInput, { height: 70, textAlignVertical: 'top', paddingTop: 10 }]}
+              style={[styles.textInput, { height: 74, textAlignVertical: 'top', paddingTop: 10 }]}
               value={street}
               onChangeText={setStreet}
               placeholder="Flat/House No., Building Name, Street..."
@@ -216,16 +223,27 @@ export function AddAddressScreen({ navigation, route }: { navigation: AppNavigat
             </View>
 
             <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={styles.inputLabel}>Pincode *</Text>
+              <Text style={styles.inputLabel}>Country *</Text>
               <TextInput
                 style={styles.textInput}
-                value={zipCode}
-                onChangeText={setZipCode}
-                placeholder="Pincode"
+                value={country}
+                onChangeText={setCountry}
+                placeholder="Country"
                 placeholderTextColor="#94A3B8"
-                keyboardType="numeric"
               />
             </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Pincode *</Text>
+            <TextInput
+              style={styles.textInput}
+              value={zipCode}
+              onChangeText={setZipCode}
+              placeholder="Pincode / Zip Code"
+              placeholderTextColor="#94A3B8"
+              keyboardType="numeric"
+            />
           </View>
         </View>
 

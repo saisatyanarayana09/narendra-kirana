@@ -35,7 +35,7 @@ export function SearchScreen({ navigation }: Props) {
   const { addToCart } = useCart();
 
   useEffect(() => {
-    if (debouncedQuery.trim().length >= 2) {
+    if (debouncedQuery.trim().length >= 1) {
       performSearch(debouncedQuery.trim());
     } else {
       setResults([]);
@@ -60,7 +60,13 @@ export function SearchScreen({ navigation }: Props) {
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton} 
-          onPress={() => navigation.goBack()}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('HomeTab');
+            }
+          }}
           activeOpacity={0.7}
         >
           <Feather name="arrow-left" color="#059669" size={20} />
@@ -94,7 +100,7 @@ export function SearchScreen({ navigation }: Props) {
           <View style={styles.center}>
             <ActivityIndicator size="large" color="#059669" />
           </View>
-        ) : query.trim().length < 2 ? (
+        ) : query.trim().length < 1 ? (
           /* Popular Searches When Empty */
           <View style={styles.initialStateContainer}>
             <Text style={styles.popularLabel}>Popular Searches</Text>

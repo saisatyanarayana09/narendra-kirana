@@ -57,7 +57,13 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
-          onPress={() => navigation.goBack()}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('HomeTab');
+            }
+          }}
           activeOpacity={0.7}
         >
           <Feather name="arrow-left" size={16} color="#475569" />

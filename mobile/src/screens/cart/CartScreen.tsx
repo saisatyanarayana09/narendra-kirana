@@ -9,7 +9,7 @@ import {
   ActivityIndicator, 
   Alert 
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
 import { theme } from '../../constants/theme';
@@ -18,8 +18,10 @@ import { CartItemCard } from '../../components/CartItemCard';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 
 export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
+  const insets = useSafeAreaInsets();
   const { cart, isLoading, updateQuantity, removeFromCart, applyPromo, removePromo, storeSettings } = useCart();
   const [promoCode, setPromoCode] = useState('');
+  const [promoError, setPromoError] = useState('');
   const [promoApplying, setPromoApplying] = useState(false);
 
   if (!cart) {
@@ -65,12 +67,13 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
 
   const handleApplyPromo = async () => {
     if (!promoCode.trim()) return;
+    setPromoError('');
     setPromoApplying(true);
     try {
       await applyPromo(promoCode.trim().toUpperCase());
       setPromoCode('');
     } catch (error: any) {
-      Alert.alert('Invalid Code', error.response?.data?.detail || error.response?.data?.error || 'Invalid promo code');
+      setPromoError(error.response?.data?.detail || error.response?.data?.error || 'Invalid promo code');
     } finally {
       setPromoApplying(false);
     }
@@ -98,7 +101,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
 
       <ScrollView 
         showsVerticalScrollIndicator={false} 
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 110 + insets.bottom }]}
       >
         {/* Store Closed or Minimum Order Warning */}
         {isStoreClosed && (
@@ -130,6 +133,39 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
 
         {/* Promo Code Card */}
         <View style={styles.card}>
+          <View style={styles.promoForm}>
+            <TextInput
+              style={styles.promoInput}
+              placeholder="Enter promo code"
+              placeholderTextColor="#94A3B8"
+              value={promoCode}
+              onChangeText={(t) => {
+                setPromoCode(t.toUpperCase());
+                if (promoError) setPromoError('');
+              }}
+              autoCapitalize="characters"
+            />
+            <TouchableOpacity 
+              style={[styles.applyBtn, (!promoCode.trim() || promoApplying) && styles.disabledApplyBtn]} 
+              onPress={handleApplyPromo}
+              disabled={!promoCode.trim() || promoApplying || isLoading}
+              activeOpacity={0.8}
+            >
+              {promoApplying ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.applyBtnText}>Apply</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {promoError ? (
+            <View style={styles.promoErrorRow}>
+              <Feather name="alert-circle" size={13} color="#DC2626" />
+              <Text style={styles.promoErrorText}>{promoError}</Text>
+            </View>
+          ) : null}
+
           {cart.promo_code ? (
             <View style={styles.appliedPromoRow}>
               <View>
@@ -138,36 +174,17 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
               </View>
               <TouchableOpacity 
                 style={styles.removePromoBtn}
-                onPress={removePromo} 
+                onPress={async () => {
+                  setPromoError('');
+                  await removePromo();
+                }} 
                 disabled={isLoading}
+                activeOpacity={0.8}
               >
                 <Text style={styles.removePromoText}>Remove</Text>
               </TouchableOpacity>
             </View>
-          ) : (
-            <View style={styles.promoForm}>
-              <TextInput
-                style={styles.promoInput}
-                placeholder="Enter promo code"
-                placeholderTextColor="#94A3B8"
-                value={promoCode}
-                onChangeText={(t) => setPromoCode(t.toUpperCase())}
-                autoCapitalize="characters"
-              />
-              <TouchableOpacity 
-                style={[styles.applyBtn, (!promoCode.trim() || promoApplying) && styles.disabledApplyBtn]} 
-                onPress={handleApplyPromo}
-                disabled={!promoCode.trim() || promoApplying || isLoading}
-                activeOpacity={0.8}
-              >
-                {promoApplying ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.applyBtnText}>Apply</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          )}
+          ) : null}
         </View>
 
         {/* Order Summary Card */}
@@ -179,12 +196,12 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
             <Text style={styles.summaryValue}>₹{parseFloat(cart.subtotal || '0').toFixed(2)}</Text>
           </View>
 
-          {parseFloat(cart.discount || '0') > 0 && (
-            <View style={styles.summaryRow}>
-              <Text style={styles.savingsLabel}>Product Savings</Text>
-              <Text style={styles.savingsValue}>-₹{parseFloat(cart.discount).toFixed(2)}</Text>
-            </View>
-          )}
+          <View style={styles.summaryRow}>
+            <Text style={styles.savingsLabel}>Product Savings</Text>
+            <Text style={styles.savingsValue}>
+              {parseFloat(cart.discount || '0') > 0 ? `-₹${parseFloat(cart.discount).toFixed(2)}` : '₹0.00'}
+            </Text>
+          </View>
 
           {parseFloat(cart.promo_discount || '0') > 0 && (
             <View style={styles.summaryRow}>
@@ -204,12 +221,33 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
             <Text style={styles.totalLabel}>Total Due</Text>
             <Text style={styles.totalValue}>₹{parseFloat(cart.total || '0').toFixed(2)}</Text>
           </View>
+
+          {/* Store status banners in summary */}
+          {isStoreClosed ? (
+            <View style={styles.summaryWarningClosed}>
+              <Text style={styles.summaryWarningClosedText}>The store is currently closed.</Text>
+            </View>
+          ) : isBelowMinOrder ? (
+            <View style={styles.summaryWarningMinOrder}>
+              <Text style={styles.summaryWarningMinOrderText}>
+                Minimum order amount is ₹{minOrderAmount.toFixed(2)}
+              </Text>
+            </View>
+          ) : (
+            <TouchableOpacity 
+              style={styles.summaryCheckoutBtn}
+              onPress={() => navigation.navigate('CheckoutScreen')}
+              activeOpacity={0.9}
+            >
+              <Text style={styles.summaryCheckoutBtnText}>Continue to pickup</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
 
       {/* Sticky Bottom Checkout Bar matching web app */}
       {!isStoreClosed && !isBelowMinOrder && items.length > 0 && (
-        <View style={styles.bottomBar}>
+        <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
           <View>
             <Text style={styles.bottomTotalLabel}>TOTAL DUE</Text>
             <Text style={styles.bottomTotalValue}>₹{parseFloat(cart.total || '0').toFixed(2)}</Text>
@@ -233,7 +271,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles: any = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC', // slate-50
@@ -393,6 +431,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 14,
   },
+  promoErrorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    backgroundColor: '#FEF2F2',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  promoErrorText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#DC2626',
+    flex: 1,
+  },
   appliedPromoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -471,6 +525,53 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '900',
     color: '#0F172A',
+  },
+  summaryWarningClosed: {
+    marginTop: 16,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+    alignItems: 'center',
+  },
+  summaryWarningClosedText: {
+    color: '#B91C1C',
+    fontWeight: '700',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  summaryWarningMinOrder: {
+    marginTop: 16,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#FEF3C7',
+    alignItems: 'center',
+  },
+  summaryWarningMinOrderText: {
+    color: '#B45309',
+    fontWeight: '700',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  summaryCheckoutBtn: {
+    marginTop: 16,
+    backgroundColor: '#059669',
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  summaryCheckoutBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 16,
   },
   bottomBar: {
     position: 'absolute',

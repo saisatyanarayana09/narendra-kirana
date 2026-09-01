@@ -13,12 +13,16 @@ interface Props {
 }
 
 export function CartItemCard({ item, onUpdateQuantity, onRemove, isLoading }: Props) {
-  const maxOrderQty = item.product?.max_order_quantity ?? 0;
-  const stockQty = item.product?.stock_quantity ?? 999;
+  const maxOrderQty = item.max_order_quantity ?? item.product?.max_order_quantity ?? 0;
+  const stockQty = item.stock_quantity ?? item.product?.stock_quantity ?? 999;
   const maxAllowed = maxOrderQty > 0 ? Math.min(stockQty, maxOrderQty) : stockQty;
   const isMaxReached = item.quantity >= maxAllowed;
 
-  const primaryImage = fixImageUrl(item.product?.image);
+  const rawImage = item.product_image || item.product?.image;
+  const primaryImage = fixImageUrl(rawImage);
+  const productName = item.product_name || item.product?.name || 'Product';
+  const unitPrice = item.unit_price || item.product?.price || '0.00';
+  const unitName = item.product_unit || item.product?.unit || 'Unit';
 
   return (
     <View style={styles.container}>
@@ -29,7 +33,7 @@ export function CartItemCard({ item, onUpdateQuantity, onRemove, isLoading }: Pr
         ) : (
           <View style={styles.placeholderBox}>
             <Text style={styles.placeholderLetter}>
-              {item.product_name?.charAt(0)?.toUpperCase() || 'P'}
+              {productName.charAt(0)?.toUpperCase() || 'P'}
             </Text>
           </View>
         )}
@@ -37,10 +41,17 @@ export function CartItemCard({ item, onUpdateQuantity, onRemove, isLoading }: Pr
       
       {/* Product Details */}
       <View style={styles.details}>
-        <Text style={styles.name} numberOfLines={1}>{item.product_name}</Text>
+        <Text style={styles.name} numberOfLines={1}>{productName}</Text>
         <Text style={styles.unitText}>
-          ₹{item.unit_price} · {item.product_unit || item.product?.unit || 'Unit'}
+          ₹{unitPrice} · {unitName}
         </Text>
+        {isMaxReached && (
+          <Text style={styles.limitReachedText}>
+            {maxOrderQty > 0 && maxOrderQty <= stockQty 
+              ? `Max limit of ${maxAllowed} reached`
+              : `Only ${maxAllowed} in stock`}
+          </Text>
+        )}
       </View>
 
       {/* Quantity Selector Stepper matching web app */}
@@ -135,6 +146,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#64748B', // slate-500
     fontWeight: '500',
+  },
+  limitReachedText: {
+    fontSize: 11,
+    color: '#D97706', // amber-600
+    fontWeight: '700',
+    marginTop: 2,
   },
   stepperContainer: {
     flexDirection: 'row',

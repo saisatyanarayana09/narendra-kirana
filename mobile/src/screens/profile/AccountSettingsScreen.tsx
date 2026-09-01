@@ -16,7 +16,7 @@ import { useAuth } from '../../context/AuthContext';
 import { apiClient } from '../../api/client';
 
 export function AccountSettingsScreen({ navigation }: { navigation: AppNavigationProp }) {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   
   const [firstName, setFirstName] = useState(user?.first_name || '');
   const [username, setUsername] = useState(user?.username || user?.email || '');
@@ -26,6 +26,10 @@ export function AccountSettingsScreen({ navigation }: { navigation: AppNavigatio
   
   const [saving, setSaving] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [showDeletePrompt, setShowDeletePrompt] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
+  const deleteRequested = Boolean(user?.customer_profile?.delete_requested);
 
   const handleSaveProfile = async () => {
     if (!firstName.trim() || !username.trim()) {
@@ -40,9 +44,12 @@ export function AccountSettingsScreen({ navigation }: { navigation: AppNavigatio
         username: username,
       };
       if (password) payload.password = password;
-      if (dob) payload.customer_profile = JSON.stringify({ dob });
+      if (dob !== undefined) payload.customer_profile = JSON.stringify({ dob });
 
-      await apiClient.put('/auth/profile/', payload);
+      const res = await apiClient.put('/auth/profile/', payload);
+      if (updateUser && res.data) {
+        await updateUser(res.data);
+      }
       Alert.alert('Success', 'Profile updated successfully!');
       setPassword('');
     } catch (err: any) {
@@ -53,43 +60,28 @@ export function AccountSettingsScreen({ navigation }: { navigation: AppNavigatio
     }
   };
 
-  const handleRequestDelete = () => {
-    Alert.prompt
-      ? Alert.prompt(
-          'Delete Account',
-          'Please enter your password to confirm deletion request:',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Request Deletion',
-              style: 'destructive',
-              onPress: async (pwd?: string) => {
-                if (!pwd) return;
-                performDeleteRequest(pwd);
-              }
-            }
-          ],
-          'secure-text'
-        )
-      : Alert.alert(
-          'Delete Account',
-          'Are you sure you want to request deletion of your account?',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Request Deletion',
-              style: 'destructive',
-              onPress: () => performDeleteRequest('confirm')
-            }
-          ]
-        );
-  };
+  const handleRequestDeletion = async () => {
+    if (!deletePassword.trim()) {
+      Alert.alert('Password Required', 'Please enter your password to confirm account deletion.');
+      return;
+    }
 
-  const performDeleteRequest = async (pwd: string) => {
     setDeleteLoading(true);
     try {
-      await apiClient.post('/auth/request-delete/', { password: pwd });
-      Alert.alert('Request Submitted', 'Account deletion requested successfully.');
+      await apiClient.post('/auth/request-delete/', { password: deletePassword });
+      Alert.alert('Submitted', 'Account deletion requested successfully.');
+      if (user && updateUser) {
+        const updatedUser = {
+          ...user,
+          customer_profile: {
+            ...user.customer_profile,
+            delete_requested: true,
+          },
+        };
+        await updateUser(updatedUser);
+      }
+      setShowDeletePrompt(false);
+      setDeletePassword('');
     } catch (err: any) {
       Alert.alert('Error', err.response?.data?.error || 'Failed to request deletion.');
     } finally {

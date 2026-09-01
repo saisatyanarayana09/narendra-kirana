@@ -33,11 +33,31 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
     }
   };
 
+  const handleToggleFavorite = async (product: any) => {
+    const favItem = favorites.find(f => f.product === product.id || f.product_details?.id === product.id);
+    if (!favItem) return;
+    try {
+      await apiClient.delete(`/favorites/${favItem.id}/`);
+      setFavorites(prev => prev.filter(f => f.id !== favItem.id));
+    } catch (error) {
+      console.error('Error removing favorite:', error);
+    }
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={() => {
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation.navigate('HomeTab');
+              }
+            }}
+          >
             <Feather name="arrow-left" size={18} color="#059669" />
             <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
@@ -56,7 +76,13 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
         <View style={styles.header}>
           <TouchableOpacity 
             style={styles.backButton} 
-            onPress={() => navigation.goBack()}
+            onPress={() => {
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation.navigate('HomeTab');
+              }
+            }}
             activeOpacity={0.7}
           >
             <Feather name="arrow-left" size={18} color="#059669" />
@@ -93,7 +119,13 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton} 
-          onPress={() => navigation.goBack()}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('HomeTab');
+            }
+          }}
           activeOpacity={0.7}
         >
           <Feather name="arrow-left" size={18} color="#059669" />
@@ -122,6 +154,8 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
             <View style={styles.cardWrapper}>
               <ProductCard 
                 product={product} 
+                isFavorite={true}
+                onToggleFavorite={handleToggleFavorite}
                 onPress={() => navigation.navigate('ProductDetailScreen', { productId: product.id })} 
                 onAddToCart={(p) => addToCart(p.id, 1)}
               />

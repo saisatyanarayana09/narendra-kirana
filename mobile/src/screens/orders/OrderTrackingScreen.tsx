@@ -1,46 +1,69 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  ScrollView, 
+  TouchableOpacity, 
+  ActivityIndicator,
+  RefreshControl 
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
-import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
 
-export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavigationProp, route: any }) {
+export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavigationProp; route: any }) {
   const { orderId } = route.params;
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
+
+  const fetchOrderDetails = useCallback(async (isPullRefresh = false) => {
+    if (isPullRefresh) {
+      setRefreshing(true);
+    }
+    try {
+      const res = await apiClient.get(`/orders/${orderId}/`, { params: { t: Date.now() } });
+      setOrder(res.data);
+      setError('');
+    } catch (err) {
+      console.error('Error fetching order details:', err);
+      if (!order) {
+        setError('Could not load this order.');
+      }
+    } finally {
+      setLoading(false);
+      if (isPullRefresh) setRefreshing(false);
+    }
+  }, [orderId, order]);
 
   useEffect(() => {
     let isMounted = true;
     let interval: ReturnType<typeof setInterval> | null = null;
 
-    const fetchOrderDetails = async () => {
-      try {
-        const res = await apiClient.get(`/orders/${orderId}/`);
-        if (isMounted) {
-          setOrder(res.data);
-          if (res.data.status === 'COMPLETED' || res.data.status === 'REJECTED') {
-            if (interval) {
-              clearInterval(interval);
-              interval = null;
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching order details:', error);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-
     fetchOrderDetails();
-    
-    // Poll for updates every 5 seconds until completed or rejected
+
+    // Live polling every 5 seconds until completed or rejected
     interval = setInterval(() => {
-      fetchOrderDetails();
+      if (isMounted) {
+        apiClient.get(`/orders/${orderId}/`, { params: { t: Date.now() } })
+          .then(res => {
+            if (isMounted) {
+              setOrder(res.data);
+              if (res.data.status === 'COMPLETED' || res.data.status === 'REJECTED') {
+                if (interval) {
+                  clearInterval(interval);
+                  interval = null;
+                }
+              }
+            }
+          })
+          .catch(() => {});
+      }
     }, 5000);
-    
+
     return () => {
       isMounted = false;
       if (interval) clearInterval(interval);
@@ -49,135 +72,197 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
 
   if (loading && !order) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-      </View>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Feather name="arrow-left" size={18} color="#059669" />
+            <Text style={styles.backButtonText}>Back</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color="#059669" />
+          <Text style={styles.loadingText}>Loading order...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
-  if (!order) {
+  if (error && !order) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.notFoundText}>Order not found</Text>
-      </View>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Feather name="arrow-left" size={18} color="#059669" />
+            <Text style={styles.backButtonText}>Back</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.center}>
+          <Feather name="alert-circle" size={48} color="#E11D48" />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity 
+            style={styles.retryBtn} 
+            onPress={() => { setLoading(true); fetchOrderDetails(); }}
+          >
+            <Text style={styles.retryBtnText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     );
   }
 
-  // 5-Stage Timeline: NEW -> ACCEPTED -> PREPARING -> READY -> COMPLETED
-  // (REJECTED is a separate failure track)
+  if (!order) return null;
+
   const isDelivery = order.order_type === 'DELIVERY';
-  
+  const isRejected = order.status === 'REJECTED';
+
+  // 5-Stage Timeline: Order Placed, Accepted, Preparing, Out for Delivery / Ready for Pickup, Delivered / Completed
   const stages = [
-    { id: 'NEW', title: 'Order Placed', subtitle: 'We have received your order' },
-    { id: 'ACCEPTED', title: 'Order Accepted', subtitle: 'Store has confirmed your order' },
-    { id: 'PREPARING', title: 'Preparing Order', subtitle: 'Store is packing your items' },
+    { 
+      id: 'NEW', 
+      title: 'Order Placed', 
+      desc: 'We received your order', 
+      icon: 'check-circle' as const 
+    },
+    { 
+      id: 'ACCEPTED', 
+      title: 'Accepted', 
+      desc: 'Store confirmed your order', 
+      icon: 'check-square' as const 
+    },
+    { 
+      id: 'PREPARING', 
+      title: 'Preparing', 
+      desc: 'Store is packing your items', 
+      icon: 'package' as const 
+    },
     { 
       id: 'READY', 
       title: isDelivery ? 'Out for Delivery' : 'Ready for Pickup', 
-      subtitle: isDelivery ? 'Rider is on the way' : 'Your order is packed and ready' 
+      desc: isDelivery ? 'Your order is on the way!' : 'Waiting for you at the store', 
+      icon: (isDelivery ? 'truck' : 'shopping-bag') as keyof typeof Feather.glyphMap 
     },
     { 
       id: 'COMPLETED', 
-      title: isDelivery ? 'Delivered' : 'Picked Up', 
-      subtitle: isDelivery ? 'Enjoy your groceries!' : 'Order handed over successfully' 
+      title: isDelivery ? 'Delivered' : 'Completed', 
+      desc: isDelivery ? 'Order delivered successfully' : 'Order picked up successfully', 
+      icon: 'check-circle' as const 
     },
   ];
-  
-  const getStageIndex = (status: string) => {
-    switch(status) {
-      case 'NEW': return 0;
-      case 'ACCEPTED': return 1;
-      case 'PREPARING': return 2;
-      case 'READY': return 3;
-      case 'COMPLETED': return 4;
-      default: return -1;
-    }
-  };
 
-  const currentIndex = getStageIndex(order.status);
-  const isRejected = order.status === 'REJECTED';
+  const statusOrder = ['NEW', 'ACCEPTED', 'PREPARING', 'READY', 'COMPLETED'];
+  const currentIndex = statusOrder.indexOf(order.status);
 
   const activeSubtotal = (order.items || [])
     .filter((i: any) => i.status !== 'REJECTED')
     .reduce((sum: number, item: any) => {
-      const itemPrice = parseFloat(item.subtotal || item.price_snapshot || item.price_at_order || '0');
-      return sum + itemPrice;
+      const itemSub = parseFloat(item.subtotal || item.price_snapshot || '0');
+      return sum + itemSub;
     }, 0);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Top Navigation Bar */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Feather name="arrow-left" color={theme.colors.text} size={24} />
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <Feather name="arrow-left" size={18} color="#059669" />
+          <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Order #{order.id}</Text>
-        {order.status === 'COMPLETED' ? (
-          <TouchableOpacity 
-            style={styles.invoiceHeaderBtn}
-            onPress={() => navigation.navigate('InvoiceScreen', { orderId: order.id })}
-          >
-            <Feather name="file-text" size={16} color="#FFFFFF" />
-            <Text style={styles.invoiceHeaderBtnText}>Invoice</Text>
-          </TouchableOpacity>
-        ) : <View style={{ width: 24 }} />}
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        
-        {/* Completed Order: View Invoice Banner */}
-        {order.status === 'COMPLETED' && (
-          <TouchableOpacity 
-            style={styles.invoiceBanner}
-            onPress={() => navigation.navigate('InvoiceScreen', { orderId: order.id })}
-          >
-            <View style={styles.invoiceBannerLeft}>
-              <View style={styles.invoiceIconCircle}>
-                <Feather name="check" size={20} color="#059669" />
-              </View>
-              <View>
-                <Text style={styles.invoiceBannerTitle}>Order Delivered & Completed</Text>
-                <Text style={styles.invoiceBannerSubtitle}>View and download your official invoice receipt</Text>
-              </View>
-            </View>
-            <View style={styles.viewInvoiceBtn}>
-              <Text style={styles.viewInvoiceBtnText}>View Invoice</Text>
-              <Feather name="chevron-right" size={16} color="#059669" />
-            </View>
-          </TouchableOpacity>
-        )}
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => fetchOrderDetails(true)}
+            colors={['#059669']}
+            tintColor="#059669"
+          />
+        }
+      >
+        {/* Order Header matching web cart.jsx OrderDetailPage */}
+        <View style={styles.orderHeaderSection}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.orderConfirmedBadge}>Order confirmed</Text>
+            <Text style={styles.orderIdText}>#{order.id}</Text>
+          </View>
+          {order.status === 'COMPLETED' && (
+            <TouchableOpacity 
+              style={styles.viewInvoiceHeaderBtn}
+              onPress={() => navigation.navigate('InvoiceScreen', { orderId: order.id })}
+              activeOpacity={0.8}
+            >
+              <Feather name="file-text" size={15} color="#FFFFFF" />
+              <Text style={styles.viewInvoiceHeaderBtnText}>View Invoice</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
-        {/* Status Timeline */}
-        <View style={styles.timelineCard}>
-          <Text style={styles.sectionTitle}>Order Status</Text>
-          
+        {/* 5-Stage Tracking Timeline Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Track Order</Text>
+
           {isRejected ? (
-            <View style={styles.rejectedBox}>
-              <Text style={styles.rejectedTitle}>Order Cancelled</Text>
-              <Text style={styles.rejectedSubtitle}>Unfortunately, this order could not be fulfilled.</Text>
+            <View style={styles.rejectedBanner}>
+              <Feather name="x-circle" size={32} color="#E11D48" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.rejectedBannerTitle}>Order Cancelled</Text>
+                <Text style={styles.rejectedBannerSubtitle}>
+                  This order was cancelled and any wallet balance has been refunded.
+                </Text>
+              </View>
             </View>
           ) : (
-            <View style={styles.timeline}>
-              {stages.map((stage, index) => {
-                const isCompleted = index <= currentIndex;
+            <View style={styles.timelineWrapper}>
+              {stages.map((step, index) => {
+                const isCompleted = currentIndex >= index;
+                const isActive = currentIndex === index;
                 const isLast = index === stages.length - 1;
-                
+
                 return (
-                  <View key={stage.id} style={styles.timelineRow}>
-                    <View style={styles.timelineIconContainer}>
-                      {isCompleted ? (
-                        <Feather name="check-circle" size={24} color={theme.colors.primary} />
-                      ) : (
-                        <Feather name="circle" size={24} color={theme.colors.border} />
-                      )}
+                  <View 
+                    key={step.id} 
+                    style={[styles.timelineStepRow, !isCompleted && styles.timelineStepDimmed]}
+                  >
+                    <View style={styles.stepIndicatorCol}>
+                      <View 
+                        style={[
+                          styles.stepBadge,
+                          isCompleted ? styles.stepBadgeCompleted : styles.stepBadgePending,
+                          isActive && styles.stepBadgeActive,
+                        ]}
+                      >
+                        <Feather 
+                          name={step.icon} 
+                          size={18} 
+                          color={isCompleted ? '#FFFFFF' : '#64748B'} 
+                        />
+                      </View>
                       {!isLast && (
-                        <View style={[styles.timelineLine, isCompleted && index < currentIndex && styles.timelineLineActive]} />
+                        <View 
+                          style={[
+                            styles.stepConnectorLine,
+                            currentIndex > index && styles.stepConnectorLineCompleted,
+                          ]} 
+                        />
                       )}
                     </View>
-                    <View style={styles.timelineContent}>
-                      <Text style={[styles.timelineTitle, isCompleted && styles.timelineTitleActive]}>
-                        {stage.title}
+
+                    <View style={styles.stepDetailsCol}>
+                      <Text 
+                        style={[
+                          styles.stepTitleText,
+                          isActive ? styles.stepTitleActive : (isCompleted ? styles.stepTitleCompleted : styles.stepTitlePending),
+                        ]}
+                      >
+                        {step.title}
                       </Text>
-                      <Text style={styles.timelineSubtitle}>{stage.subtitle}</Text>
+                      <Text style={styles.stepDescText}>{step.desc}</Text>
                     </View>
                   </View>
                 );
@@ -186,184 +271,175 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
           )}
         </View>
 
-        {/* Delivery / Pickup Details */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>
-            {isDelivery ? 'Delivery Details' : 'Pickup Details'}
-          </Text>
-          
-          <View style={styles.detailRow}>
-            <View style={styles.iconBox}>
-              {isDelivery ? (
-                <Feather name="map-pin" size={20} color={theme.colors.primary} />
-              ) : (
-                <Feather name="shopping-bag" size={20} color={theme.colors.primary} />
-              )}
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.detailLabel}>
-                {isDelivery ? 'Delivery Address' : 'Pickup From'}
-              </Text>
-              <Text style={styles.detailValue}>
-                {isDelivery ? (order.delivery_address || 'Address not specified') : 'Main Road, Kirana Market'}
-              </Text>
-              {isDelivery && order.delivery_pincode ? (
-                <Text style={styles.pincodeText}>Pincode: {order.delivery_pincode}</Text>
-              ) : null}
-            </View>
-          </View>
-          
-          {!isDelivery && order.pickup_time ? (
-            <View style={styles.detailRow}>
-              <View style={styles.iconBox}>
-                <Feather name="clock" size={20} color={theme.colors.primary} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.detailLabel}>Expected Pickup Time</Text>
-                <Text style={styles.detailValue}>{order.pickup_time}</Text>
-              </View>
-            </View>
-          ) : null}
-        </View>
-
-        {/* Order Notes */}
-        {(order.customer_note || order.owner_note) ? (
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Order Notes</Text>
-            {order.customer_note ? (
-              <View style={styles.customerNoteBox}>
-                <View style={styles.noteHeader}>
-                  <Feather name="message-square" size={14} color="#D97706" />
-                  <Text style={styles.customerNoteTitle}>Note from You</Text>
-                </View>
-                <Text style={styles.noteContent}>{order.customer_note}</Text>
-              </View>
-            ) : null}
-            {order.owner_note ? (
-              <View style={[styles.ownerNoteBox, order.customer_note ? { marginTop: 10 } : null]}>
-                <View style={styles.noteHeader}>
-                  <Feather name="message-circle" size={14} color="#2563EB" />
-                  <Text style={styles.ownerNoteTitle}>Note from Store</Text>
-                </View>
-                <Text style={styles.noteContent}>{order.owner_note}</Text>
-              </View>
-            ) : null}
+        {/* Customer Note */}
+        {order.customer_note ? (
+          <View style={styles.customerNoteCard}>
+            <Text style={styles.customerNoteTitle}>YOUR NOTE</Text>
+            <Text style={styles.customerNoteBody}>{order.customer_note}</Text>
           </View>
         ) : null}
 
-        {/* Items */}
+        {/* Store Reply Note */}
+        {order.owner_note ? (
+          <View style={styles.ownerNoteCard}>
+            <Text style={styles.ownerNoteTitle}>STORE REPLY</Text>
+            <Text style={styles.ownerNoteBody}>{order.owner_note}</Text>
+          </View>
+        ) : null}
+
+        {/* Order Items List */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Items ({order.items?.length || 0})</Text>
-          {order.items?.map((item: any) => {
+          <Text style={styles.cardTitle}>Order Items</Text>
+          {(order.items || []).map((item: any) => {
             const isItemRejected = item.status === 'REJECTED';
-            const itemName = item.product_name_snapshot || item.product_name || 'Product';
+            const itemName = item.product_name_snapshot || item.product_name || 'Item';
             const itemUnit = item.unit_snapshot;
-            const itemSubtotal = item.subtotal || item.price_snapshot || item.price_at_order || '0';
+            const subtotalVal = item.subtotal || item.price_snapshot || '0';
 
             return (
-              <View key={item.id} style={styles.itemRow}>
-                <Text style={[styles.itemQuantity, isItemRejected && styles.strikethroughText]}>
-                  {item.quantity} x
-                </Text>
-                <View style={styles.itemInfo}>
-                  <View style={styles.itemNameRow}>
-                    <Text style={[styles.itemName, isItemRejected && styles.strikethroughText]} numberOfLines={2}>
-                      {itemName}
+              <View key={item.id} style={styles.orderItemRow}>
+                <View style={styles.orderItemLeft}>
+                  <View style={styles.orderItemNameWrapper}>
+                    <Text 
+                      style={[
+                        styles.orderItemName,
+                        isItemRejected && styles.orderItemStrikethrough,
+                      ]}
+                    >
+                      {item.quantity} x {itemName}
                     </Text>
                     {isItemRejected && (
-                      <View style={styles.unavailableTag}>
-                        <Text style={styles.unavailableTagText}>Unavailable</Text>
+                      <View style={styles.unavailableBadge}>
+                        <Text style={styles.unavailableBadgeText}>Unavailable</Text>
                       </View>
                     )}
                   </View>
                   {itemUnit ? (
-                    <Text style={[styles.itemUnit, isItemRejected && styles.strikethroughMuted]}>
+                    <Text style={[styles.orderItemUnit, isItemRejected && styles.orderItemStrikethroughMuted]}>
                       {itemUnit}
                     </Text>
                   ) : null}
                 </View>
-                <Text style={[styles.itemPrice, isItemRejected && styles.strikethroughText]}>
-                  {isItemRejected ? '₹0.00' : `₹${parseFloat(itemSubtotal).toFixed(2)}`}
+                <Text 
+                  style={[
+                    styles.orderItemPrice,
+                    isItemRejected && styles.orderItemStrikethrough,
+                  ]}
+                >
+                  {isItemRejected ? '₹0.00' : `₹${parseFloat(subtotalVal).toFixed(2)}`}
                 </Text>
               </View>
             );
           })}
-        </View>
 
-        {/* Full Billing Breakdown matching Web App */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Bill Details</Text>
-          
-          <View style={styles.billRow}>
-            <Text style={styles.billLabel}>Subtotal</Text>
-            <Text style={styles.billValue}>₹{activeSubtotal.toFixed(2)}</Text>
-          </View>
-
-          {parseFloat(order.discount_applied || '0') > 0 && (
-            <View style={styles.billRow}>
-              <Text style={styles.savingsLabel}>Savings</Text>
-              <Text style={styles.savingsValue}>-₹{parseFloat(order.discount_applied).toFixed(2)}</Text>
+          {/* Full Billing Breakdown matching Web cart.jsx OrderDetailPage 1:1 */}
+          <View style={styles.billingSection}>
+            <Text style={styles.billingSectionTitle}>Billing Summary</Text>
+            
+            <View style={styles.billLine}>
+              <Text style={styles.billLabel}>Subtotal</Text>
+              <Text style={styles.billVal}>₹{activeSubtotal.toFixed(2)}</Text>
             </View>
-          )}
 
-          {parseFloat(order.promo_discount || '0') > 0 && (
-            <View style={styles.billRow}>
-              <Text style={styles.savingsLabel}>Promo Discount</Text>
-              <Text style={styles.savingsValue}>-₹{parseFloat(order.promo_discount).toFixed(2)}</Text>
-            </View>
-          )}
+            {parseFloat(order.discount_applied || '0') > 0 && (
+              <View style={styles.billLine}>
+                <Text style={[styles.billLabel, { color: '#4338CA' }]}>Product Savings</Text>
+                <Text style={[styles.billVal, { color: '#4338CA', fontWeight: 'bold' }]}>
+                  - ₹{parseFloat(order.discount_applied).toFixed(2)}
+                </Text>
+              </View>
+            )}
 
-          {parseFloat(order.packaging_fee || '0') > 0 && (
-            <View style={styles.billRow}>
-              <Text style={styles.billLabel}>Packaging Fee</Text>
-              <Text style={styles.billValue}>₹{parseFloat(order.packaging_fee).toFixed(2)}</Text>
-            </View>
-          )}
+            {parseFloat(order.promo_discount || '0') > 0 && (
+              <View style={styles.billLine}>
+                <Text style={[styles.billLabel, { color: '#059669', fontWeight: 'bold' }]}>Promo Discount</Text>
+                <Text style={[styles.billVal, { color: '#059669', fontWeight: 'bold' }]}>
+                  - ₹{parseFloat(order.promo_discount).toFixed(2)}
+                </Text>
+              </View>
+            )}
 
-          {isDelivery && (
-            <View style={styles.billRow}>
-              <Text style={styles.billLabel}>Delivery Fee</Text>
-              <Text style={parseFloat(order.delivery_fee || '0') > 0 ? styles.billValue : styles.freeText}>
-                {parseFloat(order.delivery_fee || '0') > 0 ? `₹${parseFloat(order.delivery_fee).toFixed(2)}` : 'FREE'}
+            {parseFloat(order.packaging_fee || '0') > 0 && (
+              <View style={styles.billLine}>
+                <Text style={styles.billLabel}>Packaging Fee</Text>
+                <Text style={styles.billVal}>₹{parseFloat(order.packaging_fee).toFixed(2)}</Text>
+              </View>
+            )}
+
+            {isDelivery && (
+              <View style={styles.billLine}>
+                <Text style={styles.billLabel}>Delivery Fee</Text>
+                <Text style={[styles.billVal, parseFloat(order.delivery_fee || '0') === 0 && { color: '#059669', fontWeight: 'bold' }]}>
+                  {parseFloat(order.delivery_fee || '0') > 0 
+                    ? `₹${parseFloat(order.delivery_fee).toFixed(2)}` 
+                    : 'FREE'}
+                </Text>
+              </View>
+            )}
+
+            {parseFloat(order.wallet_discount || '0') > 0 && (
+              <View style={styles.billLine}>
+                <Text style={[styles.billLabel, { color: '#059669', fontWeight: 'bold' }]}>Wallet Applied</Text>
+                <Text style={[styles.billVal, { color: '#059669', fontWeight: 'bold' }]}>
+                  - ₹{parseFloat(order.wallet_discount).toFixed(2)}
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.billLine}>
+              <Text style={styles.billLabel}>Payment Method</Text>
+              <Text style={[styles.billVal, { fontWeight: '700' }]}>
+                {parseFloat(order.total_amount || '0') === 0 
+                  ? 'Wallet Full' 
+                  : (parseFloat(order.wallet_discount || '0') > 0 
+                      ? 'Hybrid (Wallet + Cash)' 
+                      : (isDelivery ? 'Cash on Delivery' : 'Cash at Store'))}
               </Text>
             </View>
-          )}
 
-          {parseFloat(order.wallet_discount || '0') > 0 && (
-            <View style={styles.billRow}>
-              <Text style={styles.savingsLabel}>Wallet Applied</Text>
-              <Text style={styles.savingsValue}>-₹{parseFloat(order.wallet_discount).toFixed(2)}</Text>
+            <View style={styles.billDivider} />
+
+            <View style={styles.totalRow}>
+              <Text style={styles.totalRowLabel}>
+                {order.status === 'COMPLETED' ? 'Total Amount Paid' : 'Total Due'}
+              </Text>
+              <Text style={styles.totalRowVal}>
+                ₹{parseFloat(order.total_amount || '0').toFixed(2)}
+              </Text>
             </View>
-          )}
 
-          <View style={styles.billRow}>
-            <Text style={styles.billLabel}>Payment Method</Text>
-            <Text style={styles.paymentMethodValue}>
-              {parseFloat(order.total_amount || '0') === 0 
-                ? 'Wallet Full' 
-                : (parseFloat(order.wallet_discount || '0') > 0 
-                    ? 'Hybrid (Wallet + Cash)' 
-                    : (isDelivery ? 'Cash on Delivery' : 'Cash at Store'))}
-            </Text>
+            {order.status === 'COMPLETED' && (
+              <TouchableOpacity 
+                style={styles.viewInvoiceBottomBtn}
+                onPress={() => navigation.navigate('InvoiceScreen', { orderId: order.id })}
+                activeOpacity={0.85}
+              >
+                <Feather name="file-text" size={18} color="#FFFFFF" />
+                <Text style={styles.viewInvoiceBottomBtnText}>View Invoice</Text>
+              </TouchableOpacity>
+            )}
           </View>
+        </View>
 
-          <View style={styles.divider} />
-
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>
-              {order.status === 'COMPLETED' ? 'Total Paid' : 'Total Amount'}
-            </Text>
-            <Text style={styles.totalValue}>₹{parseFloat(order.total_amount || '0').toFixed(2)}</Text>
-          </View>
-
-          {order.status === 'COMPLETED' && (
-            <TouchableOpacity 
-              style={styles.bottomInvoiceBtn}
-              onPress={() => navigation.navigate('InvoiceScreen', { orderId: order.id })}
-            >
-              <Feather name="file-text" size={18} color="#FFFFFF" />
-              <Text style={styles.bottomInvoiceBtnText}>View Full Invoice & Receipt</Text>
-            </TouchableOpacity>
+        {/* Delivery / Pickup Address Details */}
+        <View style={styles.deliveryCard}>
+          {isDelivery ? (
+            <>
+              <Feather name="truck" size={24} color="#64748B" style={styles.deliveryCardIcon} />
+              <Text style={styles.deliveryCardLabel}>Delivery to:</Text>
+              <Text style={styles.deliveryCardAddress}>{order.delivery_address || 'Address not specified'}</Text>
+              {order.delivery_pincode ? (
+                <Text style={styles.deliveryCardPincode}>Pincode: {order.delivery_pincode}</Text>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <Feather name="shopping-bag" size={24} color="#64748B" style={styles.deliveryCardIcon} />
+              <Text style={styles.deliveryCardLabel}>
+                Pickup: <Text style={{ color: '#0F172A', fontWeight: 'bold' }}>{order.pickup_time || 'As soon as possible'}</Text>
+              </Text>
+              <Text style={styles.deliveryCardSub}>Pay at store</Text>
+            </>
           )}
         </View>
 
@@ -375,381 +451,420 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F8FAFC', // slate-50
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  invoiceHeaderBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#0F172A', // slate-900 matching web
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  invoiceHeaderBtnText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  invoiceBanner: {
-    backgroundColor: '#ECFDF5', // emerald-50
-    borderWidth: 1,
-    borderColor: '#A7F3D0',
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  invoiceBannerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flex: 1,
-  },
-  invoiceIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#D1FAE5',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  invoiceBannerTitle: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#065F46',
-  },
-  invoiceBannerSubtitle: {
-    fontSize: 11,
-    color: '#047857',
-    marginTop: 1,
-  },
-  viewInvoiceBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#A7F3D0',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 6,
-  },
-  viewInvoiceBtnText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#059669',
-  },
-  bottomInvoiceBtn: {
-    marginTop: 16,
-    backgroundColor: '#0F172A', // slate-900 matching web
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
+    paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: theme.borderRadius.md,
-  },
-  bottomInvoiceBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
   },
   backButton: {
-    marginRight: theme.spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: theme.colors.text,
+  backButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#059669',
   },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 24,
   },
-  notFoundText: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  errorText: {
+    marginTop: 12,
+    fontSize: 15,
+    color: '#E11D48',
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  retryBtn: {
+    backgroundColor: '#059669',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   scrollContent: {
-    padding: theme.spacing.md,
+    padding: 16,
     paddingBottom: 40,
+    maxWidth: 600,
+    alignSelf: 'center',
+    width: '100%',
   },
-  card: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  timelineCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.lg,
-  },
-  timeline: {
-    marginLeft: 8,
-  },
-  timelineRow: {
+  orderHeaderSection: {
     flexDirection: 'row',
-    minHeight: 60,
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
   },
-  timelineIconContainer: {
-    alignItems: 'center',
-    marginRight: theme.spacing.md,
-  },
-  timelineLine: {
-    width: 2,
-    flex: 1,
-    backgroundColor: theme.colors.border,
-    marginVertical: 4,
-  },
-  timelineLineActive: {
-    backgroundColor: theme.colors.primary,
-  },
-  timelineContent: {
-    flex: 1,
-    paddingBottom: 24,
-  },
-  timelineTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
-    marginBottom: 2,
-  },
-  timelineTitleActive: {
-    color: theme.colors.text,
-  },
-  timelineSubtitle: {
+  orderConfirmedBadge: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    fontWeight: '700',
+    color: '#059669',
   },
-  rejectedBox: {
-    backgroundColor: '#FFF1F2',
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.sm,
-    borderWidth: 1,
-    borderColor: '#FECDD3',
-  },
-  rejectedTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#BE123C',
-    marginBottom: 4,
-  },
-  rejectedSubtitle: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    marginBottom: theme.spacing.md,
-  },
-  iconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: theme.spacing.md,
-  },
-  detailLabel: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    marginBottom: 2,
-  },
-  detailValue: {
-    fontSize: 14,
-    color: theme.colors.text,
-    fontWeight: '500',
-    lineHeight: 20,
-  },
-  pincodeText: {
-    fontSize: 12,
-    color: theme.colors.primary,
-    fontWeight: '600',
+  orderIdText: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: -0.5,
     marginTop: 2,
   },
-  customerNoteBox: {
-    backgroundColor: '#FFFBEB',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-  },
-  ownerNoteBox: {
-    backgroundColor: '#EFF6FF',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-  },
-  noteHeader: {
+  viewInvoiceHeaderBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 4,
+    backgroundColor: '#0F172A', // slate-900 matching web
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  customerNoteTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#B45309',
-    textTransform: 'uppercase',
-  },
-  ownerNoteTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#1D4ED8',
-    textTransform: 'uppercase',
-  },
-  noteContent: {
+  viewInvoiceHeaderBtnText: {
+    color: '#FFFFFF',
     fontSize: 13,
-    color: theme.colors.text,
+    fontWeight: '700',
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 18,
+  },
+  rejectedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    padding: 16,
+    borderRadius: 12,
+  },
+  rejectedBannerTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#BE123C',
+  },
+  rejectedBannerSubtitle: {
+    fontSize: 13,
+    color: '#9F1239',
+    marginTop: 2,
     lineHeight: 18,
   },
-  itemRow: {
+  timelineWrapper: {
+    paddingLeft: 4,
+  },
+  timelineStepRow: {
     flexDirection: 'row',
-    marginBottom: theme.spacing.md,
     alignItems: 'flex-start',
+    minHeight: 56,
   },
-  itemQuantity: {
-    width: 32,
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.primary,
-    marginTop: 1,
+  timelineStepDimmed: {
+    opacity: 0.45,
   },
-  itemInfo: {
+  stepIndicatorCol: {
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  stepBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 2,
+    zIndex: 2,
+  },
+  stepBadgeCompleted: {
+    backgroundColor: '#059669',
+  },
+  stepBadgePending: {
+    backgroundColor: '#E2E8F0',
+  },
+  stepBadgeActive: {
+    backgroundColor: '#059669',
+    borderColor: '#D1FAE5',
+    borderWidth: 4,
+  },
+  stepConnectorLine: {
+    width: 2,
     flex: 1,
-    marginRight: 8,
+    backgroundColor: '#F1F5F9',
+    minHeight: 24,
+    marginVertical: 2,
   },
-  itemNameRow: {
+  stepConnectorLineCompleted: {
+    backgroundColor: '#059669',
+  },
+  stepDetailsCol: {
+    flex: 1,
+    paddingTop: 6,
+    paddingBottom: 16,
+  },
+  stepTitleText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  stepTitleActive: {
+    color: '#047857',
+    fontWeight: '800',
+  },
+  stepTitleCompleted: {
+    color: '#0F172A',
+  },
+  stepTitlePending: {
+    color: '#64748B',
+  },
+  stepDescText: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  customerNoteCard: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+  },
+  customerNoteTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  customerNoteBody: {
+    fontSize: 14,
+    color: '#1E293B',
+    lineHeight: 20,
+  },
+  ownerNoteCard: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+  },
+  ownerNoteTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#047857',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  ownerNoteBody: {
+    fontSize: 14,
+    color: '#064E3B',
+    lineHeight: 20,
+  },
+  orderItemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
+  },
+  orderItemLeft: {
+    flex: 1,
+    marginRight: 10,
+  },
+  orderItemNameWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
     gap: 6,
   },
-  itemName: {
+  orderItemName: {
     fontSize: 14,
-    color: theme.colors.text,
-    fontWeight: '500',
+    fontWeight: '600',
+    color: '#1E293B',
   },
-  itemUnit: {
+  orderItemUnit: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: '#64748B',
     marginTop: 2,
   },
-  unavailableTag: {
+  orderItemPrice: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  orderItemStrikethrough: {
+    textDecorationLine: 'line-through',
+    color: '#94A3B8',
+  },
+  orderItemStrikethroughMuted: {
+    color: '#CBD5E1',
+  },
+  unavailableBadge: {
     backgroundColor: '#FFF1F2',
     borderWidth: 1,
     borderColor: '#FECDD3',
     paddingHorizontal: 6,
-    paddingVertical: 1,
+    paddingVertical: 1.5,
     borderRadius: 4,
   },
-  unavailableTagText: {
+  unavailableBadgeText: {
     fontSize: 10,
-    fontWeight: 'bold',
-    color: '#BE123C',
+    fontWeight: '800',
+    color: '#E11D48',
     textTransform: 'uppercase',
   },
-  itemPrice: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.text,
-    minWidth: 65,
-    textAlign: 'right',
-    marginTop: 1,
+  billingSection: {
+    marginTop: 18,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    paddingTop: 16,
   },
-  strikethroughText: {
-    textDecorationLine: 'line-through',
-    color: theme.colors.textSecondary,
-    opacity: 0.6,
+  billingSectionTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 12,
   },
-  strikethroughMuted: {
-    color: theme.colors.border,
-    opacity: 0.6,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: theme.colors.border,
-    marginVertical: theme.spacing.md,
-  },
-  billRow: {
+  billLine: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   billLabel: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#64748B',
+    fontWeight: '500',
   },
-  billValue: {
+  billVal: {
     fontSize: 14,
+    color: '#0F172A',
     fontWeight: '600',
-    color: theme.colors.text,
   },
-  savingsLabel: {
-    fontSize: 14,
-    color: '#059669',
-  },
-  savingsValue: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#059669',
-  },
-  freeText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#059669',
-  },
-  paymentMethodValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.colors.text,
+  billDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginVertical: 12,
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 4,
+    paddingTop: 2,
   },
-  totalLabel: {
+  totalRowLabel: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-  },
-  totalValue: {
-    fontSize: 18,
     fontWeight: '900',
-    color: theme.colors.text,
+    color: '#0F172A',
+  },
+  totalRowVal: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#059669',
+  },
+  viewInvoiceBottomBtn: {
+    marginTop: 18,
+    backgroundColor: '#0F172A', // slate-900 matching web
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 13,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  viewInvoiceBottomBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  deliveryCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  deliveryCardIcon: {
+    marginBottom: 8,
+  },
+  deliveryCardLabel: {
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  deliveryCardAddress: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  deliveryCardPincode: {
+    fontSize: 13,
+    color: '#059669',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  deliveryCardSub: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 2,
   },
 });
+
 
 
 

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,6 +10,7 @@ import { apiClient } from '../../api/client';
 export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) {
   const [wallet, setWallet] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     fetchWallet();
@@ -23,8 +24,14 @@ export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) 
       console.error('Failed to load wallet', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchWallet();
+  }, []);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -70,6 +77,9 @@ export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) 
         keyExtractor={(item) => String(item.id)}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#059669']} tintColor="#059669" />
+        }
         ListHeaderComponent={() => (
           <View style={styles.headerComponent}>
             {/* Emerald to Teal Gradient Hero Balance Card matching web Wallet.jsx */}
@@ -102,7 +112,8 @@ export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) 
           </View>
         )}
         renderItem={({ item }) => {
-          const isCredit = item.transaction_type === 'CREDIT' || parseFloat(item.amount) > 0;
+          const amt = parseFloat(item.amount || '0');
+          const isCredit = amt > 0;
           return (
             <View style={styles.transactionCard}>
               <View style={styles.transactionLeft}>
@@ -115,7 +126,7 @@ export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) 
                 </View>
                 <View style={styles.txDetails}>
                   <Text style={styles.txTypeTitle}>
-                    {(item.transaction_type || 'TRANSACTION').replace('_', ' ')}
+                    {(item.transaction_type || 'TRANSACTION').replace(/_/g, ' ')}
                   </Text>
                   {item.description ? (
                     <Text style={styles.txDesc}>{item.description}</Text>
@@ -125,7 +136,7 @@ export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) 
               </View>
 
               <Text style={[styles.txAmount, { color: isCredit ? '#059669' : '#0F172A' }]}>
-                {isCredit ? '+' : ''}₹{parseFloat(item.amount).toFixed(2)}
+                {isCredit ? '+' : '-'}₹{Math.abs(amt).toFixed(2)}
               </Text>
             </View>
           );

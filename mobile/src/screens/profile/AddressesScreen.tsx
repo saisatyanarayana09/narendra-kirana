@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
@@ -8,6 +8,7 @@ import { apiClient } from '../../api/client';
 export function AddressesScreen({ navigation }: { navigation: AppNavigationProp }) {
   const [addresses, setAddresses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -25,13 +26,19 @@ export function AddressesScreen({ navigation }: { navigation: AppNavigationProp 
       console.error('Error fetching addresses:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchAddresses();
+  }, []);
 
   const deleteAddress = async (id: number) => {
     Alert.alert(
       'Delete Address',
-      'Are you sure you want to delete this address?',
+      'Are you sure you want to remove this delivery address?',
       [
         { text: 'Cancel', style: 'cancel' },
         { 
@@ -48,14 +55,6 @@ export function AddressesScreen({ navigation }: { navigation: AppNavigationProp 
         }
       ]
     );
-  };
-
-  const formatAddressString = (item: any) => {
-    const street = item.street || item.address_line_1 || '';
-    const landmark = item.landmark || item.address_line_2 || '';
-    const city = item.city || '';
-    const state = item.state || '';
-    return [street, landmark, city, state].filter(Boolean).join(', ');
   };
 
   if (loading) {
@@ -108,6 +107,9 @@ export function AddressesScreen({ navigation }: { navigation: AppNavigationProp 
         data={addresses}
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#059669']} tintColor="#059669" />
+        }
         ListEmptyComponent={() => (
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconCircle}>
@@ -129,8 +131,10 @@ export function AddressesScreen({ navigation }: { navigation: AppNavigationProp 
         renderItem={({ item }) => (
           <View style={styles.addressCard}>
             <View style={styles.cardTop}>
-              <View style={styles.titleBadge}>
-                <Feather name="map-pin" size={12} color="#B45309" style={{ marginRight: 4 }} />
+              <View style={styles.titleBadgeRow}>
+                <View style={styles.titleIconCircle}>
+                  <Feather name="map-pin" size={14} color="#059669" />
+                </View>
                 <Text style={styles.titleBadgeText}>
                   {item.title || item.address_type || 'Home'}
                 </Text>
@@ -140,30 +144,42 @@ export function AddressesScreen({ navigation }: { navigation: AppNavigationProp 
                 <TouchableOpacity 
                   style={styles.actionBtn}
                   onPress={() => navigation.navigate('AddAddressScreen', { editingAddress: item })}
+                  activeOpacity={0.7}
                 >
-                  <Feather name="edit-2" size={16} color="#64748B" />
+                  <Feather name="edit-2" size={16} color="#4F46E5" />
                 </TouchableOpacity>
                 <TouchableOpacity 
                   style={styles.actionBtn}
                   onPress={() => deleteAddress(item.id)}
+                  activeOpacity={0.7}
                 >
                   <Feather name="trash-2" size={16} color="#EF4444" />
                 </TouchableOpacity>
               </View>
             </View>
 
-            <Text style={styles.streetText}>{formatAddressString(item)}</Text>
-            
-            {(item.zip_code || item.pincode) ? (
-              <Text style={styles.pincodeText}>Pincode: {item.zip_code || item.pincode}</Text>
-            ) : null}
+            <View style={styles.addressBody}>
+              <Text style={styles.streetText}>{item.street || item.address_line_1 || ''}</Text>
+              
+              {(item.landmark || item.address_line_2) ? (
+                <Text style={styles.subDetailText}>Landmark: {item.landmark || item.address_line_2}</Text>
+              ) : null}
 
-            {item.latitude && item.longitude ? (
-              <View style={styles.gpsSecuredBadge}>
-                <Feather name="check-circle" size={12} color="#059669" />
-                <Text style={styles.gpsSecuredText}>GPS Secured</Text>
-              </View>
-            ) : null}
+              <Text style={styles.subDetailText}>
+                {[item.city, item.district].filter(Boolean).join(', ')}
+              </Text>
+
+              <Text style={styles.subDetailText}>
+                {[item.state, item.country || 'India', item.zip_code || item.pincode].filter(Boolean).join(', ')}
+              </Text>
+
+              {item.latitude && item.longitude ? (
+                <View style={styles.gpsSecuredBadge}>
+                  <Feather name="check-circle" size={12} color="#059669" />
+                  <Text style={styles.gpsSecuredText}>Exact Location Saved</Text>
+                </View>
+              ) : null}
+            </View>
           </View>
         )}
       />
@@ -301,34 +317,50 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
-  titleBadge: {
+  titleBadgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
+    gap: 8,
+  },
+  titleIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#ECFDF5',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   titleBadgeText: {
-    fontSize: 11,
+    fontSize: 16,
     fontWeight: '800',
-    color: '#B45309',
-    textTransform: 'uppercase',
+    color: '#0F172A',
   },
   cardActions: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 8,
   },
   actionBtn: {
-    padding: 4,
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: '#F8FAFC',
+  },
+  addressBody: {
+    paddingLeft: 36,
+    gap: 3,
   },
   streetText: {
     fontSize: 14,
     fontWeight: '700',
     color: '#0F172A',
     lineHeight: 20,
+  },
+  subDetailText: {
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '500',
+    lineHeight: 18,
   },
   pincodeText: {
     fontSize: 12,
@@ -345,7 +377,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
-    marginTop: 8,
+    marginTop: 6,
   },
   gpsSecuredText: {
     fontSize: 10,

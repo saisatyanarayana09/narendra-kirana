@@ -283,11 +283,16 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
     `;
   };
 
-  // Direct Download PDF Handler with custom filename (e.g. Invoice_ORD-2609-0001.pdf)
+  // Direct Download PDF Handler with custom filename Invoice_ORD-XXXX.pdf (using SAF on Android / FileSystem)
   const handleDownloadPdf = async () => {
     if (downloading || !order) return;
 
-    const fileName = `Invoice_${order.id || orderId}.pdf`;
+    const rawId = String(order?.id || orderId || '').trim();
+    const numDigits = rawId.replace(/^ORD-?/i, '');
+    const formattedOrdId = rawId.toUpperCase().startsWith('ORD-') 
+      ? rawId.toUpperCase() 
+      : `ORD-${numDigits.padStart(4, '0')}`;
+    const fileName = `Invoice_${formattedOrdId}.pdf`;
 
     if (Platform.OS === 'web') {
       // In web browser, trigger native print / Save as PDF
@@ -354,26 +359,49 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
     }
   };
 
-  // Share Receipt Summary Handler
-  const handleShareReceipt = async () => {
+  // Share Button Handler (shares generated PDF via share sheet or text summary fallback)
+  const handleShare = async () => {
     if (!order) return;
     try {
-      const itemsText = (order.items || [])
-        .filter((i: any) => i.status !== 'REJECTED')
-        .map((i: any) => `• ${i.quantity}x ${i.product_name_snapshot || i.product_name} - ₹${parseFloat(i.subtotal || i.price_snapshot).toFixed(2)}`)
-        .join('\n');
+      setDownloading(true);
+      const rawId = String(order?.id || orderId || '').trim();
+      const numDigits = rawId.replace(/^ORD-?/i, '');
+      const formattedOrdId = rawId.toUpperCase().startsWith('ORD-') 
+        ? rawId.toUpperCase() 
+        : `ORD-${numDigits.padStart(4, '0')}`;
+      const fileName = `Invoice_${formattedOrdId}.pdf`;
 
-      const message = `🧾 *INVOICE: ${invoiceNumber}*\n` +
-        `🏪 *Store:* ${settings?.store_name || 'Narendra Kirana Store'}\n` +
-        `📅 *Date:* ${orderDate}\n` +
-        `📦 *Type:* ${isDelivery ? 'Home Delivery' : 'Store Pickup'}\n\n` +
-        `*Items Ordered:*\n${itemsText}\n\n` +
-        `💰 *Total Paid:* ₹${parseFloat(order.total_amount).toFixed(2)}\n\n` +
-        `Thank you for shopping with Narendra Kirana!`;
+      const html = generateInvoiceHtml();
+      const { uri } = await Print.printToFileAsync({ html });
+      const targetUri = `${FileSystem.documentDirectory}${fileName}`;
+      await FileSystem.copyAsync({ from: uri, to: targetUri });
 
-      await Share.share({ message });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(targetUri, {
+          mimeType: 'application/pdf',
+          dialogTitle: `Share ${fileName}`,
+          UTI: 'com.adobe.pdf',
+        });
+      } else {
+        const itemsText = (order.items || [])
+          .filter((i: any) => i.status !== 'REJECTED')
+          .map((i: any) => `• ${i.quantity}x ${i.product_name_snapshot || i.product_name} - ₹${parseFloat(i.subtotal || i.price_snapshot).toFixed(2)}`)
+          .join('\n');
+
+        const message = `🧾 *INVOICE: ${invoiceNumber}*\n` +
+          `🏪 *Store:* ${settings?.store_name || 'Narendra Kirana Store'}\n` +
+          `📅 *Date:* ${orderDate}\n` +
+          `📦 *Type:* ${isDelivery ? 'Home Delivery' : 'Store Pickup'}\n\n` +
+          `*Items Ordered:*\n${itemsText}\n\n` +
+          `💰 *Total Paid:* ₹${parseFloat(order.total_amount).toFixed(2)}\n\n` +
+          `Thank you for shopping with Narendra Kirana!`;
+
+        await Share.share({ message });
+      }
     } catch (err) {
       console.error('Error sharing receipt:', err);
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -455,7 +483,8 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
 
           <TouchableOpacity 
             style={styles.shareButton} 
-            onPress={handleShareReceipt}
+            onPress={handleShare}
+            disabled={downloading}
           >
             <Feather name="share-2" size={18} color="#0F172A" />
             <Text style={styles.shareButtonText}>Share</Text>

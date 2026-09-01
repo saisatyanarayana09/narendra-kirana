@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
-import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
 
 export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationProp }) {
@@ -12,7 +11,10 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMore, setHasMore] = useState(false);
+
+  // Request counter to completely prevent race conditions
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     fetchOrders(1);
@@ -28,10 +30,18 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
       setLoading(true);
     }
 
+    const currentReqId = ++requestIdRef.current;
+
     try {
-      const res = await apiClient.get(`/orders/?page=${pageNum}`);
-      const newOrders = res.data.results || res.data || [];
-      
+      const url = pageNum === 1 ? '/orders/' : `/orders/?page=${pageNum}`;
+      const res = await apiClient.get(url);
+
+      // Discard results if a newer request was dispatched while this was in-flight
+      if (currentReqId !== requestIdRef.current) return;
+
+      const rawData = res.data;
+      const newOrders = Array.isArray(rawData) ? rawData : (rawData?.results || []);
+
       if (pageNum === 1) {
         setOrders(newOrders);
       } else {
@@ -41,15 +51,17 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
           return [...prev, ...uniqueNew];
         });
       }
-      
-      setHasMore(Boolean(res.data.next));
+
+      setHasMore(Boolean(rawData?.next));
       setPage(pageNum);
     } catch (error) {
       console.error('Error fetching orders:', error);
     } finally {
-      if (isLoadMore) setLoadingMore(false);
-      if (isRefresh) setRefreshing(false);
-      setLoading(false);
+      if (currentReqId === requestIdRef.current) {
+        if (isLoadMore) setLoadingMore(false);
+        if (isRefresh) setRefreshing(false);
+        setLoading(false);
+      }
     }
   };
 
@@ -64,20 +76,21 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
     }
   };
 
+  // Status badges matching web tokens (COMPLETED emerald, REJECTED rose, READY blue, PREPARING amber, NEW indigo)
   const getStatusStyle = (status: string) => {
     switch (status) {
       case 'COMPLETED':
-        return { bg: '#ECFDF5', text: '#047857', border: '#A7F3D0' };
+        return { bg: '#ECFDF5', text: '#047857', border: '#A7F3D0' }; // emerald
       case 'REJECTED':
-        return { bg: '#FFF1F2', text: '#BE123C', border: '#FECDD3' };
+        return { bg: '#FFF1F2', text: '#BE123C', border: '#FECDD3' }; // rose
       case 'READY':
-        return { bg: '#EFF6FF', text: '#1D4ED8', border: '#BFDBFE' };
+        return { bg: '#EFF6FF', text: '#1D4ED8', border: '#BFDBFE' }; // blue
       case 'PREPARING':
-        return { bg: '#FFFBEB', text: '#B45309', border: '#FDE68A' };
+        return { bg: '#FFFBEB', text: '#B45309', border: '#FDE68A' }; // amber
       case 'NEW':
-        return { bg: '#EEF2FF', text: '#4338CA', border: '#C7D2FE' };
+        return { bg: '#EEF2FF', text: '#4338CA', border: '#C7D2FE' }; // indigo
       default:
-        return { bg: '#F8FAFC', text: '#475569', border: '#E2E8F0' };
+        return { bg: '#F8FAFC', text: '#475569', border: '#E2E8F0' }; // slate
     }
   };
 
@@ -96,6 +109,14 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
     }
   };
 
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('HomeTab');
+    }
+  };
+
   if (loading && page === 1 && !refreshing) {
     return (
       <View style={styles.center}>
@@ -110,11 +131,11 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton} 
-          onPress={() => navigation.goBack()}
+          onPress={handleBack}
           activeOpacity={0.7}
         >
-          <Feather name="arrow-left" size={16} color="#64748B" />
-          <Text style={styles.backButtonText}>Back</Text>
+          <Feather name="chevron-left" size={18} color="#64748B" />
+          <Text style={styles.backButtonText}>Back to Dashboard</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Order History</Text>
         <Text style={styles.headerSubtitle}>Track and review your past purchases.</Text>
@@ -142,8 +163,14 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
           data={orders}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.listContainer}
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={['#059669']}
+              tintColor="#059669"
+            />
+          }
           renderItem={({ item }) => {
             const statusStyle = getStatusStyle(item.status);
             const totalFormatted = parseFloat(item.total_amount || 0).toFixed(2);
@@ -186,26 +213,29 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
                       <TouchableOpacity 
                         style={styles.detailsBtn}
                         onPress={() => navigation.navigate('OrderTrackingScreen', { orderId: item.id })}
+                        activeOpacity={0.7}
                       >
-                        <Text style={styles.detailsBtnText}>Details</Text>
-                        <Feather name="chevron-right" size={14} color="#334155" />
+                        <Feather name="package" size={14} color="#334155" />
+                        <Text style={styles.detailsBtnText}>Track Order</Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity 
                         style={styles.invoiceCardBtn}
                         onPress={() => navigation.navigate('InvoiceScreen', { orderId: item.id })}
+                        activeOpacity={0.7}
                       >
-                        <Feather name="file-text" size={14} color="#059669" />
-                        <Text style={styles.invoiceCardBtnText}>Invoice</Text>
+                        <Feather name="file-text" size={14} color="#047857" />
+                        <Text style={styles.invoiceCardBtnText}>View Invoice</Text>
                       </TouchableOpacity>
                     </View>
                   ) : (
                     <TouchableOpacity 
                       style={styles.trackOrderBtn}
                       onPress={() => navigation.navigate('OrderTrackingScreen', { orderId: item.id })}
+                      activeOpacity={0.7}
                     >
-                      <Text style={styles.trackOrderBtnText}>Track Order Status</Text>
-                      <Feather name="arrow-right" size={14} color="#059669" />
+                      <Text style={styles.trackOrderBtnText}>Track Order</Text>
+                      <Feather name="arrow-right" size={14} color="#047857" />
                     </TouchableOpacity>
                   )}
                 </View>

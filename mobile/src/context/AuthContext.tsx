@@ -25,6 +25,8 @@ type AuthContextType = {
   isLoading: boolean;
   login: (data: any) => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (updatedUser: User) => Promise<void>;
+  refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -82,8 +84,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateUser = async (updatedUser: User) => {
+    try {
+      await saveItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
+      setUser(updatedUser);
+    } catch (error) {
+      console.error('Failed to update user locally:', error);
+    }
+  };
+
+  const refreshUser = async () => {
+    try {
+      const response = await apiClient.get('/auth/profile/');
+      if (response.data) {
+        await saveItem(STORAGE_KEYS.USER, JSON.stringify(response.data));
+        setUser(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to refresh user profile:', error);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, updateUser, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -20,6 +20,13 @@ const { width } = Dimensions.get('window');
 
 type SortOption = 'default' | 'price_low' | 'price_high' | 'newest';
 
+const SORT_OPTIONS: { id: SortOption; label: string }[] = [
+  { id: 'default', label: 'Relevance' },
+  { id: 'price_low', label: 'Price: Low to High' },
+  { id: 'price_high', label: 'Price: High to Low' },
+  { id: 'newest', label: 'Newest' },
+];
+
 export function ProductListScreen({ navigation, route }: { navigation: AppNavigationProp, route: any }) {
   const initialCategoryId = route.params?.categoryId || null;
   const initialCategoryName = route.params?.categoryName || 'All Products';
@@ -98,7 +105,11 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
     const priceB = parseFloat(b.offer_price || b.price || b.regular_price || '0');
     if (sortOption === 'price_low') return priceA - priceB;
     if (sortOption === 'price_high') return priceB - priceA;
-    if (sortOption === 'newest') return b.id - a.id;
+    if (sortOption === 'newest') {
+      const dateA = new Date(a.created_at || 0).getTime();
+      const dateB = new Date(b.created_at || 0).getTime();
+      return (dateB - dateA) || (b.id - a.id);
+    }
     return 0;
   });
 
@@ -111,7 +122,13 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton} 
-          onPress={() => navigation.goBack()}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('HomeTab');
+            }
+          }}
           activeOpacity={0.7}
         >
           <Feather name="arrow-left" size={18} color="#059669" />
@@ -151,29 +168,31 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
           })}
         </ScrollView>
 
-        {/* Category Title & Sort Row */}
+        {/* Category Title & Count */}
         <View style={styles.subHeaderRow}>
-          <View>
-            <Text style={styles.categoryTitle}>{activeCategoryName}</Text>
-            <Text style={styles.productCountText}>{sortedProducts.length} products</Text>
-          </View>
-
-          {/* Quick Sort Options Chips */}
-          <View style={styles.sortChipsRow}>
-            {(['default', 'price_low', 'price_high'] as SortOption[]).map((opt) => (
-              <TouchableOpacity
-                key={opt}
-                style={[styles.sortChip, sortOption === opt && styles.sortChipActive]}
-                onPress={() => setSortOption(opt)}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.sortChipText, sortOption === opt && styles.sortChipTextActive]}>
-                  {opt === 'default' ? 'Relevance' : opt === 'price_low' ? 'Price: Low' : 'Price: High'}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <Text style={styles.categoryTitle}>{activeCategoryName}</Text>
+          <Text style={styles.productCountText}>{sortedProducts.length} products</Text>
         </View>
+
+        {/* Sorting Pills: Relevance, Price: Low to High, Price: High to Low, Newest */}
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoryPillsContainer}
+        >
+          {SORT_OPTIONS.map((opt) => (
+            <TouchableOpacity
+              key={opt.id}
+              style={[styles.sortChip, sortOption === opt.id && styles.sortChipActive]}
+              onPress={() => setSortOption(opt.id)}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.sortChipText, sortOption === opt.id && styles.sortChipTextActive]}>
+                {opt.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       {loading ? (
@@ -292,15 +311,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 1,
   },
-  sortChipsRow: {
-    flexDirection: 'row',
-    gap: 6,
+  sortScrollContainer: {
+    paddingHorizontal: 16,
+    gap: 8,
+    paddingBottom: 10,
   },
   sortChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 8,
     backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   sortChipActive: {
     backgroundColor: '#ECFDF5',
@@ -308,7 +330,7 @@ const styles = StyleSheet.create({
     borderColor: '#059669',
   },
   sortChipText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '700',
     color: '#64748B',
   },

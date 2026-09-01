@@ -13,7 +13,7 @@ import {
 import { Image } from 'expo-image';
 import { AppNavigationProp } from '../../navigation/types';
 import { Feather } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
@@ -24,6 +24,7 @@ import { fixImageUrl } from '../../utils/image';
 const { width } = Dimensions.get('window');
 
 export function ProductDetailScreen({ navigation, route }: { navigation: AppNavigationProp, route: any }) {
+  const insets = useSafeAreaInsets();
   const { productId } = route.params || {};
   const { addToCart, cart } = useCart();
   const { user } = useAuth();
@@ -35,6 +36,7 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
   const [toggling, setToggling] = useState(false);
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   useEffect(() => {
     fetchProduct();
@@ -69,7 +71,21 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
   if (loading) return <LoadingSpinner fullScreen />;
   if (!product) return <View style={styles.center}><Text style={styles.notFoundText}>Product not found.</Text></View>;
 
-  const primaryImage = fixImageUrl(product.image);
+  const images: string[] = [];
+  if (product.image) {
+    const fixed = fixImageUrl(product.image);
+    if (fixed) images.push(fixed);
+  }
+  if (product.gallery_images && Array.isArray(product.gallery_images)) {
+    product.gallery_images.forEach((g: any) => {
+      const fixed = fixImageUrl(g.image || g);
+      if (fixed && !images.includes(fixed)) {
+        images.push(fixed);
+      }
+    });
+  }
+  const currentImage = images.length > 0 ? (images[activeImageIndex] || images[0]) : null;
+
   const price = product.offer_price || product.regular_price || product.price || '0';
   const regPrice = parseFloat(product.regular_price || product.mrp || '0');
   const offPrice = parseFloat(product.offer_price || product.price || '0');
@@ -137,7 +153,13 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.headerButton} 
-          onPress={() => navigation.goBack()}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('HomeTab');
+            }
+          }}
           activeOpacity={0.8}
         >
           <Feather name="arrow-left" color="#0F172A" size={20} />
@@ -180,8 +202,8 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
             </View>
           )}
 
-          {primaryImage ? (
-            <Image source={{ uri: primaryImage }} style={styles.image} contentFit="contain" />
+          {currentImage ? (
+            <Image source={{ uri: currentImage }} style={styles.image} contentFit="contain" />
           ) : (
             <View style={styles.placeholderBox}>
               <Text style={styles.placeholderLetter}>{product.name?.charAt(0) || 'P'}</Text>
@@ -195,13 +217,34 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
           )}
         </View>
 
+        {/* Gallery Thumbnails (if multiple images) matching customer.jsx */}
+        {images.length > 1 && (
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.galleryThumbnailsContainer}
+          >
+            {images.map((img, i) => (
+              <TouchableOpacity
+                key={i}
+                onPress={() => setActiveImageIndex(i)}
+                style={[
+                  styles.galleryThumbnail,
+                  activeImageIndex === i && styles.galleryThumbnailActive
+                ]}
+                activeOpacity={0.8}
+              >
+                <Image source={{ uri: img }} style={styles.galleryThumbnailImage} contentFit="cover" />
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
+
         {/* Product Info */}
         <View style={styles.infoContainer}>
-          {product.category_name && (
-            <View style={styles.categoryBadge}>
-              <Text style={styles.categoryBadgeText}>{product.category_name}</Text>
-            </View>
-          )}
+          <View style={styles.categoryBadge}>
+            <Text style={styles.categoryBadgeText}>{product.category_name || 'GROCERY'}</Text>
+          </View>
 
           {product.brand && <Text style={styles.brand}>{product.brand}</Text>}
           <Text style={styles.name}>{product.name}</Text>
@@ -239,7 +282,7 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
       </ScrollView>
 
       {/* Sticky Bottom Action Bar matching web app */}
-      <View style={styles.bottomBar}>
+      <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <TouchableOpacity 
           style={[
             styles.addToCartButton, 
@@ -340,6 +383,30 @@ const styles = StyleSheet.create({
     fontSize: 40,
     fontWeight: '900',
     color: '#CBD5E1',
+  },
+  galleryThumbnailsContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#F8FAFC',
+    gap: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  galleryThumbnail: {
+    width: 60,
+    height: 60,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+  },
+  galleryThumbnailActive: {
+    borderColor: '#DC2626',
+  },
+  galleryThumbnailImage: {
+    width: '100%',
+    height: '100%',
   },
   discountBadge: {
     position: 'absolute',

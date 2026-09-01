@@ -270,8 +270,7 @@ export function HomeScreen({ navigation }: Props) {
                   style={styles.seeAllBtn}
                   onPress={() => navigation.navigate('CategoriesTab', { screen: 'ProductListScreen', params: {} })}
                 >
-                  <Text style={styles.seeAllText}>View all</Text>
-                  <Feather name="chevron-right" size={14} color="#64748B" />
+                  <Text style={styles.seeAllText}>See all →</Text>
                 </TouchableOpacity>
               </View>
 
@@ -352,6 +351,7 @@ const styles = StyleSheet.create({
   carouselWrapper: {
     marginTop: 12,
     marginBottom: 8,
+    position: 'relative',
   },
   bannersList: {
     paddingHorizontal: 16,
@@ -373,21 +373,32 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   dotsContainer: {
+    position: 'absolute',
+    bottom: 10,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 6,
-    marginTop: 8,
+    zIndex: 10,
   },
   dot: {
-    width: 6,
+    width: 8,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#CBD5E1',
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
   },
   activeDot: {
-    width: 20,
-    backgroundColor: '#065F46',
+    width: 32, // active wide pill w-8
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.35,
+    shadowRadius: 2,
+    elevation: 3,
   },
   fallbackHeroBanner: {
     marginHorizontal: 16,

@@ -11,9 +11,10 @@ import {
   Modal 
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { AppNavigationProp } from '../../navigation/types';
 import { useAuth } from '../../context/AuthContext';
 import { apiClient } from '../../api/client';
@@ -27,6 +28,7 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
   const [milestones, setMilestones] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<'network' | 'rewards'>('network');
   
   const [qrModal, setQrModal] = useState<{ isOpen: boolean; referralId: any; base64: string | null }>({
     isOpen: false,
@@ -37,6 +39,31 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Automatically poll for status change while QR is open
+  useEffect(() => {
+    let intervalId: any;
+    if (qrModal.isOpen && qrModal.referralId) {
+      intervalId = setInterval(async () => {
+        try {
+          const res = await apiClient.get('/offers/referrals/');
+          const latestHistory = Array.isArray(res.data) ? res.data : (res.data?.results || []);
+          const currentRef = latestHistory.find((h: any) => h.id === qrModal.referralId);
+          
+          if (currentRef && currentRef.status === 'COMPLETED') {
+            setHistory(latestHistory);
+            setQrModal({ isOpen: false, referralId: null, base64: null });
+            Alert.alert('Reward Approved! 🎉', 'Your referral reward has been approved by the store owner!');
+          }
+        } catch (e) {
+          console.error('Polling error', e);
+        }
+      }, 3000);
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [qrModal.isOpen, qrModal.referralId]);
 
   const fetchData = async () => {
     try {
@@ -104,9 +131,34 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
 
   const completedReferrals = history.filter(h => h.status === 'COMPLETED').length;
   const pendingReferrals = history.filter(h => h.status === 'PENDING').length;
-  const totalEarned = (wallet?.transactions || [])
+  const readyToClaim = history.filter(h => h.status === 'READY_TO_CLAIM').length;
+  const awaitingApproval = history.filter(h => h.status === 'AWAITING_APPROVAL').length;
+
+  const referralCashTransactions = (wallet?.transactions || [])
+    .filter((t: any) => t.transaction_type === 'REFERRAL_REWARD');
+
+  const totalCashEarned = (wallet?.transactions || [])
     .filter((t: any) => t.transaction_type === 'REFERRAL_REWARD' || t.transaction_type === 'MILESTONE_BONUS')
     .reduce((sum: number, t: any) => sum + parseFloat(t.amount || '0'), 0);
+
+  const productsEarned = Math.max(0, completedReferrals - referralCashTransactions.length);
+
+  const isProductReward = Boolean(settings?.referrer_reward_product);
+  const rewardText = isProductReward 
+    ? `a Free ${settings?.referrer_reward_product_name || 'Gift'}`
+    : `₹${parseFloat(settings?.referrer_reward || '50').toFixed(0)}`;
+
+  // Milestone gamification calculations
+  const nextMilestone = milestones.find(m => m.required_referrals > completedReferrals);
+  let progressPercentage = 0;
+  if (nextMilestone) {
+    const previousMilestone = [...milestones].reverse().find(m => m.required_referrals <= completedReferrals);
+    const start = previousMilestone ? previousMilestone.required_referrals : 0;
+    const end = nextMilestone.required_referrals;
+    progressPercentage = ((completedReferrals - start) / (end - start)) * 100;
+  } else if (milestones.length > 0) {
+    progressPercentage = 100;
+  }
 
   if (loading) {
     return (
@@ -148,22 +200,23 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
         {/* Dark Hero Card matching web ReferAndEarn.jsx */}
         <View style={styles.heroCard}>
           <View style={styles.badgePill}>
-            <Feather name="gift" size={12} color="#34D399" />
+            <Ionicons name="sparkles" size={12} color="#34D399" />
             <Text style={styles.badgeText}>PREMIUM REFERRAL PROGRAM</Text>
           </View>
 
           <Text style={styles.heroTitle}>
-            Earn <Text style={styles.heroTitleGreen}>₹{parseFloat(settings?.referrer_reward_amount || '50').toFixed(0)} Store Credit</Text> for every friend you invite.
+            Share the love.{"\n"}
+            <Text style={styles.heroTitleGreen}>Earn {rewardText}.</Text>
           </Text>
 
           <Text style={styles.heroSub}>
-            Your friend also gets ₹{parseFloat(settings?.referee_reward_amount || '25').toFixed(0)} off on their first order!
+            Invite your network to shop with us. Once they complete their first order, you instantly unlock your reward.
           </Text>
 
           {/* Referral Code Box */}
           <View style={styles.codeContainer}>
             <View>
-              <Text style={styles.codeLabel}>YOUR REFERRAL CODE</Text>
+              <Text style={styles.codeLabel}>YOUR UNIQUE CODE</Text>
               <Text style={styles.codeText}>{referralCode}</Text>
             </View>
 
@@ -184,126 +237,312 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
             activeOpacity={0.9}
           >
             <Feather name="share-2" size={18} color="#FFFFFF" />
-            <Text style={styles.shareBtnText}>Share Code with Friends</Text>
+            <Text style={styles.shareBtnText}>Share via WhatsApp</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Stats Grid */}
-        <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>₹{totalEarned.toFixed(0)}</Text>
-            <Text style={styles.statLabel}>Total Earned</Text>
+        {/* Milestone Rewards Gamification Card (Only if milestones exist) */}
+        {milestones.length > 0 && (
+          <View style={styles.milestoneCard}>
+            <View style={styles.milestoneHeader}>
+              <View>
+                <View style={styles.milestoneTitleRow}>
+                  <Feather name="award" size={18} color="#059669" />
+                  <Text style={styles.milestoneTitle}>Milestone Rewards</Text>
+                </View>
+                <Text style={styles.milestoneSubtitle}>Unlock massive cash bonuses by inviting more friends.</Text>
+              </View>
+              <View style={styles.milestoneCounter}>
+                <Text style={styles.milestoneCountNum}>{completedReferrals}</Text>
+                <Text style={styles.milestoneCountLabel}>FRIENDS JOINED</Text>
+              </View>
+            </View>
+
+            {/* Progress Bar Track */}
+            <View style={styles.progressTrackWrapper}>
+              <View style={styles.progressBarBg}>
+                <LinearGradient
+                  colors={['#34D399', '#6366F1']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[styles.progressBarFill, { width: `${Math.min(100, Math.max(0, progressPercentage))}%` }]}
+                />
+              </View>
+
+              {/* Checkpoints */}
+              <View style={styles.checkpointsRow}>
+                <View style={styles.checkpointItem}>
+                  <View style={[styles.checkpointNode, completedReferrals >= 0 && styles.checkpointAchieved]}>
+                    <Text style={styles.checkpointNodeText}>0</Text>
+                  </View>
+                </View>
+
+                {milestones.map((m) => {
+                  const isAchieved = completedReferrals >= m.required_referrals;
+                  const isNext = nextMilestone && m.id === nextMilestone.id;
+
+                  return (
+                    <View key={m.id} style={styles.checkpointItem}>
+                      <View style={[
+                        styles.checkpointNode, 
+                        isAchieved && styles.checkpointAchieved,
+                        isNext && styles.checkpointNext
+                      ]}>
+                        {isAchieved ? (
+                          <Feather name="check" size={12} color="#FFFFFF" />
+                        ) : (
+                          <Text style={[styles.checkpointNodeText, isNext && styles.checkpointNextText]}>
+                            {m.required_referrals}
+                          </Text>
+                        )}
+                      </View>
+                      <View style={styles.checkpointBonusPill}>
+                        <Text style={styles.checkpointBonusText}>Bonus: ₹{m.bonus_reward}</Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
           </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, { color: '#059669' }]}>{completedReferrals}</Text>
-            <Text style={styles.statLabel}>Completed</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, { color: '#D97706' }]}>{pendingReferrals}</Text>
-            <Text style={styles.statLabel}>Pending</Text>
-          </View>
-        </View>
+        )}
 
         {/* How It Works 3 Steps */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>How It Works</Text>
           
           <View style={styles.stepRow}>
-            <View style={styles.stepNumberCircle}><Text style={styles.stepNumber}>1</Text></View>
+            <View style={[styles.stepIconWrap, { backgroundColor: '#ECFDF5' }]}>
+              <Feather name="share-2" size={18} color="#059669" />
+            </View>
             <View style={styles.stepInfo}>
-              <Text style={styles.stepHeading}>Share Your Code</Text>
-              <Text style={styles.stepDesc}>Send your unique code or link to friends and family.</Text>
+              <Text style={styles.stepHeading}>1. Share Your Link</Text>
+              <Text style={styles.stepDesc}>Send your unique code or link to friends, family, or your social network.</Text>
             </View>
           </View>
 
           <View style={styles.stepRow}>
-            <View style={styles.stepNumberCircle}><Text style={styles.stepNumber}>2</Text></View>
+            <View style={[styles.stepIconWrap, { backgroundColor: '#EFF6FF' }]}>
+              <Feather name="users" size={18} color="#2563EB" />
+            </View>
             <View style={styles.stepInfo}>
-              <Text style={styles.stepHeading}>Friend Places Order</Text>
-              <Text style={styles.stepDesc}>They sign up with your code and complete their first grocery order.</Text>
+              <Text style={styles.stepHeading}>2. They Make a Purchase</Text>
+              <Text style={styles.stepDesc}>Your friends sign up and successfully receive their very first order.</Text>
             </View>
           </View>
 
           <View style={styles.stepRow}>
-            <View style={styles.stepNumberCircle}><Text style={styles.stepNumber}>3</Text></View>
+            <View style={[styles.stepIconWrap, { backgroundColor: '#EEF2FF' }]}>
+              <Feather name="gift" size={18} color="#4F46E5" />
+            </View>
             <View style={styles.stepInfo}>
-              <Text style={styles.stepHeading}>You Both Get Rewarded</Text>
-              <Text style={styles.stepDesc}>Store credit is added directly to your digital wallet.</Text>
+              <Text style={styles.stepHeading}>3. Claim Your Reward</Text>
+              <Text style={styles.stepDesc}>You unlock your reward immediately in your dashboard to claim.</Text>
             </View>
           </View>
         </View>
 
-        {/* Referrals History List */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Your Referral Network</Text>
-          
-          {history.length === 0 ? (
-            <View style={styles.emptyNetwork}>
-              <Feather name="users" size={32} color="#CBD5E1" style={{ marginBottom: 8 }} />
-              <Text style={styles.emptyNetworkText}>
-                You haven't referred any friends yet. Share your code above to get started!
+        {/* Analytics & Ledger Section matching web ReferAndEarn.jsx */}
+        <View style={styles.ledgerSectionCard}>
+          {/* Tab Selector */}
+          <View style={styles.tabSelectorRow}>
+            <TouchableOpacity 
+              style={[styles.tabBtn, activeTab === 'network' && styles.tabBtnActive]}
+              onPress={() => setActiveTab('network')}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.tabBtnText, activeTab === 'network' && styles.tabBtnTextActive]}>
+                Network Tracking
               </Text>
-            </View>
-          ) : (
-            history.map((item) => (
-              <View key={item.id} style={styles.referralCard}>
-                <View style={styles.refLeft}>
-                  <View style={styles.refAvatar}>
-                    <Text style={styles.refAvatarLetter}>
-                      {(item.referee_name || 'F').charAt(0).toUpperCase()}
-                    </Text>
-                  </View>
-                  <View>
-                    <Text style={styles.refName}>{item.referee_name || 'Friend'}</Text>
-                    <Text style={styles.refDate}>
-                      {new Date(item.created_at).toLocaleDateString()}
-                    </Text>
-                  </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.tabBtn, activeTab === 'rewards' && styles.tabBtnActive]}
+              onPress={() => setActiveTab('rewards')}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.tabBtnText, activeTab === 'rewards' && styles.tabBtnTextActive]}>
+                Reward Ledger
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {activeTab === 'network' ? (
+            <View>
+              {/* 4 Quick Stats Strip */}
+              <View style={styles.statsStripRow}>
+                <View style={styles.stripStatItem}>
+                  <Text style={styles.stripStatNum}>{history.length}</Text>
+                  <Text style={styles.stripStatLabel}>Total Invites</Text>
                 </View>
-
-                <View style={styles.refRight}>
-                  <View style={[
-                    styles.refStatusBadge, 
-                    item.status === 'COMPLETED' && styles.statusCompleted,
-                    item.status === 'PENDING' && styles.statusPending,
-                    item.status === 'READY_TO_CLAIM' && styles.statusClaimable,
-                  ]}>
-                    <Text style={[
-                      styles.refStatusText,
-                      item.status === 'COMPLETED' && styles.statusTextCompleted,
-                      item.status === 'PENDING' && styles.statusTextPending,
-                      item.status === 'READY_TO_CLAIM' && styles.statusTextClaimable,
-                    ]}>
-                      {item.status?.replace('_', ' ')}
-                    </Text>
-                  </View>
-
-                  {item.status === 'READY_TO_CLAIM' && (
-                    <TouchableOpacity 
-                      style={styles.claimBtn}
-                      onPress={() => handleClaim(item.id)}
-                    >
-                      <Text style={styles.claimBtnText}>Claim</Text>
-                    </TouchableOpacity>
-                  )}
-
-                  {item.status === 'AWAITING_APPROVAL' && (
-                    <TouchableOpacity 
-                      style={styles.showQrBtn}
-                      onPress={() => handleShowQR(item.id)}
-                    >
-                      <Feather name="maximize" size={12} color="#4F46E5" />
-                      <Text style={styles.showQrBtnText}>Show QR</Text>
-                    </TouchableOpacity>
-                  )}
+                <View style={styles.stripStatDivider} />
+                <View style={styles.stripStatItem}>
+                  <Text style={[styles.stripStatNum, { color: '#059669' }]}>{completedReferrals}</Text>
+                  <Text style={[styles.stripStatLabel, { color: '#059669' }]}>Completed</Text>
+                </View>
+                <View style={styles.stripStatDivider} />
+                <View style={styles.stripStatItem}>
+                  <Text style={[styles.stripStatNum, { color: '#4F46E5' }]}>{readyToClaim + awaitingApproval}</Text>
+                  <Text style={[styles.stripStatLabel, { color: '#4F46E5' }]}>To Claim</Text>
+                </View>
+                <View style={styles.stripStatDivider} />
+                <View style={styles.stripStatItem}>
+                  <Text style={[styles.stripStatNum, { color: '#D97706' }]}>{pendingReferrals}</Text>
+                  <Text style={[styles.stripStatLabel, { color: '#D97706' }]}>Pending</Text>
                 </View>
               </View>
-            ))
+
+              {/* Network List */}
+              {history.length === 0 ? (
+                <View style={styles.emptyNetwork}>
+                  <View style={styles.emptyIconCircle}>
+                    <Feather name="users" size={28} color="#94A3B8" />
+                  </View>
+                  <Text style={styles.emptyTitle}>Your network is empty</Text>
+                  <Text style={styles.emptySubtitle}>
+                    Share your code above. Once friends sign up, their progress will be tracked right here.
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.networkList}>
+                  {history.map((item) => {
+                    const friendName = item.referred_name || item.referee_name || 'Friend';
+                    return (
+                      <View key={item.id} style={styles.referralCard}>
+                        <View style={styles.refLeft}>
+                          <View style={styles.refAvatar}>
+                            <Text style={styles.refAvatarLetter}>
+                              {friendName.charAt(0).toUpperCase()}
+                            </Text>
+                          </View>
+                          <View>
+                            <Text style={styles.refName}>{friendName}</Text>
+                            <Text style={styles.refDate}>
+                              Joined {new Date(item.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                            </Text>
+                          </View>
+                        </View>
+
+                        <View style={styles.refRight}>
+                          {item.status === 'COMPLETED' && (
+                            <View style={[styles.refStatusBadge, styles.statusCompleted]}>
+                              <Feather name="check" size={12} color="#059669" />
+                              <Text style={[styles.refStatusText, styles.statusTextCompleted]}>Rewarded</Text>
+                            </View>
+                          )}
+
+                          {item.status === 'READY_TO_CLAIM' && (
+                            <TouchableOpacity 
+                              style={styles.claimBtn}
+                              onPress={() => handleClaim(item.id)}
+                              activeOpacity={0.85}
+                            >
+                              <Ionicons name="sparkles" size={13} color="#FFFFFF" />
+                              <Text style={styles.claimBtnText}>Claim Reward</Text>
+                            </TouchableOpacity>
+                          )}
+
+                          {item.status === 'AWAITING_APPROVAL' && (
+                            <TouchableOpacity 
+                              style={styles.showQrBtn}
+                              onPress={() => handleShowQR(item.id)}
+                              activeOpacity={0.85}
+                            >
+                              <Feather name="maximize" size={13} color="#2563EB" />
+                              <Text style={styles.showQrBtnText}>Show QR</Text>
+                            </TouchableOpacity>
+                          )}
+
+                          {item.status === 'PENDING' && (
+                            <View style={[styles.refStatusBadge, styles.statusPending]}>
+                              <Feather name="clock" size={12} color="#D97706" />
+                              <Text style={[styles.refStatusText, styles.statusTextPending]}>Pending First Order</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+          ) : (
+            <View>
+              {/* Rewards Summary Strip */}
+              <View style={styles.statsStripRow}>
+                <View style={styles.stripStatItem}>
+                  <Text style={[styles.stripStatNum, { color: '#059669' }]}>₹{totalCashEarned.toFixed(0)}</Text>
+                  <Text style={[styles.stripStatLabel, { color: '#059669' }]}>Total Cash Earned</Text>
+                </View>
+                <View style={styles.stripStatDivider} />
+                <View style={styles.stripStatItem}>
+                  <Text style={[styles.stripStatNum, { color: '#4F46E5' }]}>{productsEarned}</Text>
+                  <Text style={[styles.stripStatLabel, { color: '#4F46E5' }]}>Free Products Earned</Text>
+                </View>
+              </View>
+
+              {/* Rewards Ledger List */}
+              {referralCashTransactions.length === 0 && productsEarned === 0 ? (
+                <View style={styles.emptyNetwork}>
+                  <View style={styles.emptyIconCircle}>
+                    <Feather name="dollar-sign" size={28} color="#94A3B8" />
+                  </View>
+                  <Text style={styles.emptyTitle}>No rewards yet</Text>
+                  <Text style={styles.emptySubtitle}>
+                    Your ledger will populate as soon as your referrals complete their orders and you claim your rewards.
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.networkList}>
+                  {referralCashTransactions.map((t: any) => (
+                    <View key={t.id} style={styles.referralCard}>
+                      <View style={styles.refLeft}>
+                        <View style={[styles.refAvatar, { backgroundColor: '#ECFDF5' }]}>
+                          <Feather name="dollar-sign" size={16} color="#059669" />
+                        </View>
+                        <View>
+                          <Text style={styles.refName}>Cash Deposit</Text>
+                          <Text style={styles.refSubDesc}>{t.description || 'Referral Reward'}</Text>
+                          <Text style={styles.refDate}>
+                            {new Date(t.created_at).toLocaleDateString()}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={styles.ledgerCashAmount}>+₹{parseFloat(t.amount || 0).toFixed(0)}</Text>
+                    </View>
+                  ))}
+
+                  {history.filter(h => h.status === 'COMPLETED').slice(0, productsEarned).map((h, i) => (
+                    <View key={`product-${h.id || i}`} style={styles.referralCard}>
+                      <View style={styles.refLeft}>
+                        <View style={[styles.refAvatar, { backgroundColor: '#EEF2FF' }]}>
+                          <Feather name="gift" size={16} color="#4F46E5" />
+                        </View>
+                        <View>
+                          <Text style={styles.refName}>
+                            Free {settings?.referrer_reward_product_name || 'Product'}
+                          </Text>
+                          <Text style={styles.refSubDesc}>
+                            Approved for referring {h.referred_name || 'a friend'}
+                          </Text>
+                          <Text style={styles.refDate}>
+                            {h.completed_at ? new Date(h.completed_at).toLocaleDateString() : 'Recently'}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={styles.productBadge}>
+                        <Text style={styles.productBadgeText}>1 Item</Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
           )}
         </View>
       </ScrollView>
 
-      {/* QR Code Modal for In-Store Claiming */}
+      {/* Modern QR Code Modal matching web ReferAndEarn.jsx with Polling */}
       <Modal
         visible={qrModal.isOpen}
         transparent
@@ -312,26 +551,50 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Show QR at Checkout</Text>
+            {/* Top Close Button */}
+            <TouchableOpacity 
+              style={styles.modalCloseIconBtn}
+              onPress={() => setQrModal({ isOpen: false, referralId: null, base64: null })}
+            >
+              <Feather name="x" size={20} color="rgba(255,255,255,0.7)" />
+            </TouchableOpacity>
+
+            <View style={styles.modalIconCircle}>
+              <Ionicons name="sparkles" size={26} color="#34D399" />
+            </View>
+
+            <Text style={styles.modalTitle}>Claim Reward</Text>
             <Text style={styles.modalSub}>
-              Present this QR code to the store owner to claim your referral reward.
+              Show this QR Pass to the cashier to instantly redeem your reward.
             </Text>
 
-            {qrModal.base64 ? (
-              <Image 
-                source={{ uri: `data:image/png;base64,${qrModal.base64}` }} 
-                style={styles.qrImage} 
-                contentFit="contain"
-              />
-            ) : (
-              <ActivityIndicator size="large" color="#059669" style={{ marginVertical: 30 }} />
-            )}
+            {/* Glowing White QR Card */}
+            <View style={styles.qrCardContainer}>
+              {qrModal.base64 ? (
+                <Image 
+                  source={{ uri: `data:image/png;base64,${qrModal.base64}` }} 
+                  style={styles.qrImage} 
+                  contentFit="contain"
+                />
+              ) : (
+                <ActivityIndicator size="large" color="#059669" style={{ marginVertical: 30 }} />
+              )}
+            </View>
+
+            {/* Pro Tip Box */}
+            <View style={styles.proTipBox}>
+              <Feather name="star" size={16} color="#FBBF24" style={{ marginTop: 2 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.proTipTitle}>Pro Tip</Text>
+                <Text style={styles.proTipSubtitle}>Turn up your screen brightness for a faster scan.</Text>
+              </View>
+            </View>
 
             <TouchableOpacity 
               style={styles.closeModalBtn}
               onPress={() => setQrModal({ isOpen: false, referralId: null, base64: null })}
             >
-              <Text style={styles.closeModalBtnText}>Close</Text>
+              <Text style={styles.closeModalBtnText}>Close Pass</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -382,29 +645,31 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 100,
+    paddingBottom: 110,
   },
   heroCard: {
     backgroundColor: '#0F172A', // slate-900
-    borderRadius: 22,
+    borderRadius: 24,
     padding: 22,
     marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 5,
   },
   badgePill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     backgroundColor: 'rgba(52, 211, 153, 0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
     borderRadius: 20,
     alignSelf: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(52, 211, 153, 0.3)',
   },
   badgeText: {
     fontSize: 10,
@@ -413,11 +678,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   heroTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '900',
     color: '#FFFFFF',
-    lineHeight: 28,
-    marginBottom: 6,
+    lineHeight: 30,
+    marginBottom: 8,
   },
   heroTitleGreen: {
     color: '#34D399',
@@ -425,45 +690,49 @@ const styles = StyleSheet.create({
   heroSub: {
     fontSize: 13,
     color: '#94A3B8',
-    lineHeight: 18,
+    lineHeight: 19,
     marginBottom: 18,
   },
   codeContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
-    borderRadius: 14,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255,255,255,0.1)',
     marginBottom: 14,
   },
   codeLabel: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#64748B',
+    color: '#94A3B8',
     letterSpacing: 0.5,
   },
   codeText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '900',
     color: '#FFFFFF',
     letterSpacing: 2,
     marginTop: 2,
+    fontFamily: 'monospace',
   },
   copyBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#059669',
+    gap: 5,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
+    paddingVertical: 9,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
   copyBtnSuccess: {
     backgroundColor: '#10B981',
+    borderColor: '#059669',
   },
   copyBtnText: {
     color: '#FFFFFF',
@@ -475,53 +744,133 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#10B981', // green
+    backgroundColor: '#25D366', // WhatsApp green
     paddingVertical: 14,
-    borderRadius: 14,
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    borderRadius: 16,
+    shadowColor: '#25D366',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   shareBtnText: {
     color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '900',
   },
-  statsGrid: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 16,
-  },
-  statCard: {
-    flex: 1,
+  milestoneCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 14,
-    alignItems: 'center',
+    borderRadius: 22,
+    padding: 18,
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.02,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOpacity: 0.03,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  statValue: {
-    fontSize: 18,
+  milestoneHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginBottom: 16,
+  },
+  milestoneTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  milestoneTitle: {
+    fontSize: 16,
     fontWeight: '900',
     color: '#0F172A',
-    marginBottom: 2,
   },
-  statLabel: {
-    fontSize: 11,
+  milestoneSubtitle: {
+    fontSize: 12,
     color: '#64748B',
-    fontWeight: '600',
+    marginTop: 2,
+  },
+  milestoneCounter: {
+    alignItems: 'flex-end',
+  },
+  milestoneCountNum: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#4F46E5',
+  },
+  milestoneCountLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 0.5,
+  },
+  progressTrackWrapper: {
+    paddingTop: 10,
+    paddingBottom: 24,
+  },
+  progressBarBg: {
+    height: 8,
+    width: '100%',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  checkpointsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: -16,
+    paddingHorizontal: 4,
+  },
+  checkpointItem: {
+    alignItems: 'center',
+  },
+  checkpointNode: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#E2E8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  checkpointAchieved: {
+    backgroundColor: '#10B981',
+  },
+  checkpointNext: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#6366F1',
+    borderWidth: 2,
+  },
+  checkpointNodeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#64748B',
+  },
+  checkpointNextText: {
+    color: '#6366F1',
+  },
+  checkpointBonusPill: {
+    marginTop: 4,
+    backgroundColor: '#0F172A',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  checkpointBonusText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
   },
   sectionCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    borderRadius: 22,
     padding: 18,
     borderWidth: 1,
     borderColor: '#E2E8F0',
@@ -529,7 +878,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '900',
     color: '#0F172A',
     marginBottom: 14,
   },
@@ -537,27 +886,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     marginBottom: 14,
+    alignItems: 'center',
   },
-  stepNumberCircle: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: '#ECFDF5',
+  stepIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 2,
-  },
-  stepNumber: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#059669',
   },
   stepInfo: {
     flex: 1,
   },
   stepHeading: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#0F172A',
     marginBottom: 2,
   },
@@ -566,51 +909,142 @@ const styles = StyleSheet.create({
     color: '#64748B',
     lineHeight: 17,
   },
-  emptyNetwork: {
-    padding: 24,
+  ledgerSectionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  tabSelectorRow: {
+    flexDirection: 'row',
+    backgroundColor: '#F1F5F9',
+    padding: 4,
+    margin: 12,
+    borderRadius: 14,
+  },
+  tabBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 10,
+  },
+  tabBtnActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  tabBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  tabBtnTextActive: {
+    color: '#0F172A',
+    fontWeight: '800',
+  },
+  statsStripRow: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#F1F5F9',
+    paddingVertical: 14,
+    backgroundColor: '#FAFAFA',
+  },
+  stripStatItem: {
+    flex: 1,
     alignItems: 'center',
   },
-  emptyNetworkText: {
+  stripStatNum: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  stripStatLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
+    marginTop: 2,
+  },
+  stripStatDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: '#E2E8F0',
+  },
+  emptyNetwork: {
+    padding: 36,
+    alignItems: 'center',
+  },
+  emptyIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  emptySubtitle: {
     fontSize: 13,
     color: '#64748B',
     textAlign: 'center',
     lineHeight: 18,
+    maxWidth: 280,
+  },
+  networkList: {
+    paddingHorizontal: 16,
   },
   referralCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#F8FAFC',
   },
   refLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
+    flex: 1,
   },
   refAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F1F5F9',
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: '#EFF6FF',
     justifyContent: 'center',
     alignItems: 'center',
   },
   refAvatarLetter: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#059669',
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#2563EB',
   },
   refName: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#0F172A',
+  },
+  refSubDesc: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 1,
   },
   refDate: {
     fontSize: 11,
     color: '#94A3B8',
-    marginTop: 1,
+    marginTop: 2,
   },
   refRight: {
     flexDirection: 'row',
@@ -618,9 +1052,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   refStatusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
     backgroundColor: '#F1F5F9',
   },
   statusCompleted: {
@@ -629,14 +1066,9 @@ const styles = StyleSheet.create({
   statusPending: {
     backgroundColor: '#FFFBEB',
   },
-  statusClaimable: {
-    backgroundColor: '#EEF2FF',
-  },
   refStatusText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800',
-    color: '#64748B',
-    textTransform: 'uppercase',
   },
   statusTextCompleted: {
     color: '#059669',
@@ -644,76 +1076,152 @@ const styles = StyleSheet.create({
   statusTextPending: {
     color: '#D97706',
   },
-  statusTextClaimable: {
-    color: '#4F46E5',
-  },
   claimBtn: {
-    backgroundColor: '#059669',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#4F46E5',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2,
   },
   claimBtnText: {
     color: '#FFFFFF',
     fontWeight: '800',
-    fontSize: 11,
+    fontSize: 12,
   },
   showQrBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
   },
   showQrBtnText: {
-    color: '#4F46E5',
+    color: '#2563EB',
     fontWeight: '700',
+    fontSize: 11,
+  },
+  ledgerCashAmount: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#059669',
+  },
+  productBadge: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E7FF',
+  },
+  productBadgeText: {
+    color: '#4F46E5',
+    fontWeight: '800',
     fontSize: 11,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.8)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: 20,
   },
   modalCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    backgroundColor: '#0F172A',
+    borderRadius: 32,
     padding: 24,
     alignItems: 'center',
     width: '100%',
-    maxWidth: 320,
+    maxWidth: 340,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  modalCloseIconBtn: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    padding: 6,
+  },
+  modalIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
+    backgroundColor: 'rgba(52, 211, 153, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 14,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#0F172A',
-    marginBottom: 6,
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    marginBottom: 4,
   },
   modalSub: {
-    fontSize: 12,
-    color: '#64748B',
+    fontSize: 13,
+    color: '#94A3B8',
     textAlign: 'center',
-    lineHeight: 17,
+    lineHeight: 18,
     marginBottom: 20,
+  },
+  qrCardContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   qrImage: {
-    width: 200,
-    height: 200,
+    width: 190,
+    height: 190,
+  },
+  proTipBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 14,
+    padding: 12,
+    width: '100%',
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  proTipTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  proTipSubtitle: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 2,
   },
   closeModalBtn: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingVertical: 12,
     paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 12,
+    borderRadius: 14,
+    width: '100%',
+    alignItems: 'center',
   },
   closeModalBtnText: {
-    color: '#0F172A',
-    fontWeight: '700',
+    color: '#FFFFFF',
+    fontWeight: '800',
     fontSize: 14,
   },
 });
