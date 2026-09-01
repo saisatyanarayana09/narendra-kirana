@@ -30,9 +30,9 @@ import { NotificationsScreen } from '../screens/profile/NotificationsScreen';
 export type MainTabParamList = {
   HomeTab: undefined;
   CategoriesTab: undefined;
-  FavoritesTab: undefined;
-  CartTab: undefined;
+  OrdersTab: undefined;
   ProfileTab: undefined;
+  CartTab: undefined;
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -61,15 +61,12 @@ function CategoriesStack() {
   );
 }
 
-function CartStack() {
+function OrdersStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="CartScreen" component={CartScreen} />
-      <Stack.Screen name="CheckoutScreen" component={CheckoutScreen} />
-      <Stack.Screen name="OrderSuccessScreen" component={OrderSuccessScreen} />
+      <Stack.Screen name="OrderHistoryScreen" component={OrderHistoryScreen} />
       <Stack.Screen name="OrderTrackingScreen" component={OrderTrackingScreen} />
       <Stack.Screen name="InvoiceScreen" component={InvoiceScreen} />
-      <Stack.Screen name="AddAddressScreen" component={AddAddressScreen} />
     </Stack.Navigator>
   );
 }
@@ -87,6 +84,20 @@ function ProfileStack() {
       <Stack.Screen name="ReferAndEarnScreen" component={ReferAndEarnScreen} />
       <Stack.Screen name="AccountSettingsScreen" component={AccountSettingsScreen} />
       <Stack.Screen name="NotificationsScreen" component={NotificationsScreen} />
+      <Stack.Screen name="FavoritesScreen" component={FavoritesScreen} />
+    </Stack.Navigator>
+  );
+}
+
+function CartStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="CartScreen" component={CartScreen} />
+      <Stack.Screen name="CheckoutScreen" component={CheckoutScreen} />
+      <Stack.Screen name="OrderSuccessScreen" component={OrderSuccessScreen} />
+      <Stack.Screen name="OrderTrackingScreen" component={OrderTrackingScreen} />
+      <Stack.Screen name="InvoiceScreen" component={InvoiceScreen} />
+      <Stack.Screen name="AddAddressScreen" component={AddAddressScreen} />
     </Stack.Navigator>
   );
 }
@@ -140,11 +151,19 @@ export function MainTabs() {
           }}
         />
         <Tab.Screen 
-          name="FavoritesTab" 
-          component={FavoritesScreen}
+          name="OrdersTab" 
+          component={OrdersStack}
           options={{
-            tabBarLabel: 'Favorites',
-            tabBarIcon: ({ color, size }) => <Feather name="heart" color={color} size={20} />,
+            tabBarLabel: 'Orders',
+            tabBarIcon: ({ color, size }) => <Feather name="package" color={color} size={20} />,
+          }}
+        />
+        <Tab.Screen 
+          name="ProfileTab" 
+          component={ProfileStack}
+          options={{
+            tabBarLabel: 'Profile',
+            tabBarIcon: ({ color, size }) => <Feather name="user" color={color} size={20} />,
           }}
         />
         <Tab.Screen 
@@ -160,14 +179,6 @@ export function MainTabs() {
               fontWeight: '900',
             },
             tabBarIcon: ({ color, size }) => <Feather name="shopping-cart" color={color} size={20} />,
-          }}
-        />
-        <Tab.Screen 
-          name="ProfileTab" 
-          component={ProfileStack}
-          options={{
-            tabBarLabel: 'Profile',
-            tabBarIcon: ({ color, size }) => <Feather name="user" color={color} size={20} />,
           }}
         />
       </Tab.Navigator>

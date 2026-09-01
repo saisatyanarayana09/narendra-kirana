@@ -73,7 +73,7 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
       icon: 'heart' as const, 
       color: '#E11D48', // rose-600
       bg: '#FFF1F2',    // rose-50
-      onPress: () => navigation.navigate('FavoritesTab') 
+      onPress: () => navigation.navigate('FavoritesScreen') 
     },
     { 
       name: 'Notifications', 

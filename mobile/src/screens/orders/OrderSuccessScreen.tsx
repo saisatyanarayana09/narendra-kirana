@@ -16,7 +16,7 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
     if (orderId) {
       navigation.navigate('OrderTrackingScreen', { orderId });
     } else {
-      navigation.navigate('ProfileTab', { screen: 'OrderHistoryScreen' });
+      navigation.navigate('OrdersTab', { screen: 'OrderHistoryScreen' });
     }
   };
 

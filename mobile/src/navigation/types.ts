@@ -3,6 +3,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 export type GlobalParamList = {
   HomeTab: { screen?: string; params?: any } | undefined;
   CategoriesTab: { screen?: string; params?: any } | undefined;
+  OrdersTab: { screen?: string; params?: any } | undefined;
   FavoritesTab: { screen?: string; params?: any } | undefined;
   CartTab: { screen?: string; params?: any } | undefined;
   ProfileTab: { screen?: string; params?: any } | undefined;

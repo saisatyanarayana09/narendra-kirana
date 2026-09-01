@@ -26,6 +26,11 @@ const linking = {
               ProductDetailScreen: 'product/:productId',
             }
           },
+          OrdersTab: {
+            screens: {
+              OrderTrackingScreen: 'order/:orderId',
+            }
+          },
           ProfileTab: {
             screens: {
               OrderTrackingScreen: 'order/:orderId',

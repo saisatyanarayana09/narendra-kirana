@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, StyleProp, ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { fixImageUrl } from '../utils/image';
@@ -15,6 +15,7 @@ interface Props {
   category: Category;
   onPress: (category: Category) => void;
   index?: number;
+  style?: StyleProp<ViewStyle>;
 }
 
 const CATEGORY_GRADIENTS: readonly [string, string][] = [
@@ -28,13 +29,13 @@ const CATEGORY_GRADIENTS: readonly [string, string][] = [
 const { width } = Dimensions.get('window');
 const CARD_SIZE = width > 400 ? 120 : 96;
 
-export function CategoryCard({ category, onPress, index = 0 }: Props) {
+export function CategoryCard({ category, onPress, index = 0, style }: Props) {
   const finalImage = fixImageUrl(category.image);
   const colors = CATEGORY_GRADIENTS[index % CATEGORY_GRADIENTS.length];
 
   return (
     <TouchableOpacity 
-      style={styles.container} 
+      style={[styles.container, style]} 
       onPress={() => onPress(category)}
       activeOpacity={0.8}
     >
@@ -53,7 +54,7 @@ export function CategoryCard({ category, onPress, index = 0 }: Props) {
 
       {/* Dark gradient overlay at the bottom for text readability */}
       <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.3)', 'rgba(0,0,0,0.8)']}
+        colors={['transparent', 'rgba(0,0,0,0.3)', 'rgba(0,0,0,0.85)']}
         style={styles.overlay}
       />
       
@@ -67,8 +68,7 @@ export function CategoryCard({ category, onPress, index = 0 }: Props) {
 const styles = StyleSheet.create({
   container: {
     width: CARD_SIZE,
-    height: CARD_SIZE,
-    marginRight: 12,
+    aspectRatio: 1,
     borderRadius: 16,
     overflow: 'hidden',
     justifyContent: 'flex-end',

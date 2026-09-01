@@ -1,20 +1,37 @@
-import { AppNavigationProp } from '../../navigation/types';
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  FlatList, 
+  ActivityIndicator, 
+  TouchableOpacity, 
+  Dimensions 
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { theme } from '../../constants/theme';
+import { Feather } from '@expo/vector-icons';
+import { AppNavigationProp } from '../../navigation/types';
 import { apiClient } from '../../api/client';
 import { CategoryCard } from '../../components/CategoryCard';
+
+const { width } = Dimensions.get('window');
+const HORIZONTAL_PADDING = 14;
+const GAP = 10;
+const CARD_WIDTH = Math.floor((width - (HORIZONTAL_PADDING * 2) - (GAP * 2)) / 3);
 
 export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp }) {
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     fetchCategories();
   }, []);
 
-  const fetchCategories = async () => {
+  const fetchCategories = async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+
     try {
       const res = await apiClient.get('/categories/');
       setCategories(Array.isArray(res.data) ? res.data : (res.data?.results || []));
@@ -22,20 +39,30 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
       console.error('Error fetching categories:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color="#059669" />
       </View>
     );
   }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header matching web CategoriesPage 1:1 */}
       <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <Feather name="arrow-left" size={16} color="#475569" />
+          <Text style={styles.backText}>Back</Text>
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>All Categories</Text>
       </View>
       
@@ -43,12 +70,16 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
         data={categories}
         keyExtractor={(item) => item.id.toString()}
         numColumns={3}
+        refreshing={refreshing}
+        onRefresh={() => fetchCategories(true)}
         contentContainerStyle={styles.listContainer}
-        columnWrapperStyle={styles.row}
-        renderItem={({ item }) => (
-          <View style={styles.cardWrapper}>
+        columnWrapperStyle={styles.columnWrapper}
+        renderItem={({ item, index }) => (
+          <View style={{ width: CARD_WIDTH }}>
             <CategoryCard 
               category={item} 
+              index={index}
+              style={styles.categoryCardStyle}
               onPress={(c) => navigation.navigate('ProductListScreen', { 
                 categoryId: c.id, 
                 categoryName: c.name 
@@ -64,36 +95,53 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F8FAFC',
   },
   header: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
+    paddingHorizontal: HORIZONTAL_PADDING,
+    paddingTop: 12,
+    paddingBottom: 14,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: '#E2E8F0',
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+    alignSelf: 'flex-start',
+  },
+  backText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#475569',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: theme.colors.text,
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -0.5,
   },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F8FAFC',
   },
   listContainer: {
-    padding: theme.spacing.md,
+    paddingHorizontal: HORIZONTAL_PADDING,
+    paddingTop: 14,
+    paddingBottom: 24,
   },
-  row: {
-    justifyContent: 'flex-start',
-    marginBottom: theme.spacing.lg,
+  columnWrapper: {
+    gap: GAP,
+    marginBottom: GAP,
   },
-  cardWrapper: {
-    width: '33.33%',
-    alignItems: 'center',
+  categoryCardStyle: {
+    width: '100%',
+    aspectRatio: 1,
+    marginRight: 0,
   },
 });
 

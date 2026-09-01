@@ -28,6 +28,7 @@ type Props = {
 
 const { width } = Dimensions.get('window');
 const BANNER_WIDTH = width - 32;
+const SECTION_ICONS = ['🔥', '⭐', '🆕', '💎', '🎯', '🌟', '✨', '🏷️'];
 
 export function HomeScreen({ navigation }: Props) {
   const { user } = useAuth();
@@ -224,10 +225,9 @@ export function HomeScreen({ navigation }: Props) {
               <Text style={styles.sectionTitle}>Explore Aisles</Text>
               <TouchableOpacity 
                 style={styles.seeAllBtn}
-                onPress={() => navigation.navigate('CategoriesTab', { screen: 'CategoriesScreen' })}
+                onPress={() => navigation.navigate('CategoriesTab')}
               >
-                <Text style={styles.seeAllText}>See all</Text>
-                <Feather name="chevron-right" size={14} color="#64748B" />
+                <Text style={styles.seeAllText}>See all →</Text>
               </TouchableOpacity>
             </View>
 
@@ -241,6 +241,7 @@ export function HomeScreen({ navigation }: Props) {
                   key={cat.id} 
                   category={cat} 
                   index={index}
+                  style={styles.categoryCardHorizontal}
                   onPress={(c) => navigation.navigate('CategoriesTab', { 
                     screen: 'ProductListScreen', 
                     params: { categoryId: c.id, categoryName: c.name } 
@@ -259,7 +260,12 @@ export function HomeScreen({ navigation }: Props) {
           return (
             <View key={section.id || secIdx} style={styles.sectionContainer}>
               <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionTitle}>{section.title}</Text>
+                <View style={styles.sectionTitleGroup}>
+                  <Text style={styles.sectionIcon}>
+                    {SECTION_ICONS[secIdx % SECTION_ICONS.length]}
+                  </Text>
+                  <Text style={styles.sectionTitle}>{section.title}</Text>
+                </View>
                 <TouchableOpacity 
                   style={styles.seeAllBtn}
                   onPress={() => navigation.navigate('CategoriesTab', { screen: 'ProductListScreen', params: {} })}
@@ -510,5 +516,16 @@ const styles = StyleSheet.create({
   productGridItem: {
     width: (width - 44) / 2,
     marginBottom: 12,
+  },
+  sectionTitleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  sectionIcon: {
+    fontSize: 18,
+  },
+  categoryCardHorizontal: {
+    marginRight: 12,
   },
 });

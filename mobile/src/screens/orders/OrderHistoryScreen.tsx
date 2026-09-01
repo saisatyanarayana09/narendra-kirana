@@ -74,8 +74,6 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
         return { bg: '#EFF6FF', text: '#1D4ED8', border: '#BFDBFE' };
       case 'PREPARING':
         return { bg: '#FFFBEB', text: '#B45309', border: '#FDE68A' };
-      case 'ACCEPTED':
-        return { bg: '#F0FDF4', text: '#15803D', border: '#BBF7D0' };
       case 'NEW':
         return { bg: '#EEF2FF', text: '#4338CA', border: '#C7D2FE' };
       default:
@@ -84,35 +82,60 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-IN', { 
-      day: 'numeric', month: 'short', year: 'numeric',
-      hour: '2-digit', minute: '2-digit'
-    });
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit', 
+        minute: '2-digit'
+      });
+    } catch {
+      return dateString;
+    }
   };
 
   if (loading && page === 1 && !refreshing) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color="#059669" />
       </View>
     );
   }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header matching web OrdersHistory 1:1 */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Feather name="arrow-left" color={theme.colors.text} size={24} />
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <Feather name="arrow-left" size={16} color="#64748B" />
+          <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Order History</Text>
+        <Text style={styles.headerSubtitle}>Track and review your past purchases.</Text>
       </View>
       
       {orders.length === 0 ? (
         <View style={styles.emptyContent}>
-          <Feather name="package" size={64} color={theme.colors.border} />
+          <View style={styles.emptyIconCircle}>
+            <Feather name="package" size={48} color="#059669" />
+          </View>
           <Text style={styles.emptyTitle}>No orders yet</Text>
-          <Text style={styles.emptySubtitle}>When you place orders, they will appear here.</Text>
+          <Text style={styles.emptySubtitle}>
+            It looks like you haven't placed any orders yet. Once you make a purchase, it will appear here so you can track its status.
+          </Text>
+          <TouchableOpacity 
+            style={styles.startShoppingBtn}
+            onPress={() => navigation.navigate('HomeTab')}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.startShoppingBtnText}>Start Shopping →</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <FlatList
@@ -123,6 +146,9 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
           onRefresh={handleRefresh}
           renderItem={({ item }) => {
             const statusStyle = getStatusStyle(item.status);
+            const totalFormatted = parseFloat(item.total_amount || 0).toFixed(2);
+            const itemCount = item.items?.length || 0;
+
             return (
               <View style={styles.orderCard}>
                 <TouchableOpacity 
@@ -131,7 +157,7 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
                 >
                   <View style={styles.cardHeader}>
                     <View>
-                      <Text style={styles.orderId}>Order #{item.id}</Text>
+                      <Text style={styles.orderId}>#{item.id}</Text>
                       <Text style={styles.orderDate}>{formatDate(item.created_at)}</Text>
                     </View>
                     <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg, borderColor: statusStyle.border }]}>
@@ -143,30 +169,18 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
                   
                   <View style={styles.divider} />
                   
-                  <View style={styles.cardBody}>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Items:</Text>
-                      <Text style={styles.infoValue}>{item.items?.length || 0} items</Text>
-                    </View>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Total:</Text>
-                      <Text style={styles.priceValue}>₹{item.total_amount}</Text>
-                    </View>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Type:</Text>
-                      <View style={styles.typeBadge}>
-                        {item.order_type === 'DELIVERY' ? (
-                          <Feather name="map-pin" size={12} color={theme.colors.textSecondary} />
-                        ) : (
-                          <Feather name="clock" size={12} color={theme.colors.textSecondary} />
-                        )}
-                        <Text style={styles.typeText}>{item.order_type}</Text>
-                      </View>
+                  <View style={styles.cardFooterRow}>
+                    <Text style={styles.itemCountText}>
+                      {itemCount} {itemCount === 1 ? 'item' : 'items'}
+                    </Text>
+                    <View style={styles.totalBlock}>
+                      <Text style={styles.totalLabel}>TOTAL</Text>
+                      <Text style={styles.totalAmount}>₹{totalFormatted}</Text>
                     </View>
                   </View>
                 </TouchableOpacity>
 
-                <View style={styles.cardFooter}>
+                <View style={styles.cardActionFooter}>
                   {item.status === 'COMPLETED' ? (
                     <View style={styles.completedActionsRow}>
                       <TouchableOpacity 
@@ -174,7 +188,7 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
                         onPress={() => navigation.navigate('OrderTrackingScreen', { orderId: item.id })}
                       >
                         <Text style={styles.detailsBtnText}>Details</Text>
-                        <Feather name="chevron-right" size={14} color={theme.colors.textSecondary} />
+                        <Feather name="chevron-right" size={14} color="#334155" />
                       </TouchableOpacity>
 
                       <TouchableOpacity 
@@ -190,8 +204,8 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
                       style={styles.trackOrderBtn}
                       onPress={() => navigation.navigate('OrderTrackingScreen', { orderId: item.id })}
                     >
-                      <Text style={styles.footerText}>Track Order Status</Text>
-                      <Feather name="arrow-right" size={14} color={theme.colors.primary} />
+                      <Text style={styles.trackOrderBtnText}>Track Order Status</Text>
+                      <Feather name="arrow-right" size={14} color="#059669" />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -202,7 +216,7 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
           onEndReachedThreshold={0.4}
           ListFooterComponent={() => 
             loadingMore ? (
-              <ActivityIndicator style={{ margin: 20 }} color={theme.colors.primary} />
+              <ActivityIndicator style={{ margin: 20 }} color="#059669" />
             ) : null
           }
         />
@@ -214,59 +228,108 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F8FAFC',
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 16,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: '#E2E8F0',
   },
   backButton: {
-    marginRight: theme.spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+    alignSelf: 'flex-start',
+  },
+  backButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#64748B',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: theme.colors.text,
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: -0.5,
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 2,
+    fontWeight: '500',
   },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F8FAFC',
   },
   emptyContent: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: theme.spacing.xl,
+    padding: 24,
+  },
+  emptyIconCircle: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: '#ECFDF5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-    marginTop: theme.spacing.md,
-    marginBottom: theme.spacing.xs,
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginBottom: 8,
   },
   emptySubtitle: {
-    fontSize: 15,
-    color: theme.colors.textSecondary,
+    fontSize: 14,
+    color: '#64748B',
     textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+    maxWidth: 320,
+  },
+  startShoppingBtn: {
+    backgroundColor: '#059669',
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 14,
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  startShoppingBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
   },
   listContainer: {
-    padding: theme.spacing.md,
+    padding: 16,
   },
   orderCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 14,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -274,71 +337,63 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   orderId: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-    marginBottom: 2,
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: -0.3,
   },
   orderDate: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: '#64748B',
+    fontWeight: '500',
+    marginTop: 2,
   },
   statusBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 6,
+    borderRadius: 8,
     borderWidth: 1,
   },
   statusText: {
-    fontSize: 10,
-    fontWeight: '900',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   divider: {
     height: 1,
-    backgroundColor: theme.colors.border,
-    marginVertical: theme.spacing.md,
+    backgroundColor: '#F1F5F9',
+    marginVertical: 14,
   },
-  cardBody: {
-    gap: 8,
-  },
-  infoRow: {
+  cardFooterRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-end',
   },
-  infoLabel: {
+  itemCountText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
-  },
-  infoValue: {
-    fontSize: 14,
-    color: theme.colors.text,
-    fontWeight: '500',
-  },
-  priceValue: {
-    fontSize: 14,
-    color: theme.colors.text,
-    fontWeight: 'bold',
-  },
-  typeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.background,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    gap: 4,
-  },
-  typeText: {
-    fontSize: 11,
-    color: theme.colors.textSecondary,
     fontWeight: '600',
+    color: '#475569',
   },
-  cardFooter: {
-    marginTop: theme.spacing.md,
-    paddingTop: theme.spacing.sm,
+  totalBlock: {
+    alignItems: 'flex-end',
+  },
+  totalLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#94A3B8',
+    letterSpacing: 1,
+    marginBottom: 2,
+  },
+  totalAmount: {
+    fontSize: 19,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  cardActionFooter: {
+    marginTop: 12,
+    paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: '#F8FAFC',
   },
   completedActionsRow: {
     flexDirection: 'row',
@@ -354,13 +409,13 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingVertical: 8,
     backgroundColor: '#F8FAFC',
-    borderRadius: 6,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
   detailsBtnText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#334155',
   },
   invoiceCardBtn: {
@@ -371,13 +426,13 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 8,
     backgroundColor: '#ECFDF5',
-    borderRadius: 6,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: '#A7F3D0',
   },
   invoiceCardBtnText: {
     fontSize: 13,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: '#059669',
   },
   trackOrderBtn: {
@@ -385,12 +440,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 6,
-    paddingVertical: 4,
+    paddingVertical: 6,
   },
-  footerText: {
+  trackOrderBtnText: {
     fontSize: 13,
-    color: theme.colors.primary,
-    fontWeight: 'bold',
+    color: '#059669',
+    fontWeight: '800',
   },
 });
 
