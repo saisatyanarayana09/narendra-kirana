@@ -1,12 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, FlatList, Dimensions } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  ScrollView, 
+  RefreshControl, 
+  TouchableOpacity, 
+  Dimensions,
+  FlatList
+} from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { CompositeNavigationProp } from '@react-navigation/native';
 import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
@@ -14,7 +20,6 @@ import { useCart } from '../../context/CartContext';
 import { ProductCard } from '../../components/ProductCard';
 import { CategoryCard } from '../../components/CategoryCard';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
-import { MainTabParamList } from '../../navigation/MainTabs';
 import { fixImageUrl } from '../../utils/image';
 
 type Props = {
@@ -22,6 +27,7 @@ type Props = {
 };
 
 const { width } = Dimensions.get('window');
+const BANNER_WIDTH = width - 32;
 
 export function HomeScreen({ navigation }: Props) {
   const { user } = useAuth();
@@ -29,21 +35,40 @@ export function HomeScreen({ navigation }: Props) {
   
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [categories, setCategories] = useState([]);
-  const [banners, setBanners] = useState([]);
-  const [sections, setSections] = useState([]);
-  
+  const [categories, setCategories] = useState<any[]>([]);
+  const [banners, setBanners] = useState<any[]>([]);
+  const [sections, setSections] = useState<any[]>([]);
+  const [settings, setSettings] = useState<any>(null);
+  const [activeBannerIndex, setActiveBannerIndex] = useState(0);
+
+  const bannerFlatListRef = useRef<FlatList>(null);
+
   const fetchHomeData = async () => {
     try {
-      const [catsRes, bannersRes, sectionsRes] = await Promise.all([
-        apiClient.get('/categories/'),
-        apiClient.get('/offers/banners/'),
-        apiClient.get('/store/homepage-sections/')
+      const [catsRes, bannersRes, sectionsRes, settingsRes] = await Promise.all([
+        apiClient.get('/categories/').catch(() => ({ data: [] })),
+        apiClient.get('/offers/banners/').catch(() => ({ data: [] })),
+        apiClient.get('/store/homepage-sections/').catch(() => ({ data: [] })),
+        apiClient.get('/store/settings/').catch(() => ({ data: {} })),
       ]);
       
       setCategories(Array.isArray(catsRes.data) ? catsRes.data : (catsRes.data?.results || []));
       setBanners(Array.isArray(bannersRes.data) ? bannersRes.data : (bannersRes.data?.results || []));
-      setSections(Array.isArray(sectionsRes.data) ? sectionsRes.data : (sectionsRes.data?.results || []));
+      
+      const rawSections = Array.isArray(sectionsRes.data) ? sectionsRes.data : (sectionsRes.data?.results || []);
+      const mappedSections = rawSections
+        .map((sec: any) => ({
+          ...sec,
+          items: (sec.section_products || [])
+            .sort((a: any, b: any) => a.position - b.position)
+            .map((sp: any) => sp.product_details)
+            .filter(Boolean)
+        }))
+        .filter((s: any) => s.is_active !== false)
+        .sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0));
+
+      setSections(mappedSections);
+      setSettings(settingsRes.data || {});
     } catch (error) {
       console.error('Error fetching home data:', error);
     } finally {
@@ -56,6 +81,22 @@ export function HomeScreen({ navigation }: Props) {
     fetchHomeData();
   }, []);
 
+  // Auto-scroll banners every 4 seconds
+  useEffect(() => {
+    if (banners.length <= 1) return;
+    const interval = setInterval(() => {
+      setActiveBannerIndex((prev) => {
+        const nextIndex = (prev + 1) % banners.length;
+        bannerFlatListRef.current?.scrollToIndex({
+          index: nextIndex,
+          animated: true,
+        });
+        return nextIndex;
+      });
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [banners.length]);
+
   const onRefresh = () => {
     setRefreshing(true);
     fetchHomeData();
@@ -67,110 +108,197 @@ export function HomeScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Deliver to</Text>
-          <View style={styles.locationContainer}>
-            <Feather name="map-pin" size={16} color={theme.colors.primary} />
-            <Text style={styles.locationText} numberOfLines={1}>
-              Select Location
-            </Text>
+      {/* Top Navbar matching Web App */}
+      <View style={styles.navbar}>
+        <View style={styles.brandContainer}>
+          <Text style={styles.brandTitle}>
+            <Text style={styles.brandSlate}>Narendra </Text>
+            <Text style={styles.brandRed}>Kirana</Text>
+          </Text>
+        </View>
+
+        <TouchableOpacity 
+          style={styles.headerProfileBtn}
+          onPress={() => navigation.navigate('ProfileTab')}
+        >
+          <View style={styles.avatarCircle}>
+            <Feather name="user" size={16} color="#064E3B" />
           </View>
-        </View>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{user?.first_name?.[0] || 'U'}</Text>
-        </View>
+          <Text style={styles.profileText} numberOfLines={1}>
+            {user?.first_name || 'Account'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Search Bar (Fake, navigates to real search) */}
-      <View style={styles.searchContainer}>
+      {/* Global Search Bar matching Web App */}
+      <View style={styles.searchSection}>
         <TouchableOpacity 
           style={styles.searchBar}
-          activeOpacity={0.9}
+          activeOpacity={0.85}
           onPress={() => navigation.navigate('SearchScreen')}
         >
-          <Feather name="search" size={20} color={theme.colors.textSecondary} />
-          <Text style={styles.searchText}>Search for groceries...</Text>
+          <Feather name="search" size={18} color="#94A3B8" />
+          <Text style={styles.searchPlaceholder}>Search rice, milk, snacks...</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView 
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} />}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh} 
+            colors={['#059669']} 
+          />
+        }
       >
-        {/* Banners */}
+        {/* Banner Carousel or Web Fallback Hero Banner */}
         {banners.length > 0 ? (
-          <View>
+          <View style={styles.carouselWrapper}>
             <FlatList
+              ref={bannerFlatListRef}
               data={banners}
               horizontal
-              showsHorizontalScrollIndicator={false}
               pagingEnabled
-              snapToInterval={width - 24 + 12} // banner width + margin
+              showsHorizontalScrollIndicator={false}
+              snapToInterval={BANNER_WIDTH + 16}
               decelerationRate="fast"
-              contentContainerStyle={styles.bannersContainer}
-              keyExtractor={(item: any) => item.id.toString()}
+              contentContainerStyle={styles.bannersList}
+              keyExtractor={(item: any) => String(item.id)}
+              onMomentumScrollEnd={(e) => {
+                const index = Math.round(e.nativeEvent.contentOffset.x / (BANNER_WIDTH + 16));
+                setActiveBannerIndex(index);
+              }}
               renderItem={({ item }) => (
-                <TouchableOpacity style={styles.banner}>
-                  <Image source={{ uri: fixImageUrl(item.image) || '' }} style={styles.bannerImage} />
+                <TouchableOpacity 
+                  activeOpacity={0.9}
+                  style={[styles.bannerCard, { width: BANNER_WIDTH }]}
+                  onPress={() => navigation.navigate('CategoriesTab', { screen: 'ProductListScreen', params: {} })}
+                >
+                  <Image 
+                    source={{ uri: fixImageUrl(item.image) || '' }} 
+                    style={styles.bannerImage} 
+                    contentFit="cover"
+                  />
                 </TouchableOpacity>
               )}
             />
-            {/* Dots would require onScroll tracking, skipping complex state for now and keeping it simple as we did not add activeIndex state */}
+
+            {/* Carousel Dots */}
+            {banners.length > 1 && (
+              <View style={styles.dotsContainer}>
+                {banners.map((_, idx) => (
+                  <View 
+                    key={idx} 
+                    style={[
+                      styles.dot, 
+                      activeBannerIndex === idx && styles.activeDot
+                    ]} 
+                  />
+                ))}
+              </View>
+            )}
           </View>
         ) : (
-          <View style={styles.fallbackBanner}>
-            <View style={styles.fallbackBannerContent}>
-              <Text style={styles.fallbackBannerTitle}>Fresh Groceries,{'\n'}Delivered Fast ⚡</Text>
-              <TouchableOpacity style={styles.fallbackBannerButton} onPress={() => navigation.navigate('CategoriesTab', { screen: 'CategoriesScreen' })}>
-                <Text style={styles.fallbackBannerButtonText}>Explore Catalog</Text>
-              </TouchableOpacity>
+          <View style={styles.fallbackHeroBanner}>
+            <View style={styles.heroDecorTopCircle} />
+            <View style={styles.heroDecorBottomCircle} />
+            
+            <View style={styles.heroTagPill}>
+              <Feather name="star" size={12} color="#FDE047" />
+              <Text style={styles.heroTagText}>
+                {settings?.store_name || 'NARENDRA KIRANA STORE'}
+              </Text>
             </View>
+
+            <Text style={styles.heroHeadline}>
+              Everyday essentials, <Text style={styles.heroHeadlineYellow}>ready when you are.</Text>
+            </Text>
+
+            <Text style={styles.heroSubheadline}>
+              Order online and collect from your local store. Quality products, straightforward pricing, and reliable service.
+            </Text>
+
+            <TouchableOpacity 
+              style={styles.exploreCatalogBtn}
+              activeOpacity={0.9}
+              onPress={() => navigation.navigate('CategoriesTab', { screen: 'CategoriesScreen' })}
+            >
+              <Text style={styles.exploreCatalogText}>Explore Catalog</Text>
+              <Feather name="chevron-right" size={18} color="#0F172A" />
+            </TouchableOpacity>
           </View>
         )}
 
-        {/* Categories */}
+        {/* Categories / Explore Aisles Section */}
         {categories.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Shop by Category</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesContainer}>
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>Explore Aisles</Text>
+              <TouchableOpacity 
+                style={styles.seeAllBtn}
+                onPress={() => navigation.navigate('CategoriesTab', { screen: 'CategoriesScreen' })}
+              >
+                <Text style={styles.seeAllText}>See all</Text>
+                <Feather name="chevron-right" size={14} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false} 
+              contentContainerStyle={styles.categoriesScrollList}
+            >
               {categories.map((cat: any, index: number) => (
                 <CategoryCard 
                   key={cat.id} 
                   category={cat} 
                   index={index}
-                  onPress={(c) => navigation.navigate('CategoriesTab', { screen: 'ProductListScreen', params: { categoryId: c.id } })} 
+                  onPress={(c) => navigation.navigate('CategoriesTab', { 
+                    screen: 'ProductListScreen', 
+                    params: { categoryId: c.id, categoryName: c.name } 
+                  })} 
                 />
               ))}
             </ScrollView>
           </View>
         )}
 
-        {/* Dynamic Sections */}
-        {sections.map((section: any) => (
-          <View key={section.id} style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>{section.title}</Text>
-              <TouchableOpacity>
-                <Text style={styles.seeAllText}>See all</Text>
-              </TouchableOpacity>
+        {/* Dynamic Homepage Product Sections (2-column Grid matching Web App) */}
+        {sections.map((section: any, secIdx: number) => {
+          const sectionProducts = (section.items || []).filter((item: any) => item && item.is_in_stock);
+          if (sectionProducts.length === 0) return null;
+
+          return (
+            <View key={section.id || secIdx} style={styles.sectionContainer}>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionTitle}>{section.title}</Text>
+                <TouchableOpacity 
+                  style={styles.seeAllBtn}
+                  onPress={() => navigation.navigate('CategoriesTab', { screen: 'ProductListScreen', params: {} })}
+                >
+                  <Text style={styles.seeAllText}>View all</Text>
+                  <Feather name="chevron-right" size={14} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+
+              {/* 2-Column Product Grid */}
+              <View style={styles.productsGrid}>
+                {sectionProducts.map((product: any) => (
+                  <View key={product.id} style={styles.productGridItem}>
+                    <ProductCard 
+                      product={product} 
+                      onPress={(p) => navigation.navigate('ProductDetailScreen', { productId: p.id })}
+                      onAddToCart={(p) => addToCart(p.id, 1)}
+                    />
+                  </View>
+                ))}
+              </View>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.productsContainer}>
-              {section.section_products?.map((sp: any) => sp.product_details && (
-                <ProductCard 
-                  key={sp.product_details.id} 
-                  product={sp.product_details} 
-                  onPress={(p) => navigation.navigate('ProductDetailScreen', { productId: p.id })}
-                  onAddToCart={(p) => addToCart(p.id, 1)}
-                />
-              ))}
-            </ScrollView>
-          </View>
-        ))}
-        
-        
+          );
+        })}
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -179,143 +307,250 @@ export function HomeScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F8FAFC', // slate-50 matching web
   },
-  header: {
+  navbar: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing.lg,
-    paddingTop: theme.spacing.md,
-    paddingBottom: theme.spacing.sm,
-    backgroundColor: theme.colors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
-  greeting: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    fontWeight: '600',
-  },
-  locationContainer: {
+  brandContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 2,
   },
-  locationText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-    marginLeft: 4,
+  brandTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: -0.5,
   },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: theme.colors.primaryLight,
+  brandSlate: {
+    color: '#0F172A', // slate-900
+  },
+  brandRed: {
+    color: '#DC2626', // red-600
+  },
+  headerProfileBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  avatarCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#D1FAE5',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  avatarText: {
-    color: theme.colors.primaryDark,
+  profileText: {
+    fontSize: 12,
     fontWeight: 'bold',
-    fontSize: 16,
+    color: '#334155',
+    maxWidth: 90,
   },
-  searchContainer: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingBottom: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
+  searchSection: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: '#F1F5F9',
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: theme.spacing.md,
-    height: 48,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    height: 44,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: '#E2E8F0',
+    gap: 10,
   },
-  searchText: {
-    marginLeft: theme.spacing.sm,
-    color: theme.colors.textSecondary,
-    fontSize: 15,
+  searchPlaceholder: {
+    fontSize: 14,
+    color: '#94A3B8',
+    fontWeight: '500',
   },
-  bannersContainer: {
-    padding: theme.spacing.lg,
-    gap: theme.spacing.md,
+  scrollContent: {
+    paddingBottom: 110,
   },
-  banner: {
-    width: 320,
-    height: 160,
-    borderRadius: theme.borderRadius.lg,
+  carouselWrapper: {
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  bannersList: {
+    paddingHorizontal: 16,
+    gap: 16,
+  },
+  bannerCard: {
+    height: 150,
+    borderRadius: 16,
     overflow: 'hidden',
+    backgroundColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
   bannerImage: {
     width: '100%',
     height: '100%',
   },
-  fallbackBanner: {
-    backgroundColor: '#065f46',
-    marginHorizontal: theme.spacing.md,
-    marginBottom: theme.spacing.xl,
-    borderRadius: 16,
-    height: 160,
+  dotsContainer: {
+    flexDirection: 'row',
     justifyContent: 'center',
-    padding: 24,
-    shadowColor: '#000',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#CBD5E1',
+  },
+  activeDot: {
+    width: 20,
+    backgroundColor: '#065F46',
+  },
+  fallbackHeroBanner: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+    backgroundColor: '#065F46', // emerald-800 matching web
+    borderRadius: 20,
+    padding: 20,
+    overflow: 'hidden',
+    position: 'relative',
+    shadowColor: '#065F46',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 5,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  fallbackBannerContent: {
-    flex: 1,
-    justifyContent: 'center',
+  heroDecorTopCircle: {
+    position: 'absolute',
+    top: -20,
+    right: -20,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
-  fallbackBannerTitle: {
-    color: '#FFF',
-    fontSize: 24,
+  heroDecorBottomCircle: {
+    position: 'absolute',
+    bottom: -30,
+    right: 40,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  heroTagPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    alignSelf: 'flex-start',
+    marginBottom: 10,
+  },
+  heroTagText: {
+    fontSize: 10,
     fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 1,
+  },
+  heroHeadline: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    lineHeight: 28,
+    letterSpacing: -0.5,
+    marginBottom: 8,
+  },
+  heroHeadlineYellow: {
+    color: '#FDE047', // yellow-300 matching web
+  },
+  heroSubheadline: {
+    fontSize: 12,
+    color: '#D1FAE5', // emerald-100 matching web
+    lineHeight: 18,
     marginBottom: 16,
   },
-  fallbackBannerButton: {
-    backgroundColor: '#FFF',
-    paddingHorizontal: 20,
+  exploreCatalogBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
     paddingVertical: 10,
-    borderRadius: 9999,
+    paddingHorizontal: 16,
+    borderRadius: 25,
     alignSelf: 'flex-start',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  fallbackBannerButtonText: {
-    color: '#065f46',
-    fontWeight: '800',
-    fontSize: 14,
+  exploreCatalogText: {
+    color: '#0F172A',
+    fontWeight: '900',
+    fontSize: 13,
   },
-  section: {
-    marginTop: theme.spacing.lg,
+  sectionContainer: {
+    marginTop: 18,
   },
-  sectionHeader: {
+  sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.lg,
-    marginBottom: theme.spacing.md,
+    paddingHorizontal: 16,
+    marginBottom: 10,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-    paddingHorizontal: theme.spacing.lg,
-    marginBottom: theme.spacing.md,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -0.3,
+  },
+  seeAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
   },
   seeAllText: {
-    color: theme.colors.primary,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748B',
   },
-  categoriesContainer: {
-    paddingHorizontal: theme.spacing.lg,
+  categoriesScrollList: {
+    paddingHorizontal: 16,
+    gap: 12,
+    paddingBottom: 4,
   },
-  productsContainer: {
-    paddingHorizontal: theme.spacing.lg,
+  productsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    justifyContent: 'space-between',
+  },
+  productGridItem: {
+    width: (width - 44) / 2,
+    marginBottom: 12,
   },
 });

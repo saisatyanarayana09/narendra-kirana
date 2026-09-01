@@ -21,11 +21,12 @@ interface Props {
   product: Product;
   onPress: (product: Product) => void;
   onAddToCart: (product: Product) => void;
+  style?: any;
 }
 
 const { width } = Dimensions.get('window');
 
-export function ProductCard({ product, onPress, onAddToCart }: Props) {
+export function ProductCard({ product, onPress, onAddToCart, style }: Props) {
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
 
@@ -50,7 +51,7 @@ export function ProductCard({ product, onPress, onAddToCart }: Props) {
 
   return (
     <TouchableOpacity 
-      style={styles.container} 
+      style={[styles.container, style]} 
       onPress={() => onPress(product)}
       activeOpacity={0.9}
     >
@@ -123,8 +124,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(226, 232, 240, 0.8)',
-    width: (width - 48) / 2,
-    marginRight: theme.spacing.md,
+    width: '100%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
