@@ -146,10 +146,10 @@ export function HomeScreen({ navigation }: Props) {
               </TouchableOpacity>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.productsContainer}>
-              {section.section_products?.map((sp: any) => sp.product && (
+              {section.section_products?.map((sp: any) => sp.product_details && (
                 <ProductCard 
-                  key={sp.product.id} 
-                  product={sp.product} 
+                  key={sp.product_details.id} 
+                  product={sp.product_details} 
                   onPress={(p) => navigation.navigate('ProductDetailScreen', { productId: p.id })}
                   onAddToCart={(p) => addToCart(p.id, 1)}
                 />
