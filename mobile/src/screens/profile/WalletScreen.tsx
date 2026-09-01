@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { AppNavigationProp } from '../../navigation/types';
 import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
 
-export function WalletScreen({ navigation }: { navigation: NativeStackNavigationProp<any> }) {
+export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) {
   const [wallet, setWallet] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -147,3 +147,5 @@ const styles = StyleSheet.create({
   transactionDate: { fontSize: 12, color: theme.colors.textSecondary },
   transactionAmount: { fontSize: 16, fontWeight: 'bold' },
 });
+
+

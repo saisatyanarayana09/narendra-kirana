@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { AppNavigationProp } from '../../navigation/types';
 import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
 
-export function AddAddressScreen({ navigation }: { navigation: NativeStackNavigationProp<any> }) {
+export function AddAddressScreen({ navigation }: { navigation: AppNavigationProp }) {
   const [addressLine1, setAddressLine1] = useState('');
   const [addressLine2, setAddressLine2] = useState('');
   const [city, setCity] = useState('');
@@ -162,3 +162,5 @@ const styles = StyleSheet.create({
   },
   saveButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' }
 });
+
+

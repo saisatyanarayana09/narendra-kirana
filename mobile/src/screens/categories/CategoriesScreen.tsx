@@ -1,3 +1,4 @@
+import { AppNavigationProp } from '../../navigation/types';
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -5,7 +6,7 @@ import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
 import { CategoryCard } from '../../components/CategoryCard';
 
-export function CategoriesScreen({ navigation }: any) {
+export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp }) {
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -95,3 +96,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 });
+
+

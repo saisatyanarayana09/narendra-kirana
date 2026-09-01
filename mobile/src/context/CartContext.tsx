@@ -10,7 +10,7 @@ export interface CartItem {
     price: string;
     mrp: string | null;
     is_in_stock: boolean;
-    images: Array<{ image: string; is_primary: boolean }>;
+    image: string | null;
   };
   quantity: number;
   subtotal: string;

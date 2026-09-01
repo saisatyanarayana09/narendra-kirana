@@ -2,17 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { AppNavigationProp } from '../../navigation/types';
 import { RouteProp } from '@react-navigation/native';
 import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
 import { ProductCard } from '../../components/ProductCard';
 import { useCart } from '../../context/CartContext';
 
-type Props = {
-  navigation: NativeStackNavigationProp<any>;
-  route: RouteProp<any, any>;
-};
+type Props = { navigation: AppNavigationProp; route: any; };
 
 export function ProductListScreen({ navigation, route }: Props) {
   const { categoryId, categoryName } = route.params || {};
@@ -140,3 +137,6 @@ const styles = StyleSheet.create({
     maxWidth: '48%',
   },
 });
+
+
+

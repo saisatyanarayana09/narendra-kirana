@@ -1,3 +1,4 @@
+import { AppNavigationProp } from '../../navigation/types';
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,7 +9,7 @@ import { useCart } from '../../context/CartContext';
 import { apiClient } from '../../api/client';
 import { useLocation } from '../../hooks/useLocation';
 
-export function CheckoutScreen({ navigation }: any) {
+export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }) {
   const { cart, refreshCart } = useCart();
   const { requestLocation, location: gpsLocation, isRequesting: gpsLoading } = useLocation();
 
@@ -457,3 +458,5 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
+

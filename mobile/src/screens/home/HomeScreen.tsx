@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, F
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import { AppNavigationProp } from '../../navigation/types';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { CompositeNavigationProp } from '@react-navigation/native';
@@ -16,14 +17,8 @@ import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { MainTabParamList } from '../../navigation/MainTabs';
 import { fixImageUrl } from '../../utils/image';
 
-// Type definitions could go in a shared types file
-type HomeScreenNavigationProp = CompositeNavigationProp<
-  BottomTabNavigationProp<MainTabParamList, 'HomeTab'>,
-  NativeStackNavigationProp<any> // Simplification for now
->;
-
 type Props = {
-  navigation: HomeScreenNavigationProp;
+  navigation: AppNavigationProp;
 };
 
 const { width } = Dimensions.get('window');

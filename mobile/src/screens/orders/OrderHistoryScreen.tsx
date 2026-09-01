@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { AppNavigationProp } from '../../navigation/types';
 import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
 
-export function OrderHistoryScreen({ navigation }: { navigation: NativeStackNavigationProp<any> }) {
+export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationProp }) {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -287,3 +287,5 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
+

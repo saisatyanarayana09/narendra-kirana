@@ -2,14 +2,11 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { AppNavigationProp } from '../../navigation/types';
 import { RouteProp } from '@react-navigation/native';
 import { theme } from '../../constants/theme';
 
-type Props = {
-  navigation: NativeStackNavigationProp<any>;
-  route: RouteProp<any, any>;
-};
+type Props = { navigation: AppNavigationProp; route: any; };
 
 export function OrderSuccessScreen({ navigation, route }: Props) {
   const { orderId } = route.params || {};
@@ -103,3 +100,5 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
+

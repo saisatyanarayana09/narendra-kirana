@@ -2,11 +2,11 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { AppNavigationProp } from '../../navigation/types';
 import { theme } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 
-export function ProfileScreen({ navigation }: { navigation: NativeStackNavigationProp<any> }) {
+export function ProfileScreen({ navigation }: { navigation: AppNavigationProp }) {
   const { user, logout } = useAuth();
 
   const handleLogout = () => {
@@ -216,3 +216,5 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.xl,
   },
 });
+
+

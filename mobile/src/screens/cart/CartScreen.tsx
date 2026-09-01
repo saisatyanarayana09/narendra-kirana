@@ -1,3 +1,4 @@
+import { AppNavigationProp } from '../../navigation/types';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,7 +9,7 @@ import { useCart } from '../../context/CartContext';
 import { CartItemCard } from '../../components/CartItemCard';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 
-export function CartScreen({ navigation }: any) {
+export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
   const { cart, isLoading, updateQuantity, removeFromCart, applyPromo, removePromo } = useCart();
   const [promoCode, setPromoCode] = useState('');
 
@@ -375,3 +376,5 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
+

@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { AppNavigationProp } from '../../navigation/types';
 import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
 
-export function AddressesScreen({ navigation }: { navigation: NativeStackNavigationProp<any> }) {
+export function AddressesScreen({ navigation }: { navigation: AppNavigationProp }) {
   const [addresses, setAddresses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -134,3 +134,5 @@ const styles = StyleSheet.create({
     elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4,
   },
 });
+
+

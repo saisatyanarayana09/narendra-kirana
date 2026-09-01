@@ -1,3 +1,4 @@
+import { AppNavigationProp } from '../../navigation/types';
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,12 +8,27 @@ import { RouteProp } from '@react-navigation/native';
 import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
 
-export function OrderTrackingScreen({ navigation, route }: any) {
+export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavigationProp, route: any }) {
   const { orderId } = route.params;
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
+    const fetchOrderDetails = async () => {
+      try {
+        const res = await apiClient.get(`/orders/${orderId}/`);
+        if (isMounted) {
+          setOrder(res.data);
+        }
+      } catch (error) {
+        console.error('Error fetching order details:', error);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
     fetchOrderDetails();
     
     // Poll for updates every 5 seconds
@@ -20,19 +36,11 @@ export function OrderTrackingScreen({ navigation, route }: any) {
       fetchOrderDetails();
     }, 5000);
     
-    return () => clearInterval(interval);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [orderId]);
-
-  const fetchOrderDetails = async () => {
-    try {
-      const res = await apiClient.get(`/orders/${orderId}/`);
-      setOrder(res.data);
-    } catch (error) {
-      console.error('Error fetching order details:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading && !order) {
     return (
@@ -358,3 +366,5 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
   },
 });
+
+

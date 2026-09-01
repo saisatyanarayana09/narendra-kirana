@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Share, Alert } from 'react-native';
 import { Image } from 'expo-image';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { AppNavigationProp } from '../../navigation/types';
 import { RouteProp } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,6 +9,7 @@ import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
 import { fixImageUrl } from '../../utils/image';
 
 const { width } = Dimensions.get('window');
@@ -19,19 +20,26 @@ type RootStackParamList = {
 };
 
 type Props = {
-  navigation: NativeStackNavigationProp<any>;
+  navigation: AppNavigationProp;
   route: RouteProp<RootStackParamList, 'ProductDetailScreen'>;
 };
 
-export function ProductDetailScreen({ navigation, route }: any) {
+export function ProductDetailScreen({ navigation, route }: { navigation: AppNavigationProp, route: any }) {
   const { productId } = route.params || {};
   const { addToCart } = useCart();
+  const { user } = useAuth();
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteId, setFavoriteId] = useState<number | null>(null);
+  const [toggling, setToggling] = useState(false);
 
   useEffect(() => {
     fetchProduct();
-  }, [productId]);
+    if (user) {
+      checkFavorite();
+    }
+  }, [productId, user]);
 
   const fetchProduct = async () => {
     try {
@@ -42,6 +50,17 @@ export function ProductDetailScreen({ navigation, route }: any) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const checkFavorite = async () => {
+    try {
+      const res = await apiClient.get('/favorites/');
+      const fav = res.data.find((f: any) => f.product === productId);
+      if (fav) {
+        setIsFavorite(true);
+        setFavoriteId(fav.id);
+      }
+    } catch (error) {}
   };
 
   if (loading) return <LoadingSpinner fullScreen />;
@@ -59,8 +78,29 @@ export function ProductDetailScreen({ navigation, route }: any) {
     }
   };
 
-  const handleFavorite = () => {
-    Alert.alert('Favorites', 'Added to your favorites!');
+  const handleFavorite = async () => {
+    if (!user) {
+      Alert.alert('Login Required', 'Please login to add favorites');
+      return;
+    }
+    if (toggling) return;
+    
+    setToggling(true);
+    try {
+      if (isFavorite && favoriteId) {
+        await apiClient.delete(`/favorites/${favoriteId}/`);
+        setIsFavorite(false);
+        setFavoriteId(null);
+      } else {
+        const res = await apiClient.post('/favorites/', { product: productId });
+        setIsFavorite(true);
+        setFavoriteId(res.data.id);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Could not update favorites');
+    } finally {
+      setToggling(false);
+    }
   };
 
   return (
@@ -74,8 +114,8 @@ export function ProductDetailScreen({ navigation, route }: any) {
           <TouchableOpacity style={styles.headerButton} onPress={handleShare}>
             <Feather name="share-2" color={theme.colors.text} size={22} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerButton} onPress={handleFavorite}>
-            <Feather name="heart" color={theme.colors.text} size={22} />
+          <TouchableOpacity style={styles.headerButton} onPress={handleFavorite} disabled={toggling}>
+            <Feather name="heart" color={isFavorite ? theme.colors.action : theme.colors.text} fill={isFavorite ? theme.colors.action : "transparent"} size={22} />
           </TouchableOpacity>
         </View>
       </View>
@@ -289,3 +329,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
+
+

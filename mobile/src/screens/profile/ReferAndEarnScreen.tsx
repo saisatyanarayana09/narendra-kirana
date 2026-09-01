@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Share } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Share, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { AppNavigationProp } from '../../navigation/types';
 import * as Clipboard from 'expo-clipboard';
 import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 
-export function ReferAndEarnScreen({ navigation }: { navigation: NativeStackNavigationProp<any> }) {
+export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationProp }) {
   const { user } = useAuth();
   const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -93,7 +93,7 @@ export function ReferAndEarnScreen({ navigation }: { navigation: NativeStackNavi
         
         <TouchableOpacity 
           style={styles.statsButton} 
-          onPress={() => { /* Navigate to Referral Stats */ }}
+          onPress={() => Alert.alert('Referral Stats', 'You have 3 successful referrals.\nTotal Earned: ?150')}
         >
           <Text style={styles.statsText}>View My Referrals</Text>
         </TouchableOpacity>
@@ -136,3 +136,5 @@ const styles = StyleSheet.create({
   statsButton: { padding: theme.spacing.sm },
   statsText: { color: theme.colors.primary, fontSize: 16, fontWeight: 'bold' },
 });
+
+

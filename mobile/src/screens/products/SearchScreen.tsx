@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { AppNavigationProp } from '../../navigation/types';
 import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
 import { useDebounce } from '../../hooks/useDebounce';
@@ -10,7 +10,7 @@ import { ProductCard } from '../../components/ProductCard';
 import { useCart } from '../../context/CartContext';
 
 type Props = {
-  navigation: NativeStackNavigationProp<any>;
+  navigation: AppNavigationProp;
 };
 
 export function SearchScreen({ navigation }: Props) {
@@ -164,3 +164,6 @@ const styles = StyleSheet.create({
     maxWidth: '48%',
   },
 });
+
+
+

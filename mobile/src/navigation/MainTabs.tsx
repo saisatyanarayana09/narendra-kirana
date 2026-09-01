@@ -69,12 +69,8 @@ import { WalletScreen } from '../screens/profile/WalletScreen';
 import { ReferAndEarnScreen } from '../screens/profile/ReferAndEarnScreen';
 
 // Placeholders for remaining Profile screens
-const AccountSettingsScreen = () => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>Settings</Text></View>
-);
-const NotificationsScreen = () => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>Notifications</Text></View>
-);
+import { AccountSettingsScreen } from '../screens/profile/AccountSettingsScreen';
+import { NotificationsScreen } from '../screens/profile/NotificationsScreen';
 
 function ProfileStack() {
   return (
@@ -166,3 +162,4 @@ export function MainTabs() {
   );
 }
 import { AddAddressScreen } from '../screens/profile/AddAddressScreen';
+
