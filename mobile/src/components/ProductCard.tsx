@@ -29,8 +29,10 @@ export function ProductCard({ product, onPress, onAddToCart }: Props) {
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
 
-  const discount = product.mrp && parseFloat(product.mrp) > parseFloat(product.price)
-    ? Math.round(((parseFloat(product.mrp) - parseFloat(product.price)) / parseFloat(product.mrp)) * 100)
+  const parsedPrice = parseFloat(product.price) || 0;
+  const parsedMrp = parseFloat(product.mrp) || 0;
+  const discount = parsedMrp > parsedPrice
+    ? Math.round(((parsedMrp - parsedPrice) / parsedMrp) * 100)
     : 0;
 
   const primaryImage = product.images?.find(img => img.is_primary)?.image || product.images?.[0]?.image;
@@ -80,9 +82,9 @@ export function ProductCard({ product, onPress, onAddToCart }: Props) {
         
         <View style={styles.footer}>
           <View style={styles.priceContainer}>
-            <Text style={styles.price}>₹{parseFloat(product.price).toString()}</Text>
+            <Text style={styles.price}>₹{parsedPrice}</Text>
             {discount > 0 && (
-              <Text style={styles.mrp}>₹{parseFloat(product.mrp).toString()}</Text>
+              <Text style={styles.mrp}>₹{parsedMrp}</Text>
             )}
           </View>
         </View>
