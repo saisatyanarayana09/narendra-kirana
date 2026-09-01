@@ -111,10 +111,41 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
           <Feather name="arrow-left" color={theme.colors.text} size={24} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Order #{order.id}</Text>
+        {order.status === 'COMPLETED' ? (
+          <TouchableOpacity 
+            style={styles.invoiceHeaderBtn}
+            onPress={() => navigation.navigate('InvoiceScreen', { orderId: order.id })}
+          >
+            <Feather name="file-text" size={16} color="#FFFFFF" />
+            <Text style={styles.invoiceHeaderBtnText}>Invoice</Text>
+          </TouchableOpacity>
+        ) : <View style={{ width: 24 }} />}
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         
+        {/* Completed Order: View Invoice Banner */}
+        {order.status === 'COMPLETED' && (
+          <TouchableOpacity 
+            style={styles.invoiceBanner}
+            onPress={() => navigation.navigate('InvoiceScreen', { orderId: order.id })}
+          >
+            <View style={styles.invoiceBannerLeft}>
+              <View style={styles.invoiceIconCircle}>
+                <Feather name="check" size={20} color="#059669" />
+              </View>
+              <View>
+                <Text style={styles.invoiceBannerTitle}>Order Delivered & Completed</Text>
+                <Text style={styles.invoiceBannerSubtitle}>View and download your official invoice receipt</Text>
+              </View>
+            </View>
+            <View style={styles.viewInvoiceBtn}>
+              <Text style={styles.viewInvoiceBtnText}>View Invoice</Text>
+              <Feather name="chevron-right" size={16} color="#059669" />
+            </View>
+          </TouchableOpacity>
+        )}
+
         {/* Status Timeline */}
         <View style={styles.timelineCard}>
           <Text style={styles.sectionTitle}>Order Status</Text>
@@ -324,6 +355,16 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
             </Text>
             <Text style={styles.totalValue}>₹{parseFloat(order.total_amount || '0').toFixed(2)}</Text>
           </View>
+
+          {order.status === 'COMPLETED' && (
+            <TouchableOpacity 
+              style={styles.bottomInvoiceBtn}
+              onPress={() => navigation.navigate('InvoiceScreen', { orderId: order.id })}
+            >
+              <Feather name="file-text" size={18} color="#FFFFFF" />
+              <Text style={styles.bottomInvoiceBtnText}>View Full Invoice & Receipt</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
       </ScrollView>
@@ -339,11 +380,92 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.md,
     backgroundColor: theme.colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
+  },
+  invoiceHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#0F172A', // slate-900 matching web
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  invoiceHeaderBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  invoiceBanner: {
+    backgroundColor: '#ECFDF5', // emerald-50
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  invoiceBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  invoiceIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#D1FAE5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  invoiceBannerTitle: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#065F46',
+  },
+  invoiceBannerSubtitle: {
+    fontSize: 11,
+    color: '#047857',
+    marginTop: 1,
+  },
+  viewInvoiceBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+  },
+  viewInvoiceBtnText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#059669',
+  },
+  bottomInvoiceBtn: {
+    marginTop: 16,
+    backgroundColor: '#0F172A', // slate-900 matching web
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: theme.borderRadius.md,
+  },
+  bottomInvoiceBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   backButton: {
     marginRight: theme.spacing.md,

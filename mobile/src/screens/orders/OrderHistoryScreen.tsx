@@ -124,51 +124,78 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
           renderItem={({ item }) => {
             const statusStyle = getStatusStyle(item.status);
             return (
-              <TouchableOpacity 
-                style={styles.orderCard}
-                onPress={() => navigation.navigate('OrderTrackingScreen', { orderId: item.id })}
-              >
-                <View style={styles.cardHeader}>
-                  <View>
-                    <Text style={styles.orderId}>Order #{item.id}</Text>
-                    <Text style={styles.orderDate}>{formatDate(item.created_at)}</Text>
-                  </View>
-                  <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg, borderColor: statusStyle.border }]}>
-                    <Text style={[styles.statusText, { color: statusStyle.text }]}>
-                      {item.status}
-                    </Text>
-                  </View>
-                </View>
-                
-                <View style={styles.divider} />
-                
-                <View style={styles.cardBody}>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Items:</Text>
-                    <Text style={styles.infoValue}>{item.items?.length || 0} items</Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Total:</Text>
-                    <Text style={styles.priceValue}>₹{item.total_amount}</Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Type:</Text>
-                    <View style={styles.typeBadge}>
-                      {item.order_type === 'DELIVERY' ? (
-                        <Feather name="map-pin" size={12} color={theme.colors.textSecondary} />
-                      ) : (
-                        <Feather name="clock" size={12} color={theme.colors.textSecondary} />
-                      )}
-                      <Text style={styles.typeText}>{item.order_type}</Text>
+              <View style={styles.orderCard}>
+                <TouchableOpacity 
+                  activeOpacity={0.7}
+                  onPress={() => navigation.navigate('OrderTrackingScreen', { orderId: item.id })}
+                >
+                  <View style={styles.cardHeader}>
+                    <View>
+                      <Text style={styles.orderId}>Order #{item.id}</Text>
+                      <Text style={styles.orderDate}>{formatDate(item.created_at)}</Text>
+                    </View>
+                    <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg, borderColor: statusStyle.border }]}>
+                      <Text style={[styles.statusText, { color: statusStyle.text }]}>
+                        {item.status}
+                      </Text>
                     </View>
                   </View>
-                </View>
+                  
+                  <View style={styles.divider} />
+                  
+                  <View style={styles.cardBody}>
+                    <View style={styles.infoRow}>
+                      <Text style={styles.infoLabel}>Items:</Text>
+                      <Text style={styles.infoValue}>{item.items?.length || 0} items</Text>
+                    </View>
+                    <View style={styles.infoRow}>
+                      <Text style={styles.infoLabel}>Total:</Text>
+                      <Text style={styles.priceValue}>₹{item.total_amount}</Text>
+                    </View>
+                    <View style={styles.infoRow}>
+                      <Text style={styles.infoLabel}>Type:</Text>
+                      <View style={styles.typeBadge}>
+                        {item.order_type === 'DELIVERY' ? (
+                          <Feather name="map-pin" size={12} color={theme.colors.textSecondary} />
+                        ) : (
+                          <Feather name="clock" size={12} color={theme.colors.textSecondary} />
+                        )}
+                        <Text style={styles.typeText}>{item.order_type}</Text>
+                      </View>
+                    </View>
+                  </View>
+                </TouchableOpacity>
 
                 <View style={styles.cardFooter}>
-                  <Text style={styles.footerText}>View Details</Text>
-                  <Feather name="chevron-right" size={16} color={theme.colors.primary} />
+                  {item.status === 'COMPLETED' ? (
+                    <View style={styles.completedActionsRow}>
+                      <TouchableOpacity 
+                        style={styles.detailsBtn}
+                        onPress={() => navigation.navigate('OrderTrackingScreen', { orderId: item.id })}
+                      >
+                        <Text style={styles.detailsBtnText}>Details</Text>
+                        <Feather name="chevron-right" size={14} color={theme.colors.textSecondary} />
+                      </TouchableOpacity>
+
+                      <TouchableOpacity 
+                        style={styles.invoiceCardBtn}
+                        onPress={() => navigation.navigate('InvoiceScreen', { orderId: item.id })}
+                      >
+                        <Feather name="file-text" size={14} color="#059669" />
+                        <Text style={styles.invoiceCardBtnText}>Invoice</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <TouchableOpacity 
+                      style={styles.trackOrderBtn}
+                      onPress={() => navigation.navigate('OrderTrackingScreen', { orderId: item.id })}
+                    >
+                      <Text style={styles.footerText}>Track Order Status</Text>
+                      <Feather name="arrow-right" size={14} color={theme.colors.primary} />
+                    </TouchableOpacity>
+                  )}
                 </View>
-              </TouchableOpacity>
+              </View>
             );
           }}
           onEndReached={handleLoadMore}
@@ -308,14 +335,57 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
     marginTop: theme.spacing.md,
     paddingTop: theme.spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.background,
+    borderTopColor: '#F1F5F9',
+  },
+  completedActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+  },
+  detailsBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 4,
+    paddingVertical: 8,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  detailsBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#334155',
+  },
+  invoiceCardBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  invoiceCardBtnText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#059669',
+  },
+  trackOrderBtn: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 4,
   },
   footerText: {
     fontSize: 13,

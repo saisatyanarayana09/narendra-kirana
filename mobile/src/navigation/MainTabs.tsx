@@ -16,6 +16,7 @@ import { CheckoutScreen } from '../screens/cart/CheckoutScreen';
 import { OrderSuccessScreen } from '../screens/orders/OrderSuccessScreen';
 import { OrderHistoryScreen } from '../screens/orders/OrderHistoryScreen';
 import { OrderTrackingScreen } from '../screens/orders/OrderTrackingScreen';
+import { InvoiceScreen } from '../screens/orders/InvoiceScreen';
 import { AddAddressScreen } from '../screens/profile/AddAddressScreen';
 import { AddressesScreen } from '../screens/profile/AddressesScreen';
 import { WalletScreen } from '../screens/profile/WalletScreen';
@@ -42,6 +43,8 @@ function HomeStack() {
       <Stack.Screen name="ProductDetailScreen" component={ProductDetailScreen} />
       <Stack.Screen name="SearchScreen" component={SearchScreen} />
       <Stack.Screen name="ProductListScreen" component={ProductListScreen} />
+      <Stack.Screen name="OrderTrackingScreen" component={OrderTrackingScreen} />
+      <Stack.Screen name="InvoiceScreen" component={InvoiceScreen} />
     </Stack.Navigator>
   );
 }
@@ -63,6 +66,7 @@ function CartStack() {
       <Stack.Screen name="CheckoutScreen" component={CheckoutScreen} />
       <Stack.Screen name="OrderSuccessScreen" component={OrderSuccessScreen} />
       <Stack.Screen name="OrderTrackingScreen" component={OrderTrackingScreen} />
+      <Stack.Screen name="InvoiceScreen" component={InvoiceScreen} />
       <Stack.Screen name="AddAddressScreen" component={AddAddressScreen} />
     </Stack.Navigator>
   );
@@ -74,6 +78,7 @@ function ProfileStack() {
       <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
       <Stack.Screen name="OrderHistoryScreen" component={OrderHistoryScreen} />
       <Stack.Screen name="OrderTrackingScreen" component={OrderTrackingScreen} />
+      <Stack.Screen name="InvoiceScreen" component={InvoiceScreen} />
       <Stack.Screen name="AddressesScreen" component={AddressesScreen} />
       <Stack.Screen name="AddAddressScreen" component={AddAddressScreen} />
       <Stack.Screen name="WalletScreen" component={WalletScreen} />

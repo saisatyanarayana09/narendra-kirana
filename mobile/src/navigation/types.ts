@@ -17,6 +17,7 @@ export type GlobalParamList = {
   CheckoutScreen: undefined;
   OrderSuccessScreen: { orderId: string | number };
   OrderTrackingScreen: { orderId: string | number };
+  InvoiceScreen: { orderId: string | number };
   SearchScreen: undefined;
   ProfileScreen: undefined;
   OrderHistoryScreen: undefined;
