@@ -189,24 +189,82 @@ export function AccountSettingsScreen({ navigation }: { navigation: AppNavigatio
           )}
         </TouchableOpacity>
 
-        {/* Danger Zone */}
+        {/* Danger Zone matching web AccountSettings.jsx */}
         <View style={styles.dangerCard}>
           <Text style={styles.dangerTitle}>Danger Zone</Text>
           <Text style={styles.dangerSubtitle}>
-            Once you request deletion, your account will be queued for permanent removal.
+            Permanently remove your account and all associated personal data.
           </Text>
-          <TouchableOpacity 
-            style={styles.deleteAccountBtn}
-            onPress={handleRequestDelete}
-            disabled={deleteLoading}
-            activeOpacity={0.85}
-          >
-            {deleteLoading ? (
-              <ActivityIndicator color="#E11D48" size="small" />
-            ) : (
+
+          {deleteRequested ? (
+            <View style={styles.deletionPendingCard}>
+              <View style={styles.pulsingDotRow}>
+                <View style={styles.pulsingDotOuter}>
+                  <View style={styles.pulsingDotInner} />
+                </View>
+                <Text style={styles.deletionPendingTitle}>Deletion Pending Approval</Text>
+              </View>
+              <Text style={styles.deletionPendingDesc}>
+                Your deletion request is currently being reviewed by store management. You will be logged out once approved.
+              </Text>
+            </View>
+          ) : showDeletePrompt ? (
+            <View style={styles.deletePromptCard}>
+              <Text style={styles.deletePromptLabel}>Enter your password to confirm:</Text>
+              
+              <View style={styles.passwordInputWrap}>
+                <TextInput
+                  style={styles.passwordInput}
+                  value={deletePassword}
+                  onChangeText={setDeletePassword}
+                  placeholder="Enter current password"
+                  placeholderTextColor="#94A3B8"
+                  secureTextEntry={!showDeletePassword}
+                />
+                <TouchableOpacity 
+                  onPress={() => setShowDeletePassword(!showDeletePassword)}
+                  style={styles.eyeBtn}
+                >
+                  <Feather name={showDeletePassword ? "eye-off" : "eye"} size={18} color="#94A3B8" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.deleteActionButtons}>
+                <TouchableOpacity 
+                  style={[styles.confirmDeleteBtn, deleteLoading && styles.btnDisabled]}
+                  onPress={handleRequestDeletion}
+                  disabled={deleteLoading}
+                  activeOpacity={0.85}
+                >
+                  {deleteLoading ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <Text style={styles.confirmDeleteText}>Confirm Deletion</Text>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.cancelDeleteBtn}
+                  onPress={() => {
+                    setShowDeletePrompt(false);
+                    setDeletePassword('');
+                  }}
+                  disabled={deleteLoading}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.cancelDeleteText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <TouchableOpacity 
+              style={styles.deleteAccountBtn}
+              onPress={() => setShowDeletePrompt(true)}
+              activeOpacity={0.85}
+            >
               <Text style={styles.deleteAccountText}>Request Account Deletion</Text>
-            )}
-          </TouchableOpacity>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -367,5 +425,89 @@ const styles = StyleSheet.create({
     color: '#E11D48',
     fontWeight: '700',
     fontSize: 13,
+  },
+  deletionPendingCard: {
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 14,
+    padding: 14,
+  },
+  pulsingDotRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  pulsingDotOuter: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: 'rgba(217, 119, 6, 0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pulsingDotInner: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#D97706',
+  },
+  deletionPendingTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#B45309',
+  },
+  deletionPendingDesc: {
+    fontSize: 12,
+    color: '#92400E',
+    lineHeight: 17,
+  },
+  deletePromptCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#FDA4AF',
+  },
+  deletePromptLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 10,
+  },
+  deleteActionButtons: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 12,
+  },
+  confirmDeleteBtn: {
+    flex: 1,
+    backgroundColor: '#E11D48',
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmDeleteText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  cancelDeleteBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelDeleteText: {
+    color: '#64748B',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  btnDisabled: {
+    opacity: 0.6,
   },
 });

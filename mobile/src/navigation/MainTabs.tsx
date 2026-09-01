@@ -1,5 +1,6 @@
 import React from 'react';
-import { View } from 'react-native';
+import { View, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
@@ -105,8 +106,13 @@ function CartStack() {
 import { useCart } from '../context/CartContext';
 
 export function MainTabs() {
+  const insets = useSafeAreaInsets();
   const { cart } = useCart();
   const cartItemCount = cart?.items?.length || 0;
+
+  // Safe bottom padding ensuring icons and text sit comfortably above system nav buttons or gesture bar
+  const bottomPadding = insets.bottom > 0 ? insets.bottom + 4 : (Platform.OS === 'android' ? 14 : 10);
+  const totalBarHeight = 56 + bottomPadding;
 
   return (
     <View style={{ flex: 1 }}>
@@ -119,18 +125,23 @@ export function MainTabs() {
           tabBarStyle: {
             backgroundColor: 'rgba(255, 255, 255, 0.98)',
             borderTopColor: '#E2E8F0',
-            elevation: 4,
+            borderTopWidth: 1,
+            elevation: 8,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: -2 },
-            shadowOpacity: 0.05,
+            shadowOpacity: 0.06,
             shadowRadius: 6,
-            height: 62,
-            paddingBottom: 8,
-            paddingTop: 6,
+            height: totalBarHeight,
+            paddingBottom: bottomPadding,
+            paddingTop: 8,
+          },
+          tabBarItemStyle: {
+            paddingVertical: 2,
           },
           tabBarLabelStyle: {
             fontSize: 11,
             fontWeight: '700',
+            marginTop: 2,
           },
         }}
       >
