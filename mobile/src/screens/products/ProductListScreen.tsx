@@ -23,7 +23,8 @@ export function ProductListScreen({ navigation, route }: Props) {
   const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
-    fetchProducts();
+    setPage(1);
+    fetchProducts(1);
   }, [categoryId]);
 
   const fetchProducts = async (pageNum = 1) => {

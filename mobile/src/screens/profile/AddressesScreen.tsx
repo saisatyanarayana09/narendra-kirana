@@ -11,8 +11,11 @@ export function AddressesScreen({ navigation }: { navigation: NativeStackNavigat
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchAddresses();
-  }, []);
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchAddresses();
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const fetchAddresses = async () => {
     try {
@@ -86,7 +89,7 @@ export function AddressesScreen({ navigation }: { navigation: NativeStackNavigat
       )}
 
       {/* Floating Add Button */}
-      <TouchableOpacity style={styles.fab} onPress={() => { /* TODO: Open Add Address Modal */ }}>
+      <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('AddAddressScreen')}>
         <Feather name="plus" color={theme.colors.surface} size={24} />
       </TouchableOpacity>
     </SafeAreaView>

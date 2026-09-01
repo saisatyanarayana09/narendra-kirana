@@ -25,8 +25,11 @@ export function CheckoutScreen({ navigation }: any) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    fetchAddressesAndWallet();
-  }, []);
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchAddressesAndWallet();
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const fetchAddressesAndWallet = async () => {
     try {
@@ -128,7 +131,7 @@ export function CheckoutScreen({ navigation }: any) {
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitle}>Delivery Address</Text>
-              <TouchableOpacity>
+              <TouchableOpacity onPress={() => navigation.navigate('AddAddressScreen')}>
                 <Text style={styles.addButton}>+ Add New</Text>
               </TouchableOpacity>
             </View>
@@ -201,7 +204,7 @@ export function CheckoutScreen({ navigation }: any) {
               value={useWallet}
               onValueChange={setUseWallet}
               trackColor={{ false: theme.colors.border, true: theme.colors.primaryLight }}
-              thumbColor={useWallet ? theme.colors.primary : '#f4f3f4'}
+              thumbColor={useWallet ? theme.colors.primary : theme.colors.surface}
             />
           </View>
         )}
@@ -303,6 +306,11 @@ const styles = StyleSheet.create({
   addButton: {
     color: theme.colors.primary,
     fontWeight: 'bold',
+    backgroundColor: theme.colors.primaryLight,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    overflow: 'hidden',
   },
   emptyAddressBox: {
     padding: theme.spacing.xl,
@@ -349,7 +357,7 @@ const styles = StyleSheet.create({
   gpsBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#F0F9FF', // Light blue
+    backgroundColor: theme.colors.primaryLight,
     padding: theme.spacing.md,
     borderRadius: theme.borderRadius.md,
     marginTop: theme.spacing.sm,

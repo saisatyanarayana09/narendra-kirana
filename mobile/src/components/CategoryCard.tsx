@@ -22,8 +22,8 @@ const CATEGORY_GRADIENTS: readonly [string, string][] = [
   ['#047857', '#065f46'], // emerald-700 to emerald-800
   ['#065f46', '#064e3b'], // emerald-800 to emerald-900
   ['#059669', '#047857'], // emerald-600 to emerald-700
-  ['#06b6d4', '#3b82f6'], // cyan-500 to blue-500
-  ['#d946ef', '#ec4899'], // fuchsia-500 to pink-500
+  ['#10b981', '#059669'], // cyan-500 to blue-500
+  ['#047857', '#064e3b'], // fuchsia-500 to pink-500
 ];
 
 export function CategoryCard({ category, onPress, index = 0 }: Props) {

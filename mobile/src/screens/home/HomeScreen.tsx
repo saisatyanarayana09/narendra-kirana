@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, FlatList , Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -25,6 +25,8 @@ type HomeScreenNavigationProp = CompositeNavigationProp<
 type Props = {
   navigation: HomeScreenNavigationProp;
 };
+
+const { width } = Dimensions.get('window');
 
 export function HomeScreen({ navigation }: Props) {
   const { user } = useAuth();
@@ -108,7 +110,7 @@ export function HomeScreen({ navigation }: Props) {
             horizontal 
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.bannersContainer}
-            snapToInterval={336}
+            snapToInterval={width - 24}
             decelerationRate="fast"
           >
             {banners.map((banner: any) => (
@@ -158,7 +160,7 @@ export function HomeScreen({ navigation }: Props) {
           </View>
         ))}
         
-        <View style={{ height: 40 }} />
+        
       </ScrollView>
     </SafeAreaView>
   );

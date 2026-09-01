@@ -47,12 +47,14 @@ import { CartScreen } from '../screens/cart/CartScreen';
 import { CheckoutScreen } from '../screens/cart/CheckoutScreen';
 import { OrderSuccessScreen } from '../screens/orders/OrderSuccessScreen';
 
+
 function CartStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="CartScreen" component={CartScreen} />
       <Stack.Screen name="CheckoutScreen" component={CheckoutScreen} />
       <Stack.Screen name="OrderSuccessScreen" component={OrderSuccessScreen} />
+      <Stack.Screen name="AddAddressScreen" component={AddAddressScreen} />
     </Stack.Navigator>
   );
 }
@@ -62,6 +64,7 @@ import { OrderTrackingScreen } from '../screens/orders/OrderTrackingScreen';
 
 import { ProfileScreen } from '../screens/profile/ProfileScreen';
 import { AddressesScreen } from '../screens/profile/AddressesScreen';
+
 import { WalletScreen } from '../screens/profile/WalletScreen';
 import { ReferAndEarnScreen } from '../screens/profile/ReferAndEarnScreen';
 
@@ -80,6 +83,7 @@ function ProfileStack() {
       <Stack.Screen name="OrderHistoryScreen" component={OrderHistoryScreen} />
       <Stack.Screen name="OrderTrackingScreen" component={OrderTrackingScreen} />
       <Stack.Screen name="AddressesScreen" component={AddressesScreen} />
+      <Stack.Screen name="AddAddressScreen" component={AddAddressScreen} />
       <Stack.Screen name="WalletScreen" component={WalletScreen} />
       <Stack.Screen name="ReferAndEarnScreen" component={ReferAndEarnScreen} />
       <Stack.Screen name="AccountSettingsScreen" component={AccountSettingsScreen} />
@@ -161,3 +165,4 @@ export function MainTabs() {
     </Tab.Navigator>
   );
 }
+import { AddAddressScreen } from '../screens/profile/AddAddressScreen';

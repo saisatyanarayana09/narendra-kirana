@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   applyButton: {
-    backgroundColor: theme.colors.text,
+    backgroundColor: theme.colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: theme.spacing.lg,

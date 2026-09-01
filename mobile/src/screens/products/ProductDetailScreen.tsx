@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Share, Alert } from 'react-native';
 import { Image } from 'expo-image';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
@@ -49,6 +49,20 @@ export function ProductDetailScreen({ navigation, route }: any) {
 
   const primaryImage = fixImageUrl(product.images?.find((img: any) => img.is_primary)?.image || product.images?.[0]?.image);
 
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: `Check out ${product.name} on Smart Kirana!`,
+      });
+    } catch (error: any) {
+      Alert.alert(error.message);
+    }
+  };
+
+  const handleFavorite = () => {
+    Alert.alert('Favorites', 'Added to your favorites!');
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header Actions */}
@@ -57,10 +71,10 @@ export function ProductDetailScreen({ navigation, route }: any) {
           <Feather name="arrow-left" color={theme.colors.text} size={24} />
         </TouchableOpacity>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerButton}>
+          <TouchableOpacity style={styles.headerButton} onPress={handleShare}>
             <Feather name="share-2" color={theme.colors.text} size={22} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerButton}>
+          <TouchableOpacity style={styles.headerButton} onPress={handleFavorite}>
             <Feather name="heart" color={theme.colors.text} size={22} />
           </TouchableOpacity>
         </View>

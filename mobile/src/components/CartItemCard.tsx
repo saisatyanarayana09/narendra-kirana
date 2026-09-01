@@ -15,6 +15,7 @@ interface Props {
 }
 
 export function CartItemCard({ item, onUpdateQuantity, onRemove, isLoading }: Props) {
+  const discount = item.product.mrp && parseFloat(item.product.mrp) > parseFloat(item.product.price) ? Math.round(((parseFloat(item.product.mrp) - parseFloat(item.product.price)) / parseFloat(item.product.mrp)) * 100) : 0;
   const primaryImage = fixImageUrl(item.product?.images?.find(img => img.is_primary)?.image || item.product?.images?.[0]?.image);
 
   return (
@@ -34,6 +35,11 @@ export function CartItemCard({ item, onUpdateQuantity, onRemove, isLoading }: Pr
           <Text style={styles.price}>₹{item.product.price}</Text>
           {item.product.mrp && parseFloat(item.product.mrp) > parseFloat(item.product.price) && (
             <Text style={styles.mrp}>₹{item.product.mrp}</Text>
+          )}
+          {discount > 0 && (
+            <View style={{ backgroundColor: theme.colors.primaryLight, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginLeft: 8 }}>
+              <Text style={{ color: theme.colors.primaryDark, fontSize: 12, fontWeight: 'bold' }}>{discount}% OFF</Text>
+            </View>
           )}
         </View>
 
@@ -122,7 +128,7 @@ const styles = StyleSheet.create({
     color: theme.colors.primaryDark,
   },
   deleteButton: {
-    padding: theme.spacing.xs,
+    padding: 12,
     marginLeft: theme.spacing.sm,
     justifyContent: 'flex-start',
   },

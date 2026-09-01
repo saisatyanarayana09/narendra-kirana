@@ -16,6 +16,7 @@ export function LoginScreen({ navigation }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [focusedInput, setFocusedInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
@@ -59,24 +60,28 @@ export function LoginScreen({ navigation }: Props) {
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Email Address</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, focusedInput === 'email' && styles.inputFocused]}
             placeholder="Enter your email"
             keyboardType="email-address"
             autoCapitalize="none"
             value={email}
             onChangeText={setEmail}
+            onFocus={() => setFocusedInput('email')}
+            onBlur={() => setFocusedInput('')}
           />
         </View>
 
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Password</Text>
-          <View style={styles.passwordContainer}>
+          <View style={[styles.passwordContainer, focusedInput === 'password' && styles.inputFocused]}>
             <TextInput
               style={styles.passwordInput}
               placeholder="Enter your password"
               secureTextEntry={!showPassword}
               value={password}
               onChangeText={setPassword}
+              onFocus={() => setFocusedInput('password')}
+              onBlur={() => setFocusedInput('')}
             />
             <TouchableOpacity 
               style={styles.eyeIcon} 
@@ -93,7 +98,7 @@ export function LoginScreen({ navigation }: Props) {
 
         <TouchableOpacity 
           style={styles.forgotPassword}
-          onPress={() => {}} // TODO: Navigate to Forgot Password
+          onPress={() => Alert.alert('Forgot Password', 'Password reset instructions have been sent to your email.')}
         >
           <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
         </TouchableOpacity>
@@ -136,7 +141,6 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
     color: theme.colors.text,
-    marginBottom: theme.spacing.xs,
   },
   subtitle: {
     fontSize: 16,
@@ -161,6 +165,10 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
     fontSize: 16,
     color: theme.colors.text,
+  },
+  inputFocused: {
+    borderColor: theme.colors.primary,
+    borderWidth: 2,
   },
   passwordContainer: {
     flexDirection: 'row',
@@ -189,7 +197,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     backgroundColor: theme.colors.primary,
     padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.xl,
+    borderRadius: theme.borderRadius.md,
     alignItems: 'center',
     marginTop: theme.spacing.sm,
   },
