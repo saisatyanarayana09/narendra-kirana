@@ -3,10 +3,11 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
-import { RouteProp } from '@react-navigation/native';
-import { theme } from '../../constants/theme';
 
-type Props = { navigation: AppNavigationProp; route: any; };
+type Props = { 
+  navigation: AppNavigationProp; 
+  route: any; 
+};
 
 export function OrderSuccessScreen({ navigation, route }: Props) {
   const { orderId } = route.params || {};
@@ -23,24 +24,29 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.iconContainer}>
-          <Feather name="check-circle" size={80} color={theme.colors.success} />
+          <Feather name="check-circle" size={56} color="#059669" />
         </View>
         
-        <Text style={styles.title}>Order Placed!</Text>
-        <Text style={styles.subtitle}>Your order #{orderId} has been successfully placed.</Text>
+        <Text style={styles.title}>Order Confirmed!</Text>
+        <Text style={styles.subtitle}>
+          Your order #{orderId} has been successfully placed. We are preparing it with care.
+        </Text>
         
         <TouchableOpacity 
           style={styles.primaryButton}
-          onPress={() => navigation.navigate('HomeTab')}
+          onPress={handleTrackOrder}
+          activeOpacity={0.85}
         >
-          <Text style={styles.primaryButtonText}>Continue Shopping</Text>
+          <Feather name="package" size={18} color="#FFFFFF" />
+          <Text style={styles.primaryButtonText}>Track Order</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
           style={styles.secondaryButton}
-          onPress={handleTrackOrder}
+          onPress={() => navigation.navigate('HomeTab')}
+          activeOpacity={0.85}
         >
-          <Text style={styles.secondaryButtonText}>Track Order</Text>
+          <Text style={styles.secondaryButtonText}>Continue Shopping</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -50,63 +56,74 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F8FAFC', // slate-50
   },
   content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: theme.spacing.xl,
+    padding: 24,
+    maxWidth: 400,
+    alignSelf: 'center',
+    width: '100%',
   },
   iconContainer: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: theme.colors.primaryLight,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#ECFDF5', // emerald-50
+    borderWidth: 2,
+    borderColor: '#A7F3D0',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: theme.spacing.xl,
+    marginBottom: 24,
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '900',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
+    color: '#0F172A',
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
+    fontSize: 14,
+    color: '#64748B',
     textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 48,
+    lineHeight: 22,
+    marginBottom: 36,
   },
   primaryButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#059669',
     width: '100%',
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.xl,
+    paddingVertical: 14,
+    borderRadius: 14,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing.md,
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 12,
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+    elevation: 3,
   },
   primaryButtonText: {
-    color: theme.colors.surface,
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
   },
   secondaryButton: {
     width: '100%',
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.xl,
+    paddingVertical: 14,
+    borderRadius: 14,
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    borderColor: '#E2E8F0',
   },
   secondaryButtonText: {
-    color: theme.colors.text,
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: '#334155',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });
-
-

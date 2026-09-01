@@ -9,7 +9,7 @@ export type GlobalParamList = {
 
   MainTabs: undefined;
   HomeScreen: undefined;
-  ProductListScreen: { categoryId: number; categoryName?: string };
+  ProductListScreen: { categoryId?: number | null; categoryName?: string; search?: string } | undefined;
   CategoriesScreen: undefined;
   FavoritesScreen: undefined;
   CartScreen: undefined;
@@ -22,7 +22,7 @@ export type GlobalParamList = {
   ProfileScreen: undefined;
   OrderHistoryScreen: undefined;
   AddressesScreen: undefined;
-  AddAddressScreen: undefined;
+  AddAddressScreen: { editingAddress?: any } | undefined;
   WalletScreen: undefined;
   ReferAndEarnScreen: undefined;
   AccountSettingsScreen: undefined;

@@ -10,6 +10,14 @@ export type User = {
   first_name: string;
   last_name: string;
   email: string;
+  customer_profile?: {
+    dob?: string;
+    referral_code?: string;
+    delete_requested?: boolean;
+    [key: string]: any;
+  };
+  referral_code?: string;
+  [key: string]: any;
 };
 
 type AuthContextType = {
@@ -40,43 +48,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const storedUser = await getItem(STORAGE_KEYS.USER);
       if (storedUser) {
         setUser(JSON.parse(storedUser));
-        // Verify token is still valid or refresh it seamlessly
-        try {
-          const res = await apiClient.get('/auth/profile/');
-          setUser(res.data);
-          await saveItem(STORAGE_KEYS.USER, JSON.stringify(res.data));
-        } catch (e) {
-          // Handled by interceptor, but if it fully fails, interceptor clears tokens
-          // So we should double check if token is still there
-          const token = await getItem(STORAGE_KEYS.TOKEN);
-          if (!token) {
-            setUser(null);
-          }
-        }
       }
-    } catch (e) {
-      console.error('Failed to load user', e);
+    } catch (error) {
+      console.error('Failed to load user', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const login = async (credentials: any) => {
-    const response = await apiClient.post('/auth/login/', credentials);
-    const { access, refresh, user: userData } = response.data;
-    
-    await saveItem(STORAGE_KEYS.TOKEN, access);
-    await saveItem(STORAGE_KEYS.REFRESH, refresh);
-    await saveItem(STORAGE_KEYS.USER, JSON.stringify(userData));
-    
-    setUser(userData);
+  const login = async (data: any) => {
+    try {
+      const response = await apiClient.post('/auth/login/', data);
+      const { access, refresh, user: loggedUser } = response.data;
+      
+      await saveItem(STORAGE_KEYS.TOKEN, access);
+      await saveItem(STORAGE_KEYS.REFRESH, refresh);
+      await saveItem(STORAGE_KEYS.USER, JSON.stringify(loggedUser));
+      
+      setUser(loggedUser);
+    } catch (error) {
+      throw error;
+    }
   };
 
   const logout = async () => {
-    await deleteItem(STORAGE_KEYS.TOKEN);
-    await deleteItem(STORAGE_KEYS.REFRESH);
-    await deleteItem(STORAGE_KEYS.USER);
-    setUser(null);
+    try {
+      await deleteItem(STORAGE_KEYS.TOKEN);
+      await deleteItem(STORAGE_KEYS.REFRESH);
+      await deleteItem(STORAGE_KEYS.USER);
+      setUser(null);
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
   };
 
   return (

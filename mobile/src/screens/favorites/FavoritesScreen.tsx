@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
-import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
 import { ProductCard } from '../../components/ProductCard';
 import { useCart } from '../../context/CartContext';
+
+const { width } = Dimensions.get('window');
 
 export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp }) {
   const [favorites, setFavorites] = useState<any[]>([]);
@@ -14,12 +15,10 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
   const { addToCart } = useCart();
 
   useEffect(() => {
-    // We should refetch favorites whenever the screen comes into focus
-    // but for now we'll just fetch on mount
     const unsubscribe = navigation.addListener('focus', () => {
       fetchFavorites();
     });
-    
+    fetchFavorites();
     return unsubscribe;
   }, [navigation]);
 
@@ -34,42 +33,54 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
     }
   };
 
-  const removeFavorite = async (id: number) => {
-    try {
-      // Optimistic UI update
-      setFavorites(prev => prev.filter(f => f.id !== id));
-      await apiClient.delete(`/favorites/${id}/`);
-    } catch (error) {
-      console.error('Error removing favorite', error);
-      fetchFavorites(); // Revert on failure
-    }
-  };
-
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-      </View>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Feather name="arrow-left" size={18} color="#059669" />
+            <Text style={styles.backButtonText}>Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Favorites</Text>
+        </View>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color="#059669" />
+        </View>
+      </SafeAreaView>
     );
   }
 
   if (favorites.length === 0) {
     return (
-      <SafeAreaView style={styles.emptyContainer} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <Feather name="arrow-left" size={18} color="#059669" />
+            <Text style={styles.backButtonText}>Back</Text>
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>Favorites</Text>
+          <Text style={styles.headerSubtitle}>Products you've saved for later.</Text>
         </View>
-        <View style={styles.emptyContent}>
+
+        <View style={styles.emptyContainer}>
           <View style={styles.emptyIconCircle}>
-            <Feather name="heart" size={48} color={theme.colors.primary} />
+            <Feather name="heart" size={44} color="#E11D48" />
           </View>
           <Text style={styles.emptyTitle}>No favorites yet</Text>
-          <Text style={styles.emptySubtitle}>Save items you buy regularly to find them quickly later.</Text>
+          <Text style={styles.emptySubtitle}>
+            Keep track of the products you love by clicking the heart icon on any product.
+          </Text>
           <TouchableOpacity 
             style={styles.browseButton}
             onPress={() => navigation.navigate('HomeTab')}
+            activeOpacity={0.85}
           >
             <Text style={styles.browseButtonText}>Browse Products</Text>
+            <Feather name="chevron-right" size={16} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -78,32 +89,45 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header matching web */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Favorites</Text>
-        <Text style={styles.itemCount}>{favorites.length} items</Text>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <Feather name="arrow-left" size={18} color="#059669" />
+          <Text style={styles.backButtonText}>Back</Text>
+        </TouchableOpacity>
+        <View style={styles.headerTitleRow}>
+          <Text style={styles.headerTitle}>Favorites</Text>
+          <View style={styles.itemCountBadge}>
+            <Text style={styles.itemCountText}>{favorites.length} saved</Text>
+          </View>
+        </View>
+        <Text style={styles.headerSubtitle}>Products you've saved for later.</Text>
       </View>
       
       <FlatList
         data={favorites}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => String(item.id)}
         numColumns={2}
         contentContainerStyle={styles.listContainer}
         columnWrapperStyle={styles.row}
-        renderItem={({ item }) => (
-          <View style={styles.cardWrapper}>
-            <ProductCard 
-              product={item.product} 
-              onPress={() => navigation.navigate('HomeTab', { screen: 'ProductDetailScreen', params: { productId: item.product.id } })} 
-              onAddToCart={(p) => addToCart(p.id, 1)}
-            />
-            <TouchableOpacity 
-              style={styles.removeButton}
-              onPress={() => removeFavorite(item.id)}
-            >
-              <Feather name="heart" size={20} color={theme.colors.error} />
-            </TouchableOpacity>
-          </View>
-        )}
+        renderItem={({ item }) => {
+          const product = item.product_details || item.product;
+          if (!product) return null;
+
+          return (
+            <View style={styles.cardWrapper}>
+              <ProductCard 
+                product={product} 
+                onPress={() => navigation.navigate('ProductDetailScreen', { productId: product.id })} 
+                onAddToCart={(p) => addToCart(p.id, 1)}
+              />
+            </View>
+          );
+        }}
       />
     </SafeAreaView>
   );
@@ -112,101 +136,116 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  emptyContainer: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F8FAFC', // slate-50
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: '#F1F5F9',
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 6,
+  },
+  backButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: theme.colors.text,
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: -0.5,
   },
-  itemCount: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
+  itemCountBadge: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  itemCountText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 2,
     fontWeight: '500',
   },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.background,
   },
-  emptyContent: {
+  emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: theme.spacing.xl,
+    padding: 24,
   },
   emptyIconCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: theme.colors.primaryLight,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: '#FFF1F2', // rose-50
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: theme.spacing.lg,
+    marginBottom: 16,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginBottom: 8,
   },
   emptySubtitle: {
-    fontSize: 15,
-    color: theme.colors.textSecondary,
+    fontSize: 14,
+    color: '#64748B',
     textAlign: 'center',
-    marginBottom: theme.spacing.xl,
+    lineHeight: 20,
+    marginBottom: 24,
+    maxWidth: 290,
   },
   browseButton: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: theme.spacing.xl,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#059669',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 14,
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
   browseButtonText: {
-    color: theme.colors.surface,
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 15,
   },
   listContainer: {
-    padding: theme.spacing.md,
+    padding: 16,
+    paddingBottom: 100,
   },
   row: {
     justifyContent: 'space-between',
-    marginBottom: theme.spacing.md,
+    marginBottom: 12,
   },
   cardWrapper: {
-    flex: 1,
-    maxWidth: '48%',
-    position: 'relative',
-  },
-  removeButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderRadius: 16,
-    padding: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    width: (width - 44) / 2,
   },
 });
-
-

@@ -1,8 +1,18 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Alert, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  StyleSheet, 
+  TouchableOpacity, 
+  KeyboardAvoidingView, 
+  Platform, 
+  Alert, 
+  ScrollView,
+  ActivityIndicator 
+} from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
-import { theme } from '../../constants/theme';
 import { AuthStackParamList } from '../../navigation/AuthStack';
 import { apiClient } from '../../api/client';
 
@@ -24,9 +34,46 @@ export function SignupScreen({ navigation }: Props) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Live referral lookup matching web app
+  const [checkingReferral, setCheckingReferral] = useState(false);
+  const [referralInfo, setReferralInfo] = useState<{ isValid?: boolean; name?: string; error?: string } | null>(null);
+
+  useEffect(() => {
+    const code = form.referral_code.trim();
+    if (!code) {
+      setReferralInfo(null);
+      setCheckingReferral(false);
+      return;
+    }
+
+    setCheckingReferral(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await apiClient.get(`/auth/referral-lookup/?code=${encodeURIComponent(code)}`);
+        setReferralInfo({ isValid: true, name: res.data.name });
+      } catch (err: any) {
+        setReferralInfo({ isValid: false, error: err.response?.data?.error || 'Invalid referral code.' });
+      } finally {
+        setCheckingReferral(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [form.referral_code]);
+
   const handleSignup = async () => {
+    if (!form.first_name || !form.email || !form.mobile_number || !form.password) {
+      Alert.alert('Required Fields', 'Please complete all required fields.');
+      return;
+    }
+
     if (form.password !== form.confirm_password) {
       Alert.alert('Error', 'Passwords do not match.');
+      return;
+    }
+
+    if (referralInfo && referralInfo.isValid === false) {
+      Alert.alert('Invalid Referral Code', 'Please enter a valid referral code or clear the field.');
       return;
     }
 
@@ -37,13 +84,13 @@ export function SignupScreen({ navigation }: Props) {
       
       Alert.alert(
         'Success', 
-        'Account created successfully! Please check your email to activate your account.',
+        'Account created successfully! Please log in.',
         [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
       );
     } catch (error: any) {
       const details = error.response?.data;
       const errorMessage = details 
-        ? Object.values(details).flat().join('\\n') 
+        ? (typeof details === 'object' ? Object.values(details).flat().join('\n') : String(details))
         : 'Unable to create account.';
       Alert.alert('Signup Failed', errorMessage);
     } finally {
@@ -56,35 +103,40 @@ export function SignupScreen({ navigation }: Props) {
       style={styles.container} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {/* Back Button matching web */}
         <TouchableOpacity 
           style={styles.backButton} 
           onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
         >
-          <Feather name="arrow-left" color={theme.colors.text} size={24} />
+          <Feather name="arrow-left" color="#059669" size={18} />
+          <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
 
         <View style={styles.header}>
           <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>Join Narendra Kirana today</Text>
+          <Text style={styles.subtitle}>Join Narendra Kirana for fresh daily essentials</Text>
         </View>
 
-        <View style={styles.form}>
+        <View style={styles.card}>
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Full Name</Text>
+            <Text style={styles.label}>Full Name *</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter your name"
+              placeholder="e.g. Rahul Sharma"
+              placeholderTextColor="#94A3B8"
               value={form.first_name}
               onChangeText={(text) => setForm({ ...form, first_name: text })}
             />
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email Address</Text>
+            <Text style={styles.label}>Email Address *</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter your email"
+              placeholder="name@example.com"
+              placeholderTextColor="#94A3B8"
               keyboardType="email-address"
               autoCapitalize="none"
               value={form.email}
@@ -93,10 +145,11 @@ export function SignupScreen({ navigation }: Props) {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Mobile Number</Text>
+            <Text style={styles.label}>Mobile Number *</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter your mobile number"
+              placeholder="10-digit mobile number"
+              placeholderTextColor="#94A3B8"
               keyboardType="phone-pad"
               value={form.mobile_number}
               onChangeText={(text) => setForm({ ...form, mobile_number: text })}
@@ -104,11 +157,12 @@ export function SignupScreen({ navigation }: Props) {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Password</Text>
+            <Text style={styles.label}>Password *</Text>
             <View style={styles.passwordContainer}>
               <TextInput
                 style={styles.passwordInput}
-                placeholder="Create a password"
+                placeholder="Create password"
+                placeholderTextColor="#94A3B8"
                 secureTextEntry={!showPassword}
                 value={form.password}
                 onChangeText={(text) => setForm({ ...form, password: text })}
@@ -117,21 +171,18 @@ export function SignupScreen({ navigation }: Props) {
                 style={styles.eyeIcon} 
                 onPress={() => setShowPassword(!showPassword)}
               >
-                {showPassword ? (
-                  <Feather name="eye-off" color={theme.colors.textSecondary} size={20} />
-                ) : (
-                  <Feather name="eye" color={theme.colors.textSecondary} size={20} />
-                )}
+                <Feather name={showPassword ? "eye-off" : "eye"} color="#94A3B8" size={18} />
               </TouchableOpacity>
             </View>
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Confirm Password</Text>
+            <Text style={styles.label}>Confirm Password *</Text>
             <View style={styles.passwordContainer}>
               <TextInput
                 style={styles.passwordInput}
-                placeholder="Confirm your password"
+                placeholder="Confirm password"
+                placeholderTextColor="#94A3B8"
                 secureTextEntry={!showConfirmPassword}
                 value={form.confirm_password}
                 onChangeText={(text) => setForm({ ...form, confirm_password: text })}
@@ -140,37 +191,64 @@ export function SignupScreen({ navigation }: Props) {
                 style={styles.eyeIcon} 
                 onPress={() => setShowConfirmPassword(!showConfirmPassword)}
               >
-                {showConfirmPassword ? (
-                  <Feather name="eye-off" color={theme.colors.textSecondary} size={20} />
-                ) : (
-                  <Feather name="eye" color={theme.colors.textSecondary} size={20} />
-                )}
+                <Feather name={showConfirmPassword ? "eye-off" : "eye"} color="#94A3B8" size={18} />
               </TouchableOpacity>
             </View>
           </View>
 
+          {/* Referral Code with live validation matching web app */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Referral Code (Optional)</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter referral code"
+              placeholder="e.g. REF-A1B2C"
+              placeholderTextColor="#94A3B8"
               autoCapitalize="characters"
               value={form.referral_code}
-              onChangeText={(text) => setForm({ ...form, referral_code: text })}
+              onChangeText={(text) => setForm({ ...form, referral_code: text.toUpperCase() })}
             />
+            {checkingReferral && (
+              <View style={styles.referralFeedbackRow}>
+                <ActivityIndicator size="small" color="#059669" />
+                <Text style={styles.referralCheckingText}>Verifying code...</Text>
+              </View>
+            )}
+            {!checkingReferral && referralInfo?.isValid && (
+              <View style={styles.referralFeedbackRow}>
+                <Feather name="check-circle" size={14} color="#059669" />
+                <Text style={styles.referralValidText}>
+                  Valid code! Referred by {referralInfo.name}.
+                </Text>
+              </View>
+            )}
+            {!checkingReferral && referralInfo?.isValid === false && (
+              <View style={styles.referralFeedbackRow}>
+                <Feather name="x-circle" size={14} color="#EF4444" />
+                <Text style={styles.referralInvalidText}>{referralInfo.error}</Text>
+              </View>
+            )}
           </View>
 
           <TouchableOpacity 
             style={[styles.primaryButton, isLoading && styles.primaryButtonDisabled]}
             onPress={handleSignup}
             disabled={isLoading}
+            activeOpacity={0.85}
           >
-            <Text style={styles.primaryButtonText}>
-              {isLoading ? 'Creating Account...' : 'Create Account'}
-            </Text>
+            {isLoading ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <Text style={styles.primaryButtonText}>Create Account</Text>
+            )}
           </TouchableOpacity>
+
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Already have an account? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+              <Text style={styles.footerLink}>Log In</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-        <View style={{ height: 40 }} />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -179,77 +257,142 @@ export function SignupScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
-    paddingHorizontal: theme.spacing.lg,
+    backgroundColor: '#F8FAFC', // slate-50
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 48,
+    paddingBottom: 40,
   },
   backButton: {
-    marginTop: theme.spacing.xl,
-    marginBottom: theme.spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 16,
+  },
+  backButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#059669',
   },
   header: {
-    marginBottom: theme.spacing.xl,
+    marginBottom: 20,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.xs,
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
+    fontSize: 14,
+    color: '#64748B',
+    marginTop: 4,
   },
-  form: {
-    gap: theme.spacing.md,
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+    gap: 14,
   },
   inputContainer: {
-    gap: theme.spacing.xs,
+    gap: 6,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.text,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#334155',
   },
   input: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
-    fontSize: 16,
-    color: theme.colors.text,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    height: 46,
+    fontSize: 14,
+    color: '#0F172A',
+    fontWeight: '500',
   },
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    height: 46,
   },
   passwordInput: {
     flex: 1,
-    padding: theme.spacing.md,
-    fontSize: 16,
-    color: theme.colors.text,
+    fontSize: 14,
+    color: '#0F172A',
+    fontWeight: '500',
   },
   eyeIcon: {
-    padding: theme.spacing.md,
+    padding: 6,
+  },
+  referralFeedbackRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  referralCheckingText: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  referralValidText: {
+    fontSize: 11,
+    color: '#059669',
+    fontWeight: '700',
+  },
+  referralInvalidText: {
+    fontSize: 11,
+    color: '#EF4444',
+    fontWeight: '600',
   },
   primaryButton: {
-    backgroundColor: theme.colors.primary,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.xl,
+    backgroundColor: '#059669',
+    paddingVertical: 14,
+    borderRadius: 14,
     alignItems: 'center',
-    marginTop: theme.spacing.lg,
+    marginTop: 8,
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   primaryButtonDisabled: {
     opacity: 0.7,
   },
   primaryButtonText: {
-    color: theme.colors.surface,
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  footerText: {
+    color: '#64748B',
+    fontSize: 13,
+  },
+  footerLink: {
+    color: '#059669',
+    fontWeight: '800',
+    fontSize: 13,
   },
 });
-

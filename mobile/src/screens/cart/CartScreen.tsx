@@ -1,39 +1,62 @@
-import { AppNavigationProp } from '../../navigation/types';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  ScrollView, 
+  TouchableOpacity, 
+  TextInput, 
+  ActivityIndicator, 
+  Alert 
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { AppNavigationProp } from '../../navigation/types';
 import { theme } from '../../constants/theme';
 import { useCart } from '../../context/CartContext';
 import { CartItemCard } from '../../components/CartItemCard';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 
 export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
-  const { cart, isLoading, updateQuantity, removeFromCart, applyPromo, removePromo } = useCart();
+  const { cart, isLoading, updateQuantity, removeFromCart, applyPromo, removePromo, storeSettings } = useCart();
   const [promoCode, setPromoCode] = useState('');
+  const [promoApplying, setPromoApplying] = useState(false);
 
   if (!cart) {
     return <LoadingSpinner fullScreen />;
   }
 
-  if (cart.items.length === 0) {
+  const items = cart.items || [];
+
+  if (items.length === 0) {
     return (
-      <SafeAreaView style={styles.emptyContainer} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Your Cart</Text>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <Feather name="arrow-left" size={18} color="#059669" />
+            <Text style={styles.backButtonText}>Back</Text>
+          </TouchableOpacity>
         </View>
-        <View style={styles.emptyContent}>
-          <View style={styles.emptyIconCircle}>
-            <Feather name="shopping-cart" size={48} color={theme.colors.textSecondary} />
+
+        <View style={styles.emptyContainer}>
+          <View style={styles.emptyIconBox}>
+            <Feather name="shopping-bag" size={44} color="#CBD5E1" />
           </View>
           <Text style={styles.emptyTitle}>Your cart is empty</Text>
-          <Text style={styles.emptySubtitle}>Looks like you haven't added any groceries yet.</Text>
+          <Text style={styles.emptySubtitle}>
+            Looks like you haven't added anything to your cart yet. Browse our products and discover great deals.
+          </Text>
           <TouchableOpacity 
-            style={styles.browseButton}
+            style={styles.startShoppingBtn}
             onPress={() => navigation.navigate('HomeTab')}
+            activeOpacity={0.85}
           >
-            <Text style={styles.browseButtonText}>Start Shopping</Text>
+            <Text style={styles.startShoppingText}>Start Shopping</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -42,27 +65,59 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
 
   const handleApplyPromo = async () => {
     if (!promoCode.trim()) return;
+    setPromoApplying(true);
     try {
       await applyPromo(promoCode.trim().toUpperCase());
       setPromoCode('');
     } catch (error: any) {
-      Alert.alert('Invalid Code', error.response?.data?.error || 'Failed to apply promo code');
+      Alert.alert('Invalid Code', error.response?.data?.detail || error.response?.data?.error || 'Invalid promo code');
+    } finally {
+      setPromoApplying(false);
     }
   };
 
+  const isStoreClosed = storeSettings?.is_open === false;
+  const minOrderAmount = parseFloat(storeSettings?.min_order_amount || '0');
+  const cartSubtotal = parseFloat(cart?.subtotal || '0');
+  const isBelowMinOrder = minOrderAmount > 0 && cartSubtotal < minOrderAmount;
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header matching web */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Your Cart</Text>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{cart.items.length}</Text>
-        </View>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <Feather name="arrow-left" size={18} color="#059669" />
+          <Text style={styles.backButtonText}>Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Your cart</Text>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Cart Items */}
-        <View style={styles.itemsSection}>
-          {cart.items.map(item => (
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Store Closed or Minimum Order Warning */}
+        {isStoreClosed && (
+          <View style={styles.closedWarning}>
+            <Text style={styles.closedWarningText}>The store is currently closed.</Text>
+          </View>
+        )}
+
+        {isBelowMinOrder && (
+          <View style={styles.minOrderWarning}>
+            <Text style={styles.minOrderWarningText}>
+              Minimum order amount is ₹{minOrderAmount.toFixed(2)}
+            </Text>
+          </View>
+        )}
+
+        {/* Cart Items List */}
+        <View style={styles.section}>
+          {items.map(item => (
             <CartItemCard 
               key={item.id} 
               item={item} 
@@ -73,308 +128,396 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
           ))}
         </View>
 
-        {/* Promo Code */}
-        <View style={styles.promoSection}>
+        {/* Promo Code Card */}
+        <View style={styles.card}>
           {cart.promo_code ? (
-            <View style={styles.activePromo}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Feather name="tag" size={16} color={theme.colors.success} />
-                <Text style={styles.activePromoText}>{cart.promo_code} Applied</Text>
+            <View style={styles.appliedPromoRow}>
+              <View>
+                <Text style={styles.appliedPromoTag}>Code Applied</Text>
+                <Text style={styles.appliedPromoCode}>{cart.promo_code}</Text>
               </View>
-              <TouchableOpacity onPress={removePromo} disabled={isLoading}>
-                <Feather name="x" size={20} color={theme.colors.error} />
+              <TouchableOpacity 
+                style={styles.removePromoBtn}
+                onPress={removePromo} 
+                disabled={isLoading}
+              >
+                <Text style={styles.removePromoText}>Remove</Text>
               </TouchableOpacity>
             </View>
           ) : (
-            <View style={styles.promoInputContainer}>
+            <View style={styles.promoForm}>
               <TextInput
                 style={styles.promoInput}
                 placeholder="Enter promo code"
+                placeholderTextColor="#94A3B8"
                 value={promoCode}
-                onChangeText={setPromoCode}
+                onChangeText={(t) => setPromoCode(t.toUpperCase())}
                 autoCapitalize="characters"
               />
               <TouchableOpacity 
-                style={[styles.applyButton, !promoCode.trim() && styles.disabledButton]} 
+                style={[styles.applyBtn, (!promoCode.trim() || promoApplying) && styles.disabledApplyBtn]} 
                 onPress={handleApplyPromo}
-                disabled={!promoCode.trim() || isLoading}
+                disabled={!promoCode.trim() || promoApplying || isLoading}
+                activeOpacity={0.8}
               >
-                <Text style={styles.applyButtonText}>Apply</Text>
+                {promoApplying ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.applyBtnText}>Apply</Text>
+                )}
               </TouchableOpacity>
             </View>
           )}
         </View>
 
-        {/* Bill Details */}
-        <View style={styles.billSection}>
-          <Text style={styles.billTitle}>Bill Details</Text>
+        {/* Order Summary Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Order Summary</Text>
           
-          <View style={styles.billRow}>
-            <Text style={styles.billLabel}>Item Total Due</Text>
-            <Text style={styles.billValue}>₹{cart.subtotal}</Text>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Subtotal</Text>
+            <Text style={styles.summaryValue}>₹{parseFloat(cart.subtotal || '0').toFixed(2)}</Text>
           </View>
-          
-          {parseFloat(cart.discount) > 0 && (
-            <View style={styles.billRow}>
-              <Text style={styles.billLabel}>Product Discount</Text>
-              <Text style={styles.billValueDiscount}>-₹{cart.discount}</Text>
+
+          {parseFloat(cart.discount || '0') > 0 && (
+            <View style={styles.summaryRow}>
+              <Text style={styles.savingsLabel}>Product Savings</Text>
+              <Text style={styles.savingsValue}>-₹{parseFloat(cart.discount).toFixed(2)}</Text>
             </View>
           )}
-          
-          {parseFloat(cart.promo_discount) > 0 && (
-            <View style={styles.billRow}>
-              <Text style={styles.billLabel}>Promo Discount</Text>
-              <Text style={styles.billValueDiscount}>-₹{cart.promo_discount}</Text>
+
+          {parseFloat(cart.promo_discount || '0') > 0 && (
+            <View style={styles.summaryRow}>
+              <Text style={styles.savingsLabel}>Promo Discount</Text>
+              <Text style={styles.savingsValue}>-₹{parseFloat(cart.promo_discount).toFixed(2)}</Text>
             </View>
           )}
-          
-          <View style={styles.billRow}>
-            <Text style={styles.billLabel}>Handling Fee</Text>
-            <Text style={styles.billValue}>₹{cart.packaging_fee}</Text>
-          </View>
-          
-          <View style={[styles.billRow, styles.totalRow]}>
-            <Text style={styles.totalLabel}>To Pay</Text>
-            <Text style={styles.totalValue}>₹{cart.total}</Text>
+
+          {parseFloat(cart.packaging_fee || '0') > 0 && (
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Packaging Fee</Text>
+              <Text style={styles.summaryValue}>₹{parseFloat(cart.packaging_fee).toFixed(2)}</Text>
+            </View>
+          )}
+
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Total Due</Text>
+            <Text style={styles.totalValue}>₹{parseFloat(cart.total || '0').toFixed(2)}</Text>
           </View>
         </View>
       </ScrollView>
 
-      {/* Bottom Bar */}
-      <View style={styles.bottomBar}>
-        <View>
-          <Text style={styles.bottomTotalLabel}>Total Due</Text>
-          <Text style={styles.bottomTotalValue}>₹{cart.total}</Text>
+      {/* Sticky Bottom Checkout Bar matching web app */}
+      {!isStoreClosed && !isBelowMinOrder && items.length > 0 && (
+        <View style={styles.bottomBar}>
+          <View>
+            <Text style={styles.bottomTotalLabel}>TOTAL DUE</Text>
+            <Text style={styles.bottomTotalValue}>₹{parseFloat(cart.total || '0').toFixed(2)}</Text>
+          </View>
+
+          <TouchableOpacity 
+            style={styles.checkoutBtn}
+            onPress={() => navigation.navigate('CheckoutScreen')}
+            disabled={isLoading}
+            activeOpacity={0.9}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <Text style={styles.checkoutBtnText}>Checkout</Text>
+            )}
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity 
-          style={styles.checkoutButton}
-          onPress={() => navigation.navigate('CheckoutScreen')}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color={theme.colors.surface} size="small" />
-          ) : (
-            <Text style={styles.checkoutText}>Proceed to Checkout</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  emptyContainer: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F8FAFC', // slate-50
   },
   header: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  backButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    gap: 4,
+    marginBottom: 6,
+  },
+  backButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#059669',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-    marginRight: theme.spacing.sm,
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: -0.5,
   },
-  badge: {
-    backgroundColor: '#F8FAFC',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 110,
   },
-  badgeText: {
-    color: theme.colors.primaryDark,
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  emptyContent: {
+  emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: theme.spacing.xl,
+    padding: 24,
   },
-  emptyIconCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: '#F8FAFC',
+  emptyIconBox: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: theme.spacing.lg,
+    marginBottom: 16,
   },
   emptyTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 8,
   },
   emptySubtitle: {
-    fontSize: 15,
-    color: theme.colors.textSecondary,
+    fontSize: 14,
+    color: '#64748B',
     textAlign: 'center',
-    marginBottom: theme.spacing.xl,
+    lineHeight: 20,
+    marginBottom: 24,
+    maxWidth: 280,
   },
-  browseButton: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: theme.spacing.xl,
-    paddingVertical: theme.spacing.md,
-    borderRadius: 16,
+  startShoppingBtn: {
+    backgroundColor: '#059669',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 14,
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  browseButtonText: {
-    color: theme.colors.surface,
+  startShoppingText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 15,
+  },
+  closedWarning: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FEE2E2',
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+    alignItems: 'center',
+  },
+  closedWarningText: {
+    color: '#B91C1C',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  minOrderWarning: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FEF3C7',
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+    alignItems: 'center',
+  },
+  minOrderWarningText: {
+    color: '#B45309',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  section: {
+    marginBottom: 8,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  cardTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 14,
   },
-  scrollContent: {
-    padding: theme.spacing.md,
-    paddingBottom: 100,
-  },
-  itemsSection: {
-    marginBottom: theme.spacing.lg,
-  },
-  promoSection: {
-    marginBottom: theme.spacing.lg,
-  },
-  promoInputContainer: {
+  promoForm: {
     flexDirection: 'row',
-    gap: theme.spacing.sm,
+    gap: 8,
   },
   promoInput: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: theme.spacing.md,
-    height: 48,
-    fontSize: 15,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    height: 44,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0F172A',
   },
-  applyButton: {
-    backgroundColor: theme.colors.primary,
+  applyBtn: {
+    backgroundColor: '#0F172A',
+    borderRadius: 12,
+    paddingHorizontal: 18,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.lg,
-    borderRadius: theme.borderRadius.md,
   },
-  disabledButton: {
-    opacity: 0.5,
+  disabledApplyBtn: {
+    backgroundColor: '#CBD5E1',
   },
-  applyButtonText: {
-    color: theme.colors.surface,
-    fontWeight: 'bold',
+  applyBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 14,
   },
-  activePromo: {
+  appliedPromoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: '#ECFDF5',
     borderWidth: 1,
-    borderColor: theme.colors.success,
+    borderColor: '#A7F3D0',
+    padding: 12,
+    borderRadius: 12,
   },
-  activePromoText: {
-    color: theme.colors.success,
-    fontWeight: 'bold',
-    marginLeft: theme.spacing.sm,
+  appliedPromoTag: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#059669',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  billSection: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    padding: theme.spacing.lg,
+  appliedPromoCode: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#064E3B',
+    marginTop: 2,
+  },
+  removePromoBtn: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: '#A7F3D0',
   },
-  billTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.md,
+  removePromoText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#059669',
   },
-  billRow: {
+  summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: theme.spacing.sm,
+    marginBottom: 8,
   },
-  billLabel: {
+  summaryLabel: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
-  },
-  billValue: {
-    fontSize: 14,
-    color: theme.colors.text,
+    color: '#64748B',
     fontWeight: '500',
   },
-  billValueDiscount: {
+  summaryValue: {
     fontSize: 14,
-    color: theme.colors.success,
-    fontWeight: '500',
+    color: '#0F172A',
+    fontWeight: '700',
+  },
+  savingsLabel: {
+    fontSize: 14,
+    color: '#059669',
+    fontWeight: '600',
+  },
+  savingsValue: {
+    fontSize: 14,
+    color: '#059669',
+    fontWeight: '700',
   },
   totalRow: {
-    marginTop: theme.spacing.sm,
-    paddingTop: theme.spacing.sm,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
-    marginBottom: 0,
+    borderTopColor: '#F1F5F9',
+    paddingTop: 12,
+    marginTop: 6,
   },
   totalLabel: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: theme.colors.text,
+    fontWeight: '800',
+    color: '#0F172A',
   },
   totalValue: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '900',
-    color: theme.colors.text,
+    color: '#0F172A',
   },
   bottomBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: theme.spacing.lg,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    borderTopColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 6,
   },
   bottomTotalLabel: {
     fontSize: 10,
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    color: theme.colors.textSecondary,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 0.5,
   },
   bottomTotalValue: {
     fontSize: 20,
     fontWeight: '900',
-    color: theme.colors.text,
+    color: '#0F172A',
+    marginTop: 2,
   },
-  checkoutButton: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: theme.spacing.xl,
-    paddingVertical: theme.spacing.md,
-    borderRadius: 16,
-    minWidth: 180,
+  checkoutBtn: {
+    backgroundColor: '#059669',
+    paddingHorizontal: 28,
+    paddingVertical: 12,
+    borderRadius: 14,
     alignItems: 'center',
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  checkoutText: {
-    color: theme.colors.surface,
-    fontSize: 16,
-    fontWeight: 'bold',
+  checkoutBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
   },
 });
-
-

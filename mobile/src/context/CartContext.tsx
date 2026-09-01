@@ -11,9 +11,16 @@ export interface CartItem {
     mrp: string | null;
     is_in_stock: boolean;
     image: string | null;
+    unit?: string;
+    stock_quantity?: number;
+    max_order_quantity?: number;
+    [key: string]: any;
   };
   quantity: number;
   subtotal: string;
+  product_name?: string;
+  product_unit?: string;
+  unit_price?: string;
 }
 
 export interface CartData {
@@ -30,6 +37,7 @@ export interface CartData {
 interface CartContextType {
   cart: CartData | null;
   isLoading: boolean;
+  storeSettings: any;
   addToCart: (productId: number, quantity?: number) => Promise<void>;
   updateQuantity: (itemId: number, quantity: number) => Promise<void>;
   removeFromCart: (itemId: number) => Promise<void>;
@@ -43,7 +51,12 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [cart, setCart] = useState<CartData | null>(null);
+  const [storeSettings, setStoreSettings] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    fetchStoreSettings();
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -52,6 +65,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setCart(null);
     }
   }, [user]);
+
+  const fetchStoreSettings = async () => {
+    try {
+      const res = await apiClient.get('/store-settings/').catch(() => null);
+      if (res?.data) {
+        setStoreSettings(Array.isArray(res.data) ? res.data[0] : res.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch store settings', err);
+    }
+  };
 
   const refreshCart = async () => {
     try {
@@ -147,6 +171,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       value={{ 
         cart, 
         isLoading, 
+        storeSettings,
         addToCart, 
         updateQuantity, 
         removeFromCart, 
