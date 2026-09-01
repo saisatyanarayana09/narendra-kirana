@@ -1,8 +1,10 @@
 import React from 'react';
+import { View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import { theme } from '../constants/theme';
+import { WelcomeScreen } from '../components/WelcomeScreen';
 
 import { HomeScreen } from '../screens/home/HomeScreen';
 import { CategoriesScreen } from '../screens/categories/CategoriesScreen';
@@ -96,76 +98,79 @@ export function MainTabs() {
   const cartItemCount = cart?.items?.length || 0;
 
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: '#059669', // Emerald-600 matching web
-        tabBarInactiveTintColor: '#64748B', // Slate-500 matching web
-        tabBarStyle: {
-          backgroundColor: 'rgba(255, 255, 255, 0.98)',
-          borderTopColor: '#E2E8F0',
-          elevation: 4,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.05,
-          shadowRadius: 6,
-          height: 62,
-          paddingBottom: 8,
-          paddingTop: 6,
-        },
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '700',
-        },
-      }}
-    >
-      <Tab.Screen 
-        name="HomeTab" 
-        component={HomeStack}
-        options={{
-          tabBarLabel: 'Home',
-          tabBarIcon: ({ color, size }) => <Feather name="home" color={color} size={20} />,
-        }}
-      />
-      <Tab.Screen 
-        name="CategoriesTab" 
-        component={CategoriesStack}
-        options={{
-          tabBarLabel: 'Categories',
-          tabBarIcon: ({ color, size }) => <Feather name="grid" color={color} size={20} />,
-        }}
-      />
-      <Tab.Screen 
-        name="FavoritesTab" 
-        component={FavoritesScreen}
-        options={{
-          tabBarLabel: 'Favorites',
-          tabBarIcon: ({ color, size }) => <Feather name="heart" color={color} size={20} />,
-        }}
-      />
-      <Tab.Screen 
-        name="CartTab" 
-        component={CartStack}
-        options={{
-          tabBarLabel: 'Cart',
-          tabBarBadge: cartItemCount > 0 ? cartItemCount : undefined,
-          tabBarBadgeStyle: {
-            backgroundColor: '#0F172A', // slate-900 matching web
-            color: '#FFFFFF',
-            fontSize: 10,
-            fontWeight: '900',
+    <View style={{ flex: 1 }}>
+      <WelcomeScreen />
+      <Tab.Navigator
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: '#059669', // Emerald-600 matching web
+          tabBarInactiveTintColor: '#64748B', // Slate-500 matching web
+          tabBarStyle: {
+            backgroundColor: 'rgba(255, 255, 255, 0.98)',
+            borderTopColor: '#E2E8F0',
+            elevation: 4,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: -2 },
+            shadowOpacity: 0.05,
+            shadowRadius: 6,
+            height: 62,
+            paddingBottom: 8,
+            paddingTop: 6,
           },
-          tabBarIcon: ({ color, size }) => <Feather name="shopping-cart" color={color} size={20} />,
+          tabBarLabelStyle: {
+            fontSize: 11,
+            fontWeight: '700',
+          },
         }}
-      />
-      <Tab.Screen 
-        name="ProfileTab" 
-        component={ProfileStack}
-        options={{
-          tabBarLabel: 'Profile',
-          tabBarIcon: ({ color, size }) => <Feather name="user" color={color} size={20} />,
-        }}
-      />
-    </Tab.Navigator>
+      >
+        <Tab.Screen 
+          name="HomeTab" 
+          component={HomeStack}
+          options={{
+            tabBarLabel: 'Home',
+            tabBarIcon: ({ color, size }) => <Feather name="home" color={color} size={20} />,
+          }}
+        />
+        <Tab.Screen 
+          name="CategoriesTab" 
+          component={CategoriesStack}
+          options={{
+            tabBarLabel: 'Categories',
+            tabBarIcon: ({ color, size }) => <Feather name="grid" color={color} size={20} />,
+          }}
+        />
+        <Tab.Screen 
+          name="FavoritesTab" 
+          component={FavoritesScreen}
+          options={{
+            tabBarLabel: 'Favorites',
+            tabBarIcon: ({ color, size }) => <Feather name="heart" color={color} size={20} />,
+          }}
+        />
+        <Tab.Screen 
+          name="CartTab" 
+          component={CartStack}
+          options={{
+            tabBarLabel: 'Cart',
+            tabBarBadge: cartItemCount > 0 ? cartItemCount : undefined,
+            tabBarBadgeStyle: {
+              backgroundColor: '#0F172A', // slate-900 matching web
+              color: '#FFFFFF',
+              fontSize: 10,
+              fontWeight: '900',
+            },
+            tabBarIcon: ({ color, size }) => <Feather name="shopping-cart" color={color} size={20} />,
+          }}
+        />
+        <Tab.Screen 
+          name="ProfileTab" 
+          component={ProfileStack}
+          options={{
+            tabBarLabel: 'Profile',
+            tabBarIcon: ({ color, size }) => <Feather name="user" color={color} size={20} />,
+          }}
+        />
+      </Tab.Navigator>
+    </View>
   );
 }

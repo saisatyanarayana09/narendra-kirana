@@ -8,6 +8,7 @@ export type GlobalParamList = {
   ProfileTab: { screen?: string; params?: any } | undefined;
 
   MainTabs: undefined;
+  WelcomeScreen: { forceShow?: boolean } | undefined;
   HomeScreen: undefined;
   ProductListScreen: { categoryId?: number | null; categoryName?: string; search?: string } | undefined;
   CategoriesScreen: undefined;

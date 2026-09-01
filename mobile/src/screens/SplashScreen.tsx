@@ -1,24 +1,40 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
-import { theme } from '../constants/theme';
-import { useAuth } from '../context/AuthContext';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated, Image } from 'react-native';
 
 export function SplashScreen() {
-  const fadeAnim = new Animated.Value(0);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 1000,
-      useNativeDriver: true,
-    }).start();
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, []);
 
   return (
     <View style={styles.container}>
-      <Animated.View style={{ opacity: fadeAnim, alignItems: 'center' }}>
-        <Text style={styles.logoText}>Smart Kirana</Text>
-        <Text style={styles.subText}>Premium Groceries</Text>
+      <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
+        <View style={styles.logoBox}>
+          <Image 
+            source={require('../../assets/logo.jpg')} 
+            style={styles.logoImage} 
+            resizeMode="contain" 
+          />
+        </View>
+        <View style={styles.brandRow}>
+          <Text style={styles.brandEmerald}>NARENDRA</Text>
+          <Text style={styles.brandRed}> KIRANA</Text>
+        </View>
+        <Text style={styles.tagline}>Fresh Daily Groceries & Essentials</Text>
       </Animated.View>
     </View>
   );
@@ -27,21 +43,53 @@ export function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  logoText: {
-    color: theme.colors.surface,
-    fontSize: 36,
-    fontWeight: 'bold',
+  content: {
+    alignItems: 'center',
+  },
+  logoBox: {
+    width: 100,
+    height: 100,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  logoImage: {
+    width: 90,
+    height: 90,
+  },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 8,
   },
-  subText: {
-    color: theme.colors.primaryLight,
+  brandEmerald: {
     fontSize: 16,
-    letterSpacing: 2,
+    fontWeight: '900',
+    color: '#064E3B',
+    letterSpacing: 3,
     textTransform: 'uppercase',
   },
+  brandRed: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#DC2626',
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+  },
+  tagline: {
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '500',
+  },
 });
-
