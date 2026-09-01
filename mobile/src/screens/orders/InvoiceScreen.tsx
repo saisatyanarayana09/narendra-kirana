@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system/legacy';
 import { AppNavigationProp } from '../../navigation/types';
 import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
@@ -282,24 +283,68 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
     `;
   };
 
-  // Download / Print PDF Handler
+  // Direct Download PDF Handler with custom filename (e.g. Invoice_ORD-2609-0001.pdf)
   const handleDownloadPdf = async () => {
     if (downloading || !order) return;
 
-    if (Platform.OS === 'web' && typeof window !== 'undefined' && window.print) {
-      window.print();
+    const fileName = `Invoice_${order.id || orderId}.pdf`;
+
+    if (Platform.OS === 'web') {
+      // In web browser, trigger native print / Save as PDF
+      if (typeof window !== 'undefined' && window.print) {
+        window.print();
+      }
       return;
     }
 
     try {
       setDownloading(true);
       const html = generateInvoiceHtml();
-      const { uri } = await Print.printToFileAsync({ html });
-      
+      const { uri, base64 } = await Print.printToFileAsync({ html, base64: true });
+
+      // On Android, attempt direct save to chosen folder via StorageAccessFramework
+      if (Platform.OS === 'android' && FileSystem.StorageAccessFramework) {
+        try {
+          const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+          if (permissions.granted) {
+            const directoryUri = permissions.directoryUri;
+            const newFileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+              directoryUri,
+              fileName,
+              'application/pdf'
+            );
+            if (base64) {
+              await FileSystem.writeAsStringAsync(newFileUri, base64, {
+                encoding: FileSystem.EncodingType.Base64,
+              });
+            } else {
+              const fileContent = await FileSystem.readAsStringAsync(uri, {
+                encoding: FileSystem.EncodingType.Base64,
+              });
+              await FileSystem.writeAsStringAsync(newFileUri, fileContent, {
+                encoding: FileSystem.EncodingType.Base64,
+              });
+            }
+            Alert.alert('Download Complete', `Invoice saved to your storage as ${fileName}`);
+            return;
+          }
+        } catch (safErr) {
+          console.log('SAF prompt dismissed, saving to App Documents and sharing:', safErr);
+        }
+      }
+
+      // Direct copy to documents directory with the exact custom filename
+      const targetUri = `${FileSystem.documentDirectory}${fileName}`;
+      await FileSystem.copyAsync({ from: uri, to: targetUri });
+
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+        await Sharing.shareAsync(targetUri, {
+          mimeType: 'application/pdf',
+          dialogTitle: `Download ${fileName}`,
+          UTI: 'com.adobe.pdf',
+        });
       } else {
-        Alert.alert('Success', `Invoice PDF generated at: ${uri}`);
+        Alert.alert('Download Complete', `Invoice saved as ${fileName}`);
       }
     } catch (err: any) {
       console.error('Error generating PDF:', err);
