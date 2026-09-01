@@ -11,97 +11,132 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
 
   const handleLogout = () => {
     Alert.alert(
-      'Log Out',
-      'Are you sure you want to log out?',
+      'Sign Out',
+      'Are you sure you want to sign out?',
       [
         { text: 'Cancel', style: 'cancel' },
         { 
-          text: 'Log Out', 
+          text: 'Sign Out', 
           style: 'destructive',
           onPress: async () => {
             await logout();
-            // AuthContext handles the redirect
           }
         }
       ]
     );
   };
 
-  const menuItems = [
-    {
-      title: 'My Orders',
-      icon: <Feather name="package" size={22} color={theme.colors.primary} />,
-      onPress: () => navigation.navigate('OrderHistoryScreen'),
+  const cards = [
+    { 
+      name: 'Your Orders', 
+      desc: 'Track, return, or buy things again', 
+      icon: 'package' as const, 
+      color: '#2563EB', // blue-600
+      bg: '#EFF6FF',    // blue-50
+      onPress: () => navigation.navigate('OrderHistoryScreen') 
     },
-    {
-      title: 'Saved Addresses',
-      icon: <Feather name="map-pin" size={22} color={theme.colors.primary} />,
-      onPress: () => navigation.navigate('AddressesScreen'),
+    { 
+      name: 'Digital Wallet', 
+      desc: 'Check your balance and transactions', 
+      icon: 'dollar-sign' as const, 
+      color: '#059669', // emerald-600
+      bg: '#ECFDF5',    // emerald-50
+      onPress: () => navigation.navigate('WalletScreen') 
     },
-    {
-      title: 'My Wallet',
-      icon: <Feather name="briefcase" size={22} color={theme.colors.primary} />,
-      onPress: () => navigation.navigate('WalletScreen'),
+    { 
+      name: 'Refer & Earn', 
+      desc: 'Invite friends, earn real money!', 
+      icon: 'gift' as const, 
+      color: '#0D9488', // teal-600
+      bg: '#F0FDFA',    // teal-50
+      onPress: () => navigation.navigate('ReferAndEarnScreen') 
     },
-    {
-      title: 'Refer & Earn',
-      icon: <Feather name="gift" size={22} color={theme.colors.primary} />,
-      onPress: () => navigation.navigate('ReferAndEarnScreen'),
+    { 
+      name: 'Account Settings', 
+      desc: 'Manage password & personal details', 
+      icon: 'user' as const, 
+      color: '#059669', // primary-600
+      bg: '#ECFDF5',    // primary-50
+      onPress: () => navigation.navigate('AccountSettingsScreen') 
     },
-    {
-      title: 'Notifications',
-      icon: <Feather name="bell" size={22} color={theme.colors.primary} />,
-      onPress: () => navigation.navigate('NotificationsScreen'),
+    { 
+      name: 'Saved Addresses', 
+      desc: 'Edit addresses for quick checkout', 
+      icon: 'map-pin' as const, 
+      color: '#D97706', // amber-600
+      bg: '#FFFBEB',    // amber-50
+      onPress: () => navigation.navigate('AddressesScreen') 
     },
-    {
-      title: 'Account Settings',
-      icon: <Feather name="settings" size={22} color={theme.colors.primary} />,
-      onPress: () => navigation.navigate('AccountSettingsScreen'),
+    { 
+      name: 'Favorites', 
+      desc: 'View your saved products', 
+      icon: 'heart' as const, 
+      color: '#E11D48', // rose-600
+      bg: '#FFF1F2',    // rose-50
+      onPress: () => navigation.navigate('FavoritesTab') 
+    },
+    { 
+      name: 'Notifications', 
+      desc: 'Offers and order updates', 
+      icon: 'bell' as const, 
+      color: '#4F46E5', // indigo-600
+      bg: '#EEF2FF',    // indigo-50
+      onPress: () => navigation.navigate('NotificationsScreen') 
     },
   ];
 
+  const displayName = user?.first_name || user?.username || 'Customer';
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Profile</Text>
-      </View>
-
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-        {/* Profile Card */}
-        <View style={styles.profileCard}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{user?.first_name?.[0] || 'U'}</Text>
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Header matching web DashboardHome */}
+        <View style={styles.headerSection}>
+          <View style={styles.greetingBox}>
+            <Text style={styles.greetingTitle}>Hi, {displayName}!</Text>
+            <Text style={styles.greetingSubtitle}>Manage your account and track your orders.</Text>
           </View>
-          <View style={styles.profileInfo}>
-            <Text style={styles.name}>{user?.first_name} {user?.last_name}</Text>
-            <Text style={styles.email}>{user?.email}</Text>
-          </View>
+          
+          <TouchableOpacity 
+            style={styles.signOutButton}
+            onPress={handleLogout}
+            activeOpacity={0.8}
+          >
+            <Feather name="log-out" size={16} color="#E11D48" />
+            <Text style={styles.signOutText}>Sign Out</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Menu Items */}
-        <View style={styles.menuContainer}>
-          {menuItems.map((item, index) => (
+        {/* Dashboard Cards Grid matching web app */}
+        <View style={styles.cardsGrid}>
+          {cards.map((card, idx) => (
             <TouchableOpacity 
-              key={item.title} 
-              style={[styles.menuItem, index === menuItems.length - 1 && styles.menuItemLast]}
-              onPress={item.onPress}
+              key={idx}
+              style={styles.cardItem}
+              onPress={card.onPress}
+              activeOpacity={0.85}
             >
-              <View style={styles.menuItemLeft}>
-                <View style={styles.iconBox}>{item.icon}</View>
-                <Text style={styles.menuItemTitle}>{item.title}</Text>
+              <View style={styles.cardTopRow}>
+                <View style={[styles.iconContainer, { backgroundColor: card.bg }]}>
+                  <Feather name={card.icon} size={24} color={card.color} />
+                </View>
+                <View style={styles.chevronCircle}>
+                  <Feather name="chevron-right" size={16} color="#94A3B8" />
+                </View>
               </View>
-              <Feather name="chevron-right" size={20} color={theme.colors.textSecondary} />
+
+              <View style={styles.cardBottom}>
+                <Text style={styles.cardTitle}>{card.name}</Text>
+                <Text style={styles.cardDesc} numberOfLines={2}>{card.desc}</Text>
+              </View>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Feather name="log-out" size={20} color={theme.colors.error} />
-          <Text style={styles.logoutText}>Log Out</Text>
-        </TouchableOpacity>
-        
-        <Text style={styles.versionText}>App Version 1.0.0</Text>
+        <Text style={styles.versionText}>Smart Kirana App v1.0.0</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -110,111 +145,102 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F8FAFC', // slate-50 matching web
   },
-  header: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 110,
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: theme.colors.text,
+  headerSection: {
+    marginBottom: 20,
+    marginTop: 8,
   },
-  profileCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing.xl,
-    marginBottom: theme.spacing.md,
+  greetingBox: {
+    marginBottom: 12,
   },
-  avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: theme.colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: theme.spacing.lg,
+  greetingTitle: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#0F172A', // slate-900
+    letterSpacing: -0.5,
   },
-  avatarText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: theme.colors.primaryDark,
-  },
-  profileInfo: {
-    flex: 1,
-  },
-  name: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-    marginBottom: 4,
-  },
-  email: {
+  greetingSubtitle: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
-  },
-  menuContainer: {
-    backgroundColor: theme.colors.surface,
-    marginBottom: theme.spacing.xl,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: theme.spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  menuItemLast: {
-    borderBottomWidth: 0,
-  },
-  menuItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  iconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: theme.colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: theme.spacing.md,
-  },
-  menuItemTitle: {
-    fontSize: 16,
+    color: '#64748B', // slate-500
+    marginTop: 4,
     fontWeight: '500',
-    color: theme.colors.text,
   },
-  logoutButton: {
+  signOutButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing.md,
-    marginHorizontal: theme.spacing.lg,
-    borderRadius: theme.borderRadius.md,
+    gap: 6,
+    backgroundColor: '#FFF1F2', // rose-50
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
     borderWidth: 1,
-    borderColor: theme.colors.error + '50',
-    marginBottom: theme.spacing.lg,
+    borderColor: '#FFE4E6',
   },
-  logoutText: {
+  signOutText: {
+    color: '#E11D48', // rose-600
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  cardsGrid: {
+    gap: 14,
+  },
+  cardItem: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0', // slate-200
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cardTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  chevronCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardBottom: {
+    gap: 2,
+  },
+  cardTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: theme.colors.error,
-    marginLeft: theme.spacing.sm,
+    fontWeight: '800',
+    color: '#0F172A', // slate-900
+  },
+  cardDesc: {
+    fontSize: 13,
+    color: '#64748B', // slate-500
+    fontWeight: '500',
   },
   versionText: {
     textAlign: 'center',
-    color: theme.colors.textSecondary,
+    color: '#94A3B8',
     fontSize: 12,
-    marginBottom: theme.spacing.xl,
+    marginTop: 24,
+    fontWeight: '600',
   },
 });
-
-

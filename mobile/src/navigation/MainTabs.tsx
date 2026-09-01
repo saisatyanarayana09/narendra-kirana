@@ -89,24 +89,33 @@ function ProfileStack() {
   );
 }
 
+import { useCart } from '../context/CartContext';
+
 export function MainTabs() {
+  const { cart } = useCart();
+  const cartItemCount = cart?.items?.length || 0;
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.textSecondary,
+        tabBarActiveTintColor: '#059669', // Emerald-600 matching web
+        tabBarInactiveTintColor: '#64748B', // Slate-500 matching web
         tabBarStyle: {
-          borderTopColor: theme.colors.border,
-          elevation: 0,
-          shadowOpacity: 0,
-          height: 60,
+          backgroundColor: 'rgba(255, 255, 255, 0.98)',
+          borderTopColor: '#E2E8F0',
+          elevation: 4,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.05,
+          shadowRadius: 6,
+          height: 62,
           paddingBottom: 8,
-          paddingTop: 8,
+          paddingTop: 6,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
+          fontSize: 11,
+          fontWeight: '700',
         },
       }}
     >
@@ -115,7 +124,7 @@ export function MainTabs() {
         component={HomeStack}
         options={{
           tabBarLabel: 'Home',
-          tabBarIcon: ({ color, size }) => <Feather name="home" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Feather name="home" color={color} size={20} />,
         }}
       />
       <Tab.Screen 
@@ -123,7 +132,7 @@ export function MainTabs() {
         component={CategoriesStack}
         options={{
           tabBarLabel: 'Categories',
-          tabBarIcon: ({ color, size }) => <Feather name="grid" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Feather name="grid" color={color} size={20} />,
         }}
       />
       <Tab.Screen 
@@ -131,7 +140,7 @@ export function MainTabs() {
         component={FavoritesScreen}
         options={{
           tabBarLabel: 'Favorites',
-          tabBarIcon: ({ color, size }) => <Feather name="heart" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Feather name="heart" color={color} size={20} />,
         }}
       />
       <Tab.Screen 
@@ -139,7 +148,14 @@ export function MainTabs() {
         component={CartStack}
         options={{
           tabBarLabel: 'Cart',
-          tabBarIcon: ({ color, size }) => <Feather name="shopping-cart" color={color} size={size} />,
+          tabBarBadge: cartItemCount > 0 ? cartItemCount : undefined,
+          tabBarBadgeStyle: {
+            backgroundColor: '#0F172A', // slate-900 matching web
+            color: '#FFFFFF',
+            fontSize: 10,
+            fontWeight: '900',
+          },
+          tabBarIcon: ({ color, size }) => <Feather name="shopping-cart" color={color} size={20} />,
         }}
       />
       <Tab.Screen 
@@ -147,7 +163,7 @@ export function MainTabs() {
         component={ProfileStack}
         options={{
           tabBarLabel: 'Profile',
-          tabBarIcon: ({ color, size }) => <Feather name="user" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Feather name="user" color={color} size={20} />,
         }}
       />
     </Tab.Navigator>

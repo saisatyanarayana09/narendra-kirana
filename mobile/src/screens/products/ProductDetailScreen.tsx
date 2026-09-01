@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
     borderTopColor: theme.colors.border,
   },
   addToCartButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#DC2626', // red-600 matching web app
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
