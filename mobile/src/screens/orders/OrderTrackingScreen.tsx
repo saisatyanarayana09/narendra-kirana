@@ -1,10 +1,8 @@
-import { AppNavigationProp } from '../../navigation/types';
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RouteProp } from '@react-navigation/native';
+import { AppNavigationProp } from '../../navigation/types';
 import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
 
@@ -15,12 +13,19 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
 
   useEffect(() => {
     let isMounted = true;
+    let interval: ReturnType<typeof setInterval> | null = null;
 
     const fetchOrderDetails = async () => {
       try {
         const res = await apiClient.get(`/orders/${orderId}/`);
         if (isMounted) {
           setOrder(res.data);
+          if (res.data.status === 'COMPLETED' || res.data.status === 'REJECTED') {
+            if (interval) {
+              clearInterval(interval);
+              interval = null;
+            }
+          }
         }
       } catch (error) {
         console.error('Error fetching order details:', error);
@@ -31,14 +36,14 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
 
     fetchOrderDetails();
     
-    // Poll for updates every 5 seconds
-    const interval = setInterval(() => {
+    // Poll for updates every 5 seconds until completed or rejected
+    interval = setInterval(() => {
       fetchOrderDetails();
     }, 5000);
     
     return () => {
       isMounted = false;
-      clearInterval(interval);
+      if (interval) clearInterval(interval);
     };
   }, [orderId]);
 
@@ -53,34 +58,51 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
   if (!order) {
     return (
       <View style={styles.center}>
-        <Text>Order not found</Text>
+        <Text style={styles.notFoundText}>Order not found</Text>
       </View>
     );
   }
 
-  // Determine progress based on status
-  // Timeline: NEW -> ACCEPTED -> READY -> COMPLETED
+  // 5-Stage Timeline: NEW -> ACCEPTED -> PREPARING -> READY -> COMPLETED
   // (REJECTED is a separate failure track)
+  const isDelivery = order.order_type === 'DELIVERY';
   
   const stages = [
     { id: 'NEW', title: 'Order Placed', subtitle: 'We have received your order' },
     { id: 'ACCEPTED', title: 'Order Accepted', subtitle: 'Store has confirmed your order' },
-    { id: 'READY', title: order.order_type === 'DELIVERY' ? 'Out for Delivery' : 'Ready for Pickup', subtitle: order.order_type === 'DELIVERY' ? 'Rider is on the way' : 'Your order is packed and ready' },
-    { id: 'COMPLETED', title: 'Delivered', subtitle: 'Enjoy your groceries!' },
+    { id: 'PREPARING', title: 'Preparing Order', subtitle: 'Store is packing your items' },
+    { 
+      id: 'READY', 
+      title: isDelivery ? 'Out for Delivery' : 'Ready for Pickup', 
+      subtitle: isDelivery ? 'Rider is on the way' : 'Your order is packed and ready' 
+    },
+    { 
+      id: 'COMPLETED', 
+      title: isDelivery ? 'Delivered' : 'Picked Up', 
+      subtitle: isDelivery ? 'Enjoy your groceries!' : 'Order handed over successfully' 
+    },
   ];
   
   const getStageIndex = (status: string) => {
     switch(status) {
       case 'NEW': return 0;
       case 'ACCEPTED': return 1;
-      case 'READY': return 2;
-      case 'COMPLETED': return 3;
+      case 'PREPARING': return 2;
+      case 'READY': return 3;
+      case 'COMPLETED': return 4;
       default: return -1;
     }
   };
 
   const currentIndex = getStageIndex(order.status);
   const isRejected = order.status === 'REJECTED';
+
+  const activeSubtotal = (order.items || [])
+    .filter((i: any) => i.status !== 'REJECTED')
+    .reduce((sum: number, item: any) => {
+      const itemPrice = parseFloat(item.subtotal || item.price_snapshot || item.price_at_order || '0');
+      return sum + itemPrice;
+    }, 0);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -106,7 +128,6 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
             <View style={styles.timeline}>
               {stages.map((stage, index) => {
                 const isCompleted = index <= currentIndex;
-                const isCurrent = index === currentIndex;
                 const isLast = index === stages.length - 1;
                 
                 return (
@@ -118,7 +139,7 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
                         <Feather name="circle" size={24} color={theme.colors.border} />
                       )}
                       {!isLast && (
-                        <View style={[styles.timelineLine, isCompleted && styles.timelineLineActive]} />
+                        <View style={[styles.timelineLine, isCompleted && index < currentIndex && styles.timelineLineActive]} />
                       )}
                     </View>
                     <View style={styles.timelineContent}>
@@ -134,27 +155,34 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
           )}
         </View>
 
-        {/* Order Details */}
+        {/* Delivery / Pickup Details */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Delivery Details</Text>
+          <Text style={styles.sectionTitle}>
+            {isDelivery ? 'Delivery Details' : 'Pickup Details'}
+          </Text>
           
           <View style={styles.detailRow}>
             <View style={styles.iconBox}>
-              {order.order_type === 'DELIVERY' ? (
+              {isDelivery ? (
                 <Feather name="map-pin" size={20} color={theme.colors.primary} />
               ) : (
                 <Feather name="shopping-bag" size={20} color={theme.colors.primary} />
               )}
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.detailLabel}>{order.order_type === 'DELIVERY' ? 'Delivery Address' : 'Pickup From'}</Text>
-              <Text style={styles.detailValue}>
-                {order.order_type === 'DELIVERY' ? order.delivery_address : 'Main Road, Kirana Market'}
+              <Text style={styles.detailLabel}>
+                {isDelivery ? 'Delivery Address' : 'Pickup From'}
               </Text>
+              <Text style={styles.detailValue}>
+                {isDelivery ? (order.delivery_address || 'Address not specified') : 'Main Road, Kirana Market'}
+              </Text>
+              {isDelivery && order.delivery_pincode ? (
+                <Text style={styles.pincodeText}>Pincode: {order.delivery_pincode}</Text>
+              ) : null}
             </View>
           </View>
           
-          {order.order_type === 'PICKUP' && order.pickup_time && (
+          {!isDelivery && order.pickup_time ? (
             <View style={styles.detailRow}>
               <View style={styles.iconBox}>
                 <Feather name="clock" size={20} color={theme.colors.primary} />
@@ -164,25 +192,137 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
                 <Text style={styles.detailValue}>{order.pickup_time}</Text>
               </View>
             </View>
-          )}
+          ) : null}
         </View>
+
+        {/* Order Notes */}
+        {(order.customer_note || order.owner_note) ? (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Order Notes</Text>
+            {order.customer_note ? (
+              <View style={styles.customerNoteBox}>
+                <View style={styles.noteHeader}>
+                  <Feather name="message-square" size={14} color="#D97706" />
+                  <Text style={styles.customerNoteTitle}>Note from You</Text>
+                </View>
+                <Text style={styles.noteContent}>{order.customer_note}</Text>
+              </View>
+            ) : null}
+            {order.owner_note ? (
+              <View style={[styles.ownerNoteBox, order.customer_note ? { marginTop: 10 } : null]}>
+                <View style={styles.noteHeader}>
+                  <Feather name="message-circle" size={14} color="#2563EB" />
+                  <Text style={styles.ownerNoteTitle}>Note from Store</Text>
+                </View>
+                <Text style={styles.noteContent}>{order.owner_note}</Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
 
         {/* Items */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Items ({order.items.length})</Text>
-          {order.items.map((item: any) => (
-            <View key={item.id} style={styles.itemRow}>
-              <Text style={styles.itemQuantity}>{item.quantity} x</Text>
-              <Text style={styles.itemName} numberOfLines={1}>{item.product_name}</Text>
-              <Text style={styles.itemPrice}>₹{item.price_at_order}</Text>
-            </View>
-          ))}
-          
-          <View style={styles.divider} />
+          <Text style={styles.sectionTitle}>Items ({order.items?.length || 0})</Text>
+          {order.items?.map((item: any) => {
+            const isItemRejected = item.status === 'REJECTED';
+            const itemName = item.product_name_snapshot || item.product_name || 'Product';
+            const itemUnit = item.unit_snapshot;
+            const itemSubtotal = item.subtotal || item.price_snapshot || item.price_at_order || '0';
+
+            return (
+              <View key={item.id} style={styles.itemRow}>
+                <Text style={[styles.itemQuantity, isItemRejected && styles.strikethroughText]}>
+                  {item.quantity} x
+                </Text>
+                <View style={styles.itemInfo}>
+                  <View style={styles.itemNameRow}>
+                    <Text style={[styles.itemName, isItemRejected && styles.strikethroughText]} numberOfLines={2}>
+                      {itemName}
+                    </Text>
+                    {isItemRejected && (
+                      <View style={styles.unavailableTag}>
+                        <Text style={styles.unavailableTagText}>Unavailable</Text>
+                      </View>
+                    )}
+                  </View>
+                  {itemUnit ? (
+                    <Text style={[styles.itemUnit, isItemRejected && styles.strikethroughMuted]}>
+                      {itemUnit}
+                    </Text>
+                  ) : null}
+                </View>
+                <Text style={[styles.itemPrice, isItemRejected && styles.strikethroughText]}>
+                  {isItemRejected ? '₹0.00' : `₹${parseFloat(itemSubtotal).toFixed(2)}`}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+
+        {/* Full Billing Breakdown matching Web App */}
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Bill Details</Text>
           
           <View style={styles.billRow}>
-            <Text style={styles.billLabel}>Item Total</Text>
-            <Text style={styles.billValue}>₹{order.total_amount}</Text>
+            <Text style={styles.billLabel}>Subtotal</Text>
+            <Text style={styles.billValue}>₹{activeSubtotal.toFixed(2)}</Text>
+          </View>
+
+          {parseFloat(order.discount_applied || '0') > 0 && (
+            <View style={styles.billRow}>
+              <Text style={styles.savingsLabel}>Savings</Text>
+              <Text style={styles.savingsValue}>-₹{parseFloat(order.discount_applied).toFixed(2)}</Text>
+            </View>
+          )}
+
+          {parseFloat(order.promo_discount || '0') > 0 && (
+            <View style={styles.billRow}>
+              <Text style={styles.savingsLabel}>Promo Discount</Text>
+              <Text style={styles.savingsValue}>-₹{parseFloat(order.promo_discount).toFixed(2)}</Text>
+            </View>
+          )}
+
+          {parseFloat(order.packaging_fee || '0') > 0 && (
+            <View style={styles.billRow}>
+              <Text style={styles.billLabel}>Packaging Fee</Text>
+              <Text style={styles.billValue}>₹{parseFloat(order.packaging_fee).toFixed(2)}</Text>
+            </View>
+          )}
+
+          {isDelivery && (
+            <View style={styles.billRow}>
+              <Text style={styles.billLabel}>Delivery Fee</Text>
+              <Text style={parseFloat(order.delivery_fee || '0') > 0 ? styles.billValue : styles.freeText}>
+                {parseFloat(order.delivery_fee || '0') > 0 ? `₹${parseFloat(order.delivery_fee).toFixed(2)}` : 'FREE'}
+              </Text>
+            </View>
+          )}
+
+          {parseFloat(order.wallet_discount || '0') > 0 && (
+            <View style={styles.billRow}>
+              <Text style={styles.savingsLabel}>Wallet Applied</Text>
+              <Text style={styles.savingsValue}>-₹{parseFloat(order.wallet_discount).toFixed(2)}</Text>
+            </View>
+          )}
+
+          <View style={styles.billRow}>
+            <Text style={styles.billLabel}>Payment Method</Text>
+            <Text style={styles.paymentMethodValue}>
+              {parseFloat(order.total_amount || '0') === 0 
+                ? 'Wallet Full' 
+                : (parseFloat(order.wallet_discount || '0') > 0 
+                    ? 'Hybrid (Wallet + Cash)' 
+                    : (isDelivery ? 'Cash on Delivery' : 'Cash at Store'))}
+            </Text>
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>
+              {order.status === 'COMPLETED' ? 'Total Paid' : 'Total Amount'}
+            </Text>
+            <Text style={styles.totalValue}>₹{parseFloat(order.total_amount || '0').toFixed(2)}</Text>
           </View>
         </View>
 
@@ -217,6 +357,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  notFoundText: {
+    fontSize: 16,
+    color: theme.colors.textSecondary,
   },
   scrollContent: {
     padding: theme.spacing.md,
@@ -282,16 +426,16 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   rejectedBox: {
-    backgroundColor: theme.colors.error + '10',
+    backgroundColor: '#FFF1F2',
     padding: theme.spacing.md,
     borderRadius: theme.borderRadius.sm,
     borderWidth: 1,
-    borderColor: theme.colors.error + '50',
+    borderColor: '#FECDD3',
   },
   rejectedTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: theme.colors.error,
+    color: '#BE123C',
     marginBottom: 4,
   },
   rejectedSubtitle: {
@@ -322,28 +466,111 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     lineHeight: 20,
   },
+  pincodeText: {
+    fontSize: 12,
+    color: theme.colors.primary,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  customerNoteBox: {
+    backgroundColor: '#FFFBEB',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  ownerNoteBox: {
+    backgroundColor: '#EFF6FF',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  noteHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  customerNoteTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#B45309',
+    textTransform: 'uppercase',
+  },
+  ownerNoteTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#1D4ED8',
+    textTransform: 'uppercase',
+  },
+  noteContent: {
+    fontSize: 13,
+    color: theme.colors.text,
+    lineHeight: 18,
+  },
   itemRow: {
     flexDirection: 'row',
     marginBottom: theme.spacing.md,
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
   itemQuantity: {
     width: 32,
     fontSize: 14,
     fontWeight: '600',
     color: theme.colors.primary,
+    marginTop: 1,
+  },
+  itemInfo: {
+    flex: 1,
+    marginRight: 8,
+  },
+  itemNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
   },
   itemName: {
-    flex: 1,
     fontSize: 14,
     color: theme.colors.text,
+    fontWeight: '500',
+  },
+  itemUnit: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
+  },
+  unavailableTag: {
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  unavailableTagText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#BE123C',
+    textTransform: 'uppercase',
   },
   itemPrice: {
     fontSize: 14,
     fontWeight: '600',
     color: theme.colors.text,
-    width: 60,
+    minWidth: 65,
     textAlign: 'right',
+    marginTop: 1,
+  },
+  strikethroughText: {
+    textDecorationLine: 'line-through',
+    color: theme.colors.textSecondary,
+    opacity: 0.6,
+  },
+  strikethroughMuted: {
+    color: theme.colors.border,
+    opacity: 0.6,
   },
   divider: {
     height: 1,
@@ -354,17 +581,53 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 10,
   },
   billLabel: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+  },
+  billValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.text,
+  },
+  savingsLabel: {
+    fontSize: 14,
+    color: '#059669',
+  },
+  savingsValue: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#059669',
+  },
+  freeText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#059669',
+  },
+  paymentMethodValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: theme.colors.text,
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 4,
+  },
+  totalLabel: {
     fontSize: 16,
     fontWeight: 'bold',
     color: theme.colors.text,
   },
-  billValue: {
+  totalValue: {
     fontSize: 18,
     fontWeight: '900',
     color: theme.colors.text,
   },
 });
+
 
 

@@ -1,7 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, Text } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { theme } from '../constants/theme';
 
@@ -10,6 +9,20 @@ import { CategoriesScreen } from '../screens/categories/CategoriesScreen';
 import { ProductListScreen } from '../screens/products/ProductListScreen';
 import { ProductDetailScreen } from '../screens/products/ProductDetailScreen';
 import { SearchScreen } from '../screens/products/SearchScreen';
+import { FavoritesScreen } from '../screens/favorites/FavoritesScreen';
+
+import { CartScreen } from '../screens/cart/CartScreen';
+import { CheckoutScreen } from '../screens/cart/CheckoutScreen';
+import { OrderSuccessScreen } from '../screens/orders/OrderSuccessScreen';
+import { OrderHistoryScreen } from '../screens/orders/OrderHistoryScreen';
+import { OrderTrackingScreen } from '../screens/orders/OrderTrackingScreen';
+import { AddAddressScreen } from '../screens/profile/AddAddressScreen';
+import { AddressesScreen } from '../screens/profile/AddressesScreen';
+import { WalletScreen } from '../screens/profile/WalletScreen';
+import { ReferAndEarnScreen } from '../screens/profile/ReferAndEarnScreen';
+import { ProfileScreen } from '../screens/profile/ProfileScreen';
+import { AccountSettingsScreen } from '../screens/profile/AccountSettingsScreen';
+import { NotificationsScreen } from '../screens/profile/NotificationsScreen';
 
 export type MainTabParamList = {
   HomeTab: undefined;
@@ -43,34 +56,17 @@ function CategoriesStack() {
   );
 }
 
-import { CartScreen } from '../screens/cart/CartScreen';
-import { CheckoutScreen } from '../screens/cart/CheckoutScreen';
-import { OrderSuccessScreen } from '../screens/orders/OrderSuccessScreen';
-
-
 function CartStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="CartScreen" component={CartScreen} />
       <Stack.Screen name="CheckoutScreen" component={CheckoutScreen} />
       <Stack.Screen name="OrderSuccessScreen" component={OrderSuccessScreen} />
+      <Stack.Screen name="OrderTrackingScreen" component={OrderTrackingScreen} />
       <Stack.Screen name="AddAddressScreen" component={AddAddressScreen} />
     </Stack.Navigator>
   );
 }
-
-import { OrderHistoryScreen } from '../screens/orders/OrderHistoryScreen';
-import { OrderTrackingScreen } from '../screens/orders/OrderTrackingScreen';
-
-import { ProfileScreen } from '../screens/profile/ProfileScreen';
-import { AddressesScreen } from '../screens/profile/AddressesScreen';
-
-import { WalletScreen } from '../screens/profile/WalletScreen';
-import { ReferAndEarnScreen } from '../screens/profile/ReferAndEarnScreen';
-
-// Placeholders for remaining Profile screens
-import { AccountSettingsScreen } from '../screens/profile/AccountSettingsScreen';
-import { NotificationsScreen } from '../screens/profile/NotificationsScreen';
 
 function ProfileStack() {
   return (
@@ -87,15 +83,6 @@ function ProfileStack() {
     </Stack.Navigator>
   );
 }
-
-// Placeholders for pending screens
-const DummyScreen = ({ name }: { name: string }) => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-    <Text>{name}</Text>
-  </View>
-);
-
-import { FavoritesScreen } from '../screens/favorites/FavoritesScreen';
 
 export function MainTabs() {
   return (
@@ -161,5 +148,3 @@ export function MainTabs() {
     </Tab.Navigator>
   );
 }
-import { AddAddressScreen } from '../screens/profile/AddAddressScreen';
-

@@ -9,6 +9,8 @@ import { apiClient } from '../../api/client';
 export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationProp }) {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
@@ -16,38 +18,68 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
     fetchOrders(1);
   }, []);
 
-  const fetchOrders = async (pageNum: number) => {
+  const fetchOrders = async (pageNum: number, isRefresh = false, isLoadMore = false) => {
+    if (isLoadMore) {
+      if (loadingMore || !hasMore || loading || refreshing) return;
+      setLoadingMore(true);
+    } else if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
     try {
       const res = await apiClient.get(`/orders/?page=${pageNum}`);
+      const newOrders = res.data.results || res.data || [];
       
       if (pageNum === 1) {
-        setOrders(res.data.results || res.data);
+        setOrders(newOrders);
       } else {
-        setOrders(prev => [...prev, ...(res.data.results || [])]);
+        setOrders(prev => {
+          const existingIds = new Set(prev.map(o => String(o.id)));
+          const uniqueNew = newOrders.filter((o: any) => !existingIds.has(String(o.id)));
+          return [...prev, ...uniqueNew];
+        });
       }
       
-      setHasMore(res.data.next !== null);
+      setHasMore(Boolean(res.data.next));
+      setPage(pageNum);
     } catch (error) {
       console.error('Error fetching orders:', error);
     } finally {
+      if (isLoadMore) setLoadingMore(false);
+      if (isRefresh) setRefreshing(false);
       setLoading(false);
     }
   };
 
-  const loadMore = () => {
-    if (hasMore && !loading) {
-      const nextPage = page + 1;
-      setPage(nextPage);
-      fetchOrders(nextPage);
+  const handleRefresh = () => {
+    setPage(1);
+    fetchOrders(1, true, false);
+  };
+
+  const handleLoadMore = () => {
+    if (hasMore && !loading && !refreshing && !loadingMore) {
+      fetchOrders(page + 1, false, true);
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusStyle = (status: string) => {
     switch (status) {
-      case 'COMPLETED': return theme.colors.success;
-      case 'REJECTED': return theme.colors.error;
-      case 'NEW': return '#3B82F6'; // Blue
-      default: return '#F59E0B'; // Orange/Yellow
+      case 'COMPLETED':
+        return { bg: '#ECFDF5', text: '#047857', border: '#A7F3D0' };
+      case 'REJECTED':
+        return { bg: '#FFF1F2', text: '#BE123C', border: '#FECDD3' };
+      case 'READY':
+        return { bg: '#EFF6FF', text: '#1D4ED8', border: '#BFDBFE' };
+      case 'PREPARING':
+        return { bg: '#FFFBEB', text: '#B45309', border: '#FDE68A' };
+      case 'ACCEPTED':
+        return { bg: '#F0FDF4', text: '#15803D', border: '#BBF7D0' };
+      case 'NEW':
+        return { bg: '#EEF2FF', text: '#4338CA', border: '#C7D2FE' };
+      default:
+        return { bg: '#F8FAFC', text: '#475569', border: '#E2E8F0' };
     }
   };
 
@@ -59,7 +91,7 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
     });
   };
 
-  if (loading && page === 1) {
+  if (loading && page === 1 && !refreshing) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -85,61 +117,64 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
       ) : (
         <FlatList
           data={orders}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.listContainer}
-          refreshing={loading && page === 1}
-          onRefresh={() => { setPage(1); fetchOrders(1); }}
-          renderItem={({ item }) => (
-            <TouchableOpacity 
-              style={styles.orderCard}
-              onPress={() => navigation.navigate('OrderTrackingScreen', { orderId: item.id })}
-            >
-              <View style={styles.cardHeader}>
-                <View>
-                  <Text style={styles.orderId}>Order #{item.id}</Text>
-                  <Text style={styles.orderDate}>{formatDate(item.created_at)}</Text>
-                </View>
-                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
-                  <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-                    {item.status}
-                  </Text>
-                </View>
-              </View>
-              
-              <View style={styles.divider} />
-              
-              <View style={styles.cardBody}>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Items:</Text>
-                  <Text style={styles.infoValue}>{item.items.length} items</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Total:</Text>
-                  <Text style={styles.priceValue}>₹{item.total_amount}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Type:</Text>
-                  <View style={styles.typeBadge}>
-                    {item.order_type === 'DELIVERY' ? (
-                      <Feather name="map-pin" size={12} color={theme.colors.textSecondary} />
-                    ) : (
-                      <Feather name="clock" size={12} color={theme.colors.textSecondary} />
-                    )}
-                    <Text style={styles.typeText}>{item.order_type}</Text>
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          renderItem={({ item }) => {
+            const statusStyle = getStatusStyle(item.status);
+            return (
+              <TouchableOpacity 
+                style={styles.orderCard}
+                onPress={() => navigation.navigate('OrderTrackingScreen', { orderId: item.id })}
+              >
+                <View style={styles.cardHeader}>
+                  <View>
+                    <Text style={styles.orderId}>Order #{item.id}</Text>
+                    <Text style={styles.orderDate}>{formatDate(item.created_at)}</Text>
+                  </View>
+                  <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg, borderColor: statusStyle.border }]}>
+                    <Text style={[styles.statusText, { color: statusStyle.text }]}>
+                      {item.status}
+                    </Text>
                   </View>
                 </View>
-              </View>
+                
+                <View style={styles.divider} />
+                
+                <View style={styles.cardBody}>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Items:</Text>
+                    <Text style={styles.infoValue}>{item.items?.length || 0} items</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Total:</Text>
+                    <Text style={styles.priceValue}>₹{item.total_amount}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Type:</Text>
+                    <View style={styles.typeBadge}>
+                      {item.order_type === 'DELIVERY' ? (
+                        <Feather name="map-pin" size={12} color={theme.colors.textSecondary} />
+                      ) : (
+                        <Feather name="clock" size={12} color={theme.colors.textSecondary} />
+                      )}
+                      <Text style={styles.typeText}>{item.order_type}</Text>
+                    </View>
+                  </View>
+                </View>
 
-              <View style={styles.cardFooter}>
-                <Text style={styles.footerText}>View Details</Text>
-                <Feather name="chevron-right" size={16} color={theme.colors.primary} />
-              </View>
-            </TouchableOpacity>
-          )}
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.5}
+                <View style={styles.cardFooter}>
+                  <Text style={styles.footerText}>View Details</Text>
+                  <Feather name="chevron-right" size={16} color={theme.colors.primary} />
+                </View>
+              </TouchableOpacity>
+            );
+          }}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.4}
           ListFooterComponent={() => 
-            hasMore && page > 1 ? (
+            loadingMore ? (
               <ActivityIndicator style={{ margin: 20 }} color={theme.colors.primary} />
             ) : null
           }
@@ -224,7 +259,8 @@ const styles = StyleSheet.create({
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 4,
+    borderRadius: 6,
+    borderWidth: 1,
   },
   statusText: {
     fontSize: 10,

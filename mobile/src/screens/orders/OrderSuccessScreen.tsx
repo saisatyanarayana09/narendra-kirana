@@ -11,6 +11,14 @@ type Props = { navigation: AppNavigationProp; route: any; };
 export function OrderSuccessScreen({ navigation, route }: Props) {
   const { orderId } = route.params || {};
 
+  const handleTrackOrder = () => {
+    if (orderId) {
+      navigation.navigate('OrderTrackingScreen', { orderId });
+    } else {
+      navigation.navigate('ProfileTab', { screen: 'OrderHistoryScreen' });
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
@@ -30,7 +38,7 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
         
         <TouchableOpacity 
           style={styles.secondaryButton}
-          onPress={() => navigation.navigate('ProfileTab', { screen: 'OrderHistoryScreen' })}
+          onPress={handleTrackOrder}
         >
           <Text style={styles.secondaryButtonText}>Track Order</Text>
         </TouchableOpacity>
