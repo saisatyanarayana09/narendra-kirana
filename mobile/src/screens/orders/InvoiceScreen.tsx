@@ -20,6 +20,9 @@ import { AppNavigationProp } from '../../navigation/types';
 import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
 import { fixImageUrl } from '../../utils/image';
+import { getItem, saveItem, deleteItem } from '../../utils/storage';
+
+const SAVED_DOWNLOAD_DIR_KEY = 'SAVED_SAF_INVOICE_DOWNLOAD_DIR';
 
 export function InvoiceScreen({ navigation, route }: { navigation: AppNavigationProp, route: any }) {
   const { orderId } = route.params || {};
@@ -310,12 +313,52 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
       // On Android, attempt direct save to chosen folder via StorageAccessFramework
       if (Platform.OS === 'android' && FileSystem.StorageAccessFramework) {
         try {
-          const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+          const cleanFileName = fileName.replace(/\.pdf$/i, '');
+          let directoryUri = await getItem(SAVED_DOWNLOAD_DIR_KEY);
+
+          // 1. If folder permission was already granted previously, save directly without prompting!
+          if (directoryUri) {
+            try {
+              const newFileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+                directoryUri,
+                cleanFileName,
+                'application/pdf'
+              );
+              if (base64) {
+                await FileSystem.writeAsStringAsync(newFileUri, base64, {
+                  encoding: FileSystem.EncodingType.Base64,
+                });
+              } else {
+                const fileContent = await FileSystem.readAsStringAsync(uri, {
+                  encoding: FileSystem.EncodingType.Base64,
+                });
+                await FileSystem.writeAsStringAsync(newFileUri, fileContent, {
+                  encoding: FileSystem.EncodingType.Base64,
+                });
+              }
+              Alert.alert('Download Complete', `Invoice saved directly to your device as ${fileName}`);
+              return;
+            } catch (existingDirErr) {
+              console.log('Previously remembered directory invalid or revoked, re-prompting:', existingDirErr);
+              await deleteItem(SAVED_DOWNLOAD_DIR_KEY);
+              directoryUri = null;
+            }
+          }
+
+          // 2. First-time only: request directory permission with Downloads pre-selected
+          let initialDir: string | undefined;
+          try {
+            initialDir = FileSystem.StorageAccessFramework.getUriForDirectoryInRoot('Download');
+          } catch {}
+
+          const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync(initialDir);
           if (permissions.granted) {
-            const directoryUri = permissions.directoryUri;
+            directoryUri = permissions.directoryUri;
+            await saveItem(SAVED_DOWNLOAD_DIR_KEY, directoryUri);
+
             const newFileUri = await FileSystem.StorageAccessFramework.createFileAsync(
               directoryUri,
-              fileName,
+              cleanFileName,
               'application/pdf'
             );
             if (base64) {
@@ -330,11 +373,11 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
                 encoding: FileSystem.EncodingType.Base64,
               });
             }
-            Alert.alert('Download Complete', `Invoice saved to your storage as ${fileName}`);
+            Alert.alert('Download Complete', `Invoice saved directly to your device as ${fileName}`);
             return;
           }
         } catch (safErr) {
-          console.log('SAF prompt dismissed, saving to App Documents and sharing:', safErr);
+          console.log('SAF prompt dismissed or error, saving to App Documents and sharing:', safErr);
         }
       }
 
