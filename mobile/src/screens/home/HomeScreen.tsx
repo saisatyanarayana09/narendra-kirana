@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, FlatList , Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, FlatList, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -105,20 +105,34 @@ export function HomeScreen({ navigation }: Props) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} />}
       >
         {/* Banners */}
-        {banners.length > 0 && (
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.bannersContainer}
-            snapToInterval={width - 24}
-            decelerationRate="fast"
-          >
-            {banners.map((banner: any) => (
-              <TouchableOpacity key={banner.id} style={styles.banner}>
-                <Image source={{ uri: fixImageUrl(banner.image) || '' }} style={styles.bannerImage} />
+        {banners.length > 0 ? (
+          <View>
+            <FlatList
+              data={banners}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              pagingEnabled
+              snapToInterval={width - 24 + 12} // banner width + margin
+              decelerationRate="fast"
+              contentContainerStyle={styles.bannersContainer}
+              keyExtractor={(item: any) => item.id.toString()}
+              renderItem={({ item }) => (
+                <TouchableOpacity style={styles.banner}>
+                  <Image source={{ uri: fixImageUrl(item.image) || '' }} style={styles.bannerImage} />
+                </TouchableOpacity>
+              )}
+            />
+            {/* Dots would require onScroll tracking, skipping complex state for now and keeping it simple as we did not add activeIndex state */}
+          </View>
+        ) : (
+          <View style={styles.fallbackBanner}>
+            <View style={styles.fallbackBannerContent}>
+              <Text style={styles.fallbackBannerTitle}>Fresh Groceries,{'\n'}Delivered Fast ⚡</Text>
+              <TouchableOpacity style={styles.fallbackBannerButton} onPress={() => navigation.navigate('CategoriesTab', { screen: 'CategoriesScreen' })}>
+                <Text style={styles.fallbackBannerButtonText}>Explore Catalog</Text>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
+            </View>
+          </View>
         )}
 
         {/* Categories */}
@@ -244,6 +258,42 @@ const styles = StyleSheet.create({
   bannerImage: {
     width: '100%',
     height: '100%',
+  },
+  fallbackBanner: {
+    backgroundColor: '#065f46',
+    marginHorizontal: theme.spacing.md,
+    marginBottom: theme.spacing.xl,
+    borderRadius: 16,
+    height: 160,
+    justifyContent: 'center',
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  fallbackBannerContent: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  fallbackBannerTitle: {
+    color: '#FFF',
+    fontSize: 24,
+    fontWeight: '900',
+    marginBottom: 16,
+  },
+  fallbackBannerButton: {
+    backgroundColor: '#FFF',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 9999,
+    alignSelf: 'flex-start',
+  },
+  fallbackBannerButtonText: {
+    color: '#065f46',
+    fontWeight: '800',
+    fontSize: 14,
   },
   section: {
     marginTop: theme.spacing.lg,

@@ -24,7 +24,7 @@ export function CartScreen({ navigation }: any) {
         </View>
         <View style={styles.emptyContent}>
           <View style={styles.emptyIconCircle}>
-            <Feather name="shopping-bag" size={48} color={theme.colors.primary} />
+            <Feather name="shopping-cart" size={48} color={theme.colors.textSecondary} />
           </View>
           <Text style={styles.emptyTitle}>Your cart is empty</Text>
           <Text style={styles.emptySubtitle}>Looks like you haven't added any groceries yet.</Text>
@@ -109,7 +109,7 @@ export function CartScreen({ navigation }: any) {
           <Text style={styles.billTitle}>Bill Details</Text>
           
           <View style={styles.billRow}>
-            <Text style={styles.billLabel}>Item Total</Text>
+            <Text style={styles.billLabel}>Item Total Due</Text>
             <Text style={styles.billValue}>₹{cart.subtotal}</Text>
           </View>
           
@@ -142,7 +142,7 @@ export function CartScreen({ navigation }: any) {
       {/* Bottom Bar */}
       <View style={styles.bottomBar}>
         <View>
-          <Text style={styles.bottomTotalLabel}>Total</Text>
+          <Text style={styles.bottomTotalLabel}>Total Due</Text>
           <Text style={styles.bottomTotalValue}>₹{cart.total}</Text>
         </View>
         <TouchableOpacity 
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     marginRight: theme.spacing.sm,
   },
   badge: {
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: '#F8FAFC',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 12,
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: '#F8FAFC',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: theme.spacing.lg,
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     paddingHorizontal: theme.spacing.xl,
     paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: 16,
   },
   browseButtonText: {
     color: theme.colors.surface,
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: '#F8FAFC',
     padding: theme.spacing.md,
     borderRadius: theme.borderRadius.md,
     borderWidth: 1,
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   },
   billSection: {
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: 16,
     padding: theme.spacing.lg,
     borderWidth: 1,
     borderColor: theme.colors.border,
@@ -350,7 +350,10 @@ const styles = StyleSheet.create({
     borderTopColor: theme.colors.border,
   },
   bottomTotalLabel: {
-    fontSize: 12,
+    fontSize: 10,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
     color: theme.colors.textSecondary,
   },
   bottomTotalValue: {
@@ -362,7 +365,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     paddingHorizontal: theme.spacing.xl,
     paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: 16,
     minWidth: 180,
     alignItems: 'center',
   },

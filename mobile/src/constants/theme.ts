@@ -10,6 +10,9 @@ export const theme = {
     error: '#EF4444',
     success: '#10B981',
     border: '#E2E8F0',       // Slate-200
+    action: '#DC2626',       // Red-600
+    indigo: '#4F46E5',       // Indigo-600
+    indigoLight: '#EEF2FF',  // Indigo-50
   },
   spacing: { 
     xs: 4, 

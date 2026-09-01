@@ -59,7 +59,7 @@ export function CartItemCard({ item, onUpdateQuantity, onRemove, isLoading }: Pr
         onPress={() => onRemove(item.id)}
         disabled={isLoading}
       >
-        <Feather name="trash-2" size={20} color={theme.colors.error} />
+        <Feather name="trash-2" size={20} color={theme.colors.textSecondary} />
       </TouchableOpacity>
     </View>
   );

@@ -20,7 +20,7 @@ export function QuantitySelector({ quantity, onIncrease, onDecrease, isLoading =
         onPress={onDecrease}
         disabled={isLoading}
       >
-        <Feather name="minus" size={16} color={theme.colors.primary} />
+        <Feather name="minus" size={16} color={theme.colors.textSecondary} />
       </TouchableOpacity>
       
       <Text style={styles.quantity}>{quantity}</Text>
@@ -30,7 +30,7 @@ export function QuantitySelector({ quantity, onIncrease, onDecrease, isLoading =
         onPress={onIncrease}
         disabled={isLoading}
       >
-        <Feather name="plus" size={16} color={theme.colors.primary} />
+        <Feather name="plus" size={16} color={theme.colors.textSecondary} />
       </TouchableOpacity>
     </View>
   );
@@ -40,7 +40,9 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     borderRadius: theme.borderRadius.md,
     height: 44,
   },
@@ -53,7 +55,7 @@ const styles = StyleSheet.create({
   quantity: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: theme.colors.primaryDark,
+    color: theme.colors.text,
     minWidth: 20,
     textAlign: 'center',
   },

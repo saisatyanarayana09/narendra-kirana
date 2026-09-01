@@ -111,18 +111,18 @@ export function CheckoutScreen({ navigation }: any) {
         {/* Order Type Selection */}
         <View style={styles.typeSelector}>
           <TouchableOpacity 
-            style={[styles.typeButton, orderType === 'DELIVERY' && styles.typeButtonActive]}
+            style={[styles.typeButton, orderType === 'DELIVERY' && styles.typeButtonActiveDelivery]}
             onPress={() => setOrderType('DELIVERY')}
           >
-            <Feather name="map-pin" color={orderType === 'DELIVERY' ? theme.colors.primary : theme.colors.textSecondary} size={20} />
-            <Text style={[styles.typeText, orderType === 'DELIVERY' && styles.typeTextActive]}>Delivery</Text>
+            <Feather name="map-pin" color={orderType === 'DELIVERY' ? theme.colors.indigo : theme.colors.textSecondary} size={16} />
+            <Text style={[styles.typeText, orderType === 'DELIVERY' && styles.typeTextActiveDelivery]}>Home Delivery</Text>
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.typeButton, orderType === 'PICKUP' && styles.typeButtonActive]}
+            style={[styles.typeButton, orderType === 'PICKUP' && styles.typeButtonActivePickup]}
             onPress={() => setOrderType('PICKUP')}
           >
-            <Feather name="shopping-bag" color={orderType === 'PICKUP' ? theme.colors.primary : theme.colors.textSecondary} size={20} />
-            <Text style={[styles.typeText, orderType === 'PICKUP' && styles.typeTextActive]}>Store Pickup</Text>
+            <Feather name="shopping-bag" color={orderType === 'PICKUP' ? theme.colors.primary : theme.colors.textSecondary} size={16} />
+            <Text style={[styles.typeText, orderType === 'PICKUP' && styles.typeTextActivePickup]}>Store Pickup</Text>
           </TouchableOpacity>
         </View>
 
@@ -214,7 +214,7 @@ export function CheckoutScreen({ navigation }: any) {
       {/* Bottom Bar */}
       <View style={styles.bottomBar}>
         <View>
-          <Text style={styles.bottomTotalLabel}>Total Amount</Text>
+          <Text style={styles.bottomTotalLabel}>Total Due</Text>
           <Text style={styles.bottomTotalValue}>₹{cart.total}</Text>
         </View>
         <TouchableOpacity 
@@ -261,31 +261,45 @@ const styles = StyleSheet.create({
   },
   typeSelector: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.xs,
+    backgroundColor: '#F1F5F9', // bg-slate-100
+    borderRadius: 12,
+    padding: 4,
     marginBottom: theme.spacing.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
   },
   typeButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: 8,
     gap: theme.spacing.sm,
   },
-  typeButtonActive: {
-    backgroundColor: theme.colors.primaryLight,
+  typeButtonActiveDelivery: {
+    backgroundColor: theme.colors.surface,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  typeButtonActivePickup: {
+    backgroundColor: theme.colors.surface,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   typeText: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
     color: theme.colors.textSecondary,
   },
-  typeTextActive: {
+  typeTextActiveDelivery: {
+    color: theme.colors.indigo,
+  },
+  typeTextActivePickup: {
     color: theme.colors.primary,
   },
   section: {
@@ -306,7 +320,7 @@ const styles = StyleSheet.create({
   addButton: {
     color: theme.colors.primary,
     fontWeight: 'bold',
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: theme.colors.indigoLight,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
@@ -333,8 +347,8 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
   },
   addressCardSelected: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primaryLight,
+    borderColor: theme.colors.indigo,
+    backgroundColor: theme.colors.indigoLight,
   },
   addressTypeBadge: {
     alignSelf: 'flex-start',
@@ -357,7 +371,7 @@ const styles = StyleSheet.create({
   gpsBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: theme.colors.indigoLight,
     padding: theme.spacing.md,
     borderRadius: theme.borderRadius.md,
     marginTop: theme.spacing.sm,
@@ -386,11 +400,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.primaryLight,
     padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.borderRadius.md,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: theme.colors.primary,
     marginBottom: theme.spacing.lg,
   },
   walletTitle: {
@@ -418,7 +432,10 @@ const styles = StyleSheet.create({
     borderTopColor: theme.colors.border,
   },
   bottomTotalLabel: {
-    fontSize: 12,
+    fontSize: 10,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
     color: theme.colors.textSecondary,
   },
   bottomTotalValue: {
