@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { DeviceEventEmitter } from 'react-native';
 import { API_BASE_URL, STORAGE_KEYS } from '../constants/config';
 import { getItem, saveItem, deleteItem } from '../utils/storage';
 
@@ -58,8 +59,14 @@ apiClient.interceptors.response.use(
         await deleteItem(STORAGE_KEYS.TOKEN);
         await deleteItem(STORAGE_KEYS.REFRESH);
         await deleteItem(STORAGE_KEYS.USER);
-        // We will handle redirect to login in the AuthContext listener
+        DeviceEventEmitter.emit('AUTH_FAILED');
       }
+    } else if (error.response?.status === 401 && !originalRequest.url?.includes('auth/login')) {
+      // It is 401, but we don't have refresh token or it's a retry that failed
+      await deleteItem(STORAGE_KEYS.TOKEN);
+      await deleteItem(STORAGE_KEYS.REFRESH);
+      await deleteItem(STORAGE_KEYS.USER);
+      DeviceEventEmitter.emit('AUTH_FAILED');
     }
     
     return Promise.reject(error);

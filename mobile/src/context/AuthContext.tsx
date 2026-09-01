@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { DeviceEventEmitter } from 'react-native';
 import { apiClient } from '../api/client';
 import { STORAGE_KEYS } from '../constants/config';
 import { getItem, saveItem, deleteItem } from '../utils/storage';
@@ -25,8 +26,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored token/user on app start
     loadStoredUser();
+
+    const sub = DeviceEventEmitter.addListener('AUTH_FAILED', () => {
+      setUser(null);
+    });
+
+    return () => sub.remove();
   }, []);
 
   const loadStoredUser = async () => {
