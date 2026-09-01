@@ -20,7 +20,7 @@ export function AddressesScreen({ navigation }: { navigation: AppNavigationProp 
   const fetchAddresses = async () => {
     try {
       const res = await apiClient.get('/auth/addresses/');
-      setAddresses(res.data);
+      setAddresses(Array.isArray(res.data) ? res.data : (res.data?.results || []));
     } catch (error) {
       console.error('Error fetching addresses:', error);
     } finally {

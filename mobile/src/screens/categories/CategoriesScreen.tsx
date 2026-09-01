@@ -17,7 +17,7 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
   const fetchCategories = async () => {
     try {
       const res = await apiClient.get('/categories/');
-      setCategories(res.data);
+      setCategories(Array.isArray(res.data) ? res.data : (res.data?.results || []));
     } catch (error) {
       console.error('Error fetching categories:', error);
     } finally {

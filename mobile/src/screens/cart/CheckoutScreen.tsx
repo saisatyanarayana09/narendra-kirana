@@ -38,11 +38,12 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
         apiClient.get('/auth/addresses/'),
         apiClient.get('/auth/wallet/')
       ]);
-      setAddresses(addrRes.data);
-      if (addrRes.data.length > 0) {
-        setSelectedAddress(addrRes.data[0]);
+      const addrList = Array.isArray(addrRes.data) ? addrRes.data : (addrRes.data?.results || []);
+      setAddresses(addrList);
+      if (addrList.length > 0) {
+        setSelectedAddress(addrList[0]);
       }
-      setWalletBalance(walletRes.data.balance || 0);
+      setWalletBalance(walletRes.data?.balance || 0);
     } catch (error) {
       console.error('Error fetching checkout dependencies', error);
     }

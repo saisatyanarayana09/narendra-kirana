@@ -55,7 +55,8 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
   const checkFavorite = async () => {
     try {
       const res = await apiClient.get('/favorites/');
-      const fav = res.data.find((f: any) => f.product === productId);
+      const favList = Array.isArray(res.data) ? res.data : (res.data?.results || []);
+      const fav = favList.find((f: any) => f.product === productId);
       if (fav) {
         setIsFavorite(true);
         setFavoriteId(fav.id);

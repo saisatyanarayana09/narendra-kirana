@@ -41,9 +41,9 @@ export function HomeScreen({ navigation }: Props) {
         apiClient.get('/store/homepage-sections/')
       ]);
       
-      setCategories(catsRes.data);
-      setBanners(bannersRes.data);
-      setSections(sectionsRes.data);
+      setCategories(Array.isArray(catsRes.data) ? catsRes.data : (catsRes.data?.results || []));
+      setBanners(Array.isArray(bannersRes.data) ? bannersRes.data : (bannersRes.data?.results || []));
+      setSections(Array.isArray(sectionsRes.data) ? sectionsRes.data : (sectionsRes.data?.results || []));
     } catch (error) {
       console.error('Error fetching home data:', error);
     } finally {

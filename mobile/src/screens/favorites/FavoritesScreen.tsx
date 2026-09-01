@@ -26,7 +26,7 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
   const fetchFavorites = async () => {
     try {
       const res = await apiClient.get('/favorites/');
-      setFavorites(res.data);
+      setFavorites(Array.isArray(res.data) ? res.data : (res.data?.results || []));
     } catch (error) {
       console.error('Error fetching favorites:', error);
     } finally {
