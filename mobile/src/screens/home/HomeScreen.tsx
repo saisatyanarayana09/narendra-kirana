@@ -108,8 +108,8 @@ export function HomeScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Top Navbar matching Web App */}
-      <View style={styles.navbar}>
+      {/* Top Header matching Web App 1:1 in a single row */}
+      <View style={styles.headerRow}>
         <View style={styles.brandContainer}>
           <Text style={styles.brandTitle}>
             <Text style={styles.brandSlate}>Narendra </Text>
@@ -117,28 +117,14 @@ export function HomeScreen({ navigation }: Props) {
           </Text>
         </View>
 
-        <TouchableOpacity 
-          style={styles.headerProfileBtn}
-          onPress={() => navigation.navigate('ProfileTab')}
-        >
-          <View style={styles.avatarCircle}>
-            <Feather name="user" size={16} color="#064E3B" />
-          </View>
-          <Text style={styles.profileText} numberOfLines={1}>
-            {user?.first_name || 'Account'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Global Search Bar matching Web App */}
-      <View style={styles.searchSection}>
+        {/* Inline Search Bar matching Web App */}
         <TouchableOpacity 
           style={styles.searchBar}
           activeOpacity={0.85}
           onPress={() => navigation.navigate('SearchScreen')}
         >
-          <Feather name="search" size={18} color="#94A3B8" />
-          <Text style={styles.searchPlaceholder}>Search rice, milk, snacks...</Text>
+          <Feather name="search" size={16} color="#94A3B8" />
+          <Text style={styles.searchPlaceholder} numberOfLines={1}>Search products...</Text>
         </TouchableOpacity>
       </View>
 
@@ -309,12 +295,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8FAFC', // slate-50 matching web
   },
-  navbar: {
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
@@ -322,9 +308,10 @@ const styles = StyleSheet.create({
   brandContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexShrink: 0,
   },
   brandTitle: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '900',
     letterSpacing: -0.5,
   },
@@ -334,53 +321,24 @@ const styles = StyleSheet.create({
   brandRed: {
     color: '#DC2626', // red-600
   },
-  headerProfileBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-  avatarCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#D1FAE5',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  profileText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#334155',
-    maxWidth: 90,
-  },
-  searchSection: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
   searchBar: {
+    flex: 1,
+    marginLeft: 12,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F1F5F9',
     borderRadius: 12,
-    paddingHorizontal: 14,
-    height: 44,
+    paddingHorizontal: 10,
+    height: 38,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    gap: 10,
+    gap: 6,
   },
   searchPlaceholder: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#94A3B8',
     fontWeight: '500',
+    flex: 1,
   },
   scrollContent: {
     paddingBottom: 110,
