@@ -101,6 +101,7 @@ export function HomeScreen({ navigation }: Props) {
       </View>
 
       <ScrollView 
+        contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} />}
       >

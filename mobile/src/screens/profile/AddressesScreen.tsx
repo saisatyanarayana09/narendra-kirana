@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
   backButton: { marginRight: theme.spacing.md },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: theme.colors.text },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  listContainer: { padding: theme.spacing.md },
+  listContainer: { padding: theme.spacing.md, paddingBottom: 100 },
   card: {
     backgroundColor: theme.colors.surface,
     padding: theme.spacing.lg,

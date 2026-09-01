@@ -14,7 +14,7 @@ interface Product {
   unit: string;
   is_in_stock: boolean;
   stock_quantity: number;
-  images: Array<{ id: number; image: string; is_primary: boolean }>;
+  image: string | null;
 }
 
 interface Props {
@@ -35,7 +35,7 @@ export function ProductCard({ product, onPress, onAddToCart }: Props) {
     ? Math.round(((parsedMrp - parsedPrice) / parsedMrp) * 100)
     : 0;
 
-  const primaryImage = product.images?.find(img => img.is_primary)?.image || product.images?.[0]?.image;
+  const primaryImage = product.image;
   const finalPrimaryImage = fixImageUrl(primaryImage);
 
   const handleAddToCart = () => {

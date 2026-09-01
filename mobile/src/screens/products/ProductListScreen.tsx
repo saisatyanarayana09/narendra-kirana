@@ -129,6 +129,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     padding: theme.spacing.md,
+    paddingBottom: 100,
   },
   row: {
     justifyContent: 'space-between',

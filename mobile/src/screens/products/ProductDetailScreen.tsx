@@ -47,7 +47,7 @@ export function ProductDetailScreen({ navigation, route }: any) {
   if (loading) return <LoadingSpinner fullScreen />;
   if (!product) return <View style={styles.center}><Text>Product not found.</Text></View>;
 
-  const primaryImage = fixImageUrl(product.images?.find((img: any) => img.is_primary)?.image || product.images?.[0]?.image);
+  const primaryImage = fixImageUrl(product.image);
 
   const handleShare = async () => {
     try {

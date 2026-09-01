@@ -66,7 +66,7 @@ export function ProfileScreen({ navigation }: { navigation: NativeStackNavigatio
         <Text style={styles.headerTitle}>My Profile</Text>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Profile Card */}
         <View style={styles.profileCard}>
           <View style={styles.avatar}>

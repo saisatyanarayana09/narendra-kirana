@@ -16,13 +16,13 @@ interface Props {
 
 export function CartItemCard({ item, onUpdateQuantity, onRemove, isLoading }: Props) {
   const discount = item.product.mrp && parseFloat(item.product.mrp) > parseFloat(item.product.price) ? Math.round(((parseFloat(item.product.mrp) - parseFloat(item.product.price)) / parseFloat(item.product.mrp)) * 100) : 0;
-  const primaryImage = fixImageUrl(item.product?.images?.find(img => img.is_primary)?.image || item.product?.images?.[0]?.image);
+  const primaryImage = fixImageUrl(item.product?.image);
 
   return (
     <View style={styles.container}>
       <View style={styles.imageContainer}>
         {primaryImage ? (
-          <Image source={{ uri: primaryImage }} style={styles.image} resizeMode="contain" />
+          <Image source={{ uri: primaryImage }} style={styles.image} contentFit="contain" />
         ) : (
           <View style={styles.placeholderImage} />
         )}
