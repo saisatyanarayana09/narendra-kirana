@@ -486,60 +486,56 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Top Header Bar */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Feather name="arrow-left" color={theme.colors.text} size={24} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Invoice</Text>
+      {/* Action Bar matching web Invoice.jsx:76-86 */}
+      <View style={styles.webActionBar}>
         <TouchableOpacity 
-          style={styles.headerActionBtn} 
-          onPress={handleDownloadPdf}
-          disabled={downloading}
+          style={styles.backToOrderBtn} 
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
         >
-          {downloading ? (
-            <ActivityIndicator size="small" color={theme.colors.primary} />
-          ) : (
-            <Feather name="printer" size={20} color={theme.colors.primary} />
-          )}
+          <Feather name="arrow-left" size={15} color="#475569" />
+          <Text style={styles.backToOrderText}>Back to Order</Text>
         </TouchableOpacity>
-      </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        
-        {/* Action Buttons Row: Download / Print PDF & Share Receipt matching web app */}
-        <View style={styles.actionBar}>
+        <View style={styles.actionButtonsRight}>
           <TouchableOpacity 
             style={styles.downloadPdfButton} 
             onPress={handleDownloadPdf}
             disabled={downloading}
+            activeOpacity={0.85}
           >
             {downloading ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <Feather name="printer" size={18} color="#FFFFFF" />
+              <Feather name="printer" size={15} color="#FFFFFF" />
             )}
             <Text style={styles.downloadPdfButtonText}>
-              {Platform.OS === 'web' ? 'Download / Print PDF' : (downloading ? 'Generating PDF...' : 'Download PDF Receipt')}
+              {downloading ? 'Saving...' : 'Download / Print PDF'}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={styles.shareButton} 
+            style={styles.shareIconButton} 
             onPress={handleShare}
             disabled={downloading}
+            activeOpacity={0.75}
           >
-            <Feather name="share-2" size={18} color="#0F172A" />
-            <Text style={styles.shareButtonText}>Share</Text>
+            <Feather name="share-2" size={15} color="#047857" />
           </TouchableOpacity>
         </View>
+      </View>
 
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Printable A4 Container exactly matching web app */}
         <View style={styles.invoicePaper}>
           
-          {/* Watermark Logo / Background */}
-          <View style={styles.watermarkContainer}>
-            <Text style={styles.watermarkText}>NARENDRA KIRANA</Text>
+          {/* Watermark Logo matching web app Invoice.jsx:100-102 */}
+          <View style={styles.watermarkContainer} pointerEvents="none">
+            <Image 
+              source={require('../../../assets/logo.jpg')} 
+              style={styles.watermarkLogo} 
+              contentFit="contain" 
+            />
           </View>
 
           {isRejected && (
@@ -548,12 +544,15 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
             </View>
           )}
 
-          {/* Header Section */}
+          {/* Header Section matching web app */}
           <View style={styles.brandHeader}>
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, paddingRight: 8 }}>
               <Text style={styles.storeName}>
                 <Text style={{ color: '#064E3B' }}>NARENDRA </Text>
-                <Text style={{ color: '#DC2626' }}>KIRANA</Text>
+                <Text style={{ color: '#16A34A' }}>KIRANA</Text>
+                {String(settings?.store_name || '').toLowerCase().includes('store') && (
+                  <Text style={{ color: '#16A34A' }}> STORE</Text>
+                )}
               </Text>
               {settings?.store_address ? (
                 <Text style={styles.storeDetailText}>{settings.store_address}</Text>
@@ -561,12 +560,13 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
                 <Text style={styles.storeDetailText}>Main Road, Kirana Market</Text>
               )}
               {settings?.store_phone ? (
-                <Text style={styles.storeDetailText}>Phone: {settings.store_phone}</Text>
+                <Text style={styles.storeDetailText}>{settings.store_phone}</Text>
               ) : null}
               {settings?.store_email ? (
-                <Text style={styles.storeDetailText}>Email: {settings.store_email}</Text>
+                <Text style={styles.storeDetailText}>{settings.store_email}</Text>
               ) : null}
             </View>
+
             <View style={styles.invoiceTitleBox}>
               <Text style={styles.invoiceTitleText}>INVOICE</Text>
             </View>
@@ -574,37 +574,40 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
 
           <View style={styles.thickDivider} />
 
-          {/* Info Grid Section */}
+          {/* Info Grid Section matching web app */}
           <View style={styles.infoGrid}>
             <View style={styles.billedToCol}>
-              <Text style={styles.metaSectionLabel}>BILLED TO</Text>
+              <View style={styles.billedToTitleWrap}>
+                <Text style={styles.metaSectionLabel}>BILLED TO</Text>
+              </View>
               <Text style={styles.customerName}>
                 {order.customer_name || `Customer #${order.customer || ''}`}
               </Text>
               <Text style={styles.statusLine}>
-                Order Status: <Text style={[styles.statusText, isRejected && { color: theme.colors.error }]}>{order.status}</Text>
+                Order Status: <Text style={[styles.statusText, isRejected ? { color: '#DC2626' } : { color: '#1E293B' }]}>{order.status}</Text>
               </Text>
-              <Text style={styles.orderTypeLine}>
-                Order Type: <Text style={{ fontWeight: 'bold', color: isDelivery ? '#4F46E5' : '#0F172A' }}>
-                  {isDelivery ? 'HOME DELIVERY' : 'STORE PICKUP'}
+
+              <View style={styles.orderTypeContainer}>
+                <Text style={styles.orderTypeLabel}>
+                  ORDER TYPE: <Text style={{ color: isDelivery ? '#4F46E5' : '#0F172A', fontWeight: 'bold' }}>
+                    {isDelivery ? 'HOME DELIVERY' : 'STORE PICKUP'}
+                  </Text>
                 </Text>
-              </Text>
-              {isDelivery ? (
-                <Text style={styles.addressLine}>
-                  {order.delivery_address || 'Address not specified'}
-                  {order.delivery_pincode ? `\nPincode: ${order.delivery_pincode}` : ''}
-                </Text>
-              ) : (
-                <Text style={styles.addressLine}>
-                  Pickup Time: {order.pickup_time || 'As soon as possible'}
-                </Text>
-              )}
+                {isDelivery ? (
+                  <View style={{ marginTop: 2 }}>
+                    <Text style={styles.addressLine}>{order.delivery_address || 'Address not specified'}</Text>
+                    {order.delivery_pincode ? <Text style={styles.pincodeLine}>Pincode: {order.delivery_pincode}</Text> : null}
+                  </View>
+                ) : (
+                  <Text style={styles.addressLine}>Pickup Time: {order.pickup_time || 'As soon as possible'}</Text>
+                )}
+              </View>
             </View>
 
             <View style={styles.invoiceMetaCol}>
               <View style={styles.metaRow}>
                 <Text style={styles.metaLabel}>Invoice No:</Text>
-                <Text style={styles.metaValue} numberOfLines={1}>{invoiceNumber}</Text>
+                <Text style={styles.metaValue}>{invoiceNumber}</Text>
               </View>
               <View style={styles.metaRow}>
                 <Text style={styles.metaLabel}>Invoice Date:</Text>
@@ -816,116 +819,132 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   scrollContent: {
-    padding: theme.spacing.md,
-    paddingBottom: 100,
+    padding: 16,
+    paddingBottom: 110,
   },
-  actionBar: {
-    marginBottom: theme.spacing.md,
+  webActionBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 10,
-  },
-  downloadPdfButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#059669', // emerald-600 matching web
-    paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 8,
-    shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
   },
-  downloadPdfButtonText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  shareButton: {
+  backToOrderBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: 6,
     backgroundColor: '#FFFFFF',
-    paddingVertical: 12,
-    paddingHorizontal: 18,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: '#E2E8F0',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
   },
-  shareButtonText: {
-    color: '#0F172A',
+  backToOrderText: {
+    color: '#475569',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  actionButtonsRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  downloadPdfButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#059669', // emerald-600 matching web
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  downloadPdfButtonText: {
+    color: '#FFFFFF',
     fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 13,
+  },
+  shareIconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   invoicePaper: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 4,
-    padding: theme.spacing.lg,
+    borderRadius: 4, // rounded-sm matching web
+    padding: 18,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    shadowColor: '#0F172A',
+    shadowColor: '#64748B',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.1,
     shadowRadius: 16,
-    elevation: 4,
+    elevation: 3,
     position: 'relative',
     overflow: 'hidden',
   },
   watermarkContainer: {
     position: 'absolute',
-    top: '40%',
-    left: '-20%',
-    right: '-20%',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    transform: [{ rotate: '-30deg' }],
-    opacity: 0.03,
+    opacity: 0.04,
     pointerEvents: 'none',
+    zIndex: 0,
   },
-  watermarkText: {
-    fontSize: 52,
-    fontWeight: '900',
-    color: '#000000',
-    letterSpacing: 8,
+  watermarkLogo: {
+    width: '75%',
+    height: 280,
   },
   rejectedWatermark: {
     position: 'absolute',
     top: '35%',
-    left: '10%',
-    right: '10%',
-    borderWidth: 4,
-    borderColor: '#EF4444',
-    borderRadius: 16,
-    paddingVertical: 12,
+    left: '8%',
+    right: '8%',
+    borderWidth: 6,
+    borderColor: '#DC2626',
+    borderRadius: 20,
+    paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    transform: [{ rotate: '-25deg' }],
-    opacity: 0.25,
+    transform: [{ rotate: '-35deg' }],
+    opacity: 0.35,
     zIndex: 50,
   },
   rejectedWatermarkText: {
-    fontSize: 48,
+    fontSize: 44,
     fontWeight: '900',
-    color: '#EF4444',
-    letterSpacing: 6,
+    color: '#DC2626',
+    letterSpacing: 8,
+    textAlign: 'center',
   },
   brandHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    paddingBottom: theme.spacing.md,
+    paddingBottom: 10,
+    zIndex: 1,
   },
   storeName: {
     fontSize: 22,
@@ -942,27 +961,32 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   invoiceTitleText: {
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: '900',
-    color: '#CBD5E1', // slate-300 matching web
-    letterSpacing: 3,
+    color: '#E2E8F0', // slate-200 matching web
+    letterSpacing: 4,
   },
   thickDivider: {
-    height: 3,
+    height: 2.5,
     backgroundColor: '#064E3B', // emerald-900 matching web
-    marginVertical: theme.spacing.md,
+    marginVertical: 12,
+    zIndex: 1,
   },
   infoGrid: {
     flexDirection: 'column',
     gap: 14,
-    marginBottom: theme.spacing.lg,
+    marginBottom: 16,
+    zIndex: 1,
   },
   billedToCol: {
-    backgroundColor: '#F8FAFC',
-    padding: theme.spacing.md,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
+    paddingVertical: 2,
+  },
+  billedToTitleWrap: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#CBD5E1',
+    paddingBottom: 2,
+    alignSelf: 'flex-start',
+    marginBottom: 6,
   },
   metaSectionLabel: {
     fontSize: 10,
@@ -986,6 +1010,18 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#0F172A',
   },
+  orderTypeContainer: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  orderTypeLabel: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#475569',
+    letterSpacing: 0.5,
+  },
   orderTypeLine: {
     fontSize: 12,
     color: '#475569',
@@ -995,7 +1031,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748B',
     lineHeight: 18,
-    marginTop: 4,
+    marginTop: 2,
+  },
+  pincodeLine: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
   },
   invoiceMetaCol: {
     backgroundColor: '#F8FAFC',
