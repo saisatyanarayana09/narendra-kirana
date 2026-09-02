@@ -104,20 +104,22 @@ class ReferralHistoryViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, methods=['post'], permission_classes=[IsOwnerUser])
     def approve(self, request, pk=None):
         token = request.data.get('token')
-        if not token:
+        is_owner = request.user and request.user.is_authenticated and getattr(request.user, 'is_owner', False)
+        if not token and not is_owner:
             return Response({'detail': 'Security token is missing from the request!'}, status=400)
             
-        from django.core.signing import TimestampSigner, SignatureExpired, BadSignature
-        signer = TimestampSigner()
-        try:
-            # Valid for exactly 5 minutes (300 seconds)
-            verified_id = signer.unsign(token, max_age=300)
-            if str(verified_id) != str(pk):
-                return Response({'detail': 'Token mismatch error!'}, status=400)
-        except SignatureExpired:
-            return Response({'detail': 'QR Code has expired! Please ask the customer to refresh their screen.'}, status=400)
-        except BadSignature:
-            return Response({'detail': 'Invalid or tampered QR Code!'}, status=400)
+        if token:
+            from django.core.signing import TimestampSigner, SignatureExpired, BadSignature
+            signer = TimestampSigner()
+            try:
+                # Valid for exactly 5 minutes (300 seconds)
+                verified_id = signer.unsign(token, max_age=300)
+                if str(verified_id) != str(pk):
+                    return Response({'detail': 'Token mismatch error!'}, status=400)
+            except SignatureExpired:
+                return Response({'detail': 'QR Code has expired! Please ask the customer to refresh their screen.'}, status=400)
+            except BadSignature:
+                return Response({'detail': 'Invalid or tampered QR Code!'}, status=400)
 
         referral = self.get_object()
         if referral.status != Referral.Status.AWAITING_APPROVAL:

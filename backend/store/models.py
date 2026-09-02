@@ -1,4 +1,4 @@
-﻿from django.db import models
+from django.db import models
 
 class StoreSettings(models.Model):
     # General Info
@@ -105,7 +105,7 @@ class HomepageSectionProduct(models.Model):
         unique_together = [['section', 'product']]
 
     def __str__(self):
-        return f"{self.section.section_key} - {self.product.name} (pos {self.position})"
+        return f"{getattr(self.section, 'title', '')} - {self.product.name} (pos {self.position})"
 
 
 class Feedback(models.Model):

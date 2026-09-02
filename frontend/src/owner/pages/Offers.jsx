@@ -29,7 +29,7 @@ const Offers = () => {
 
  const fetchPromos = () => api.get('/offers/promocodes/').then(res => setPromos(res.data.results || res.data)).catch(console.error);
  const fetchBanners = () => api.get('/offers/banners/').then(res => setBanners(res.data.results || res.data)).catch(console.error);
- const fetchCategories = () => api.get('/products/categories/').then(res => setCategories(res.data.results || res.data)).catch(console.error);
+ const fetchCategories = () => api.get('/categories/').then(res => setCategories(res.data.results || res.data)).catch(console.error);
 
  const handlePromoSubmit = async (e) => {
  e.preventDefault();

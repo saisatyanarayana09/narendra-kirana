@@ -50,7 +50,7 @@ export function SignupScreen({ navigation }: Props) {
     const timer = setTimeout(async () => {
       try {
         const res = await apiClient.get(`/auth/referral-lookup/?code=${encodeURIComponent(code)}`);
-        setReferralInfo({ isValid: true, name: res.data.name });
+        setReferralInfo({ isValid: true, name: res.data.referrer_name || res.data.name });
       } catch (err: any) {
         setReferralInfo({ isValid: false, error: err.response?.data?.error || 'Invalid referral code.' });
       } finally {
@@ -83,8 +83,8 @@ export function SignupScreen({ navigation }: Props) {
       await apiClient.post('/auth/signup/', payload);
       
       Alert.alert(
-        'Success', 
-        'Account created successfully! Please log in.',
+        'Registration Successful',
+        'Your account has been created! Please check your email to activate your account before logging in.',
         [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
       );
     } catch (error: any) {

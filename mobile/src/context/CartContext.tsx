@@ -71,7 +71,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const fetchStoreSettings = async () => {
     try {
-      const res = await apiClient.get('/store-settings/').catch(() => null);
+      const res = await apiClient.get('/store/settings/').catch(() => null);
       if (res?.data) {
         setStoreSettings(Array.isArray(res.data) ? res.data[0] : res.data);
       }

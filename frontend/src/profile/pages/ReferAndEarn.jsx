@@ -77,8 +77,8 @@ export default function ReferAndEarn() {
       intervalId = setInterval(async () => {
         try {
           // Fetch the latest history to see if status changed
-          const res = await api.get('/offers/referrals/history/');
-          const latestHistory = res.data;
+          const res = await api.get('/offers/referrals/');
+          const latestHistory = Array.isArray(res.data) ? res.data : (res.data?.results || []);
           const currentRef = latestHistory.find(h => h.id === qrModal.referralId);
           
           if (currentRef && currentRef.status === 'COMPLETED') {

@@ -75,7 +75,7 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
       return;
     }
     try {
-      const res = await apiClient.get('/favorites/').catch(() => apiClient.get('/products/favorites/'));
+      const res = await apiClient.get('/favorites/').catch(() => ({ data: [] }));
       const items = Array.isArray(res.data) ? res.data : (res.data?.results || []);
       const ids = new Set<number>();
       const map: Record<number, number> = {};

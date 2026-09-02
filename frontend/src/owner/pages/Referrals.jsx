@@ -82,9 +82,12 @@ export default function Referrals() {
     }
   };
 
-  const handleApprove = async (referralId) => {
+  const handleApprove = async (referralId, directToken = null) => {
     try {
-      await api.post(`/offers/referrals/${referralId}/approve/`, { token: scannedToken });
+      const token = directToken !== null
+        ? directToken
+        : (scannedReferralId && scannedReferralId.toString() === referralId?.toString() ? (scannedToken || '') : '');
+      await api.post(`/offers/referrals/${referralId}/approve/`, { token });
       toast.success('Reward approved successfully');
       setScannedReferralId(null);
       setScannedToken(null);
