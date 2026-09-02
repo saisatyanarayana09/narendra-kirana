@@ -116,8 +116,17 @@ export function MainTabs() {
   const [isDismissed, setIsDismissed] = useState(false);
   const cartItemCount = cart?.items?.length || 0;
   const prevCountRef = useRef(cartItemCount);
+  const hasShownInitialOnAppOpenRef = useRef(false);
 
-  // Auto-reopen the floating cart bar when a new item is added!
+  // 1. Show once on app open if user has items in cart, then it auto-closes after 10s
+  useEffect(() => {
+    if (cartItemCount > 0 && !hasShownInitialOnAppOpenRef.current) {
+      hasShownInitialOnAppOpenRef.current = true;
+      setIsDismissed(false);
+    }
+  }, [cartItemCount]);
+
+  // 2. Re-show only when user actively adds an item while shopping
   useEffect(() => {
     if (cartItemCount > prevCountRef.current) {
       setIsDismissed(false);
@@ -143,9 +152,6 @@ export function MainTabs() {
             if (route?.name && route.name !== currentTab) {
               setCurrentTab(route.name);
               triggerHaptic('selection');
-              if (route.name === 'CartTab') {
-                setIsDismissed(false);
-              }
             }
           },
         }}

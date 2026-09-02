@@ -22,6 +22,8 @@ export function FloatingCartBar({ bottomOffset, onPress, onClose }: FloatingCart
   const slideAnim = useRef(new Animated.Value(80)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const countdownAnim = useRef(new Animated.Value(1)).current;
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const items = cart?.items || [];
   const itemCount = items.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
@@ -40,6 +42,10 @@ export function FloatingCartBar({ bottomOffset, onPress, onClose }: FloatingCart
 
   useEffect(() => {
     if (itemCount > 0) {
+      // Reset slide and opacity
+      slideAnim.setValue(80);
+      opacityAnim.setValue(0);
+
       // Smooth spring entrance
       Animated.parallel([
         Animated.spring(slideAnim, {
@@ -68,27 +74,47 @@ export function FloatingCartBar({ bottomOffset, onPress, onClose }: FloatingCart
           useNativeDriver: true,
         }),
       ]).start();
+
+      // Subtle 10-second countdown indicator
+      countdownAnim.setValue(1);
+      Animated.timing(countdownAnim, {
+        toValue: 0,
+        duration: 10000,
+        useNativeDriver: false,
+      }).start();
+
+      // Automatically auto-close after 10 seconds of no action
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        handleDismiss();
+      }, 10000);
     }
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, [itemCount]);
 
   if (itemCount === 0) return null;
 
   const handleOpenCart = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
     triggerHaptic('selection');
     onPress();
   };
 
   const handleDismiss = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
     triggerHaptic('light');
     Animated.parallel([
       Animated.timing(slideAnim, {
         toValue: 80,
-        duration: 200,
+        duration: 250,
         useNativeDriver: true,
       }),
       Animated.timing(opacityAnim, {
         toValue: 0,
-        duration: 200,
+        duration: 250,
         useNativeDriver: true,
       }),
     ]).start(() => {
@@ -122,6 +148,21 @@ export function FloatingCartBar({ bottomOffset, onPress, onClose }: FloatingCart
           end={{ x: 1, y: 1 }}
           style={styles.container}
         >
+          {/* Subtle 10s Auto-Close Progress Bar */}
+          <View style={styles.progressBarBackground}>
+            <Animated.View 
+              style={[
+                styles.progressBarFill, 
+                { 
+                  width: countdownAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0%', '100%'],
+                  }) 
+                }
+              ]} 
+            />
+          </View>
+
           {/* Micro Progress / Notification Banner */}
           <View style={styles.topRibbon}>
             <View style={styles.ribbonLeft}>
@@ -214,6 +255,20 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 12,
     overflow: 'hidden',
+  },
+  progressBarBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 2.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    overflow: 'hidden',
+    zIndex: 10,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#34D399',
   },
   topRibbon: {
     flexDirection: 'row',
