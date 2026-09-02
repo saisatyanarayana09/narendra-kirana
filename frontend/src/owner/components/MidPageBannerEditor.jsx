@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Save, Loader2, Image as ImageIcon, Link as LinkIcon, Edit2 } from 'lucide-react';
 import ImageCropper from './ImageCropper';
 import api from '../../services/api';
@@ -12,11 +12,12 @@ export default function MidPageBannerEditor({ section, onUpdateSection, onSave }
   const [selectedFile, setSelectedFile] = useState(null);
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (file) {
       setSelectedFile(file);
       setCropping(true);
     }
+    e.target.value = '';
   };
 
   const handleCropComplete = async (croppedBlob) => {
@@ -64,7 +65,10 @@ export default function MidPageBannerEditor({ section, onUpdateSection, onSave }
           file={selectedFile}
           aspectRatio={4 / 1} // Ultra-wide 4:1 strip
           onCropComplete={handleCropComplete}
-          onCancel={() => setCropping(false)}
+          onCancel={() => {
+            setCropping(false);
+            setSelectedFile(null);
+          }}
         />
       )}
 

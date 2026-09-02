@@ -5,11 +5,13 @@ import toast from 'react-hot-toast';
 import api from '../../services/api';
 import HomepageSectionEditor, { stripEmojis } from '../components/HomepageSectionEditor';
 import MidPageBannerEditor from '../components/MidPageBannerEditor';
+import ImageCropper from '../components/ImageCropper';
 import { createPortal } from 'react-dom';
 
 export default function Showcase() {
   const [sections, setSections] = useState([]);
   const [banners, setBanners] = useState([]);
+  const [bannerCropFile, setBannerCropFile] = useState(null);
   const [settings, setSettings] = useState(null);
   const [savingBanners, setSavingBanners] = useState(false);
   const [allProducts, setAllProducts] = useState([]);
@@ -50,13 +52,21 @@ export default function Showcase() {
   }, []);
 
 
-  const handleAddBanner = async (e) => {
+  const handleSelectBannerFile = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+    setBannerCropFile(file);
+    e.target.value = ''; // reset so same file can be picked again
+  };
+
+  const handleCropBannerComplete = async (croppedBlob) => {
+    const originalName = bannerCropFile?.name || 'Banner';
+    setBannerCropFile(null);
+    if (!croppedBlob) return;
+
     const formData = new FormData();
-    formData.append('image', file);
-    formData.append('title', file.name || 'Banner');
+    formData.append('image', croppedBlob, croppedBlob.name || 'banner.jpg');
+    formData.append('title', originalName.replace(/\.[^/.]+$/, "") || 'Banner');
     formData.append('display_order', banners.length);
     formData.append('is_active', true);
     
@@ -65,12 +75,11 @@ export default function Showcase() {
       const res = await api.post('/offers/banners/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setBanners([...banners, res.data]);
-      toast.success('Banner added!', { id: loadingToast });
+      setBanners(prev => [...prev, res.data]);
+      toast.success('Banner added successfully!', { id: loadingToast });
     } catch {
       toast.error('Failed to upload banner.', { id: loadingToast });
     }
-    e.target.value = ''; // reset
   };
   
   const handleDeleteBanner = async (id) => {
@@ -329,9 +338,17 @@ export default function Showcase() {
                 </div>
               )}
             </Droppable>
+          {bannerCropFile && (
+            <ImageCropper
+              file={bannerCropFile}
+              aspectRatio={3}
+              onCropComplete={handleCropBannerComplete}
+              onCancel={() => setBannerCropFile(null)}
+            />
+          )}
           <label className="mt-4 flex items-center justify-center w-full py-4 border-2 border-dashed border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 font-bold rounded-xl transition-colors text-sm cursor-pointer">
             <Plus size={16} className="mr-1" /> Upload New Image Banner
-            <input type="file" accept="image/*" className="hidden" onChange={handleAddBanner} />
+            <input type="file" accept="image/*" className="hidden" onChange={handleSelectBannerFile} />
           </label>
         </div>
       </div>
