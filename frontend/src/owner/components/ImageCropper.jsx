@@ -8,11 +8,15 @@ import { createPortal } from 'react-dom';
 
 export default function ImageCropper({ 
   aspect = 1, 
+  aspectRatio,
+  file = null,
   onCropComplete, 
+  onCancel,
   currentImageUrl = null,
   label = "Upload Image",
   className = ""
 }) {
+  const effectiveAspect = aspectRatio !== undefined ? aspectRatio : aspect;
   const [modalOpen, setModalOpen] = useState(false);
   const [imgSrc, setImgSrc] = useState('');
   const [crop, setCrop] = useState();
@@ -26,6 +30,38 @@ export default function ImageCropper({
   React.useEffect(() => {
     setPreviewUrl(currentImageUrl);
   }, [currentImageUrl]);
+
+  // Handle external file prop (e.g. MidPageBannerEditor)
+  React.useEffect(() => {
+    if (file) {
+      setCrop(undefined);
+      const reader = new FileReader();
+      reader.addEventListener('load', () => {
+        setImgSrc(reader.result?.toString() || '');
+        setModalOpen(true);
+      });
+      reader.readAsDataURL(file);
+    }
+  }, [file]);
+
+  const handleClose = () => {
+    setModalOpen(false);
+    if (onCancel) {
+      onCancel();
+    }
+  };
+
+  // Handle Escape key to close modal
+  React.useEffect(() => {
+    if (!modalOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && !isCompressing) {
+        handleClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [modalOpen, isCompressing]);
 
   function onSelectFile(e) {
     if (e.target.files && e.target.files.length > 0) {
@@ -44,7 +80,7 @@ export default function ImageCropper({
   function onImageLoad(e) {
     const { width, height } = e.currentTarget;
     let initialCrop = centerCrop(
-      makeAspectCrop({ unit: '%', width: 90 }, aspect, width, height),
+      makeAspectCrop({ unit: '%', width: 90 }, effectiveAspect, width, height),
       width,
       height
     );
@@ -140,8 +176,8 @@ export default function ImageCropper({
           className={`shrink-0 rounded-xl overflow-hidden border-2 border-dashed flex items-center justify-center bg-slate-50 transition-colors
             ${previewUrl ? 'border-indigo-200' : 'border-slate-300'}`}
           style={{ 
-            width: aspect >= 1 ? '120px' : '80px', 
-            height: aspect >= 1 ? `${120 / aspect}px` : '120px',
+            width: effectiveAspect >= 1 ? '120px' : '80px', 
+            height: effectiveAspect >= 1 ? `${120 / effectiveAspect}px` : '120px',
             minHeight: '80px'
           }}
         >
@@ -168,16 +204,28 @@ export default function ImageCropper({
 
       {/* Crop Modal */}
       {modalOpen && createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/90 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div 
+          className="fixed inset-0 z-[999999] flex items-center justify-center bg-slate-900/90 backdrop-blur-sm p-4 pointer-events-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isCompressing) {
+              handleClose();
+            }
+          }}
+        >
+          <div 
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] relative z-10"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between p-4 border-b border-slate-100">
               <div className="flex items-center gap-2 text-slate-800 font-bold">
                 <Crop className="w-5 h-5 text-indigo-600" />
                 <h2>Crop Image</h2>
               </div>
               <button 
-                onClick={() => setModalOpen(false)}
-                className="p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 rounded-lg transition-colors"
+                type="button"
+                onClick={handleClose}
+                disabled={isCompressing}
+                className="p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 rounded-lg transition-colors disabled:opacity-50"
               >
                 <X size={20} />
               </button>
@@ -189,7 +237,7 @@ export default function ImageCropper({
                   crop={crop}
                   onChange={(c) => setCrop(c)}
                   onComplete={(c) => setCompletedCrop(c)}
-                  aspect={aspect}
+                  aspect={effectiveAspect}
                   className="max-h-[60vh] object-contain rounded shadow-sm"
                 >
                   <img
@@ -206,8 +254,9 @@ export default function ImageCropper({
             <div className="p-4 border-t border-slate-100 bg-white flex justify-end gap-3">
               <button
                 type="button"
-                onClick={() => setModalOpen(false)}
-                className="px-4 py-2 rounded-xl text-slate-600 font-bold hover:bg-slate-100 transition-colors"
+                onClick={handleClose}
+                disabled={isCompressing}
+                className="px-4 py-2 rounded-xl text-slate-600 font-bold hover:bg-slate-100 transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>

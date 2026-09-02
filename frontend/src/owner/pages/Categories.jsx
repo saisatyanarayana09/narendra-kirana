@@ -137,7 +137,7 @@ const Categories = () => {
 
  {/* Form Modal */}
  {isFormOpen && createPortal(
- <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
  <div className="bg-white rounded-2xl w-full max-w-md p-6 sm:p-8 shadow-2xl border border-slate-100">
  <div className="flex justify-between items-center mb-6">
  <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">{editingId ? 'Edit Category' : 'New Category'}</h2>
