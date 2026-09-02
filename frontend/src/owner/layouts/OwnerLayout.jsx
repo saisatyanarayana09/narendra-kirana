@@ -3,15 +3,13 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, Package, Tags, ShoppingCart, Users, Settings, 
   Menu, X, LogOut, PercentCircle, MessageSquare, Layout, Gift, 
-  TrendingUp, Eye, EyeOff, ChevronDown, LayoutGrid, Activity, 
-  ChevronRight, Sparkles 
+  TrendingUp, LayoutGrid 
 } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
 const OwnerLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isNavHidden, setIsNavHidden] = useState(() => localStorage.getItem('smart-kirana-owner-hide-nav') === 'true');
   const [isHubOpen, setIsHubOpen] = useState(false);
   const [storeStatus, setStoreStatus] = useState({ is_open: true, loaded: false });
   const location = useLocation();
@@ -29,11 +27,6 @@ const OwnerLayout = () => {
     { name: 'Feedback', href: '/owner/feedback', icon: MessageSquare, desc: 'Reviews & customer ratings', color: 'from-indigo-600 to-blue-700', badge: 'Reviews' },
     { name: 'Settings', href: '/owner/settings', icon: Settings, desc: 'Store hours, delivery & fees', color: 'from-slate-600 to-slate-800', badge: 'Config' },
   ];
-
-  // Remember nav hide preference
-  useEffect(() => {
-    localStorage.setItem('smart-kirana-owner-hide-nav', String(isNavHidden));
-  }, [isNavHidden]);
 
   // Fetch store status for header
   useEffect(() => {
@@ -156,7 +149,7 @@ const OwnerLayout = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             {/* Store status pill */}
             {storeStatus.loaded && (
               <button
@@ -176,23 +169,11 @@ const OwnerLayout = () => {
             {/* All Sections Hub Button */}
             <button
               onClick={() => setIsHubOpen(true)}
-              className="p-1.5 text-slate-600 hover:text-emerald-600 rounded-lg hover:bg-slate-100 transition-colors border border-slate-200 bg-slate-50"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-slate-700 hover:text-emerald-600 rounded-lg hover:bg-slate-100 transition-colors border border-slate-200 bg-slate-50"
               title="View all sections"
             >
-              <LayoutGrid className="w-4 h-4" />
-            </button>
-
-            {/* Toggle Hide/Show Nav Bar button in header */}
-            <button
-              onClick={() => setIsNavHidden(!isNavHidden)}
-              className={`p-1.5 rounded-lg border transition-colors ${
-                isNavHidden 
-                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' 
-                  : 'text-slate-600 border-slate-200 bg-slate-50 hover:bg-slate-100'
-              }`}
-              title={isNavHidden ? 'Show bottom navigation' : 'Hide bottom navigation'}
-            >
-              {isNavHidden ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+              <LayoutGrid className="w-4 h-4 text-emerald-600" />
+              <span>Hub</span>
             </button>
           </div>
         </header>
@@ -219,81 +200,10 @@ const OwnerLayout = () => {
           })}
         </div>
 
-        {/* Main Content Area – dynamic padding bottom based on isNavHidden */}
-        <main className={`flex-1 overflow-y-auto bg-gray-50 p-3 sm:p-6 lg:pb-6 transition-all duration-300 ${
-          isNavHidden ? 'pb-8' : 'pb-24'
-        }`}>
+        {/* Main Content Area – clean full-height layout with no bottom bar */}
+        <main className="flex-1 overflow-y-auto bg-gray-50 p-3 sm:p-6 pb-6 lg:pb-6">
           <Outlet />
         </main>
-
-        {/* Floating "Show Nav" Button when nav bar is hidden on mobile */}
-        {isNavHidden && (
-          <button
-            onClick={() => setIsNavHidden(false)}
-            className="fixed bottom-4 right-4 z-40 flex items-center gap-2 bg-slate-900/95 hover:bg-slate-900 text-white px-4 py-2.5 rounded-full shadow-2xl border border-slate-700/80 backdrop-blur-md text-xs font-bold transition-all duration-300 transform hover:scale-105 active:scale-95 animate-fade-in"
-            title="Show navigation bar"
-          >
-            <Eye size={15} className="text-emerald-400 animate-pulse" />
-            <span>Show Nav</span>
-          </button>
-        )}
-
-        {/* Mobile Bottom Navigation with Hide Button */}
-        <nav 
-          className={`fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t border-slate-200 bg-white/95 backdrop-blur-md px-1 py-1.5 pb-[calc(0.4rem+env(safe-area-inset-bottom,0px))] lg:hidden shadow-[0_-4px_15px_-5px_rgba(0,0,0,0.08)] transition-transform duration-300 ease-in-out ${
-            isNavHidden ? 'translate-y-full pointer-events-none opacity-0' : 'translate-y-0 opacity-100'
-          }`}
-        >
-          {[
-            { name: 'Home', href: '/owner', icon: LayoutDashboard },
-            { name: 'Orders', href: '/owner/orders', icon: ShoppingCart },
-            { name: 'Products', href: '/owner/products', icon: Package },
-            { name: 'Sales', href: '/owner/sales', icon: TrendingUp },
-          ].map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.href);
-            return (
-              <Link
-                key={item.name}
-                to={item.href}
-                className={`flex flex-col items-center justify-center gap-0.5 min-w-[52px] py-1 rounded-xl transition-all duration-200 ${
-                  active
-                    ? 'text-emerald-600 font-bold'
-                    : 'text-slate-400 hover:text-emerald-600'
-                }`}
-              >
-                <div className={`flex items-center justify-center w-9 h-7 rounded-full transition-all duration-200 ${active ? 'bg-emerald-50 text-emerald-600' : ''}`}>
-                  <Icon size={19} strokeWidth={active ? 2.5 : 2} />
-                </div>
-                <span className={`text-[10px] leading-tight ${active ? 'font-bold' : 'font-medium'}`}>{item.name}</span>
-              </Link>
-            );
-          })}
-
-          {/* Quick Hub Modal Toggle */}
-          <button
-            onClick={() => setIsHubOpen(true)}
-            className="flex flex-col items-center justify-center gap-0.5 min-w-[52px] py-1 rounded-xl text-slate-500 hover:text-emerald-600 transition-all duration-200"
-            title="All Sections Hub"
-          >
-            <div className="flex items-center justify-center w-9 h-7 rounded-full bg-slate-100 text-slate-700">
-              <LayoutGrid size={18} strokeWidth={2} />
-            </div>
-            <span className="text-[10px] font-bold leading-tight">All</span>
-          </button>
-
-          {/* Hide Navigation Bar Button */}
-          <button
-            onClick={() => setIsNavHidden(true)}
-            className="flex flex-col items-center justify-center gap-0.5 min-w-[52px] py-1 rounded-xl text-slate-400 hover:text-rose-600 transition-all duration-200"
-            title="Hide bottom navigation bar"
-          >
-            <div className="flex items-center justify-center w-9 h-7 rounded-full bg-slate-100 text-slate-500">
-              <ChevronDown size={18} strokeWidth={2.5} />
-            </div>
-            <span className="text-[10px] font-medium leading-tight">Hide</span>
-          </button>
-        </nav>
 
         {/* Mobile All-Sections Hub Bottom Sheet Modal */}
         {isHubOpen && (
@@ -382,20 +292,16 @@ const OwnerLayout = () => {
               {/* Bottom Close Bar */}
               <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
                 <button
-                  onClick={() => {
-                    setIsNavHidden(!isNavHidden);
-                    setIsHubOpen(false);
-                  }}
-                  className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900"
+                  onClick={() => setIsHubOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-300 transition-colors"
                 >
-                  {isNavHidden ? <Eye size={14} /> : <EyeOff size={14} />}
-                  <span>{isNavHidden ? 'Show Bottom Nav' : 'Hide Bottom Nav'}</span>
+                  Close
                 </button>
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-1 text-xs font-bold text-rose-600 hover:text-rose-700"
+                  className="flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:text-rose-700"
                 >
-                  <LogOut size={13} />
+                  <LogOut size={14} />
                   <span>Logout</span>
                 </button>
               </div>
@@ -408,4 +314,5 @@ const OwnerLayout = () => {
 };
 
 export default OwnerLayout;
+
 
