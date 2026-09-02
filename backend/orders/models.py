@@ -6,18 +6,20 @@ from products.models import Product
 
 def order_id():
     from django.utils import timezone
+    from django.utils.crypto import get_random_string
     from orders.models import Order
     now = timezone.now()
     prefix = f"ORD-{now.strftime('%y%m')}-"
     last_order = Order.objects.filter(id__startswith=prefix).order_by('id').last()
     if not last_order:
-        return prefix + "0001"
+        return f"{prefix}0001-{get_random_string(4).upper()}"
     
     try:
-        last_num = int(last_order.id.split('-')[-1])
-        return prefix + f"{last_num + 1:04d}"
+        parts = last_order.id.split('-')
+        last_num = int(parts[2]) if len(parts) > 3 else int(parts[-1])
+        return f"{prefix}{last_num + 1:04d}-{get_random_string(4).upper()}"
     except (ValueError, IndexError):
-        return prefix + "0001"
+        return f"{prefix}0001-{get_random_string(4).upper()}"
 
 
 class Order(models.Model):

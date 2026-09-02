@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, Package, Clock, XCircle, ChevronRight, Printer , MapPin } from 'lucide-react';
 import api from '../../services/api';
+import toast from 'react-hot-toast';
 
 const OrderDetails = () => {
  const { id } = useParams();
@@ -63,15 +64,19 @@ const OrderDetails = () => {
  }
  };
 
- const rejectItem = async (itemId) => {
- if (!window.confirm('Are you sure you want to reject this item? It will be removed from the order and the total price will be reduced.')) return;
- try {
- await api.post(`/orders/${id}/reject_item/`, { item_id: itemId });
- fetchOrder();
- } catch (err) {
- alert(err.response?.data?.detail || 'Failed to reject item.');
- }
- };
+  const rejectItem = async (itemId) => {
+    if (!window.confirm('Are you sure you want to reject this item? It will be removed from the order and the total price will be reduced.')) return;
+    setIsUpdating(true);
+    try {
+      const res = await api.post(`/orders/${id}/reject_item/`, { item_id: itemId });
+      setOrder(res.data);
+      toast.success('Item rejected and order total updated');
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to reject item');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
  const handleGetDirections = (e) => {
    e.preventDefault();
@@ -290,7 +295,7 @@ const OrderDetails = () => {
  <div className="space-y-3">
  <p className="text-sm text-slate-600 font-medium text-center bg-slate-50 p-3 rounded-xl border border-slate-100">
  {parseFloat(order.total_amount) > 0 ? (
- <>Customer will pay <strong className="text-slate-900">₹{order.total_amount}</strong> at store.</>
+ <>Customer will pay <strong className="text-slate-900">₹{order.total_amount}</strong> {order.order_type === 'DELIVERY' ? 'via Cash on Delivery' : 'at store'}.</>
  ) : (
  <>Order fully paid via <strong className="text-emerald-600">Wallet</strong>.</>
  )}
@@ -365,7 +370,7 @@ const OrderDetails = () => {
  <div className="flex justify-between text-sm font-medium mb-4">
  <span className="text-slate-500">Payment Method</span>
  <span className="font-bold text-slate-800">
-   {parseFloat(order.total_amount) === 0 ? 'Wallet Full' : (parseFloat(order.wallet_discount) > 0 ? 'Hybrid (Wallet + Cash)' : 'Cash at Store')}
+   {parseFloat(order.total_amount) === 0 ? 'Wallet Full' : (parseFloat(order.wallet_discount) > 0 ? (order.order_type === 'DELIVERY' ? 'Hybrid (Wallet + Cash on Delivery)' : 'Hybrid (Wallet + Cash)') : (order.order_type === 'DELIVERY' ? 'Cash on Delivery' : 'Cash at Store'))}
  </span>
  </div>
  <div className="flex justify-between items-center p-4 bg-slate-50 rounded-xl border border-slate-100">

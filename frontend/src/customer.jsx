@@ -281,7 +281,7 @@ export function ProductCard({ product, ...props }) {
 
  
 
- {product.is_in_stock ? (
+ {(!isOutOfStock) ? (
 
  <button 
 
@@ -1124,7 +1124,7 @@ export function ProductsPage() {
 
  </div>
 
- <button onClick={addToCart} disabled={!product.is_in_stock || adding || added || isMaxReached} className={`mt-8 hidden md:flex items-center justify-center gap-2 min-h-14 w-full rounded-xl px-4 py-3 text-lg font-extrabold transition-all active:scale-[0.98] ${added ? 'bg-slate-100 text-slate-800 border border-slate-200 shadow-sm' : isMaxReached ? 'bg-slate-100 text-slate-400 border border-slate-200 shadow-none cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-xl shadow-lg shadow-red-200 disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none border border-transparent disabled:border-slate-200 disabled:active:scale-100'}`}>{product.is_in_stock ? (isMaxReached ? 'Max in cart' : added ? '✓ Added to cart' : adding ? 'Adding...' : <><ShoppingCart size={20} /> Add to Cart</>) : 'Out of stock'}</button>
+ <button onClick={addToCart} disabled={isOutOfStock || adding || added || isMaxReached} className={`mt-8 hidden md:flex items-center justify-center gap-2 min-h-14 w-full rounded-xl px-4 py-3 text-lg font-extrabold transition-all active:scale-[0.98] ${added ? 'bg-slate-100 text-slate-800 border border-slate-200 shadow-sm' : isMaxReached ? 'bg-slate-100 text-slate-400 border border-slate-200 shadow-none cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-xl shadow-lg shadow-red-200 disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none border border-transparent disabled:border-slate-200 disabled:active:scale-100'}`}>{!isOutOfStock ? (isMaxReached ? 'Max in cart' : added ? '✓ Added to cart' : adding ? 'Adding...' : <><ShoppingCart size={20} /> Add to Cart</>) : 'Out of stock'}</button>
 
  <div className="mt-8 pt-6 border-t border-slate-100 mb-8 md:mb-0">
 
@@ -1142,7 +1142,7 @@ export function ProductsPage() {
 
  <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-30 bg-white border-t border-slate-200 p-3 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] md:hidden">
 
-   <button onClick={addToCart} disabled={!product.is_in_stock || adding || added || isMaxReached} className={`w-full min-h-[44px] rounded-xl px-4 py-2.5 text-base font-extrabold transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 ${added ? 'bg-slate-100 text-slate-800 border border-slate-200 shadow-sm' : isMaxReached ? 'bg-slate-100 text-slate-400 border border-slate-200 shadow-none cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-md disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none border border-transparent disabled:border-slate-200 disabled:active:scale-100'}`}>{product.is_in_stock ? (isMaxReached ? 'Max in cart' : added ? '✓ Added to cart' : adding ? 'Adding...' : <><ShoppingCart size={16} /> Add to Cart · ₹{price}</>) : 'Out of stock'}</button>
+   <button onClick={addToCart} disabled={isOutOfStock || adding || added || isMaxReached} className={`w-full min-h-[44px] rounded-xl px-4 py-2.5 text-base font-extrabold transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 ${added ? 'bg-slate-100 text-slate-800 border border-slate-200 shadow-sm' : isMaxReached ? 'bg-slate-100 text-slate-400 border border-slate-200 shadow-none cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-md disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none border border-transparent disabled:border-slate-200 disabled:active:scale-100'}`}>{!isOutOfStock ? (isMaxReached ? 'Max in cart' : added ? '✓ Added to cart' : adding ? 'Adding...' : <><ShoppingCart size={16} /> Add to Cart · ₹{price}</>) : 'Out of stock'}</button>
 
  </div>
 

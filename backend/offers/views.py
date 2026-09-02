@@ -121,24 +121,29 @@ class ReferralHistoryViewSet(viewsets.ReadOnlyModelViewSet):
             except BadSignature:
                 return Response({'detail': 'Invalid or tampered QR Code!'}, status=400)
 
-        referral = self.get_object()
-        if referral.status != Referral.Status.AWAITING_APPROVAL:
-            return Response({'detail': 'Referral not awaiting approval.'}, status=400)
-            
         from django.utils import timezone
         from decimal import Decimal
         from orders.models import Order, OrderItem
-        from accounts.models import WalletTransaction
+        from accounts.models import Wallet, WalletTransaction
         from notifications.models import Notification
 
         settings = ReferralSettings.load()
         with transaction.atomic():
+            try:
+                referral = Referral.objects.select_for_update().get(id=pk)
+            except Referral.DoesNotExist:
+                return Response({'detail': 'Referral not found.'}, status=404)
+
+            if referral.status != Referral.Status.AWAITING_APPROVAL:
+                return Response({'detail': 'Referral not awaiting approval.'}, status=400)
+
             referral.status = Referral.Status.COMPLETED
             referral.completed_at = timezone.now()
             referral.save()
             
+            referrer_wallet = Wallet.objects.select_for_update().get(user=referral.referrer)
+
             if settings.referrer_reward > 0:
-                referrer_wallet = referral.referrer.wallet
                 referrer_wallet.balance += settings.referrer_reward
                 referrer_wallet.save()
                 WalletTransaction.objects.create(
@@ -149,7 +154,8 @@ class ReferralHistoryViewSet(viewsets.ReadOnlyModelViewSet):
                 )
                 
             if settings.referrer_reward_product:
-                product = settings.referrer_reward_product
+                from products.models import Product
+                product = Product.objects.select_for_update().get(id=settings.referrer_reward_product_id)
                 product_price = product.offer_price if product.offer_price else product.regular_price
                 free_order = Order.objects.create(
                     customer=referral.referrer,
@@ -179,7 +185,6 @@ class ReferralHistoryViewSet(viewsets.ReadOnlyModelViewSet):
             successful_referrals = Referral.objects.filter(referrer=referral.referrer, status=Referral.Status.COMPLETED).count()
             milestone = ReferralMilestone.objects.filter(required_referrals=successful_referrals).first()
             if milestone and milestone.bonus_reward > 0:
-                referrer_wallet = referral.referrer.wallet
                 referrer_wallet.balance += milestone.bonus_reward
                 referrer_wallet.save()
                 WalletTransaction.objects.create(

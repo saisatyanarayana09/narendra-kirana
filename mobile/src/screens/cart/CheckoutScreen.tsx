@@ -231,6 +231,10 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
         Alert.alert('Error', 'Please select or add a delivery address.');
         return;
       }
+      if (selectedAddress && (selectedAddress.latitude == null || selectedAddress.longitude == null)) {
+        Alert.alert('Location Missing', 'GPS location is missing for this address. Please edit your address to capture your location for doorstep delivery.');
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -252,8 +256,8 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
 
     try {
       const response = await apiClient.post('/orders/', payload);
-      await refreshCart();
-      
+      // Non-blocking background cart refresh
+      refreshCart().catch(() => {});
       navigation.navigate('OrderSuccessScreen', { orderId: response.data.id });
     } catch (err: any) {
       const msg = err.response?.data?.detail || err.response?.data?.error || 'Could not place your order.';
@@ -264,7 +268,10 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
     }
   };
 
-  if (!cart) return null;
+  if (!cart || !cart.items || cart.items.length === 0) {
+    navigation.navigate('CartScreen');
+    return null;
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

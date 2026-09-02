@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useLocation } from 'react-router-dom'
 import { Minus, Plus, Trash2, ShoppingBasket, ArrowLeft, Eye, EyeOff, CheckCircle2, PackageSearch, Truck, Store, XCircle, MapPin, Edit2, RefreshCw, Gift } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -393,7 +393,14 @@ export function CheckoutPage() {
 
  if (!isCustomer) return <CartPage />
  
+ const cartSubtotal = parseFloat(cart?.subtotal || 0);
+ const isDeliveryUnderMin = orderType === 'DELIVERY' && parseFloat(storeSettings?.min_delivery_order_amount) > 0 && cartSubtotal < parseFloat(storeSettings.min_delivery_order_amount);
+
  async function submit() { 
+  if (isDeliveryUnderMin) {
+    setError(`Minimum delivery order amount is ₹${storeSettings.min_delivery_order_amount}`);
+    return;
+  }
   if (orderType === 'DELIVERY') {
     if (!selectedAddressId && (!deliveryAddress.trim() || !deliveryPincode.trim())) { 
         setError('Please select or add a delivery address.'); return; 
@@ -401,15 +408,16 @@ export function CheckoutPage() {
   }
   setLoading(true); setError(''); 
   try { 
+    const isPickup = orderType === 'PICKUP';
     const response = await api.post('/orders/', { 
       pickup_time: time, 
       customer_note: note, 
       use_wallet: useWallet,
       order_type: orderType,
-      delivery_address: deliveryAddress,
-      delivery_pincode: deliveryPincode,
-      delivery_latitude: selectedAddressId ? addresses.find(a => a.id === selectedAddressId)?.latitude : null,
-      delivery_longitude: selectedAddressId ? addresses.find(a => a.id === selectedAddressId)?.longitude : null
+      delivery_address: isPickup ? '' : deliveryAddress,
+      delivery_pincode: isPickup ? '' : deliveryPincode,
+      delivery_latitude: isPickup ? null : (selectedAddressId ? addresses.find(a => a.id === selectedAddressId)?.latitude : null),
+      delivery_longitude: isPickup ? null : (selectedAddressId ? addresses.find(a => a.id === selectedAddressId)?.longitude : null)
     }); 
     await refresh(); 
     navigate(`/orders/${response.data.id}`) 
@@ -420,7 +428,6 @@ export function CheckoutPage() {
   } 
  }
  
- const cartSubtotal = parseFloat(cart?.subtotal || 0);
  let deliveryFee = 0;
  if (orderType === 'DELIVERY' && storeSettings?.is_home_delivery_active) {
    if (parseFloat(storeSettings.free_delivery_threshold) > 0 && cartSubtotal >= parseFloat(storeSettings.free_delivery_threshold)) {
@@ -561,7 +568,12 @@ export function CheckoutPage() {
  ) : Number(storeSettings?.min_order_amount) > 0 && Number(cart.subtotal) < Number(storeSettings.min_order_amount) ? (
  <div className="mt-5 rounded-xl bg-amber-50 p-4 text-center font-bold text-amber-700 border border-amber-100">Minimum order amount is â‚¹{storeSettings.min_order_amount}</div>
  ) : (
- <button onClick={submit} disabled={loading || (orderType === 'DELIVERY' && !selectedAddressId && (!deliveryAddress || !deliveryPincode))} className="mt-5 min-h-12 w-full rounded-xl bg-primary-600 font-bold text-white disabled:bg-slate-300 hover:bg-primary-700 active:scale-[0.98] transition-all">{loading ? 'Processing...' : (finalTotal > 0 ? 'Place order (Pay at store)' : 'Place order (Paid via Wallet)')}</button>
+  <>
+  {isDeliveryUnderMin && (
+    <div className="mt-5 rounded-xl bg-amber-50 p-4 text-center font-bold text-amber-700 border border-amber-100">Minimum delivery order amount is ₹{storeSettings.min_delivery_order_amount}</div>
+  )}
+  <button onClick={submit} disabled={loading || isDeliveryUnderMin || (orderType === 'DELIVERY' && !selectedAddressId && (!deliveryAddress || !deliveryPincode))} className="mt-5 min-h-12 w-full rounded-xl bg-primary-600 font-bold text-white disabled:bg-slate-300 hover:bg-primary-700 active:scale-[0.98] transition-all">{loading ? 'Processing...' : (finalTotal > 0 ? (orderType === 'DELIVERY' ? 'Place order (Cash on Delivery)' : 'Place order (Pay at store)') : 'Place order (Paid via Wallet)')}</button>
+  </>
  )}
  </div></main></CustomerLayout>
 }

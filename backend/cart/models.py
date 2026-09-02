@@ -21,5 +21,9 @@ class CartItem(models.Model):
     class Meta:
         constraints = [models.UniqueConstraint(fields=['cart', 'product'], name='unique_cart_product')]
 
+    @property
+    def product_name_snapshot(self):
+        return self.product.name if self.product else ""
+
     def __str__(self):
         return f"{self.quantity} × {self.product.name}"

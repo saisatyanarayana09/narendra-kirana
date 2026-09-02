@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -33,24 +33,32 @@ export function SearchScreen({ navigation }: Props) {
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const { addToCart } = useCart();
+  const activeQueryRef = useRef('');
 
   useEffect(() => {
-    if (debouncedQuery.trim().length >= 1) {
-      performSearch(debouncedQuery.trim());
+    const trimmed = debouncedQuery.trim();
+    if (trimmed.length >= 1) {
+      performSearch(trimmed);
     } else {
+      activeQueryRef.current = '';
       setResults([]);
     }
   }, [debouncedQuery]);
 
   const performSearch = async (searchQuery: string) => {
+    activeQueryRef.current = searchQuery;
     setLoading(true);
     try {
       const res = await apiClient.get(`/products/?search=${encodeURIComponent(searchQuery)}`);
-      setResults(res.data.results || res.data || []);
+      if (activeQueryRef.current === searchQuery) {
+        setResults(res.data.results || res.data || []);
+      }
     } catch (error) {
       console.error('Search error:', error);
     } finally {
-      setLoading(false);
+      if (activeQueryRef.current === searchQuery) {
+        setLoading(false);
+      }
     }
   };
 

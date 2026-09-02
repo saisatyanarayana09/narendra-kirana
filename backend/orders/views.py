@@ -55,13 +55,12 @@ class OrderViewSet(ModelViewSet):
         if not items:
             return Response({'detail': 'Your cart is empty.'}, status=status.HTTP_400_BAD_REQUEST)
             
-        unavailable = [item.product.name for item in items if not item.product.is_active or not item.product.is_in_stock]
-        if unavailable:
-            return Response({'detail': f"Unavailable products: {', '.join(unavailable)}"}, status=status.HTTP_400_BAD_REQUEST)
-            
-        insufficient_stock = [item.product.name for item in items if item.quantity > item.product.stock_quantity]
-        if insufficient_stock:
-            return Response({'detail': f"Insufficient stock for: {', '.join(insufficient_stock)}"}, status=status.HTTP_400_BAD_REQUEST)
+        product_ids = [item.product_id for item in items]
+        locked_products = {p.id: p for p in Product.objects.select_for_update().filter(id__in=product_ids)}
+        for item in items:
+            product = locked_products.get(item.product_id)
+            if not product or not product.is_in_stock or (product.stock_quantity is not None and item.quantity > product.stock_quantity):
+                return Response({'detail': f'Insufficient stock for {item.product_name_snapshot or getattr(product, "name", "product")}.'}, status=400)
 
         from cart.serializers import CartSerializer
         cart_data = CartSerializer(cart).data
@@ -115,28 +114,24 @@ class OrderViewSet(ModelViewSet):
         
         wallet_discount = Decimal('0.00')
         if checkout.validated_data.get('use_wallet', False):
-            try:
-                from accounts.models import Wallet
-                wallet = Wallet.objects.select_for_update().get(user=request.user)
-                if wallet.balance > 0:
-                    if wallet.balance >= total:
-                        wallet_discount = total
-                        total = Decimal('0.00')
-                        wallet.balance -= wallet_discount
-                    else:
-                        wallet_discount = wallet.balance
-                        total -= wallet_discount
-                        wallet.balance = Decimal('0.00')
-                    wallet.save()
-                    from accounts.models import WalletTransaction
-                    WalletTransaction.objects.create(
-                        wallet=wallet,
-                        amount=-wallet_discount,
-                        transaction_type=WalletTransaction.TransactionType.PURCHASE_DEDUCTION,
-                        description="Used for order checkout"
-                    )
-            except Exception as e:
-                logger.error("Wallet error: %s", e)
+            from accounts.models import Wallet, WalletTransaction
+            wallet = Wallet.objects.select_for_update().get(user=request.user)
+            if wallet.balance > 0:
+                if wallet.balance >= total:
+                    wallet_discount = total
+                    total = Decimal('0.00')
+                    wallet.balance -= wallet_discount
+                else:
+                    wallet_discount = wallet.balance
+                    total -= wallet_discount
+                    wallet.balance = Decimal('0.00')
+                wallet.save()
+                WalletTransaction.objects.create(
+                    wallet=wallet,
+                    amount=-wallet_discount,
+                    transaction_type=WalletTransaction.TransactionType.PURCHASE_DEDUCTION,
+                    description="Used for order checkout"
+                )
 
         initial_status = Order.Status.ACCEPTED if settings.auto_accept_orders else Order.Status.NEW
 
@@ -268,31 +263,23 @@ class OrderViewSet(ModelViewSet):
                 
             elif next_status == Order.Status.REJECTED:
                 # Restore inventory
-                products_to_update = []
-                for item in order.items.select_related('product'):
+                for item in order.items.exclude(status='REJECTED').select_related('product'):
                     if item.product:
                         item.product.stock_quantity += item.quantity
-                        item.product.is_in_stock = True
-                        products_to_update.append(item.product)
-                
-                if products_to_update:
-                    from products.models import Product
-                    Product.objects.bulk_update(products_to_update, ['stock_quantity', 'is_in_stock'])
+                        if item.product.stock_quantity > 0:
+                            item.product.is_in_stock = True
+                        item.product.save(update_fields=['stock_quantity', 'is_in_stock'])
                     
                 if order.wallet_discount > 0:
-                    try:
-                        wallet = order.customer.wallet
-                        wallet.balance += order.wallet_discount
-                        wallet.save()
-                        from accounts.models import WalletTransaction
-                        WalletTransaction.objects.create(
-                            wallet=wallet,
-                            amount=order.wallet_discount,
-                            transaction_type=WalletTransaction.TransactionType.REFUND,
-                            description=f"Refund for cancelled order #{order.id}"
-                        )
-                    except Exception as e:
-                        logger.error("Error refunding wallet: %s", e)
+                    from accounts.models import Wallet, WalletTransaction
+                    wallet = Wallet.objects.select_for_update().get(user=order.customer)
+                    Wallet.objects.filter(id=wallet.id).update(balance=F('balance') + order.wallet_discount)
+                    WalletTransaction.objects.create(
+                        wallet=wallet,
+                        amount=order.wallet_discount,
+                        transaction_type=WalletTransaction.TransactionType.REFUND,
+                        description=f"Refund for cancelled order #{order.id}"
+                    )
                         
                 Notification.objects.create(
                     user=order.customer,
@@ -317,6 +304,9 @@ class OrderViewSet(ModelViewSet):
         if not item_id:
             return Response({'detail': 'item_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
             
+        if order.status not in [Order.Status.NEW, Order.Status.ACCEPTED, Order.Status.PREPARING]:
+            return Response({'detail': f'Cannot reject items on order with status {order.status}.'}, status=400)
+            
         try:
             item = order.items.get(id=item_id)
         except OrderItem.DoesNotExist:
@@ -329,65 +319,60 @@ class OrderViewSet(ModelViewSet):
             item.status = 'REJECTED'
             item.save(update_fields=['status'])
             
-            # Recalculate total amount
-            order.total_amount -= item.subtotal
-            if order.total_amount < 0:
-                refund_amount = abs(order.total_amount)
-                order.total_amount = Decimal('0.00')
-                if order.wallet_discount > 0:
-                    try:
-                        refund_to_wallet = min(refund_amount, order.wallet_discount)
-                        order.wallet_discount -= refund_to_wallet
-                        wallet = order.customer.wallet
-                        wallet.balance += refund_to_wallet
-                        wallet.save()
-                        from accounts.models import WalletTransaction
-                        WalletTransaction.objects.create(
-                            wallet=wallet,
-                            amount=refund_to_wallet,
-                            transaction_type=WalletTransaction.TransactionType.REFUND,
-                            description=f"Partial refund for rejected item in order #{order.id}"
-                        )
-                    except Exception as e:
-                        logger.error("Error in partial refund: %s", e)
-                        
-            order.save(update_fields=['total_amount', 'wallet_discount', 'updated_at'])
+            from accounts.models import Wallet, WalletTransaction
+            gross_subtotal = sum(i.subtotal for i in order.items.all())
+            wallet_ratio = (order.wallet_discount / gross_subtotal) if gross_subtotal > 0 else Decimal('0.00')
+            item_wallet_refund = (item.subtotal * wallet_ratio).quantize(Decimal('0.01'))
+            if item_wallet_refund > 0:
+                order.wallet_discount -= item_wallet_refund
+                wallet = Wallet.objects.select_for_update().get(user=order.customer)
+                Wallet.objects.filter(id=wallet.id).update(balance=F('balance') + item_wallet_refund)
+                WalletTransaction.objects.create(
+                    wallet=wallet,
+                    amount=item_wallet_refund,
+                    transaction_type=WalletTransaction.TransactionType.CREDIT,
+                    description=f"Refund for rejected {item.product_name_snapshot} in order #{order.id}"
+                )
+
+            payable_deduction = item.subtotal - item_wallet_refund
+            order.total_amount = max(Decimal('0.00'), order.total_amount - payable_deduction)
             
             # Restore inventory for the rejected item
             if item.product:
                 item.product.stock_quantity += item.quantity
-                item.product.is_in_stock = True
+                if item.product.stock_quantity > 0:
+                    item.product.is_in_stock = True
                 item.product.save(update_fields=['stock_quantity', 'is_in_stock'])
             
             # If ALL items are now rejected, reject the entire order
             all_rejected = not order.items.exclude(status='REJECTED').exists()
             if all_rejected:
                 order.status = Order.Status.REJECTED
-                order.save(update_fields=['status', 'updated_at'])
+                order.total_amount = Decimal('0.00')
+                order.delivery_fee = Decimal('0.00')
+                order.packaging_fee = Decimal('0.00')
                 
                 # Refund any remaining wallet discount
                 if order.wallet_discount > 0:
-                    try:
-                        wallet = order.customer.wallet
-                        wallet.balance += order.wallet_discount
-                        wallet.save()
-                        from accounts.models import WalletTransaction
-                        WalletTransaction.objects.create(
-                            wallet=wallet,
-                            amount=order.wallet_discount,
-                            transaction_type=WalletTransaction.TransactionType.REFUND,
-                            description=f"Refund for fully rejected order #{order.id}"
-                        )
-                        order.wallet_discount = Decimal('0.00')
-                        order.save(update_fields=['wallet_discount'])
-                    except Exception as e:
-                        logger.error("Error refunding wallet on full rejection: %s", e)
+                    wallet = Wallet.objects.select_for_update().get(user=order.customer)
+                    Wallet.objects.filter(id=wallet.id).update(balance=F('balance') + order.wallet_discount)
+                    WalletTransaction.objects.create(
+                        wallet=wallet,
+                        amount=order.wallet_discount,
+                        transaction_type=WalletTransaction.TransactionType.REFUND,
+                        description=f"Refund for fully rejected order #{order.id}"
+                    )
+                    order.wallet_discount = Decimal('0.00')
+                
+                order.save(update_fields=['status', 'total_amount', 'delivery_fee', 'packaging_fee', 'wallet_discount', 'updated_at'])
                 
                 Notification.objects.create(
                     user=order.customer,
                     title=f"Order #{order.id} Cancelled",
                     message=f"Hi {order.customer.first_name}, all items in your order were unavailable so the order has been cancelled. Any wallet balance used has been refunded."
                 )
+            else:
+                order.save(update_fields=['total_amount', 'wallet_discount', 'updated_at'])
                 
         return Response(OrderSerializer(order, context=self.get_serializer_context()).data)
 

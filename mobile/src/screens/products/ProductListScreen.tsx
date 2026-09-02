@@ -70,8 +70,6 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
 
   const fetchFavorites = async () => {
     if (!user) {
-      setFavoriteIds(new Set());
-      setFavoriteMap({});
       return;
     }
     try {

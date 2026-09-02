@@ -93,6 +93,14 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
     });
   };
 
+  const handleStayOnPage = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    setCountdown(0);
+  };
+
   // Trigger celebration animation and sound/haptics on mount
   useEffect(() => {
     triggerHaptic('success');
@@ -240,7 +248,7 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
               </Text>
               <Text style={styles.redirectDot}>•</Text>
               <TouchableOpacity 
-                onPress={handleViewOrderDetails}
+                onPress={handleStayOnPage}
                 activeOpacity={0.7}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >

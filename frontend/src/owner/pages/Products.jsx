@@ -253,6 +253,7 @@ const Products = () => {
 
  const onDragEnd = async (result) => {
  if (!result.destination) return;
+ if (searchTerm.trim()) return;
  const items = Array.from(products);
  const [reorderedItem] = items.splice(result.source.index, 1);
  items.splice(result.destination.index, 0, reorderedItem);
@@ -472,7 +473,7 @@ const Products = () => {
  {(provided) => (
  <div className="divide-y divide-slate-100" {...provided.droppableProps} ref={provided.innerRef}>
  {filteredProducts.map((product, index) => (
- <Draggable key={product.id} draggableId={product.id.toString()} index={index}>
+ <Draggable key={product.id} draggableId={product.id.toString()} index={index} isDragDisabled={Boolean(searchTerm.trim())}>
  {(provided, snapshot) => (
  <div
  ref={provided.innerRef}

@@ -57,8 +57,6 @@ export function HomeScreen({ navigation }: Props) {
 
   const fetchFavorites = async () => {
     if (!user) {
-      setFavoriteIds(new Set());
-      setFavoriteMap({});
       return;
     }
     try {
