@@ -138,13 +138,14 @@ export function HomeScreen({ navigation }: Props) {
             </View>
           </View>
 
-          <View style={{ paddingHorizontal: 16 }}>
-            <SkeletonItem width={140} height={18} borderRadius={6} style={{ marginBottom: 12 }} />
-            <View style={styles.productsGrid}>
-              <View style={styles.productGridItem}><ProductCardSkeleton /></View>
-              <View style={styles.productGridItem}><ProductCardSkeleton /></View>
-              <View style={styles.productGridItem}><ProductCardSkeleton /></View>
-              <View style={styles.productGridItem}><ProductCardSkeleton /></View>
+          <View style={{ marginBottom: 16 }}>
+            <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
+              <SkeletonItem width={140} height={18} borderRadius={6} />
+            </View>
+            <View style={styles.horizontalProductsList}>
+              <View style={styles.horizontalProductItem}><ProductCardSkeleton /></View>
+              <View style={styles.horizontalProductItem}><ProductCardSkeleton /></View>
+              <View style={styles.horizontalProductItem}><ProductCardSkeleton /></View>
             </View>
           </View>
         </ScrollView>
@@ -304,9 +305,9 @@ export function HomeScreen({ navigation }: Props) {
           </View>
         )}
 
-        {/* Dynamic Homepage Product Sections (2-column Grid matching Web App) */}
+        {/* Dynamic Homepage Product Sections (Horizontal Scrolling Carousel - Scroll Left / Right) */}
         {sections.map((section: any, secIdx: number) => {
-          const sectionProducts = (section.items || []).filter((item: any) => item && item.is_in_stock).slice(0, 2);
+          const sectionProducts = (section.items || []).filter((item: any) => item && item.is_in_stock);
           if (sectionProducts.length === 0) return null;
 
           return (
@@ -314,6 +315,9 @@ export function HomeScreen({ navigation }: Props) {
               <View style={styles.sectionHeaderRow}>
                 <View style={styles.sectionTitleGroup}>
                   <Text style={styles.sectionTitle}>{stripEmojis(section.title)}</Text>
+                  <View style={styles.countBadge}>
+                    <Text style={styles.countBadgeText}>{sectionProducts.length}</Text>
+                  </View>
                 </View>
                 <TouchableOpacity 
                   style={styles.seeAllBtn}
@@ -323,10 +327,14 @@ export function HomeScreen({ navigation }: Props) {
                 </TouchableOpacity>
               </View>
 
-              {/* 2-Column Product Grid */}
-              <View style={styles.productsGrid}>
+              {/* Horizontal Scrollable Product Carousel (Scroll Left / Right) */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalProductsList}
+              >
                 {sectionProducts.map((product: any) => (
-                  <View key={product.id} style={styles.productGridItem}>
+                  <View key={product.id} style={styles.horizontalProductItem}>
                     <ProductCard 
                       product={product} 
                       onPress={(p) => navigation.navigate('ProductDetailScreen', { productId: p.id })}
@@ -334,7 +342,7 @@ export function HomeScreen({ navigation }: Props) {
                     />
                   </View>
                 ))}
-              </View>
+              </ScrollView>
             </View>
           );
         })}
@@ -574,23 +582,29 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingBottom: 4,
   },
-  productsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  horizontalProductsList: {
     paddingHorizontal: 16,
-    justifyContent: 'space-between',
+    gap: 12,
+    paddingBottom: 8,
   },
-  productGridItem: {
-    width: (width - 44) / 2,
-    marginBottom: 12,
+  horizontalProductItem: {
+    width: Math.floor((width - 44) / 2.15), // ~2 visible products on screen with edge peek for smooth left-right scrolling
+  },
+  countBadge: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  countBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
   },
   sectionTitleGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-  },
-  sectionIcon: {
-    fontSize: 18,
   },
   categoryCardHorizontal: {
     marginRight: 12,

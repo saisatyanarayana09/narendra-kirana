@@ -31,7 +31,7 @@ export default function Showcase() {
       const mappedSections = secRes.data.map(sec => ({
           ...sec,
           title: stripEmojis(sec.title),
-          items: (sec.section_products || []).sort((a, b) => a.position - b.position).map(sp => sp.product_details).slice(0, 2)
+          items: (sec.section_products || []).sort((a, b) => a.position - b.position).map(sp => sp.product_details)
         }));
         setSections(mappedSections.sort((a, b) => a.display_order - b.display_order));
       const pList = Array.isArray(prodRes.data) ? prodRes.data : (prodRes.data?.results ?? []);
@@ -163,10 +163,10 @@ export default function Showcase() {
       newSections[sectionIndex] = { ...sec, items: updatedItems };
       setSections(newSections);
 
-      // Auto save the section's new product order (capped at 2)
+      // Auto save the section's new product order
       try {
         await api.patch(`/store/homepage-sections/${sectionId}/`, {
-          product_ids: updatedItems.slice(0, 2).map(i => i.id)
+          product_ids: updatedItems.map(i => i.id)
         });
         toast.success('Product order saved!');
       } catch {
@@ -176,14 +176,13 @@ export default function Showcase() {
   };
 
   const handleUpdateItems = (sectionId, newItems) => {
-    setSections(prev => prev.map(s => s.id === sectionId ? { ...s, items: (newItems || []).slice(0, 2) } : s));
+    setSections(prev => prev.map(s => s.id === sectionId ? { ...s, items: newItems || [] } : s));
   };
 
   const handleSaveSection = async (sectionId, items) => {
-    const capped = (items || []).slice(0, 2);
     try {
       await api.patch(`/store/homepage-sections/${sectionId}/`, {
-        product_ids: capped.map(i => i.id)
+        product_ids: (items || []).map(i => i.id)
       });
     } catch (err) {
       console.error(err);

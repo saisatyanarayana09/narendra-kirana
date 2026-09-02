@@ -121,8 +121,6 @@ class HomepageSectionViewSet(viewsets.ModelViewSet):
         if 'product_ids' in self.request.data:
             product_ids = self.request.data.get('product_ids', [])
             if isinstance(product_ids, list):
-                # Enforce MAX 2 products globally!
-                product_ids = product_ids[:2]
                 from .models import HomepageSectionProduct
                 from products.models import Product
 

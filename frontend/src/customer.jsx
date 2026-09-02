@@ -6,7 +6,7 @@ import { GSAPFadeUp, GSAPZoomIn } from './components/GSAPScroll'
 
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
-import { ChevronRight, Search, X, Heart, ArrowLeft, ShoppingCart, Sparkles, Zap, Star, Megaphone } from 'lucide-react'
+import { ChevronRight, ChevronLeft, Search, X, Heart, ArrowLeft, ShoppingCart, Sparkles, Zap, Star, Megaphone } from 'lucide-react'
 
 import api, { readCacheSync } from './services/api'
 
@@ -661,43 +661,82 @@ export function HomePage() {
 
   
 
-  {/* Dynamic Homepage Sections */}
+  {/* Dynamic Homepage Sections (Horizontal Scrollable Carousel) */}
   {sections.map((section, index) => {
-    const sectionProducts = (section.items || []).filter(item => item && item.is_in_stock).slice(0, 2);
+    const sectionProducts = (section.items || []).filter(item => item && item.is_in_stock);
 
     if (sectionProducts.length === 0 && !loading) return null;
 
     return (
       <section key={section.id} className={index === 0 ? "mt-4 relative" : "mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-slate-100 relative"}>
           <div className="sticky top-[56px] sm:top-[68px] z-20 bg-slate-50/95 backdrop-blur-sm py-2 flex justify-between items-center">
-            <h2 className="text-lg font-bold text-slate-900">{stripEmojis(section.title)}</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-bold text-slate-900">{stripEmojis(section.title)}</h2>
+              <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                {sectionProducts.length}
+              </span>
+            </div>
 
-            <Link to="/products" className="text-xs font-bold text-slate-500 hover:text-slate-600 transition flex items-center gap-1">View all <ChevronRight size={14} /></Link>
-
+            <Link to="/products" className="text-xs font-bold text-slate-500 hover:text-slate-600 transition flex items-center gap-1">
+              View all <ChevronRight size={14} />
+            </Link>
           </div>
 
           {loading ? (
-
-            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-
-              {Array.from({length: 6}).map((_, i) => <ProductSkeleton key={i} />)}
-
+            <div className="mt-4 flex gap-3 overflow-x-auto pb-4 hide-scrollbar">
+              {Array.from({length: 4}).map((_, i) => (
+                <div key={i} className="w-[160px] sm:w-[190px] md:w-[210px] shrink-0">
+                  <ProductSkeleton />
+                </div>
+              ))}
             </div>
-
           ) : (
+            <div className="relative group mt-3">
+              {/* Left Scroll Arrow (Desktop) */}
+              {sectionProducts.length > 2 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const el = document.getElementById(`carousel-${section.id}`);
+                    if (el) el.scrollBy({ left: -320, behavior: 'smooth' });
+                  }}
+                  className="absolute -left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/95 backdrop-blur-md shadow-lg border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-emerald-600 hover:text-white transition-all opacity-0 group-hover:opacity-100 z-10 hidden sm:flex"
+                  aria-label="Scroll left"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+              )}
 
-            <GSAPFadeUp className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6" stagger={0.05}>
+              {/* Horizontal Scroll Row (Scroll Left / Right) */}
+              <div 
+                id={`carousel-${section.id}`}
+                className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 pt-1 px-0.5 hide-scrollbar snap-x snap-mandatory scroll-smooth"
+              >
+                {sectionProducts.map((product) => (
+                  <div key={product.id} className="w-[160px] sm:w-[190px] md:w-[210px] shrink-0 snap-start">
+                    <ProductCard product={product} />
+                  </div>
+                ))}
+              </div>
 
-              {sectionProducts.map((product) => <ProductCard key={product.id} product={product} />)}
-
-            </GSAPFadeUp>
-
+              {/* Right Scroll Arrow (Desktop) */}
+              {sectionProducts.length > 2 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const el = document.getElementById(`carousel-${section.id}`);
+                    if (el) el.scrollBy({ left: 320, behavior: 'smooth' });
+                  }}
+                  className="absolute -right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/95 backdrop-blur-md shadow-lg border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-emerald-600 hover:text-white transition-all opacity-0 group-hover:opacity-100 z-10 hidden sm:flex"
+                  aria-label="Scroll right"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              )}
+            </div>
           )}
-
       </section>
-
     );
-
   })}
 
   
