@@ -118,10 +118,82 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
   const activeCategoryObj = categories.find(c => c.id === selectedCategory);
   const activeCategoryName = selectedCategory ? (activeCategoryObj?.name || initialCategoryName) : 'All Products';
 
+  const renderListHeader = () => (
+    <View style={styles.scrollableHeaderContainer}>
+      {/* Horizontal Category Filter Pills matching web app */}
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false} 
+        contentContainerStyle={styles.categoryPillsContainer}
+      >
+        <TouchableOpacity
+          style={[styles.categoryPill, !selectedCategory && styles.categoryPillActive]}
+          onPress={() => {
+            triggerHaptic('selection');
+            setSelectedCategory(null);
+          }}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.categoryPillText, !selectedCategory && styles.categoryPillTextActive]}>
+            All
+          </Text>
+        </TouchableOpacity>
+
+        {categories.map((cat) => {
+          const isSelected = selectedCategory === cat.id;
+          return (
+            <TouchableOpacity
+              key={cat.id}
+              style={[styles.categoryPill, isSelected && styles.categoryPillActive]}
+              onPress={() => {
+                triggerHaptic('selection');
+                setSelectedCategory(cat.id);
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.categoryPillText, isSelected && styles.categoryPillTextActive]}>
+                {cat.name}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {/* Category Title & Count */}
+      <View style={styles.subHeaderRow}>
+        <Text style={styles.categoryTitle}>{activeCategoryName}</Text>
+        <Text style={styles.productCountText}>{sortedProducts.length} products</Text>
+      </View>
+
+      {/* Sorting Pills: Relevance, Price: Low to High, Price: High to Low, Newest */}
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.categoryPillsContainer}
+      >
+        {SORT_OPTIONS.map((opt) => (
+          <TouchableOpacity
+            key={opt.id}
+            style={[styles.sortChip, sortOption === opt.id && styles.sortChipActive]}
+            onPress={() => {
+              triggerHaptic('selection');
+              setSortOption(opt.id);
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.sortChipText, sortOption === opt.id && styles.sortChipTextActive]}>
+              {opt.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header matching web ProductsPage */}
-      <View style={styles.header}>
+      {/* Compact Top Bar: Fixed Back Button & Category Name */}
+      <View style={styles.topBar}>
         <TouchableOpacity 
           style={styles.backButton} 
           onPress={() => {
@@ -137,77 +209,18 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
 
-        {/* Horizontal Category Filter Pills matching web app */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
-          contentContainerStyle={styles.categoryPillsContainer}
-        >
-          <TouchableOpacity
-            style={[styles.categoryPill, !selectedCategory && styles.categoryPillActive]}
-            onPress={() => {
-              triggerHaptic('selection');
-              setSelectedCategory(null);
-            }}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.categoryPillText, !selectedCategory && styles.categoryPillTextActive]}>
-              All
-            </Text>
-          </TouchableOpacity>
+        <Text style={styles.topBarTitle} numberOfLines={1}>
+          {activeCategoryName}
+        </Text>
 
-          {categories.map((cat) => {
-            const isSelected = selectedCategory === cat.id;
-            return (
-              <TouchableOpacity
-                key={cat.id}
-                style={[styles.categoryPill, isSelected && styles.categoryPillActive]}
-                onPress={() => {
-                  triggerHaptic('selection');
-                  setSelectedCategory(cat.id);
-                }}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.categoryPillText, isSelected && styles.categoryPillTextActive]}>
-                  {cat.name}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-
-        {/* Category Title & Count */}
-        <View style={styles.subHeaderRow}>
-          <Text style={styles.categoryTitle}>{activeCategoryName}</Text>
-          <Text style={styles.productCountText}>{sortedProducts.length} products</Text>
+        <View style={styles.topBarBadge}>
+          <Text style={styles.topBarBadgeText}>{sortedProducts.length}</Text>
         </View>
-
-        {/* Sorting Pills: Relevance, Price: Low to High, Price: High to Low, Newest */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryPillsContainer}
-        >
-          {SORT_OPTIONS.map((opt) => (
-            <TouchableOpacity
-              key={opt.id}
-              style={[styles.sortChip, sortOption === opt.id && styles.sortChipActive]}
-              onPress={() => {
-                triggerHaptic('selection');
-                setSortOption(opt.id);
-              }}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.sortChipText, sortOption === opt.id && styles.sortChipTextActive]}>
-                {opt.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
       </View>
 
       {loading ? (
         <ScrollView contentContainerStyle={styles.listContainer} showsVerticalScrollIndicator={false}>
+          {renderListHeader()}
           <View style={styles.row}>
             <View style={styles.cardWrapper}><ProductCardSkeleton /></View>
             <View style={styles.cardWrapper}><ProductCardSkeleton /></View>
@@ -222,20 +235,24 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
           </View>
         </ScrollView>
       ) : sortedProducts.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <View style={styles.emptyIconCircle}>
-            <Feather name="package" size={40} color="#94A3B8" />
+        <ScrollView contentContainerStyle={styles.listContainer} showsVerticalScrollIndicator={false}>
+          {renderListHeader()}
+          <View style={styles.emptyContainer}>
+            <View style={styles.emptyIconCircle}>
+              <Feather name="package" size={40} color="#94A3B8" />
+            </View>
+            <Text style={styles.emptyTitle}>No products found</Text>
+            <Text style={styles.emptySubtitle}>
+              There are no products in this category right now. Please check another aisle!
+            </Text>
           </View>
-          <Text style={styles.emptyTitle}>No products found</Text>
-          <Text style={styles.emptySubtitle}>
-            There are no products in this category right now. Please check another aisle!
-          </Text>
-        </View>
+        </ScrollView>
       ) : (
         <FlatList
           data={sortedProducts}
           keyExtractor={(item) => String(item.id)}
           numColumns={2}
+          ListHeaderComponent={renderListHeader}
           contentContainerStyle={styles.listContainer}
           columnWrapperStyle={styles.row}
           refreshing={refreshing}
@@ -270,23 +287,55 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8FAFC', // slate-50
   },
-  header: {
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
-    paddingTop: 10,
   },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 16,
-    marginBottom: 8,
+    minWidth: 55,
   },
   backButtonText: {
     fontSize: 13,
     fontWeight: '700',
     color: '#059669',
+  },
+  topBarTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
+    flex: 1,
+    textAlign: 'center',
+    marginHorizontal: 8,
+  },
+  topBarBadge: {
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    minWidth: 32,
+    alignItems: 'center',
+  },
+  topBarBadgeText: {
+    color: '#059669',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  scrollableHeaderContainer: {
+    backgroundColor: '#FFFFFF',
+    paddingTop: 12,
+    paddingBottom: 4,
+    marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
   categoryPillsContainer: {
     paddingHorizontal: 16,

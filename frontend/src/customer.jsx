@@ -910,7 +910,7 @@ export function ProductsPage() {
 
     <main className="mx-auto w-full max-w-screen-2xl px-4 py-4 sm:px-6 lg:px-12">
 
-      <div className="sticky top-[60px] sm:top-[68px] z-20 -mx-4 px-4 sm:mx-0 sm:px-0 bg-slate-50 py-3 mb-4 border-b border-slate-200/60 shadow-sm sm:shadow-none sm:border-none sm:bg-transparent sm:py-0">
+      <div className="-mx-4 px-4 sm:mx-0 sm:px-0 bg-slate-50 py-3 mb-4 border-b border-slate-200/60 sm:border-none sm:bg-transparent sm:py-0">
 
         <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar items-center">
 
