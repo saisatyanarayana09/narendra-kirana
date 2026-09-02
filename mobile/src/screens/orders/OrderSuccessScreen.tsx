@@ -1,8 +1,17 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, BackHandler } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  BackHandler, 
+  Animated, 
+  Easing 
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialIcons } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
+import { triggerHaptic } from '../../utils/haptics';
 
 type Props = { 
   navigation: AppNavigationProp; 
@@ -11,59 +20,221 @@ type Props = {
 
 export function OrderSuccessScreen({ navigation, route }: Props) {
   const { orderId } = route.params || {};
+  const [countdown, setCountdown] = useState(4);
+  const isNavigatingRef = useRef(false);
 
-  // Prevent navigating back to the Checkout screen via hardware back button
+  // Animations
+  const scaleAnim = useRef(new Animated.Value(0.3)).current;
+  const haloAnim = useRef(new Animated.Value(0.8)).current;
+  const haloOpacity = useRef(new Animated.Value(0.8)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
+
+  const formattedOrderId = orderId ? (String(orderId).startsWith('#') ? orderId : `#${orderId}`) : '';
+
+  // Clean navigation helper: resets CartStack so CartScreen is always root, then navigates to target
+  const handleCleanExit = (targetAction: () => void) => {
+    if (isNavigatingRef.current) return;
+    isNavigatingRef.current = true;
+
+    // Reset CartStack back to CartScreen so CartTab never gets stuck showing OrderSuccess
+    try {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'CartScreen' }],
+      });
+    } catch (e) {
+      console.log('CartStack reset fallback:', e);
+    }
+
+    targetAction();
+  };
+
+  const handleGoHome = () => {
+    triggerHaptic('selection');
+    handleCleanExit(() => {
+      navigation.getParent()?.navigate('HomeTab');
+    });
+  };
+
+  const handleTrackOrder = () => {
+    triggerHaptic('selection');
+    handleCleanExit(() => {
+      if (orderId) {
+        navigation.getParent()?.navigate('OrdersTab', {
+          screen: 'OrderTrackingScreen',
+          params: { orderId },
+        });
+      } else {
+        navigation.getParent()?.navigate('OrdersTab', {
+          screen: 'OrderHistoryScreen',
+        });
+      }
+    });
+  };
+
+  // Trigger celebration animation and sound/haptics on mount
+  useEffect(() => {
+    triggerHaptic('success');
+
+    // 1. Icon Pop Spring
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      tension: 60,
+      friction: 6,
+      useNativeDriver: true,
+    }).start();
+
+    // 2. Halo Pulse Looping
+    Animated.loop(
+      Animated.parallel([
+        Animated.timing(haloAnim, {
+          toValue: 1.5,
+          duration: 1800,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(haloOpacity, {
+          toValue: 0,
+          duration: 1800,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    // 3. Card Fade & Slide In
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 500,
+        delay: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 500,
+        delay: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // 4. Progress bar filling over 4 seconds
+    Animated.timing(progressAnim, {
+      toValue: 1,
+      duration: 4000,
+      easing: Easing.linear,
+      useNativeDriver: false,
+    }).start();
+  }, []);
+
+  // Countdown timer for automatic redirect to Home
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          handleGoHome();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Hardware Back Button intercepts and redirects cleanly to Home
   useEffect(() => {
     const onBackPress = () => {
-      navigation.navigate('HomeTab');
+      handleGoHome();
       return true;
     };
     const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
     return () => subscription.remove();
-  }, [navigation]);
+  }, []);
 
-  const formattedOrderId = orderId ? (String(orderId).startsWith('#') ? orderId : `#${orderId}`) : '';
-
-  const handleTrackOrder = () => {
-    if (orderId) {
-      navigation.navigate('OrderTrackingScreen', { orderId });
-    } else {
-      navigation.navigate('OrdersTab', { screen: 'OrderHistoryScreen' });
-    }
-  };
-
-  const handleContinueShopping = () => {
-    navigation.navigate('HomeTab');
-  };
+  const progressWidth = progressAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '100%'],
+  });
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <View style={styles.iconContainer}>
-          <Feather name="check-circle" size={56} color="#059669" />
+        {/* Animated Celebration Badge */}
+        <View style={styles.haloWrapper}>
+          {/* Pulsing Radiance Ring */}
+          <Animated.View 
+            style={[
+              styles.haloRing, 
+              { 
+                transform: [{ scale: haloAnim }],
+                opacity: haloOpacity,
+              }
+            ]} 
+          />
+
+          {/* Spring Checkmark Circle */}
+          <Animated.View 
+            style={[
+              styles.iconContainer, 
+              { transform: [{ scale: scaleAnim }] }
+            ]}
+          >
+            <Feather name="check" size={50} color="#FFFFFF" />
+          </Animated.View>
+
+          {/* Floating celebratory particles */}
+          <View style={styles.floatingEmojiLeft}>
+            <Text style={{ fontSize: 24 }}>🎉</Text>
+          </View>
+          <View style={styles.floatingEmojiRight}>
+            <Text style={{ fontSize: 22 }}>🛍️</Text>
+          </View>
+          <View style={styles.floatingEmojiBottom}>
+            <Text style={{ fontSize: 20 }}>✨</Text>
+          </View>
         </View>
         
-        <Text style={styles.title}>Order Confirmed!</Text>
-        <Text style={styles.subtitle}>
-          Your order {formattedOrderId} has been successfully placed. We are preparing it with care.
-        </Text>
-        
-        <TouchableOpacity 
-          style={styles.primaryButton}
-          onPress={handleTrackOrder}
-          activeOpacity={0.85}
-        >
-          <Feather name="package" size={18} color="#FFFFFF" />
-          <Text style={styles.primaryButtonText}>Track Order</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.secondaryButton}
-          onPress={handleContinueShopping}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.secondaryButtonText}>Continue Shopping</Text>
-        </TouchableOpacity>
+        {/* Animated Headline & Subtitle */}
+        <Animated.View style={[styles.textWrapper, { opacity: opacityAnim, transform: [{ translateY: slideAnim }] }]}>
+          <Text style={styles.title}>Order Confirmed!</Text>
+          <Text style={styles.subtitle}>
+            Your grocery order <Text style={styles.orderIdBold}>{formattedOrderId}</Text> has been received and is being packed fresh with care!
+          </Text>
+
+          {/* Auto-redirect indicator */}
+          <View style={styles.redirectCard}>
+            <View style={styles.redirectInfoRow}>
+              <Feather name="clock" size={14} color="#059669" />
+              <Text style={styles.redirectText}>
+                Redirecting to Home in <Text style={styles.countdownNumber}>{countdown}s</Text>
+              </Text>
+            </View>
+            <View style={styles.progressBarBackground}>
+              <Animated.View style={[styles.progressBarFill, { width: progressWidth }]} />
+            </View>
+          </View>
+
+          {/* Action Buttons */}
+          <TouchableOpacity 
+            style={styles.primaryButton}
+            onPress={handleTrackOrder}
+            activeOpacity={0.88}
+          >
+            <Feather name="package" size={18} color="#FFFFFF" />
+            <Text style={styles.primaryButtonText}>Track Order Live</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.secondaryButton}
+            onPress={handleGoHome}
+            activeOpacity={0.88}
+          >
+            <Text style={styles.secondaryButtonText}>Go to Home Now →</Text>
+          </TouchableOpacity>
+        </Animated.View>
       </View>
     </SafeAreaView>
   );
@@ -79,49 +250,131 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    maxWidth: 400,
+    maxWidth: 420,
     alignSelf: 'center',
     width: '100%',
   },
-  iconContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#ECFDF5', // emerald-50
-    borderWidth: 2,
-    borderColor: '#A7F3D0',
+  haloWrapper: {
+    position: 'relative',
+    width: 120,
+    height: 120,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
   },
+  haloRing: {
+    position: 'absolute',
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: 'rgba(16, 185, 129, 0.25)', // emerald-500 glow
+  },
+  iconContainer: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: '#059669', // Emerald-600
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 10,
+    borderWidth: 3,
+    borderColor: '#A7F3D0',
+  },
+  floatingEmojiLeft: {
+    position: 'absolute',
+    top: -8,
+    left: -12,
+  },
+  floatingEmojiRight: {
+    position: 'absolute',
+    top: 4,
+    right: -16,
+  },
+  floatingEmojiBottom: {
+    position: 'absolute',
+    bottom: -6,
+    right: 4,
+  },
+  textWrapper: {
+    width: '100%',
+    alignItems: 'center',
+  },
   title: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: '900',
     color: '#0F172A',
     marginBottom: 8,
+    textAlign: 'center',
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 14,
     color: '#64748B',
     textAlign: 'center',
     lineHeight: 22,
-    marginBottom: 36,
+    marginBottom: 24,
+    paddingHorizontal: 12,
+  },
+  orderIdBold: {
+    color: '#0F172A',
+    fontWeight: '800',
+  },
+  redirectCard: {
+    width: '100%',
+    backgroundColor: '#ECFDF5', // emerald-50
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 24,
+  },
+  redirectInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  redirectText: {
+    fontSize: 13,
+    color: '#065F46',
+    fontWeight: '700',
+  },
+  countdownNumber: {
+    color: '#059669',
+    fontWeight: '900',
+  },
+  progressBarBackground: {
+    height: 4,
+    backgroundColor: '#D1FAE5',
+    borderRadius: 2,
+    overflow: 'hidden',
+    width: '100%',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#059669',
+    borderRadius: 2,
   },
   primaryButton: {
     backgroundColor: '#059669',
     width: '100%',
-    paddingVertical: 14,
-    borderRadius: 14,
+    paddingVertical: 15,
+    borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     marginBottom: 12,
     shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
   },
   primaryButtonText: {
     color: '#FFFFFF',
@@ -131,15 +384,21 @@ const styles = StyleSheet.create({
   secondaryButton: {
     width: '100%',
     paddingVertical: 14,
-    borderRadius: 14,
+    borderRadius: 16,
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   secondaryButtonText: {
     color: '#334155',
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
   },
 });
+

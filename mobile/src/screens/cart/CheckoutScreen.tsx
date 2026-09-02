@@ -250,10 +250,7 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
       const response = await apiClient.post('/orders/', payload);
       await refreshCart();
       
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'OrderSuccessScreen', params: { orderId: response.data.id } }],
-      });
+      navigation.navigate('OrderSuccessScreen', { orderId: response.data.id });
     } catch (err: any) {
       const msg = err.response?.data?.detail || err.response?.data?.error || 'Could not place your order.';
       setError(msg);
