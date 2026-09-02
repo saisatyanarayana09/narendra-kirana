@@ -1,5 +1,7 @@
-﻿from rest_framework import serializers
+from rest_framework import serializers
 from .models import Category, Product, ProductImage, Favorite
+
+import re
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -11,6 +13,18 @@ class ProductImageSerializer(serializers.ModelSerializer):
         model = ProductImage
         fields = ['id', 'image', 'display_order']
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        raw_name = str(instance.image) if instance.image else ''
+        if raw_name.startswith('http://') or raw_name.startswith('https://'):
+            data['image'] = raw_name
+        elif data.get('image') and isinstance(data['image'], str):
+            # Check if an external http/https was prefixed by Cloudinary or local storage
+            match = re.search(r'https?://(?:(?!res\.cloudinary\.com).)+$', data['image'])
+            if match:
+                data['image'] = match.group(0)
+        return data
+
 class ProductSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
     gallery_images = ProductImageSerializer(many=True, read_only=True)
@@ -18,6 +32,18 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = '__all__'
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        raw_name = str(instance.image) if instance.image else ''
+        if raw_name.startswith('http://') or raw_name.startswith('https://'):
+            data['image'] = raw_name
+        elif data.get('image') and isinstance(data['image'], str):
+            # Check if an external http/https was prefixed by Cloudinary or local storage
+            match = re.search(r'https?://(?:(?!res\.cloudinary\.com).)+$', data['image'])
+            if match:
+                data['image'] = match.group(0)
+        return data
 
 class FavoriteSerializer(serializers.ModelSerializer):
     product_details = ProductSerializer(source='product', read_only=True)

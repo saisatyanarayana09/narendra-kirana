@@ -82,7 +82,10 @@ export function ProductCard({
   const maxAllowed = maxOrderQty > 0 ? Math.min(stockQty, maxOrderQty) : stockQty;
   const isMaxReached = inCart && cartQty >= maxAllowed;
 
-  const primaryImage = fixImageUrl(product.image);
+  let primaryImage = fixImageUrl(product.image);
+  if (product.name?.toLowerCase().includes('pumpkin') && (!primaryImage || primaryImage.includes('dummyimage.com') || primaryImage.endsWith('/media/'))) {
+    primaryImage = 'https://raw.githubusercontent.com/saisatyanarayana09/narendra-kirana/main/frontend/public/products/pumpkin_seeds.jpg';
+  }
 
   const handleAdd = async () => {
     if (updating || !isInStock || isMaxReached) return;

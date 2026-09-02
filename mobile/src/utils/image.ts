@@ -1,1 +1,14 @@
-export const fixImageUrl = (url: string | null | undefined) => { if (!url) return url; return url.replace('https://narendra-kirana.onrender.com/media/', 'http://127.0.0.1:8000/media/'); };
+export const fixImageUrl = (url: string | null | undefined): string => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  if (url.startsWith('/media/')) {
+    return `https://narendra-kirana.onrender.com${url}`;
+  }
+  if (url.startsWith('media/')) {
+    return `https://narendra-kirana.onrender.com/${url}`;
+  }
+  return `https://narendra-kirana.onrender.com/media/${url}`;
+};
+

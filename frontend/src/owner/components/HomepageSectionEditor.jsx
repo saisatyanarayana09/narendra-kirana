@@ -136,8 +136,13 @@ export default function HomepageSectionEditor({
                           #{idx + 1}
                         </div>
                         <div className="aspect-square bg-gray-50 border-b border-gray-100 p-2 pointer-events-none">
-                          {item.image
-                            ? <img src={item.image} alt={item.name} className="w-full h-full object-contain mix-blend-multiply" />
+                          {(item.image || item.name?.toLowerCase().includes('pumpkin'))
+                            ? <img 
+                                src={item.name?.toLowerCase().includes('pumpkin') && (!item.image || item.image.includes('dummyimage.com')) ? '/media/products/pumpkin_seeds.jpg' : item.image} 
+                                alt={item.name} 
+                                onError={(e) => { if (item.name?.toLowerCase().includes('pumpkin')) e.currentTarget.src = '/media/products/pumpkin_seeds.jpg'; }}
+                                className="w-full h-full object-contain mix-blend-multiply" 
+                              />
                             : <div className="w-full h-full flex items-center justify-center text-gray-300 text-3xl font-black">{item.name?.charAt(0)}</div>
                           }
                         </div>
@@ -219,8 +224,13 @@ export default function HomepageSectionEditor({
                           </div>
                         )}
                         <div className="aspect-square bg-slate-50 rounded-xl mb-3 p-2 border border-slate-100">
-                          {p.image
-                            ? <img src={p.image} alt={p.name} className="w-full h-full object-contain mix-blend-multiply" />
+                          {(p.image || p.name?.toLowerCase().includes('pumpkin'))
+                            ? <img 
+                                src={p.name?.toLowerCase().includes('pumpkin') && (!p.image || p.image.includes('dummyimage.com')) ? '/media/products/pumpkin_seeds.jpg' : p.image} 
+                                alt={p.name} 
+                                onError={(e) => { if (p.name?.toLowerCase().includes('pumpkin')) e.currentTarget.src = '/media/products/pumpkin_seeds.jpg'; }}
+                                className="w-full h-full object-contain mix-blend-multiply" 
+                              />
                             : <div className="w-full h-full flex items-center justify-center text-slate-300 font-bold text-2xl">{p.name?.charAt(0)}</div>
                           }
                         </div>

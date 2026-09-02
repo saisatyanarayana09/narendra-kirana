@@ -486,7 +486,18 @@ const Products = () => {
  </div>
  <div className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 bg-slate-50 rounded-xl overflow-hidden flex items-center justify-center border border-slate-100 group-hover:border-indigo-100 transition-colors">
  {product.image ? (
- <img loading='lazy' decoding='async' src={product.image} alt={product.name} className="w-full h-full object-contain p-1 transition-transform duration-500 group-hover:scale-110"/>
+ <img 
+   loading='lazy' 
+   decoding='async' 
+   src={product.name?.toLowerCase().includes('pumpkin') && (!product.image || product.image.includes('dummyimage.com')) ? '/media/products/pumpkin_seeds.jpg' : product.image} 
+   alt={product.name} 
+   onError={(e) => {
+     if (product.name?.toLowerCase().includes('pumpkin') && !e.currentTarget.src.includes('pumpkin_seeds.jpg')) {
+       e.currentTarget.src = '/media/products/pumpkin_seeds.jpg';
+     }
+   }}
+   className="w-full h-full object-contain p-1 transition-transform duration-500 group-hover:scale-110"
+ />
  ) : (
  <ImageIcon className="w-8 h-8 text-slate-300"/>
  )}

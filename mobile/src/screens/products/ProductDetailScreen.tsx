@@ -76,6 +76,9 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
     const fixed = fixImageUrl(product.image);
     if (fixed) images.push(fixed);
   }
+  if (product.name?.toLowerCase().includes('pumpkin') && (images.length === 0 || images[0]?.includes('dummyimage.com') || images[0]?.endsWith('/media/'))) {
+    images[0] = 'https://raw.githubusercontent.com/saisatyanarayana09/narendra-kirana/main/frontend/public/products/pumpkin_seeds.jpg';
+  }
   if (product.gallery_images && Array.isArray(product.gallery_images)) {
     product.gallery_images.forEach((g: any) => {
       const fixed = fixImageUrl(g.image || g);
