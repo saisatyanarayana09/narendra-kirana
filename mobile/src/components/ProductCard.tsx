@@ -48,7 +48,7 @@ export function ProductCard({
   isFavorite,
   onToggleFavorite
 }: ProductCardProps) {
-  const { cart, addToCart, updateQuantity, removeFromCart } = useCart();
+  const { cart, addToCart } = useCart();
   const [updating, setUpdating] = useState(false);
   const [added, setAdded] = useState(false);
 
@@ -84,7 +84,7 @@ export function ProductCard({
   const primaryImage = fixImageUrl(product.image);
 
   const handleAdd = async () => {
-    if (updating || !isInStock) return;
+    if (updating || !isInStock || isMaxReached) return;
     setUpdating(true);
     try {
       if (onAddToCart) {
@@ -93,37 +93,9 @@ export function ProductCard({
         await addToCart(product.id, 1);
       }
       setAdded(true);
-      setTimeout(() => setAdded(false), 2000);
+      setTimeout(() => setAdded(false), 2500);
     } catch (err) {
       console.error('Add to cart failed:', err);
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  const handleIncrement = async () => {
-    if (updating || !cartItem || isMaxReached) return;
-    setUpdating(true);
-    try {
-      await updateQuantity(cartItem.id, cartQty + 1);
-    } catch (err) {
-      console.error('Increment failed:', err);
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  const handleDecrement = async () => {
-    if (updating || !cartItem) return;
-    setUpdating(true);
-    try {
-      if (cartQty <= 1) {
-        await removeFromCart(cartItem.id);
-      } else {
-        await updateQuantity(cartItem.id, cartQty - 1);
-      }
-    } catch (err) {
-      console.error('Decrement failed:', err);
     } finally {
       setUpdating(false);
     }
@@ -211,44 +183,26 @@ export function ProductCard({
           )}
         </View>
 
-        {/* In-Card Quantity Stepper or Red Add Button */}
+        {/* Add to Cart Button matching web app customer.jsx:250-264 */}
         <View style={styles.actionContainer}>
           {!isInStock ? (
             <View style={styles.outOfStockButton}>
               <Text style={styles.outOfStockButtonText}>Out of stock</Text>
             </View>
-          ) : inCart ? (
-            <View style={styles.stepperContainer}>
-              <TouchableOpacity 
-                style={styles.stepperBtn}
-                onPress={handleDecrement}
-                disabled={updating}
-                activeOpacity={0.7}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Feather name={cartQty === 1 ? "trash-2" : "minus"} size={13} color="#DC2626" />
-              </TouchableOpacity>
-              
-              <Text style={styles.stepperCount}>{cartQty}</Text>
-              
-              <TouchableOpacity 
-                style={[styles.stepperBtn, isMaxReached && styles.stepperBtnDisabled]}
-                onPress={handleIncrement}
-                disabled={updating || isMaxReached}
-                activeOpacity={0.7}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Feather name="plus" size={13} color={isMaxReached ? "#CBD5E1" : "#DC2626"} />
-              </TouchableOpacity>
-            </View>
           ) : (
             <TouchableOpacity 
-              style={[styles.addToCartButton, added && styles.addedButton]}
+              style={[
+                styles.addToCartButton, 
+                added && styles.addedButton,
+                isMaxReached && styles.maxReachedButton
+              ]}
               onPress={handleAdd}
-              disabled={updating || added}
+              disabled={updating || added || isMaxReached}
               activeOpacity={0.85}
             >
-              {added ? (
+              {isMaxReached ? (
+                <Text style={styles.maxReachedText}>Max in cart</Text>
+              ) : added ? (
                 <Text style={styles.addedText}>✓ Added!</Text>
               ) : updating ? (
                 <Text style={styles.addToCartText}>Adding...</Text>
@@ -465,39 +419,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
   },
-  stepperContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1.5,
-    borderColor: '#FCA5A5',
-    borderRadius: 12,
-    height: 38,
-    paddingHorizontal: 8,
-  },
-  stepperBtn: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 1.5,
-    elevation: 1,
-  },
-  stepperBtnDisabled: {
+  maxReachedButton: {
     backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     shadowOpacity: 0,
     elevation: 0,
   },
-  stepperCount: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#DC2626',
+  maxReachedText: {
+    color: '#94A3B8',
+    fontSize: 12,
+    fontWeight: '700',
   },
   outOfStockButton: {
     backgroundColor: '#F8FAFC',
