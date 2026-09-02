@@ -167,7 +167,7 @@ export function ProductCard({
 
         {/* Product image or initial letter fallback */}
         {primaryImage ? (
-          <Image source={{ uri: primaryImage }} style={styles.image} contentFit="contain" />
+          <Image source={{ uri: primaryImage }} style={styles.image} contentFit="cover" />
         ) : (
           <View style={styles.placeholderImage}>
             <Text style={styles.placeholderLetter}>
@@ -249,13 +249,13 @@ export function ProductCard({
               activeOpacity={0.85}
             >
               {added ? (
-                <Text style={styles.addedText}>✓ Added</Text>
+                <Text style={styles.addedText}>✓ Added!</Text>
               ) : updating ? (
                 <Text style={styles.addToCartText}>Adding...</Text>
               ) : (
                 <>
-                  <Feather name="plus" size={14} color="#FFFFFF" style={{ marginRight: 4 }} />
-                  <Text style={styles.addToCartText}>Add</Text>
+                  <Feather name="shopping-cart" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
+                  <Text style={styles.addToCartText}>Add to Cart</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -273,6 +273,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     width: '100%',
+    height: 284, // Uniform card height matching web app
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
@@ -282,13 +283,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   imageContainer: {
-    height: 136,
+    height: 128, // Exact h-32 (128px) matching web customer.jsx:72
     backgroundColor: '#F8FAFC',
     position: 'relative',
-    padding: theme.spacing.sm,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
   },
   imageOutOfStock: {
     opacity: 0.6,
@@ -377,32 +379,32 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#64748B',
     textTransform: 'uppercase',
-    marginBottom: 2,
+    marginBottom: 1,
     fontWeight: '700',
   },
   name: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0F172A',
-    lineHeight: 18,
-    minHeight: 36,
+    color: '#1E293B',
+    lineHeight: 17,
+    maxHeight: 34,
   },
   unit: {
     fontSize: 11,
     color: '#64748B',
     fontWeight: '500',
-    marginTop: 2,
+    marginTop: 1,
   },
   tagsContainer: {
     flexDirection: 'row',
-    marginTop: 4,
+    marginTop: 3,
   },
   tagBadge: {
     backgroundColor: '#FEF2F2',
     borderWidth: 1,
     borderColor: '#FEE2E2',
     paddingHorizontal: 5,
-    paddingVertical: 1.5,
+    paddingVertical: 1,
     borderRadius: 4,
   },
   tagText: {
@@ -415,13 +417,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: 6,
-    marginTop: 8,
-    marginBottom: 8,
+    marginTop: 4,
+    marginBottom: 6,
   },
   price: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '900',
-    color: '#0F172A',
+    color: '#475569', // text-slate-600 matching web customer.jsx:238
   },
   mrp: {
     fontSize: 11,
@@ -434,8 +436,8 @@ const styles = StyleSheet.create({
   },
   addToCartButton: {
     backgroundColor: '#DC2626', // Red-600 matching web app
-    borderRadius: 10,
-    height: 36,
+    borderRadius: 12, // rounded-xl matching web customer.jsx:258
+    height: 38,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -455,12 +457,12 @@ const styles = StyleSheet.create({
   },
   addToCartText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
   },
   addedText: {
     color: '#0F172A',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
   },
   stepperContainer: {
@@ -470,8 +472,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF2F2',
     borderWidth: 1.5,
     borderColor: '#FCA5A5',
-    borderRadius: 10,
-    height: 36,
+    borderRadius: 12,
+    height: 38,
     paddingHorizontal: 8,
   },
   stepperBtn: {
