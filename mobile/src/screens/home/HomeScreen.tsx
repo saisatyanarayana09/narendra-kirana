@@ -27,7 +27,7 @@ type Props = {
 };
 
 const { width } = Dimensions.get('window');
-const BANNER_WIDTH = width - 32;
+const BANNER_HEIGHT = Math.min(180, Math.round((width * 7) / 16)); // aspect-[16/7] max-h-[180px] matching web
 const SECTION_ICONS = ['🔥', '⭐', '🆕', '💎', '🎯', '🌟', '✨', '🏷️'];
 
 export function HomeScreen({ navigation }: Props) {
@@ -149,18 +149,20 @@ export function HomeScreen({ navigation }: Props) {
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
-              snapToInterval={BANNER_WIDTH + 16}
+              snapToInterval={width}
+              snapToAlignment="start"
               decelerationRate="fast"
+              getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
               contentContainerStyle={styles.bannersList}
               keyExtractor={(item: any) => String(item.id)}
               onMomentumScrollEnd={(e) => {
-                const index = Math.round(e.nativeEvent.contentOffset.x / (BANNER_WIDTH + 16));
+                const index = Math.round(e.nativeEvent.contentOffset.x / width);
                 setActiveBannerIndex(index);
               }}
               renderItem={({ item }) => (
                 <TouchableOpacity 
-                  activeOpacity={0.9}
-                  style={[styles.bannerCard, { width: BANNER_WIDTH }]}
+                  activeOpacity={0.95}
+                  style={styles.bannerSlide}
                   onPress={() => navigation.navigate('CategoriesTab', { screen: 'ProductListScreen', params: {} })}
                 >
                   <Image 
@@ -172,7 +174,7 @@ export function HomeScreen({ navigation }: Props) {
               )}
             />
 
-            {/* Carousel Dots */}
+            {/* Carousel Dots matching web app */}
             {banners.length > 1 && (
               <View style={styles.dotsContainer}>
                 {banners.map((_, idx) => (
@@ -189,32 +191,37 @@ export function HomeScreen({ navigation }: Props) {
           </View>
         ) : (
           <View style={styles.fallbackHeroBanner}>
+            {/* Decorative shapes and floating emojis matching web */}
             <View style={styles.heroDecorTopCircle} />
             <View style={styles.heroDecorBottomCircle} />
+            <Text style={styles.heroFloatingEmojiCart}>🛒</Text>
+            <Text style={styles.heroFloatingEmojiVeg}>🥬</Text>
             
-            <View style={styles.heroTagPill}>
-              <Feather name="star" size={12} color="#FDE047" />
-              <Text style={styles.heroTagText}>
-                {settings?.store_name || 'NARENDRA KIRANA STORE'}
+            <View style={styles.heroInnerContent}>
+              <View style={styles.heroTagPill}>
+                <Feather name="star" size={11} color="#FDE047" />
+                <Text style={styles.heroTagText}>
+                  {settings?.store_name || 'NARENDRA KIRANA STORE'}
+                </Text>
+              </View>
+
+              <Text style={styles.heroHeadline}>
+                Everyday essentials, <Text style={styles.heroHeadlineYellow}>ready when you are.</Text>
               </Text>
+
+              <Text style={styles.heroSubheadline} numberOfLines={2}>
+                Order online and collect from your local store. Quality products and reliable service.
+              </Text>
+
+              <TouchableOpacity 
+                style={styles.exploreCatalogBtn}
+                activeOpacity={0.9}
+                onPress={() => navigation.navigate('CategoriesTab', { screen: 'CategoriesScreen' })}
+              >
+                <Text style={styles.exploreCatalogText}>Explore Catalog</Text>
+                <Feather name="chevron-right" size={16} color="#0F172A" />
+              </TouchableOpacity>
             </View>
-
-            <Text style={styles.heroHeadline}>
-              Everyday essentials, <Text style={styles.heroHeadlineYellow}>ready when you are.</Text>
-            </Text>
-
-            <Text style={styles.heroSubheadline}>
-              Order online and collect from your local store. Quality products, straightforward pricing, and reliable service.
-            </Text>
-
-            <TouchableOpacity 
-              style={styles.exploreCatalogBtn}
-              activeOpacity={0.9}
-              onPress={() => navigation.navigate('CategoriesTab', { screen: 'CategoriesScreen' })}
-            >
-              <Text style={styles.exploreCatalogText}>Explore Catalog</Text>
-              <Feather name="chevron-right" size={18} color="#0F172A" />
-            </TouchableOpacity>
           </View>
         )}
 
@@ -349,24 +356,19 @@ const styles = StyleSheet.create({
     paddingBottom: 110,
   },
   carouselWrapper: {
-    marginTop: 12,
-    marginBottom: 8,
+    width: width,
+    height: BANNER_HEIGHT,
+    backgroundColor: '#F1F5F9', // bg-slate-100 matching web
     position: 'relative',
-  },
-  bannersList: {
-    paddingHorizontal: 16,
-    gap: 16,
-  },
-  bannerCard: {
-    height: 150,
-    borderRadius: 16,
+    marginBottom: 6,
     overflow: 'hidden',
-    backgroundColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+  },
+  bannersList: {},
+  bannerSlide: {
+    width: width,
+    height: BANNER_HEIGHT,
+    overflow: 'hidden',
+    backgroundColor: '#F1F5F9',
   },
   bannerImage: {
     width: '100%',
@@ -374,7 +376,7 @@ const styles = StyleSheet.create({
   },
   dotsContainer: {
     position: 'absolute',
-    bottom: 10,
+    bottom: 8,
     left: 0,
     right: 0,
     flexDirection: 'row',
@@ -384,14 +386,14 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   dot: {
-    width: 8,
-    height: 6,
+    width: 7,
+    height: 5,
     borderRadius: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    backgroundColor: 'rgba(255, 255, 255, 0.65)',
   },
   activeDot: {
-    width: 32, // active wide pill w-8
-    height: 6,
+    width: 28, // active wide pill w-8 matching web
+    height: 5,
     borderRadius: 3,
     backgroundColor: '#FFFFFF',
     shadowColor: '#000',
@@ -401,19 +403,31 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   fallbackHeroBanner: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 8,
+    width: width,
     backgroundColor: '#065F46', // emerald-800 matching web
-    borderRadius: 20,
-    padding: 20,
+    paddingVertical: 22,
+    paddingHorizontal: 16,
     overflow: 'hidden',
     position: 'relative',
-    shadowColor: '#065F46',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    marginBottom: 6,
+  },
+  heroInnerContent: {
+    position: 'relative',
+    zIndex: 10,
+  },
+  heroFloatingEmojiCart: {
+    position: 'absolute',
+    top: 10,
+    right: 32,
+    fontSize: 26,
+    opacity: 0.22,
+  },
+  heroFloatingEmojiVeg: {
+    position: 'absolute',
+    bottom: 12,
+    right: 16,
+    fontSize: 24,
+    opacity: 0.22,
   },
   heroDecorTopCircle: {
     position: 'absolute',
