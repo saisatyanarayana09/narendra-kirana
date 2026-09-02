@@ -197,12 +197,12 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
             <Text style={styles.summaryValue}>₹{parseFloat(cart.subtotal || '0').toFixed(2)}</Text>
           </View>
 
-          <View style={styles.summaryRow}>
-            <Text style={styles.savingsLabel}>Product Savings</Text>
-            <Text style={styles.savingsValue}>
-              {parseFloat(cart.discount || '0') > 0 ? `-₹${parseFloat(cart.discount).toFixed(2)}` : '₹0.00'}
-            </Text>
-          </View>
+          {parseFloat(cart.discount || '0') > 0 && (
+            <View style={styles.summaryRow}>
+              <Text style={styles.savingsLabel}>Product Savings</Text>
+              <Text style={styles.savingsValue}>-₹{parseFloat(cart.discount).toFixed(2)}</Text>
+            </View>
+          )}
 
           {parseFloat(cart.promo_discount || '0') > 0 && (
             <View style={styles.summaryRow}>

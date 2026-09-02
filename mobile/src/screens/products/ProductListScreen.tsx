@@ -17,6 +17,7 @@ import { ProductCard } from '../../components/ProductCard';
 import { ProductCardSkeleton } from '../../components/SkeletonLoader';
 import { triggerHaptic } from '../../utils/haptics';
 import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
 
 const { width } = Dimensions.get('window');
 
@@ -34,10 +35,12 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
   const initialCategoryName = route.params?.categoryName || 'All Products';
   const initialSearch = route.params?.search || '';
 
+  const { user } = useAuth();
   const { addToCart } = useCart();
   
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(initialCategoryId);
+  const [searchQuery, setSearchQuery] = useState<string>(initialSearch);
   const [sortOption, setSortOption] = useState<SortOption>('default');
   
   const [products, setProducts] = useState<any[]>([]);
@@ -47,13 +50,114 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
+  // Favorites state
+  const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
+  const [favoriteMap, setFavoriteMap] = useState<Record<number, number>>({});
+
+  const getOrderingParam = (sort: SortOption): string | undefined => {
+    switch (sort) {
+      case 'price_low':
+        return 'offer_price';
+      case 'price_high':
+        return '-offer_price';
+      case 'newest':
+        return '-created_at';
+      case 'default':
+      default:
+        return undefined;
+    }
+  };
+
+  const fetchFavorites = async () => {
+    if (!user) {
+      setFavoriteIds(new Set());
+      setFavoriteMap({});
+      return;
+    }
+    try {
+      const res = await apiClient.get('/favorites/').catch(() => apiClient.get('/products/favorites/'));
+      const items = Array.isArray(res.data) ? res.data : (res.data?.results || []);
+      const ids = new Set<number>();
+      const map: Record<number, number> = {};
+      items.forEach((item: any) => {
+        const pId = item.product?.id ?? item.product ?? item.product_details?.id;
+        if (pId) {
+          const numId = Number(pId);
+          ids.add(numId);
+          map[numId] = item.id;
+        }
+      });
+      setFavoriteIds(ids);
+      setFavoriteMap(map);
+    } catch (err) {
+      console.log('Error fetching favorites:', err);
+    }
+  };
+
+  const toggleFavorite = async (param: any) => {
+    const productId = typeof param === 'object' && param !== null ? param.id : Number(param);
+    if (!productId) return;
+
+    if (!user) {
+      setFavoriteIds(prev => {
+        const next = new Set(prev);
+        if (next.has(productId)) next.delete(productId);
+        else next.add(productId);
+        return next;
+      });
+      return;
+    }
+
+    const isFav = favoriteIds.has(productId);
+    const favId = favoriteMap[productId];
+
+    setFavoriteIds(prev => {
+      const next = new Set(prev);
+      if (isFav) next.delete(productId);
+      else next.add(productId);
+      return next;
+    });
+
+    try {
+      if (isFav && favId) {
+        await apiClient.delete(`/favorites/${favId}/`);
+        setFavoriteMap(prev => {
+          const next = { ...prev };
+          delete next[productId];
+          return next;
+        });
+      } else {
+        const res = await apiClient.post('/favorites/', { product: productId });
+        if (res.data?.id) {
+          setFavoriteMap(prev => ({ ...prev, [productId]: res.data.id }));
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      setFavoriteIds(prev => {
+        const next = new Set(prev);
+        if (isFav) next.add(productId);
+        else next.delete(productId);
+        return next;
+      });
+    }
+  };
+
+  useEffect(() => {
+    fetchFavorites();
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchFavorites();
+    });
+    return unsubscribe;
+  }, [user, navigation]);
+
   useEffect(() => {
     fetchCategories();
   }, []);
 
   useEffect(() => {
     fetchProducts(1, true);
-  }, [selectedCategory, initialSearch]);
+  }, [selectedCategory, searchQuery, sortOption]);
 
   const fetchCategories = async () => {
     try {
@@ -73,7 +177,10 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
     try {
       const params: any = { page: pageNum };
       if (selectedCategory) params.category = selectedCategory;
-      if (initialSearch) params.search = initialSearch;
+      if (searchQuery) params.search = searchQuery;
+
+      const ordering = getOrderingParam(sortOption);
+      if (ordering) params.ordering = ordering;
 
       const res = await apiClient.get('/products/', { params });
       const newItems = Array.isArray(res.data) ? res.data : (res.data?.results || []);
@@ -102,21 +209,12 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
     }
   };
 
-  const sortedProducts = [...products].sort((a, b) => {
-    const priceA = parseFloat(a.offer_price || a.price || a.regular_price || '0');
-    const priceB = parseFloat(b.offer_price || b.price || b.regular_price || '0');
-    if (sortOption === 'price_low') return priceA - priceB;
-    if (sortOption === 'price_high') return priceB - priceA;
-    if (sortOption === 'newest') {
-      const dateA = new Date(a.created_at || 0).getTime();
-      const dateB = new Date(b.created_at || 0).getTime();
-      return (dateB - dateA) || (b.id - a.id);
-    }
-    return 0;
-  });
+  const sortedProducts = products;
 
   const activeCategoryObj = categories.find(c => c.id === selectedCategory);
-  const activeCategoryName = selectedCategory ? (activeCategoryObj?.name || initialCategoryName) : 'All Products';
+  const activeCategoryName = selectedCategory 
+    ? (activeCategoryObj?.name || initialCategoryName) 
+    : (searchQuery ? `Search: "${searchQuery}"` : 'All Products');
 
   const renderListHeader = () => (
     <View style={styles.scrollableHeaderContainer}>
@@ -243,8 +341,23 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
             </View>
             <Text style={styles.emptyTitle}>No products found</Text>
             <Text style={styles.emptySubtitle}>
-              There are no products in this category right now. Please check another aisle!
+              {selectedCategory !== null || !!searchQuery
+                ? 'No products match your selected filters. Tap below to see all items.'
+                : 'There are no products available in this category right now.'}
             </Text>
+            <TouchableOpacity 
+              style={styles.clearFiltersBtn}
+              onPress={() => {
+                triggerHaptic('selection');
+                setSelectedCategory(null);
+                setSearchQuery('');
+                setSortOption('default');
+              }}
+              activeOpacity={0.8}
+            >
+              <Feather name="refresh-cw" size={14} color="#FFFFFF" style={{ marginRight: 6 }} />
+              <Text style={styles.clearFiltersBtnText}>Clear Filters / Show All</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       ) : (
@@ -259,6 +372,7 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
           onRefresh={() => {
             setRefreshing(true);
             fetchProducts(1, true);
+            fetchFavorites();
           }}
           renderItem={({ item }) => (
             <View style={styles.cardWrapper}>
@@ -266,6 +380,8 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
                 product={item} 
                 onPress={() => navigation.navigate('ProductDetailScreen', { productId: item.id })} 
                 onAddToCart={(p) => addToCart(p.id, 1)}
+                isFavorite={favoriteIds.has(item.id)}
+                onToggleFavorite={(p) => toggleFavorite(p?.id ?? p)}
               />
             </View>
           )}
@@ -440,6 +556,26 @@ const styles = StyleSheet.create({
     color: '#64748B',
     textAlign: 'center',
     lineHeight: 18,
+  },
+  clearFiltersBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#059669',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginTop: 18,
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  clearFiltersBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
   },
   listContainer: {
     padding: 16,

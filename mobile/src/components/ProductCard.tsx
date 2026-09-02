@@ -8,7 +8,7 @@ import {
   ViewStyle 
 } from 'react-native';
 import { Image } from 'expo-image';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { fixImageUrl } from '../utils/image';
 import { theme } from '../constants/theme';
 import { useCart } from '../context/CartContext';
@@ -37,8 +37,8 @@ export interface ProductCardProps {
   onPress: (product: Product) => void;
   onAddToCart?: (product: Product) => void;
   style?: StyleProp<ViewStyle>;
-  isFavorite?: boolean;
-  onToggleFavorite?: (product: Product) => void;
+  isFavorite?: boolean | ((productId: number) => boolean);
+  onToggleFavorite?: (product: any) => void;
 }
 
 export function ProductCard({ 
@@ -52,6 +52,8 @@ export function ProductCard({
   const { cart, addToCart } = useCart();
   const [updating, setUpdating] = useState(false);
   const [added, setAdded] = useState(false);
+
+  const isFav = typeof isFavorite === 'function' ? Boolean(isFavorite(product.id)) : Boolean(isFavorite);
 
   // Price calculations matching customer.jsx
   const rawPrice = product.offer_price || product.price || product.regular_price || 0;
@@ -134,11 +136,10 @@ export function ProductCard({
             activeOpacity={0.8}
             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           >
-            <Feather 
-              name="heart" 
-              size={15} 
-              color={isFavorite ? "#E11D48" : "#94A3B8"} 
-              fill={isFavorite ? "#E11D48" : "transparent"} 
+            <Ionicons 
+              name={isFav ? "heart" : "heart-outline"} 
+              size={16} 
+              color={isFav ? "#E11D48" : "#94A3B8"} 
             />
           </TouchableOpacity>
         )}
@@ -233,7 +234,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     width: '100%',
-    height: 284, // Uniform card height matching web app
+    minHeight: 284, // Uniform minimum card height so titles with tags/price never get squeezed
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
@@ -383,7 +384,7 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 17,
     fontWeight: '900',
-    color: '#475569', // text-slate-600 matching web customer.jsx:238
+    color: '#0F172A', // Slate-900 standardized
   },
   mrp: {
     fontSize: 11,

@@ -159,6 +159,25 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
       return sum + itemSub;
     }, 0);
 
+  const getOrderStatusBadge = (status: string) => {
+    switch (status) {
+      case 'REJECTED':
+        return { label: 'Order Cancelled', bg: '#FFF1F2', text: '#E11D48' };
+      case 'COMPLETED':
+        return { label: 'Order Completed', bg: '#ECFDF5', text: '#059669' };
+      case 'READY':
+        return { label: 'Order Ready', bg: '#EFF6FF', text: '#2563EB' };
+      case 'PREPARING':
+        return { label: 'Order Preparing', bg: '#FFFBEB', text: '#D97706' };
+      case 'NEW':
+        return { label: 'Order Placed', bg: '#ECFDF5', text: '#059669' };
+      default:
+        return { label: 'Order Confirmed', bg: '#ECFDF5', text: '#059669' };
+    }
+  };
+
+  const statusBadge = getOrderStatusBadge(order.status);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Top Navigation Bar */}
@@ -188,7 +207,11 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
         {/* Order Header matching web cart.jsx OrderDetailPage */}
         <View style={styles.orderHeaderSection}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.orderConfirmedBadge}>Order confirmed</Text>
+            <View style={[styles.orderStatusBadge, { backgroundColor: statusBadge.bg }]}>
+              <Text style={[styles.orderStatusBadgeText, { color: statusBadge.text }]}>
+                {statusBadge.label}
+              </Text>
+            </View>
             <Text style={styles.orderIdText}>#{order.id}</Text>
           </View>
           {order.status === 'COMPLETED' && (
@@ -514,6 +537,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 16,
+  },
+  orderStatusBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginBottom: 4,
+  },
+  orderStatusBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
   orderConfirmedBadge: {
     fontSize: 13,

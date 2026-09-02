@@ -7,7 +7,7 @@ import {
   Animated 
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Feather, MaterialIcons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { useCart } from '../context/CartContext';
 import { triggerHaptic } from '../utils/haptics';
 
@@ -15,9 +15,21 @@ interface FloatingCartBarProps {
   bottomOffset: number;
   onPress: () => void;
   onClose: () => void;
+  currentRouteName?: string;
 }
 
-export function FloatingCartBar({ bottomOffset, onPress, onClose }: FloatingCartBarProps) {
+const HIDE_ON_SCREENS = [
+  'ProductDetailScreen',
+  'CheckoutScreen',
+  'OrderSuccessScreen',
+  'OrderTrackingScreen',
+  'InvoiceScreen',
+  'AddAddressScreen',
+  'CartScreen',
+  'CartTab',
+];
+
+export function FloatingCartBar({ bottomOffset, onPress, onClose, currentRouteName }: FloatingCartBarProps) {
   const { cart, storeSettings } = useCart();
   const slideAnim = useRef(new Animated.Value(80)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -95,7 +107,9 @@ export function FloatingCartBar({ bottomOffset, onPress, onClose }: FloatingCart
     };
   }, [itemCount]);
 
-  if (itemCount === 0) return null;
+  if (itemCount === 0 || (currentRouteName && HIDE_ON_SCREENS.includes(currentRouteName))) {
+    return null;
+  }
 
   const handleOpenCart = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -169,19 +183,23 @@ export function FloatingCartBar({ bottomOffset, onPress, onClose }: FloatingCart
               {isFreeDelivery ? (
                 <>
                   <Text style={styles.ribbonEmoji}>🎉</Text>
-                  <Text style={styles.ribbonTextHighlight}>FREE Delivery Unlocked!</Text>
+                  <Text style={styles.ribbonTextHighlight} numberOfLines={1} ellipsizeMode="tail">
+                    FREE Delivery Unlocked!
+                  </Text>
                 </>
               ) : shortfall > 0 ? (
                 <>
                   <Text style={styles.ribbonEmoji}>🚚</Text>
-                  <Text style={styles.ribbonText}>
+                  <Text style={styles.ribbonText} numberOfLines={1} ellipsizeMode="tail">
                     Add <Text style={styles.ribbonBold}>₹{shortfall.toFixed(0)}</Text> more for <Text style={styles.ribbonBold}>FREE Delivery</Text>
                   </Text>
                 </>
               ) : (
                 <>
                   <Text style={styles.ribbonEmoji}>⚡</Text>
-                  <Text style={styles.ribbonTextHighlight}>Express Store Delivery (15-25 mins)</Text>
+                  <Text style={styles.ribbonTextHighlight} numberOfLines={1} ellipsizeMode="tail">
+                    Express Store Delivery (15-25 mins)
+                  </Text>
                 </>
               )}
             </View>
@@ -210,8 +228,9 @@ export function FloatingCartBar({ bottomOffset, onPress, onClose }: FloatingCart
 
               <View style={styles.priceContainer}>
                 <View style={styles.priceRow}>
-                  <MaterialIcons name="currency-rupee" size={18} color="#FFFFFF" />
-                  <Text style={styles.priceValue}>{totalAmount.toFixed(0)}</Text>
+                  <Text style={styles.priceValue}>
+                    {`₹${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                  </Text>
                 </View>
                 <Text style={styles.itemsSubtext}>
                   {itemCount} {itemCount === 1 ? 'item' : 'items'} in basket
@@ -284,6 +303,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     flex: 1,
+    marginRight: 8,
   },
   ribbonEmoji: {
     fontSize: 12,
@@ -292,6 +312,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
     fontSize: 11,
     fontWeight: '600',
+    flexShrink: 1,
   },
   ribbonBold: {
     color: '#FDE047', // Warm gold highlight
@@ -302,6 +323,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.2,
+    flexShrink: 1,
   },
   closeButton: {
     width: 22,

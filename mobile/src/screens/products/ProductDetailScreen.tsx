@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { AppNavigationProp } from '../../navigation/types';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
@@ -151,11 +151,11 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={styles.container}>
       {/* Header Actions */}
-      <View style={styles.header}>
+      <View style={[styles.header, { top: insets.top + 10 }]}>
         <TouchableOpacity 
-          style={styles.headerButton} 
+          style={[styles.headerButton, styles.backButton]} 
           onPress={() => {
             if (navigation.canGoBack()) {
               navigation.goBack();
@@ -170,23 +170,22 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
         
         <View style={styles.headerRight}>
           <TouchableOpacity 
-            style={styles.headerButton} 
+            style={[styles.headerButton, styles.shareButton]} 
             onPress={handleShare}
             activeOpacity={0.8}
           >
             <Feather name="share-2" color="#0F172A" size={18} />
           </TouchableOpacity>
           <TouchableOpacity 
-            style={styles.headerButton} 
+            style={[styles.headerButton, styles.heartButton]} 
             onPress={handleFavorite} 
             disabled={toggling}
             activeOpacity={0.8}
           >
-            <Feather 
-              name="heart" 
+            <Ionicons 
+              name={isFavorite ? "heart" : "heart-outline"} 
               color={isFavorite ? "#E11D48" : "#0F172A"} 
-              fill={isFavorite ? "#E11D48" : "transparent"} 
-              size={18} 
+              size={20} 
             />
           </TouchableOpacity>
         </View>
@@ -199,7 +198,7 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
         {/* Product Image */}
         <View style={styles.imageContainer}>
           {discountPercent > 0 && (
-            <View style={styles.discountBadge}>
+            <View style={[styles.discountBadge, { top: insets.top + 56 }]}>
               <Feather name="zap" size={10} color="#FFFFFF" />
               <Text style={styles.discountBadgeText}>{discountPercent}% OFF</Text>
             </View>
@@ -313,7 +312,7 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
           )}
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -337,11 +336,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     position: 'absolute',
-    top: 10,
     left: 0,
     right: 0,
     zIndex: 20,
   },
+  backButton: {},
+  shareButton: {},
+  heartButton: {},
   headerButton: {
     width: 38,
     height: 38,

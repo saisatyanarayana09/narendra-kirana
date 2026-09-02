@@ -3,6 +3,7 @@ import { DeviceEventEmitter } from 'react-native';
 import { apiClient } from '../api/client';
 import { STORAGE_KEYS } from '../constants/config';
 import { getItem, saveItem, deleteItem } from '../utils/storage';
+import { resetWelcomeSession } from '../components/WelcomeScreen';
 
 export type User = {
   id: number;
@@ -78,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await deleteItem(STORAGE_KEYS.TOKEN);
       await deleteItem(STORAGE_KEYS.REFRESH);
       await deleteItem(STORAGE_KEYS.USER);
+      resetWelcomeSession();
       setUser(null);
     } catch (error) {
       console.error('Error during logout:', error);

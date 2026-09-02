@@ -7,7 +7,9 @@ import {
   TouchableOpacity, 
   TextInput, 
   ActivityIndicator, 
-  Alert 
+  Alert,
+  KeyboardAvoidingView,
+  Platform 
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -21,6 +23,7 @@ export function AccountSettingsScreen({ navigation }: { navigation: AppNavigatio
   const [firstName, setFirstName] = useState(user?.first_name || '');
   const [username, setUsername] = useState(user?.username || user?.email || '');
   const [dob, setDob] = useState(user?.customer_profile?.dob || '');
+  const [dobError, setDobError] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   
@@ -37,14 +40,40 @@ export function AccountSettingsScreen({ navigation }: { navigation: AppNavigatio
       return;
     }
 
+    const trimmedDob = dob ? dob.trim() : '';
+    if (trimmedDob) {
+      const dobPattern = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dobPattern.test(trimmedDob)) {
+        setDobError('Date of birth must be in YYYY-MM-DD format (e.g. 1995-08-15).');
+        Alert.alert('Validation Error', 'Date of birth must be in YYYY-MM-DD format (e.g. 1995-08-15).');
+        return;
+      }
+
+      const [year, month, day] = trimmedDob.split('-').map(Number);
+      const parsedDate = new Date(year, month - 1, day);
+      const now = new Date();
+      if (
+        parsedDate.getFullYear() !== year ||
+        parsedDate.getMonth() !== month - 1 ||
+        parsedDate.getDate() !== day ||
+        year < 1900 ||
+        parsedDate > now
+      ) {
+        setDobError('Please enter a valid past calendar date (YYYY-MM-DD).');
+        Alert.alert('Validation Error', 'Please enter a valid past calendar date in YYYY-MM-DD format (e.g. 1995-08-15).');
+        return;
+      }
+    }
+    setDobError('');
+
     setSaving(true);
     try {
       const payload: any = {
-        first_name: firstName,
-        username: username,
+        first_name: firstName.trim(),
+        username: username.trim(),
       };
       if (password) payload.password = password;
-      if (dob !== undefined) payload.customer_profile = JSON.stringify({ dob });
+      if (dob !== undefined) payload.customer_profile = JSON.stringify({ dob: trimmedDob || null });
 
       const res = await apiClient.put('/auth/profile/', payload);
       if (updateUser && res.data) {
@@ -105,49 +134,61 @@ export function AccountSettingsScreen({ navigation }: { navigation: AppNavigatio
         <Text style={styles.headerSubtitle}>Manage your personal details and security preferences.</Text>
       </View>
 
-      <ScrollView 
-        showsVerticalScrollIndicator={false} 
-        contentContainerStyle={styles.scrollContent}
+      <KeyboardAvoidingView 
+        style={styles.keyboardAvoid} 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
       >
-        {/* Personal Details Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardSectionLabel}>Personal Information</Text>
+        <ScrollView 
+          showsVerticalScrollIndicator={false} 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Personal Details Card */}
+          <View style={styles.card}>
+            <Text style={styles.cardSectionLabel}>Personal Information</Text>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Full Name</Text>
-            <TextInput
-              style={styles.textInput}
-              value={firstName}
-              onChangeText={setFirstName}
-              placeholder="Your full name"
-              placeholderTextColor="#94A3B8"
-            />
-          </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Full Name</Text>
+              <TextInput
+                style={styles.textInput}
+                value={firstName}
+                onChangeText={setFirstName}
+                placeholder="Your full name"
+                placeholderTextColor="#94A3B8"
+              />
+            </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Email Address</Text>
-            <TextInput
-              style={styles.textInput}
-              value={username}
-              onChangeText={setUsername}
-              placeholder="Your email address"
-              placeholderTextColor="#94A3B8"
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Email Address</Text>
+              <TextInput
+                style={styles.textInput}
+                value={username}
+                onChangeText={setUsername}
+                placeholder="Your email address"
+                placeholderTextColor="#94A3B8"
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Date of Birth (YYYY-MM-DD)</Text>
-            <TextInput
-              style={styles.textInput}
-              value={dob}
-              onChangeText={setDob}
-              placeholder="e.g. 1995-08-15"
-              placeholderTextColor="#94A3B8"
-            />
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Date of Birth</Text>
+              <TextInput
+                style={[styles.textInput, Boolean(dobError) && styles.textInputError]}
+                value={dob}
+                onChangeText={(val) => {
+                  setDob(val);
+                  if (dobError) setDobError('');
+                }}
+                placeholder="e.g. 1995-08-15"
+                placeholderTextColor="#94A3B8"
+                maxLength={10}
+              />
+              <Text style={styles.helperText}>Format: YYYY-MM-DD (e.g. 1995-08-15)</Text>
+              {Boolean(dobError) && <Text style={styles.errorText}>{dobError}</Text>}
+            </View>
           </View>
-        </View>
 
         {/* Security & Password Card */}
         <View style={styles.card}>
@@ -267,14 +308,18 @@ export function AccountSettingsScreen({ navigation }: { navigation: AppNavigatio
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
-  );
+    </KeyboardAvoidingView>
+  </SafeAreaView>
+);
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC', // slate-50
+  },
+  keyboardAvoid: {
+    flex: 1,
   },
   header: {
     paddingHorizontal: 16,
@@ -356,6 +401,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#0F172A',
     fontWeight: '500',
+  },
+  textInputError: {
+    borderColor: '#EF4444',
+    backgroundColor: '#FEF2F2',
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#EF4444',
+    marginTop: 4,
+    fontWeight: '600',
   },
   passwordInputWrap: {
     flexDirection: 'row',

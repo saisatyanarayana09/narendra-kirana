@@ -451,15 +451,28 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Feather name="arrow-left" color={theme.colors.text} size={24} />
+        <View style={styles.webActionBar}>
+          <TouchableOpacity 
+            style={styles.backToOrderBtn} 
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <Feather name="arrow-left" size={15} color="#475569" />
+            <Text style={styles.backToOrderText}>Back to Order</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Invoice</Text>
-          <View style={{ width: 40 }} />
+
+          <View style={styles.actionButtonsRight}>
+            <View style={[styles.downloadPdfButton, { opacity: 0.4 }]}>
+              <Feather name="printer" size={15} color="#FFFFFF" />
+              <Text style={styles.downloadPdfButtonText}>Download / Print PDF</Text>
+            </View>
+            <View style={[styles.shareIconButton, { opacity: 0.4 }]}>
+              <Feather name="share-2" size={15} color="#047857" />
+            </View>
+          </View>
         </View>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <ActivityIndicator size="large" color="#059669" />
           <Text style={styles.loadingText}>Loading invoice...</Text>
         </View>
       </SafeAreaView>
@@ -469,12 +482,15 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
   if (error || !order) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Feather name="arrow-left" color={theme.colors.text} size={24} />
+        <View style={styles.webActionBar}>
+          <TouchableOpacity 
+            style={styles.backToOrderBtn} 
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <Feather name="arrow-left" size={15} color="#475569" />
+            <Text style={styles.backToOrderText}>Back to Order</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Invoice</Text>
-          <View style={{ width: 40 }} />
         </View>
         <View style={styles.center}>
           <Feather name="alert-circle" size={48} color={theme.colors.error} />
@@ -623,11 +639,11 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
           {/* Items Table */}
           <View style={styles.table}>
             <View style={styles.tableHeaderRow}>
-              <Text style={[styles.tableHeaderCell, { width: 28, textAlign: 'center' }]}>#</Text>
-              <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Item Description</Text>
-              <Text style={[styles.tableHeaderCell, { width: 40, textAlign: 'center' }]}>Qty</Text>
-              <Text style={[styles.tableHeaderCell, { width: 65, textAlign: 'right' }]}>Price</Text>
-              <Text style={[styles.tableHeaderCell, { width: 75, textAlign: 'right' }]}>Amount</Text>
+              <Text style={[styles.tableHeaderCell, styles.colIndex]}>#</Text>
+              <Text style={[styles.tableHeaderCell, styles.colDesc]}>Item Description</Text>
+              <Text style={[styles.tableHeaderCell, styles.colQty]}>Qty</Text>
+              <Text style={[styles.tableHeaderCell, styles.colPrice]}>Price</Text>
+              <Text style={[styles.tableHeaderCell, styles.colTotal]}>Total</Text>
             </View>
 
             {(order.items || []).map((item: any, index: number) => {
@@ -639,10 +655,10 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
 
               return (
                 <View key={item.id || index} style={[styles.tableRow, index % 2 === 1 && styles.tableRowAlt]}>
-                  <Text style={[styles.tableCell, { width: 28, textAlign: 'center', color: '#94A3B8' }]}>
+                  <Text style={[styles.tableCell, styles.colIndex, { color: '#94A3B8' }]}>
                     {index + 1}
                   </Text>
-                  <View style={{ flex: 1, paddingRight: 4 }}>
+                  <View style={styles.colDesc}>
                     <Text style={[styles.tableCellName, itemRejected && styles.lineThrough]}>
                       {name}
                     </Text>
@@ -653,13 +669,13 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
                       </View>
                     )}
                   </View>
-                  <Text style={[styles.tableCell, { width: 40, textAlign: 'center' }, itemRejected && styles.lineThrough]}>
+                  <Text style={[styles.tableCell, styles.colQty, itemRejected && styles.lineThrough]}>
                     {item.quantity}
                   </Text>
-                  <Text style={[styles.tableCell, { width: 65, textAlign: 'right' }, itemRejected && styles.lineThrough]}>
+                  <Text style={[styles.tableCell, styles.colPrice, itemRejected && styles.lineThrough]}>
                     ₹{price}
                   </Text>
-                  <Text style={[styles.tableCellBold, { width: 75, textAlign: 'right' }, itemRejected && styles.lineThrough]}>
+                  <Text style={[styles.tableCellBold, styles.colTotal, itemRejected && styles.lineThrough]}>
                     ₹{total}
                   </Text>
                 </View>
@@ -1108,9 +1124,29 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   tableCellBold: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: 'bold',
     color: '#0F172A',
+  },
+  colIndex: {
+    flex: 0.7,
+    textAlign: 'center',
+  },
+  colDesc: {
+    flex: 4.2,
+    paddingRight: 6,
+  },
+  colQty: {
+    flex: 1.0,
+    textAlign: 'center',
+  },
+  colPrice: {
+    flex: 1.9,
+    textAlign: 'right',
+  },
+  colTotal: {
+    flex: 2.2,
+    textAlign: 'right',
   },
   lineThrough: {
     textDecorationLine: 'line-through',

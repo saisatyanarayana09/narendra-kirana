@@ -9,6 +9,7 @@ export function NotificationsScreen({ navigation }: { navigation: AppNavigationP
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [markingAll, setMarkingAll] = useState(false);
 
   useEffect(() => {
     fetchNotifications();
@@ -31,6 +32,40 @@ export function NotificationsScreen({ navigation }: { navigation: AppNavigationP
     fetchNotifications();
   }, []);
 
+  const markAsRead = async (id: number) => {
+    const target = notifications.find(n => n.id === id);
+    if (!target || target.is_read) return;
+
+    // Optimistically update local state so unread highlight clears immediately
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+
+    try {
+      await apiClient.patch(`/notifications/${id}/`, { is_read: true });
+    } catch (err) {
+      console.error('Failed to mark notification as read', err);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    const unreadList = notifications.filter(n => !n.is_read);
+    if (unreadList.length === 0 || markingAll) return;
+
+    setMarkingAll(true);
+    // Optimistically update all notifications locally
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+
+    try {
+      await Promise.all(
+        unreadList.map(n => apiClient.patch(`/notifications/${n.id}/`, { is_read: true }).catch(() => null))
+      );
+    } catch (err) {
+      console.error('Failed to mark all notifications as read', err);
+      fetchNotifications();
+    } finally {
+      setMarkingAll(false);
+    }
+  };
+
   const deleteNotification = async (id: number) => {
     try {
       setNotifications(prev => prev.filter(n => n.id !== id));
@@ -47,6 +82,8 @@ export function NotificationsScreen({ navigation }: { navigation: AppNavigationP
       day: 'numeric', month: 'short', year: 'numeric'
     });
   };
+
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   if (loading) {
     return (
@@ -69,14 +106,35 @@ export function NotificationsScreen({ navigation }: { navigation: AppNavigationP
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header matching web Notifications.jsx */}
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={() => navigation.goBack()}
-          activeOpacity={0.7}
-        >
-          <Feather name="arrow-left" size={18} color="#059669" />
-          <Text style={styles.backButtonText}>Back</Text>
-        </TouchableOpacity>
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <Feather name="arrow-left" size={18} color="#059669" />
+            <Text style={styles.backButtonText}>Back</Text>
+          </TouchableOpacity>
+
+          {unreadCount > 0 && (
+            <TouchableOpacity 
+              style={styles.markAllReadBtn}
+              onPress={markAllAsRead}
+              disabled={markingAll}
+              activeOpacity={0.7}
+            >
+              {markingAll ? (
+                <ActivityIndicator size="small" color="#059669" />
+              ) : (
+                <>
+                  <Feather name="check-circle" size={14} color="#059669" />
+                  <Text style={styles.markAllReadText}>Mark all as read</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
+
         <Text style={styles.headerTitle}>Notifications</Text>
         <Text style={styles.headerSubtitle}>Updates about your orders and offers.</Text>
       </View>
@@ -102,16 +160,24 @@ export function NotificationsScreen({ navigation }: { navigation: AppNavigationP
         renderItem={({ item }) => {
           const isRead = item.is_read;
           return (
-            <View style={[styles.notificationCard, !isRead && styles.notificationCardUnread]}>
+            <TouchableOpacity 
+              activeOpacity={0.8}
+              onPress={() => markAsRead(item.id)}
+              style={[styles.notificationCard, !isRead && styles.notificationCardUnread]}
+            >
               <View style={styles.cardHeader}>
-                <Text style={[styles.notifTitle, !isRead && styles.notifTitleUnread]}>
-                  {item.title}
-                </Text>
+                <View style={styles.titleRow}>
+                  {!isRead && <View style={styles.unreadDot} />}
+                  <Text style={[styles.notifTitle, !isRead && styles.notifTitleUnread]}>
+                    {item.title}
+                  </Text>
+                </View>
                 <View style={styles.headerMeta}>
                   <Text style={styles.dateText}>{formatDate(item.created_at)}</Text>
                   <TouchableOpacity 
                     onPress={() => deleteNotification(item.id)}
                     style={styles.deleteBtn}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
                     <Feather name="trash-2" size={15} color="#94A3B8" />
                   </TouchableOpacity>
@@ -121,7 +187,7 @@ export function NotificationsScreen({ navigation }: { navigation: AppNavigationP
               <Text style={[styles.notifMessage, !isRead && styles.notifMessageUnread]}>
                 {item.message}
               </Text>
-            </View>
+            </TouchableOpacity>
           );
         }}
       />
@@ -141,14 +207,35 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginBottom: 6,
   },
   backButtonText: {
     fontSize: 13,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  markAllReadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 4,
+    paddingHorizontal: 9,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  markAllReadText: {
+    fontSize: 12,
     fontWeight: '700',
     color: '#059669',
   },
@@ -228,12 +315,24 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 6,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10B981',
+    marginRight: 6,
+  },
   notifTitle: {
     fontSize: 14,
     fontWeight: '700',
     color: '#0F172A',
     flex: 1,
-    marginRight: 8,
   },
   notifTitleUnread: {
     color: '#064E3B',

@@ -7,7 +7,9 @@ import {
   TouchableOpacity, 
   TextInput, 
   ActivityIndicator, 
-  Alert 
+  Alert,
+  KeyboardAvoidingView,
+  Platform 
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -97,10 +99,16 @@ export function AddAddressScreen({ navigation, route }: { navigation: AppNavigat
         </Text>
       </View>
 
-      <ScrollView 
-        showsVerticalScrollIndicator={false} 
-        contentContainerStyle={styles.scrollContent}
+      <KeyboardAvoidingView 
+        style={styles.keyboardAvoid} 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
       >
+        <ScrollView 
+          showsVerticalScrollIndicator={false} 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
         {/* GPS Capture Card */}
         <View style={styles.gpsCard}>
           <View style={styles.gpsCardTop}>
@@ -263,14 +271,18 @@ export function AddAddressScreen({ navigation, route }: { navigation: AppNavigat
           )}
         </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
-  );
+    </KeyboardAvoidingView>
+  </SafeAreaView>
+);
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC', // slate-50
+  },
+  keyboardAvoid: {
+    flex: 1,
   },
   header: {
     paddingHorizontal: 16,

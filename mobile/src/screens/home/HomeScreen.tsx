@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -47,7 +47,91 @@ export function HomeScreen({ navigation }: Props) {
   const [settings, setSettings] = useState<any>(null);
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
 
-  const bannerFlatListRef = useRef<FlatList>(null);
+  // Favorites state
+  const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
+  const [favoriteMap, setFavoriteMap] = useState<Record<number, number>>({});
+
+  const bannerRef = useRef<FlatList>(null);
+  const bannerFlatListRef = bannerRef;
+  const carouselTimerRef = useRef<any>(null);
+
+  const fetchFavorites = async () => {
+    if (!user) {
+      setFavoriteIds(new Set());
+      setFavoriteMap({});
+      return;
+    }
+    try {
+      const res = await apiClient.get('/favorites/').catch(() => apiClient.get('/products/favorites/'));
+      const items = Array.isArray(res.data) ? res.data : (res.data?.results || []);
+      const ids = new Set<number>();
+      const map: Record<number, number> = {};
+      items.forEach((item: any) => {
+        const pId = item.product?.id ?? item.product ?? item.product_details?.id;
+        if (pId) {
+          const numId = Number(pId);
+          ids.add(numId);
+          map[numId] = item.id;
+        }
+      });
+      setFavoriteIds(ids);
+      setFavoriteMap(map);
+    } catch (error) {
+      console.log('Error fetching favorites:', error);
+    }
+  };
+
+  const toggleFavorite = async (param: any) => {
+    const productId = typeof param === 'object' && param !== null ? param.id : Number(param);
+    if (!productId) return;
+
+    if (!user) {
+      // Local toggle for guests
+      setFavoriteIds(prev => {
+        const next = new Set(prev);
+        if (next.has(productId)) next.delete(productId);
+        else next.add(productId);
+        return next;
+      });
+      return;
+    }
+
+    const isFav = favoriteIds.has(productId);
+    const favId = favoriteMap[productId];
+
+    // Optimistic UI update
+    setFavoriteIds(prev => {
+      const next = new Set(prev);
+      if (isFav) next.delete(productId);
+      else next.add(productId);
+      return next;
+    });
+
+    try {
+      if (isFav && favId) {
+        await apiClient.delete(`/favorites/${favId}/`);
+        setFavoriteMap(prev => {
+          const next = { ...prev };
+          delete next[productId];
+          return next;
+        });
+      } else {
+        const res = await apiClient.post('/favorites/', { product: productId });
+        if (res.data?.id) {
+          setFavoriteMap(prev => ({ ...prev, [productId]: res.data.id }));
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      // Revert on failure
+      setFavoriteIds(prev => {
+        const next = new Set(prev);
+        if (isFav) next.add(productId);
+        else next.delete(productId);
+        return next;
+      });
+    }
+  };
 
   const fetchHomeData = async () => {
     try {
@@ -85,27 +169,44 @@ export function HomeScreen({ navigation }: Props) {
 
   useEffect(() => {
     fetchHomeData();
-  }, []);
+    fetchFavorites();
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchFavorites();
+    });
+    return unsubscribe;
+  }, [user, navigation]);
 
-  // Auto-scroll banners every 4 seconds
-  useEffect(() => {
+  const startCarouselTimer = useCallback(() => {
+    if (carouselTimerRef.current) {
+      clearInterval(carouselTimerRef.current);
+    }
     if (banners.length <= 1) return;
-    const interval = setInterval(() => {
+    carouselTimerRef.current = setInterval(() => {
       setActiveBannerIndex((prev) => {
         const nextIndex = (prev + 1) % banners.length;
-        bannerFlatListRef.current?.scrollToIndex({
+        bannerRef.current?.scrollToIndex({
           index: nextIndex,
           animated: true,
         });
         return nextIndex;
       });
     }, 4000);
-    return () => clearInterval(interval);
   }, [banners.length]);
+
+  // Auto-scroll banners every 4 seconds
+  useEffect(() => {
+    startCarouselTimer();
+    return () => {
+      if (carouselTimerRef.current) {
+        clearInterval(carouselTimerRef.current);
+      }
+    };
+  }, [startCarouselTimer]);
 
   const onRefresh = () => {
     setRefreshing(true);
     fetchHomeData();
+    fetchFavorites();
   };
 
   if (loading) {
@@ -190,7 +291,7 @@ export function HomeScreen({ navigation }: Props) {
         {banners.length > 0 ? (
           <View style={styles.carouselWrapper}>
             <FlatList
-              ref={bannerFlatListRef}
+              ref={bannerRef}
               data={banners}
               horizontal
               pagingEnabled
@@ -201,6 +302,11 @@ export function HomeScreen({ navigation }: Props) {
               getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
               contentContainerStyle={styles.bannersList}
               keyExtractor={(item: any) => String(item.id)}
+              onScrollBeginDrag={() => clearInterval(carouselTimerRef.current)}
+              onScrollEndDrag={() => startCarouselTimer()}
+              onScrollToIndexFailed={(info) => {
+                setTimeout(() => bannerRef.current?.scrollToIndex({ index: info.index, animated: false }), 200);
+              }}
               onMomentumScrollEnd={(e) => {
                 const index = Math.round(e.nativeEvent.contentOffset.x / width);
                 setActiveBannerIndex(index);
@@ -321,7 +427,21 @@ export function HomeScreen({ navigation }: Props) {
                 </View>
                 <TouchableOpacity 
                   style={styles.seeAllBtn}
-                  onPress={() => navigation.navigate('CategoriesTab', { screen: 'ProductListScreen', params: {} })}
+                  onPress={() => {
+                    const cleanTitle = stripEmojis(section.title);
+                    const categoryId = section.category_id || section.category;
+                    if (categoryId) {
+                      navigation.navigate('CategoriesTab', { 
+                        screen: 'ProductListScreen', 
+                        params: { categoryId, categoryName: cleanTitle } 
+                      });
+                    } else {
+                      navigation.navigate('CategoriesTab', { 
+                        screen: 'ProductListScreen', 
+                        params: { search: cleanTitle, categoryName: cleanTitle } 
+                      });
+                    }
+                  }}
                 >
                   <Text style={styles.seeAllText}>See all →</Text>
                 </TouchableOpacity>
@@ -339,6 +459,8 @@ export function HomeScreen({ navigation }: Props) {
                       product={product} 
                       onPress={(p) => navigation.navigate('ProductDetailScreen', { productId: p.id })}
                       onAddToCart={(p) => addToCart(p.id, 1)}
+                      isFavorite={favoriteIds.has(product.id)}
+                      onToggleFavorite={(p) => toggleFavorite(p?.id ?? p)}
                     />
                   </View>
                 ))}

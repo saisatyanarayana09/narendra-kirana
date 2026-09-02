@@ -20,7 +20,8 @@ type Props = {
 
 export function OrderSuccessScreen({ navigation, route }: Props) {
   const { orderId } = route.params || {};
-  const [countdown, setCountdown] = useState(4);
+  const [countdown, setCountdown] = useState(7);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const isNavigatingRef = useRef(false);
 
   // Animations
@@ -32,6 +33,14 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   const formattedOrderId = orderId ? (String(orderId).startsWith('#') ? orderId : `#${orderId}`) : '';
+
+  const clearRedirectTimer = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    progressAnim.stopAnimation();
+  };
 
   // Clean navigation helper: resets CartStack so CartScreen is always root, then navigates to target
   const handleCleanExit = (targetAction: () => void) => {
@@ -52,6 +61,7 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
   };
 
   const handleGoHome = () => {
+    clearRedirectTimer();
     triggerHaptic('selection');
     handleCleanExit(() => {
       navigation.getParent()?.navigate('HomeTab');
@@ -59,6 +69,7 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
   };
 
   const handleTrackOrder = () => {
+    clearRedirectTimer();
     triggerHaptic('selection');
     handleCleanExit(() => {
       if (orderId) {
@@ -71,6 +82,14 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
           screen: 'OrderHistoryScreen',
         });
       }
+    });
+  };
+
+  const handleViewOrderDetails = () => {
+    clearRedirectTimer();
+    triggerHaptic('selection');
+    handleCleanExit(() => {
+      navigation.navigate('OrderTrackingScreen', { orderId });
     });
   };
 
@@ -119,10 +138,10 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
       }),
     ]).start();
 
-    // 4. Progress bar filling over 4 seconds
+    // 4. Progress bar filling over 7 seconds
     Animated.timing(progressAnim, {
       toValue: 1,
-      duration: 4000,
+      duration: 7000,
       easing: Easing.linear,
       useNativeDriver: false,
     }).start();
@@ -130,10 +149,13 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
 
   // Countdown timer for automatic redirect to Home
   useEffect(() => {
-    const timer = setInterval(() => {
+    timerRef.current = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
-          clearInterval(timer);
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+          }
           handleGoHome();
           return 0;
         }
@@ -141,7 +163,12 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
       });
     }, 1000);
 
-    return () => clearInterval(timer);
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
   }, []);
 
   // Hardware Back Button intercepts and redirects cleanly to Home
@@ -211,6 +238,14 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
               <Text style={styles.redirectText}>
                 Redirecting to Home in <Text style={styles.countdownNumber}>{countdown}s</Text>
               </Text>
+              <Text style={styles.redirectDot}>•</Text>
+              <TouchableOpacity 
+                onPress={handleViewOrderDetails}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={styles.stayOnPageLink}>Stay on this page</Text>
+              </TouchableOpacity>
             </View>
             <View style={styles.progressBarBackground}>
               <Animated.View style={[styles.progressBarFill, { width: progressWidth }]} />
@@ -229,10 +264,19 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
           
           <TouchableOpacity 
             style={styles.secondaryButton}
+            onPress={handleViewOrderDetails}
+            activeOpacity={0.88}
+          >
+            <Feather name="file-text" size={16} color="#059669" />
+            <Text style={styles.secondaryButtonText}>View Order Details</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.homeLinkButton}
             onPress={handleGoHome}
             activeOpacity={0.88}
           >
-            <Text style={styles.secondaryButtonText}>Go to Home Now →</Text>
+            <Text style={styles.homeLinkButtonText}>Go to Home Now →</Text>
           </TouchableOpacity>
         </Animated.View>
       </View>
@@ -385,7 +429,10 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingVertical: 14,
     borderRadius: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
     borderColor: '#E2E8F0',
@@ -394,11 +441,33 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
+    marginBottom: 8,
   },
   secondaryButtonText: {
-    color: '#334155',
+    color: '#0F172A',
     fontSize: 14,
     fontWeight: '800',
+  },
+  homeLinkButton: {
+    width: '100%',
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  homeLinkButtonText: {
+    color: '#64748B',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  redirectDot: {
+    color: '#A7F3D0',
+    fontSize: 12,
+  },
+  stayOnPageLink: {
+    color: '#059669',
+    fontSize: 12,
+    fontWeight: '800',
+    textDecorationLine: 'underline',
   },
 });
 

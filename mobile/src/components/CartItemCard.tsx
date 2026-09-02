@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Image } from 'expo-image';
 import { Feather } from '@expo/vector-icons';
 import { fixImageUrl } from '../utils/image';
@@ -42,9 +42,10 @@ export function CartItemCard({ item, onUpdateQuantity, onRemove, isLoading }: Pr
       
       {/* Product Details */}
       <View style={styles.details}>
-        <Text style={styles.name} numberOfLines={1}>{productName}</Text>
+        <Text style={styles.name} numberOfLines={2}>{productName}</Text>
         <Text style={styles.unitText}>
           ₹{unitPrice} · {unitName}
+          {item.quantity > 1 ? ` · Subtotal: ₹${(parseFloat(unitPrice) * item.quantity).toFixed(2)}` : ''}
         </Text>
         {isMaxReached && (
           <Text style={styles.limitReachedText}>
@@ -89,7 +90,14 @@ export function CartItemCard({ item, onUpdateQuantity, onRemove, isLoading }: Pr
         style={styles.deleteButton}
         onPress={() => {
           triggerHaptic('medium');
-          onRemove(item.id);
+          Alert.alert(
+            'Remove Item',
+            `Remove ${item.product_name || item.product?.name || 'this item'} from your cart?`,
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Remove', style: 'destructive', onPress: () => onRemove(item.id) },
+            ]
+          );
         }}
         disabled={isLoading}
         activeOpacity={0.7}

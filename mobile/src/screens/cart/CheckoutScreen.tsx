@@ -200,7 +200,11 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
   // Dynamic button label matching web cart.jsx
   const placeOrderBtnLabel = isSubmitting 
     ? 'Processing...' 
-    : (finalTotalToPay > 0 ? 'Place order (Pay at store)' : 'Place order (Paid via Wallet)');
+    : finalTotalToPay === 0
+      ? 'Place order (Paid via Wallet)'
+      : orderType === 'DELIVERY'
+        ? 'Place order (Cash on Delivery)'
+        : 'Place order (Pay at store)';
 
   const handlePlaceOrder = async () => {
     if (isStoreClosed) {
@@ -631,12 +635,14 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
             <Text style={styles.summaryValue}>₹{cartSubtotal.toFixed(2)}</Text>
           </View>
 
-          <View style={styles.summaryRow}>
-            <Text style={styles.savingsLabel}>Product Savings</Text>
-            <Text style={styles.savingsValue}>
-              {parseFloat(cart?.discount || '0') > 0 ? `-₹${parseFloat(cart.discount).toFixed(2)}` : '₹0.00'}
-            </Text>
-          </View>
+          {parseFloat(cart?.discount || '0') > 0 && (
+            <View style={styles.summaryRow}>
+              <Text style={styles.savingsLabel}>Product Savings</Text>
+              <Text style={styles.savingsValue}>
+                -₹{parseFloat(cart.discount).toFixed(2)}
+              </Text>
+            </View>
+          )}
 
           {parseFloat(cart?.promo_discount || '0') > 0 && (
             <View style={styles.summaryRow}>

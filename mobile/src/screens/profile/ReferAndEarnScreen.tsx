@@ -8,7 +8,8 @@ import {
   ActivityIndicator, 
   Alert, 
   Share,
-  Modal 
+  Modal,
+  useWindowDimensions 
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -85,6 +86,9 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
     }
   };
 
+  const { width: screenWidth } = useWindowDimensions();
+  const isCompact = screenWidth < 375 || milestones.length > 3;
+
   const referralCode = user?.customer_profile?.referral_code || user?.referral_code || `REF-${(user?.username || 'USER').slice(0, 5).toUpperCase()}`;
 
   const handleCopy = async () => {
@@ -95,9 +99,20 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
   };
 
   const handleShare = async () => {
-    const shareText = settings?.share_text_template
-      ? settings.share_text_template.replace('{code}', referralCode).replace('{link}', '')
-      : `Shop online at Narendra Kirana and get special discounts! Use my referral code: ${referralCode}`;
+    const storeLink = 'https://narendra-kirana.vercel.app';
+    let shareText = '';
+    if (settings?.share_text_template) {
+      if (settings.share_text_template.includes('{link}')) {
+        shareText = settings.share_text_template
+          .replace('{code}', referralCode)
+          .replace('{link}', storeLink);
+      } else {
+        shareText = `${settings.share_text_template.replace('{code}', referralCode).trim()}\n${storeLink}`;
+      }
+    } else {
+      shareText = `Shop online at Narendra Kirana and get special discounts! Use my referral code: ${referralCode}\n${storeLink}`;
+    }
+    shareText = shareText.replace(/[ \t]+/g, ' ').replace(/\n\s+/g, '\n').trim();
 
     try {
       await Share.share({
@@ -271,7 +286,7 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
 
               {/* Checkpoints */}
               <View style={styles.checkpointsRow}>
-                <View style={styles.checkpointItem}>
+                <View style={[styles.checkpointItem, styles.checkpointZeroItem]}>
                   <View style={[styles.checkpointNode, completedReferrals >= 0 && styles.checkpointAchieved]}>
                     <Text style={styles.checkpointNodeText}>0</Text>
                   </View>
@@ -296,8 +311,13 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
                           </Text>
                         )}
                       </View>
-                      <View style={styles.checkpointBonusPill}>
-                        <Text style={styles.checkpointBonusText}>Bonus: ₹{m.bonus_reward}</Text>
+                      <View style={[styles.checkpointBonusPill, isCompact && styles.checkpointBonusPillCompact]}>
+                        <Text 
+                          style={[styles.checkpointBonusText, isCompact && styles.checkpointBonusTextCompact]}
+                          numberOfLines={2}
+                        >
+                          {isCompact ? `₹${m.bonus_reward}` : `Bonus: ₹${m.bonus_reward}`}
+                        </Text>
                       </View>
                     </View>
                   );
@@ -826,9 +846,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: -16,
     paddingHorizontal: 4,
+    alignItems: 'flex-start',
   },
   checkpointItem: {
     alignItems: 'center',
+    flexShrink: 1,
+    maxWidth: 72,
+  },
+  checkpointZeroItem: {
+    maxWidth: 32,
+    flexShrink: 0,
   },
   checkpointNode: {
     width: 24,
@@ -862,11 +889,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    maxWidth: 68,
+  },
+  checkpointBonusPillCompact: {
+    paddingHorizontal: 3,
+    paddingVertical: 2,
+    maxWidth: 52,
+    borderRadius: 4,
   },
   checkpointBonusText: {
     color: '#FFFFFF',
     fontSize: 9,
     fontWeight: '800',
+    textAlign: 'center',
+  },
+  checkpointBonusTextCompact: {
+    fontSize: 8,
+    lineHeight: 10,
   },
   sectionCard: {
     backgroundColor: '#FFFFFF',
