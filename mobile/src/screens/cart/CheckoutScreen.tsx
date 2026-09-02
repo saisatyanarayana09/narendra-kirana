@@ -11,7 +11,7 @@ import {
   Switch 
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialIcons } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
 import { useCart } from '../../context/CartContext';
 import { apiClient } from '../../api/client';
@@ -609,7 +609,7 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
           <View style={styles.walletCard}>
             <View style={styles.walletLeft}>
               <View style={styles.walletIconBox}>
-                <Feather name="dollar-sign" size={20} color="#059669" />
+                <MaterialIcons name="currency-rupee" size={20} color="#059669" />
               </View>
               <View>
                 <Text style={styles.walletTitle}>Use Wallet Balance</Text>

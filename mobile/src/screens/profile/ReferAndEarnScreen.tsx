@@ -11,7 +11,7 @@ import {
   Modal 
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -485,7 +485,7 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
               {referralCashTransactions.length === 0 && productsEarned === 0 ? (
                 <View style={styles.emptyNetwork}>
                   <View style={styles.emptyIconCircle}>
-                    <Feather name="dollar-sign" size={28} color="#94A3B8" />
+                    <MaterialIcons name="currency-rupee" size={28} color="#94A3B8" />
                   </View>
                   <Text style={styles.emptyTitle}>No rewards yet</Text>
                   <Text style={styles.emptySubtitle}>
@@ -498,7 +498,7 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
                     <View key={t.id} style={styles.referralCard}>
                       <View style={styles.refLeft}>
                         <View style={[styles.refAvatar, { backgroundColor: '#ECFDF5' }]}>
-                          <Feather name="dollar-sign" size={16} color="#059669" />
+                          <MaterialIcons name="currency-rupee" size={16} color="#059669" />
                         </View>
                         <View>
                           <Text style={styles.refName}>Cash Deposit</Text>

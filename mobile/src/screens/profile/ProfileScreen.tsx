@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { AppNavigationProp } from '../../navigation/types';
 import { theme } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
@@ -70,7 +71,8 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
     { 
       name: 'Your Orders', 
       desc: 'Track, return, or buy things again', 
-      icon: 'package' as const, 
+      icon: 'package' as const,
+      isRupee: false,
       color: '#2563EB', // blue-600
       bg: '#EFF6FF',    // blue-50
       onPress: () => navigation.navigate('OrderHistoryScreen') 
@@ -78,7 +80,8 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
     { 
       name: 'Digital Wallet', 
       desc: 'Check your balance and transactions', 
-      icon: 'dollar-sign' as const, 
+      icon: 'currency-rupee' as const,
+      isRupee: true, // Use Indian Rupee symbol
       color: '#059669', // emerald-600
       bg: '#ECFDF5',    // emerald-50
       onPress: () => navigation.navigate('WalletScreen') 
@@ -86,7 +89,8 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
     { 
       name: 'Refer & Earn', 
       desc: 'Invite friends, earn real money!', 
-      icon: 'gift' as const, 
+      icon: 'gift' as const,
+      isRupee: false,
       color: '#0D9488', // teal-600
       bg: '#F0FDFA',    // teal-50
       onPress: () => navigation.navigate('ReferAndEarnScreen') 
@@ -94,7 +98,8 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
     { 
       name: 'Account Settings', 
       desc: 'Manage password & personal details', 
-      icon: 'user' as const, 
+      icon: 'user' as const,
+      isRupee: false,
       color: '#059669', // primary-600
       bg: '#ECFDF5',    // primary-50
       onPress: () => navigation.navigate('AccountSettingsScreen') 
@@ -102,7 +107,8 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
     { 
       name: 'Saved Addresses', 
       desc: 'Edit addresses for quick checkout', 
-      icon: 'map-pin' as const, 
+      icon: 'map-pin' as const,
+      isRupee: false,
       color: '#D97706', // amber-600
       bg: '#FFFBEB',    // amber-50
       onPress: () => navigation.navigate('AddressesScreen') 
@@ -110,7 +116,8 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
     { 
       name: 'Favorites', 
       desc: 'View your saved products', 
-      icon: 'heart' as const, 
+      icon: 'heart' as const,
+      isRupee: false,
       color: '#E11D48', // rose-600
       bg: '#FFF1F2',    // rose-50
       onPress: () => navigation.navigate('FavoritesScreen') 
@@ -118,7 +125,8 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
     { 
       name: 'Notifications', 
       desc: 'Offers and order updates', 
-      icon: 'bell' as const, 
+      icon: 'bell' as const,
+      isRupee: false,
       color: '#4F46E5', // indigo-600
       bg: '#EEF2FF',    // indigo-50
       onPress: () => navigation.navigate('NotificationsScreen') 
@@ -133,30 +141,35 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Top Header with Avatar & Greeting */}
-        <View style={styles.headerSection}>
-          <View style={styles.headerTopRow}>
-            <View style={styles.avatarWrap}>
-              <View style={styles.avatarCircle}>
-                <Text style={styles.avatarText}>{getInitials()}</Text>
-              </View>
-              <View style={styles.greetingBox}>
-                <Text style={styles.greetingTitle}>Hi, {displayName}!</Text>
-                <Text style={styles.greetingSubtitle}>Manage your account and track your orders.</Text>
-              </View>
-            </View>
+        {/* Improved Customer Name Hero Background */}
+        <LinearGradient
+          colors={['#064E3B', '#065F46', '#047857']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.customerHeroCard}
+        >
+          {/* Decorative Corner Glow */}
+          <View style={styles.heroDecorativeCircle} pointerEvents="none" />
 
-            <TouchableOpacity 
-              style={styles.signOutButton}
-              onPress={handleLogout}
-              activeOpacity={0.8}
-            >
-              <Feather name="log-out" size={15} color="#E11D48" />
-              <Text style={styles.signOutText}>Sign Out</Text>
-            </TouchableOpacity>
+          {/* Member Badge at Top */}
+          <View style={styles.memberBadge}>
+            <Text style={styles.memberBadgeText}>✨ Verified Smart Customer</Text>
           </View>
 
-          {/* Loyalty & Quick Stats Strip */}
+          {/* Avatar & Customer Greeting */}
+          <View style={styles.customerInfoRow}>
+            <View style={styles.avatarCircle}>
+              <Text style={styles.avatarText}>{getInitials()}</Text>
+            </View>
+            <View style={styles.greetingBox}>
+              <Text style={styles.greetingTitle}>Hi, {displayName}!</Text>
+              <Text style={styles.greetingSubtitle} numberOfLines={1}>
+                {user?.email || 'Manage your account and track orders'}
+              </Text>
+            </View>
+          </View>
+
+          {/* Loyalty & Quick Stats Strip with Indian Rupee Symbol */}
           <View style={styles.loyaltyCard}>
             <TouchableOpacity 
               style={styles.loyaltyItem}
@@ -164,7 +177,7 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
               activeOpacity={0.8}
             >
               <View style={styles.loyaltyIconBadge}>
-                <Feather name="dollar-sign" size={14} color="#059669" />
+                <MaterialIcons name="currency-rupee" size={15} color="#059669" />
               </View>
               <Text style={styles.loyaltyValue}>₹{walletBalance.toFixed(2)}</Text>
               <Text style={styles.loyaltyLabel}>Wallet Balance</Text>
@@ -194,51 +207,55 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
               <Text style={styles.loyaltyLabel}>Smart Club</Text>
             </View>
           </View>
-        </View>
+        </LinearGradient>
 
-        {/* Dashboard Cards Grid matching web app */}
+        {/* Action Cards: Horizontal layout with text on right of symbol and decreased height */}
         <View style={styles.cardsGrid}>
           {cards.map((card, idx) => (
             <TouchableOpacity 
               key={idx}
               style={styles.cardItem}
               onPress={card.onPress}
-              activeOpacity={0.85}
+              activeOpacity={0.75}
             >
-              <View style={styles.cardTopRow}>
+              <View style={styles.cardLeftGroup}>
                 <View style={[styles.iconContainer, { backgroundColor: card.bg }]}>
-                  <Feather name={card.icon} size={24} color={card.color} />
+                  {card.isRupee ? (
+                    <MaterialIcons name="currency-rupee" size={20} color={card.color} />
+                  ) : (
+                    <Feather name={card.icon as any} size={20} color={card.color} />
+                  )}
                 </View>
-                <View style={styles.chevronCircle}>
-                  <Feather name="chevron-right" size={16} color="#94A3B8" />
+                <View style={styles.cardTextGroup}>
+                  <Text style={styles.cardTitle}>{card.name}</Text>
+                  <Text style={styles.cardDesc} numberOfLines={1}>{card.desc}</Text>
                 </View>
               </View>
 
-              <View style={styles.cardBottom}>
-                <Text style={styles.cardTitle}>{card.name}</Text>
-                <Text style={styles.cardDesc} numberOfLines={2}>{card.desc}</Text>
+              <View style={styles.chevronCircle}>
+                <Feather name="chevron-right" size={16} color="#94A3B8" />
               </View>
             </TouchableOpacity>
           ))}
 
-          {/* Quick Action Logout Tile */}
+          {/* Quick Action Logout Tile at the Bottom */}
           <TouchableOpacity 
             style={[styles.cardItem, styles.logoutCardItem]}
             onPress={handleLogout}
-            activeOpacity={0.85}
+            activeOpacity={0.75}
           >
-            <View style={styles.cardTopRow}>
+            <View style={styles.cardLeftGroup}>
               <View style={[styles.iconContainer, { backgroundColor: '#FFF1F2' }]}>
-                <Feather name="log-out" size={24} color="#E11D48" />
+                <Feather name="log-out" size={20} color="#E11D48" />
               </View>
-              <View style={styles.chevronCircle}>
-                <Feather name="chevron-right" size={16} color="#E11D48" />
+              <View style={styles.cardTextGroup}>
+                <Text style={[styles.cardTitle, { color: '#E11D48' }]}>Sign Out</Text>
+                <Text style={styles.cardDesc}>Log out safely from this device</Text>
               </View>
             </View>
 
-            <View style={styles.cardBottom}>
-              <Text style={[styles.cardTitle, { color: '#E11D48' }]}>Sign Out</Text>
-              <Text style={styles.cardDesc}>Log out safely from this device</Text>
+            <View style={styles.chevronCircle}>
+              <Feather name="chevron-right" size={16} color="#E11D48" />
             </View>
           </TouchableOpacity>
         </View>
@@ -258,40 +275,66 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 110,
   },
-  headerSection: {
+  customerHeroCard: {
+    borderRadius: 24,
+    padding: 18,
     marginBottom: 20,
-    marginTop: 4,
+    shadowColor: '#064E3B',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.22,
+    shadowRadius: 12,
+    elevation: 4,
+    position: 'relative',
+    overflow: 'hidden',
   },
-  headerTopRow: {
+  heroDecorativeCircle: {
+    position: 'absolute',
+    top: -40,
+    right: -40,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  memberBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    paddingHorizontal: 10,
+    paddingVertical: 3.5,
+    borderRadius: 20,
+    marginBottom: 12,
+  },
+  memberBadgeText: {
+    color: '#ECFDF5',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  customerInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 14,
     marginBottom: 16,
   },
-  avatarWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
   avatarCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#059669',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#059669',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 3,
   },
   avatarText: {
-    color: '#FFFFFF',
-    fontSize: 18,
+    color: '#065F46',
+    fontSize: 19,
     fontWeight: '900',
-    letterSpacing: 0.5,
   },
   greetingBox: {
     flex: 1,
@@ -299,44 +342,26 @@ const styles = StyleSheet.create({
   greetingTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#0F172A', // slate-900
+    color: '#FFFFFF',
     letterSpacing: -0.5,
   },
   greetingSubtitle: {
-    fontSize: 13,
-    color: '#64748B', // slate-500
+    fontSize: 12,
+    color: 'rgba(236, 253, 245, 0.85)',
     marginTop: 2,
     fontWeight: '500',
-  },
-  signOutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: '#FFF1F2', // rose-50
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#FFE4E6',
-  },
-  signOutText: {
-    color: '#E11D48', // rose-600
-    fontSize: 12,
-    fontWeight: '700',
   },
   loyaltyCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    paddingVertical: 14,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
     elevation: 2,
   },
   loyaltyItem: {
@@ -345,24 +370,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   loyaltyIconBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     backgroundColor: '#ECFDF5',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 4,
   },
   loyaltyValue: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
     color: '#059669',
   },
   loyaltyLabel: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 10,
     color: '#64748B',
-    marginTop: 2,
+    fontWeight: '600',
+    marginTop: 1,
   },
   loyaltyDivider: {
     width: 1,
@@ -370,36 +395,57 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
   },
   cardsGrid: {
-    gap: 12,
+    gap: 10,
   },
   cardItem: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 16,
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0', // slate-200
+    borderColor: '#E2E8F0',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.03,
+    shadowRadius: 3,
+    elevation: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 64,
   },
   logoutCardItem: {
     borderColor: '#FFE4E6',
     backgroundColor: '#FFFDFD',
+    marginTop: 6,
   },
-  cardTopRow: {
+  cardLeftGroup: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    gap: 12,
+    flex: 1,
+    paddingRight: 8,
   },
   iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  cardTextGroup: {
+    flex: 1,
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 2,
+  },
+  cardDesc: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '500',
   },
   chevronCircle: {
     width: 28,
@@ -408,19 +454,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  cardBottom: {
-    gap: 2,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0F172A', // slate-900
-  },
-  cardDesc: {
-    fontSize: 13,
-    color: '#64748B', // slate-500
-    fontWeight: '500',
   },
   versionText: {
     textAlign: 'center',

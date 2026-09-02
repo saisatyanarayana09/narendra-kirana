@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppNavigationProp } from '../../navigation/types';
 import { theme } from '../../constants/theme';
@@ -105,7 +105,7 @@ export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) 
         )}
         ListEmptyComponent={() => (
           <View style={styles.emptyCard}>
-            <Feather name="dollar-sign" size={32} color="#CBD5E1" style={{ marginBottom: 8 }} />
+            <MaterialIcons name="currency-rupee" size={36} color="#CBD5E1" style={{ marginBottom: 8 }} />
             <Text style={styles.emptyText}>
               No transactions yet. Earn money by referring friends!
             </Text>
