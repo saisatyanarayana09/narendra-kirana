@@ -26,54 +26,50 @@ interface WelcomeScreenProps {
 
 export function WelcomeScreen({ forceShow = false, onFinish }: WelcomeScreenProps) {
   const { user } = useAuth();
-  const [visible, setVisible] = useState(() => {
-    if (forceShow) return true;
-    if (!hasShownWelcomeSession) {
-      return true;
-    }
-    return false;
-  });
+  const [visible, setVisible] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.94)).current;
-  const translateYAnim = useRef(new Animated.Value(15)).current;
+  const scaleAnim = useRef(new Animated.Value(0.95)).current;
+  const translateYAnim = useRef(new Animated.Value(12)).current;
 
   useEffect(() => {
-    if (!visible) return;
+    // Only show when forced or when user is authenticated and hasn't seen welcome in this session
+    if (forceShow || (user && !hasShownWelcomeSession)) {
+      hasShownWelcomeSession = true;
+      setVisible(true);
 
-    hasShownWelcomeSession = true;
+      // 1. Fade in & subtle scale up
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 450,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 450,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateYAnim, {
+          toValue: 0,
+          duration: 450,
+          useNativeDriver: true,
+        }),
+      ]).start();
 
-    // 1. Fade in & scale up
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-      Animated.timing(translateYAnim, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-    ]).start();
+      // 2. Stay visible for 2.4s, then fade out smoothly
+      const timer = setTimeout(() => {
+        dismiss();
+      }, 2500);
 
-    // 2. Stay for 2.2 seconds, then fade out smoothly
-    const timer = setTimeout(() => {
-      dismiss();
-    }, 2400);
-
-    return () => clearTimeout(timer);
-  }, [visible]);
+      return () => clearTimeout(timer);
+    }
+  }, [user, forceShow]);
 
   const dismiss = () => {
     Animated.timing(fadeAnim, {
       toValue: 0,
-      duration: 600,
+      duration: 500,
       useNativeDriver: true,
     }).start(() => {
       setVisible(false);
@@ -94,7 +90,7 @@ export function WelcomeScreen({ forceShow = false, onFinish }: WelcomeScreenProp
     greeting = 'Good evening';
   }
 
-  const name = user?.first_name || user?.username || 'Guest';
+  const name = user?.first_name || user?.username || 'Customer';
 
   return (
     <Animated.View 
@@ -102,7 +98,7 @@ export function WelcomeScreen({ forceShow = false, onFinish }: WelcomeScreenProp
         styles.overlay, 
         { opacity: fadeAnim }
       ]}
-      pointerEvents={fadeAnim ? 'auto' : 'none'}
+      pointerEvents={visible ? 'auto' : 'none'}
     >
       <TouchableOpacity 
         style={styles.touchContainer} 
@@ -129,18 +125,15 @@ export function WelcomeScreen({ forceShow = false, onFinish }: WelcomeScreenProp
             />
           </View>
 
-          {/* Store Brand Name */}
+          {/* Store Brand Name matching customer-layout.jsx:216-218 */}
           <View style={styles.brandRow}>
-            <Text style={styles.brandEmerald}>NARENDRA</Text>
-            <Text style={styles.brandRed}> KIRANA</Text>
+            <Text style={styles.brandEmerald}>NARENDRA </Text>
+            <Text style={styles.brandPrimary}>KIRANA</Text>
           </View>
 
-          {/* Dynamic Greeting matching web app */}
-          <Text style={styles.greetingText}>
-            {greeting},
-          </Text>
-          <Text style={styles.nameText}>
-            {name}.
+          {/* Dynamic Greeting matching customer-layout.jsx:220-222 */}
+          <Text style={styles.greetingHeadline}>
+            {greeting},{'\n'}{name}.
           </Text>
         </Animated.View>
       </TouchableOpacity>
@@ -175,23 +168,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   logoWrapper: {
-    width: 96,
-    height: 96,
-    borderRadius: 20,
+    width: 88,
+    height: 88,
+    borderRadius: 22,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.1,
     shadowRadius: 10,
-    elevation: 3,
+    elevation: 4,
     overflow: 'hidden',
   },
   logoImage: {
-    width: 88,
-    height: 88,
+    width: 80,
+    height: 80,
   },
   brandRow: {
     flexDirection: 'row',
@@ -199,32 +192,26 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   brandEmerald: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '900',
     color: '#064E3B', // emerald-900
     letterSpacing: 3,
     textTransform: 'uppercase',
   },
-  brandRed: {
-    fontSize: 14,
+  brandPrimary: {
+    fontSize: 13,
     fontWeight: '900',
-    color: '#DC2626', // red-600
+    color: '#16A34A', // primary-600
     letterSpacing: 3,
     textTransform: 'uppercase',
   },
-  greetingText: {
-    fontSize: 30,
-    fontWeight: '900',
-    color: '#0F172A', // slate-900
-    textAlign: 'center',
-    letterSpacing: -0.5,
-  },
-  nameText: {
+  greetingHeadline: {
     fontSize: 32,
     fontWeight: '900',
-    color: '#059669', // emerald-600
+    color: '#0F172A', // text-slate-900 matching web
     textAlign: 'center',
     letterSpacing: -0.5,
-    marginTop: 2,
+    lineHeight: 40,
+    paddingHorizontal: 16,
   },
 });

@@ -110,9 +110,12 @@ export function MainTabs() {
   const { cart } = useCart();
   const cartItemCount = cart?.items?.length || 0;
 
-  // Safe bottom padding ensuring icons and text sit comfortably above system nav buttons or gesture bar
-  const bottomPadding = insets.bottom > 0 ? insets.bottom + 4 : (Platform.OS === 'android' ? 14 : 10);
-  const totalBarHeight = 56 + bottomPadding;
+  // Generous bottom padding ensuring tab icons & labels sit well clear of Android system nav buttons or gesture bar
+  const bottomPadding = Math.max(
+    insets.bottom > 0 ? insets.bottom + 6 : 0,
+    Platform.OS === 'android' ? 24 : 14
+  );
+  const totalBarHeight = 58 + bottomPadding;
 
   return (
     <View style={{ flex: 1 }}>
@@ -136,7 +139,9 @@ export function MainTabs() {
             paddingTop: 8,
           },
           tabBarItemStyle: {
-            paddingVertical: 2,
+            paddingBottom: 4,
+            justifyContent: 'center',
+            alignItems: 'center',
           },
           tabBarLabelStyle: {
             fontSize: 11,
