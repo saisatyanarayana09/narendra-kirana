@@ -16,6 +16,7 @@ import { theme } from '../../constants/theme';
 import { useCart } from '../../context/CartContext';
 import { CartItemCard } from '../../components/CartItemCard';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
+import { triggerHaptic } from '../../utils/haptics';
 
 export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
   const insets = useSafeAreaInsets();
@@ -234,18 +235,15 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
               </Text>
             </View>
           ) : (
-            <TouchableOpacity 
-              style={styles.summaryCheckoutBtn}
-              onPress={() => navigation.navigate('CheckoutScreen')}
-              activeOpacity={0.9}
-            >
-              <Text style={styles.summaryCheckoutBtnText}>Continue to pickup</Text>
-            </TouchableOpacity>
+            <View style={styles.summaryTrustRow}>
+              <Feather name="shield" size={13} color="#059669" />
+              <Text style={styles.summaryTrustText}>100% Genuine Products · Safe Delivery</Text>
+            </View>
           )}
         </View>
       </ScrollView>
 
-      {/* Sticky Bottom Checkout Bar matching web app */}
+      {/* Sticky Bottom Checkout Bar – The ONLY checkout action */}
       {!isStoreClosed && !isBelowMinOrder && items.length > 0 && (
         <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
           <View>
@@ -255,14 +253,20 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
 
           <TouchableOpacity 
             style={styles.checkoutBtn}
-            onPress={() => navigation.navigate('CheckoutScreen')}
+            onPress={() => {
+              triggerHaptic('selection');
+              navigation.navigate('CheckoutScreen');
+            }}
             disabled={isLoading}
             activeOpacity={0.9}
           >
             {isLoading ? (
               <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
-              <Text style={styles.checkoutBtnText}>Checkout</Text>
+              <View style={styles.checkoutBtnContent}>
+                <Text style={styles.checkoutBtnText}>Checkout</Text>
+                <Feather name="arrow-right" size={16} color="#FFFFFF" />
+              </View>
             )}
           </TouchableOpacity>
         </View>
@@ -556,22 +560,25 @@ const styles: any = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
   },
-  summaryCheckoutBtn: {
+  summaryTrustRow: {
     marginTop: 16,
-    backgroundColor: '#059669',
-    paddingVertical: 14,
-    borderRadius: 14,
+    flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
   },
-  summaryCheckoutBtnText: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-    fontSize: 16,
+  summaryTrustText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  checkoutBtnContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   bottomBar: {
     position: 'absolute',
