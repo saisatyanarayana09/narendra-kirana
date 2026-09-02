@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Package, MapPin, Heart, Bell, MessageSquare, HelpCircle, LogOut, ChevronRight, IndianRupee, Gift } from 'lucide-react';
+import { ArrowLeft, User, Package, MapPin, Heart, Bell, MessageSquare, HelpCircle, LogOut, ChevronRight, IndianRupee, Gift } from 'lucide-react';
 import { useCart } from '../../cart-context';
 
 export default function DashboardHome() {
@@ -42,9 +42,12 @@ export default function DashboardHome() {
             {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/15 text-emerald-100 border border-white/20 text-xs font-bold mb-1.5">
-              <span>✨</span> Verified Smart Customer
-            </div>
+            <button 
+              onClick={() => navigate('/')} 
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white border border-white/20 text-xs font-bold mb-2 transition-colors cursor-pointer w-fit"
+            >
+              <ArrowLeft size={14} /> Back to Store
+            </button>
             <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight truncate">
               Hi, {user?.first_name || user?.username || 'Customer'}!
             </h1>

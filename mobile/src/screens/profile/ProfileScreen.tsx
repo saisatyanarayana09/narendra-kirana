@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,11 +7,13 @@ import { AppNavigationProp } from '../../navigation/types';
 import { theme } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import { apiClient } from '../../api/client';
+import { triggerHaptic } from '../../utils/haptics';
 
 export function ProfileScreen({ navigation }: { navigation: AppNavigationProp }) {
   const { user, logout, refreshUser } = useAuth();
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const [referralCount, setReferralCount] = useState<number>(0);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -36,7 +38,15 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
     }
   };
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    triggerHaptic('light');
+    await loadProfileData();
+    setRefreshing(false);
+  }, []);
+
   const handleLogout = () => {
+    triggerHaptic('medium');
     Alert.alert(
       'Sign Out',
       'Are you sure you want to sign out?',
@@ -135,11 +145,24 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
 
   const displayName = user?.first_name || user?.username || 'Customer';
 
+  const handleCardPress = (card: typeof cards[0]) => {
+    triggerHaptic('light');
+    card.onPress();
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView 
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#059669']}
+            tintColor="#059669"
+          />
+        }
       >
         {/* Improved Customer Name Hero Background */}
         <LinearGradient
@@ -151,10 +174,24 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
           {/* Decorative Corner Glow */}
           <View style={styles.heroDecorativeCircle} pointerEvents="none" />
 
-          {/* Member Badge at Top */}
-          <View style={styles.memberBadge}>
-            <Text style={styles.memberBadgeText}>✨ Verified Smart Customer</Text>
-          </View>
+          {/* Back Button at Top Left (Replaces 'Verified Smart Customer') */}
+          <TouchableOpacity 
+            style={styles.heroBackButton}
+            onPress={() => {
+              triggerHaptic('light');
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation.navigate('HomeTab');
+              }
+            }}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Feather name="arrow-left" size={16} color="#FFFFFF" />
+            <Text style={styles.heroBackButtonText}>Back</Text>
+          </TouchableOpacity>
 
           {/* Avatar & Customer Greeting */}
           <View style={styles.customerInfoRow}>
@@ -164,20 +201,23 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
             <View style={styles.greetingBox}>
               <Text style={styles.greetingTitle}>Hi, {displayName}!</Text>
               <Text style={styles.greetingSubtitle} numberOfLines={1}>
-                {user?.email || 'Manage your account and track orders'}
+                {user?.email || (user?.phone_number ? `+91 ${user.phone_number}` : 'Manage your account and track orders')}
               </Text>
             </View>
           </View>
 
-          {/* Loyalty & Quick Stats Strip with Indian Rupee Symbol */}
+          {/* Loyalty & Quick Stats Strip: 2 Balanced Interactive Tiles */}
           <View style={styles.loyaltyCard}>
             <TouchableOpacity 
               style={styles.loyaltyItem}
-              onPress={() => navigation.navigate('WalletScreen')}
-              activeOpacity={0.8}
+              onPress={() => {
+                triggerHaptic('light');
+                navigation.navigate('WalletScreen');
+              }}
+              activeOpacity={0.75}
             >
               <View style={styles.loyaltyIconBadge}>
-                <MaterialIcons name="currency-rupee" size={15} color="#059669" />
+                <MaterialIcons name="currency-rupee" size={16} color="#059669" />
               </View>
               <Text style={styles.loyaltyValue}>₹{walletBalance.toFixed(2)}</Text>
               <Text style={styles.loyaltyLabel}>Wallet Balance</Text>
@@ -187,25 +227,18 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
 
             <TouchableOpacity 
               style={styles.loyaltyItem}
-              onPress={() => navigation.navigate('ReferAndEarnScreen')}
-              activeOpacity={0.8}
+              onPress={() => {
+                triggerHaptic('light');
+                navigation.navigate('ReferAndEarnScreen');
+              }}
+              activeOpacity={0.75}
             >
               <View style={[styles.loyaltyIconBadge, { backgroundColor: '#F0FDFA' }]}>
-                <Feather name="users" size={14} color="#0D9488" />
+                <Feather name="gift" size={15} color="#0D9488" />
               </View>
               <Text style={[styles.loyaltyValue, { color: '#0D9488' }]}>{referralCount}</Text>
               <Text style={styles.loyaltyLabel}>Referrals Made</Text>
             </TouchableOpacity>
-
-            <View style={styles.loyaltyDivider} />
-
-            <View style={styles.loyaltyItem}>
-              <View style={[styles.loyaltyIconBadge, { backgroundColor: '#FEF3C7' }]}>
-                <Feather name="award" size={14} color="#D97706" />
-              </View>
-              <Text style={[styles.loyaltyValue, { color: '#D97706' }]}>Member</Text>
-              <Text style={styles.loyaltyLabel}>Smart Club</Text>
-            </View>
           </View>
         </LinearGradient>
 
@@ -215,7 +248,7 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
             <TouchableOpacity 
               key={idx}
               style={styles.cardItem}
-              onPress={card.onPress}
+              onPress={() => handleCardPress(card)}
               activeOpacity={0.75}
             >
               <View style={styles.cardLeftGroup}>
@@ -296,21 +329,24 @@ const styles = StyleSheet.create({
     borderRadius: 70,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
-  memberBadge: {
+  heroBackButton: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
-    paddingHorizontal: 10,
-    paddingVertical: 3.5,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 20,
-    marginBottom: 12,
+    marginBottom: 14,
   },
-  memberBadgeText: {
-    color: '#ECFDF5',
-    fontSize: 11,
+  heroBackButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
     fontWeight: '800',
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
   },
   customerInfoRow: {
     flexDirection: 'row',
@@ -355,43 +391,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
+    borderRadius: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowRadius: 6,
+    elevation: 3,
   },
   loyaltyItem: {
     flex: 1,
     alignItems: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: 6,
   },
   loyaltyIconBadge: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#ECFDF5',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   loyaltyValue: {
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '900',
     color: '#059669',
+    letterSpacing: -0.3,
   },
   loyaltyLabel: {
-    fontSize: 10,
+    fontSize: 11,
     color: '#64748B',
-    fontWeight: '600',
-    marginTop: 1,
+    fontWeight: '700',
+    marginTop: 2,
   },
   loyaltyDivider: {
     width: 1,
-    height: 32,
+    height: 36,
     backgroundColor: '#F1F5F9',
   },
   cardsGrid: {
@@ -417,6 +454,11 @@ const styles = StyleSheet.create({
   logoutCardItem: {
     borderColor: '#FFE4E6',
     backgroundColor: '#FFFDFD',
+    marginTop: 6,
+  },
+  loginCardItem: {
+    borderColor: '#A7F3D0',
+    backgroundColor: '#F0FDF4',
     marginTop: 6,
   },
   cardLeftGroup: {
