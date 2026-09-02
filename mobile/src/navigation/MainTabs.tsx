@@ -141,6 +141,7 @@ export function MainTabs() {
           tabBarLabelStyle: {
             fontSize: 11,
             fontWeight: '700',
+            fontFamily: 'Nunito_700Bold',
             marginTop: 2,
           },
         }}
