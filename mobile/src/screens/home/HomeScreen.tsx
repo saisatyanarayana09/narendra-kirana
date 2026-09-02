@@ -29,7 +29,11 @@ type Props = {
 
 const { width } = Dimensions.get('window');
 const BANNER_HEIGHT = Math.min(180, Math.round((width * 7) / 16)); // aspect-[16/7] max-h-[180px] matching web
-const SECTION_ICONS = ['🔥', '⭐', '🆕', '💎', '🎯', '🌟', '✨', '🏷️'];
+
+const stripEmojis = (str: string) => {
+  if (!str) return '';
+  return str.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F100}-\u{1F1FF}\u{1F200}-\u{1F2FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}]/gu, '').trim();
+};
 
 export function HomeScreen({ navigation }: Props) {
   const { user } = useAuth();
@@ -302,17 +306,14 @@ export function HomeScreen({ navigation }: Props) {
 
         {/* Dynamic Homepage Product Sections (2-column Grid matching Web App) */}
         {sections.map((section: any, secIdx: number) => {
-          const sectionProducts = (section.items || []).filter((item: any) => item && item.is_in_stock);
+          const sectionProducts = (section.items || []).filter((item: any) => item && item.is_in_stock).slice(0, 2);
           if (sectionProducts.length === 0) return null;
 
           return (
             <View key={section.id || secIdx} style={styles.sectionContainer}>
               <View style={styles.sectionHeaderRow}>
                 <View style={styles.sectionTitleGroup}>
-                  <Text style={styles.sectionIcon}>
-                    {SECTION_ICONS[secIdx % SECTION_ICONS.length]}
-                  </Text>
-                  <Text style={styles.sectionTitle}>{section.title}</Text>
+                  <Text style={styles.sectionTitle}>{stripEmojis(section.title)}</Text>
                 </View>
                 <TouchableOpacity 
                   style={styles.seeAllBtn}

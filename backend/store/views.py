@@ -76,6 +76,15 @@ class StoreSettingsView(views.APIView):
         return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+import re
+
+def strip_emojis(text):
+    if not text:
+        return text
+    p = re.compile(r'[\U00010000-\U0010ffff\u2600-\u27bf\u2300-\u23ff\u2b50\u2b55\u200d\ufe0f]', flags=re.UNICODE)
+    cleaned = p.sub('', text)
+    return re.sub(r'\s+', ' ', cleaned).strip()
+
 class HomepageSectionViewSet(viewsets.ModelViewSet):
     """
     ViewSet for dynamic homepage sections.
@@ -91,6 +100,43 @@ class HomepageSectionViewSet(viewsets.ModelViewSet):
         if self.action in ['list', 'retrieve']:
             return [AllowAny()]
         return [IsOwnerUser()]
+
+    def perform_create(self, serializer):
+        title = serializer.validated_data.get('title', '')
+        if title:
+            title = strip_emojis(title)
+        section = serializer.save(title=title)
+        self._sync_products(section)
+
+    def perform_update(self, serializer):
+        title = serializer.validated_data.get('title', '')
+        if title:
+            title = strip_emojis(title)
+            section = serializer.save(title=title)
+        else:
+            section = serializer.save()
+        self._sync_products(section)
+
+    def _sync_products(self, section):
+        if 'product_ids' in self.request.data:
+            product_ids = self.request.data.get('product_ids', [])
+            if isinstance(product_ids, list):
+                # Enforce MAX 2 products globally!
+                product_ids = product_ids[:2]
+                from .models import HomepageSectionProduct
+                from products.models import Product
+
+                section.section_products.all().delete()
+                for idx, pid in enumerate(product_ids):
+                    try:
+                        product = Product.objects.get(id=pid)
+                        HomepageSectionProduct.objects.create(
+                            section=section,
+                            product=product,
+                            position=idx
+                        )
+                    except (Product.DoesNotExist, ValueError, TypeError):
+                        continue
 
     @action(detail=False, methods=['post'])
     def reorder(self, request):

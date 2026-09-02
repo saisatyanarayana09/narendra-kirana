@@ -3,7 +3,7 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { GripVertical, Layout, Loader2, Plus, Edit2, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
-import HomepageSectionEditor from '../components/HomepageSectionEditor';
+import HomepageSectionEditor, { stripEmojis } from '../components/HomepageSectionEditor';
 import MidPageBannerEditor from '../components/MidPageBannerEditor';
 import { createPortal } from 'react-dom';
 
@@ -30,7 +30,8 @@ export default function Showcase() {
       ]);
       const mappedSections = secRes.data.map(sec => ({
           ...sec,
-          items: (sec.section_products || []).sort((a, b) => a.position - b.position).map(sp => sp.product_details)
+          title: stripEmojis(sec.title),
+          items: (sec.section_products || []).sort((a, b) => a.position - b.position).map(sp => sp.product_details).slice(0, 2)
         }));
         setSections(mappedSections.sort((a, b) => a.display_order - b.display_order));
       const pList = Array.isArray(prodRes.data) ? prodRes.data : (prodRes.data?.results ?? []);
@@ -162,11 +163,12 @@ export default function Showcase() {
       newSections[sectionIndex] = { ...sec, items: updatedItems };
       setSections(newSections);
 
-      // Auto save the section's new product order
+      // Auto save the section's new product order (capped at 2)
       try {
         await api.patch(`/store/homepage-sections/${sectionId}/`, {
-          product_ids: updatedItems.map(i => i.id)
+          product_ids: updatedItems.slice(0, 2).map(i => i.id)
         });
+        toast.success('Product order saved!');
       } catch {
         toast.error('Failed to save product order.');
       }
@@ -174,26 +176,32 @@ export default function Showcase() {
   };
 
   const handleUpdateItems = (sectionId, newItems) => {
-    setSections(prev => prev.map(s => s.id === sectionId ? { ...s, items: newItems } : s));
+    setSections(prev => prev.map(s => s.id === sectionId ? { ...s, items: (newItems || []).slice(0, 2) } : s));
   };
 
   const handleSaveSection = async (sectionId, items) => {
+    const capped = (items || []).slice(0, 2);
     try {
       await api.patch(`/store/homepage-sections/${sectionId}/`, {
-        product_ids: items.map(i => i.id)
+        product_ids: capped.map(i => i.id)
       });
-    } catch {
-      toast.error('Failed to save section.');
-      throw new Error('Failed'); // let child component handle the error toast too if needed
+    } catch (err) {
+      console.error(err);
+      throw err;
     }
   };
 
   const handleAddSection = async () => {
-    const title = window.prompt("Enter new section title:");
-    if (!title) return;
+    const rawTitle = window.prompt("Enter new section title (emojis will be removed):");
+    if (!rawTitle) return;
+    const title = stripEmojis(rawTitle);
+    if (!title) {
+      toast.error("Please enter a valid title without emojis.");
+      return;
+    }
     try {
       const res = await api.post('/store/homepage-sections/', { title, display_order: sections.length, is_active: true });
-      setSections([...sections, { ...res.data, items: [] }]);
+      setSections([...sections, { ...res.data, title: stripEmojis(res.data.title), items: [] }]);
       toast.success('Section created!');
     } catch {
       toast.error('Failed to create section.');
@@ -213,9 +221,14 @@ export default function Showcase() {
 
   const submitRename = async () => {
     if (!renameTitle || !renamingSection) return;
+    const title = stripEmojis(renameTitle);
+    if (!title) {
+      toast.error("Please enter a valid title without emojis.");
+      return;
+    }
     try {
-      const res = await api.patch(`/store/homepage-sections/${renamingSection.id}/`, { title: renameTitle });
-      setSections(sections.map(s => s.id === renamingSection.id ? { ...s, title: res.data.title } : s));
+      const res = await api.patch(`/store/homepage-sections/${renamingSection.id}/`, { title });
+      setSections(sections.map(s => s.id === renamingSection.id ? { ...s, title: stripEmojis(res.data.title) } : s));
       toast.success('Section renamed!');
       setRenamingSection(null);
     } catch {
@@ -367,9 +380,9 @@ export default function Showcase() {
                         {/* Title */}
                         <div className="flex-1 flex items-center gap-3">
                           <span className="text-base font-extrabold text-gray-900">
-                            {section.title}
+                            {stripEmojis(section.title)}
                           </span>
-                          <button onClick={() => { setRenamingSection(section); setRenameTitle(section.title); }} className="text-gray-400 hover:text-emerald-600 p-1">
+                          <button onClick={() => { setRenamingSection(section); setRenameTitle(stripEmojis(section.title)); }} className="text-gray-400 hover:text-emerald-600 p-1">
                             <Edit2 className="w-3 h-3" />
                           </button>
                         </div>

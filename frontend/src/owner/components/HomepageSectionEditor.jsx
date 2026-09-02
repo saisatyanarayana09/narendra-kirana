@@ -1,7 +1,15 @@
 import { useState } from 'react';
-import { X, Plus, Search, Save, Loader2, ArrowRightLeft } from 'lucide-react';
+import { X, Plus, Search, Save, Loader2, ArrowRightLeft, AlertCircle } from 'lucide-react';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
 import { createPortal } from 'react-dom';
+import toast from 'react-hot-toast';
+
+export const stripEmojis = (str) => {
+  if (!str) return '';
+  return str.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F100}-\u{1F1FF}\u{1F200}-\u{1F2FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}]/gu, '').trim();
+};
+
+const MAX_PRODUCTS = 2;
 
 export default function HomepageSectionEditor({ 
   section, 
@@ -13,12 +21,24 @@ export default function HomepageSectionEditor({
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const items = section.items || [];
+  const cleanTitle = stripEmojis(section?.title) || 'Section';
+  const items = (section.items || []).slice(0, MAX_PRODUCTS);
 
   const handleSave = async () => {
+    if (items.length > MAX_PRODUCTS) {
+      toast.error(`Maximum ${MAX_PRODUCTS} products allowed in each section!`);
+      return;
+    }
     setSaving(true);
-    await onSave(section.id, items);
-    setSaving(false);
+    try {
+      await onSave(section.id, items);
+      toast.success(`Products saved successfully in "${cleanTitle}"!`);
+    } catch (err) {
+      console.error(err);
+      toast.error(`Failed to save products in "${cleanTitle}". Please try again.`);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const toggleProduct = (product) => {
@@ -27,6 +47,10 @@ export default function HomepageSectionEditor({
     if (isAdded) {
       newItems = items.filter(i => i.id !== product.id);
     } else {
+      if (items.length >= MAX_PRODUCTS) {
+        toast.error(`Cannot add more than ${MAX_PRODUCTS} products per section! Remove an existing product first.`);
+        return;
+      }
       newItems = [...items, {
         id: product.id, name: product.name, image: product.image,
         regular_price: product.regular_price, offer_price: product.offer_price,
@@ -53,14 +77,20 @@ export default function HomepageSectionEditor({
     <div className="space-y-4">
       {/* ── Action Bar ─────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => setPickerOpen(true)}
-          className="flex items-center gap-2 text-sm font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl hover:bg-emerald-100 transition"
-        >
-          <Plus className="w-4 h-4" />
-          Add Products
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setPickerOpen(true)}
+            className="flex items-center gap-2 text-sm font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl hover:bg-emerald-100 transition"
+          >
+            <Plus className="w-4 h-4" />
+            {items.length >= MAX_PRODUCTS ? `Manage Products (${items.length}/${MAX_PRODUCTS})` : 'Add Products'}
+          </button>
+          
+          <span className="text-xs font-semibold text-slate-500">
+            {items.length} of {MAX_PRODUCTS} products added
+          </span>
+        </div>
 
         <button
           type="button"
@@ -69,15 +99,15 @@ export default function HomepageSectionEditor({
           className="flex items-center gap-1.5 text-sm font-bold bg-emerald-600 text-white px-5 py-2 rounded-xl hover:bg-emerald-700 transition disabled:opacity-60 whitespace-nowrap shadow-sm shadow-emerald-200"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          Save {section.title}
+          Save {cleanTitle}
         </button>
       </div>
 
       {/* ── Horizontal Product Grid ─────────────────────────────────────── */}
       {items.length === 0 ? (
         <div className="text-center py-10 bg-slate-50 text-gray-400 text-sm border-2 border-dashed border-gray-200 rounded-2xl">
-          <p className="font-semibold text-slate-500 mb-1">No products in {section.title} yet.</p>
-          <p className="text-xs">Click <strong>Add Products</strong> to curate this section.</p>
+          <p className="font-semibold text-slate-500 mb-1">No products in {cleanTitle} yet.</p>
+          <p className="text-xs">Click <strong>Add Products</strong> to add up to 2 products.</p>
         </div>
       ) : (
         <div className="relative">
@@ -148,16 +178,18 @@ export default function HomepageSectionEditor({
           <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl border border-slate-100 flex flex-col h-[85vh]">
             <div className="flex justify-between items-center p-6 border-b border-slate-100 flex-shrink-0">
               <div>
-                <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Curate {section.title}</h2>
-                <p className="text-sm text-slate-500 mt-0.5">Select products to feature in this showcase section.</p>
+                <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Curate {cleanTitle}</h2>
+                <p className="text-sm text-slate-500 mt-0.5">
+                  Select up to <span className="font-bold text-emerald-600">{MAX_PRODUCTS} products</span> to feature in this section.
+                </p>
               </div>
               <button onClick={() => { setPickerOpen(false); setSearch(''); }} className="text-slate-400 hover:text-slate-600 transition-colors p-2 bg-slate-50 rounded-full hover:bg-slate-100">
                 <X className="w-6 h-6" />
               </button>
             </div>
             
-            <div className="p-4 border-b border-slate-100 bg-slate-50 shrink-0">
-              <div className="relative max-w-md">
+            <div className="p-4 border-b border-slate-100 bg-slate-50 shrink-0 flex items-center justify-between gap-4">
+              <div className="relative max-w-md flex-1">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input
                   autoFocus
@@ -165,9 +197,16 @@ export default function HomepageSectionEditor({
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Search products by name or category…"
-                  className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all shadow-sm text-sm font-medium"
+                  className="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all shadow-sm text-sm font-medium"
                 />
               </div>
+
+              {items.length >= MAX_PRODUCTS && (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold shrink-0">
+                  <AlertCircle size={14} />
+                  <span>Limit reached ({MAX_PRODUCTS}/{MAX_PRODUCTS})</span>
+                </div>
+              )}
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50 custom-scrollbar">
@@ -183,6 +222,7 @@ export default function HomepageSectionEditor({
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                   {filteredProducts.map(p => {
                     const isAdded = addedIds.has(p.id);
+                    const isLimitReached = !isAdded && items.length >= MAX_PRODUCTS;
                     return (
                       <div
                         key={p.id}
@@ -190,8 +230,11 @@ export default function HomepageSectionEditor({
                         className={`relative p-3 rounded-2xl cursor-pointer transition-all ${
                           isAdded 
                             ? 'bg-emerald-50 ring-2 ring-emerald-500 shadow-md' 
-                            : 'bg-white border border-slate-200 hover:border-emerald-300 hover:shadow-lg'
+                            : isLimitReached
+                              ? 'bg-white/60 border border-dashed border-slate-200 opacity-60 hover:opacity-100'
+                              : 'bg-white border border-slate-200 hover:border-emerald-300 hover:shadow-lg'
                         }`}
+                        title={isLimitReached ? `Limit of ${MAX_PRODUCTS} products reached. Remove one first.` : ''}
                       >
                         {isAdded && (
                           <div className="absolute top-2 right-2 w-6 h-6 bg-emerald-600 rounded-full flex items-center justify-center z-10 shadow-sm">
@@ -214,7 +257,13 @@ export default function HomepageSectionEditor({
             </div>
             
             <div className="p-4 md:px-6 md:py-4 border-t border-slate-100 bg-white flex justify-between items-center flex-shrink-0 rounded-b-3xl">
-              <span className="text-sm font-bold text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg">{items.length} products selected</span>
+              <span className={`text-sm font-bold px-3 py-1.5 rounded-lg ${
+                items.length >= MAX_PRODUCTS 
+                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
+                  : 'bg-slate-100 text-slate-600'
+              }`}>
+                {items.length} / {MAX_PRODUCTS} products selected
+              </span>
               <button 
                 type="button" 
                 onClick={() => { setPickerOpen(false); setSearch(''); }} 
@@ -229,3 +278,4 @@ export default function HomepageSectionEditor({
     </div>
   );
 }
+

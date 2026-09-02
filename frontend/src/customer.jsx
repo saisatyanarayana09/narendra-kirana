@@ -508,9 +508,8 @@ export function HomePage() {
 
 
 
-  // Section icons
-
-  const sectionIcons = ['🔥', '⭐', '🆕', '💎', '🎯', '🌟', '✨', '🏷️'];
+  // Helper to strip any emojis from titles globally
+  const stripEmojis = (str) => str ? str.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F100}-\u{1F1FF}\u{1F200}-\u{1F2FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}]/gu, '').trim() : '';
 
 
 
@@ -663,21 +662,15 @@ export function HomePage() {
   
 
   {/* Dynamic Homepage Sections */}
-
   {sections.map((section, index) => {
-const sectionProducts = (section.items || []).filter(item => item.is_in_stock);
+    const sectionProducts = (section.items || []).filter(item => item && item.is_in_stock).slice(0, 2);
 
     if (sectionProducts.length === 0 && !loading) return null;
 
-
-
     return (
-
       <section key={section.id} className={index === 0 ? "mt-4 relative" : "mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-slate-100 relative"}>
-
           <div className="sticky top-[56px] sm:top-[68px] z-20 bg-slate-50/95 backdrop-blur-sm py-2 flex justify-between items-center">
-
-            <h2 className="text-lg font-bold text-slate-900">{section.title}</h2>
+            <h2 className="text-lg font-bold text-slate-900">{stripEmojis(section.title)}</h2>
 
             <Link to="/products" className="text-xs font-bold text-slate-500 hover:text-slate-600 transition flex items-center gap-1">View all <ChevronRight size={14} /></Link>
 
