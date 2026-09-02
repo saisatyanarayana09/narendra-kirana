@@ -12,6 +12,7 @@ import { Feather } from '@expo/vector-icons';
 import { fixImageUrl } from '../utils/image';
 import { theme } from '../constants/theme';
 import { useCart } from '../context/CartContext';
+import { triggerHaptic } from '../utils/haptics';
 
 export interface Product {
   id: number;
@@ -85,6 +86,7 @@ export function ProductCard({
 
   const handleAdd = async () => {
     if (updating || !isInStock || isMaxReached) return;
+    triggerHaptic('medium');
     setUpdating(true);
     try {
       if (onAddToCart) {
@@ -123,6 +125,7 @@ export function ProductCard({
             style={styles.favoriteButton} 
             onPress={(e) => {
               e.stopPropagation?.();
+              triggerHaptic('selection');
               onToggleFavorite(product);
             }}
             activeOpacity={0.8}

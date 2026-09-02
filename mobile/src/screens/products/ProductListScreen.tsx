@@ -14,6 +14,8 @@ import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
 import { apiClient } from '../../api/client';
 import { ProductCard } from '../../components/ProductCard';
+import { ProductCardSkeleton } from '../../components/SkeletonLoader';
+import { triggerHaptic } from '../../utils/haptics';
 import { useCart } from '../../context/CartContext';
 
 const { width } = Dimensions.get('window');
@@ -143,7 +145,10 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
         >
           <TouchableOpacity
             style={[styles.categoryPill, !selectedCategory && styles.categoryPillActive]}
-            onPress={() => setSelectedCategory(null)}
+            onPress={() => {
+              triggerHaptic('selection');
+              setSelectedCategory(null);
+            }}
             activeOpacity={0.8}
           >
             <Text style={[styles.categoryPillText, !selectedCategory && styles.categoryPillTextActive]}>
@@ -157,7 +162,10 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
               <TouchableOpacity
                 key={cat.id}
                 style={[styles.categoryPill, isSelected && styles.categoryPillActive]}
-                onPress={() => setSelectedCategory(cat.id)}
+                onPress={() => {
+                  triggerHaptic('selection');
+                  setSelectedCategory(cat.id);
+                }}
                 activeOpacity={0.8}
               >
                 <Text style={[styles.categoryPillText, isSelected && styles.categoryPillTextActive]}>
@@ -184,7 +192,10 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
             <TouchableOpacity
               key={opt.id}
               style={[styles.sortChip, sortOption === opt.id && styles.sortChipActive]}
-              onPress={() => setSortOption(opt.id)}
+              onPress={() => {
+                triggerHaptic('selection');
+                setSortOption(opt.id);
+              }}
               activeOpacity={0.8}
             >
               <Text style={[styles.sortChipText, sortOption === opt.id && styles.sortChipTextActive]}>
@@ -196,9 +207,20 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
       </View>
 
       {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color="#059669" />
-        </View>
+        <ScrollView contentContainerStyle={styles.listContainer} showsVerticalScrollIndicator={false}>
+          <View style={styles.row}>
+            <View style={styles.cardWrapper}><ProductCardSkeleton /></View>
+            <View style={styles.cardWrapper}><ProductCardSkeleton /></View>
+          </View>
+          <View style={styles.row}>
+            <View style={styles.cardWrapper}><ProductCardSkeleton /></View>
+            <View style={styles.cardWrapper}><ProductCardSkeleton /></View>
+          </View>
+          <View style={styles.row}>
+            <View style={styles.cardWrapper}><ProductCardSkeleton /></View>
+            <View style={styles.cardWrapper}><ProductCardSkeleton /></View>
+          </View>
+        </ScrollView>
       ) : sortedProducts.length === 0 ? (
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconCircle}>

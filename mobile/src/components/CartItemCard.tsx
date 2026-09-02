@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { Feather } from '@expo/vector-icons';
 import { fixImageUrl } from '../utils/image';
 import { CartItem } from '../context/CartContext';
+import { triggerHaptic } from '../utils/haptics';
 
 interface Props {
   item: CartItem;
@@ -58,7 +59,10 @@ export function CartItemCard({ item, onUpdateQuantity, onRemove, isLoading }: Pr
       <View style={styles.stepperContainer}>
         <TouchableOpacity 
           style={styles.stepperButton}
-          onPress={() => onUpdateQuantity(item.id, item.quantity - 1)}
+          onPress={() => {
+            triggerHaptic('light');
+            onUpdateQuantity(item.id, item.quantity - 1);
+          }}
           disabled={isLoading}
           activeOpacity={0.7}
         >
@@ -69,7 +73,10 @@ export function CartItemCard({ item, onUpdateQuantity, onRemove, isLoading }: Pr
 
         <TouchableOpacity 
           style={[styles.stepperButton, isMaxReached && styles.disabledStepperBtn]}
-          onPress={() => onUpdateQuantity(item.id, item.quantity + 1)}
+          onPress={() => {
+            triggerHaptic('light');
+            onUpdateQuantity(item.id, item.quantity + 1);
+          }}
           disabled={isMaxReached || isLoading}
           activeOpacity={0.7}
         >
@@ -80,7 +87,10 @@ export function CartItemCard({ item, onUpdateQuantity, onRemove, isLoading }: Pr
       {/* Delete / Trash Button */}
       <TouchableOpacity 
         style={styles.deleteButton}
-        onPress={() => onRemove(item.id)}
+        onPress={() => {
+          triggerHaptic('medium');
+          onRemove(item.id);
+        }}
         disabled={isLoading}
         activeOpacity={0.7}
       >

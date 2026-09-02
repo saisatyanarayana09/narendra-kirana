@@ -20,6 +20,7 @@ import { useCart } from '../../context/CartContext';
 import { ProductCard } from '../../components/ProductCard';
 import { CategoryCard } from '../../components/CategoryCard';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
+import { BannerSkeleton, ProductCardSkeleton, SkeletonItem } from '../../components/SkeletonLoader';
 import { fixImageUrl } from '../../utils/image';
 
 type Props = {
@@ -104,7 +105,47 @@ export function HomeScreen({ navigation }: Props) {
   };
 
   if (loading) {
-    return <LoadingSpinner fullScreen />;
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        {/* Top Header */}
+        <View style={styles.headerRow}>
+          <View style={styles.brandContainer}>
+            <Text style={styles.brandTitle}>
+              <Text style={styles.brandSlate}>Narendra </Text>
+              <Text style={styles.brandRed}>Kirana</Text>
+            </Text>
+          </View>
+          <View style={styles.searchBar}>
+            <Feather name="search" size={16} color="#94A3B8" />
+            <Text style={styles.searchPlaceholder}>Search products...</Text>
+          </View>
+        </View>
+
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <BannerSkeleton />
+          
+          <View style={{ paddingHorizontal: 16, marginBottom: 20 }}>
+            <SkeletonItem width={120} height={18} borderRadius={6} style={{ marginBottom: 12 }} />
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <SkeletonItem width={72} height={72} borderRadius={16} />
+              <SkeletonItem width={72} height={72} borderRadius={16} />
+              <SkeletonItem width={72} height={72} borderRadius={16} />
+              <SkeletonItem width={72} height={72} borderRadius={16} />
+            </View>
+          </View>
+
+          <View style={{ paddingHorizontal: 16 }}>
+            <SkeletonItem width={140} height={18} borderRadius={6} style={{ marginBottom: 12 }} />
+            <View style={styles.productsGrid}>
+              <View style={styles.productGridItem}><ProductCardSkeleton /></View>
+              <View style={styles.productGridItem}><ProductCardSkeleton /></View>
+              <View style={styles.productGridItem}><ProductCardSkeleton /></View>
+              <View style={styles.productGridItem}><ProductCardSkeleton /></View>
+            </View>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
   }
 
   return (

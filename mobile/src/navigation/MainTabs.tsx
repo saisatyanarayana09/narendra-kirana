@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { theme } from '../constants/theme';
 import { WelcomeScreen } from '../components/WelcomeScreen';
@@ -104,10 +105,14 @@ function CartStack() {
 }
 
 import { useCart } from '../context/CartContext';
+import { FloatingCartBar } from '../components/FloatingCartBar';
+import { triggerHaptic } from '../utils/haptics';
 
 export function MainTabs() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<any>();
   const { cart } = useCart();
+  const [currentTab, setCurrentTab] = useState('HomeTab');
   const cartItemCount = cart?.items?.length || 0;
 
   // Generous bottom padding ensuring tab icons & labels sit well clear of Android system nav buttons or gesture bar
@@ -120,7 +125,24 @@ export function MainTabs() {
   return (
     <View style={{ flex: 1 }}>
       <WelcomeScreen />
+
+      {currentTab !== 'CartTab' && cartItemCount > 0 && (
+        <FloatingCartBar 
+          bottomOffset={totalBarHeight + 10}
+          onPress={() => navigation.navigate('CartTab')}
+        />
+      )}
+
       <Tab.Navigator
+        screenListeners={{
+          state: (e: any) => {
+            const route = e.data?.state?.routes?.[e.data?.state?.index];
+            if (route?.name && route.name !== currentTab) {
+              setCurrentTab(route.name);
+              triggerHaptic('selection');
+            }
+          },
+        }}
         screenOptions={{
           headerShown: false,
           tabBarActiveTintColor: '#059669', // Emerald-600 matching web

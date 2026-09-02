@@ -13,6 +13,7 @@ import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
 import { apiClient } from '../../api/client';
 import { CategoryCard } from '../../components/CategoryCard';
+import { CategoryCardSkeleton } from '../../components/SkeletonLoader';
 
 const { width } = Dimensions.get('window');
 const HORIZONTAL_PADDING = 14;
@@ -45,9 +46,31 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
 
   if (loading && !refreshing) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#059669" />
-      </View>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => {
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation.navigate('HomeTab');
+              }
+            }}
+            activeOpacity={0.7}
+          >
+            <Feather name="arrow-left" size={16} color="#475569" />
+            <Text style={styles.backText}>Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>All Categories</Text>
+        </View>
+
+        <View style={{ paddingHorizontal: HORIZONTAL_PADDING, paddingTop: 14, flexDirection: 'row', flexWrap: 'wrap', gap: GAP }}>
+          {[...Array(12)].map((_, i) => (
+            <CategoryCardSkeleton key={i} />
+          ))}
+        </View>
+      </SafeAreaView>
     );
   }
 
