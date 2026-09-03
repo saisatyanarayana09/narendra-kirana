@@ -107,9 +107,28 @@ from accounts.permissions import IsOwnerUser
 class CustomerListView(generics.ListAPIView):
     permission_classes = (IsOwnerUser,)
     serializer_class = UserSerializer
+    pagination_class = None
 
     def get_queryset(self):
-        return User.objects.filter(is_customer=True).order_by('-date_joined')
+        return User.objects.filter(is_customer=True).select_related('customer_profile').order_by('-date_joined')
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        
+        all_customers = User.objects.filter(is_customer=True)
+        counts = {
+            'total': all_customers.count(),
+            'active': all_customers.filter(is_active=True).count(),
+            'inactive': all_customers.filter(is_active=False).count(),
+            'delete_requested': all_customers.filter(customer_profile__delete_requested=True).count()
+        }
+        
+        return Response({
+            'customers': serializer.data,
+            'counts': counts,
+            'results': serializer.data
+        })
 
 class AddressViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
