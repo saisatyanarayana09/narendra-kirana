@@ -1,11 +1,36 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, Sun, Moon, Check, Sliders } from 'lucide-react';
+import { ChevronRight, Sun, Moon, Check, Sliders, Activity, Smartphone } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 
 export default function AppSettings() {
   const { theme, toggleTheme } = useTheme();
   const { t } = useLanguage();
+  const [vibrationOn, setVibrationOn] = useState(() => {
+    try {
+      return localStorage.getItem('sk_vibration_enabled') !== 'false';
+    } catch {
+      return true;
+    }
+  });
+
+  const handleToggleVibration = () => {
+    const nextVal = !vibrationOn;
+    setVibrationOn(nextVal);
+    try {
+      localStorage.setItem('sk_vibration_enabled', nextVal ? 'true' : 'false');
+    } catch {
+      // ignore
+    }
+    if (nextVal && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try {
+        navigator.vibrate(30);
+      } catch {
+        // ignore
+      }
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -119,6 +144,63 @@ export default function AppSettings() {
               </div>
             )}
           </button>
+        </div>
+      </div>
+
+      {/* Haptic Feedback & Vibration Section */}
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-800 transition-colors">
+        <div className="flex items-center gap-2.5 mb-2">
+          <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
+            <Activity size={18} />
+          </div>
+          <h2 className="text-lg font-extrabold text-slate-900 dark:text-white">
+            Haptic Feedback & Vibration
+          </h2>
+        </div>
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-6">
+          Toggle gentle vibration feedback on touch interactions and button taps on supported devices.
+        </p>
+
+        <div
+          onClick={handleToggleVibration}
+          className={`cursor-pointer p-5 rounded-2xl border-2 transition-all duration-200 flex items-center justify-between gap-4 ${
+            vibrationOn
+              ? 'border-emerald-500 bg-emerald-50/20 dark:bg-slate-800 shadow-sm ring-2 ring-emerald-500/10'
+              : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 hover:border-slate-300 dark:hover:border-slate-700'
+          }`}
+        >
+          <div className="flex items-center gap-4">
+            <div
+              className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
+                vibrationOn
+                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+              }`}
+            >
+              <Smartphone size={24} />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                {vibrationOn ? 'Vibration Enabled' : 'Vibration Disabled'}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {vibrationOn ? 'Vibrate on tap and cart actions' : 'Touch interactions are silent'}
+              </p>
+            </div>
+          </div>
+
+          {/* Toggle Switch */}
+          <div
+            className={`w-12 h-7 flex items-center rounded-full p-1 transition-colors duration-200 ease-in-out ${
+              vibrationOn ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700'
+            }`}
+          >
+            <div
+              className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${
+                vibrationOn ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </div>
         </div>
       </div>
     </div>

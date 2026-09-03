@@ -14,12 +14,19 @@ import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
 import { useTheme, ThemeMode } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { triggerHaptic } from '../../utils/haptics';
+import { triggerHaptic, getVibrationEnabled, setVibrationEnabled } from '../../utils/haptics';
 
 export function AppSettingsScreen({ navigation }: { navigation: AppNavigationProp }) {
   const { colors, themeMode, toggleThemeMode } = useTheme();
   const { t } = useLanguage();
   const [checkingUpdates, setCheckingUpdates] = useState(false);
+  const [vibrationOn, setVibrationOn] = useState(() => getVibrationEnabled());
+
+  const handleToggleVibration = async () => {
+    const nextVal = !vibrationOn;
+    setVibrationOn(nextVal);
+    await setVibrationEnabled(nextVal);
+  };
 
   const handleCheckUpdates = () => {
     if (checkingUpdates) return;
@@ -168,7 +175,74 @@ export function AppSettingsScreen({ navigation }: { navigation: AppNavigationPro
           </View>
         </View>
 
-        {/* Section 2 (Mobile only): App Version */}
+        {/* Section 2: Vibration / Haptic Feedback */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeaderRow}>
+            <Feather name="activity" size={18} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.text, fontSize: 16 }]}>
+              Haptic Feedback & Vibration
+            </Text>
+          </View>
+          <Text style={[styles.sectionDesc, { color: colors.textSecondary }]}>
+            Vibrate on button clicks, cart updates, and order confirmations
+          </Text>
+
+          <TouchableOpacity
+            style={[
+              styles.vibrationCard,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+              },
+            ]}
+            onPress={handleToggleVibration}
+            activeOpacity={0.8}
+          >
+            <View style={styles.vibrationCardLeft}>
+              <View
+                style={[
+                  styles.iconBadge,
+                  {
+                    backgroundColor: vibrationOn ? colors.primaryLight : colors.background,
+                  },
+                ]}
+              >
+                <Feather
+                  name={vibrationOn ? 'smartphone' : 'volume-x'}
+                  size={18}
+                  color={vibrationOn ? colors.primaryDark : colors.textSecondary}
+                />
+              </View>
+              <View style={styles.cardTextCol}>
+                <Text style={[styles.optionTitle, { color: colors.text, fontSize: 15, fontWeight: '700' }]}>
+                  {vibrationOn ? 'Vibration On' : 'Vibration Off'}
+                </Text>
+                <Text style={[styles.optionDesc, { color: colors.textSecondary }]}>
+                  {vibrationOn ? 'Haptic ticks enabled across the app' : 'Muted vibration and silent feedback'}
+                </Text>
+              </View>
+            </View>
+
+            {/* Switch Capsule Toggle */}
+            <View
+              style={[
+                styles.switchTrack,
+                {
+                  backgroundColor: vibrationOn ? colors.primary : colors.border,
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.switchThumb,
+                  vibrationOn ? styles.switchThumbOn : styles.switchThumbOff,
+                ]}
+              />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Section 3 (Mobile only): App Version */}
         <View
           style={[
             styles.versionCard,
@@ -364,6 +438,51 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  vibrationCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 2,
+    elevation: 1,
+    marginTop: 4,
+  },
+  vibrationCardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  switchTrack: {
+    width: 48,
+    height: 28,
+    borderRadius: 14,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  switchThumb: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2.5,
+    elevation: 2,
+  },
+  switchThumbOn: {
+    alignSelf: 'flex-end',
+  },
+  switchThumbOff: {
+    alignSelf: 'flex-start',
   },
   versionIconWrap: {
     width: 38,
