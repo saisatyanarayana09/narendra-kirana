@@ -8,6 +8,17 @@ class CategorySerializer(serializers.ModelSerializer):
         model = Category
         fields = '__all__'
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        raw_name = str(instance.image) if instance.image else ''
+        if raw_name.startswith('http://') or raw_name.startswith('https://'):
+            data['image'] = raw_name
+        elif data.get('image') and isinstance(data['image'], str):
+            match = re.search(r'https?://(?:(?!res\.cloudinary\.com).)+$', data['image'])
+            if match:
+                data['image'] = match.group(0)
+        return data
+
 class ProductImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductImage

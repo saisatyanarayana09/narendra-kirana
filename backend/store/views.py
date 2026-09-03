@@ -1,8 +1,6 @@
 import time
 import io
 import wave
-import av
-import speech_recognition as sr
 
 from django.db import connection
 from django.http import JsonResponse
@@ -188,6 +186,15 @@ class VoiceSearchView(views.APIView):
         language = request.data.get('language', 'en-IN')
         if not audio_file:
             return response.Response({'error': 'No audio file provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            import av
+            import speech_recognition as sr
+        except ImportError:
+            return response.Response(
+                {'error': 'Audio processing libraries (av, SpeechRecognition) not installed on server.', 'query': '', 'text': ''},
+                status=status.HTTP_501_NOT_IMPLEMENTED
+            )
 
         try:
             input_bytes = audio_file.read()
