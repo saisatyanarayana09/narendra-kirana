@@ -382,11 +382,11 @@ export function HomeScreen({ navigation }: Props) {
           </View>
         )}
 
-        {/* Categories / Explore Aisles Section */}
+        {/* Categories / Shop by category Section */}
         {categories.length > 0 && (
           <View style={styles.sectionContainer}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>Explore Aisles</Text>
+              <Text style={styles.sectionTitle}>Shop by category</Text>
               <TouchableOpacity 
                 style={styles.seeAllBtn}
                 onPress={() => navigation.navigate('CategoriesTab')}
@@ -679,14 +679,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   sectionContainer: {
-    marginTop: 18,
+    marginTop: 16,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   sectionTitle: {
     fontSize: 18,
@@ -715,7 +715,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   horizontalProductItem: {
-    width: Math.floor((width - 44) / 2.15), // ~2 visible products on screen with edge peek for smooth left-right scrolling
+    width: 160, // Exact w-[160px] matching web customer.jsx carousel items
   },
   countBadge: {
     backgroundColor: '#F1F5F9',
@@ -733,7 +733,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  categoryCardHorizontal: {
-    marginRight: 12,
-  },
+  categoryCardHorizontal: {},
 });

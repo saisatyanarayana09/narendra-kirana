@@ -634,7 +634,7 @@ export function HomePage() {
 
     <div className="flex items-center gap-2">
 
-      <h2 className="text-lg font-bold text-slate-900">Explore Aisles</h2>
+      <h2 className="text-lg font-bold text-slate-900">Shop by category</h2>
 
     </div>
 

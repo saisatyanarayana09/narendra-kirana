@@ -518,14 +518,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     paddingTop: 12,
     paddingBottom: 4,
-    marginBottom: 12,
+    marginBottom: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
+    marginHorizontal: -12,
   },
   categoryPillsContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     gap: 8,
-    paddingBottom: 10,
+    paddingBottom: 8,
   },
   categoryPill: {
     paddingHorizontal: 14,
@@ -551,8 +552,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderTopWidth: 1,
     borderTopColor: '#F8FAFC',
   },
@@ -568,9 +569,9 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   sortScrollContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     gap: 8,
-    paddingBottom: 10,
+    paddingBottom: 8,
   },
   sortChip: {
     paddingHorizontal: 12,
@@ -647,14 +648,17 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   listContainer: {
-    padding: 16,
+    paddingHorizontal: 12,
+    paddingTop: 8,
     paddingBottom: 100,
   },
   row: {
-    justifyContent: 'space-between',
+    flexDirection: 'row',
+    gap: 12,
     marginBottom: 12,
+    justifyContent: 'flex-start',
   },
   cardWrapper: {
-    width: (width - 44) / 2,
+    width: Math.floor((width - 36) / 2),
   },
 });
