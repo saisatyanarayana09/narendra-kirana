@@ -1,7 +1,8 @@
 from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.db import transaction
+from django.db import transaction, models
+from django.utils import timezone
 from accounts.permissions import IsOwnerUser
 from .models import Banner, PromoCode
 from .serializers import BannerSerializer, PromoCodeSerializer
@@ -31,9 +32,20 @@ class BannerViewSet(viewsets.ModelViewSet):
         return [IsOwnerUser()]
 
 class PromoCodeViewSet(viewsets.ModelViewSet):
-    queryset = PromoCode.objects.all().order_by('-created_at')
     serializer_class = PromoCodeSerializer
-    permission_classes = [IsOwnerUser]
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [permissions.AllowAny()]
+        return [IsOwnerUser()]
+
+    def get_queryset(self):
+        user = getattr(self.request, 'user', None)
+        if user and user.is_authenticated and getattr(user, 'is_owner', False):
+            return PromoCode.objects.all().order_by('-created_at')
+        return PromoCode.objects.filter(is_active=True).filter(
+            models.Q(expiration_date__isnull=True) | models.Q(expiration_date__gte=timezone.now())
+        ).order_by('-created_at')
 
 from .models import ReferralSettings, ReferralMilestone, Referral
 from .serializers import ReferralSettingsSerializer, ReferralMilestoneSerializer, ReferralSerializer

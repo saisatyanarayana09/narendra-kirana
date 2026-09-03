@@ -9,3 +9,6 @@ export { default as Feedback } from './pages/Feedback';
 export { default as HelpCenter } from './pages/HelpCenter';
 export { default as Wallet } from './pages/Wallet';
 export { default as ReferAndEarn } from './pages/ReferAndEarn';
+export { default as AppSettings } from './pages/AppSettings';
+export { default as OffersPromoCodes } from './pages/OffersPromoCodes';
+export { default as LanguageSettings } from './pages/LanguageSettings';

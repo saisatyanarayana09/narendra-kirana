@@ -28,6 +28,9 @@ import { ReferAndEarnScreen } from '../screens/profile/ReferAndEarnScreen';
 import { ProfileScreen } from '../screens/profile/ProfileScreen';
 import { AccountSettingsScreen } from '../screens/profile/AccountSettingsScreen';
 import { NotificationsScreen } from '../screens/profile/NotificationsScreen';
+import { AppSettingsScreen } from '../screens/profile/AppSettingsScreen';
+import { OffersScreen } from '../screens/profile/OffersScreen';
+import { LanguageScreen } from '../screens/profile/LanguageScreen';
 
 export type MainTabParamList = {
   HomeTab: undefined;
@@ -87,6 +90,9 @@ function ProfileStack() {
       <Stack.Screen name="AccountSettingsScreen" component={AccountSettingsScreen} />
       <Stack.Screen name="NotificationsScreen" component={NotificationsScreen} />
       <Stack.Screen name="FavoritesScreen" component={FavoritesScreen} />
+      <Stack.Screen name="AppSettingsScreen" component={AppSettingsScreen} />
+      <Stack.Screen name="OffersScreen" component={OffersScreen} />
+      <Stack.Screen name="LanguageScreen" component={LanguageScreen} />
     </Stack.Navigator>
   );
 }
@@ -106,6 +112,7 @@ function CartStack() {
 
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { getHasShownWelcomeSession } from '../utils/welcomeSession';
 import { FloatingCartBar } from '../components/FloatingCartBar';
 import { triggerHaptic } from '../utils/haptics';
@@ -128,6 +135,7 @@ export function MainTabs() {
   const navigation = useNavigation<any>();
   const { cart } = useCart();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [currentTab, setCurrentTab] = useState('HomeTab');
   const [currentRouteName, setCurrentRouteName] = useState('');
   const [isDismissed, setIsDismissed] = useState(false);
@@ -205,7 +213,7 @@ export function MainTabs() {
           name="HomeTab" 
           component={HomeStack}
           options={({ route }) => ({
-            tabBarLabel: 'Home',
+            tabBarLabel: t('home'),
             tabBarIcon: ({ color, size }) => <Feather name="home" color={color} size={20} />,
             tabBarStyle: shouldHideTabBar(route) 
               ? { display: 'none' } 
@@ -216,7 +224,7 @@ export function MainTabs() {
           name="CategoriesTab" 
           component={CategoriesStack}
           options={({ route }) => ({
-            tabBarLabel: 'Categories',
+            tabBarLabel: t('categories'),
             tabBarIcon: ({ color, size }) => <Feather name="grid" color={color} size={20} />,
             tabBarStyle: shouldHideTabBar(route) 
               ? { display: 'none' } 
@@ -227,7 +235,7 @@ export function MainTabs() {
           name="OrdersTab" 
           component={OrdersStack}
           options={({ route }) => ({
-            tabBarLabel: 'Orders',
+            tabBarLabel: t('orders'),
             tabBarIcon: ({ color, size }) => <Feather name="package" color={color} size={20} />,
             tabBarStyle: shouldHideTabBar(route) 
               ? { display: 'none' } 
@@ -238,7 +246,7 @@ export function MainTabs() {
           name="ProfileTab" 
           component={ProfileStack}
           options={({ route }) => ({
-            tabBarLabel: 'Profile',
+            tabBarLabel: t('profile'),
             tabBarIcon: ({ color, size }) => <Feather name="user" color={color} size={20} />,
             tabBarStyle: shouldHideTabBar(route) 
               ? { display: 'none' } 
@@ -249,7 +257,7 @@ export function MainTabs() {
           name="CartTab" 
           component={CartStack}
           options={({ route }) => ({
-            tabBarLabel: 'Cart',
+            tabBarLabel: t('cart'),
             tabBarBadge: cartItemCount > 0 ? cartItemCount : undefined,
             tabBarBadgeStyle: {
               backgroundColor: '#0F172A', // slate-900 matching web

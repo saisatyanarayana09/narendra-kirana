@@ -29,6 +29,9 @@ export type GlobalParamList = {
   ReferAndEarnScreen: undefined;
   AccountSettingsScreen: undefined;
   NotificationsScreen: undefined;
+  AppSettingsScreen: undefined;
+  OffersScreen: undefined;
+  LanguageScreen: undefined;
 };
 
 export type AppNavigationProp = NativeStackNavigationProp<GlobalParamList>;

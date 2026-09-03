@@ -15,6 +15,9 @@ import { RootNavigator } from './src/navigation/RootNavigator';
 import { OfflineBanner } from './src/components/OfflineBanner';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 
+import { ThemeProvider } from './src/context/ThemeContext';
+import { LanguageProvider } from './src/context/LanguageContext';
+
 export default function App() {
   const [fontsLoaded] = useFonts({
     Nunito_400Regular,
@@ -38,15 +41,19 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <SafeAreaProvider>
-        <AuthProvider>
-          <CartProvider>
-            <OfflineBanner />
-            <RootNavigator />
-            <StatusBar style="auto" />
-          </CartProvider>
-        </AuthProvider>
-      </SafeAreaProvider>
+      <ThemeProvider>
+        <LanguageProvider>
+          <SafeAreaProvider>
+            <AuthProvider>
+              <CartProvider>
+                <OfflineBanner />
+                <RootNavigator />
+                <StatusBar style="auto" />
+              </CartProvider>
+            </AuthProvider>
+          </SafeAreaProvider>
+        </LanguageProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }

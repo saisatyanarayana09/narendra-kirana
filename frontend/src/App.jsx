@@ -1,6 +1,8 @@
 import React, { Suspense, useState, useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, Outlet, useLocation } from 'react-router-dom';
 import { CartProvider } from './cart-context';
+import { ThemeProvider } from './context/ThemeContext';
+import { LanguageProvider } from './context/LanguageContext';
 import { Toaster } from 'react-hot-toast';
 import { WifiOff } from 'lucide-react';
 
@@ -31,6 +33,9 @@ const CustomerFeedback = React.lazy(() => import('./profile').then(m => ({ defau
 const HelpCenter = React.lazy(() => import('./profile').then(m => ({ default: m.HelpCenter })));
 const Wallet = React.lazy(() => import('./profile').then(m => ({ default: m.Wallet })));
 const ReferAndEarn = React.lazy(() => import('./profile').then(m => ({ default: m.ReferAndEarn })));
+const AppSettings = React.lazy(() => import('./profile').then(m => ({ default: m.AppSettings })));
+const OffersPromoCodes = React.lazy(() => import('./profile').then(m => ({ default: m.OffersPromoCodes })));
+const LanguageSettings = React.lazy(() => import('./profile').then(m => ({ default: m.LanguageSettings })));
 
 const OwnerLayout = React.lazy(() => import('./owner/layouts/OwnerLayout'));
 const OwnerLogin = React.lazy(() => import('./owner/pages/Login'));
@@ -129,6 +134,8 @@ function OfflineBanner() {
 function App() {
  return (
  <ErrorBoundary>
+ <ThemeProvider>
+ <LanguageProvider>
  <BrowserRouter>
  <Toaster position="top-center"toastOptions={{ style: { borderRadius: '12px', background: '#333', color: '#fff' } }} />
  <Suspense fallback={null}>
@@ -155,6 +162,9 @@ function App() {
       <Route path="help" element={<HelpCenter />} />
       <Route path="wallet" element={<Wallet />} />
       <Route path="refer-and-earn" element={<ReferAndEarn />} />
+      <Route path="settings" element={<AppSettings />} />
+      <Route path="offers" element={<OffersPromoCodes />} />
+      <Route path="language" element={<LanguageSettings />} />
     </Route>
     
     <Route path="/notifications" element={<Navigate to="/profile/notifications" replace />} />
@@ -194,6 +204,8 @@ function App() {
  </Routes>
  </Suspense>
  </BrowserRouter>
+ </LanguageProvider>
+ </ThemeProvider>
  </ErrorBoundary>
  );
 }

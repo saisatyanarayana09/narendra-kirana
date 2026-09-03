@@ -6,11 +6,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { AppNavigationProp } from '../../navigation/types';
 import { theme } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { apiClient } from '../../api/client';
 import { triggerHaptic } from '../../utils/haptics';
 
 export function ProfileScreen({ navigation }: { navigation: AppNavigationProp }) {
   const { user, logout, refreshUser } = useAuth();
+  const { colors, fontSizeMultiplier } = useTheme();
+  const { t, language } = useLanguage();
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const [referralCount, setReferralCount] = useState<number>(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -48,12 +52,12 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
   const handleLogout = () => {
     triggerHaptic('medium');
     Alert.alert(
-      'Sign Out',
+      t('logout'),
       'Are you sure you want to sign out?',
       [
         { text: 'Cancel', style: 'cancel' },
         { 
-          text: 'Sign Out', 
+          text: t('logout'), 
           style: 'destructive',
           onPress: async () => {
             await logout();
@@ -79,8 +83,8 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
 
   const cards = [
     { 
-      name: 'Your Orders', 
-      desc: 'Track, return, or buy things again', 
+      name: t('yourOrders'), 
+      desc: t('yourOrdersDesc'), 
       icon: 'package' as const,
       isRupee: false,
       color: '#2563EB', // blue-600
@@ -88,8 +92,8 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
       onPress: () => navigation.navigate('OrderHistoryScreen') 
     },
     { 
-      name: 'Digital Wallet', 
-      desc: 'Check your balance and transactions', 
+      name: t('wallet'), 
+      desc: t('walletDesc'), 
       icon: 'currency-rupee' as const,
       isRupee: true, // Use Indian Rupee symbol
       color: '#059669', // emerald-600
@@ -97,8 +101,8 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
       onPress: () => navigation.navigate('WalletScreen') 
     },
     { 
-      name: 'Refer & Earn', 
-      desc: 'Invite friends, earn real money!', 
+      name: t('referAndEarn'), 
+      desc: t('referAndEarnDesc'), 
       icon: 'gift' as const,
       isRupee: false,
       color: '#0D9488', // teal-600
@@ -106,8 +110,27 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
       onPress: () => navigation.navigate('ReferAndEarnScreen') 
     },
     { 
-      name: 'Account Settings', 
-      desc: 'Manage password & personal details', 
+      name: t('offersPromoCodes'), 
+      desc: t('offersDesc'), 
+      icon: 'tag' as const,
+      isRupee: false,
+      color: '#8B5CF6', // violet-600
+      bg: '#F5F3FF',    // violet-50
+      onPress: () => navigation.navigate('OffersScreen') 
+    },
+    { 
+      name: language === 'te' ? 'భాష / Language' : 'Language / భాష', 
+      desc: t('languagesDesc'), 
+      icon: 'globe' as const,
+      isRupee: false,
+      badge: language === 'te' ? 'తెలుగు' : 'English',
+      color: '#0284C7', // sky-600
+      bg: '#F0F9FF',    // sky-50
+      onPress: () => navigation.navigate('LanguageScreen') 
+    },
+    { 
+      name: t('accountSettings'), 
+      desc: t('accountSettingsDesc'), 
       icon: 'user' as const,
       isRupee: false,
       color: '#059669', // primary-600
@@ -115,8 +138,8 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
       onPress: () => navigation.navigate('AccountSettingsScreen') 
     },
     { 
-      name: 'Saved Addresses', 
-      desc: 'Edit addresses for quick checkout', 
+      name: t('savedAddresses'), 
+      desc: t('savedAddressesDesc'), 
       icon: 'map-pin' as const,
       isRupee: false,
       color: '#D97706', // amber-600
@@ -124,8 +147,8 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
       onPress: () => navigation.navigate('AddressesScreen') 
     },
     { 
-      name: 'Favorites', 
-      desc: 'View your saved products', 
+      name: t('favorites'), 
+      desc: t('favoritesDesc'), 
       icon: 'heart' as const,
       isRupee: false,
       color: '#E11D48', // rose-600
@@ -133,13 +156,22 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
       onPress: () => navigation.navigate('FavoritesScreen') 
     },
     { 
-      name: 'Notifications', 
-      desc: 'Offers and order updates', 
+      name: t('notifications'), 
+      desc: t('notificationsDesc'), 
       icon: 'bell' as const,
       isRupee: false,
       color: '#4F46E5', // indigo-600
       bg: '#EEF2FF',    // indigo-50
       onPress: () => navigation.navigate('NotificationsScreen') 
+    },
+    { 
+      name: t('appSettings'), 
+      desc: t('appSettingsDesc'), 
+      icon: 'sliders' as const,
+      isRupee: false,
+      color: '#475569', // slate-600
+      bg: '#F1F5F9',    // slate-100
+      onPress: () => navigation.navigate('AppSettingsScreen') 
     },
   ];
 
@@ -190,7 +222,7 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
             accessibilityLabel="Go back"
           >
             <Feather name="arrow-left" size={16} color="#FFFFFF" />
-            <Text style={styles.heroBackButtonText}>Back</Text>
+            <Text style={styles.heroBackButtonText}>{t('back')}</Text>
           </TouchableOpacity>
 
           {/* Avatar & Customer Greeting */}
@@ -220,7 +252,7 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
                 <MaterialIcons name="currency-rupee" size={16} color="#059669" />
               </View>
               <Text style={styles.loyaltyValue}>₹{walletBalance.toFixed(2)}</Text>
-              <Text style={styles.loyaltyLabel}>Wallet Balance</Text>
+              <Text style={styles.loyaltyLabel}>{t('wallet')}</Text>
             </TouchableOpacity>
 
             <View style={styles.loyaltyDivider} />
@@ -237,7 +269,7 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
                 <Feather name="gift" size={15} color="#0D9488" />
               </View>
               <Text style={[styles.loyaltyValue, { color: '#0D9488' }]}>{referralCount}</Text>
-              <Text style={styles.loyaltyLabel}>Referrals Made</Text>
+              <Text style={styles.loyaltyLabel}>{t('referAndEarn')}</Text>
             </TouchableOpacity>
           </View>
         </LinearGradient>
@@ -247,7 +279,7 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
           {cards.map((card, idx) => (
             <TouchableOpacity 
               key={idx}
-              style={styles.cardItem}
+              style={[styles.cardItem, { backgroundColor: colors.surface, borderColor: colors.border }]}
               onPress={() => handleCardPress(card)}
               activeOpacity={0.75}
             >
@@ -260,12 +292,21 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
                   )}
                 </View>
                 <View style={styles.cardTextGroup}>
-                  <Text style={styles.cardTitle}>{card.name}</Text>
-                  <Text style={styles.cardDesc} numberOfLines={1}>{card.desc}</Text>
+                  <View style={styles.cardTitleRow}>
+                    <Text style={[styles.cardTitle, { color: colors.text, fontSize: 15 * fontSizeMultiplier }]}>
+                      {card.name}
+                    </Text>
+                    {Boolean((card as any).badge) && (
+                      <View style={styles.langBadge}>
+                        <Text style={styles.langBadgeText}>{(card as any).badge}</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={[styles.cardDesc, { color: colors.textSecondary }]} numberOfLines={1}>{card.desc}</Text>
                 </View>
               </View>
 
-              <View style={styles.chevronCircle}>
+              <View style={[styles.chevronCircle, { backgroundColor: colors.background }]}>
                 <Feather name="chevron-right" size={16} color="#94A3B8" />
               </View>
             </TouchableOpacity>
@@ -282,8 +323,10 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
                 <Feather name="log-out" size={20} color="#E11D48" />
               </View>
               <View style={styles.cardTextGroup}>
-                <Text style={[styles.cardTitle, { color: '#E11D48' }]}>Sign Out</Text>
-                <Text style={styles.cardDesc}>Log out safely from this device</Text>
+                <Text style={[styles.cardTitle, { color: '#E11D48', fontSize: 15 * fontSizeMultiplier }]}>
+                  {t('logout')}
+                </Text>
+                <Text style={styles.cardDesc}>{t('logoutDesc')}</Text>
               </View>
             </View>
 
@@ -478,11 +521,27 @@ const styles = StyleSheet.create({
   cardTextGroup: {
     flex: 1,
   },
+  cardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 2,
+  },
   cardTitle: {
     fontSize: 15,
     fontWeight: '800',
     color: '#0F172A',
-    marginBottom: 2,
+  },
+  langBadge: {
+    backgroundColor: '#E0F2FE',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  langBadgeText: {
+    color: '#0284C7',
+    fontSize: 11,
+    fontWeight: '800',
   },
   cardDesc: {
     fontSize: 12,
