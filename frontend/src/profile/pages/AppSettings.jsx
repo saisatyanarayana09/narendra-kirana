@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, Sun, Moon, Check, Sliders, Activity, Smartphone } from 'lucide-react';
+import { ChevronRight, Sun, Moon, Check, Sliders, Activity, Smartphone, Globe } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 
 export default function AppSettings() {
   const { theme, toggleTheme } = useTheme();
-  const { t } = useLanguage();
+  const { language, setLanguage, changeLanguage, t } = useLanguage();
   const [vibrationOn, setVibrationOn] = useState(() => {
     try {
       return localStorage.getItem('sk_vibration_enabled') !== 'false';
@@ -139,6 +139,93 @@ export default function AppSettings() {
               </p>
             </div>
             {theme === 'dark' && (
+              <div className="absolute top-4 right-4 w-6 h-6 rounded-full bg-primary-600 text-white flex items-center justify-center shadow-sm">
+                <Check size={14} strokeWidth={3} />
+              </div>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Language Section */}
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-800 transition-colors">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400">
+              <Globe size={18} />
+            </div>
+            <h2 className="text-lg font-extrabold text-slate-900 dark:text-white">
+              {t('Languages') || 'Language / భాష'}
+            </h2>
+          </div>
+          <Link
+            to="/profile/language"
+            className="text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline"
+          >
+            All details →
+          </Link>
+        </div>
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-6">
+          {t('Languages Desc') || 'Choose your preferred language for the storefront.'}
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* English */}
+          <button
+            type="button"
+            onClick={() => {
+              if (changeLanguage) changeLanguage('en');
+              else if (setLanguage) setLanguage('en');
+            }}
+            className={`cursor-pointer text-left p-5 rounded-2xl border-2 transition-all duration-200 flex items-start gap-4 relative overflow-hidden ${
+              language !== 'te'
+                ? 'border-primary-600 bg-primary-50/40 dark:bg-slate-800 shadow-sm ring-2 ring-primary-500/20'
+                : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 hover:border-slate-300 dark:hover:border-slate-700'
+            }`}
+          >
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 bg-slate-100 dark:bg-slate-800">
+              🇬🇧
+            </div>
+            <div className="flex-1 pr-6">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                English (India)
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                Browse products, cart, and orders in English
+              </p>
+            </div>
+            {language !== 'te' && (
+              <div className="absolute top-4 right-4 w-6 h-6 rounded-full bg-primary-600 text-white flex items-center justify-center shadow-sm">
+                <Check size={14} strokeWidth={3} />
+              </div>
+            )}
+          </button>
+
+          {/* Telugu */}
+          <button
+            type="button"
+            onClick={() => {
+              if (changeLanguage) changeLanguage('te');
+              else if (setLanguage) setLanguage('te');
+            }}
+            className={`cursor-pointer text-left p-5 rounded-2xl border-2 transition-all duration-200 flex items-start gap-4 relative overflow-hidden ${
+              language === 'te'
+                ? 'border-primary-600 bg-primary-50/40 dark:bg-slate-800 shadow-sm ring-2 ring-primary-500/20'
+                : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 hover:border-slate-300 dark:hover:border-slate-700'
+            }`}
+          >
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 bg-slate-100 dark:bg-slate-800">
+              🇮🇳
+            </div>
+            <div className="flex-1 pr-6">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                తెలుగు (India)
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                కిరాణా సరుకులు మరియు అప్‌డేట్‌లను తెలుగులో పొందండి
+              </p>
+            </div>
+            {language === 'te' && (
               <div className="absolute top-4 right-4 w-6 h-6 rounded-full bg-primary-600 text-white flex items-center justify-center shadow-sm">
                 <Check size={14} strokeWidth={3} />
               </div>

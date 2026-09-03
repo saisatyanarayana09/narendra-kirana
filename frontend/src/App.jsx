@@ -21,6 +21,7 @@ const CheckoutPage = React.lazy(() => import('./cart').then(m => ({ default: m.C
 const CustomerLoginPage = React.lazy(() => import('./cart').then(m => ({ default: m.CustomerLoginPage })));
 const CustomerSignupPage = React.lazy(() => import('./cart').then(m => ({ default: m.CustomerSignupPage })));
 const OrderDetailPage = React.lazy(() => import('./cart').then(m => ({ default: m.OrderDetailPage })));
+const CustomerLayout = React.lazy(() => import('./customer-layout').then(m => ({ default: m.CustomerLayout })));
 
 const ProfileLayout = React.lazy(() => import('./profile').then(m => ({ default: m.ProfileLayout })));
 const DashboardHome = React.lazy(() => import('./profile').then(m => ({ default: m.DashboardHome })));
@@ -184,6 +185,7 @@ function App() {
        <Route path="language" element={<LanguageSettings />} />
      </Route>
      
+     <Route path="/settings" element={<CustomerLayout><main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-[70vh]"><AppSettings /></main></CustomerLayout>} />
      <Route path="/offers" element={<CustomerGuard><Navigate to="/profile/offers" replace /></CustomerGuard>} />
      <Route path="/notifications" element={<Navigate to="/profile/notifications" replace />} />
      
