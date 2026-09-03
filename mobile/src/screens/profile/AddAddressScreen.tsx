@@ -16,8 +16,10 @@ import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
 import { apiClient } from '../../api/client';
 import { useLocation } from '../../hooks/useLocation';
+import { useTheme } from '../../context/ThemeContext';
 
 export function AddAddressScreen({ navigation, route }: { navigation: AppNavigationProp, route: any }) {
+  const { colors, isDark } = useTheme();
   const editingAddress = route.params?.editingAddress;
   const { requestLocation, location: gpsLocation, isRequesting: gpsLoading } = useLocation();
 
@@ -83,18 +85,18 @@ export function AddAddressScreen({ navigation, route }: { navigation: AppNavigat
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity 
           style={styles.backButton} 
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <Feather name="arrow-left" size={18} color="#059669" />
-          <Text style={styles.backButtonText}>Back</Text>
+          <Feather name="arrow-left" size={18} color={colors.primary} />
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
           {editingAddress ? 'Edit Address' : 'New Address'}
         </Text>
       </View>
@@ -110,11 +112,11 @@ export function AddAddressScreen({ navigation, route }: { navigation: AppNavigat
           keyboardShouldPersistTaps="handled"
         >
         {/* GPS Capture Card */}
-        <View style={styles.gpsCard}>
+        <View style={[styles.gpsCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.gpsCardTop}>
             <View>
-              <Text style={styles.gpsCardTitle}>Pinpoint Delivery Location</Text>
-              <Text style={styles.gpsCardSub}>
+              <Text style={[styles.gpsCardTitle, { color: colors.text }]}>Pinpoint Delivery Location</Text>
+              <Text style={[styles.gpsCardSub, { color: colors.textSecondary }]}>
                 {latitude ? 'Coordinates attached to this address ✓' : 'Add GPS coordinates so riders find you effortlessly'}
               </Text>
             </View>
@@ -127,13 +129,13 @@ export function AddAddressScreen({ navigation, route }: { navigation: AppNavigat
             activeOpacity={0.85}
           >
             {gpsLoading ? (
-              <ActivityIndicator color={latitude ? "#059669" : "#4F46E5"} size="small" />
+              <ActivityIndicator color={latitude ? colors.primary : "#4F46E5"} size="small" />
             ) : (
               <>
                 <Feather 
                   name={latitude ? "check-circle" : "navigation"} 
                   size={16} 
-                  color={latitude ? "#059669" : "#4F46E5"} 
+                  color={latitude ? colors.primary : "#4F46E5"} 
                 />
                 <Text style={[styles.gpsBtnText, Boolean(latitude) && styles.gpsBtnTextSecured]}>
                   {latitude ? '📍 GPS Secured (Tap to relocate)' : '📍 Capture My Exact Location'}
@@ -144,112 +146,120 @@ export function AddAddressScreen({ navigation, route }: { navigation: AppNavigat
         </View>
 
         {/* Address Form Card */}
-        <View style={styles.formCard}>
+        <View style={[styles.formCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {/* Label Pills & Custom Input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Label (e.g. Home, Work, Other)</Text>
+            <Text style={[styles.inputLabel, { color: colors.text }]}>Label (e.g. Home, Work, Other)</Text>
             <View style={styles.labelPillsRow}>
               {['Home', 'Work', 'Other'].map((lbl) => (
                 <TouchableOpacity
                   key={lbl}
-                  style={[styles.labelPill, (title === lbl || (lbl === 'Other' && !['Home', 'Work'].includes(title))) && styles.labelPillActive]}
+                  style={[
+                    styles.labelPill, 
+                    { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F8FAFC', borderColor: colors.border },
+                    (title === lbl || (lbl === 'Other' && !['Home', 'Work'].includes(title))) && styles.labelPillActive
+                  ]}
                   onPress={() => setTitle(lbl === 'Other' ? (['Home', 'Work'].includes(title) ? 'Other' : title) : lbl)}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.labelPillText, (title === lbl || (lbl === 'Other' && !['Home', 'Work'].includes(title))) && styles.labelPillTextActive]}>
+                  <Text style={[
+                    styles.labelPillText, 
+                    { color: colors.textSecondary },
+                    (title === lbl || (lbl === 'Other' && !['Home', 'Work'].includes(title))) && styles.labelPillTextActive
+                  ]}>
                     {lbl}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
             <TextInput
-              style={[styles.textInput, { marginTop: 8 }]}
+              style={[styles.textInput, { marginTop: 8, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border, color: colors.text }]}
               value={title}
               onChangeText={setTitle}
               placeholder="Label name (e.g. Home, Office, Parents)"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.textSecondary}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Street Address *</Text>
+            <Text style={[styles.inputLabel, { color: colors.text }]}>Street Address *</Text>
             <TextInput
-              style={[styles.textInput, { height: 74, textAlignVertical: 'top', paddingTop: 10 }]}
+              style={[styles.textInput, { height: 74, textAlignVertical: 'top', paddingTop: 10, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border, color: colors.text }]}
               value={street}
               onChangeText={setStreet}
               placeholder="Flat/House No., Building Name, Street..."
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.textSecondary}
               multiline
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Landmark (Optional)</Text>
+            <Text style={[styles.inputLabel, { color: colors.text }]}>Landmark (Optional)</Text>
             <TextInput
-              style={styles.textInput}
+              style={[styles.textInput, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border, color: colors.text }]}
               value={landmark}
               onChangeText={setLandmark}
               placeholder="Near Temple / Opposite Park..."
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.textSecondary}
             />
           </View>
 
           <View style={styles.rowTwoCols}>
             <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={styles.inputLabel}>City *</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>City *</Text>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border, color: colors.text }]}
                 value={city}
                 onChangeText={setCity}
                 placeholder="City"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textSecondary}
               />
             </View>
 
             <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={styles.inputLabel}>District</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>District</Text>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border, color: colors.text }]}
                 value={district}
                 onChangeText={setDistrict}
                 placeholder="District"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textSecondary}
               />
             </View>
           </View>
 
           <View style={styles.rowTwoCols}>
             <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={styles.inputLabel}>State *</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>State *</Text>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border, color: colors.text }]}
                 value={state}
                 onChangeText={setState}
                 placeholder="State"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textSecondary}
               />
             </View>
 
             <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={styles.inputLabel}>Country *</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>Country *</Text>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border, color: colors.text }]}
                 value={country}
                 onChangeText={setCountry}
                 placeholder="Country"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textSecondary}
               />
             </View>
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Pincode *</Text>
+            <Text style={[styles.inputLabel, { color: colors.text }]}>Pincode *</Text>
             <TextInput
-              style={styles.textInput}
+              style={[styles.textInput, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border, color: colors.text }]}
               value={zipCode}
               onChangeText={setZipCode}
               placeholder="Pincode / Zip Code"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.textSecondary}
               keyboardType="numeric"
             />
           </View>
@@ -257,7 +267,7 @@ export function AddAddressScreen({ navigation, route }: { navigation: AppNavigat
 
         {/* Save Button */}
         <TouchableOpacity 
-          style={styles.saveBtn}
+          style={[styles.saveBtn, { backgroundColor: colors.primary }]}
           onPress={handleSave}
           disabled={saving}
           activeOpacity={0.9}

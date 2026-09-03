@@ -4,8 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
 import { apiClient } from '../../api/client';
+import { useTheme } from '../../context/ThemeContext';
 
 export function NotificationsScreen({ navigation }: { navigation: AppNavigationProp }) {
+  const { colors, isDark } = useTheme();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -87,56 +89,56 @@ export function NotificationsScreen({ navigation }: { navigation: AppNavigationP
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Feather name="arrow-left" size={18} color="#059669" />
-            <Text style={styles.backButtonText}>Back</Text>
+            <Feather name="arrow-left" size={18} color={colors.primary} />
+            <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Notifications</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Notifications</Text>
         </View>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#059669" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header matching web Notifications.jsx */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <View style={styles.headerTopRow}>
           <TouchableOpacity 
             style={styles.backButton} 
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
           >
-            <Feather name="arrow-left" size={18} color="#059669" />
-            <Text style={styles.backButtonText}>Back</Text>
+            <Feather name="arrow-left" size={18} color={colors.primary} />
+            <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
           </TouchableOpacity>
 
           {unreadCount > 0 && (
             <TouchableOpacity 
-              style={styles.markAllReadBtn}
+              style={[styles.markAllReadBtn, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.15)' : '#ECFDF5', borderColor: isDark ? 'rgba(5, 150, 105, 0.3)' : '#A7F3D0' }]}
               onPress={markAllAsRead}
               disabled={markingAll}
               activeOpacity={0.7}
             >
               {markingAll ? (
-                <ActivityIndicator size="small" color="#059669" />
+                <ActivityIndicator size="small" color={colors.primary} />
               ) : (
                 <>
-                  <Feather name="check-circle" size={14} color="#059669" />
-                  <Text style={styles.markAllReadText}>Mark all as read</Text>
+                  <Feather name="check-circle" size={14} color={colors.primary} />
+                  <Text style={[styles.markAllReadText, { color: colors.primary }]}>Mark all as read</Text>
                 </>
               )}
             </TouchableOpacity>
           )}
         </View>
 
-        <Text style={styles.headerTitle}>Notifications</Text>
-        <Text style={styles.headerSubtitle}>Updates about your orders and offers.</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Notifications</Text>
+        <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>Updates about your orders and offers.</Text>
       </View>
 
       <FlatList
@@ -144,15 +146,15 @@ export function NotificationsScreen({ navigation }: { navigation: AppNavigationP
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#059669']} tintColor="#059669" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />
         }
         ListEmptyComponent={() => (
-          <View style={styles.emptyContainer}>
-            <View style={styles.emptyIconCircle}>
-              <Feather name="bell" size={40} color="#059669" />
+          <View style={[styles.emptyContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={[styles.emptyIconCircle, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.2)' : '#D1FAE5' }]}>
+              <Feather name="bell" size={40} color={colors.primary} />
             </View>
-            <Text style={styles.emptyTitle}>You're all caught up!</Text>
-            <Text style={styles.emptySubtitle}>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>You're all caught up!</Text>
+            <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
               We'll notify you here when there are updates about your orders or exciting new offers.
             </Text>
           </View>
@@ -163,28 +165,32 @@ export function NotificationsScreen({ navigation }: { navigation: AppNavigationP
             <TouchableOpacity 
               activeOpacity={0.8}
               onPress={() => markAsRead(item.id)}
-              style={[styles.notificationCard, !isRead && styles.notificationCardUnread]}
+              style={[
+                styles.notificationCard,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+                !isRead && { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.15)' : '#ECFDF5', borderColor: isDark ? 'rgba(5, 150, 105, 0.3)' : '#A7F3D0' }
+              ]}
             >
               <View style={styles.cardHeader}>
                 <View style={styles.titleRow}>
                   {!isRead && <View style={styles.unreadDot} />}
-                  <Text style={[styles.notifTitle, !isRead && styles.notifTitleUnread]}>
+                  <Text style={[styles.notifTitle, { color: colors.text }, !isRead && { color: isDark ? '#34D399' : '#064E3B', fontWeight: '800' }]}>
                     {item.title}
                   </Text>
                 </View>
                 <View style={styles.headerMeta}>
-                  <Text style={styles.dateText}>{formatDate(item.created_at)}</Text>
+                  <Text style={[styles.dateText, { color: colors.textSecondary }]}>{formatDate(item.created_at)}</Text>
                   <TouchableOpacity 
                     onPress={() => deleteNotification(item.id)}
                     style={styles.deleteBtn}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    <Feather name="trash-2" size={15} color="#94A3B8" />
+                    <Feather name="trash-2" size={15} color={colors.textSecondary} />
                   </TouchableOpacity>
                 </View>
               </View>
 
-              <Text style={[styles.notifMessage, !isRead && styles.notifMessageUnread]}>
+              <Text style={[styles.notifMessage, { color: colors.textSecondary }, !isRead && { color: isDark ? '#A7F3D0' : '#047857' }]}>
                 {item.message}
               </Text>
             </TouchableOpacity>

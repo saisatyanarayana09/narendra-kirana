@@ -21,10 +21,12 @@ import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
 import { fixImageUrl } from '../../utils/image';
 import { getItem, saveItem, deleteItem } from '../../utils/storage';
+import { useTheme } from '../../context/ThemeContext';
 
 const SAVED_DOWNLOAD_DIR_KEY = 'SAVED_SAF_INVOICE_DOWNLOAD_DIR';
 
 export function InvoiceScreen({ navigation, route }: { navigation: AppNavigationProp, route: any }) {
+  const { colors, isDark } = useTheme();
   const { orderId } = route.params || {};
   const [order, setOrder] = useState<any>(null);
   const [settings, setSettings] = useState<any>(null);
@@ -450,15 +452,15 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.webActionBar}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.webActionBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
           <TouchableOpacity 
-            style={styles.backToOrderBtn} 
+            style={[styles.backToOrderBtn, { backgroundColor: isDark ? colors.background : '#F8FAFC', borderColor: colors.border }]} 
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
           >
-            <Feather name="arrow-left" size={15} color="#475569" />
-            <Text style={styles.backToOrderText}>Back to Order</Text>
+            <Feather name="arrow-left" size={15} color={colors.text} />
+            <Text style={[styles.backToOrderText, { color: colors.text }]}>Back to Order</Text>
           </TouchableOpacity>
 
           <View style={styles.actionButtonsRight}>
@@ -467,13 +469,13 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
               <Text style={styles.downloadPdfButtonText}>Download / Print PDF</Text>
             </View>
             <View style={[styles.shareIconButton, { opacity: 0.4 }]}>
-              <Feather name="share-2" size={15} color="#047857" />
+              <Feather name="share-2" size={15} color={colors.primary} />
             </View>
           </View>
         </View>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#059669" />
-          <Text style={styles.loadingText}>Loading invoice...</Text>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading invoice...</Text>
         </View>
       </SafeAreaView>
     );
@@ -481,15 +483,15 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
 
   if (error || !order) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.webActionBar}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.webActionBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
           <TouchableOpacity 
-            style={styles.backToOrderBtn} 
+            style={[styles.backToOrderBtn, { backgroundColor: isDark ? colors.background : '#F8FAFC', borderColor: colors.border }]} 
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
           >
-            <Feather name="arrow-left" size={15} color="#475569" />
-            <Text style={styles.backToOrderText}>Back to Order</Text>
+            <Feather name="arrow-left" size={15} color={colors.text} />
+            <Text style={[styles.backToOrderText, { color: colors.text }]}>Back to Order</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.center}>
@@ -501,16 +503,16 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Action Bar matching web Invoice.jsx:76-86 */}
-      <View style={styles.webActionBar}>
+      <View style={[styles.webActionBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity 
-          style={styles.backToOrderBtn} 
+          style={[styles.backToOrderBtn, { backgroundColor: isDark ? colors.background : '#F8FAFC', borderColor: colors.border }]} 
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <Feather name="arrow-left" size={15} color="#475569" />
-          <Text style={styles.backToOrderText}>Back to Order</Text>
+          <Feather name="arrow-left" size={15} color={colors.text} />
+          <Text style={[styles.backToOrderText, { color: colors.text }]}>Back to Order</Text>
         </TouchableOpacity>
 
         <View style={styles.actionButtonsRight}>
@@ -536,7 +538,7 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
             disabled={downloading}
             activeOpacity={0.75}
           >
-            <Feather name="share-2" size={15} color="#047857" />
+            <Feather name="share-2" size={15} color={colors.primary} />
           </TouchableOpacity>
         </View>
       </View>

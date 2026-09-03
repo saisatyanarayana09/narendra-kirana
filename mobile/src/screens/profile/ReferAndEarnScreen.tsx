@@ -19,8 +19,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { AppNavigationProp } from '../../navigation/types';
 import { useAuth } from '../../context/AuthContext';
 import { apiClient } from '../../api/client';
+import { useTheme } from '../../context/ThemeContext';
 
 export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationProp }) {
+  const { colors, isDark } = useTheme();
   const { user } = useAuth();
   
   const [settings, setSettings] = useState<any>(null);
@@ -177,35 +179,35 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Feather name="arrow-left" size={18} color="#059669" />
-            <Text style={styles.backButtonText}>Back</Text>
+            <Feather name="arrow-left" size={18} color={colors.primary} />
+            <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Refer & Earn</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Refer & Earn</Text>
         </View>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#059669" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity 
           style={styles.backButton} 
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <Feather name="arrow-left" size={18} color="#059669" />
-          <Text style={styles.backButtonText}>Back</Text>
+          <Feather name="arrow-left" size={18} color={colors.primary} />
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Refer & Earn</Text>
-        <Text style={styles.headerSubtitle}>Invite friends, earn real store credit!</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Refer & Earn</Text>
+        <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>Invite friends, earn real store credit!</Text>
       </View>
 
       <ScrollView 
@@ -258,24 +260,24 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
 
         {/* Milestone Rewards Gamification Card (Only if milestones exist) */}
         {milestones.length > 0 && (
-          <View style={styles.milestoneCard}>
+          <View style={[styles.milestoneCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.milestoneHeader}>
               <View>
                 <View style={styles.milestoneTitleRow}>
-                  <Feather name="award" size={18} color="#059669" />
-                  <Text style={styles.milestoneTitle}>Milestone Rewards</Text>
+                  <Feather name="award" size={18} color={colors.primary} />
+                  <Text style={[styles.milestoneTitle, { color: colors.text }]}>Milestone Rewards</Text>
                 </View>
-                <Text style={styles.milestoneSubtitle}>Unlock massive cash bonuses by inviting more friends.</Text>
+                <Text style={[styles.milestoneSubtitle, { color: colors.textSecondary }]}>Unlock massive cash bonuses by inviting more friends.</Text>
               </View>
               <View style={styles.milestoneCounter}>
                 <Text style={styles.milestoneCountNum}>{completedReferrals}</Text>
-                <Text style={styles.milestoneCountLabel}>FRIENDS JOINED</Text>
+                <Text style={[styles.milestoneCountLabel, { color: colors.textSecondary }]}>FRIENDS JOINED</Text>
               </View>
             </View>
 
             {/* Progress Bar Track */}
             <View style={styles.progressTrackWrapper}>
-              <View style={styles.progressBarBg}>
+              <View style={[styles.progressBarBg, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F1F5F9' }]}>
                 <LinearGradient
                   colors={['#34D399', '#6366F1']}
                   start={{ x: 0, y: 0 }}
@@ -287,8 +289,8 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
               {/* Checkpoints */}
               <View style={styles.checkpointsRow}>
                 <View style={[styles.checkpointItem, styles.checkpointZeroItem]}>
-                  <View style={[styles.checkpointNode, completedReferrals >= 0 && styles.checkpointAchieved]}>
-                    <Text style={styles.checkpointNodeText}>0</Text>
+                  <View style={[styles.checkpointNode, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0', borderColor: colors.surface }, completedReferrals >= 0 && styles.checkpointAchieved]}>
+                    <Text style={[styles.checkpointNodeText, { color: colors.textSecondary }]}>0</Text>
                   </View>
                 </View>
 
@@ -299,14 +301,15 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
                   return (
                     <View key={m.id} style={styles.checkpointItem}>
                       <View style={[
-                        styles.checkpointNode, 
+                        styles.checkpointNode,
+                        { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0', borderColor: colors.surface },
                         isAchieved && styles.checkpointAchieved,
                         isNext && styles.checkpointNext
                       ]}>
                         {isAchieved ? (
                           <Feather name="check" size={12} color="#FFFFFF" />
                         ) : (
-                          <Text style={[styles.checkpointNodeText, isNext && styles.checkpointNextText]}>
+                          <Text style={[styles.checkpointNodeText, { color: colors.textSecondary }, isNext && styles.checkpointNextText]}>
                             {m.required_referrals}
                           </Text>
                         )}
@@ -328,60 +331,60 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
         )}
 
         {/* How It Works 3 Steps */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>How It Works</Text>
+        <View style={[styles.sectionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>How It Works</Text>
           
           <View style={styles.stepRow}>
-            <View style={[styles.stepIconWrap, { backgroundColor: '#ECFDF5' }]}>
-              <Feather name="share-2" size={18} color="#059669" />
+            <View style={[styles.stepIconWrap, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.2)' : '#ECFDF5' }]}>
+              <Feather name="share-2" size={18} color={colors.primary} />
             </View>
             <View style={styles.stepInfo}>
-              <Text style={styles.stepHeading}>1. Share Your Link</Text>
-              <Text style={styles.stepDesc}>Send your unique code or link to friends, family, or your social network.</Text>
+              <Text style={[styles.stepHeading, { color: colors.text }]}>1. Share Your Link</Text>
+              <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>Send your unique code or link to friends, family, or your social network.</Text>
             </View>
           </View>
 
           <View style={styles.stepRow}>
-            <View style={[styles.stepIconWrap, { backgroundColor: '#EFF6FF' }]}>
-              <Feather name="users" size={18} color="#2563EB" />
+            <View style={[styles.stepIconWrap, { backgroundColor: isDark ? 'rgba(37, 99, 235, 0.2)' : '#EFF6FF' }]}>
+              <Feather name="users" size={18} color="#3B82F6" />
             </View>
             <View style={styles.stepInfo}>
-              <Text style={styles.stepHeading}>2. They Make a Purchase</Text>
-              <Text style={styles.stepDesc}>Your friends sign up and successfully receive their very first order.</Text>
+              <Text style={[styles.stepHeading, { color: colors.text }]}>2. They Make a Purchase</Text>
+              <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>Your friends sign up and successfully receive their very first order.</Text>
             </View>
           </View>
 
           <View style={styles.stepRow}>
-            <View style={[styles.stepIconWrap, { backgroundColor: '#EEF2FF' }]}>
-              <Feather name="gift" size={18} color="#4F46E5" />
+            <View style={[styles.stepIconWrap, { backgroundColor: isDark ? 'rgba(99, 102, 241, 0.2)' : '#EEF2FF' }]}>
+              <Feather name="gift" size={18} color="#6366F1" />
             </View>
             <View style={styles.stepInfo}>
-              <Text style={styles.stepHeading}>3. Claim Your Reward</Text>
-              <Text style={styles.stepDesc}>You unlock your reward immediately in your dashboard to claim.</Text>
+              <Text style={[styles.stepHeading, { color: colors.text }]}>3. Claim Your Reward</Text>
+              <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>You unlock your reward immediately in your dashboard to claim.</Text>
             </View>
           </View>
         </View>
 
         {/* Analytics & Ledger Section matching web ReferAndEarn.jsx */}
-        <View style={styles.ledgerSectionCard}>
+        <View style={[styles.ledgerSectionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {/* Tab Selector */}
-          <View style={styles.tabSelectorRow}>
+          <View style={[styles.tabSelectorRow, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9' }]}>
             <TouchableOpacity 
-              style={[styles.tabBtn, activeTab === 'network' && styles.tabBtnActive]}
+              style={[styles.tabBtn, activeTab === 'network' && [styles.tabBtnActive, { backgroundColor: isDark ? colors.surface : '#FFFFFF' }]]}
               onPress={() => setActiveTab('network')}
               activeOpacity={0.8}
             >
-              <Text style={[styles.tabBtnText, activeTab === 'network' && styles.tabBtnTextActive]}>
+              <Text style={[styles.tabBtnText, { color: colors.textSecondary }, activeTab === 'network' && [styles.tabBtnTextActive, { color: colors.text }]]}>
                 Network Tracking
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.tabBtn, activeTab === 'rewards' && styles.tabBtnActive]}
+              style={[styles.tabBtn, activeTab === 'rewards' && [styles.tabBtnActive, { backgroundColor: isDark ? colors.surface : '#FFFFFF' }]]}
               onPress={() => setActiveTab('rewards')}
               activeOpacity={0.8}
             >
-              <Text style={[styles.tabBtnText, activeTab === 'rewards' && styles.tabBtnTextActive]}>
+              <Text style={[styles.tabBtnText, { color: colors.textSecondary }, activeTab === 'rewards' && [styles.tabBtnTextActive, { color: colors.text }]]}>
                 Reward Ledger
               </Text>
             </TouchableOpacity>
@@ -390,36 +393,36 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
           {activeTab === 'network' ? (
             <View>
               {/* 4 Quick Stats Strip */}
-              <View style={styles.statsStripRow}>
+              <View style={[styles.statsStripRow, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FAFAFA', borderColor: colors.border }]}>
                 <View style={styles.stripStatItem}>
-                  <Text style={styles.stripStatNum}>{history.length}</Text>
-                  <Text style={styles.stripStatLabel}>Total Invites</Text>
+                  <Text style={[styles.stripStatNum, { color: colors.text }]}>{history.length}</Text>
+                  <Text style={[styles.stripStatLabel, { color: colors.textSecondary }]}>Total Invites</Text>
                 </View>
-                <View style={styles.stripStatDivider} />
+                <View style={[styles.stripStatDivider, { backgroundColor: colors.border }]} />
                 <View style={styles.stripStatItem}>
-                  <Text style={[styles.stripStatNum, { color: '#059669' }]}>{completedReferrals}</Text>
-                  <Text style={[styles.stripStatLabel, { color: '#059669' }]}>Completed</Text>
+                  <Text style={[styles.stripStatNum, { color: colors.primary }]}>{completedReferrals}</Text>
+                  <Text style={[styles.stripStatLabel, { color: colors.primary }]}>Completed</Text>
                 </View>
-                <View style={styles.stripStatDivider} />
+                <View style={[styles.stripStatDivider, { backgroundColor: colors.border }]} />
                 <View style={styles.stripStatItem}>
-                  <Text style={[styles.stripStatNum, { color: '#4F46E5' }]}>{readyToClaim + awaitingApproval}</Text>
-                  <Text style={[styles.stripStatLabel, { color: '#4F46E5' }]}>To Claim</Text>
+                  <Text style={[styles.stripStatNum, { color: '#818CF8' }]}>{readyToClaim + awaitingApproval}</Text>
+                  <Text style={[styles.stripStatLabel, { color: '#818CF8' }]}>To Claim</Text>
                 </View>
-                <View style={styles.stripStatDivider} />
+                <View style={[styles.stripStatDivider, { backgroundColor: colors.border }]} />
                 <View style={styles.stripStatItem}>
-                  <Text style={[styles.stripStatNum, { color: '#D97706' }]}>{pendingReferrals}</Text>
-                  <Text style={[styles.stripStatLabel, { color: '#D97706' }]}>Pending</Text>
+                  <Text style={[styles.stripStatNum, { color: '#FBBF24' }]}>{pendingReferrals}</Text>
+                  <Text style={[styles.stripStatLabel, { color: '#FBBF24' }]}>Pending</Text>
                 </View>
               </View>
 
               {/* Network List */}
               {history.length === 0 ? (
                 <View style={styles.emptyNetwork}>
-                  <View style={styles.emptyIconCircle}>
-                    <Feather name="users" size={28} color="#94A3B8" />
+                  <View style={[styles.emptyIconCircle, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9' }]}>
+                    <Feather name="users" size={28} color={colors.textSecondary} />
                   </View>
-                  <Text style={styles.emptyTitle}>Your network is empty</Text>
-                  <Text style={styles.emptySubtitle}>
+                  <Text style={[styles.emptyTitle, { color: colors.text }]}>Your network is empty</Text>
+                  <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
                     Share your code above. Once friends sign up, their progress will be tracked right here.
                   </Text>
                 </View>
@@ -428,16 +431,16 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
                   {history.map((item) => {
                     const friendName = item.referred_name || item.referee_name || 'Friend';
                     return (
-                      <View key={item.id} style={styles.referralCard}>
+                      <View key={item.id} style={[styles.referralCard, { borderBottomColor: colors.border }]}>
                         <View style={styles.refLeft}>
-                          <View style={styles.refAvatar}>
+                          <View style={[styles.refAvatar, { backgroundColor: isDark ? 'rgba(37, 99, 235, 0.2)' : '#EFF6FF' }]}>
                             <Text style={styles.refAvatarLetter}>
                               {friendName.charAt(0).toUpperCase()}
                             </Text>
                           </View>
                           <View>
-                            <Text style={styles.refName}>{friendName}</Text>
-                            <Text style={styles.refDate}>
+                            <Text style={[styles.refName, { color: colors.text }]}>{friendName}</Text>
+                            <Text style={[styles.refDate, { color: colors.textSecondary }]}>
                               Joined {new Date(item.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                             </Text>
                           </View>
@@ -446,7 +449,7 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
                         <View style={styles.refRight}>
                           {item.status === 'COMPLETED' && (
                             <View style={[styles.refStatusBadge, styles.statusCompleted]}>
-                              <Feather name="check" size={12} color="#059669" />
+                              <Feather name="check" size={12} color={colors.primary} />
                               <Text style={[styles.refStatusText, styles.statusTextCompleted]}>Rewarded</Text>
                             </View>
                           )}
@@ -489,63 +492,63 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
           ) : (
             <View>
               {/* Rewards Summary Strip */}
-              <View style={styles.statsStripRow}>
+              <View style={[styles.statsStripRow, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FAFAFA', borderColor: colors.border }]}>
                 <View style={styles.stripStatItem}>
-                  <Text style={[styles.stripStatNum, { color: '#059669' }]}>₹{totalCashEarned.toFixed(0)}</Text>
-                  <Text style={[styles.stripStatLabel, { color: '#059669' }]}>Total Cash Earned</Text>
+                  <Text style={[styles.stripStatNum, { color: colors.primary }]}>₹{totalCashEarned.toFixed(0)}</Text>
+                  <Text style={[styles.stripStatLabel, { color: colors.primary }]}>Total Cash Earned</Text>
                 </View>
-                <View style={styles.stripStatDivider} />
+                <View style={[styles.stripStatDivider, { backgroundColor: colors.border }]} />
                 <View style={styles.stripStatItem}>
-                  <Text style={[styles.stripStatNum, { color: '#4F46E5' }]}>{productsEarned}</Text>
-                  <Text style={[styles.stripStatLabel, { color: '#4F46E5' }]}>Free Products Earned</Text>
+                  <Text style={[styles.stripStatNum, { color: '#818CF8' }]}>{productsEarned}</Text>
+                  <Text style={[styles.stripStatLabel, { color: '#818CF8' }]}>Free Products Earned</Text>
                 </View>
               </View>
 
               {/* Rewards Ledger List */}
               {referralCashTransactions.length === 0 && productsEarned === 0 ? (
                 <View style={styles.emptyNetwork}>
-                  <View style={styles.emptyIconCircle}>
-                    <MaterialIcons name="currency-rupee" size={28} color="#94A3B8" />
+                  <View style={[styles.emptyIconCircle, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9' }]}>
+                    <MaterialIcons name="currency-rupee" size={28} color={colors.textSecondary} />
                   </View>
-                  <Text style={styles.emptyTitle}>No rewards yet</Text>
-                  <Text style={styles.emptySubtitle}>
+                  <Text style={[styles.emptyTitle, { color: colors.text }]}>No rewards yet</Text>
+                  <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
                     Your ledger will populate as soon as your referrals complete their orders and you claim your rewards.
                   </Text>
                 </View>
               ) : (
                 <View style={styles.networkList}>
                   {referralCashTransactions.map((t: any) => (
-                    <View key={t.id} style={styles.referralCard}>
+                    <View key={t.id} style={[styles.referralCard, { borderBottomColor: colors.border }]}>
                       <View style={styles.refLeft}>
-                        <View style={[styles.refAvatar, { backgroundColor: '#ECFDF5' }]}>
-                          <MaterialIcons name="currency-rupee" size={16} color="#059669" />
+                        <View style={[styles.refAvatar, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.2)' : '#ECFDF5' }]}>
+                          <MaterialIcons name="currency-rupee" size={16} color={colors.primary} />
                         </View>
                         <View>
-                          <Text style={styles.refName}>Cash Deposit</Text>
-                          <Text style={styles.refSubDesc}>{t.description || 'Referral Reward'}</Text>
-                          <Text style={styles.refDate}>
+                          <Text style={[styles.refName, { color: colors.text }]}>Cash Deposit</Text>
+                          <Text style={[styles.refSubDesc, { color: colors.textSecondary }]}>{t.description || 'Referral Reward'}</Text>
+                          <Text style={[styles.refDate, { color: colors.textSecondary }]}>
                             {new Date(t.created_at).toLocaleDateString()}
                           </Text>
                         </View>
                       </View>
-                      <Text style={styles.ledgerCashAmount}>+₹{parseFloat(t.amount || 0).toFixed(0)}</Text>
+                      <Text style={[styles.ledgerCashAmount, { color: colors.primary }]}>+₹{parseFloat(t.amount || 0).toFixed(0)}</Text>
                     </View>
                   ))}
 
                   {history.filter(h => h.status === 'COMPLETED').slice(0, productsEarned).map((h, i) => (
-                    <View key={`product-${h.id || i}`} style={styles.referralCard}>
+                    <View key={`product-${h.id || i}`} style={[styles.referralCard, { borderBottomColor: colors.border }]}>
                       <View style={styles.refLeft}>
-                        <View style={[styles.refAvatar, { backgroundColor: '#EEF2FF' }]}>
-                          <Feather name="gift" size={16} color="#4F46E5" />
+                        <View style={[styles.refAvatar, { backgroundColor: isDark ? 'rgba(99, 102, 241, 0.2)' : '#EEF2FF' }]}>
+                          <Feather name="gift" size={16} color="#818CF8" />
                         </View>
                         <View>
-                          <Text style={styles.refName}>
+                          <Text style={[styles.refName, { color: colors.text }]}>
                             Free {settings?.referrer_reward_product_name || 'Product'}
                           </Text>
-                          <Text style={styles.refSubDesc}>
+                          <Text style={[styles.refSubDesc, { color: colors.textSecondary }]}>
                             Approved for referring {h.referred_name || 'a friend'}
                           </Text>
-                          <Text style={styles.refDate}>
+                          <Text style={[styles.refDate, { color: colors.textSecondary }]}>
                             {h.completed_at ? new Date(h.completed_at).toLocaleDateString() : 'Recently'}
                           </Text>
                         </View>

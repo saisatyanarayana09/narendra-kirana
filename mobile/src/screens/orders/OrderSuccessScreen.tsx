@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
 import { triggerHaptic } from '../../utils/haptics';
+import { useTheme } from '../../context/ThemeContext';
 
 type Props = { 
   navigation: AppNavigationProp; 
@@ -19,6 +20,7 @@ type Props = {
 };
 
 export function OrderSuccessScreen({ navigation, route }: Props) {
+  const { colors, isDark } = useTheme();
   const { orderId } = route.params || {};
   const [countdown, setCountdown] = useState(7);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -195,7 +197,7 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
   });
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
         {/* Animated Celebration Badge */}
         <View style={styles.haloWrapper}>
@@ -234,35 +236,35 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
         
         {/* Animated Headline & Subtitle */}
         <Animated.View style={[styles.textWrapper, { opacity: opacityAnim, transform: [{ translateY: slideAnim }] }]}>
-          <Text style={styles.title}>Order Confirmed!</Text>
-          <Text style={styles.subtitle}>
-            Your grocery order <Text style={styles.orderIdBold}>{formattedOrderId}</Text> has been received and is being packed fresh with care!
+          <Text style={[styles.title, { color: colors.text }]}>Order Confirmed!</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+            Your grocery order <Text style={[styles.orderIdBold, { color: colors.text }]}>{formattedOrderId}</Text> has been received and is being packed fresh with care!
           </Text>
 
           {/* Auto-redirect indicator */}
-          <View style={styles.redirectCard}>
+          <View style={[styles.redirectCard, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.15)' : '#ECFDF5', borderColor: isDark ? 'rgba(5, 150, 105, 0.3)' : '#A7F3D0' }]}>
             <View style={styles.redirectInfoRow}>
-              <Feather name="clock" size={14} color="#059669" />
-              <Text style={styles.redirectText}>
-                Redirecting to Home in <Text style={styles.countdownNumber}>{countdown}s</Text>
+              <Feather name="clock" size={14} color={colors.primary} />
+              <Text style={[styles.redirectText, { color: colors.textSecondary }]}>
+                Redirecting to Home in <Text style={[styles.countdownNumber, { color: colors.primary }]}>{countdown}s</Text>
               </Text>
-              <Text style={styles.redirectDot}>•</Text>
+              <Text style={[styles.redirectDot, { color: colors.textSecondary }]}>•</Text>
               <TouchableOpacity 
                 onPress={handleStayOnPage}
                 activeOpacity={0.7}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Text style={styles.stayOnPageLink}>Stay on this page</Text>
+                <Text style={[styles.stayOnPageLink, { color: colors.primary }]}>Stay on this page</Text>
               </TouchableOpacity>
             </View>
-            <View style={styles.progressBarBackground}>
-              <Animated.View style={[styles.progressBarFill, { width: progressWidth }]} />
+            <View style={[styles.progressBarBackground, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#A7F3D0' }]}>
+              <Animated.View style={[styles.progressBarFill, { width: progressWidth, backgroundColor: colors.primary }]} />
             </View>
           </View>
 
           {/* Action Buttons */}
           <TouchableOpacity 
-            style={styles.primaryButton}
+            style={[styles.primaryButton, { backgroundColor: colors.primary }]}
             onPress={handleTrackOrder}
             activeOpacity={0.88}
           >
@@ -271,12 +273,12 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={styles.secondaryButton}
+            style={[styles.secondaryButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
             onPress={handleViewOrderDetails}
             activeOpacity={0.88}
           >
-            <Feather name="file-text" size={16} color="#059669" />
-            <Text style={styles.secondaryButtonText}>View Order Details</Text>
+            <Feather name="file-text" size={16} color={colors.primary} />
+            <Text style={[styles.secondaryButtonText, { color: colors.primary }]}>View Order Details</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -284,7 +286,7 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
             onPress={handleGoHome}
             activeOpacity={0.88}
           >
-            <Text style={styles.homeLinkButtonText}>Go to Home Now →</Text>
+            <Text style={[styles.homeLinkButtonText, { color: colors.textSecondary }]}>Go to Home Now →</Text>
           </TouchableOpacity>
         </Animated.View>
       </View>

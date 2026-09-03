@@ -12,8 +12,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
 import { apiClient } from '../../api/client';
+import { useTheme } from '../../context/ThemeContext';
 
 export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavigationProp; route: any }) {
+  const { colors, isDark } = useTheme();
   const { orderId } = route.params;
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -160,6 +162,22 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
     }, 0);
 
   const getOrderStatusBadge = (status: string) => {
+    if (isDark) {
+      switch (status) {
+        case 'REJECTED':
+          return { label: 'Order Cancelled', bg: 'rgba(244, 63, 94, 0.15)', text: '#FB7185' };
+        case 'COMPLETED':
+          return { label: 'Order Completed', bg: 'rgba(16, 185, 129, 0.15)', text: '#34D399' };
+        case 'READY':
+          return { label: 'Order Ready', bg: 'rgba(59, 130, 246, 0.15)', text: '#60A5FA' };
+        case 'PREPARING':
+          return { label: 'Order Preparing', bg: 'rgba(245, 158, 11, 0.15)', text: '#FBBF24' };
+        case 'NEW':
+          return { label: 'Order Placed', bg: 'rgba(16, 185, 129, 0.15)', text: '#34D399' };
+        default:
+          return { label: 'Order Confirmed', bg: 'rgba(16, 185, 129, 0.15)', text: '#34D399' };
+      }
+    }
     switch (status) {
       case 'REJECTED':
         return { label: 'Order Cancelled', bg: '#FFF1F2', text: '#E11D48' };
@@ -179,16 +197,16 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
   const statusBadge = getOrderStatusBadge(order.status);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Top Navigation Bar */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity 
           style={styles.backButton} 
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <Feather name="arrow-left" size={18} color="#059669" />
-          <Text style={styles.backButtonText}>Back</Text>
+          <Feather name="arrow-left" size={18} color={colors.primary} />
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
         </TouchableOpacity>
       </View>
 
@@ -199,8 +217,8 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => fetchOrderDetails(true)}
-            colors={['#059669']}
-            tintColor="#059669"
+            colors={[colors.primary]}
+            tintColor={colors.primary}
           />
         }
       >
@@ -212,11 +230,11 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
                 {statusBadge.label}
               </Text>
             </View>
-            <Text style={styles.orderIdText}>#{order.id}</Text>
+            <Text style={[styles.orderIdText, { color: colors.text }]}>#{order.id}</Text>
           </View>
           {order.status === 'COMPLETED' && (
             <TouchableOpacity 
-              style={styles.viewInvoiceHeaderBtn}
+              style={[styles.viewInvoiceHeaderBtn, { backgroundColor: isDark ? colors.surface : '#0F172A', borderWidth: isDark ? 1 : 0, borderColor: colors.border }]}
               onPress={() => navigation.navigate('InvoiceScreen', { orderId: order.id })}
               activeOpacity={0.8}
             >
@@ -227,8 +245,8 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
         </View>
 
         {/* 5-Stage Tracking Timeline Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Track Order</Text>
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>Track Order</Text>
 
           {isRejected ? (
             <View style={styles.rejectedBanner}>
@@ -256,20 +274,21 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
                       <View 
                         style={[
                           styles.stepBadge,
-                          isCompleted ? styles.stepBadgeCompleted : styles.stepBadgePending,
+                          isCompleted ? styles.stepBadgeCompleted : [styles.stepBadgePending, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9', borderColor: colors.border }],
                           isActive && styles.stepBadgeActive,
                         ]}
                       >
                         <Feather 
                           name={step.icon} 
                           size={18} 
-                          color={isCompleted ? '#FFFFFF' : '#64748B'} 
+                          color={isCompleted ? '#FFFFFF' : (isDark ? '#94A3B8' : '#64748B')} 
                         />
                       </View>
                       {!isLast && (
                         <View 
                           style={[
                             styles.stepConnectorLine,
+                            { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0' },
                             currentIndex > index && styles.stepConnectorLineCompleted,
                           ]} 
                         />
@@ -280,12 +299,13 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
                       <Text 
                         style={[
                           styles.stepTitleText,
-                          isActive ? styles.stepTitleActive : (isCompleted ? styles.stepTitleCompleted : styles.stepTitlePending),
+                          { color: colors.text },
+                          isActive ? styles.stepTitleActive : (isCompleted ? styles.stepTitleCompleted : [styles.stepTitlePending, { color: colors.textSecondary }]),
                         ]}
                       >
                         {step.title}
                       </Text>
-                      <Text style={styles.stepDescText}>{step.desc}</Text>
+                      <Text style={[styles.stepDescText, { color: colors.textSecondary }]}>{step.desc}</Text>
                     </View>
                   </View>
                 );
@@ -296,23 +316,23 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
 
         {/* Customer Note */}
         {order.customer_note ? (
-          <View style={styles.customerNoteCard}>
+          <View style={[styles.customerNoteCard, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : '#EFF6FF', borderColor: isDark ? 'rgba(59, 130, 246, 0.3)' : '#BFDBFE' }]}>
             <Text style={styles.customerNoteTitle}>YOUR NOTE</Text>
-            <Text style={styles.customerNoteBody}>{order.customer_note}</Text>
+            <Text style={[styles.customerNoteBody, { color: colors.text }]}>{order.customer_note}</Text>
           </View>
         ) : null}
 
         {/* Store Reply Note */}
         {order.owner_note ? (
-          <View style={styles.ownerNoteCard}>
+          <View style={[styles.ownerNoteCard, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.1)' : '#ECFDF5', borderColor: isDark ? 'rgba(16, 185, 129, 0.3)' : '#A7F3D0' }]}>
             <Text style={styles.ownerNoteTitle}>STORE REPLY</Text>
-            <Text style={styles.ownerNoteBody}>{order.owner_note}</Text>
+            <Text style={[styles.ownerNoteBody, { color: colors.text }]}>{order.owner_note}</Text>
           </View>
         ) : null}
 
         {/* Order Items List */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Order Items</Text>
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>Order Items</Text>
           {(order.items || []).map((item: any) => {
             const isItemRejected = item.status === 'REJECTED';
             const itemName = item.product_name_snapshot || item.product_name || 'Item';
@@ -326,6 +346,7 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
                     <Text 
                       style={[
                         styles.orderItemName,
+                        { color: colors.text },
                         isItemRejected && styles.orderItemStrikethrough,
                       ]}
                     >
@@ -338,7 +359,7 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
                     )}
                   </View>
                   {itemUnit ? (
-                    <Text style={[styles.orderItemUnit, isItemRejected && styles.orderItemStrikethroughMuted]}>
+                    <Text style={[styles.orderItemUnit, { color: colors.textSecondary }, isItemRejected && styles.orderItemStrikethroughMuted]}>
                       {itemUnit}
                     </Text>
                   ) : null}
@@ -346,6 +367,7 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
                 <Text 
                   style={[
                     styles.orderItemPrice,
+                    { color: colors.text },
                     isItemRejected && styles.orderItemStrikethrough,
                   ]}
                 >
@@ -356,18 +378,18 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
           })}
 
           {/* Full Billing Breakdown matching Web cart.jsx OrderDetailPage 1:1 */}
-          <View style={styles.billingSection}>
-            <Text style={styles.billingSectionTitle}>Billing Summary</Text>
+          <View style={[styles.billingSection, { borderTopColor: colors.border }]}>
+            <Text style={[styles.billingSectionTitle, { color: colors.text }]}>Billing Summary</Text>
             
             <View style={styles.billLine}>
-              <Text style={styles.billLabel}>Subtotal</Text>
-              <Text style={styles.billVal}>₹{activeSubtotal.toFixed(2)}</Text>
+              <Text style={[styles.billLabel, { color: colors.textSecondary }]}>Subtotal</Text>
+              <Text style={[styles.billVal, { color: colors.text }]}>₹{activeSubtotal.toFixed(2)}</Text>
             </View>
 
             {parseFloat(order.discount_applied || '0') > 0 && (
               <View style={styles.billLine}>
-                <Text style={[styles.billLabel, { color: '#4338CA' }]}>Product Savings</Text>
-                <Text style={[styles.billVal, { color: '#4338CA', fontWeight: 'bold' }]}>
+                <Text style={[styles.billLabel, { color: '#818CF8' }]}>Product Savings</Text>
+                <Text style={[styles.billVal, { color: '#818CF8', fontWeight: 'bold' }]}>
                   - ₹{parseFloat(order.discount_applied).toFixed(2)}
                 </Text>
               </View>
@@ -375,8 +397,8 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
 
             {parseFloat(order.promo_discount || '0') > 0 && (
               <View style={styles.billLine}>
-                <Text style={[styles.billLabel, { color: '#059669', fontWeight: 'bold' }]}>Promo Discount</Text>
-                <Text style={[styles.billVal, { color: '#059669', fontWeight: 'bold' }]}>
+                <Text style={[styles.billLabel, { color: colors.primary, fontWeight: 'bold' }]}>Promo Discount</Text>
+                <Text style={[styles.billVal, { color: colors.primary, fontWeight: 'bold' }]}>
                   - ₹{parseFloat(order.promo_discount).toFixed(2)}
                 </Text>
               </View>
@@ -384,15 +406,15 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
 
             {parseFloat(order.packaging_fee || '0') > 0 && (
               <View style={styles.billLine}>
-                <Text style={styles.billLabel}>Packaging Fee</Text>
-                <Text style={styles.billVal}>₹{parseFloat(order.packaging_fee).toFixed(2)}</Text>
+                <Text style={[styles.billLabel, { color: colors.textSecondary }]}>Packaging Fee</Text>
+                <Text style={[styles.billVal, { color: colors.text }]}>₹{parseFloat(order.packaging_fee).toFixed(2)}</Text>
               </View>
             )}
 
             {isDelivery && (
               <View style={styles.billLine}>
-                <Text style={styles.billLabel}>Delivery Fee</Text>
-                <Text style={[styles.billVal, parseFloat(order.delivery_fee || '0') === 0 && { color: '#059669', fontWeight: 'bold' }]}>
+                <Text style={[styles.billLabel, { color: colors.textSecondary }]}>Delivery Fee</Text>
+                <Text style={[styles.billVal, { color: colors.text }, parseFloat(order.delivery_fee || '0') === 0 && { color: colors.primary, fontWeight: 'bold' }]}>
                   {parseFloat(order.delivery_fee || '0') > 0 
                     ? `₹${parseFloat(order.delivery_fee).toFixed(2)}` 
                     : 'FREE'}
@@ -402,16 +424,16 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
 
             {parseFloat(order.wallet_discount || '0') > 0 && (
               <View style={styles.billLine}>
-                <Text style={[styles.billLabel, { color: '#059669', fontWeight: 'bold' }]}>Wallet Applied</Text>
-                <Text style={[styles.billVal, { color: '#059669', fontWeight: 'bold' }]}>
+                <Text style={[styles.billLabel, { color: colors.primary, fontWeight: 'bold' }]}>Wallet Applied</Text>
+                <Text style={[styles.billVal, { color: colors.primary, fontWeight: 'bold' }]}>
                   - ₹{parseFloat(order.wallet_discount).toFixed(2)}
                 </Text>
               </View>
             )}
 
             <View style={styles.billLine}>
-              <Text style={styles.billLabel}>Payment Method</Text>
-              <Text style={[styles.billVal, { fontWeight: '700' }]}>
+              <Text style={[styles.billLabel, { color: colors.textSecondary }]}>Payment Method</Text>
+              <Text style={[styles.billVal, { color: colors.text, fontWeight: '700' }]}>
                 {parseFloat(order.total_amount || '0') === 0 
                   ? 'Wallet Full' 
                   : (parseFloat(order.wallet_discount || '0') > 0 
@@ -420,20 +442,20 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
               </Text>
             </View>
 
-            <View style={styles.billDivider} />
+            <View style={[styles.billDivider, { backgroundColor: colors.border }]} />
 
             <View style={styles.totalRow}>
-              <Text style={styles.totalRowLabel}>
+              <Text style={[styles.totalRowLabel, { color: colors.text }]}>
                 {order.status === 'COMPLETED' ? 'Total Amount Paid' : 'Total Due'}
               </Text>
-              <Text style={styles.totalRowVal}>
+              <Text style={[styles.totalRowVal, { color: colors.text }]}>
                 ₹{parseFloat(order.total_amount || '0').toFixed(2)}
               </Text>
             </View>
 
             {order.status === 'COMPLETED' && (
               <TouchableOpacity 
-                style={styles.viewInvoiceBottomBtn}
+                style={[styles.viewInvoiceBottomBtn, { backgroundColor: colors.primary }]}
                 onPress={() => navigation.navigate('InvoiceScreen', { orderId: order.id })}
                 activeOpacity={0.85}
               >
@@ -445,23 +467,23 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
         </View>
 
         {/* Delivery / Pickup Address Details */}
-        <View style={styles.deliveryCard}>
+        <View style={[styles.deliveryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {isDelivery ? (
             <>
-              <Feather name="truck" size={24} color="#64748B" style={styles.deliveryCardIcon} />
-              <Text style={styles.deliveryCardLabel}>Delivery to:</Text>
-              <Text style={styles.deliveryCardAddress}>{order.delivery_address || 'Address not specified'}</Text>
+              <Feather name="truck" size={24} color={colors.textSecondary} style={styles.deliveryCardIcon} />
+              <Text style={[styles.deliveryCardLabel, { color: colors.textSecondary }]}>Delivery to:</Text>
+              <Text style={[styles.deliveryCardAddress, { color: colors.text }]}>{order.delivery_address || 'Address not specified'}</Text>
               {order.delivery_pincode ? (
-                <Text style={styles.deliveryCardPincode}>Pincode: {order.delivery_pincode}</Text>
+                <Text style={[styles.deliveryCardPincode, { color: colors.textSecondary }]}>Pincode: {order.delivery_pincode}</Text>
               ) : null}
             </>
           ) : (
             <>
-              <Feather name="shopping-bag" size={24} color="#64748B" style={styles.deliveryCardIcon} />
-              <Text style={styles.deliveryCardLabel}>
-                Pickup: <Text style={{ color: '#0F172A', fontWeight: 'bold' }}>{order.pickup_time || 'As soon as possible'}</Text>
+              <Feather name="shopping-bag" size={24} color={colors.textSecondary} style={styles.deliveryCardIcon} />
+              <Text style={[styles.deliveryCardLabel, { color: colors.textSecondary }]}>
+                Pickup: <Text style={{ color: colors.text, fontWeight: 'bold' }}>{order.pickup_time || 'As soon as possible'}</Text>
               </Text>
-              <Text style={styles.deliveryCardSub}>Pay at store</Text>
+              <Text style={[styles.deliveryCardSub, { color: colors.textSecondary }]}>Pay at store</Text>
             </>
           )}
         </View>

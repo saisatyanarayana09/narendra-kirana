@@ -4,8 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
 import { apiClient } from '../../api/client';
+import { useTheme } from '../../context/ThemeContext';
 
 export function AddressesScreen({ navigation }: { navigation: AppNavigationProp }) {
+  const { colors, isDark } = useTheme();
   const [addresses, setAddresses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -59,41 +61,41 @@ export function AddressesScreen({ navigation }: { navigation: AppNavigationProp 
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Feather name="arrow-left" size={18} color="#059669" />
-            <Text style={styles.backButtonText}>Back</Text>
+            <Feather name="arrow-left" size={18} color={colors.primary} />
+            <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Saved Addresses</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Saved Addresses</Text>
         </View>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#059669" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header matching web SavedAddresses.jsx */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity 
           style={styles.backButton} 
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <Feather name="arrow-left" size={18} color="#059669" />
-          <Text style={styles.backButtonText}>Back</Text>
+          <Feather name="arrow-left" size={18} color={colors.primary} />
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
         </TouchableOpacity>
         
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.headerTitle}>Saved Addresses</Text>
-            <Text style={styles.headerSubtitle}>Manage delivery locations for quick checkout.</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>Saved Addresses</Text>
+            <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>Manage delivery locations for quick checkout.</Text>
           </View>
           <TouchableOpacity 
-            style={styles.addNewBtn}
+            style={[styles.addNewBtn, { backgroundColor: colors.primary }]}
             onPress={() => navigation.navigate('AddAddressScreen')}
             activeOpacity={0.85}
           >
@@ -108,19 +110,19 @@ export function AddressesScreen({ navigation }: { navigation: AppNavigationProp 
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#059669']} tintColor="#059669" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />
         }
         ListEmptyComponent={() => (
-          <View style={styles.emptyContainer}>
-            <View style={styles.emptyIconCircle}>
-              <Feather name="map-pin" size={40} color="#059669" />
+          <View style={[styles.emptyContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={[styles.emptyIconCircle, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.2)' : '#D1FAE5' }]}>
+              <Feather name="map-pin" size={40} color={colors.primary} />
             </View>
-            <Text style={styles.emptyTitle}>No saved addresses</Text>
-            <Text style={styles.emptySubtitle}>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>No saved addresses</Text>
+            <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
               Add an address to make placing orders fast and seamless.
             </Text>
             <TouchableOpacity 
-              style={styles.addFirstBtn}
+              style={[styles.addFirstBtn, { backgroundColor: colors.primary }]}
               onPress={() => navigation.navigate('AddAddressScreen')}
               activeOpacity={0.85}
             >
@@ -129,54 +131,54 @@ export function AddressesScreen({ navigation }: { navigation: AppNavigationProp 
           </View>
         )}
         renderItem={({ item }) => (
-          <View style={styles.addressCard}>
+          <View style={[styles.addressCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.cardTop}>
               <View style={styles.titleBadgeRow}>
-                <View style={styles.titleIconCircle}>
-                  <Feather name="map-pin" size={14} color="#059669" />
+                <View style={[styles.titleIconCircle, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.2)' : '#ECFDF5' }]}>
+                  <Feather name="map-pin" size={14} color={colors.primary} />
                 </View>
-                <Text style={styles.titleBadgeText}>
+                <Text style={[styles.titleBadgeText, { color: colors.text }]}>
                   {item.title || item.address_type || 'Home'}
                 </Text>
               </View>
 
               <View style={styles.cardActions}>
                 <TouchableOpacity 
-                  style={styles.actionBtn}
+                  style={[styles.actionBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F8FAFC' }]}
                   onPress={() => navigation.navigate('AddAddressScreen', { editingAddress: item })}
                   activeOpacity={0.7}
                 >
-                  <Feather name="edit-2" size={16} color="#4F46E5" />
+                  <Feather name="edit-2" size={16} color="#818CF8" />
                 </TouchableOpacity>
                 <TouchableOpacity 
-                  style={styles.actionBtn}
+                  style={[styles.actionBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F8FAFC' }]}
                   onPress={() => deleteAddress(item.id)}
                   activeOpacity={0.7}
                 >
-                  <Feather name="trash-2" size={16} color="#EF4444" />
+                  <Feather name="trash-2" size={16} color="#FB7185" />
                 </TouchableOpacity>
               </View>
             </View>
 
             <View style={styles.addressBody}>
-              <Text style={styles.streetText}>{item.street || item.address_line_1 || ''}</Text>
+              <Text style={[styles.streetText, { color: colors.text }]}>{item.street || item.address_line_1 || ''}</Text>
               
               {(item.landmark || item.address_line_2) ? (
-                <Text style={styles.subDetailText}>Landmark: {item.landmark || item.address_line_2}</Text>
+                <Text style={[styles.subDetailText, { color: colors.textSecondary }]}>Landmark: {item.landmark || item.address_line_2}</Text>
               ) : null}
 
-              <Text style={styles.subDetailText}>
+              <Text style={[styles.subDetailText, { color: colors.textSecondary }]}>
                 {[item.city, item.district].filter(Boolean).join(', ')}
               </Text>
 
-              <Text style={styles.subDetailText}>
+              <Text style={[styles.subDetailText, { color: colors.textSecondary }]}>
                 {[item.state, item.country || 'India', item.zip_code || item.pincode].filter(Boolean).join(', ')}
               </Text>
 
               {item.latitude && item.longitude ? (
-                <View style={styles.gpsSecuredBadge}>
-                  <Feather name="check-circle" size={12} color="#059669" />
-                  <Text style={styles.gpsSecuredText}>Exact Location Saved</Text>
+                <View style={[styles.gpsSecuredBadge, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.2)' : '#ECFDF5' }]}>
+                  <Feather name="check-circle" size={12} color={colors.primary} />
+                  <Text style={[styles.gpsSecuredText, { color: colors.primary }]}>Exact Location Saved</Text>
                 </View>
               ) : null}
             </View>

@@ -6,8 +6,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { AppNavigationProp } from '../../navigation/types';
 import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
+import { useTheme } from '../../context/ThemeContext';
 
 export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) {
+  const { colors, isDark } = useTheme();
   const [wallet, setWallet] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -42,34 +44,34 @@ export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) 
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Feather name="arrow-left" size={18} color="#059669" />
-            <Text style={styles.backButtonText}>Back</Text>
+            <Feather name="arrow-left" size={18} color={colors.primary} />
+            <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Digital Wallet</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Digital Wallet</Text>
         </View>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#059669" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity 
           style={styles.backButton} 
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <Feather name="arrow-left" size={18} color="#059669" />
-          <Text style={styles.backButtonText}>Back</Text>
+          <Feather name="arrow-left" size={18} color={colors.primary} />
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Digital Wallet</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Digital Wallet</Text>
       </View>
 
       <FlatList
@@ -78,7 +80,7 @@ export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#059669']} tintColor="#059669" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />
         }
         ListHeaderComponent={() => (
           <View style={styles.headerComponent}>
@@ -99,14 +101,14 @@ export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) 
             </LinearGradient>
 
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>Transaction History</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Transaction History</Text>
             </View>
           </View>
         )}
         ListEmptyComponent={() => (
-          <View style={styles.emptyCard}>
-            <MaterialIcons name="currency-rupee" size={36} color="#CBD5E1" style={{ marginBottom: 8 }} />
-            <Text style={styles.emptyText}>
+          <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <MaterialIcons name="currency-rupee" size={36} color={colors.textSecondary} style={{ marginBottom: 8 }} />
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
               No transactions yet. Earn money by referring friends!
             </Text>
           </View>
@@ -115,27 +117,27 @@ export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) 
           const amt = parseFloat(item.amount || '0');
           const isCredit = amt > 0;
           return (
-            <View style={styles.transactionCard}>
+            <View style={[styles.transactionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <View style={styles.transactionLeft}>
-                <View style={[styles.txIconCircle, { backgroundColor: isCredit ? '#ECFDF5' : '#F8FAFC' }]}>
+                <View style={[styles.txIconCircle, { backgroundColor: isCredit ? (isDark ? 'rgba(16, 185, 129, 0.2)' : '#ECFDF5') : (isDark ? 'rgba(255, 255, 255, 0.08)' : '#F8FAFC') }]}>
                   <Feather 
                     name={isCredit ? "arrow-down-left" : "arrow-up-right"} 
                     size={18} 
-                    color={isCredit ? "#059669" : "#64748B"} 
+                    color={isCredit ? colors.primary : colors.textSecondary} 
                   />
                 </View>
                 <View style={styles.txDetails}>
-                  <Text style={styles.txTypeTitle}>
+                  <Text style={[styles.txTypeTitle, { color: colors.text }]}>
                     {(item.transaction_type || 'TRANSACTION').replace(/_/g, ' ')}
                   </Text>
                   {item.description ? (
-                    <Text style={styles.txDesc}>{item.description}</Text>
+                    <Text style={[styles.txDesc, { color: colors.textSecondary }]}>{item.description}</Text>
                   ) : null}
-                  <Text style={styles.txDate}>{formatDate(item.created_at)}</Text>
+                  <Text style={[styles.txDate, { color: colors.textSecondary }]}>{formatDate(item.created_at)}</Text>
                 </View>
               </View>
 
-              <Text style={[styles.txAmount, { color: isCredit ? '#059669' : '#0F172A' }]}>
+              <Text style={[styles.txAmount, { color: isCredit ? colors.primary : colors.text }]}>
                 {isCredit ? '+' : '-'}₹{Math.abs(amt).toFixed(2)}
               </Text>
             </View>

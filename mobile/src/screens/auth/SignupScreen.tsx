@@ -15,6 +15,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import { AuthStackParamList } from '../../navigation/AuthStack';
 import { apiClient } from '../../api/client';
+import { useTheme } from '../../context/ThemeContext';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'Signup'>;
@@ -30,6 +31,7 @@ function generateFriendlyPassword(): string {
 }
 
 export function SignupScreen({ navigation }: Props) {
+  const { colors, isDark } = useTheme();
   const [form, setForm] = useState({
     first_name: '',
     email: '',
@@ -162,7 +164,7 @@ export function SignupScreen({ navigation }: Props) {
 
   return (
     <KeyboardAvoidingView 
-      style={styles.container} 
+      style={[styles.container, { backgroundColor: colors.background }]} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -172,33 +174,33 @@ export function SignupScreen({ navigation }: Props) {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <Feather name="arrow-left" color="#059669" size={18} />
-          <Text style={styles.backButtonText}>Back</Text>
+          <Feather name="arrow-left" color={colors.primary} size={18} />
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
         </TouchableOpacity>
 
         <View style={styles.header}>
-          <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>Join Narendra Kirana for fresh daily essentials</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Join Narendra Kirana for fresh daily essentials</Text>
         </View>
 
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Full Name *</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Full Name *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border, color: colors.text }]}
               placeholder="e.g. Rahul Sharma"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.textSecondary}
               value={form.first_name}
               onChangeText={(text) => setForm({ ...form, first_name: text })}
             />
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email Address *</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Email Address *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border, color: colors.text }]}
               placeholder="name@example.com"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.textSecondary}
               keyboardType="email-address"
               autoCapitalize="none"
               value={form.email}
@@ -207,11 +209,11 @@ export function SignupScreen({ navigation }: Props) {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Mobile Number *</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Mobile Number *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border, color: colors.text }]}
               placeholder="10-digit mobile number"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.textSecondary}
               keyboardType="phone-pad"
               value={form.mobile_number}
               onChangeText={(text) => setForm({ ...form, mobile_number: text })}
@@ -220,25 +222,26 @@ export function SignupScreen({ navigation }: Props) {
 
           <View style={styles.inputContainer}>
             <View style={styles.labelRow}>
-              <Text style={styles.label}>Password *</Text>
+              <Text style={[styles.label, { color: colors.text }]}>Password *</Text>
               <TouchableOpacity
-                style={styles.suggestButton}
+                style={[styles.suggestButton, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.15)' : '#ECFDF5', borderColor: isDark ? 'rgba(5, 150, 105, 0.3)' : '#A7F3D0' }]}
                 onPress={handleSuggestPassword}
                 activeOpacity={0.7}
               >
-                <Feather name="zap" size={12} color="#059669" />
-                <Text style={styles.suggestButtonText}>Suggest Password</Text>
+                <Feather name="zap" size={12} color={colors.primary} />
+                <Text style={[styles.suggestButtonText, { color: colors.primary }]}>Suggest Password</Text>
               </TouchableOpacity>
             </View>
 
             <View style={[
               styles.passwordContainer,
+              { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border },
               hasMinLength && hasMix && isNotOnlyNumbers && styles.inputSuccess
             ]}>
               <TextInput
-                style={styles.passwordInput}
+                style={[styles.passwordInput, { color: colors.text }]}
                 placeholder="Create password (min. 8 characters)"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textSecondary}
                 secureTextEntry={!showPassword}
                 value={form.password}
                 onChangeText={(text) => {
@@ -250,14 +253,14 @@ export function SignupScreen({ navigation }: Props) {
                 style={styles.eyeIcon} 
                 onPress={() => setShowPassword(!showPassword)}
               >
-                <Feather name={showPassword ? "eye-off" : "eye"} color="#94A3B8" size={18} />
+                <Feather name={showPassword ? "eye-off" : "eye"} color={colors.textSecondary} size={18} />
               </TouchableOpacity>
             </View>
 
             {/* Generated Password Notice */}
             {generatedNotice && (
-              <View style={styles.generatedBanner}>
-                <Text style={styles.generatedBannerText}>
+              <View style={[styles.generatedBanner, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.15)' : '#ECFDF5', borderColor: isDark ? 'rgba(5, 150, 105, 0.3)' : '#A7F3D0' }]}>
+                <Text style={[styles.generatedBannerText, { color: isDark ? '#34D399' : '#065F46' }]}>
                   🔑 Generated: <Text style={styles.generatedPasswordText}>{form.password}</Text> (Remember to keep it safe!)
                 </Text>
               </View>
@@ -267,7 +270,7 @@ export function SignupScreen({ navigation }: Props) {
             {pwd.length > 0 && (
               <View style={styles.strengthContainer}>
                 <View style={styles.strengthHeader}>
-                  <Text style={styles.strengthLabel}>Strength:</Text>
+                  <Text style={[styles.strengthLabel, { color: colors.textSecondary }]}>Strength:</Text>
                   <Text style={[styles.strengthValue, { color: strengthColors[strengthScore] }]}>
                     {strengthLabels[strengthScore]}
                   </Text>
@@ -278,6 +281,7 @@ export function SignupScreen({ navigation }: Props) {
                       key={step}
                       style={[
                         styles.meterStep,
+                        { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0' },
                         step <= strengthScore && { backgroundColor: strengthColors[strengthScore] }
                       ]}
                     />
@@ -287,30 +291,30 @@ export function SignupScreen({ navigation }: Props) {
             )}
 
             {/* Rule Checklist */}
-            <View style={styles.rulesCard}>
+            <View style={[styles.rulesCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FAFC', borderColor: colors.border }]}>
               <View style={styles.ruleItem}>
-                <View style={[styles.ruleCircle, hasMinLength && styles.ruleCircleActive]}>
-                  <Feather name="check" size={10} color={hasMinLength ? "#FFFFFF" : "#94A3B8"} />
+                <View style={[styles.ruleCircle, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0' }, hasMinLength && styles.ruleCircleActive]}>
+                  <Feather name="check" size={10} color={hasMinLength ? "#FFFFFF" : colors.textSecondary} />
                 </View>
-                <Text style={[styles.ruleText, hasMinLength && styles.ruleTextActive]}>
+                <Text style={[styles.ruleText, { color: colors.textSecondary }, hasMinLength && styles.ruleTextActive]}>
                   8+ chars
                 </Text>
               </View>
 
               <View style={styles.ruleItem}>
-                <View style={[styles.ruleCircle, hasMix && styles.ruleCircleActive]}>
-                  <Feather name="check" size={10} color={hasMix ? "#FFFFFF" : "#94A3B8"} />
+                <View style={[styles.ruleCircle, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0' }, hasMix && styles.ruleCircleActive]}>
+                  <Feather name="check" size={10} color={hasMix ? "#FFFFFF" : colors.textSecondary} />
                 </View>
-                <Text style={[styles.ruleText, hasMix && styles.ruleTextActive]}>
+                <Text style={[styles.ruleText, { color: colors.textSecondary }, hasMix && styles.ruleTextActive]}>
                   Letters & numbers
                 </Text>
               </View>
 
               <View style={styles.ruleItem}>
-                <View style={[styles.ruleCircle, isNotOnlyNumbers && styles.ruleCircleActive]}>
-                  <Feather name="check" size={10} color={isNotOnlyNumbers ? "#FFFFFF" : "#94A3B8"} />
+                <View style={[styles.ruleCircle, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0' }, isNotOnlyNumbers && styles.ruleCircleActive]}>
+                  <Feather name="check" size={10} color={isNotOnlyNumbers ? "#FFFFFF" : colors.textSecondary} />
                 </View>
-                <Text style={[styles.ruleText, isNotOnlyNumbers && styles.ruleTextActive]}>
+                <Text style={[styles.ruleText, { color: colors.textSecondary }, isNotOnlyNumbers && styles.ruleTextActive]}>
                   Not all-numeric
                 </Text>
               </View>
@@ -318,15 +322,16 @@ export function SignupScreen({ navigation }: Props) {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Confirm Password *</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Confirm Password *</Text>
             <View style={[
               styles.passwordContainer,
+              { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border },
               isConfirmDirty && (doPasswordsMatch ? styles.inputSuccess : styles.inputMismatch)
             ]}>
               <TextInput
-                style={styles.passwordInput}
+                style={[styles.passwordInput, { color: colors.text }]}
                 placeholder="Confirm password"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textSecondary}
                 secureTextEntry={!showConfirmPassword}
                 value={form.confirm_password}
                 onChangeText={(text) => setForm({ ...form, confirm_password: text })}
@@ -335,7 +340,7 @@ export function SignupScreen({ navigation }: Props) {
                 style={styles.eyeIcon} 
                 onPress={() => setShowConfirmPassword(!showConfirmPassword)}
               >
-                <Feather name={showConfirmPassword ? "eye-off" : "eye"} color="#94A3B8" size={18} />
+                <Feather name={showConfirmPassword ? "eye-off" : "eye"} color={colors.textSecondary} size={18} />
               </TouchableOpacity>
             </View>
 
@@ -344,8 +349,8 @@ export function SignupScreen({ navigation }: Props) {
               <View style={styles.matchFeedbackRow}>
                 {doPasswordsMatch ? (
                   <>
-                    <Feather name="check-circle" size={13} color="#059669" />
-                    <Text style={styles.matchSuccessText}>Passwords match!</Text>
+                    <Feather name="check-circle" size={13} color={colors.primary} />
+                    <Text style={[styles.matchSuccessText, { color: colors.primary }]}>Passwords match!</Text>
                   </>
                 ) : (
                   <>
@@ -359,25 +364,25 @@ export function SignupScreen({ navigation }: Props) {
 
           {/* Referral Code with live validation matching web app */}
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Referral Code (Optional)</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Referral Code (Optional)</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border, color: colors.text }]}
               placeholder="e.g. REF-A1B2C"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.textSecondary}
               autoCapitalize="characters"
               value={form.referral_code}
               onChangeText={(text) => setForm({ ...form, referral_code: text.toUpperCase() })}
             />
             {checkingReferral && (
               <View style={styles.referralFeedbackRow}>
-                <ActivityIndicator size="small" color="#059669" />
-                <Text style={styles.referralCheckingText}>Verifying code...</Text>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={[styles.referralCheckingText, { color: colors.textSecondary }]}>Verifying code...</Text>
               </View>
             )}
             {!checkingReferral && referralInfo?.isValid && (
               <View style={styles.referralFeedbackRow}>
-                <Feather name="check-circle" size={14} color="#059669" />
-                <Text style={styles.referralValidText}>
+                <Feather name="check-circle" size={14} color={colors.primary} />
+                <Text style={[styles.referralValidText, { color: colors.primary }]}>
                   Valid code! Referred by {referralInfo.name}.
                 </Text>
               </View>
@@ -391,7 +396,7 @@ export function SignupScreen({ navigation }: Props) {
           </View>
 
           <TouchableOpacity 
-            style={[styles.primaryButton, isLoading && styles.primaryButtonDisabled]}
+            style={[styles.primaryButton, { backgroundColor: colors.primary }, isLoading && styles.primaryButtonDisabled]}
             onPress={handleSignup}
             disabled={isLoading}
             activeOpacity={0.85}
@@ -404,9 +409,9 @@ export function SignupScreen({ navigation }: Props) {
           </TouchableOpacity>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
+            <Text style={[styles.footerText, { color: colors.textSecondary }]}>Already have an account? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.footerLink}>Log In</Text>
+              <Text style={[styles.footerLink, { color: colors.primary }]}>Log In</Text>
             </TouchableOpacity>
           </View>
         </View>

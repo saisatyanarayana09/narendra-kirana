@@ -15,12 +15,14 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import { AuthStackParamList } from '../../navigation/AuthStack';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 };
 
 export function LoginScreen({ navigation }: Props) {
+  const { colors, isDark } = useTheme();
   const { login, pendingRedirect } = useAuth();
   
   const [email, setEmail] = useState('');
@@ -49,7 +51,7 @@ export function LoginScreen({ navigation }: Props) {
 
   return (
     <KeyboardAvoidingView 
-      style={styles.container} 
+      style={[styles.container, { backgroundColor: colors.background }]} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -59,19 +61,19 @@ export function LoginScreen({ navigation }: Props) {
           onPress={() => navigation.canGoBack() ? navigation.goBack() : null}
           activeOpacity={0.7}
         >
-          <Feather name="arrow-left" color="#059669" size={18} />
-          <Text style={styles.backButtonText}>Back</Text>
+          <Feather name="arrow-left" color={colors.primary} size={18} />
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
         </TouchableOpacity>
 
         <View style={styles.header}>
-          <Text style={styles.title}>Welcome back</Text>
-          <Text style={styles.subtitle}>Sign in to access your orders, wallet & favorites</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Welcome back</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Sign in to access your orders, wallet & favorites</Text>
         </View>
 
         {pendingRedirect && (
-          <View style={styles.redirectBanner}>
-            <Feather name="lock" color="#059669" size={15} />
-            <Text style={styles.redirectBannerText}>
+          <View style={[styles.redirectBanner, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.15)' : '#ECFDF5', borderColor: isDark ? 'rgba(5, 150, 105, 0.3)' : '#A7F3D0' }]}>
+            <Feather name="lock" color={colors.primary} size={15} />
+            <Text style={[styles.redirectBannerText, { color: isDark ? '#34D399' : '#065F46' }]}>
               {pendingRedirect.screen === 'InvoiceScreen'
                 ? `Sign in to view Order #${pendingRedirect.params?.orderId || ''} invoice`
                 : pendingRedirect.screen === 'OrderTrackingScreen'
@@ -81,13 +83,13 @@ export function LoginScreen({ navigation }: Props) {
           </View>
         )}
 
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email Address</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Email Address</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border, color: colors.text }]}
               placeholder="name@example.com"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.textSecondary}
               keyboardType="email-address"
               autoCapitalize="none"
               value={email}
@@ -97,18 +99,18 @@ export function LoginScreen({ navigation }: Props) {
 
           <View style={styles.inputContainer}>
             <View style={styles.passwordHeader}>
-              <Text style={styles.label}>Password</Text>
+              <Text style={[styles.label, { color: colors.text }]}>Password</Text>
               <TouchableOpacity 
                 onPress={() => Alert.alert('Forgot Password', 'Please contact support or reset password via web portal.')}
               >
-                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                <Text style={[styles.forgotPasswordText, { color: colors.primary }]}>Forgot Password?</Text>
               </TouchableOpacity>
             </View>
-            <View style={styles.passwordContainer}>
+            <View style={[styles.passwordContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border }]}>
               <TextInput
-                style={styles.passwordInput}
+                style={[styles.passwordInput, { color: colors.text }]}
                 placeholder="Enter password"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textSecondary}
                 secureTextEntry={!showPassword}
                 value={password}
                 onChangeText={setPassword}
@@ -117,13 +119,13 @@ export function LoginScreen({ navigation }: Props) {
                 style={styles.eyeIcon} 
                 onPress={() => setShowPassword(!showPassword)}
               >
-                <Feather name={showPassword ? "eye-off" : "eye"} color="#94A3B8" size={18} />
+                <Feather name={showPassword ? "eye-off" : "eye"} color={colors.textSecondary} size={18} />
               </TouchableOpacity>
             </View>
           </View>
 
           <TouchableOpacity 
-            style={[styles.primaryButton, isLoading && styles.primaryButtonDisabled]}
+            style={[styles.primaryButton, { backgroundColor: colors.primary }, isLoading && styles.primaryButtonDisabled]}
             onPress={handleLogin}
             disabled={isLoading}
             activeOpacity={0.85}
@@ -136,9 +138,9 @@ export function LoginScreen({ navigation }: Props) {
           </TouchableOpacity>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
+            <Text style={[styles.footerText, { color: colors.textSecondary }]}>Don't have an account? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-              <Text style={styles.footerLink}>Sign Up</Text>
+              <Text style={[styles.footerLink, { color: colors.primary }]}>Sign Up</Text>
             </TouchableOpacity>
           </View>
         </View>

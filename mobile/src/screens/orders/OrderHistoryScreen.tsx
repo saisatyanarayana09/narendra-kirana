@@ -4,8 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
 import { apiClient } from '../../api/client';
+import { useTheme } from '../../context/ThemeContext';
 
 export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationProp }) {
+  const { colors, isDark } = useTheme();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -78,6 +80,22 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
 
   // Status badges matching web tokens (COMPLETED emerald, REJECTED rose, READY blue, PREPARING amber, NEW indigo)
   const getStatusStyle = (status: string) => {
+    if (isDark) {
+      switch (status) {
+        case 'COMPLETED':
+          return { bg: 'rgba(16, 185, 129, 0.15)', text: '#34D399', border: 'rgba(16, 185, 129, 0.3)' };
+        case 'REJECTED':
+          return { bg: 'rgba(244, 63, 94, 0.15)', text: '#FB7185', border: 'rgba(244, 63, 94, 0.3)' };
+        case 'READY':
+          return { bg: 'rgba(59, 130, 246, 0.15)', text: '#60A5FA', border: 'rgba(59, 130, 246, 0.3)' };
+        case 'PREPARING':
+          return { bg: 'rgba(245, 158, 11, 0.15)', text: '#FBBF24', border: 'rgba(245, 158, 11, 0.3)' };
+        case 'NEW':
+          return { bg: 'rgba(99, 102, 241, 0.15)', text: '#818CF8', border: 'rgba(99, 102, 241, 0.3)' };
+        default:
+          return { bg: 'rgba(148, 163, 184, 0.15)', text: '#94A3B8', border: 'rgba(148, 163, 184, 0.3)' };
+      }
+    }
     switch (status) {
       case 'COMPLETED':
         return { bg: '#ECFDF5', text: '#047857', border: '#A7F3D0' }; // emerald
@@ -119,39 +137,39 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
 
   if (loading && page === 1 && !refreshing) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#059669" />
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header matching web OrdersHistory 1:1 */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity 
           style={styles.backButton} 
           onPress={handleBack}
           activeOpacity={0.7}
         >
-          <Feather name="chevron-left" size={18} color="#64748B" />
-          <Text style={styles.backButtonText}>Back to Dashboard</Text>
+          <Feather name="chevron-left" size={18} color={colors.textSecondary} />
+          <Text style={[styles.backButtonText, { color: colors.textSecondary }]}>Back to Dashboard</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Order History</Text>
-        <Text style={styles.headerSubtitle}>Track and review your past purchases.</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Order History</Text>
+        <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>Track and review your past purchases.</Text>
       </View>
       
       {orders.length === 0 ? (
         <View style={styles.emptyContent}>
-          <View style={styles.emptyIconCircle}>
-            <Feather name="package" size={48} color="#059669" />
+          <View style={[styles.emptyIconCircle, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.2)' : '#ECFDF5', borderColor: isDark ? 'rgba(5, 150, 105, 0.4)' : '#A7F3D0' }]}>
+            <Feather name="package" size={48} color={colors.primary} />
           </View>
-          <Text style={styles.emptyTitle}>No orders yet</Text>
-          <Text style={styles.emptySubtitle}>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>No orders yet</Text>
+          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
             It looks like you haven't placed any orders yet. Once you make a purchase, it will appear here so you can track its status.
           </Text>
           <TouchableOpacity 
-            style={styles.startShoppingBtn}
+            style={[styles.startShoppingBtn, { backgroundColor: colors.primary }]}
             onPress={() => navigation.navigate('HomeTab')}
             activeOpacity={0.85}
           >
@@ -167,8 +185,8 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              colors={['#059669']}
-              tintColor="#059669"
+              colors={[colors.primary]}
+              tintColor={colors.primary}
             />
           }
           renderItem={({ item }) => {
@@ -177,15 +195,15 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
             const itemCount = item.items?.length || 0;
 
             return (
-              <View style={styles.orderCard}>
+              <View style={[styles.orderCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <TouchableOpacity 
                   activeOpacity={0.7}
                   onPress={() => navigation.navigate('OrderTrackingScreen', { orderId: item.id })}
                 >
                   <View style={styles.cardHeader}>
                     <View>
-                      <Text style={styles.orderId}>#{item.id}</Text>
-                      <Text style={styles.orderDate}>{formatDate(item.created_at)}</Text>
+                      <Text style={[styles.orderId, { color: colors.text }]}>#{item.id}</Text>
+                      <Text style={[styles.orderDate, { color: colors.textSecondary }]}>{formatDate(item.created_at)}</Text>
                     </View>
                     <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg, borderColor: statusStyle.border }]}>
                       <Text style={[styles.statusText, { color: statusStyle.text }]}>
@@ -194,38 +212,38 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
                     </View>
                   </View>
                   
-                  <View style={styles.divider} />
+                  <View style={[styles.divider, { backgroundColor: colors.border }]} />
                   
                   <View style={styles.cardFooterRow}>
-                    <Text style={styles.itemCountText}>
+                    <Text style={[styles.itemCountText, { color: colors.textSecondary }]}>
                       {itemCount} {itemCount === 1 ? 'item' : 'items'}
                     </Text>
                     <View style={styles.totalBlock}>
-                      <Text style={styles.totalLabel}>TOTAL</Text>
-                      <Text style={styles.totalAmount}>₹{totalFormatted}</Text>
+                      <Text style={[styles.totalLabel, { color: colors.textSecondary }]}>TOTAL</Text>
+                      <Text style={[styles.totalAmount, { color: colors.text }]}>₹{totalFormatted}</Text>
                     </View>
                   </View>
                 </TouchableOpacity>
 
-                <View style={styles.cardActionFooter}>
+                <View style={[styles.cardActionFooter, { borderTopColor: colors.border }]}>
                   {item.status === 'COMPLETED' ? (
                     <View style={styles.completedActionsRow}>
                       <TouchableOpacity 
-                        style={styles.detailsBtn}
+                        style={[styles.detailsBtn, { backgroundColor: isDark ? colors.background : '#F8FAFC', borderColor: colors.border }]}
                         onPress={() => navigation.navigate('OrderTrackingScreen', { orderId: item.id })}
                         activeOpacity={0.7}
                       >
-                        <Feather name="package" size={14} color="#334155" />
-                        <Text style={styles.detailsBtnText}>Track Order</Text>
+                        <Feather name="package" size={14} color={colors.text} />
+                        <Text style={[styles.detailsBtnText, { color: colors.text }]}>Track Order</Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity 
-                        style={styles.invoiceCardBtn}
+                        style={[styles.invoiceCardBtn, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.2)' : '#ECFDF5', borderColor: isDark ? 'rgba(5, 150, 105, 0.4)' : '#A7F3D0' }]}
                         onPress={() => navigation.navigate('InvoiceScreen', { orderId: item.id })}
                         activeOpacity={0.7}
                       >
-                        <Feather name="file-text" size={14} color="#047857" />
-                        <Text style={styles.invoiceCardBtnText}>View Invoice</Text>
+                        <Feather name="file-text" size={14} color={colors.primary} />
+                        <Text style={[styles.invoiceCardBtnText, { color: colors.primary }]}>View Invoice</Text>
                       </TouchableOpacity>
                     </View>
                   ) : (
@@ -234,8 +252,8 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
                       onPress={() => navigation.navigate('OrderTrackingScreen', { orderId: item.id })}
                       activeOpacity={0.7}
                     >
-                      <Text style={styles.trackOrderBtnText}>Track Order</Text>
-                      <Feather name="arrow-right" size={14} color="#047857" />
+                      <Text style={[styles.trackOrderBtnText, { color: colors.primary }]}>Track Order</Text>
+                      <Feather name="arrow-right" size={14} color={colors.primary} />
                     </TouchableOpacity>
                   )}
                 </View>

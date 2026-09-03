@@ -16,8 +16,10 @@ import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
 import { useAuth } from '../../context/AuthContext';
 import { apiClient } from '../../api/client';
+import { useTheme } from '../../context/ThemeContext';
 
 export function AccountSettingsScreen({ navigation }: { navigation: AppNavigationProp }) {
+  const { colors, isDark } = useTheme();
   const { user, updateUser } = useAuth();
   
   const [firstName, setFirstName] = useState(user?.first_name || '');
@@ -135,19 +137,19 @@ export function AccountSettingsScreen({ navigation }: { navigation: AppNavigatio
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header matching web AccountSettings.jsx */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity 
           style={styles.backButton} 
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <Feather name="arrow-left" size={18} color="#059669" />
-          <Text style={styles.backButtonText}>Back</Text>
+          <Feather name="arrow-left" size={18} color={colors.primary} />
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Account Settings</Text>
-        <Text style={styles.headerSubtitle}>Manage your personal details and security preferences.</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Account Settings</Text>
+        <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>Manage your personal details and security preferences.</Text>
       </View>
 
       <KeyboardAvoidingView 
@@ -161,96 +163,97 @@ export function AccountSettingsScreen({ navigation }: { navigation: AppNavigatio
           keyboardShouldPersistTaps="handled"
         >
           {/* Personal Details Card */}
-          <View style={styles.card}>
-            <Text style={styles.cardSectionLabel}>Personal Information</Text>
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.cardSectionLabel, { color: colors.text, borderBottomColor: colors.border }]}>Personal Information</Text>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Full Name</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>Full Name</Text>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border, color: colors.text }]}
                 value={firstName}
                 onChangeText={setFirstName}
                 placeholder="Your full name"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textSecondary}
               />
             </View>
 
             <View style={styles.inputGroup}>
               <View style={styles.inputLabelRow}>
-                <Text style={styles.inputLabel}>Email Address</Text>
-                <Text style={styles.readOnlyBadge}>Cannot be changed</Text>
+                <Text style={[styles.inputLabel, { color: colors.text }]}>Email Address</Text>
+                <Text style={[styles.readOnlyBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9', color: colors.textSecondary }]}>Cannot be changed</Text>
               </View>
               <TextInput
-                style={[styles.textInput, styles.textInputDisabled]}
+                style={[styles.textInput, styles.textInputDisabled, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F1F5F9', borderColor: colors.border, color: colors.textSecondary }]}
                 value={user?.email || user?.username || ''}
                 editable={false}
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textSecondary}
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Date of Birth</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>Date of Birth</Text>
               <TextInput
-                style={[styles.textInput, Boolean(dobError) && styles.textInputError]}
+                style={[styles.textInput, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border, color: colors.text }, Boolean(dobError) && styles.textInputError]}
                 value={dob}
                 onChangeText={(val) => {
                   setDob(val);
                   if (dobError) setDobError('');
                 }}
                 placeholder="e.g. 1995-08-15"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textSecondary}
                 maxLength={10}
               />
-              <Text style={styles.helperText}>Format: YYYY-MM-DD (e.g. 1995-08-15)</Text>
+              <Text style={[styles.helperText, { color: colors.textSecondary }]}>Format: YYYY-MM-DD (e.g. 1995-08-15)</Text>
               {Boolean(dobError) && <Text style={styles.errorText}>{dobError}</Text>}
             </View>
           </View>
 
         {/* Security & Password Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardSectionLabel}>Security & Password</Text>
-          <Text style={styles.cardHint}>Leave blank if you do not wish to change your password.</Text>
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.cardSectionLabel, { color: colors.text, borderBottomColor: colors.border }]}>Security & Password</Text>
+          <Text style={[styles.cardHint, { color: colors.textSecondary }]}>Leave blank if you do not wish to change your password.</Text>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>New Password</Text>
-            <View style={styles.passwordInputWrap}>
+            <Text style={[styles.inputLabel, { color: colors.text }]}>New Password</Text>
+            <View style={[styles.passwordInputWrap, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border }]}>
               <TextInput
-                style={styles.passwordInput}
+                style={[styles.passwordInput, { color: colors.text }]}
                 value={password}
                 onChangeText={setPassword}
                 placeholder="Enter new password"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.textSecondary}
                 secureTextEntry={!showPassword}
               />
               <TouchableOpacity 
                 onPress={() => setShowPassword(!showPassword)}
                 style={styles.eyeBtn}
               >
-                <Feather name={showPassword ? "eye-off" : "eye"} size={18} color="#94A3B8" />
+                <Feather name={showPassword ? "eye-off" : "eye"} size={18} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
           </View>
 
           {Boolean(password) && (
             <View style={[styles.inputGroup, { marginTop: 4 }]}>
-              <Text style={styles.inputLabel}>Confirm New Password</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>Confirm New Password</Text>
               <View style={[
-                styles.passwordInputWrap, 
+                styles.passwordInputWrap,
+                { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border },
                 Boolean(confirmPassword) && password !== confirmPassword && styles.passwordInputError
               ]}>
                 <TextInput
-                  style={styles.passwordInput}
+                  style={[styles.passwordInput, { color: colors.text }]}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   placeholder="Re-enter new password"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={colors.textSecondary}
                   secureTextEntry={!showConfirmPassword}
                 />
                 <TouchableOpacity 
                   onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                   style={styles.eyeBtn}
                 >
-                  <Feather name={showConfirmPassword ? "eye-off" : "eye"} size={18} color="#94A3B8" />
+                  <Feather name={showConfirmPassword ? "eye-off" : "eye"} size={18} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
               {Boolean(confirmPassword) && password !== confirmPassword && (
@@ -262,7 +265,7 @@ export function AccountSettingsScreen({ navigation }: { navigation: AppNavigatio
 
         {/* Save Changes Button */}
         <TouchableOpacity 
-          style={styles.saveBtn}
+          style={[styles.saveBtn, { backgroundColor: colors.primary }]}
           onPress={handleSaveProfile}
           disabled={saving}
           activeOpacity={0.85}
@@ -275,42 +278,42 @@ export function AccountSettingsScreen({ navigation }: { navigation: AppNavigatio
         </TouchableOpacity>
 
         {/* Danger Zone matching web AccountSettings.jsx */}
-        <View style={styles.dangerCard}>
+        <View style={[styles.dangerCard, { backgroundColor: isDark ? 'rgba(244, 63, 94, 0.08)' : '#FFF1F2', borderColor: isDark ? 'rgba(244, 63, 94, 0.2)' : '#FFE4E6' }]}>
           <Text style={styles.dangerTitle}>Danger Zone</Text>
-          <Text style={styles.dangerSubtitle}>
+          <Text style={[styles.dangerSubtitle, isDark && { color: '#FB7185' }]}>
             Permanently remove your account and all associated personal data.
           </Text>
 
           {deleteRequested ? (
-            <View style={styles.deletionPendingCard}>
+            <View style={[styles.deletionPendingCard, isDark && { backgroundColor: 'rgba(245, 158, 11, 0.1)', borderColor: 'rgba(245, 158, 11, 0.3)' }]}>
               <View style={styles.pulsingDotRow}>
                 <View style={styles.pulsingDotOuter}>
                   <View style={styles.pulsingDotInner} />
                 </View>
-                <Text style={styles.deletionPendingTitle}>Deletion Pending Approval</Text>
+                <Text style={[styles.deletionPendingTitle, isDark && { color: '#FBBF24' }]}>Deletion Pending Approval</Text>
               </View>
-              <Text style={styles.deletionPendingDesc}>
+              <Text style={[styles.deletionPendingDesc, isDark && { color: '#FDE68A' }]}>
                 Your deletion request is currently being reviewed by store management. You will be logged out once approved.
               </Text>
             </View>
           ) : showDeletePrompt ? (
-            <View style={styles.deletePromptCard}>
-              <Text style={styles.deletePromptLabel}>Enter your password to confirm:</Text>
+            <View style={[styles.deletePromptCard, { backgroundColor: isDark ? colors.surface : '#FFFFFF', borderColor: isDark ? 'rgba(244, 63, 94, 0.4)' : '#FDA4AF' }]}>
+              <Text style={[styles.deletePromptLabel, { color: colors.text }]}>Enter your password to confirm:</Text>
               
-              <View style={styles.passwordInputWrap}>
+              <View style={[styles.passwordInputWrap, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border }]}>
                 <TextInput
-                  style={styles.passwordInput}
+                  style={[styles.passwordInput, { color: colors.text }]}
                   value={deletePassword}
                   onChangeText={setDeletePassword}
                   placeholder="Enter current password"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={colors.textSecondary}
                   secureTextEntry={!showDeletePassword}
                 />
                 <TouchableOpacity 
                   onPress={() => setShowDeletePassword(!showDeletePassword)}
                   style={styles.eyeBtn}
                 >
-                  <Feather name={showDeletePassword ? "eye-off" : "eye"} size={18} color="#94A3B8" />
+                  <Feather name={showDeletePassword ? "eye-off" : "eye"} size={18} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
 
@@ -329,7 +332,7 @@ export function AccountSettingsScreen({ navigation }: { navigation: AppNavigatio
                 </TouchableOpacity>
 
                 <TouchableOpacity 
-                  style={styles.cancelDeleteBtn}
+                  style={[styles.cancelDeleteBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9' }]}
                   onPress={() => {
                     setShowDeletePrompt(false);
                     setDeletePassword('');
@@ -337,13 +340,13 @@ export function AccountSettingsScreen({ navigation }: { navigation: AppNavigatio
                   disabled={deleteLoading}
                   activeOpacity={0.85}
                 >
-                  <Text style={styles.cancelDeleteText}>Cancel</Text>
+                  <Text style={[styles.cancelDeleteText, { color: colors.textSecondary }]}>Cancel</Text>
                 </TouchableOpacity>
               </View>
             </View>
           ) : (
             <TouchableOpacity 
-              style={styles.deleteAccountBtn}
+              style={[styles.deleteAccountBtn, { backgroundColor: isDark ? colors.surface : '#FFFFFF', borderColor: isDark ? 'rgba(244, 63, 94, 0.4)' : '#FDA4AF' }]}
               onPress={() => setShowDeletePrompt(true)}
               activeOpacity={0.85}
             >

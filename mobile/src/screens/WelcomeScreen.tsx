@@ -5,12 +5,14 @@ import { Feather } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../navigation/AuthStack';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme } from '../context/ThemeContext';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'Welcome'>;
 };
 
 export function WelcomeScreen({ navigation }: Props) {
+  const { colors, isDark } = useTheme();
   const logoAnim = useRef(new Animated.Value(0)).current;
   const brandAnim = useRef(new Animated.Value(0)).current;
   const taglineAnim = useRef(new Animated.Value(0)).current;
@@ -37,8 +39,12 @@ export function WelcomeScreen({ navigation }: Props) {
     </Animated.View>
   );
 
+  const gradientColors = isDark 
+    ? (['#0F172A', '#064E3B', '#022C22'] as const)
+    : (['#FFFFFF', '#F0FDF4', '#ECFDF5'] as const);
+
   return (
-    <LinearGradient colors={['#FFFFFF', '#F0FDF4', '#ECFDF5']} style={styles.container}>
+    <LinearGradient colors={gradientColors} style={styles.container}>
       <SafeAreaView style={styles.container}>
         <ScrollView 
           contentContainerStyle={{ flexGrow: 1, justifyContent: 'space-between' }} 
@@ -49,8 +55,8 @@ export function WelcomeScreen({ navigation }: Props) {
             
             {wrapAnimated(logoAnim, (
               <View style={styles.logoContainer}>
-                <View style={styles.glow} />
-                <View style={styles.logoWrapper}>
+                <View style={[styles.glow, isDark && { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]} />
+                <View style={[styles.logoWrapper, isDark && { backgroundColor: colors.surface }]}>
                   <Image 
                     source={require('../../assets/logo.jpg')} 
                     style={styles.logoImage} 
@@ -62,30 +68,30 @@ export function WelcomeScreen({ navigation }: Props) {
 
             {wrapAnimated(brandAnim, (
               <Text style={styles.brandTitle}>
-                <Text style={{ color: '#064E3B' }}>NARENDRA </Text>
-                <Text style={{ color: '#16A34A' }}>KIRANA</Text>
+                <Text style={{ color: isDark ? '#34D399' : '#064E3B' }}>NARENDRA </Text>
+                <Text style={{ color: isDark ? '#10B981' : '#16A34A' }}>KIRANA</Text>
               </Text>
             ))}
 
             {wrapAnimated(taglineAnim, (
-              <Text style={styles.subtitle}>
+              <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
                 Your neighborhood kirana store,{'\n'}now at your fingertips.
               </Text>
             ))}
 
             {wrapAnimated(pillsAnim, (
               <View style={styles.featuresContainer}>
-                <View style={[styles.pill, { backgroundColor: '#F0FDF4' }]}>
-                  <Feather name="zap" size={14} color="#059669" />
-                  <Text style={[styles.pillText, { color: '#064E3B' }]}>Express Delivery</Text>
+                <View style={[styles.pill, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.2)' : '#F0FDF4' }]}>
+                  <Feather name="zap" size={14} color={colors.primary} />
+                  <Text style={[styles.pillText, { color: isDark ? '#34D399' : '#064E3B' }]}>Express Delivery</Text>
                 </View>
-                <View style={[styles.pill, { backgroundColor: '#EFF6FF' }]}>
+                <View style={[styles.pill, { backgroundColor: isDark ? 'rgba(37, 99, 235, 0.2)' : '#EFF6FF' }]}>
                   <Feather name="check-circle" size={14} color="#2563EB" />
-                  <Text style={[styles.pillText, { color: '#1E3A8A' }]}>100% Fresh</Text>
+                  <Text style={[styles.pillText, { color: isDark ? '#93C5FD' : '#1E3A8A' }]}>100% Fresh</Text>
                 </View>
-                <View style={[styles.pill, { backgroundColor: '#FFFBEB' }]}>
+                <View style={[styles.pill, { backgroundColor: isDark ? 'rgba(217, 119, 6, 0.2)' : '#FFFBEB' }]}>
                   <Feather name="tag" size={14} color="#D97706" />
-                  <Text style={[styles.pillText, { color: '#92400E' }]}>Best Prices</Text>
+                  <Text style={[styles.pillText, { color: isDark ? '#FCD34D' : '#92400E' }]}>Best Prices</Text>
                 </View>
               </View>
             ))}
@@ -96,7 +102,7 @@ export function WelcomeScreen({ navigation }: Props) {
             transform: [{ translateY: buttonsAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] 
           }]}>
             <TouchableOpacity 
-              style={styles.primaryButton}
+              style={[styles.primaryButton, { backgroundColor: colors.primary }]}
               onPress={() => navigation.navigate('Login')}
               activeOpacity={0.85}
             >
@@ -108,8 +114,8 @@ export function WelcomeScreen({ navigation }: Props) {
               onPress={() => navigation.navigate('Login')}
               activeOpacity={0.85}
             >
-              <Text style={styles.secondaryButtonText}>
-                Already have an account? <Text style={{ color: '#059669', fontWeight: '800' }}>Log in</Text>
+              <Text style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>
+                Already have an account? <Text style={{ color: colors.primary, fontWeight: '800' }}>Log in</Text>
               </Text>
             </TouchableOpacity>
           </Animated.View>

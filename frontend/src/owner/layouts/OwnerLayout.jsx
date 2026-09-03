@@ -66,7 +66,7 @@ const OwnerLayout = () => {
   };
 
   return (
-    <div className="flex h-[100dvh] w-full bg-slate-50 overflow-hidden">
+    <div className="flex h-[100dvh] w-full bg-slate-50 dark:bg-[#090d16] overflow-hidden">
       {/* Mobile sidebar overlay */}
       {isSidebarOpen && (
         <div 
@@ -227,7 +227,7 @@ const OwnerLayout = () => {
         </div>
 
         {/* Main Content Area – clean full-height layout with no bottom bar */}
-        <main className="flex-1 overflow-y-auto bg-gray-50 p-3 sm:p-6 pb-6 lg:pb-6">
+        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-[#090d16] p-3 sm:p-6 pb-6 lg:pb-6">
           <Outlet />
         </main>
 
@@ -241,21 +241,21 @@ const OwnerLayout = () => {
             />
 
             {/* Modal Sheet */}
-            <div className="relative z-10 w-full max-h-[85dvh] bg-white rounded-t-3xl shadow-2xl flex flex-col overflow-hidden animate-slide-up border-t border-slate-200">
+            <div className="relative z-10 w-full max-h-[85dvh] bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl flex flex-col overflow-hidden animate-slide-up border-t border-slate-200 dark:border-slate-800">
               {/* Header */}
-              <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-700 dark:text-emerald-300">
                     <LayoutGrid size={18} />
                   </div>
                   <div>
-                    <h3 className="text-sm font-extrabold text-slate-900">Store Sections Hub</h3>
-                    <p className="text-[11px] font-medium text-slate-500">Quickly assess and jump to any section</p>
+                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">Store Sections Hub</h3>
+                    <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Quickly assess and jump to any section</p>
                   </div>
                 </div>
                 <button 
                   onClick={() => setIsHubOpen(false)}
-                  className="w-8 h-8 rounded-full bg-slate-200/80 flex items-center justify-center text-slate-600 hover:bg-slate-300 transition-colors"
+                  className="w-8 h-8 rounded-full bg-slate-200/80 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
                 >
                   <X size={16} />
                 </button>
@@ -274,8 +274,8 @@ const OwnerLayout = () => {
                   onClick={toggleStoreStatus}
                   className={`px-3 py-1 rounded-full text-xs font-extrabold transition-all shadow-sm ${
                     storeStatus.is_open 
-                      ? 'bg-emerald-500 text-white hover:bg-emerald-600' 
-                      : 'bg-rose-500 text-white hover:bg-rose-600'
+                      ? 'bg-rose-500 hover:bg-rose-600 text-white' 
+                      : 'bg-emerald-500 hover:bg-emerald-600 text-white'
                   }`}
                 >
                   {storeStatus.is_open ? 'Set Offline' : 'Go Live'}
@@ -294,8 +294,8 @@ const OwnerLayout = () => {
                       onClick={() => setIsHubOpen(false)}
                       className={`flex flex-col p-3 rounded-2xl border transition-all duration-200 active:scale-95 ${
                         active
-                          ? 'bg-emerald-50/80 border-emerald-300 ring-2 ring-emerald-500 shadow-sm'
-                          : 'bg-white border-slate-200/80 hover:border-slate-300 hover:bg-slate-50'
+                          ? 'bg-emerald-50/80 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-700 ring-2 ring-emerald-500 shadow-sm'
+                          : 'bg-white dark:bg-slate-800/90 border-slate-200/80 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-2">
@@ -303,23 +303,23 @@ const OwnerLayout = () => {
                           <Icon size={16} />
                         </div>
                         <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md ${
-                          active ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'
+                          active ? 'bg-emerald-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                         }`}>
                           {item.badge}
                         </span>
                       </div>
-                      <span className="text-xs font-extrabold text-slate-900 leading-tight">{item.name}</span>
-                      <span className="text-[10px] text-slate-500 leading-tight mt-0.5 line-clamp-1">{item.desc}</span>
+                      <span className="text-xs font-extrabold text-slate-900 dark:text-white leading-tight">{item.name}</span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight mt-0.5 line-clamp-1">{item.desc}</span>
                     </Link>
                   );
                 })}
               </div>
 
               {/* Bottom Close Bar */}
-              <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <button
                   onClick={() => setIsHubOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-300 transition-colors"
+                  className="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
                 >
                   Close
                 </button>
