@@ -40,8 +40,9 @@ const CATEGORY_COLORS = [
 
 
 
-function ProductImage({ product, large = false }) {
+function ProductImage({ product, large = false, priority = false }) {
   const [activeImage, setActiveImage] = useState(0);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const images = [];
   if (product.image) images.push(product.image);
   if (product.gallery_images) {
@@ -93,18 +94,22 @@ function ProductImage({ product, large = false }) {
     
     return (
        <div className={`w-full flex items-center justify-center relative overflow-hidden bg-gradient-to-b from-transparent to-slate-50/50 ${large ? 'h-72 sm:h-80 md:h-full' : 'h-32 sm:h-36'}`}>
+           <div className={`absolute inset-0 bg-slate-100 transition-opacity duration-300 ${imageLoaded ? 'opacity-0 pointer-events-none' : 'opacity-100 animate-pulse'}`} />
            <div className="absolute inset-0 bg-slate-900/5 opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 rounded-t-xl z-10 mix-blend-overlay"></div>
            <img 
-             loading='lazy' 
+             loading={priority ? 'eager' : 'lazy'}
+             fetchPriority={priority ? 'high' : undefined}
              decoding='async' 
-             src={optimizeImage(images[0], 600)} 
+             src={optimizeImage(images[0], large ? 600 : 300)} 
              alt={product.name} 
+             onLoad={() => setImageLoaded(true)}
              onError={(e) => {
+               setImageLoaded(true);
                if (product.name?.toLowerCase().includes('pumpkin') && !e.currentTarget.src.includes('pumpkin_seeds.jpg')) {
                  e.currentTarget.src = '/media/products/pumpkin_seeds.jpg';
                }
              }}
-             className="w-full h-full object-cover mix-blend-multiply transition-transform duration-700 group-hover/card:scale-110"
+             className={`w-full h-full object-cover mix-blend-multiply transition-transform duration-700 group-hover/card:scale-110 transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
            />
        </div>
     );
@@ -123,7 +128,7 @@ function SearchBox({ value, onChange }) {
 
 
 
-export function ProductCard({ product, ...props }) {
+export function ProductCard({ product, priority = false, ...props }) {
 
   const { favorites, toggleFavorite, isCustomer, add, cart } = useCart();
 
@@ -237,7 +242,7 @@ export function ProductCard({ product, ...props }) {
 
    )}
 
-   <ProductImage product={product} />
+   <ProductImage product={product} priority={priority} />
 
  </div>
 
@@ -500,29 +505,31 @@ export function HomePage() {
 
   useEffect(() => {
 
-    let done = 0;
+    const fetchAll = async () => {
+      try {
+        const [catsRes, bannersRes, settingsRes, sectionsRes] = await Promise.allSettled([
+          api.get('/categories/'),
+          api.get('/offers/banners/'),
+          api.get('/store/settings/'),
+          api.get('/store/homepage-sections/')
+        ]);
 
-    const tick = () => { done++; if (done >= 4) setLoading(false); };
-
-    
-
-    const fetchAll = () => {
-
-        api.get('/categories/').then(r => setCategories(unpack(r))).catch(console.error).finally(tick);
-
-        api.get('/offers/banners/').then(r => setBanners(unpack(r))).catch(console.error).finally(tick);
-
-        api.get('/store/settings/').then(r => setSettings(r.data)).catch(console.error).finally(tick);
-
-        api.get('/store/homepage-sections/').then(r => { 
-          const d = r.data.results || r.data || []; 
+        if (catsRes.status === 'fulfilled') setCategories(unpack(catsRes.value));
+        if (bannersRes.status === 'fulfilled') setBanners(unpack(bannersRes.value));
+        if (settingsRes.status === 'fulfilled') setSettings(settingsRes.value.data);
+        if (sectionsRes.status === 'fulfilled') {
+          const d = sectionsRes.value.data.results || sectionsRes.value.data || [];
           const mapped = d.map(sec => ({
             ...sec,
             items: (sec.section_products || []).sort((a, b) => a.position - b.position).map(sp => sp.product_details)
           }));
-          setSections(mapped.filter(s => s.is_active).sort((a, b) => a.display_order - b.display_order)); 
-        }).catch(console.error).finally(tick);
-
+          setSections(mapped.filter(s => s.is_active).sort((a, b) => a.display_order - b.display_order));
+        }
+      } catch (err) {
+        console.error('Failed to load homepage data', err);
+      } finally {
+        setLoading(false);
+      }
     };
 
     
@@ -746,9 +753,9 @@ export function HomePage() {
                 id={`carousel-${section.id}`}
                 className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 pt-1 px-0.5 hide-scrollbar snap-x snap-mandatory scroll-smooth"
               >
-                {sectionProducts.map((product) => (
+                {sectionProducts.map((product, index) => (
                   <div key={product.id} className="w-[160px] sm:w-[190px] md:w-[210px] shrink-0 snap-start">
-                    <ProductCard product={product} />
+                    <ProductCard product={product} priority={index < 4} />
                   </div>
                 ))}
               </div>
@@ -919,23 +926,29 @@ export function ProductsPage() {
   }, []);
 
   useEffect(() => {
-    let loadingTimeout = setTimeout(() => setLoading(true), 50);
     const params = {};
     if (query) params.search = query;
     if (category) params.category = category;
+
+    const cached = readCacheSync('/products/', { params });
+    if (cached) {
+      setProducts(cached.results || cached || []);
+      setNextPage(cached.next || null);
+    } else {
+      setLoading(true);
+    }
     
     const timer = setTimeout(() => {
       api.get('/products/', { params })
          .then(res => { 
-           clearTimeout(loadingTimeout); 
            setProducts(res.data.results || res.data || []); 
            setNextPage(res.data.next || null);
            setError(''); 
          })
          .catch(() => setError('Could not load products.'))
-         .finally(() => { clearTimeout(loadingTimeout); setLoading(false); });
+         .finally(() => { setLoading(false); });
     }, query ? 300 : 0);
-    return () => { clearTimeout(timer); clearTimeout(loadingTimeout); };
+    return () => clearTimeout(timer);
   }, [query, category]);
 
   const loadMore = () => {
@@ -1016,7 +1029,7 @@ export function ProductsPage() {
 
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
 
-        {loading ? Array.from({length: 8}).map((_, i) => <ProductSkeleton key={i} />) : sortedProducts.map((product) => <ProductCard key={product.id} product={product} />)}
+        {loading ? Array.from({length: 8}).map((_, i) => <ProductSkeleton key={i} />) : sortedProducts.map((product, index) => <ProductCard key={product.id} product={product} priority={index < 4} />)}
 
       </div>
       
