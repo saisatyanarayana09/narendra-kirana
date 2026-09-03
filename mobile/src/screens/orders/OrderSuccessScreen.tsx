@@ -21,7 +21,7 @@ type Props = {
 export function OrderSuccessScreen({ navigation, route }: Props) {
   const { orderId } = route.params || {};
   const [countdown, setCountdown] = useState(7);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isNavigatingRef = useRef(false);
 
   // Animations

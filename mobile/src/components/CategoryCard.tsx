@@ -80,12 +80,12 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   image: {
-    ...StyleSheet.absoluteFillObject,
+    ...(StyleSheet.absoluteFill as any),
     width: '100%',
     height: '100%',
   },
   fallbackGradient: {
-    ...StyleSheet.absoluteFillObject,
+    ...(StyleSheet.absoluteFill as any),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.3)',
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...(StyleSheet.absoluteFill as any),
   },
   name: {
     position: 'relative',

@@ -35,7 +35,7 @@ export function FloatingCartBar({ bottomOffset, onPress, onClose, currentRouteNa
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const countdownAnim = useRef(new Animated.Value(1)).current;
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const items = cart?.items || [];
   const itemCount = items.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);

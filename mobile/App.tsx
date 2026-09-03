@@ -24,10 +24,7 @@ function ThemedAppContent() {
     <>
       <OfflineBanner />
       <RootNavigator />
-      <StatusBar 
-        style={isDark ? "light" : "dark"} 
-        backgroundColor={colors.background}
-      />
+      <StatusBar style={isDark ? "light" : "dark"} />
     </>
   );
 }
