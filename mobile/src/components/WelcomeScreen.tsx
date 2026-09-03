@@ -21,10 +21,11 @@ const { width, height } = Dimensions.get('window');
 
 interface WelcomeScreenProps {
   forceShow?: boolean;
+  onStart?: () => void;
   onFinish?: () => void;
 }
 
-export function WelcomeScreen({ forceShow = false, onFinish }: WelcomeScreenProps) {
+export function WelcomeScreen({ forceShow = false, onStart, onFinish }: WelcomeScreenProps) {
   const { user } = useAuth();
   const [visible, setVisible] = useState(false);
 
@@ -37,6 +38,7 @@ export function WelcomeScreen({ forceShow = false, onFinish }: WelcomeScreenProp
     if (forceShow || (user && !getHasShownWelcomeSession())) {
       setHasShownWelcomeSession(true);
       setVisible(true);
+      if (onStart) onStart();
 
       // 1. Fade in & subtle scale up
       Animated.parallel([

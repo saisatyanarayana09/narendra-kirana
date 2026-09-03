@@ -105,6 +105,8 @@ function CartStack() {
 }
 
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
+import { getHasShownWelcomeSession } from '../utils/welcomeSession';
 import { FloatingCartBar } from '../components/FloatingCartBar';
 import { triggerHaptic } from '../utils/haptics';
 
@@ -125,28 +127,34 @@ export function MainTabs() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const { cart } = useCart();
+  const { user } = useAuth();
   const [currentTab, setCurrentTab] = useState('HomeTab');
   const [currentRouteName, setCurrentRouteName] = useState('');
   const [isDismissed, setIsDismissed] = useState(false);
+
+  // Cart popup bar should only come after welcome screen is completed
+  const willShowWelcome = Boolean(user && !getHasShownWelcomeSession());
+  const [isWelcomeActive, setIsWelcomeActive] = useState(willShowWelcome);
+
   const cartItemCount = cart?.items?.length || 0;
   const prevCountRef = useRef(cartItemCount);
   const hasShownInitialOnAppOpenRef = useRef(false);
 
-  // 1. Show once on app open if user has items in cart, then it auto-closes after 10s
+  // 1. Show once on app open if user has items in cart, ONLY AFTER welcome screen completes!
   useEffect(() => {
-    if (cartItemCount > 0 && !hasShownInitialOnAppOpenRef.current) {
+    if (!isWelcomeActive && cartItemCount > 0 && !hasShownInitialOnAppOpenRef.current) {
       hasShownInitialOnAppOpenRef.current = true;
       setIsDismissed(false);
     }
-  }, [cartItemCount]);
+  }, [cartItemCount, isWelcomeActive]);
 
   // 2. Re-show only when user actively adds an item while shopping
   useEffect(() => {
-    if (cartItemCount > prevCountRef.current) {
+    if (!isWelcomeActive && cartItemCount > prevCountRef.current) {
       setIsDismissed(false);
     }
     prevCountRef.current = cartItemCount;
-  }, [cartItemCount]);
+  }, [cartItemCount, isWelcomeActive]);
 
   // Optimize Android bottom padding
   const bottomPadding = Math.max(
@@ -157,7 +165,10 @@ export function MainTabs() {
 
   return (
     <View style={{ flex: 1 }}>
-      <WelcomeScreen />
+      <WelcomeScreen 
+        onStart={() => setIsWelcomeActive(true)}
+        onFinish={() => setIsWelcomeActive(false)}
+      />
 
       <Tab.Navigator
         screenListeners={{
@@ -259,8 +270,8 @@ export function MainTabs() {
         />
       </Tab.Navigator>
 
-      {/* Floating Mini-Cart Bar rendered after Tab.Navigator to ensure it floats on top and receives touch events */}
-      {currentTab !== 'CartTab' && cartItemCount > 0 && !isDismissed && (
+      {/* Floating Mini-Cart Bar rendered after Tab.Navigator only after welcome screen has completed */}
+      {!isWelcomeActive && currentTab !== 'CartTab' && cartItemCount > 0 && !isDismissed && (
         <FloatingCartBar 
           bottomOffset={totalBarHeight + 10}
           onPress={() => navigation.navigate('CartTab')}
