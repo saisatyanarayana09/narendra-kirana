@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiClient } from '../api/client';
 import { useAuth } from './AuthContext';
+
+export const GUEST_CART_KEY = '@smart_kirana_guest_cart';
 
 export interface CartItem {
   id: number;
@@ -41,7 +44,7 @@ interface CartContextType {
   cart: CartData | null;
   isLoading: boolean;
   storeSettings: any;
-  addToCart: (productId: number, quantity?: number) => Promise<void>;
+  addToCart: (productId: number, quantity?: number, productDetails?: any) => Promise<void>;
   updateQuantity: (itemId: number, quantity: number) => Promise<void>;
   removeFromCart: (itemId: number) => Promise<void>;
   applyPromo: (code: string) => Promise<void>;
@@ -57,16 +60,89 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [storeSettings, setStoreSettings] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const calculateGuestTotals = (items: CartItem[], packagingFeeStr: string = '0'): CartData => {
+    let subtotalNum = 0;
+    const computedItems = items.map((item) => {
+      const priceNum = parseFloat(item.product?.price || item.unit_price || '0');
+      const itemSub = priceNum * item.quantity;
+      subtotalNum += itemSub;
+      return {
+        ...item,
+        subtotal: itemSub.toFixed(2),
+      };
+    });
+
+    const packagingFeeNum = parseFloat(packagingFeeStr || '0');
+    const totalNum = subtotalNum + (subtotalNum > 0 ? packagingFeeNum : 0);
+
+    return {
+      items: computedItems,
+      subtotal: subtotalNum.toFixed(2),
+      discount: '0.00',
+      promo_code: null,
+      promo_discount: '0.00',
+      packaging_fee: subtotalNum > 0 ? packagingFeeNum.toFixed(2) : '0.00',
+      total: totalNum.toFixed(2),
+    };
+  };
+
+  const loadGuestCart = async (): Promise<CartData | null> => {
+    try {
+      const raw = await AsyncStorage.getItem(GUEST_CART_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (e) {
+      console.error('Failed to load guest cart from storage:', e);
+      return null;
+    }
+  };
+
   useEffect(() => {
     fetchStoreSettings();
   }, []);
 
+  // Sync / Merge Cart when user changes (login / logout)
   useEffect(() => {
-    if (user) {
-      refreshCart();
-    } else {
-      setCart(null);
-    }
+    const syncUserCart = async () => {
+      if (user) {
+        try {
+          const raw = await AsyncStorage.getItem(GUEST_CART_KEY);
+          if (raw) {
+            const guestCart = JSON.parse(raw);
+            const guestItems = guestCart.items || [];
+            if (guestItems.length > 0) {
+              await apiClient
+                .post('/cart/merge/', {
+                  items: guestItems.map((i: any) => ({
+                    product: i.product?.id || i.id,
+                    quantity: i.quantity,
+                  })),
+                })
+                .catch(() => null);
+              await AsyncStorage.removeItem(GUEST_CART_KEY);
+            }
+          }
+        } catch (e) {
+          console.error('Failed to merge guest cart on login:', e);
+        }
+        await refreshCart();
+      } else {
+        const guestCart = await loadGuestCart();
+        setCart(
+          guestCart || {
+            items: [],
+            subtotal: '0.00',
+            discount: '0.00',
+            promo_code: null,
+            promo_discount: '0.00',
+            packaging_fee: '0.00',
+            total: '0.00',
+          }
+        );
+      }
+    };
+
+    syncUserCart();
   }, [user]);
 
   const fetchStoreSettings = async () => {
@@ -81,6 +157,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshCart = async () => {
+    if (!user) {
+      const guestCart = await loadGuestCart();
+      if (guestCart) {
+        setCart(guestCart);
+      } else {
+        setCart({
+          items: [],
+          subtotal: '0.00',
+          discount: '0.00',
+          promo_code: null,
+          promo_discount: '0.00',
+          packaging_fee: '0.00',
+          total: '0.00',
+        });
+      }
+      return;
+    }
+
     try {
       setIsLoading(true);
       const res = await apiClient.get('/cart/');
@@ -92,13 +186,93 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const addToCart = async (productId: number, quantity: number = 1) => {
+  const addToCart = async (productId: number, quantity: number = 1, productDetails?: any) => {
+    if (!user) {
+      try {
+        setIsLoading(true);
+        const currentCart = (await loadGuestCart()) || {
+          items: [],
+          subtotal: '0.00',
+          discount: '0.00',
+          promo_code: null,
+          promo_discount: '0.00',
+          packaging_fee: '0.00',
+          total: '0.00',
+        };
+
+        const existingItemIndex = currentCart.items.findIndex(
+          (item) => (item.product?.id || item.id) === productId
+        );
+
+        let updatedItems = [...currentCart.items];
+
+        if (existingItemIndex > -1) {
+          const existingItem = updatedItems[existingItemIndex];
+          const newQty = existingItem.quantity + quantity;
+          updatedItems[existingItemIndex] = {
+            ...existingItem,
+            quantity: newQty,
+          };
+        } else {
+          // New item: resolve product details
+          let details = productDetails;
+          if (!details || !details.price) {
+            try {
+              const res = await apiClient.get(`/products/${productId}/`);
+              details = res.data;
+            } catch {
+              details = {
+                id: productId,
+                name: 'Product',
+                price: '0.00',
+                mrp: null,
+                is_in_stock: true,
+                image: null,
+              };
+            }
+          }
+
+          const newItem: CartItem = {
+            id: productId,
+            product: {
+              id: productId,
+              name: details.name || 'Product',
+              price: String(details.price || '0'),
+              mrp: details.mrp ? String(details.mrp) : null,
+              is_in_stock: details.is_in_stock !== false,
+              image: details.image || details.primary_image || null,
+              unit: details.unit || 'pack',
+              stock_quantity: details.stock_quantity,
+              max_order_quantity: details.max_order_quantity,
+            },
+            quantity,
+            subtotal: (parseFloat(details.price || '0') * quantity).toFixed(2),
+            product_name: details.name,
+            product_unit: details.unit,
+            product_image: details.image || details.primary_image || null,
+            unit_price: String(details.price || '0'),
+          };
+          updatedItems.push(newItem);
+        }
+
+        const packagingFee = storeSettings?.packaging_fee || '0';
+        const newCartData = calculateGuestTotals(updatedItems, packagingFee);
+        await AsyncStorage.setItem(GUEST_CART_KEY, JSON.stringify(newCartData));
+        setCart(newCartData);
+      } catch (error) {
+        console.error('Failed to add to guest cart:', error);
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
     try {
       setIsLoading(true);
-      
-      // Check if product is already in cart locally to update instead
+
       if (cart) {
-        const existingItem = cart.items?.find(item => item.product?.id === productId);
+        const existingItem = cart.items?.find((item) => item.product?.id === productId);
         if (existingItem) {
           await updateQuantity(existingItem.id, existingItem.quantity + quantity);
           return;
@@ -119,7 +293,36 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (quantity <= 0) {
       return removeFromCart(itemId);
     }
-    
+
+    if (!user) {
+      try {
+        setIsLoading(true);
+        const currentCart = (await loadGuestCart()) || cart;
+        if (!currentCart) return;
+
+        const updatedItems = currentCart.items.map((item) => {
+          if (item.id === itemId || item.product?.id === itemId) {
+            return {
+              ...item,
+              quantity,
+            };
+          }
+          return item;
+        });
+
+        const packagingFee = storeSettings?.packaging_fee || '0';
+        const newCartData = calculateGuestTotals(updatedItems, packagingFee);
+        await AsyncStorage.setItem(GUEST_CART_KEY, JSON.stringify(newCartData));
+        setCart(newCartData);
+      } catch (error) {
+        console.error('Failed to update guest cart quantity:', error);
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
     try {
       setIsLoading(true);
       await apiClient.patch(`/cart/items/${itemId}/`, { quantity });
@@ -133,6 +336,29 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const removeFromCart = async (itemId: number) => {
+    if (!user) {
+      try {
+        setIsLoading(true);
+        const currentCart = (await loadGuestCart()) || cart;
+        if (!currentCart) return;
+
+        const updatedItems = currentCart.items.filter(
+          (item) => item.id !== itemId && item.product?.id !== itemId
+        );
+
+        const packagingFee = storeSettings?.packaging_fee || '0';
+        const newCartData = calculateGuestTotals(updatedItems, packagingFee);
+        await AsyncStorage.setItem(GUEST_CART_KEY, JSON.stringify(newCartData));
+        setCart(newCartData);
+      } catch (error) {
+        console.error('Failed to remove from guest cart:', error);
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
     try {
       setIsLoading(true);
       await apiClient.delete(`/cart/items/${itemId}/`);
@@ -146,6 +372,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const applyPromo = async (code: string) => {
+    if (!user) {
+      throw new Error('Please sign in to apply promo codes');
+    }
     try {
       setIsLoading(true);
       await apiClient.post('/cart/apply-promo/', { code });
@@ -170,17 +399,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <CartContext.Provider 
-      value={{ 
-        cart, 
-        isLoading, 
+    <CartContext.Provider
+      value={{
+        cart,
+        isLoading,
         storeSettings,
-        addToCart, 
-        updateQuantity, 
-        removeFromCart, 
-        applyPromo, 
+        addToCart,
+        updateQuantity,
+        removeFromCart,
+        applyPromo,
         removePromo,
-        refreshCart 
+        refreshCart,
       }}
     >
       {children}

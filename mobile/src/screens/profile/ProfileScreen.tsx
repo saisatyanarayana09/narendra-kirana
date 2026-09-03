@@ -83,42 +83,51 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
 
   const cards = [
     { 
+      key: 'yourOrders',
       name: t('yourOrders'), 
       desc: t('yourOrdersDesc'), 
       icon: 'package' as const,
       isRupee: false,
       color: '#2563EB', // blue-600
       bg: '#EFF6FF',    // blue-50
+      isProtected: true,
       onPress: () => navigation.navigate('OrderHistoryScreen') 
     },
     { 
+      key: 'wallet',
       name: t('wallet'), 
       desc: t('walletDesc'), 
       icon: 'currency-rupee' as const,
       isRupee: true, // Use Indian Rupee symbol
       color: '#059669', // emerald-600
       bg: '#ECFDF5',    // emerald-50
+      isProtected: true,
       onPress: () => navigation.navigate('WalletScreen') 
     },
     { 
+      key: 'referAndEarn',
       name: t('referAndEarn'), 
       desc: t('referAndEarnDesc'), 
       icon: 'gift' as const,
       isRupee: false,
       color: '#0D9488', // teal-600
       bg: '#F0FDFA',    // teal-50
+      isProtected: true,
       onPress: () => navigation.navigate('ReferAndEarnScreen') 
     },
     { 
+      key: 'offers',
       name: t('offersPromoCodes'), 
       desc: t('offersDesc'), 
       icon: 'tag' as const,
       isRupee: false,
       color: '#8B5CF6', // violet-600
       bg: '#F5F3FF',    // violet-50
+      isProtected: true,
       onPress: () => navigation.navigate('OffersScreen') 
     },
     { 
+      key: 'language',
       name: language === 'te' ? 'భాష / Language' : 'Language / భాష', 
       desc: t('languagesDesc'), 
       icon: 'globe' as const,
@@ -126,51 +135,62 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
       badge: language === 'te' ? 'తెలుగు' : 'English',
       color: '#0284C7', // sky-600
       bg: '#F0F9FF',    // sky-50
+      isProtected: false,
       onPress: () => navigation.navigate('LanguageScreen') 
     },
     { 
+      key: 'accountSettings',
       name: t('accountSettings'), 
       desc: t('accountSettingsDesc'), 
       icon: 'user' as const,
       isRupee: false,
       color: '#059669', // primary-600
       bg: '#ECFDF5',    // primary-50
+      isProtected: true,
       onPress: () => navigation.navigate('AccountSettingsScreen') 
     },
     { 
+      key: 'savedAddresses',
       name: t('savedAddresses'), 
       desc: t('savedAddressesDesc'), 
       icon: 'map-pin' as const,
       isRupee: false,
       color: '#D97706', // amber-600
       bg: '#FFFBEB',    // amber-50
+      isProtected: true,
       onPress: () => navigation.navigate('AddressesScreen') 
     },
     { 
+      key: 'favorites',
       name: t('favorites'), 
       desc: t('favoritesDesc'), 
       icon: 'heart' as const,
       isRupee: false,
       color: '#E11D48', // rose-600
       bg: '#FFF1F2',    // rose-50
+      isProtected: true,
       onPress: () => navigation.navigate('FavoritesScreen') 
     },
     { 
+      key: 'notifications',
       name: t('notifications'), 
       desc: t('notificationsDesc'), 
       icon: 'bell' as const,
       isRupee: false,
       color: '#4F46E5', // indigo-600
       bg: '#EEF2FF',    // indigo-50
+      isProtected: true,
       onPress: () => navigation.navigate('NotificationsScreen') 
     },
     { 
+      key: 'appSettings',
       name: t('appSettings'), 
       desc: t('appSettingsDesc'), 
       icon: 'sliders' as const,
       isRupee: false,
       color: '#475569', // slate-600
       bg: '#F1F5F9',    // slate-100
+      isProtected: false,
       onPress: () => navigation.navigate('AppSettingsScreen') 
     },
   ];
@@ -179,6 +199,20 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
 
   const handleCardPress = (card: typeof cards[0]) => {
     triggerHaptic('light');
+    if (!user && card.isProtected) {
+      Alert.alert(
+        'Sign In Required',
+        'Please sign in to access ' + card.name,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Sign In',
+            onPress: () => navigation.navigate('Login' as any),
+          },
+        ]
+      );
+      return;
+    }
     card.onPress();
   };
 
@@ -228,13 +262,34 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
           {/* Avatar & Customer Greeting */}
           <View style={styles.customerInfoRow}>
             <View style={styles.avatarCircle}>
-              <Text style={styles.avatarText}>{getInitials()}</Text>
+              {user ? (
+                <Text style={styles.avatarText}>{getInitials()}</Text>
+              ) : (
+                <Feather name="user" size={26} color="#059669" />
+              )}
             </View>
             <View style={styles.greetingBox}>
-              <Text style={styles.greetingTitle}>Hi, {displayName}!</Text>
-              <Text style={styles.greetingSubtitle} numberOfLines={1}>
-                {user?.email || (user?.phone_number ? `+91 ${user.phone_number}` : 'Manage your account and track orders')}
+              <Text style={styles.greetingTitle}>
+                {user ? `Hi, ${displayName}!` : 'Welcome, Guest!'}
               </Text>
+              <Text style={styles.greetingSubtitle} numberOfLines={1}>
+                {user
+                  ? (user?.email || (user?.phone_number ? `+91 ${user.phone_number}` : 'Manage your account and track orders'))
+                  : 'Sign in to track orders, earn cashbacks & more'}
+              </Text>
+              {!user && (
+                <TouchableOpacity
+                  style={styles.guestPillBtn}
+                  onPress={() => {
+                    triggerHaptic('light');
+                    navigation.navigate('Login' as any);
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.guestPillBtnText}>Sign In / Register</Text>
+                  <Feather name="arrow-right" size={13} color="#065F46" />
+                </TouchableOpacity>
+              )}
             </View>
           </View>
 
@@ -244,6 +299,17 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
               style={styles.loyaltyItem}
               onPress={() => {
                 triggerHaptic('light');
+                if (!user) {
+                  Alert.alert(
+                    'Sign In Required',
+                    'Please sign in to access ' + t('wallet'),
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Sign In', onPress: () => navigation.navigate('Login' as any) },
+                    ]
+                  );
+                  return;
+                }
                 navigation.navigate('WalletScreen');
               }}
               activeOpacity={0.75}
@@ -261,6 +327,17 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
               style={styles.loyaltyItem}
               onPress={() => {
                 triggerHaptic('light');
+                if (!user) {
+                  Alert.alert(
+                    'Sign In Required',
+                    'Please sign in to access ' + t('referAndEarn'),
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Sign In', onPress: () => navigation.navigate('Login' as any) },
+                    ]
+                  );
+                  return;
+                }
                 navigation.navigate('ReferAndEarnScreen');
               }}
               activeOpacity={0.75}
@@ -312,28 +389,57 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
             </TouchableOpacity>
           ))}
 
-          {/* Quick Action Logout Tile at the Bottom */}
-          <TouchableOpacity 
-            style={[styles.cardItem, styles.logoutCardItem, { backgroundColor: colors.surface, borderColor: isDark ? 'rgba(239, 68, 68, 0.25)' : '#FEE2E2' }]}
-            onPress={handleLogout}
-            activeOpacity={0.75}
-          >
-            <View style={styles.cardLeftGroup}>
-              <View style={[styles.iconContainer, { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FFF1F2' }]}>
-                <Feather name="log-out" size={20} color="#E11D48" />
+          {/* Quick Action Logout Tile or Sign In Tile at the Bottom */}
+          {user ? (
+            <TouchableOpacity 
+              style={[styles.cardItem, styles.logoutCardItem, { backgroundColor: colors.surface, borderColor: isDark ? 'rgba(239, 68, 68, 0.25)' : '#FEE2E2' }]}
+              onPress={handleLogout}
+              activeOpacity={0.75}
+            >
+              <View style={styles.cardLeftGroup}>
+                <View style={[styles.iconContainer, { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FFF1F2' }]}>
+                  <Feather name="log-out" size={20} color="#E11D48" />
+                </View>
+                <View style={styles.cardTextGroup}>
+                  <Text style={[styles.cardTitle, { color: '#E11D48', fontSize: 15 }]}>
+                    {t('logout')}
+                  </Text>
+                  <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>{t('logoutDesc')}</Text>
+                </View>
               </View>
-              <View style={styles.cardTextGroup}>
-                <Text style={[styles.cardTitle, { color: '#E11D48', fontSize: 15 }]}>
-                  {t('logout')}
-                </Text>
-                <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>{t('logoutDesc')}</Text>
-              </View>
-            </View>
 
-            <View style={[styles.chevronCircle, isDark && { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}>
-              <Feather name="chevron-right" size={16} color="#E11D48" />
-            </View>
-          </TouchableOpacity>
+              <View style={[styles.chevronCircle, isDark && { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}>
+                <Feather name="chevron-right" size={16} color="#E11D48" />
+              </View>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity 
+              style={[styles.cardItem, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              onPress={() => {
+                triggerHaptic('light');
+                navigation.navigate('Login' as any);
+              }}
+              activeOpacity={0.75}
+            >
+              <View style={styles.cardLeftGroup}>
+                <View style={[styles.iconContainer, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.15)' : '#ECFDF5' }]}>
+                  <Feather name="log-in" size={20} color="#059669" />
+                </View>
+                <View style={styles.cardTextGroup}>
+                  <Text style={[styles.cardTitle, { color: colors.primary, fontSize: 15 }]}>
+                    Sign In / Register
+                  </Text>
+                  <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>
+                    Sign in to your account for full access
+                  </Text>
+                </View>
+              </View>
+
+              <View style={[styles.chevronCircle, { backgroundColor: colors.background }]}>
+                <Feather name="chevron-right" size={16} color={colors.primary} />
+              </View>
+            </TouchableOpacity>
+          )}
         </View>
 
         <Text style={[styles.versionText, { color: colors.textSecondary }]}>Narendra Kirana App v1.0.0</Text>
@@ -429,6 +535,27 @@ const styles = StyleSheet.create({
     color: 'rgba(236, 253, 245, 0.85)',
     marginTop: 2,
     fontWeight: '500',
+  },
+  guestPillBtn: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    marginTop: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  guestPillBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#065F46',
   },
   loyaltyCard: {
     flexDirection: 'row',

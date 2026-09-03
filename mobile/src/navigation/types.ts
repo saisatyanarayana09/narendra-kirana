@@ -32,6 +32,8 @@ export type GlobalParamList = {
   AppSettingsScreen: undefined;
   OffersScreen: undefined;
   LanguageScreen: undefined;
+  ForgotPasswordScreen: undefined;
+  ResetPasswordScreen: { uid?: string; token?: string } | undefined;
 };
 
 export type AppNavigationProp = NativeStackNavigationProp<GlobalParamList>;

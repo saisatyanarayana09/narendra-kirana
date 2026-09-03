@@ -101,7 +101,7 @@ export function LoginScreen({ navigation }: Props) {
             <View style={styles.passwordHeader}>
               <Text style={[styles.label, { color: colors.text }]}>Password</Text>
               <TouchableOpacity 
-                onPress={() => Alert.alert('Forgot Password', 'Please contact support or reset password via web portal.')}
+                onPress={() => navigation.navigate('ForgotPasswordScreen' as any)}
               >
                 <Text style={[styles.forgotPasswordText, { color: colors.primary }]}>Forgot Password?</Text>
               </TouchableOpacity>

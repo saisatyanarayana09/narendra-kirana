@@ -14,6 +14,7 @@ import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
 import { theme } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { CartItemCard } from '../../components/CartItemCard';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
@@ -21,6 +22,7 @@ import { triggerHaptic } from '../../utils/haptics';
 
 export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const { cart, isLoading, updateQuantity, removeFromCart, applyPromo, removePromo, storeSettings } = useCart();
   const { colors, isDark } = useTheme();
   const [promoCode, setPromoCode] = useState('');
@@ -256,6 +258,23 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
           <TouchableOpacity 
             style={styles.checkoutBtn}
             onPress={() => {
+              if (!user) {
+                triggerHaptic('light');
+                Alert.alert(
+                  'Sign In Required',
+                  'Please sign in or create an account to place your order. Your cart items will be saved!',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Sign In',
+                      onPress: () => {
+                        navigation.navigate('Login' as any);
+                      },
+                    },
+                  ]
+                );
+                return;
+              }
               triggerHaptic('selection');
               navigation.navigate('CheckoutScreen');
             }}

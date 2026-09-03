@@ -3,23 +3,37 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 /**
  * Hook for Speech-to-Text using native browser SpeechRecognition API
  */
-export function useSpeechRecognition({ onResult, lang = 'en-IN' } = {}) {
+export function useSpeechRecognition({ onResult, onFinal, lang = 'en-IN' } = {}) {
   const [isListening, setIsListening] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState('');
   const [error, setError] = useState(null);
   const recognitionRef = useRef(null);
 
+  const onResultRef = useRef(onResult);
+  const onFinalRef = useRef(onFinal);
+
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    onResultRef.current = onResult;
+  }, [onResult]);
+
+  useEffect(() => {
+    onFinalRef.current = onFinal;
+  }, [onFinal]);
+
+  const isSupported = typeof window !== 'undefined' &&
+    Boolean(window.SpeechRecognition || window.webkitSpeechRecognition) &&
+    Boolean(window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+  const createRecognizer = useCallback(() => {
+    if (typeof window === 'undefined') return null;
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      setError('Voice search is not supported in this browser. Please use Chrome, Edge, or Safari.');
-      return;
+      return null;
     }
 
     const recognizer = new SpeechRecognition();
-    recognizer.continuous = true;
+    recognizer.continuous = false;
     recognizer.interimResults = true;
     recognizer.maxAlternatives = 1;
     recognizer.lang = lang;
@@ -47,8 +61,14 @@ export function useSpeechRecognition({ onResult, lang = 'en-IN' } = {}) {
 
       setInterimTranscript(liveInterim);
 
-      if (accumulatedFinal && onResult) {
-        onResult(accumulatedFinal.trim());
+      if (accumulatedFinal) {
+        const trimmed = accumulatedFinal.trim();
+        if (onResultRef.current) {
+          onResultRef.current(trimmed);
+        }
+        if (onFinalRef.current) {
+          onFinalRef.current(trimmed);
+        }
       }
     };
 
@@ -81,9 +101,14 @@ export function useSpeechRecognition({ onResult, lang = 'en-IN' } = {}) {
     recognizer.onend = () => {
       setIsListening(false);
       setInterimTranscript('');
+      recognitionRef.current = createRecognizer();
     };
 
-    recognitionRef.current = recognizer;
+    return recognizer;
+  }, [lang]);
+
+  useEffect(() => {
+    recognitionRef.current = createRecognizer();
 
     return () => {
       if (recognitionRef.current) {
@@ -94,17 +119,17 @@ export function useSpeechRecognition({ onResult, lang = 'en-IN' } = {}) {
         }
       }
     };
-  }, [lang, onResult]);
+  }, [createRecognizer]);
 
   const toggleListening = useCallback(() => {
-    if (!recognitionRef.current) {
-      setError('Speech recognition is not available on this browser.');
+    if (!isSupported) {
+      setError('Voice search is not supported in this browser. Please use Chrome, Edge, or Safari over HTTPS.');
       return;
     }
 
     if (isListening) {
       try {
-        recognitionRef.current.stop();
+        recognitionRef.current?.stop();
       } catch {
         // Ignore stop error
       }
@@ -112,11 +137,15 @@ export function useSpeechRecognition({ onResult, lang = 'en-IN' } = {}) {
       setError(null);
       setInterimTranscript('');
       try {
-        recognitionRef.current.start();
+        if (!recognitionRef.current) {
+          recognitionRef.current = createRecognizer();
+        }
+        recognitionRef.current?.start();
       } catch (err) {
         // Handle rapid toggle restart
         try {
-          recognitionRef.current.stop();
+          recognitionRef.current?.stop();
+          recognitionRef.current = createRecognizer();
           setTimeout(() => {
             recognitionRef.current?.start();
           }, 150);
@@ -125,7 +154,7 @@ export function useSpeechRecognition({ onResult, lang = 'en-IN' } = {}) {
         }
       }
     }
-  }, [isListening]);
+  }, [isListening, isSupported, createRecognizer]);
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current && isListening) {
@@ -144,7 +173,7 @@ export function useSpeechRecognition({ onResult, lang = 'en-IN' } = {}) {
     setError,
     toggleListening,
     stopListening,
-    isSupported: typeof window !== 'undefined' && Boolean(window.SpeechRecognition || window.webkitSpeechRecognition),
+    isSupported,
   };
 }
 

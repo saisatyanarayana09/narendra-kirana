@@ -15,6 +15,7 @@ function GlobalSearchBar() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const wrapperRef = useRef(null);
+  const { language } = useLanguage();
 
   // Text-to-Speech Voice Hook
   const { speak, stop: stopSpeaking, isSpeaking } = useTextToSpeech();
@@ -28,9 +29,14 @@ function GlobalSearchBar() {
     toggleListening 
   } = useSpeechRecognition({
     onResult: (finalText) => {
-      setQuery((prev) => (prev ? `${prev.trim()} ${finalText}` : finalText));
+      setQuery(finalText);
     },
-    lang: 'en-IN',
+    onFinal: (finalText) => {
+      setQuery(finalText);
+      setIsOpen(false);
+      navigate(`/products?search=${encodeURIComponent(finalText)}`);
+    },
+    lang: language === 'te' ? 'te-IN' : 'en-IN',
   });
 
   useEffect(() => {
@@ -45,7 +51,7 @@ function GlobalSearchBar() {
 
   // Display value combines committed query + live interim voice speech
   const displayValue = isListening && interimTranscript 
-    ? (query ? `${query.trim()} ${interimTranscript}` : interimTranscript)
+    ? interimTranscript
     : query;
 
   useEffect(() => {
@@ -80,8 +86,14 @@ function GlobalSearchBar() {
   };
 
   const handleVoiceToggle = () => {
-    if (isSpeaking) stopSpeaking();
-    toggleListening();
+    if (isSpeaking) {
+      stopSpeaking();
+      setTimeout(() => {
+        toggleListening();
+      }, 150);
+    } else {
+      toggleListening();
+    }
   };
 
   const handleReadAloud = (e) => {

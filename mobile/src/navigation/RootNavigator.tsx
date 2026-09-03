@@ -8,6 +8,10 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 
 import { AuthStack } from './AuthStack';
 import { MainTabs } from './MainTabs';
+import { LoginScreen } from '../screens/auth/LoginScreen';
+import { SignupScreen } from '../screens/auth/SignupScreen';
+import { ForgotPasswordScreen } from '../screens/auth/ForgotPasswordScreen';
+import { ResetPasswordScreen } from '../screens/auth/ResetPasswordScreen';
 
 const Stack = createNativeStackNavigator();
 export const navigationRef = createNavigationContainerRef<any>();
@@ -130,6 +134,25 @@ export function parseDeepLinkUrl(url: string): ParsedDeepLink | null {
       };
     }
 
+    // 9. Password Reset
+    if (segments[0] === 'reset-password') {
+      return {
+        screen: 'ResetPasswordScreen',
+        params: {
+          uid: parsed.queryParams?.uid || '',
+          token: parsed.queryParams?.token || '',
+        },
+        requiresAuth: false,
+      };
+    }
+    if (segments[0] === 'forgot-password') {
+      return {
+        screen: 'ForgotPasswordScreen',
+        params: {},
+        requiresAuth: false,
+      };
+    }
+
     return null;
   } catch (err) {
     console.error('Failed to parse deep link URL:', url, err);
@@ -146,6 +169,8 @@ const linking = {
   ],
   config: {
     screens: {
+      ResetPasswordScreen: 'reset-password',
+      ForgotPasswordScreen: 'forgot-password',
       Auth: {
         screens: {
           Welcome: 'welcome',
@@ -229,8 +254,21 @@ export function RootNavigator() {
           (navigationRef as any).navigate('Auth', { screen: 'Login' });
         }
       } else {
-        // Public screen (e.g. ProductDetailScreen)
+        // Public screen (e.g. ProductDetailScreen, ResetPasswordScreen)
         setPendingRedirect({ screen: target.screen, tab: target.tab, params: target.params });
+        if (navigationRef.isReady()) {
+          if (target.tab) {
+            (navigationRef as any).navigate('Main', {
+              screen: target.tab,
+              params: {
+                screen: target.screen,
+                params: target.params,
+              },
+            });
+          } else {
+            (navigationRef as any).navigate(target.screen, target.params);
+          }
+        }
       }
     }
   };
@@ -308,8 +346,8 @@ export function RootNavigator() {
       linking={linking as any}
       onReady={() => {
         isNavReadyRef.current = true;
-        // If a pending redirect was queued before onReady, execute it if user is logged in
-        if (user && pendingRedirect) {
+        // If a pending redirect was queued before onReady, execute it
+        if (pendingRedirect) {
           const redirect = { ...pendingRedirect };
           clearPendingRedirect();
           setTimeout(() => {
@@ -322,35 +360,19 @@ export function RootNavigator() {
                 },
               });
             } else {
-              (navigationRef as any).navigate('Main', {
-                screen: redirect.screen,
-                params: redirect.params,
-              });
+              (navigationRef as any).navigate(redirect.screen, redirect.params);
             }
           }, 300);
         }
       }}
     >
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {user ? (
-          <>
-            <Stack.Screen name="Main" component={MainTabs} />
-            <Stack.Screen 
-              name="CartTab" 
-              component={MainTabs}
-              listeners={({ navigation }) => ({
-                focus: () => {
-                  navigation.navigate('Main', {
-                    screen: 'CartTab',
-                    params: { screen: 'CartScreen' },
-                  });
-                },
-              })}
-            />
-          </>
-        ) : (
-          <Stack.Screen name="Auth" component={AuthStack} />
-        )}
+        <Stack.Screen name="Main" component={MainTabs} />
+        <Stack.Screen name="Auth" component={AuthStack} />
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Signup" component={SignupScreen} />
+        <Stack.Screen name="ForgotPasswordScreen" component={ForgotPasswordScreen} />
+        <Stack.Screen name="ResetPasswordScreen" component={ResetPasswordScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

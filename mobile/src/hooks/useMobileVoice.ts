@@ -14,11 +14,30 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
   const [error, setError] = useState<string | null>(null);
 
   const isMountedRef = useRef(true);
+  const isListeningRef = useRef(false);
+  const onResultRef = useRef(onResult);
+  const recognizerRef = useRef<any>(null);
+
+  useEffect(() => {
+    onResultRef.current = onResult;
+  }, [onResult]);
+
+  useEffect(() => {
+    isListeningRef.current = isListening;
+  }, [isListening]);
 
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
+      if (recognizerRef.current) {
+        try {
+          recognizerRef.current.abort ? recognizerRef.current.abort() : recognizerRef.current.stop();
+        } catch {
+          // Ignore
+        }
+        recognizerRef.current = null;
+      }
       try {
         Speech.stop();
       } catch {
@@ -50,77 +69,150 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
     return true;
   };
 
+  const stopListening = useCallback(() => {
+    if (recognizerRef.current) {
+      try {
+        recognizerRef.current.abort ? recognizerRef.current.abort() : recognizerRef.current.stop();
+      } catch {
+        // Ignore
+      }
+      recognizerRef.current = null;
+    }
+    if (isMountedRef.current) {
+      setIsListening(false);
+      setInterimText('');
+    }
+  }, []);
+
   // Start Voice Recognition
   const startListening = useCallback(async () => {
-    const hasPermission = await checkOrRequestPermission();
-    if (!hasPermission) {
-      setError('Microphone permission denied.');
-      Alert.alert('Permission Required', 'Please enable microphone access in device settings to use voice search.');
-      return;
-    }
-
     try {
       Speech.stop();
     } catch {
       // Ignore
     }
 
-    setError(null);
-    setIsListening(true);
-    setInterimText('Listening for grocery item...');
+    // 1. Web Platform: Native Web Speech API
+    if (Platform.OS === 'web') {
+      if (typeof window === 'undefined') return;
 
-    // On web/standard runtime, if webkitSpeechRecognition exists
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (SpeechRecognition) {
+      const SpeechRecognition =
+        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+      if (!SpeechRecognition) {
+        setError('Voice recognition is not supported in this browser.');
+        Alert.alert(
+          'Voice Search Unsupported',
+          'Voice recognition is not supported in this browser. Please use Google Chrome or Safari, or type your query.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      try {
+        if (recognizerRef.current) {
+          try {
+            recognizerRef.current.abort ? recognizerRef.current.abort() : recognizerRef.current.stop();
+          } catch {
+            // Ignore
+          }
+        }
+
         const recognizer = new SpeechRecognition();
+        recognizerRef.current = recognizer;
         recognizer.continuous = false;
         recognizer.interimResults = true;
         recognizer.lang = language;
+
+        setError(null);
+        setIsListening(true);
+        setInterimText('Listening for grocery item...');
+
         recognizer.onresult = (event: any) => {
-          const result = event.results[0][0].transcript;
+          if (!isMountedRef.current) return;
+          const result = event.results?.[0]?.[0]?.transcript || '';
           setInterimText(result);
-          if (event.results[0].isFinal) {
+          if (event.results?.[0]?.isFinal) {
             setIsListening(false);
-            if (onResult) onResult(result);
+            if (onResultRef.current) {
+              onResultRef.current(result);
+            }
           }
         };
-        recognizer.onerror = () => {
+
+        recognizer.onerror = (event: any) => {
+          if (!isMountedRef.current) return;
+          console.warn('Speech recognition error:', event.error);
           setIsListening(false);
           setInterimText('');
+          if (event.error !== 'no-speech' && event.error !== 'aborted') {
+            setError(`Speech recognition error: ${event.error}`);
+          }
         };
+
         recognizer.onend = () => {
+          if (!isMountedRef.current) return;
           setIsListening(false);
+          recognizerRef.current = null;
         };
+
         recognizer.start();
+        return;
+      } catch (err: any) {
+        console.error('Failed to start web speech recognition:', err);
+        setError('Could not initialize microphone.');
+        setIsListening(false);
+        setInterimText('');
         return;
       }
     }
 
-    // Default fast speech trigger: prompt voice or sample dictation
-    // Allows instant input without native bridge crash
-    const timer = setTimeout(() => {
-      if (isMountedRef.current && isListening) {
+    // 2. Mobile Native Platform (Android / iOS)
+    const hasPermission = await checkOrRequestPermission();
+    if (!hasPermission) {
+      setError('Microphone permission denied.');
+      Alert.alert(
+        'Permission Required',
+        'Please enable microphone access in device settings to use voice search.'
+      );
+      return;
+    }
+
+    // Check if native voice bridge is installed, otherwise alert gracefully
+    const NativeVoiceModule = (globalThis as any).Voice || (globalThis as any).ReactNativeVoice;
+    if (NativeVoiceModule) {
+      try {
+        setError(null);
+        setIsListening(true);
+        setInterimText('Listening for grocery item...');
+        await NativeVoiceModule.start(language);
+        return;
+      } catch (err: any) {
+        console.error('Native voice error:', err);
         setIsListening(false);
         setInterimText('');
+        setError('Voice service unavailable.');
       }
-    }, 4000);
-
-    return () => clearTimeout(timer);
-  }, [isListening, language, onResult]);
-
-  const stopListening = useCallback(() => {
-    setIsListening(false);
-    setInterimText('');
-  }, []);
+    } else {
+      // Graceful feedback for native Expo managed environment
+      setIsListening(false);
+      setInterimText('');
+      setError('Voice recognition is available on web browsers or with native voice service.');
+      Alert.alert(
+        'Voice Search',
+        'Voice recognition is available in web mode (Chrome / Safari) or requires device speech services. Please type your search query above.',
+        [{ text: 'OK' }]
+      );
+    }
+  }, [language]);
 
   const toggleListening = useCallback(() => {
-    if (isListening) {
+    if (isListeningRef.current) {
       stopListening();
     } else {
       startListening();
     }
-  }, [isListening, startListening, stopListening]);
+  }, [startListening, stopListening]);
 
   // Text-to-Speech (TTS) via expo-speech
   const speak = useCallback(
