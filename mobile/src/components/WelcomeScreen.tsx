@@ -4,9 +4,9 @@ import {
   Text, 
   StyleSheet, 
   Animated, 
-  Dimensions, 
   TouchableOpacity, 
-  Image 
+  Image,
+  Modal
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { 
@@ -18,7 +18,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 export { resetWelcomeSession };
 
-const { width, height } = Dimensions.get('window');
 
 interface WelcomeScreenProps {
   forceShow?: boolean;
@@ -96,79 +95,74 @@ export function WelcomeScreen({ forceShow = false, onStart, onFinish }: WelcomeS
   const name = user?.first_name || user?.username || 'Customer';
 
   return (
-    <Animated.View 
-      style={[
-        styles.overlay, 
-        { opacity: mainFadeAnim }
-      ]}
-      pointerEvents={visible ? 'auto' : 'none'}
-    >
-      <LinearGradient 
-        colors={['#FFFFFF', '#F0FDF4', '#ECFDF5']} 
-        start={{ x: 0.5, y: 0 }} 
-        end={{ x: 0.5, y: 1 }} 
-        style={StyleSheet.absoluteFill} 
-      />
-      
-      {/* Ambient Decoration */}
-      <View style={styles.circle1} />
-      <View style={styles.circle2} />
-      <View style={styles.circle3} />
-
-      <TouchableOpacity 
-        style={styles.touchContainer} 
-        activeOpacity={1} 
-        onPress={dismiss}
+    <Modal transparent statusBarTranslucent visible={visible} animationType="none" onRequestClose={dismiss}>
+      <Animated.View 
+        style={[
+          styles.overlay, 
+          { opacity: mainFadeAnim }
+        ]}
       >
-        <View style={styles.contentContainer}>
-          <Animated.View 
-            style={{
-              opacity: logoFadeAnim,
-              transform: [
-                { scale: logoScaleAnim },
-                { translateY: logoTranslateYAnim }
-              ],
-              alignItems: 'center'
-            }}
-          >
-            <View style={styles.logoWrapper}>
-              <Image 
-                source={require('../../assets/logo.jpg')} 
-                style={styles.logoImage} 
-                resizeMode="contain"
-              />
-            </View>
-          </Animated.View>
-
-          <Animated.View style={[styles.brandRow, { opacity: brandFadeAnim }]}>
-            <Text style={styles.brandEmerald}>NARENDRA </Text>
-            <Text style={styles.brandPrimary}>KIRANA</Text>
-          </Animated.View>
-
-          <Animated.View style={{ opacity: greetingFadeAnim }}>
-            <Text style={styles.greetingHeadline}>
-              {greeting},{'\n'}{name}.
-            </Text>
-          </Animated.View>
-        </View>
+        <LinearGradient 
+          colors={['#FFFFFF', '#F0FDF4', '#ECFDF5']} 
+          start={{ x: 0.5, y: 0 }} 
+          end={{ x: 0.5, y: 1 }} 
+          style={StyleSheet.absoluteFill} 
+        />
         
-        <Text style={styles.dismissHint}>Tap anywhere to continue</Text>
-      </TouchableOpacity>
-    </Animated.View>
+        {/* Ambient Decoration */}
+        <View style={styles.circle1} />
+        <View style={styles.circle2} />
+        <View style={styles.circle3} />
+
+        <TouchableOpacity 
+          style={styles.touchContainer} 
+          activeOpacity={1} 
+          onPress={dismiss}
+        >
+          <View style={styles.contentContainer}>
+            <Animated.View 
+              style={{
+                opacity: logoFadeAnim,
+                transform: [
+                  { scale: logoScaleAnim },
+                  { translateY: logoTranslateYAnim }
+                ],
+                alignItems: 'center'
+              }}
+            >
+              <View style={styles.logoWrapper}>
+                <Image 
+                  source={require('../../assets/logo.jpg')} 
+                  style={styles.logoImage} 
+                  resizeMode="contain"
+                />
+              </View>
+            </Animated.View>
+
+            <Animated.View style={[styles.brandRow, { opacity: brandFadeAnim }]}>
+              <Text style={styles.brandEmerald}>NARENDRA </Text>
+              <Text style={styles.brandPrimary}>KIRANA</Text>
+            </Animated.View>
+
+            <Animated.View style={{ opacity: greetingFadeAnim }}>
+              <Text style={styles.greetingHeadline}>
+                {greeting},{'\n'}{name}.
+              </Text>
+            </Animated.View>
+          </View>
+          
+          <Text style={styles.dismissHint}>Tap anywhere to continue</Text>
+        </TouchableOpacity>
+      </Animated.View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: width,
-    height: height,
-    zIndex: 9999,
-    elevation: 9999,
+    flex: 1,
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },

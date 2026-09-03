@@ -1,4 +1,5 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import { initGoogleTranslate, applyWebsiteLanguage } from '../services/googleTranslate';
 
 export const LanguageContext = createContext(null);
 
@@ -197,15 +198,30 @@ export function LanguageProvider({ children }) {
     }
   });
 
-  const setLanguage = (lang) => {
-    const validLang = lang === 'te' ? 'te' : 'en';
+  useEffect(() => {
+    initGoogleTranslate();
+    try {
+      const saved = localStorage.getItem('sk_language');
+      if (saved === 'te') {
+        applyWebsiteLanguage('te');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  const changeLanguage = (code) => {
+    const validLang = code === 'te' ? 'te' : 'en';
     setLanguageState(validLang);
     try {
       localStorage.setItem('sk_language', validLang);
     } catch (e) {
       console.error('Failed to save language in localStorage', e);
     }
+    applyWebsiteLanguage(validLang);
   };
+
+  const setLanguage = changeLanguage;
 
   const t = (key, params = {}) => {
     if (!key) return '';
@@ -222,7 +238,7 @@ export function LanguageProvider({ children }) {
   };
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, changeLanguage, t }}>
       {children}
     </LanguageContext.Provider>
   );

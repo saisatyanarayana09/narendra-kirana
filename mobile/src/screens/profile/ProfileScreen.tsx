@@ -13,7 +13,7 @@ import { triggerHaptic } from '../../utils/haptics';
 
 export function ProfileScreen({ navigation }: { navigation: AppNavigationProp }) {
   const { user, logout, refreshUser } = useAuth();
-  const { colors, fontSizeMultiplier } = useTheme();
+  const { colors } = useTheme();
   const { t, language } = useLanguage();
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const [referralCount, setReferralCount] = useState<number>(0);
@@ -293,7 +293,7 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
                 </View>
                 <View style={styles.cardTextGroup}>
                   <View style={styles.cardTitleRow}>
-                    <Text style={[styles.cardTitle, { color: colors.text, fontSize: 15 * fontSizeMultiplier }]}>
+                    <Text style={[styles.cardTitle, { color: colors.text, fontSize: 15 }]}>
                       {card.name}
                     </Text>
                     {Boolean((card as any).badge) && (
@@ -323,7 +323,7 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
                 <Feather name="log-out" size={20} color="#E11D48" />
               </View>
               <View style={styles.cardTextGroup}>
-                <Text style={[styles.cardTitle, { color: '#E11D48', fontSize: 15 * fontSizeMultiplier }]}>
+                <Text style={[styles.cardTitle, { color: '#E11D48', fontSize: 15 }]}>
                   {t('logout')}
                 </Text>
                 <Text style={styles.cardDesc}>{t('logoutDesc')}</Text>

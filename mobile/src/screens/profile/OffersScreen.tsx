@@ -31,7 +31,7 @@ interface PromoCodeItem {
 }
 
 export function OffersScreen({ navigation }: { navigation: AppNavigationProp }) {
-  const { colors, fontSizeMultiplier } = useTheme();
+  const { colors } = useTheme();
   const { t } = useLanguage();
 
   const [promos, setPromos] = useState<PromoCodeItem[]>([]);
@@ -113,7 +113,7 @@ export function OffersScreen({ navigation }: { navigation: AppNavigationProp }) 
           <Feather name="arrow-left" size={18} color={colors.primary} />
           <Text style={[styles.backButtonText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text, fontSize: 20 * fontSizeMultiplier }]}>
+        <Text style={[styles.headerTitle, { color: colors.text, fontSize: 20 }]}>
           {t('offersPromoCodes')}
         </Text>
         <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
@@ -143,7 +143,7 @@ export function OffersScreen({ navigation }: { navigation: AppNavigationProp }) 
               <View style={[styles.emptyIconCircle, { backgroundColor: colors.primaryLight }]}>
                 <Feather name="tag" size={32} color={colors.primaryDark} />
               </View>
-              <Text style={[styles.emptyTitle, { color: colors.text, fontSize: 17 * fontSizeMultiplier }]}>
+              <Text style={[styles.emptyTitle, { color: colors.text, fontSize: 17 }]}>
                 {t('noOffers')}
               </Text>
               <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
@@ -216,7 +216,7 @@ export function OffersScreen({ navigation }: { navigation: AppNavigationProp }) 
                         <Text
                           style={[
                             styles.couponCode,
-                            { color: colors.text, fontSize: 17 * fontSizeMultiplier },
+                            { color: colors.text, fontSize: 17 },
                           ]}
                           selectable
                         >

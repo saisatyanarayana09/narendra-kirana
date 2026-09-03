@@ -12,12 +12,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
-import { useTheme, ThemeMode, FontSize } from '../../context/ThemeContext';
+import { useTheme, ThemeMode } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { triggerHaptic } from '../../utils/haptics';
 
 export function AppSettingsScreen({ navigation }: { navigation: AppNavigationProp }) {
-  const { colors, themeMode, fontSize, toggleThemeMode, setFontSize, fontSizeMultiplier } = useTheme();
+  const { colors, themeMode, toggleThemeMode } = useTheme();
   const { t } = useLanguage();
   const [checkingUpdates, setCheckingUpdates] = useState(false);
 
@@ -58,27 +58,6 @@ export function AppSettingsScreen({ navigation }: { navigation: AppNavigationPro
     },
   ];
 
-  const fontSizeOptions: { size: FontSize; label: string; percent: string; preview: number }[] = [
-    {
-      size: 'normal',
-      label: t('normal'),
-      percent: '100%',
-      preview: 14,
-    },
-    {
-      size: 'large',
-      label: t('large'),
-      percent: '112%',
-      preview: 16,
-    },
-    {
-      size: 'extra_large',
-      label: t('extraLarge'),
-      percent: '122%',
-      preview: 18,
-    },
-  ];
-
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
@@ -94,7 +73,7 @@ export function AppSettingsScreen({ navigation }: { navigation: AppNavigationPro
           <Feather name="arrow-left" size={18} color={colors.primary} />
           <Text style={[styles.backButtonText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text, fontSize: 20 * fontSizeMultiplier }]}>
+        <Text style={[styles.headerTitle, { color: colors.text, fontSize: 20 }]}>
           {t('appSettings')}
         </Text>
         <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
@@ -110,7 +89,7 @@ export function AppSettingsScreen({ navigation }: { navigation: AppNavigationPro
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <Feather name="sun" size={18} color={colors.primary} />
-            <Text style={[styles.sectionTitle, { color: colors.text, fontSize: 16 * fontSizeMultiplier }]}>
+            <Text style={[styles.sectionTitle, { color: colors.text, fontSize: 16 }]}>
               {t('appearance')}
             </Text>
           </View>
@@ -159,7 +138,7 @@ export function AppSettingsScreen({ navigation }: { navigation: AppNavigationPro
                           styles.optionTitle,
                           {
                             color: isSelected ? colors.primaryDark : colors.text,
-                            fontSize: 15 * fontSizeMultiplier,
+                            fontSize: 15,
                             fontWeight: isSelected ? '800' : '600',
                           },
                         ]}
@@ -189,125 +168,7 @@ export function AppSettingsScreen({ navigation }: { navigation: AppNavigationPro
           </View>
         </View>
 
-        {/* Section 2: Font Size */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeaderRow}>
-            <Feather name="type" size={18} color={colors.primary} />
-            <Text style={[styles.sectionTitle, { color: colors.text, fontSize: 16 * fontSizeMultiplier }]}>
-              {t('fontSize')}
-            </Text>
-          </View>
-          <Text style={[styles.sectionDesc, { color: colors.textSecondary }]}>
-            {t('fontSizeHint')}
-          </Text>
-
-          <View style={styles.optionsContainer}>
-            {fontSizeOptions.map((item) => {
-              const isSelected = fontSize === item.size;
-              return (
-                <TouchableOpacity
-                  key={item.size}
-                  style={[
-                    styles.radioCard,
-                    {
-                      backgroundColor: colors.surface,
-                      borderColor: isSelected ? colors.primary : colors.border,
-                      borderWidth: isSelected ? 2 : 1,
-                    },
-                  ]}
-                  onPress={() => {
-                    triggerHaptic('selection');
-                    setFontSize(item.size);
-                  }}
-                  activeOpacity={0.75}
-                >
-                  <View style={styles.radioCardLeft}>
-                    <View
-                      style={[
-                        styles.iconBadge,
-                        {
-                          backgroundColor: isSelected ? colors.primaryLight : colors.background,
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={{
-                          fontSize: item.preview,
-                          fontWeight: '800',
-                          color: isSelected ? colors.primaryDark : colors.textSecondary,
-                        }}
-                      >
-                        Aa
-                      </Text>
-                    </View>
-                    <View style={styles.cardTextCol}>
-                      <Text
-                        style={[
-                          styles.optionTitle,
-                          {
-                            color: isSelected ? colors.primaryDark : colors.text,
-                            fontSize: 15 * fontSizeMultiplier,
-                            fontWeight: isSelected ? '800' : '600',
-                          },
-                        ]}
-                      >
-                        {item.label}
-                      </Text>
-                      <Text style={[styles.optionDesc, { color: colors.textSecondary }]}>
-                        {item.percent} scale factor
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View
-                    style={[
-                      styles.radioCircle,
-                      {
-                        borderColor: isSelected ? colors.primary : colors.border,
-                        backgroundColor: isSelected ? colors.primary : 'transparent',
-                      },
-                    ]}
-                  >
-                    {isSelected && <View style={styles.radioDot} />}
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          {/* Live Preview Card */}
-          <View
-            style={[
-              styles.previewCard,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-              },
-            ]}
-          >
-            <View style={styles.previewHeader}>
-              <Feather name="eye" size={15} color={colors.primary} />
-              <Text
-                style={[
-                  styles.previewTitle,
-                  { color: colors.primary, fontSize: 13 * fontSizeMultiplier },
-                ]}
-              >
-                {t('previewTitle')}
-              </Text>
-            </View>
-            <Text
-              style={[
-                styles.previewBodyText,
-                { color: colors.text, fontSize: 14 * fontSizeMultiplier },
-              ]}
-            >
-              {t('previewText')}
-            </Text>
-          </View>
-        </View>
-
-        {/* Section 3 (Mobile only): App Version */}
+        {/* Section 2 (Mobile only): App Version */}
         <View
           style={[
             styles.versionCard,
@@ -328,7 +189,7 @@ export function AppSettingsScreen({ navigation }: { navigation: AppNavigationPro
               <Text
                 style={[
                   styles.versionValue,
-                  { color: colors.text, fontSize: 15 * fontSizeMultiplier },
+                  { color: colors.text, fontSize: 15 },
                 ]}
               >
                 Smart Kirana v1.0.0 (Build 1)

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Animated, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -40,74 +40,80 @@ export function WelcomeScreen({ navigation }: Props) {
   return (
     <LinearGradient colors={['#FFFFFF', '#F0FDF4', '#ECFDF5']} style={styles.container}>
       <SafeAreaView style={styles.container}>
-        <View style={styles.content}>
+        <ScrollView 
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'space-between' }} 
+          bounces={false} 
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.content}>
+            
+            {wrapAnimated(logoAnim, (
+              <View style={styles.logoContainer}>
+                <View style={styles.glow} />
+                <View style={styles.logoWrapper}>
+                  <Image 
+                    source={require('../../assets/logo.jpg')} 
+                    style={styles.logoImage} 
+                    resizeMode="contain"
+                  />
+                </View>
+              </View>
+            ))}
+
+            {wrapAnimated(brandAnim, (
+              <Text style={styles.brandTitle}>
+                <Text style={{ color: '#064E3B' }}>NARENDRA </Text>
+                <Text style={{ color: '#16A34A' }}>KIRANA</Text>
+              </Text>
+            ))}
+
+            {wrapAnimated(taglineAnim, (
+              <Text style={styles.subtitle}>
+                Your neighborhood kirana store,{'\n'}now at your fingertips.
+              </Text>
+            ))}
+
+            {wrapAnimated(pillsAnim, (
+              <View style={styles.featuresContainer}>
+                <View style={[styles.pill, { backgroundColor: '#F0FDF4' }]}>
+                  <Feather name="zap" size={14} color="#059669" />
+                  <Text style={[styles.pillText, { color: '#064E3B' }]}>Express Delivery</Text>
+                </View>
+                <View style={[styles.pill, { backgroundColor: '#EFF6FF' }]}>
+                  <Feather name="check-circle" size={14} color="#2563EB" />
+                  <Text style={[styles.pillText, { color: '#1E3A8A' }]}>100% Fresh</Text>
+                </View>
+                <View style={[styles.pill, { backgroundColor: '#FFFBEB' }]}>
+                  <Feather name="tag" size={14} color="#D97706" />
+                  <Text style={[styles.pillText, { color: '#92400E' }]}>Best Prices</Text>
+                </View>
+              </View>
+            ))}
+          </View>
           
-          {wrapAnimated(logoAnim, (
-            <View style={styles.logoContainer}>
-              <View style={styles.glow} />
-              <View style={styles.logoWrapper}>
-                <Image 
-                  source={require('../../assets/logo.jpg')} 
-                  style={styles.logoImage} 
-                  resizeMode="contain"
-                />
-              </View>
-            </View>
-          ))}
-
-          {wrapAnimated(brandAnim, (
-            <Text style={styles.brandTitle}>
-              <Text style={{ color: '#064E3B' }}>NARENDRA </Text>
-              <Text style={{ color: '#16A34A' }}>KIRANA</Text>
-            </Text>
-          ))}
-
-          {wrapAnimated(taglineAnim, (
-            <Text style={styles.subtitle}>
-              Your neighborhood kirana store,{'\n'}now at your fingertips.
-            </Text>
-          ))}
-
-          {wrapAnimated(pillsAnim, (
-            <View style={styles.featuresContainer}>
-              <View style={[styles.pill, { backgroundColor: '#F0FDF4' }]}>
-                <Feather name="zap" size={14} color="#059669" />
-                <Text style={[styles.pillText, { color: '#064E3B' }]}>Express Delivery</Text>
-              </View>
-              <View style={[styles.pill, { backgroundColor: '#EFF6FF' }]}>
-                <Feather name="check-circle" size={14} color="#2563EB" />
-                <Text style={[styles.pillText, { color: '#1E3A8A' }]}>100% Fresh</Text>
-              </View>
-              <View style={[styles.pill, { backgroundColor: '#FFFBEB' }]}>
-                <Feather name="tag" size={14} color="#D97706" />
-                <Text style={[styles.pillText, { color: '#92400E' }]}>Best Prices</Text>
-              </View>
-            </View>
-          ))}
-        </View>
-        
-        <Animated.View style={[styles.footer, { 
-          opacity: buttonsAnim, 
-          transform: [{ translateY: buttonsAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] 
-        }]}>
-          <TouchableOpacity 
-            style={styles.primaryButton}
-            onPress={() => navigation.navigate('Login')}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.primaryButtonText}>Get Started</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.secondaryButton}
-            onPress={() => navigation.navigate('Login')}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.secondaryButtonText}>
-              Already have an account? <Text style={{ color: '#059669', fontWeight: '800' }}>Log in</Text>
-            </Text>
-          </TouchableOpacity>
-        </Animated.View>
+          <Animated.View style={[styles.footer, { 
+            opacity: buttonsAnim, 
+            transform: [{ translateY: buttonsAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] 
+          }]}>
+            <TouchableOpacity 
+              style={styles.primaryButton}
+              onPress={() => navigation.navigate('Login')}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.primaryButtonText}>Get Started</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.secondaryButton}
+              onPress={() => navigation.navigate('Login')}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.secondaryButtonText}>
+                Already have an account? <Text style={{ color: '#059669', fontWeight: '800' }}>Log in</Text>
+              </Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </ScrollView>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -122,6 +128,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
+    paddingVertical: 20,
   },
   logoContainer: {
     justifyContent: 'center',

@@ -14,7 +14,7 @@ import { useLanguage, Language } from '../../context/LanguageContext';
 import { triggerHaptic } from '../../utils/haptics';
 
 export function LanguageScreen({ navigation }: { navigation: AppNavigationProp }) {
-  const { colors, fontSizeMultiplier } = useTheme();
+  const { colors } = useTheme();
   const { language, setLanguage, t } = useLanguage();
 
   const languageOptions: {
@@ -57,7 +57,7 @@ export function LanguageScreen({ navigation }: { navigation: AppNavigationProp }
           <Feather name="arrow-left" size={18} color={colors.primary} />
           <Text style={[styles.backButtonText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text, fontSize: 20 * fontSizeMultiplier }]}>
+        <Text style={[styles.headerTitle, { color: colors.text, fontSize: 20 }]}>
           {t('languages')}
         </Text>
         <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
@@ -111,7 +111,7 @@ export function LanguageScreen({ navigation }: { navigation: AppNavigationProp }
                         styles.nativeName,
                         {
                           color: isSelected ? colors.primaryDark : colors.text,
-                          fontSize: 16 * fontSizeMultiplier,
+                          fontSize: 16,
                           fontWeight: isSelected ? '800' : '700',
                         },
                       ]}
@@ -151,7 +151,7 @@ export function LanguageScreen({ navigation }: { navigation: AppNavigationProp }
           ]}
         >
           <Feather name="info" size={16} color={colors.primary} />
-          <Text style={[styles.noteText, { color: colors.textSecondary, fontSize: 13 * fontSizeMultiplier }]}>
+          <Text style={[styles.noteText, { color: colors.textSecondary, fontSize: 13 }]}>
             Changing the language immediately updates the navigation, categories, buttons, and settings across the app.
           </Text>
         </View>

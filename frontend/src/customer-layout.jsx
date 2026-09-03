@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Home, Search, ShoppingBasket, ShoppingCart, User, X, Heart, Bell, LayoutGrid, Trash2, ShoppingBag, Leaf, Coffee, Package } from 'lucide-react'
 import { useCart } from './cart-context'
+import { useLanguage } from './context/LanguageContext'
 import api from './services/api'
 
 function GlobalSearchBar() {
@@ -246,6 +247,7 @@ import { SmartAppBanner } from './components/SmartAppBanner';
 
 export function CustomerLayout({ children }) {
   const { cart, isCustomer, favorites, notifications } = useCart()
+  const { language, changeLanguage, setLanguage } = useLanguage()
   const [showNotifications, setShowNotifications] = useState(false)
   const location = useLocation();
 
@@ -256,7 +258,7 @@ export function CustomerLayout({ children }) {
  <SmartAppBanner />
  <WelcomeScreen />
 
- <header className="sticky top-0 z-30 border-b border-slate-200/60 bg-white/80 backdrop-blur-xl shadow-sm transition-colors duration-200">
+ <header className="sticky top-0 z-30 border-b border-slate-200/60 dark:border-slate-800 bg-white/80 dark:bg-slate-900/90 backdrop-blur-xl shadow-sm transition-colors duration-200">
  <div className="mx-auto flex w-full max-w-screen-2xl items-center justify-between px-4 py-3 sm:px-6 lg:px-12">
  <Link to="/"className="text-2xl sm:text-3xl font-black tracking-tighter whitespace-nowrap shrink-0 drop-shadow-sm hover:opacity-80 transition-opacity">
  <span className="text-slate-800">Narendra</span>
@@ -265,7 +267,20 @@ export function CustomerLayout({ children }) {
  
  <GlobalSearchBar />
 
- <div className="flex items-center gap-4 shrink-0">
+ <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+ <button
+   type="button"
+   onClick={() => {
+     const nextLang = language === 'te' ? 'en' : 'te';
+     if (changeLanguage) changeLanguage(nextLang);
+     else if (setLanguage) setLanguage(nextLang);
+   }}
+   title={language === 'te' ? 'Switch to English' : 'తెలుగుకు మారండి'}
+   className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black border border-slate-200 dark:border-slate-700 bg-slate-100/80 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all shadow-sm active:scale-95 cursor-pointer"
+ >
+   <span>🌐</span>
+   <span>{language === 'te' ? 'తెలుగు' : 'EN'}</span>
+ </button>
 
  {isCustomer ? (
  <>
