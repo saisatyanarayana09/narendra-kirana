@@ -20,6 +20,15 @@ type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'Signup'>;
 };
 
+function generateFriendlyPassword(): string {
+  const words = ['Kirana', 'Mango', 'Fresh', 'Spice', 'Green', 'Daily', 'Rice', 'Sweet', 'Harvest', 'Super'];
+  const symbols = ['@', '#', '$', '!', '&'];
+  const randomWord = words[Math.floor(Math.random() * words.length)];
+  const randomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
+  const randomNumber = Math.floor(1000 + Math.random() * 9000);
+  return `${randomWord}${randomSymbol}${randomNumber}`;
+}
+
 export function SignupScreen({ navigation }: Props) {
   const [form, setForm] = useState({
     first_name: '',
@@ -32,7 +41,34 @@ export function SignupScreen({ navigation }: Props) {
   
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [generatedNotice, setGeneratedNotice] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Live password validation criteria
+  const pwd = form.password || '';
+  const confirmPwd = form.confirm_password || '';
+
+  const hasMinLength = pwd.length >= 8;
+  const hasLetters = /[a-zA-Z]/.test(pwd);
+  const hasNumbers = /[0-9]/.test(pwd);
+  const isNotOnlyNumbers = pwd.length > 0 && !/^\d+$/.test(pwd);
+  const hasMix = hasLetters && hasNumbers;
+
+  // Strength score: 0 to 4
+  let strengthScore = 0;
+  if (pwd.length > 0) {
+    if (pwd.length < 8 || !isNotOnlyNumbers) strengthScore = 1;
+    else if (hasMinLength && (hasLetters || hasNumbers) && !hasMix) strengthScore = 2;
+    else if (hasMinLength && hasMix && pwd.length < 10) strengthScore = 3;
+    else if (pwd.length >= 10 && hasMix && /[^a-zA-Z0-9]/.test(pwd)) strengthScore = 4;
+    else strengthScore = 3;
+  }
+
+  const strengthLabels = ['Enter password', 'Weak', 'Fair', 'Good & Secure', 'Very Strong'];
+  const strengthColors = ['#E2E8F0', '#EF4444', '#F59E0B', '#10B981', '#059669'];
+
+  const doPasswordsMatch = pwd.length > 0 && confirmPwd.length > 0 && pwd === confirmPwd;
+  const isConfirmDirty = confirmPwd.length > 0;
 
   // Live referral lookup matching web app
   const [checkingReferral, setCheckingReferral] = useState(false);
@@ -61,14 +97,37 @@ export function SignupScreen({ navigation }: Props) {
     return () => clearTimeout(timer);
   }, [form.referral_code]);
 
+  // 1-Tap Password Generator
+  const handleSuggestPassword = () => {
+    const suggested = generateFriendlyPassword();
+    setForm(prev => ({
+      ...prev,
+      password: suggested,
+      confirm_password: suggested,
+    }));
+    setShowPassword(true);
+    setShowConfirmPassword(true);
+    setGeneratedNotice(true);
+  };
+
   const handleSignup = async () => {
     if (!form.first_name || !form.email || !form.mobile_number || !form.password) {
       Alert.alert('Required Fields', 'Please complete all required fields.');
       return;
     }
 
+    if (!hasMinLength) {
+      Alert.alert('Password Too Short', 'Password must be at least 8 characters long.');
+      return;
+    }
+
+    if (!isNotOnlyNumbers) {
+      Alert.alert('Invalid Password', 'Password cannot be entirely numbers. Please include letters.');
+      return;
+    }
+
     if (form.password !== form.confirm_password) {
-      Alert.alert('Error', 'Passwords do not match.');
+      Alert.alert('Password Mismatch', 'Passwords do not match. Please re-enter.');
       return;
     }
 
@@ -83,15 +142,18 @@ export function SignupScreen({ navigation }: Props) {
       await apiClient.post('/auth/signup/', payload);
       
       Alert.alert(
-        'Registration Successful',
-        'Your account has been created! Please check your email to activate your account before logging in.',
-        [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
+        'Registration Successful! 🎉',
+        `Your account has been created!\n\nWe sent an activation link to ${form.email}. Please check your inbox and click the link to activate your account before logging in.`,
+        [{ text: 'Proceed to Login', onPress: () => navigation.navigate('Login') }]
       );
     } catch (error: any) {
       const details = error.response?.data;
-      const errorMessage = details 
-        ? (typeof details === 'object' ? Object.values(details).flat().join('\n') : String(details))
-        : 'Unable to create account.';
+      let errorMessage = 'Unable to create account.';
+      if (details?.password) {
+        errorMessage = Array.isArray(details.password) ? details.password.join('\n') : details.password;
+      } else if (details) {
+        errorMessage = typeof details === 'object' ? Object.values(details).flat().join('\n') : String(details);
+      }
       Alert.alert('Signup Failed', errorMessage);
     } finally {
       setIsLoading(false);
@@ -157,15 +219,32 @@ export function SignupScreen({ navigation }: Props) {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Password *</Text>
-            <View style={styles.passwordContainer}>
+            <View style={styles.labelRow}>
+              <Text style={styles.label}>Password *</Text>
+              <TouchableOpacity
+                style={styles.suggestButton}
+                onPress={handleSuggestPassword}
+                activeOpacity={0.7}
+              >
+                <Feather name="zap" size={12} color="#059669" />
+                <Text style={styles.suggestButtonText}>Suggest Password</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={[
+              styles.passwordContainer,
+              hasMinLength && hasMix && isNotOnlyNumbers && styles.inputSuccess
+            ]}>
               <TextInput
                 style={styles.passwordInput}
-                placeholder="Create password"
+                placeholder="Create password (min. 8 characters)"
                 placeholderTextColor="#94A3B8"
                 secureTextEntry={!showPassword}
                 value={form.password}
-                onChangeText={(text) => setForm({ ...form, password: text })}
+                onChangeText={(text) => {
+                  setForm({ ...form, password: text });
+                  setGeneratedNotice(false);
+                }}
               />
               <TouchableOpacity 
                 style={styles.eyeIcon} 
@@ -174,11 +253,76 @@ export function SignupScreen({ navigation }: Props) {
                 <Feather name={showPassword ? "eye-off" : "eye"} color="#94A3B8" size={18} />
               </TouchableOpacity>
             </View>
+
+            {/* Generated Password Notice */}
+            {generatedNotice && (
+              <View style={styles.generatedBanner}>
+                <Text style={styles.generatedBannerText}>
+                  🔑 Generated: <Text style={styles.generatedPasswordText}>{form.password}</Text> (Remember to keep it safe!)
+                </Text>
+              </View>
+            )}
+
+            {/* Password Strength Meter */}
+            {pwd.length > 0 && (
+              <View style={styles.strengthContainer}>
+                <View style={styles.strengthHeader}>
+                  <Text style={styles.strengthLabel}>Strength:</Text>
+                  <Text style={[styles.strengthValue, { color: strengthColors[strengthScore] }]}>
+                    {strengthLabels[strengthScore]}
+                  </Text>
+                </View>
+                <View style={styles.meterTrack}>
+                  {[1, 2, 3, 4].map((step) => (
+                    <View
+                      key={step}
+                      style={[
+                        styles.meterStep,
+                        step <= strengthScore && { backgroundColor: strengthColors[strengthScore] }
+                      ]}
+                    />
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Rule Checklist */}
+            <View style={styles.rulesCard}>
+              <View style={styles.ruleItem}>
+                <View style={[styles.ruleCircle, hasMinLength && styles.ruleCircleActive]}>
+                  <Feather name="check" size={10} color={hasMinLength ? "#FFFFFF" : "#94A3B8"} />
+                </View>
+                <Text style={[styles.ruleText, hasMinLength && styles.ruleTextActive]}>
+                  8+ chars
+                </Text>
+              </View>
+
+              <View style={styles.ruleItem}>
+                <View style={[styles.ruleCircle, hasMix && styles.ruleCircleActive]}>
+                  <Feather name="check" size={10} color={hasMix ? "#FFFFFF" : "#94A3B8"} />
+                </View>
+                <Text style={[styles.ruleText, hasMix && styles.ruleTextActive]}>
+                  Letters & numbers
+                </Text>
+              </View>
+
+              <View style={styles.ruleItem}>
+                <View style={[styles.ruleCircle, isNotOnlyNumbers && styles.ruleCircleActive]}>
+                  <Feather name="check" size={10} color={isNotOnlyNumbers ? "#FFFFFF" : "#94A3B8"} />
+                </View>
+                <Text style={[styles.ruleText, isNotOnlyNumbers && styles.ruleTextActive]}>
+                  Not all-numeric
+                </Text>
+              </View>
+            </View>
           </View>
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Confirm Password *</Text>
-            <View style={styles.passwordContainer}>
+            <View style={[
+              styles.passwordContainer,
+              isConfirmDirty && (doPasswordsMatch ? styles.inputSuccess : styles.inputMismatch)
+            ]}>
               <TextInput
                 style={styles.passwordInput}
                 placeholder="Confirm password"
@@ -194,6 +338,23 @@ export function SignupScreen({ navigation }: Props) {
                 <Feather name={showConfirmPassword ? "eye-off" : "eye"} color="#94A3B8" size={18} />
               </TouchableOpacity>
             </View>
+
+            {/* Live Match Feedback */}
+            {isConfirmDirty && (
+              <View style={styles.matchFeedbackRow}>
+                {doPasswordsMatch ? (
+                  <>
+                    <Feather name="check-circle" size={13} color="#059669" />
+                    <Text style={styles.matchSuccessText}>Passwords match!</Text>
+                  </>
+                ) : (
+                  <>
+                    <Feather name="alert-circle" size={13} color="#D97706" />
+                    <Text style={styles.matchWarningText}>Passwords do not match yet</Text>
+                  </>
+                )}
+              </View>
+            )}
           </View>
 
           {/* Referral Code with live validation matching web app */}
@@ -305,10 +466,31 @@ const styles = StyleSheet.create({
   inputContainer: {
     gap: 6,
   },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   label: {
     fontSize: 13,
     fontWeight: '700',
     color: '#334155',
+  },
+  suggestButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  suggestButtonText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#059669',
   },
   input: {
     backgroundColor: '#F8FAFC',
@@ -331,6 +513,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     height: 46,
   },
+  inputSuccess: {
+    borderColor: '#34D399',
+    backgroundColor: '#F0FDF4',
+  },
+  inputMismatch: {
+    borderColor: '#FCD34D',
+    backgroundColor: '#FFFBEB',
+  },
   passwordInput: {
     flex: 1,
     fontSize: 14,
@@ -339,6 +529,105 @@ const styles = StyleSheet.create({
   },
   eyeIcon: {
     padding: 6,
+  },
+  generatedBanner: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 2,
+  },
+  generatedBannerText: {
+    fontSize: 11,
+    color: '#065F46',
+    fontWeight: '600',
+  },
+  generatedPasswordText: {
+    fontWeight: '800',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    color: '#047857',
+  },
+  strengthContainer: {
+    gap: 4,
+    marginTop: 2,
+  },
+  strengthHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  strengthLabel: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  strengthValue: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  meterTrack: {
+    flexDirection: 'row',
+    gap: 4,
+    height: 4,
+  },
+  meterStep: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#E2E8F0',
+  },
+  rulesCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    borderRadius: 10,
+    padding: 8,
+    marginTop: 2,
+  },
+  ruleItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  ruleCircle: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ruleCircleActive: {
+    backgroundColor: '#10B981',
+  },
+  ruleText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#94A3B8',
+  },
+  ruleTextActive: {
+    color: '#065F46',
+    fontWeight: '700',
+  },
+  matchFeedbackRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
+  matchSuccessText: {
+    fontSize: 11,
+    color: '#059669',
+    fontWeight: '700',
+  },
+  matchWarningText: {
+    fontSize: 11,
+    color: '#D97706',
+    fontWeight: '600',
   },
   referralFeedbackRow: {
     flexDirection: 'row',
