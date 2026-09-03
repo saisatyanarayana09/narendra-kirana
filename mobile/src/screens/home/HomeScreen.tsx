@@ -276,8 +276,13 @@ export function HomeScreen({ navigation }: Props) {
           activeOpacity={0.85}
           onPress={() => navigation.navigate('SearchScreen')}
         >
-          <Feather name="search" size={16} color="#94A3B8" />
-          <Text style={styles.searchPlaceholder} numberOfLines={1}>Search products...</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+            <Feather name="search" size={16} color="#94A3B8" />
+            <Text style={styles.searchPlaceholder} numberOfLines={1}>Search products...</Text>
+          </View>
+          <View style={{ padding: 4 }}>
+            <Feather name="mic" size={15} color="#059669" />
+          </View>
         </TouchableOpacity>
       </View>
 

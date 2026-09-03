@@ -7,7 +7,8 @@ import {
   TouchableOpacity, 
   FlatList, 
   ActivityIndicator, 
-  Dimensions 
+  Dimensions,
+  Animated 
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -16,6 +17,7 @@ import { apiClient } from '../../api/client';
 import { useDebounce } from '../../hooks/useDebounce';
 import { ProductCard } from '../../components/ProductCard';
 import { useCart } from '../../context/CartContext';
+import { useMobileVoice } from '../../hooks/useMobileVoice';
 
 const { width } = Dimensions.get('window');
 
@@ -34,6 +36,70 @@ export function SearchScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
   const { addToCart } = useCart();
   const activeQueryRef = useRef('');
+
+  // Looping pulsing animation references
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const pulseOpacity = useRef(new Animated.Value(0.4)).current;
+  const pulseLoopRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  // Mobile Voice Hook
+  const {
+    isListening,
+    interimText,
+    isSpeaking,
+    toggleListening,
+    speak,
+    stopSpeaking,
+  } = useMobileVoice({
+    onResult: (spokenText) => {
+      setQuery(spokenText);
+    },
+  });
+
+  // Animated mic pulse effect
+  useEffect(() => {
+    if (isListening) {
+      pulseAnim.setValue(1);
+      pulseOpacity.setValue(0.5);
+
+      pulseLoopRef.current = Animated.loop(
+        Animated.parallel([
+          Animated.sequence([
+            Animated.timing(pulseAnim, {
+              toValue: 1.5,
+              duration: 700,
+              useNativeDriver: true,
+            }),
+            Animated.timing(pulseAnim, {
+              toValue: 1.0,
+              duration: 700,
+              useNativeDriver: true,
+            }),
+          ]),
+          Animated.sequence([
+            Animated.timing(pulseOpacity, {
+              toValue: 0.1,
+              duration: 700,
+              useNativeDriver: true,
+            }),
+            Animated.timing(pulseOpacity, {
+              toValue: 0.5,
+              duration: 700,
+              useNativeDriver: true,
+            }),
+          ]),
+        ])
+      );
+      pulseLoopRef.current.start();
+    } else {
+      if (pulseLoopRef.current) pulseLoopRef.current.stop();
+      pulseAnim.setValue(1);
+      pulseOpacity.setValue(0);
+    }
+    return () => {
+      if (pulseLoopRef.current) pulseLoopRef.current.stop();
+    };
+  }, [isListening]);
 
   useEffect(() => {
     const trimmed = debouncedQuery.trim();
@@ -62,6 +128,8 @@ export function SearchScreen({ navigation }: Props) {
     }
   };
 
+  const displaySearchValue = isListening && interimText ? interimText : query;
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header Search Bar matching web GlobalSearchBar */}
@@ -80,28 +148,88 @@ export function SearchScreen({ navigation }: Props) {
           <Feather name="arrow-left" color="#059669" size={20} />
         </TouchableOpacity>
 
-        <View style={styles.searchBar}>
-          <Feather name="search" size={18} color="#94A3B8" />
+        <View style={[styles.searchBar, isListening && styles.searchBarListening]}>
+          <Feather name="search" size={18} color={isListening ? "#E11D48" : "#94A3B8"} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search products..."
-            placeholderTextColor="#94A3B8"
-            value={query}
-            onChangeText={setQuery}
+            placeholder={isListening ? "Listening... Speak now" : "Search products..."}
+            placeholderTextColor={isListening ? "#E11D48" : "#94A3B8"}
+            value={displaySearchValue}
+            onChangeText={(text) => {
+              setQuery(text);
+              if (isListening) toggleListening();
+            }}
             autoFocus
             returnKeyType="search"
           />
-          {query.length > 0 && (
+
+          {/* Right-Hand Button Controls Group positioned inside Search Bar */}
+          <View style={styles.rightButtonsGroup}>
+            {/* Read Aloud Text-to-Speech Button */}
+            {query.trim().length > 0 && !isListening && (
+              <TouchableOpacity
+                onPress={() => {
+                  if (isSpeaking) {
+                    stopSpeaking();
+                  } else {
+                    const count = results.length;
+                    speak(`${query}. Found ${count} ${count === 1 ? 'item' : 'items'}.`);
+                  }
+                }}
+                style={styles.rightIconBtn}
+                activeOpacity={0.7}
+              >
+                <Feather 
+                  name={isSpeaking ? "volume-x" : "volume-2"} 
+                  size={16} 
+                  color={isSpeaking ? "#059669" : "#64748B"} 
+                />
+              </TouchableOpacity>
+            )}
+
+            {/* Clear Input Button */}
+            {query.length > 0 && !isListening && (
+              <TouchableOpacity 
+                onPress={() => setQuery('')}
+                style={styles.rightIconBtn}
+                activeOpacity={0.7}
+              >
+                <Feather name="x" size={16} color="#64748B" />
+              </TouchableOpacity>
+            )}
+
+            {/* Speech-to-Text Microphone Button inside right edge */}
             <TouchableOpacity 
-              onPress={() => setQuery('')}
-              style={styles.clearButton}
-              activeOpacity={0.7}
+              onPress={toggleListening}
+              style={[styles.micBtn, isListening && styles.micBtnActive]}
+              activeOpacity={0.8}
             >
-              <Feather name="x" size={16} color="#64748B" />
+              {isListening && (
+                <Animated.View 
+                  style={[
+                    styles.micPulseRing,
+                    { transform: [{ scale: pulseAnim }], opacity: pulseOpacity }
+                  ]} 
+                />
+              )}
+              <Feather name="mic" size={16} color={isListening ? "#FFFFFF" : "#64748B"} />
             </TouchableOpacity>
-          )}
+          </View>
         </View>
       </View>
+
+      {/* Real-time Voice Feedback Banner */}
+      {isListening && (
+        <View style={styles.listeningBanner}>
+          <Feather name="radio" size={14} color="#E11D48" />
+          <Text style={styles.listeningText} numberOfLines={1}>
+            {interimText || "Listening... Speak your product"}
+          </Text>
+          <TouchableOpacity onPress={toggleListening}>
+            <Text style={styles.listeningDoneText}>Done</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <View style={styles.content}>
         {loading ? (
@@ -205,6 +333,62 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     padding: 4,
+  },
+  searchBarListening: {
+    borderColor: '#E11D48',
+    backgroundColor: '#FFF1F2',
+  },
+  rightButtonsGroup: {
+    position: 'absolute',
+    right: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  rightIconBtn: {
+    padding: 6,
+    borderRadius: 8,
+  },
+  micBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  micBtnActive: {
+    backgroundColor: '#E11D48',
+  },
+  micPulseRing: {
+    position: 'absolute',
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#FB7185',
+  },
+  listeningBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFE4E6',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FECDD3',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  listeningText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#9F1239',
+    fontStyle: 'italic',
+  },
+  listeningDoneText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#E11D48',
   },
   content: {
     flex: 1,

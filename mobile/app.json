@@ -35,7 +35,10 @@
           "category": ["BROWSABLE", "DEFAULT"]
         }
       ],
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "splash": {
       "image": "./assets/splash-icon.png",

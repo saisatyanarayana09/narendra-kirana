@@ -1,113 +1,233 @@
 import { optimizeImage } from './utils/image';
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { Home, Search, ShoppingBasket, ShoppingCart, User, X, Heart, Bell, LayoutGrid, Trash2, ShoppingBag, Leaf, Coffee, Package } from 'lucide-react'
+import { Home, Search, ShoppingBasket, ShoppingCart, User, X, Heart, Bell, LayoutGrid, Trash2, ShoppingBag, Leaf, Coffee, Package, Mic, Volume2 } from 'lucide-react'
 import { useCart } from './cart-context'
 import { useLanguage } from './context/LanguageContext'
+import { useSpeechRecognition, useTextToSpeech } from './hooks/useVoice'
 import api from './services/api'
 
 function GlobalSearchBar() {
- const [query, setQuery] = useState('');
- const [results, setResults] = useState([]);
- const [isOpen, setIsOpen] = useState(false);
- const [loading, setLoading] = useState(false);
- const navigate = useNavigate();
- const wrapperRef = useRef(null);
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const wrapperRef = useRef(null);
 
- useEffect(() => {
- const handleClickOutside = (event) => {
- if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
- setIsOpen(false);
- }
- };
- document.addEventListener('mousedown', handleClickOutside);
- return () => document.removeEventListener('mousedown', handleClickOutside);
- }, []);
+  // Text-to-Speech Voice Hook
+  const { speak, stop: stopSpeaking, isSpeaking } = useTextToSpeech();
 
- useEffect(() => {
- const controller = new AbortController();
- const timer = setTimeout(() => {
- if (query.trim().length > 1) {
- setLoading(true);
- api.get(`/products/?search=${encodeURIComponent(query)}`, { signal: controller.signal })
- .then(res => {
- setResults(res.data.results?.slice(0, 5) || res.data?.slice(0, 5) || []);
- setIsOpen(true);
- })
- .catch((err) => { if (err.name !== 'CanceledError' && err.code !== 'ERR_CANCELED') console.error(err); })
- .finally(() => setLoading(false));
- } else {
- setResults([]);
- setIsOpen(false);
- }
- }, 300);
- return () => { clearTimeout(timer); controller.abort(); };
- }, [query]);
+  // Speech-to-Text Voice Hook
+  const { 
+    isListening, 
+    interimTranscript, 
+    error: voiceError, 
+    setError: setVoiceError, 
+    toggleListening 
+  } = useSpeechRecognition({
+    onResult: (finalText) => {
+      setQuery((prev) => (prev ? `${prev.trim()} ${finalText}` : finalText));
+    },
+    lang: 'en-IN',
+  });
 
- const handleSubmit = (e) => {
- e.preventDefault();
- if (query.trim()) {
- setIsOpen(false);
- navigate(`/products?search=${encodeURIComponent(query)}`);
- }
- };
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
- return (
- <div ref={wrapperRef} className="relative flex-1 max-w-2xl ml-4 sm:mx-8">
- <form onSubmit={handleSubmit} className="relative flex items-center w-full bg-slate-100/80 rounded-xl overflow-hidden border border-slate-200/50 focus-within:border-primary-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-primary-500/10 focus-within:shadow-md transition-all duration-300">
- <div className="pl-3 text-slate-400"><Search size={18} /></div>
- <input 
- type="text"
- value={query}
- onChange={(e) => setQuery(e.target.value)}
- onFocus={() => { if (results.length > 0) setIsOpen(true); }}
- placeholder="Search products..."
- className="w-full bg-transparent px-3 py-2.5 outline-none text-sm"
- />
- {query && (
- <button type="button"onClick={() => { setQuery(''); setResults([]); setIsOpen(false); }} className="pr-3 text-slate-400 hover:text-slate-600">
- <X size={16} />
- </button>
- )}
- </form>
+  // Display value combines committed query + live interim voice speech
+  const displayValue = isListening && interimTranscript 
+    ? (query ? `${query.trim()} ${interimTranscript}` : interimTranscript)
+    : query;
 
- {isOpen && (
- <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-lg border border-slate-100 overflow-hidden z-50">
- {loading ? (
- <div className="p-4 text-center text-sm text-slate-500">Searching...</div>
- ) : results.length > 0 ? (
- <div>
- {results.map(product => (
- <Link 
- key={product.id} 
- to={`/product/${product.id}`}
- onClick={() => { setIsOpen(false); setQuery(''); }}
- className="flex items-center gap-3 p-3 hover:bg-slate-50 border-b border-slate-50 last:border-0 transition"
- >
- <div className="w-10 h-10 rounded bg-slate-100 overflow-hidden shrink-0 flex items-center justify-center font-bold text-slate-400 text-xs">
- {product.image ? <img src={optimizeImage(product.image, 100)} className="w-full h-full object-cover"alt=""/> : 'IMG'}
- </div>
- <div className="flex-1 min-w-0">
- <p className="text-sm font-bold text-slate-900 truncate">{product.name}</p>
- <p className="text-xs text-slate-500">{product.unit}</p>
- </div>
- <div className="text-sm font-bold text-primary-700 whitespace-nowrap">₹{product.offer_price || product.regular_price}</div>
- </Link>
- ))}
- <button 
- onClick={handleSubmit} 
- className="w-full p-3 text-sm font-bold text-primary-600 bg-primary-50 hover:bg-primary-50 text-center transition"
- >
- View all results for"{query}"
- </button>
- </div>
- ) : query.trim().length > 1 && (
- <div className="p-4 text-center text-sm text-slate-500">No products found.</div>
- )}
- </div>
- )}
- </div>
- );
+  useEffect(() => {
+    const controller = new AbortController();
+    const effectiveQuery = displayValue.trim();
+
+    const timer = setTimeout(() => {
+      if (effectiveQuery.length > 1) {
+        setLoading(true);
+        api.get(`/products/?search=${encodeURIComponent(effectiveQuery)}`, { signal: controller.signal })
+          .then(res => {
+            setResults(res.data.results?.slice(0, 5) || res.data?.slice(0, 5) || []);
+            setIsOpen(true);
+          })
+          .catch((err) => { if (err.name !== 'CanceledError' && err.code !== 'ERR_CANCELED') console.error(err); })
+          .finally(() => setLoading(false));
+      } else {
+        setResults([]);
+        setIsOpen(false);
+      }
+    }, 250);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [displayValue]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const targetQuery = displayValue.trim();
+    if (targetQuery) {
+      setIsOpen(false);
+      navigate(`/products?search=${encodeURIComponent(targetQuery)}`);
+    }
+  };
+
+  const handleVoiceToggle = () => {
+    if (isSpeaking) stopSpeaking();
+    toggleListening();
+  };
+
+  const handleReadAloud = (e) => {
+    e.stopPropagation();
+    if (isSpeaking) {
+      stopSpeaking();
+    } else if (displayValue.trim()) {
+      speak(displayValue.trim());
+    }
+  };
+
+  return (
+    <div ref={wrapperRef} className="relative flex-1 max-w-2xl ml-4 sm:mx-8">
+      <form onSubmit={handleSubmit} className={`relative flex items-center w-full bg-slate-100/80 dark:bg-slate-800/80 rounded-xl border transition-all duration-300 ${
+        isListening
+          ? 'border-rose-500 ring-4 ring-rose-500/20 bg-rose-50/30 dark:bg-rose-950/20'
+          : 'border-slate-200/50 dark:border-slate-700/50 focus-within:border-primary-500 focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:ring-4 focus-within:ring-primary-500/10 focus-within:shadow-md'
+      }`}>
+        <div className={`pl-3.5 transition-colors ${isListening ? 'text-rose-500 animate-pulse' : 'text-slate-400'}`}>
+          <Search size={18} />
+        </div>
+
+        <input 
+          type="text"
+          value={displayValue}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            if (isListening) toggleListening();
+          }}
+          onFocus={() => { if (results.length > 0) setIsOpen(true); }}
+          placeholder={isListening ? "Listening... Speak now" : "Search products..."}
+          className={`w-full bg-transparent pl-3 pr-20 py-2.5 outline-none text-sm text-slate-900 dark:text-white ${
+            isListening ? 'placeholder:text-rose-500 placeholder:font-medium' : 'placeholder:text-slate-400'
+          }`}
+        />
+
+        {/* Right-Hand Button Controls Group positioned cleanly inside Search Bar */}
+        <div className="absolute right-2 flex items-center gap-1">
+          {/* Read Aloud Text-to-Speech Button */}
+          {displayValue.trim().length > 0 && !isListening && (
+            <button
+              type="button"
+              onClick={handleReadAloud}
+              title={isSpeaking ? "Stop speech" : "Read aloud"}
+              className={`p-1.5 rounded-lg transition-all ${
+                isSpeaking 
+                  ? 'text-primary-600 bg-primary-50 dark:bg-primary-950/60 animate-pulse' 
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700'
+              }`}
+            >
+              {isSpeaking ? <Volume2 size={15} className="text-primary-600 animate-bounce" /> : <Volume2 size={15} />}
+            </button>
+          )}
+
+          {/* Clear Input Button */}
+          {displayValue.length > 0 && !isListening && (
+            <button 
+              type="button"
+              onClick={() => { setQuery(''); setResults([]); setIsOpen(false); }} 
+              className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700 transition"
+              title="Clear search"
+            >
+              <X size={15} />
+            </button>
+          )}
+
+          {/* Speech-to-Text Microphone Button inside Right Edge */}
+          <button
+            type="button"
+            onClick={handleVoiceToggle}
+            title={isListening ? "Listening... Click to stop" : "Search by voice"}
+            className={`relative p-1.5 rounded-lg transition-all flex items-center justify-center ${
+              isListening
+                ? 'bg-rose-500 text-white shadow-md shadow-rose-500/30 scale-105'
+                : 'text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-200/60 dark:hover:bg-slate-700'
+            }`}
+          >
+            {isListening && (
+              <span className="absolute inset-0 rounded-lg bg-rose-400 animate-ping opacity-75" />
+            )}
+            <Mic size={16} className={`relative z-10 ${isListening ? 'text-white animate-pulse' : ''}`} />
+          </button>
+        </div>
+      </form>
+
+      {/* Real-time Voice Status Bar */}
+      {isListening && (
+        <div className="absolute top-full left-0 right-0 mt-1 px-3 py-1.5 bg-rose-500 text-white rounded-lg text-xs font-semibold flex items-center justify-between shadow-lg z-50 animate-in fade-in slide-in-from-top-1">
+          <div className="flex items-center gap-2 truncate">
+            <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+            <span className="truncate">{interimTranscript ? `"${interimTranscript}"` : "Listening... Speak your item (e.g. 'Sugar', 'Dal', 'Oil')"}</span>
+          </div>
+          <button 
+            type="button" 
+            onClick={toggleListening}
+            className="text-[11px] bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded font-bold ml-2 shrink-0"
+          >
+            Done
+          </button>
+        </div>
+      )}
+
+      {/* Voice Error Notice */}
+      {voiceError && (
+        <div className="absolute top-full left-0 right-0 mt-1 px-3 py-1.5 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 rounded-lg text-xs flex items-center justify-between shadow-lg z-50">
+          <span className="truncate">{voiceError}</span>
+          <button type="button" onClick={() => setVoiceError(null)} className="font-bold ml-2 text-amber-600 hover:text-amber-800">✕</button>
+        </div>
+      )}
+
+      {isOpen && (
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-slate-100 dark:border-slate-800 overflow-hidden z-50">
+          {loading ? (
+            <div className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">Searching...</div>
+          ) : results.length > 0 ? (
+            <div>
+              {results.map(product => (
+                <Link 
+                  key={product.id} 
+                  to={`/product/${product.id}`}
+                  onClick={() => { setIsOpen(false); setQuery(''); }}
+                  className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-800 border-b border-slate-50 dark:border-slate-800/60 last:border-0 transition"
+                >
+                  <div className="w-10 h-10 rounded bg-slate-100 dark:bg-slate-800 overflow-hidden shrink-0 flex items-center justify-center font-bold text-slate-400 text-xs">
+                    {product.image ? <img src={optimizeImage(product.image, 100)} className="w-full h-full object-cover" alt=""/> : 'IMG'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{product.name}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{product.unit}</p>
+                  </div>
+                  <div className="text-sm font-bold text-primary-700 dark:text-primary-400 whitespace-nowrap">₹{product.offer_price || product.regular_price}</div>
+                </Link>
+              ))}
+              <button 
+                onClick={handleSubmit} 
+                className="w-full p-3 text-sm font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/40 hover:bg-primary-100 dark:hover:bg-primary-900/60 text-center transition"
+              >
+                View all results for "{displayValue}"
+              </button>
+            </div>
+          ) : displayValue.trim().length > 1 && (
+            <div className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">No products found.</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function NotificationPopup({ isOpen, onClose }) {
