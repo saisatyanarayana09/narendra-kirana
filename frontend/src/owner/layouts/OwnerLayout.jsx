@@ -3,12 +3,14 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, Package, Tags, ShoppingCart, Users, Settings, 
   Menu, X, LogOut, PercentCircle, MessageSquare, Layout, Gift, 
-  TrendingUp, LayoutGrid 
+  TrendingUp, LayoutGrid, Sun, Moon 
 } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import { useTheme } from '../../context/ThemeContext';
 
 const OwnerLayout = () => {
+  const { theme, toggleTheme } = useTheme();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isHubOpen, setIsHubOpen] = useState(false);
   const [storeStatus, setStoreStatus] = useState({ is_open: true, loaded: false });
@@ -115,13 +117,27 @@ const OwnerLayout = () => {
           })}
         </nav>
 
-        <div className="shrink-0 w-full p-4 border-t border-slate-800 bg-slate-900">
+        <div className="shrink-0 w-full p-4 border-t border-slate-800 bg-slate-900 flex flex-col gap-1.5">
           <button 
-            onClick={handleLogout}
-            className="flex items-center w-full px-4 py-3 text-slate-400 rounded-xl hover:bg-slate-800 hover:text-white hover:translate-x-1 transition-all duration-200 group font-medium"
+            type="button"
+            onClick={() => toggleTheme()}
+            className="flex items-center w-full px-4 py-2 text-slate-400 rounded-xl hover:bg-slate-800 hover:text-white transition-all duration-200 group font-medium text-xs"
           >
-            <LogOut className="w-5 h-5 mr-3 text-slate-500 group-hover:text-rose-400 transition-colors"/>
-            Logout
+            {theme === 'dark' ? (
+              <Sun className="w-4 h-4 mr-3 text-amber-400" />
+            ) : (
+              <Moon className="w-4 h-4 mr-3 text-indigo-400" />
+            )}
+            <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+          </button>
+
+          <button 
+            type="button"
+            onClick={handleLogout}
+            className="flex items-center w-full px-4 py-2 text-slate-400 rounded-xl hover:bg-slate-800 hover:text-white hover:translate-x-1 transition-all duration-200 group font-medium text-xs"
+          >
+            <LogOut className="w-4 h-4 mr-3 text-slate-500 group-hover:text-rose-400 transition-colors"/>
+            <span>Logout</span>
           </button>
         </div>
       </aside>
@@ -129,35 +145,45 @@ const OwnerLayout = () => {
       {/* Main Content Area */}
       <div className="flex flex-col flex-1 overflow-hidden min-w-0">
         {/* Mobile Header */}
-        <header className="flex items-center justify-between h-14 px-3 sm:px-6 bg-white border-b border-slate-200 lg:hidden shrink-0 z-30 shadow-sm">
+        <header className="flex items-center justify-between h-14 px-3 sm:px-6 bg-white dark:bg-[#0d1322] border-b border-slate-200 dark:border-slate-800 lg:hidden shrink-0 z-30 shadow-sm transition-colors">
           <div className="flex items-center gap-2">
             <button 
               onClick={() => setIsSidebarOpen(true)} 
-              className="p-1.5 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors"
+              className="p-1.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               aria-label="Open menu"
             >
               <Menu className="w-5 h-5"/>
             </button>
             <div className="flex flex-col">
               <span className="text-sm font-black tracking-tight leading-tight">
-                <span className="text-slate-900">Narendra </span>
-                <span className="text-emerald-600">Kirana</span>
+                <span className="text-slate-900 dark:text-white">Narendra </span>
+                <span className="text-emerald-600 dark:text-emerald-400">Kirana</span>
               </span>
-              <span className="text-[10px] font-bold text-emerald-700 leading-none">
+              <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 leading-none">
                 {currentSection.name}
               </span>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Theme Toggle Button */}
+            <button
+              type="button"
+              onClick={() => toggleTheme()}
+              className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs shadow-sm active:scale-95 transition-all"
+              title={theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
+            >
+              {theme === 'dark' ? <Sun size={15} className="text-amber-400" /> : <Moon size={15} className="text-indigo-400" />}
+            </button>
+
             {/* Store status pill */}
             {storeStatus.loaded && (
               <button
                 onClick={toggleStoreStatus}
                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold border transition-all ${
                   storeStatus.is_open 
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                    : 'bg-rose-50 text-rose-700 border-rose-200'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800' 
+                    : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800'
                 }`}
                 title="Click to toggle store online/offline"
               >
@@ -169,17 +195,17 @@ const OwnerLayout = () => {
             {/* All Sections Hub Button */}
             <button
               onClick={() => setIsHubOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-slate-700 hover:text-emerald-600 rounded-lg hover:bg-slate-100 transition-colors border border-slate-200 bg-slate-50"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
               title="View all sections"
             >
-              <LayoutGrid className="w-4 h-4 text-emerald-600" />
+              <LayoutGrid className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               <span>Hub</span>
             </button>
           </div>
         </header>
 
         {/* Mobile Quick Section Switcher Ribbon – 1-tap jump to ANY section */}
-        <div className="lg:hidden bg-white border-b border-slate-200/80 px-2 py-2 overflow-x-auto hide-scrollbar flex items-center gap-1.5 shrink-0 shadow-[0_2px_4px_rgba(0,0,0,0.02)]">
+        <div className="lg:hidden bg-white dark:bg-[#0d1322] border-b border-slate-200/80 dark:border-slate-800 px-2 py-2 overflow-x-auto hide-scrollbar flex items-center gap-1.5 shrink-0 shadow-[0_2px_4px_rgba(0,0,0,0.02)]">
           {navigation.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href);

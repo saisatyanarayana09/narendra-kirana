@@ -4,6 +4,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Home, Search, ShoppingBasket, ShoppingCart, User, X, Heart, Bell, LayoutGrid, Trash2, ShoppingBag, Leaf, Coffee, Package, Mic, Volume2 } from 'lucide-react'
 import { useCart } from './cart-context'
 import { useLanguage } from './context/LanguageContext'
+import { useTheme } from './context/ThemeContext'
 import { useSpeechRecognition, useTextToSpeech } from './hooks/useVoice'
 import api from './services/api'
 
@@ -368,39 +369,50 @@ import { SmartAppBanner } from './components/SmartAppBanner';
 export function CustomerLayout({ children }) {
   const { cart, isCustomer, favorites, notifications } = useCart()
   const { language, changeLanguage, setLanguage } = useLanguage()
+  const { theme, toggleTheme } = useTheme()
   const [showNotifications, setShowNotifications] = useState(false)
   const location = useLocation();
 
- 
- return (
+  return (
+  <div className="min-h-screen bg-slate-50 dark:bg-[#090d16] pb-20 sm:pb-0 text-slate-900 dark:text-slate-100 transition-colors duration-200">
+  <SmartAppBanner />
+  <WelcomeScreen />
 
- <div className="min-h-screen bg-slate-50 pb-20 sm:pb-0 text-slate-900 transition-colors duration-200">
- <SmartAppBanner />
- <WelcomeScreen />
+  <header className="sticky top-0 z-30 border-b border-slate-200/60 dark:border-slate-800 bg-white/80 dark:bg-[#0d1322]/90 backdrop-blur-xl shadow-sm transition-colors duration-200">
+  <div className="mx-auto flex w-full max-w-screen-2xl items-center justify-between px-4 py-3 sm:px-6 lg:px-12">
+  <Link to="/" className="text-2xl sm:text-3xl font-black tracking-tighter whitespace-nowrap shrink-0 drop-shadow-sm hover:opacity-80 transition-opacity">
+  <span className="text-slate-800 dark:text-white">Narendra</span>
+  <span className="text-primary-600 dark:text-primary-400">Kirana</span>
+  </Link>
+  
+  <GlobalSearchBar />
 
- <header className="sticky top-0 z-30 border-b border-slate-200/60 dark:border-slate-800 bg-white/80 dark:bg-slate-900/90 backdrop-blur-xl shadow-sm transition-colors duration-200">
- <div className="mx-auto flex w-full max-w-screen-2xl items-center justify-between px-4 py-3 sm:px-6 lg:px-12">
- <Link to="/"className="text-2xl sm:text-3xl font-black tracking-tighter whitespace-nowrap shrink-0 drop-shadow-sm hover:opacity-80 transition-opacity">
- <span className="text-slate-800">Narendra</span>
- <span className="text-primary-600">Kirana</span>
- </Link>
- 
- <GlobalSearchBar />
+  <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+  {/* 1-Click Dark/Light Mode Switcher */}
+  <button
+    type="button"
+    onClick={() => toggleTheme()}
+    title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black border border-slate-200 dark:border-slate-700 bg-slate-100/80 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all shadow-sm active:scale-95 cursor-pointer"
+  >
+    <span>{theme === 'dark' ? '☀️' : '🌙'}</span>
+    <span className="hidden md:inline">{theme === 'dark' ? 'Light' : 'Dark'}</span>
+  </button>
 
- <div className="flex items-center gap-2 sm:gap-4 shrink-0">
- <button
-   type="button"
-   onClick={() => {
-     const nextLang = language === 'te' ? 'en' : 'te';
-     if (changeLanguage) changeLanguage(nextLang);
-     else if (setLanguage) setLanguage(nextLang);
-   }}
-   title={language === 'te' ? 'Switch to English' : 'తెలుగుకు మారండి'}
-   className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black border border-slate-200 dark:border-slate-700 bg-slate-100/80 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all shadow-sm active:scale-95 cursor-pointer"
- >
-   <span>🌐</span>
-   <span>{language === 'te' ? 'తెలుగు' : 'EN'}</span>
- </button>
+  {/* Language Switcher */}
+  <button
+    type="button"
+    onClick={() => {
+      const nextLang = language === 'te' ? 'en' : 'te';
+      if (changeLanguage) changeLanguage(nextLang);
+      else if (setLanguage) setLanguage(nextLang);
+    }}
+    title={language === 'te' ? 'Switch to English' : 'తెలుగుకు మారండి'}
+    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black border border-slate-200 dark:border-slate-700 bg-slate-100/80 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all shadow-sm active:scale-95 cursor-pointer"
+  >
+    <span>🌐</span>
+    <span>{language === 'te' ? 'తెలుగు' : 'EN'}</span>
+  </button>
 
  {isCustomer ? (
  <>
@@ -437,30 +449,30 @@ export function CustomerLayout({ children }) {
 
  {children}
 
- <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-between border-t border-slate-200 bg-white/95 backdrop-blur-md px-2 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:hidden transition-colors duration-200 shadow-[0_-4px_15px_-5px_rgba(0,0,0,0.05)]">
- <Link className="flex flex-1 flex-col items-center gap-1 text-xs font-semibold text-primary-700"to="/">
- <Home size={20} />Home
- </Link>
- <Link className="flex flex-1 flex-col items-center gap-1 text-xs font-semibold text-slate-500"to="/categories">
- <LayoutGrid size={20} />Categories
- </Link>
-  {isCustomer && (
-  <Link className={`relative flex flex-1 flex-col items-center gap-1 text-xs font-semibold transition-colors ${location.pathname === '/profile/orders' ? 'text-primary-700' : 'text-slate-500'}`} to="/profile/orders">
-  <Package size={20} />
-  Orders
+  <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-between border-t border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-[#0c1220]/95 backdrop-blur-md px-2 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:hidden transition-colors duration-200 shadow-[0_-4px_15px_-5px_rgba(0,0,0,0.05)]">
+  <Link className={`flex flex-1 flex-col items-center gap-1 text-xs font-semibold ${location.pathname === '/' ? 'text-primary-700 dark:text-primary-400' : 'text-slate-500 dark:text-slate-400'}`} to="/">
+  <Home size={20} />Home
   </Link>
-  )}
- <Link className="flex flex-1 flex-col items-center gap-1 text-xs font-semibold text-slate-500"to={isCustomer ?"/profile":"/login"}>
- <User size={20} />{isCustomer ? 'Profile' : 'Sign in'}
- </Link>
- <Link className={`relative flex flex-1 flex-col items-center justify-center gap-1 text-xs font-bold transition-all ${location.pathname === '/cart' ? 'text-primary-700' : 'text-slate-500 hover:text-primary-700'}`} to="/cart">
- <div className="relative">
- <ShoppingCart size={24} strokeWidth={2.5} className={location.pathname === '/cart' ? 'text-primary-700' : 'text-slate-500'} />
- {cart?.items?.length > 0 && <span className="absolute -right-2 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-md bg-slate-900 px-1 text-[10px] font-black text-white border-2 border-white shadow-sm">{cart.items.length}</span>}
- </div>
- <span>Cart</span>
- </Link>
- </nav>
+  <Link className={`flex flex-1 flex-col items-center gap-1 text-xs font-semibold ${location.pathname === '/categories' ? 'text-primary-700 dark:text-primary-400' : 'text-slate-500 dark:text-slate-400'}`} to="/categories">
+  <LayoutGrid size={20} />Categories
+  </Link>
+   {isCustomer && (
+   <Link className={`relative flex flex-1 flex-col items-center gap-1 text-xs font-semibold transition-colors ${location.pathname === '/profile/orders' ? 'text-primary-700 dark:text-primary-400' : 'text-slate-500 dark:text-slate-400'}`} to="/profile/orders">
+   <Package size={20} />
+   Orders
+   </Link>
+   )}
+  <Link className={`flex flex-1 flex-col items-center gap-1 text-xs font-semibold ${location.pathname.startsWith('/profile') ? 'text-primary-700 dark:text-primary-400' : 'text-slate-500 dark:text-slate-400'}`} to={isCustomer ?"/profile":"/login"}>
+  <User size={20} />{isCustomer ? 'Profile' : 'Sign in'}
+  </Link>
+  <Link className={`relative flex flex-1 flex-col items-center justify-center gap-1 text-xs font-bold transition-all ${location.pathname === '/cart' ? 'text-primary-700 dark:text-primary-400' : 'text-slate-500 dark:text-slate-400 hover:text-primary-700'}`} to="/cart">
+  <div className="relative">
+  <ShoppingCart size={24} strokeWidth={2.5} className={location.pathname === '/cart' ? 'text-primary-700 dark:text-primary-400' : 'text-slate-500 dark:text-slate-400'} />
+  {cart?.items?.length > 0 && <span className="absolute -right-2 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-md bg-slate-900 px-1 text-[10px] font-black text-white border-2 border-white shadow-sm">{cart.items.length}</span>}
+  </div>
+  <span>Cart</span>
+  </Link>
+  </nav>
  </div>
  )
 }

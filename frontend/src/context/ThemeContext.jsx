@@ -12,12 +12,19 @@ export function ThemeProvider({ children }) {
     }
   });
 
-  // Apply theme class to document.documentElement
+  // Apply theme class and data attribute to document.documentElement and body
   useEffect(() => {
+    const root = document.documentElement;
     if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
+      root.classList.add('dark');
+      root.setAttribute('data-theme', 'dark');
+      root.style.colorScheme = 'dark';
+      document.body.classList.add('dark');
     } else {
-      document.documentElement.classList.remove('dark');
+      root.classList.remove('dark');
+      root.setAttribute('data-theme', 'light');
+      root.style.colorScheme = 'light';
+      document.body.classList.remove('dark');
     }
   }, [theme]);
 
@@ -29,15 +36,22 @@ export function ThemeProvider({ children }) {
     } catch (e) {
       console.error('Failed to save theme in localStorage', e);
     }
+    const root = document.documentElement;
     if (nextTheme === 'dark') {
-      document.documentElement.classList.add('dark');
+      root.classList.add('dark');
+      root.setAttribute('data-theme', 'dark');
+      root.style.colorScheme = 'dark';
+      document.body.classList.add('dark');
     } else {
-      document.documentElement.classList.remove('dark');
+      root.classList.remove('dark');
+      root.setAttribute('data-theme', 'light');
+      root.style.colorScheme = 'light';
+      document.body.classList.remove('dark');
     }
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, isDark: theme === 'dark', toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );
