@@ -3,7 +3,7 @@ import { DeviceEventEmitter } from 'react-native';
 import { apiClient } from '../api/client';
 import { STORAGE_KEYS } from '../constants/config';
 import { getItem, saveItem, deleteItem } from '../utils/storage';
-import { resetWelcomeSession } from '../components/WelcomeScreen';
+import { resetWelcomeSession } from '../utils/welcomeSession';
 
 export type User = {
   id: number;

@@ -9,15 +9,15 @@ import {
   Image 
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import { 
+  getHasShownWelcomeSession, 
+  setHasShownWelcomeSession, 
+  resetWelcomeSession 
+} from '../utils/welcomeSession';
+
+export { resetWelcomeSession };
 
 const { width, height } = Dimensions.get('window');
-
-// Session tracker so it only shows once per app session matching web app sessionStorage
-let hasShownWelcomeSession = false;
-
-export function resetWelcomeSession() {
-  hasShownWelcomeSession = false;
-}
 
 interface WelcomeScreenProps {
   forceShow?: boolean;
@@ -34,8 +34,8 @@ export function WelcomeScreen({ forceShow = false, onFinish }: WelcomeScreenProp
 
   useEffect(() => {
     // Only show when forced or when user is authenticated and hasn't seen welcome in this session
-    if (forceShow || (user && !hasShownWelcomeSession)) {
-      hasShownWelcomeSession = true;
+    if (forceShow || (user && !getHasShownWelcomeSession())) {
+      setHasShownWelcomeSession(true);
       setVisible(true);
 
       // 1. Fade in & subtle scale up
