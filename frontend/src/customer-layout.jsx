@@ -208,19 +208,36 @@ function WelcomeScreen() {
 
  const name = user?.first_name || user?.username || 'Guest';
 
+ const handleSkip = () => {
+ setStage('fade-out');
+ setTimeout(() => { setShow(false); setStage('hidden'); }, 700);
+ };
+
  return (
- <div className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white transition-opacity duration-700 ease-in-out ${stage === 'fade-out' ? 'opacity-0 pointer-events-none' : 'opacity-100'} overflow-hidden`}>
- <div className={`flex flex-col items-center justify-center relative z-10 transition-all duration-700 ease-out transform ${stage === 'fade-in' ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'}`}>
- <div className="flex flex-col items-center justify-center mb-8">
-     <img src="/logo.jpg" className="w-20 h-20 sm:w-24 sm:h-24 object-contain mix-blend-multiply mb-4 drop-shadow-md" alt="Logo" />
-     <div className="text-sm sm:text-base font-black tracking-[0.25em] uppercase text-slate-400 drop-shadow-sm text-center ml-2">
-       <span className="text-emerald-900">Narendra</span> <span className="text-primary-600">Kirana</span>
-     </div>
-   </div>
-   <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight text-center px-6 leading-tight">
-   {greeting},<br className="sm:hidden" /> {name}.
-   </h1>
+ <div onClick={handleSkip} role="button" className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-gradient-to-br from-white via-white to-emerald-50 transition-opacity duration-700 ease-in-out ${stage === 'fade-out' ? 'opacity-0 pointer-events-none' : 'opacity-100'} overflow-hidden cursor-pointer`}>
+ <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+ <div className="w-96 h-96 rounded-full border border-emerald-200/10 absolute" />
+ <div className="w-72 h-72 rounded-full border border-emerald-300/10 absolute" />
+ <div className="w-48 h-48 rounded-full bg-emerald-400/5 absolute" />
  </div>
+ <div className="absolute top-[15%] left-[10%] text-2xl opacity-[0.06] animate-bounce" style={{animationDuration: '3s'}}>🥬</div>
+ <div className="absolute top-[20%] right-[12%] text-xl opacity-[0.06] animate-bounce" style={{animationDuration: '3.5s'}}>🛒</div>
+ <div className="absolute bottom-[20%] left-[15%] text-xl opacity-[0.06] animate-bounce" style={{animationDuration: '4s'}}>🥕</div>
+ <div className="absolute bottom-[15%] right-[10%] text-2xl opacity-[0.06] animate-bounce" style={{animationDuration: '2.5s'}}>🌿</div>
+
+ <div className={`flex flex-col items-center justify-center relative z-10 transition-[opacity,transform] duration-700 ease-out transform ${stage === 'fade-in' ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'}`}>
+ <div className="flex flex-col items-center justify-center mb-10 relative">
+ <div className="absolute w-40 h-40 sm:w-48 sm:h-48 bg-emerald-400/10 rounded-full blur-3xl" />
+ <img src="/logo.jpg" className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 object-contain mb-4 drop-shadow-xl relative z-10" alt="Logo" />
+ <div className="text-base sm:text-lg font-black tracking-[0.25em] uppercase text-slate-500 drop-shadow-sm text-center ml-2 relative z-10">
+ <span className="text-emerald-900">Narendra</span> <span className="text-primary-600">Kirana</span>
+ </div>
+ </div>
+ <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-slate-900 tracking-tight text-center px-6 leading-tight">
+ {greeting},<br className="sm:hidden" /> {name}.
+ </h1>
+ </div>
+ <p className={`absolute bottom-8 text-sm text-slate-300 transition-opacity duration-700 ${stage === 'fade-in' ? 'opacity-100' : 'opacity-0'}`}>Click anywhere to skip</p>
  </div>
  );
 }

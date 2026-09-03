@@ -1,10 +1,12 @@
-﻿import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const Welcome = () => {
   const navigate = useNavigate();
+  const [started, setStarted] = useState(false);
 
   useEffect(() => {
+    setStarted(true);
     // Automatically redirect to the actual dashboard after 2.5 seconds
     const timer = setTimeout(() => {
       navigate('/owner');
@@ -24,19 +26,29 @@ const Welcome = () => {
   const ownerName = getOwnerName();
 
   return (
-    <div className="fixed inset-0 bg-slate-50 flex flex-col items-center justify-center z-50">
-      <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-6 shadow-sm">
-        <span className="text-5xl animate-bounce">👋</span>
+    <div className="fixed inset-0 bg-gradient-to-b from-white to-emerald-50 flex flex-col items-center justify-center z-50">
+      
+      <div className="transition-all duration-700 ease-out" style={{opacity: started ? 1 : 0, transform: started ? 'translateY(0)' : 'translateY(16px)', transitionDelay: '0ms'}}>
+        <div className="relative mb-8">
+          <div className="absolute inset-0 w-36 h-36 bg-emerald-400/10 rounded-full blur-2xl mx-auto" style={{top: '-10px'}} />
+          <img src="/logo.jpg" className="w-28 h-28 object-contain rounded-3xl shadow-xl relative z-10" alt="Narendra Kirana" />
+        </div>
       </div>
       
-      <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight mb-2">
+      <h1 className="transition-all duration-700 ease-out text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-3" style={{opacity: started ? 1 : 0, transform: started ? 'translateY(0)' : 'translateY(16px)', transitionDelay: '150ms'}}>
         Welcome Back, {ownerName}!
       </h1>
-      <p className="text-slate-500 text-lg mb-8">We're glad to see you again.</p>
+      <p className="transition-all duration-700 ease-out text-slate-500 text-lg mb-10" style={{opacity: started ? 1 : 0, transform: started ? 'translateY(0)' : 'translateY(16px)', transitionDelay: '300ms'}}>
+        Let's check on your store.
+      </p>
       
-      <div className="flex items-center gap-3 text-emerald-600 font-bold bg-emerald-50 px-6 py-3 rounded-full border border-emerald-100">
-        <div className="w-5 h-5 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin"></div>
-        Loading your store...
+      <div className="transition-all duration-700 ease-out w-64 sm:w-80" style={{opacity: started ? 1 : 0, transform: started ? 'translateY(0)' : 'translateY(16px)', transitionDelay: '450ms'}}>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-bold text-emerald-700">Loading your dashboard...</span>
+        </div>
+        <div className="h-1.5 bg-emerald-100 rounded-full overflow-hidden">
+          <div className="h-full bg-emerald-500 rounded-full transition-all duration-[2500ms] ease-linear" style={{ width: started ? '100%' : '0%' }} />
+        </div>
       </div>
     </div>
   );
