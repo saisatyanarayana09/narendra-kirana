@@ -55,6 +55,7 @@ const Settings = React.lazy(() => import('./owner/pages/Settings'));
 const Showcase = React.lazy(() => import('./owner/pages/Showcase'));
 
 const ownerToken = () => localStorage.getItem('smart-kirana-owner-token'); // updated to use access_token from our api.js interceptor
+const customerToken = () => localStorage.getItem('smart-kirana-customer-token');
 
 function Guard({ children }) {
   const location = useLocation();
@@ -63,6 +64,18 @@ function Guard({ children }) {
     return children;
   }
   return ownerToken() ? children : <Navigate to="/owner/login" state={{ from: location }} replace />;
+}
+
+function CustomerGuard({ children }) {
+  const location = useLocation();
+  if (typeof window !== 'undefined' && window.Cypress) {
+    return children;
+  }
+  if (!customerToken()) {
+    const redirectUrl = encodeURIComponent(location.pathname + location.search);
+    return <Navigate to={`/login?redirect=${redirectUrl}`} state={{ from: location }} replace />;
+  }
+  return children;
 }
 
 function CustomerApp() {
@@ -146,37 +159,40 @@ function App() {
     <Route path="/products" element={<ProductsPage />} />
     <Route path="/categories" element={<CategoriesPage />} />
     <Route path="/product/:id" element={<ProductDetailPage />} />
-    <Route path="/cart" element={<CartPage />} />
-    <Route path="/checkout" element={<CheckoutPage />} />
-    <Route path="/orders/:id" element={<OrderDetailPage />} />
-    
-    {/* Modular Customer Profile */}
-    <Route path="/profile" element={<ProfileLayout />}>
-      <Route index element={<DashboardHome />} />
-      <Route path="account" element={<AccountSettings />} />
-      <Route path="orders" element={<OrdersHistory />} />
-      <Route path="addresses" element={<SavedAddresses />} />
-      <Route path="favorites" element={<Favorites />} />
-      <Route path="notifications" element={<Notifications />} />
-      <Route path="feedback" element={<CustomerFeedback />} />
-      <Route path="help" element={<HelpCenter />} />
-      <Route path="wallet" element={<Wallet />} />
-      <Route path="refer-and-earn" element={<ReferAndEarn />} />
-      <Route path="settings" element={<AppSettings />} />
-      <Route path="offers" element={<OffersPromoCodes />} />
-      <Route path="language" element={<LanguageSettings />} />
-    </Route>
-    
-    <Route path="/notifications" element={<Navigate to="/profile/notifications" replace />} />
-    
-    <Route path="/login" element={<CustomerLoginPage />} />
-    <Route path="/signup" element={<CustomerSignupPage />} />
-    <Route path="/verify-email" element={<VerifyEmail />} />
-    <Route path="/forgot-password" element={<ForgotPassword />} />
-    <Route path="/reset-password" element={<ResetPassword />} />
-
-    <Route path="/orders/:id/invoice" element={<Invoice />} />
- </Route>
+     <Route path="/cart" element={<CartPage />} />
+     <Route path="/checkout" element={<CustomerGuard><CheckoutPage /></CustomerGuard>} />
+     <Route path="/orders/:id" element={<CustomerGuard><OrderDetailPage /></CustomerGuard>} />
+     <Route path="/order/:id" element={<CustomerGuard><OrderDetailPage /></CustomerGuard>} />
+     <Route path="/orders/:id/invoice" element={<CustomerGuard><Invoice /></CustomerGuard>} />
+     <Route path="/order/:id/invoice" element={<CustomerGuard><Invoice /></CustomerGuard>} />
+     <Route path="/invoice/:id" element={<CustomerGuard><Invoice /></CustomerGuard>} />
+     
+     {/* Modular Customer Profile */}
+     <Route path="/profile" element={<CustomerGuard><ProfileLayout /></CustomerGuard>}>
+       <Route index element={<DashboardHome />} />
+       <Route path="account" element={<AccountSettings />} />
+       <Route path="orders" element={<OrdersHistory />} />
+       <Route path="addresses" element={<SavedAddresses />} />
+       <Route path="favorites" element={<Favorites />} />
+       <Route path="notifications" element={<Notifications />} />
+       <Route path="feedback" element={<CustomerFeedback />} />
+       <Route path="help" element={<HelpCenter />} />
+       <Route path="wallet" element={<Wallet />} />
+       <Route path="refer-and-earn" element={<ReferAndEarn />} />
+       <Route path="settings" element={<AppSettings />} />
+       <Route path="offers" element={<OffersPromoCodes />} />
+       <Route path="language" element={<LanguageSettings />} />
+     </Route>
+     
+     <Route path="/offers" element={<CustomerGuard><Navigate to="/profile/offers" replace /></CustomerGuard>} />
+     <Route path="/notifications" element={<Navigate to="/profile/notifications" replace />} />
+     
+     <Route path="/login" element={<CustomerLoginPage />} />
+     <Route path="/signup" element={<CustomerSignupPage />} />
+     <Route path="/verify-email" element={<VerifyEmail />} />
+     <Route path="/forgot-password" element={<ForgotPassword />} />
+     <Route path="/reset-password" element={<ResetPassword />} />
+  </Route>
 
  {/* Owner Portal Routes (No CartProvider needed) */}
  <Route path="/owner/login"element={<OwnerLogin />} />

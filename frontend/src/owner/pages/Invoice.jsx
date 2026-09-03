@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Printer, ArrowLeft, BadgeCheck } from 'lucide-react';
+import { Printer, ArrowLeft, BadgeCheck, Smartphone } from 'lucide-react';
 import api from '../../services/api';
 
 const Invoice = () => {
@@ -12,25 +12,66 @@ const Invoice = () => {
 
  useEffect(() => {
  const fetchData = async () => {
- try {
- const [orderRes, settingsRes] = await Promise.all([
- api.get(`/orders/${id}/`),
- api.get('/store/settings/')
- ]);
- setOrder(orderRes.data);
- setSettings(settingsRes.data);
- } catch (err) {
- console.error(err);
- setError('Failed to load invoice details.');
- } finally {
- setLoading(false);
- }
- };
- fetchData();
- }, [id]);
+    try {
+      const [orderRes, settingsRes] = await Promise.all([
+        api.get(`/orders/${id}/`),
+        api.get('/store/settings/').catch(() => ({ data: {} }))
+      ]);
+      setOrder(orderRes.data);
+      setSettings(settingsRes.data);
+    } catch (err) {
+      console.error(err);
+      if (err.response?.status === 401) {
+        const redirectUrl = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.href = `/login?redirect=${redirectUrl}`;
+        return;
+      }
+      setError(err.response?.data?.detail || 'Failed to load invoice details.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchData();
+  }, [id]);
 
- if (loading) return <div className="p-12 text-center text-slate-500 font-medium">Loading invoice...</div>;
- if (error || !order) return <div className="p-12 text-center text-red-500 font-medium">{error}</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="text-center p-8">
+          <div className="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+          <p className="font-bold text-slate-700 text-sm">Loading invoice...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !order) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+        <div className="max-w-md w-full bg-white rounded-2xl p-8 border border-slate-200 shadow-sm text-center">
+          <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-4 font-black">
+            !
+          </div>
+          <h2 className="text-xl font-black text-slate-900 mb-2">Invoice Unavailable</h2>
+          <p className="text-sm text-slate-600 mb-6">{error || 'Could not find this invoice.'}</p>
+          <div className="flex flex-col gap-2.5">
+            <Link
+              to={`/login?redirect=${encodeURIComponent(window.location.pathname)}`}
+              className="w-full py-2.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition"
+            >
+              Sign In to View Invoice
+            </Link>
+            <Link
+              to="/"
+              className="w-full py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition"
+            >
+              Return to Store
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
  const handlePrint = () => {
  window.print();
@@ -73,16 +114,27 @@ const Invoice = () => {
  <div className="min-h-screen bg-slate-100 py-10 px-4 sm:px-6 print:bg-white print:py-0 print:px-0 font-sans">
  
   {/* Non-printable action bar */}
-  <div className="max-w-4xl mx-auto mb-6 flex flex-col sm:flex-row gap-4 justify-between items-center print:hidden">
-  <Link to={`/owner/orders/${id}`} className="w-full sm:w-auto justify-center inline-flex items-center text-slate-600 hover:text-slate-900 font-medium bg-white px-5 py-2.5 rounded-lg shadow-sm border border-slate-200 transition-colors">
-  <ArrowLeft className="w-4 h-4 mr-2"/> Back to Order
-  </Link>
-  <button 
-  onClick={handlePrint}
-  className="w-full sm:w-auto justify-center inline-flex items-center bg-emerald-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-emerald-700 shadow-sm transition-colors"
-  >
-  <Printer className="w-5 h-5 mr-2"/> Download / Print PDF
-  </button>
+  <div className="max-w-4xl mx-auto mb-6 flex flex-col sm:flex-row gap-3 justify-between items-center print:hidden">
+    <Link
+      to={localStorage.getItem('smart-kirana-owner-token') ? `/owner/orders/${id}` : `/orders/${id}`}
+      className="w-full sm:w-auto justify-center inline-flex items-center text-slate-700 hover:text-slate-900 font-bold bg-white px-5 py-2.5 rounded-xl shadow-sm border border-slate-200 transition-colors text-sm"
+    >
+      <ArrowLeft className="w-4 h-4 mr-2" /> Back to Order
+    </Link>
+    <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
+      <a
+        href={`smartkirana://orders/${id}/invoice`}
+        className="w-full sm:w-auto justify-center inline-flex items-center bg-indigo-50 border border-indigo-200 text-indigo-700 px-4 py-2.5 rounded-xl font-bold hover:bg-indigo-100 shadow-sm transition-colors text-sm"
+      >
+        <Smartphone className="w-4 h-4 mr-2" /> Open in Mobile App
+      </a>
+      <button
+        onClick={handlePrint}
+        className="w-full sm:w-auto justify-center inline-flex items-center bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-emerald-700 shadow-sm transition-colors text-sm"
+      >
+        <Printer className="w-4 h-4 mr-2" /> Download / Print PDF
+      </button>
+    </div>
   </div>
 
   {/* Printable A4 Invoice Container */}

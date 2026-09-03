@@ -242,6 +242,8 @@ function WelcomeScreen() {
  );
 }
 
+import { SmartAppBanner } from './components/SmartAppBanner';
+
 export function CustomerLayout({ children }) {
   const { cart, isCustomer, favorites, notifications } = useCart()
   const [showNotifications, setShowNotifications] = useState(false)
@@ -251,6 +253,7 @@ export function CustomerLayout({ children }) {
  return (
 
  <div className="min-h-screen bg-slate-50 pb-20 sm:pb-0 text-slate-900 transition-colors duration-200">
+ <SmartAppBanner />
  <WelcomeScreen />
 
  <header className="sticky top-0 z-30 border-b border-slate-200/60 bg-white/80 backdrop-blur-xl shadow-sm transition-colors duration-200">

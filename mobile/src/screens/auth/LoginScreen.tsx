@@ -21,7 +21,7 @@ type Props = {
 };
 
 export function LoginScreen({ navigation }: Props) {
-  const { login } = useAuth();
+  const { login, pendingRedirect } = useAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -67,6 +67,19 @@ export function LoginScreen({ navigation }: Props) {
           <Text style={styles.title}>Welcome back</Text>
           <Text style={styles.subtitle}>Sign in to access your orders, wallet & favorites</Text>
         </View>
+
+        {pendingRedirect && (
+          <View style={styles.redirectBanner}>
+            <Feather name="lock" color="#059669" size={15} />
+            <Text style={styles.redirectBannerText}>
+              {pendingRedirect.screen === 'InvoiceScreen'
+                ? `Sign in to view Order #${pendingRedirect.params?.orderId || ''} invoice`
+                : pendingRedirect.screen === 'OrderTrackingScreen'
+                ? `Sign in to track Order #${pendingRedirect.params?.orderId || ''}`
+                : 'Sign in to access your requested page'}
+            </Text>
+          </View>
+        )}
 
         <View style={styles.card}>
           <View style={styles.inputContainer}>
@@ -264,5 +277,23 @@ const styles = StyleSheet.create({
     color: '#059669',
     fontWeight: '800',
     fontSize: 13,
+  },
+  redirectBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 16,
+  },
+  redirectBannerText: {
+    color: '#065F46',
+    fontSize: 13,
+    fontWeight: '700',
+    flex: 1,
   },
 });

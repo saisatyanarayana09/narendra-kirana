@@ -21,9 +21,17 @@ export type User = {
   [key: string]: any;
 };
 
+export type PendingRedirect = {
+  screen: string;
+  params?: any;
+};
+
 type AuthContextType = {
   user: User | null;
   isLoading: boolean;
+  pendingRedirect: PendingRedirect | null;
+  setPendingRedirect: (redirect: PendingRedirect | null) => void;
+  clearPendingRedirect: () => void;
   login: (data: any) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (updatedUser: User) => Promise<void>;
@@ -35,6 +43,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [pendingRedirect, setPendingRedirect] = useState<PendingRedirect | null>(null);
+
+  const clearPendingRedirect = () => setPendingRedirect(null);
 
   useEffect(() => {
     loadStoredUser();
@@ -108,7 +119,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, updateUser, refreshUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        pendingRedirect,
+        setPendingRedirect,
+        clearPendingRedirect,
+        login,
+        logout,
+        updateUser,
+        refreshUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

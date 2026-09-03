@@ -17,6 +17,24 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            { "scheme": "smartkirana" },
+            { "scheme": "https", "host": "narendra-kirana.vercel.app", "pathPrefix": "/orders" },
+            { "scheme": "https", "host": "narendra-kirana.vercel.app", "pathPrefix": "/product" },
+            { "scheme": "https", "host": "narendra-kirana.vercel.app", "pathPrefix": "/profile" },
+            { "scheme": "https", "host": "narendra-kirana.vercel.app", "pathPrefix": "/offers" },
+            { "scheme": "https", "host": "narendra-kirana.onrender.com", "pathPrefix": "/orders" },
+            { "scheme": "https", "host": "narendra-kirana.onrender.com", "pathPrefix": "/product" },
+            { "scheme": "https", "host": "narendra-kirana.onrender.com", "pathPrefix": "/profile" },
+            { "scheme": "https", "host": "narendra-kirana.onrender.com", "pathPrefix": "/offers" }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "predictiveBackGestureEnabled": false
     },
     "splash": {

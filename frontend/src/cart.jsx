@@ -1,24 +1,137 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useLocation } from 'react-router-dom'
-import { Minus, Plus, Trash2, ShoppingBasket, ArrowLeft, Eye, EyeOff, CheckCircle2, PackageSearch, Truck, Store, XCircle, MapPin, Edit2, RefreshCw, Gift } from 'lucide-react'
+import { Minus, Plus, Trash2, ShoppingBasket, ArrowLeft, Eye, EyeOff, CheckCircle2, PackageSearch, Truck, Store, XCircle, MapPin, Edit2, RefreshCw, Gift, Lock } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from './services/api'
 import { CustomerLayout } from './customer-layout'
 import { useCart } from './cart-context'
 
 export function CustomerLoginPage() {
- const navigate = useNavigate(); const { syncUser } = useCart(); const location = useLocation(); const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [showPassword, setShowPassword] = useState(false); const [error, setError] = useState(''); const [submitting, setSubmitting] = useState(false)
- async function submit(event) { event.preventDefault(); setSubmitting(true); setError(''); try { const { data } = await api.post('/auth/login/', { username: email, password }); if (!data.user.is_customer) throw new Error('Please use the owner portal for this account.'); localStorage.setItem('smart-kirana-customer-token', data.access); localStorage.setItem('smart-kirana-customer-refresh', data.refresh); localStorage.setItem('smart-kirana-customer-user', JSON.stringify(data.user)); syncUser(); navigate('/') } catch (requestError) { setError(requestError.response?.data?.detail || requestError.message || 'Unable to sign in.') } finally { setSubmitting(false) } }
- const signupLink = location.search ? `/signup${location.search}` : '/signup';
- return <CustomerLayout><main className="mx-auto max-w-md px-4 py-10"><button onClick={() => navigate(-1)} className="mb-4 flex items-center gap-2 text-sm font-bold text-primary-700 hover:underline"><ArrowLeft size={16} /> Back</button><form onSubmit={submit} className="rounded-2xl bg-white p-6 shadow-sm"><h1 className="text-2xl font-extrabold">Customer sign in</h1><p className="mt-2 text-sm text-slate-600">Sign in to save your cart and place pickup orders.</p>{error && <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}<label className="mt-5 block text-sm font-bold">Email address <input required type="email"value={email} onChange={(event) => setEmail(event.target.value)} className="mt-1 w-full rounded-lg border p-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"/></label><label className="mt-4 block text-sm font-bold">Password <div className="relative mt-1 w-full">
-<input required type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} className="w-full rounded-lg border p-3 pr-10 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"/>
-<button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600">
-{showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-</button>
-</div></label>
-<div className="flex justify-end mt-2">
-  <Link to="/forgot-password" className="text-sm font-bold text-primary-700 hover:underline">Forgot password?</Link>
-</div><button disabled={submitting} className="mt-6 min-h-12 w-full rounded-xl bg-primary-600 font-bold text-white transition-all hover:bg-primary-700 active:scale-[0.98]">{submitting ? 'Signing in...' : 'Sign in'}</button><p className="mt-4 text-center text-sm">New customer? <Link to={signupLink} className="font-bold text-primary-700">Create account</Link></p></form></main></CustomerLayout>
+  const navigate = useNavigate();
+  const { syncUser } = useCart();
+  const location = useLocation();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  // Parse redirect destination from query (?redirect=...) or location state
+  const searchParams = new URLSearchParams(location.search);
+  const rawRedirect = searchParams.get('redirect') || location.state?.from?.pathname || '/';
+  const redirectTarget = decodeURIComponent(rawRedirect);
+
+  async function submit(event) {
+    event.preventDefault();
+    setSubmitting(true);
+    setError('');
+    try {
+      const { data } = await api.post('/auth/login/', { username: email, password });
+      if (!data.user.is_customer) throw new Error('Please use the owner portal for this account.');
+      localStorage.setItem('smart-kirana-customer-token', data.access);
+      localStorage.setItem('smart-kirana-customer-refresh', data.refresh);
+      localStorage.setItem('smart-kirana-customer-user', JSON.stringify(data.user));
+      syncUser();
+      toast.success('Signed in successfully!');
+      navigate(redirectTarget, { replace: true });
+    } catch (requestError) {
+      setError(requestError.response?.data?.detail || requestError.message || 'Unable to sign in.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const signupLink = location.search ? `/signup${location.search}` : '/signup';
+
+  return (
+    <CustomerLayout>
+      <main className="mx-auto max-w-md px-4 py-10">
+        <button
+          onClick={() => navigate(-1)}
+          className="mb-4 flex items-center gap-2 text-sm font-bold text-primary-700 hover:underline"
+        >
+          <ArrowLeft size={16} /> Back
+        </button>
+        <form onSubmit={submit} className="rounded-2xl bg-white p-6 shadow-sm">
+          <h1 className="text-2xl font-extrabold text-slate-900">Customer sign in</h1>
+          <p className="mt-2 text-sm text-slate-600">
+            Sign in to save your cart, view invoices, and track orders.
+          </p>
+
+          {/* Contextual Banner if user was redirected from a protected page */}
+          {redirectTarget && redirectTarget !== '/' && (
+            <div className="mt-4 rounded-xl bg-emerald-50 border border-emerald-200 p-3.5 text-sm font-medium text-emerald-800 flex items-center gap-2.5">
+              <Lock size={16} className="text-emerald-600 flex-shrink-0" />
+              <span>
+                {redirectTarget.includes('invoice')
+                  ? 'Please sign in to view and download your official invoice.'
+                  : redirectTarget.includes('order')
+                  ? 'Please sign in to view and track your order.'
+                  : redirectTarget.includes('checkout')
+                  ? 'Please sign in to complete your checkout.'
+                  : redirectTarget.includes('offers')
+                  ? 'Please sign in to claim exclusive offers and promo codes.'
+                  : 'Please sign in to access your requested page.'}
+              </span>
+            </div>
+          )}
+
+          {error && <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+
+          <label className="mt-5 block text-sm font-bold text-slate-700">
+            Email address
+            <input
+              required
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              className="mt-1 w-full rounded-lg border p-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"
+            />
+          </label>
+
+          <label className="mt-4 block text-sm font-bold text-slate-700">
+            Password
+            <div className="relative mt-1 w-full">
+              <input
+                required
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="w-full rounded-lg border p-3 pr-10 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600"
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
+          </label>
+
+          <div className="flex justify-end mt-2">
+            <Link to="/forgot-password" className="text-sm font-bold text-primary-700 hover:underline">
+              Forgot password?
+            </Link>
+          </div>
+
+          <button
+            disabled={submitting}
+            className="mt-6 min-h-12 w-full rounded-xl bg-primary-600 font-bold text-white transition-all hover:bg-primary-700 active:scale-[0.98] disabled:opacity-50"
+          >
+            {submitting ? 'Signing in...' : 'Sign in'}
+          </button>
+
+          <p className="mt-4 text-center text-sm text-slate-600">
+            New customer?{' '}
+            <Link to={signupLink} className="font-bold text-primary-700">
+              Create account
+            </Link>
+          </p>
+        </form>
+      </main>
+    </CustomerLayout>
+  );
 }
 
 export function CustomerSignupPage() {
