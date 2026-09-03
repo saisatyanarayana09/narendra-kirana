@@ -282,7 +282,12 @@ export function MainTabs() {
       {!isWelcomeActive && currentTab !== 'CartTab' && cartItemCount > 0 && !isDismissed && (
         <FloatingCartBar 
           bottomOffset={totalBarHeight + 10}
-          onPress={() => navigation.navigate('CartTab')}
+          onPress={() => {
+            navigation.navigate('Main', {
+              screen: 'CartTab',
+              params: { screen: 'CartScreen' },
+            });
+          }}
           onClose={() => setIsDismissed(true)}
           currentRouteName={currentRouteName}
         />

@@ -23,6 +23,7 @@ export type User = {
 
 export type PendingRedirect = {
   screen: string;
+  tab?: string;
   params?: any;
 };
 

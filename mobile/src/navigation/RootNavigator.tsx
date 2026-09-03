@@ -203,27 +203,33 @@ export function RootNavigator() {
       // User is logged in: navigate straight to destination
       if (navigationRef.isReady()) {
         if (target.tab) {
-          navigationRef.navigate(target.tab, {
+          (navigationRef as any).navigate('Main', {
+            screen: target.tab,
+            params: {
+              screen: target.screen,
+              params: target.params,
+            },
+          });
+        } else {
+          (navigationRef as any).navigate('Main', {
             screen: target.screen,
             params: target.params,
           });
-        } else {
-          navigationRef.navigate(target.screen, target.params);
         }
       } else {
-        setPendingRedirect({ screen: target.screen, params: target.params });
+        setPendingRedirect({ screen: target.screen, tab: target.tab, params: target.params });
       }
     } else {
       // User is NOT logged in
       if (target.requiresAuth) {
-        setPendingRedirect({ screen: target.screen, params: target.params });
+        setPendingRedirect({ screen: target.screen, tab: target.tab, params: target.params });
         // Guide to Login screen
         if (navigationRef.isReady()) {
-          navigationRef.navigate('Login');
+          (navigationRef as any).navigate('Auth', { screen: 'Login' });
         }
       } else {
         // Public screen (e.g. ProductDetailScreen)
-        setPendingRedirect({ screen: target.screen, params: target.params });
+        setPendingRedirect({ screen: target.screen, tab: target.tab, params: target.params });
       }
     }
   };
@@ -255,7 +261,20 @@ export function RootNavigator() {
       // Give React Navigation a short tick to switch to MainTabs
       const timer = setTimeout(() => {
         if (navigationRef.isReady()) {
-          (navigationRef as any).navigate(redirect.screen, redirect.params);
+          if (redirect.tab) {
+            (navigationRef as any).navigate('Main', {
+              screen: redirect.tab,
+              params: {
+                screen: redirect.screen,
+                params: redirect.params,
+              },
+            });
+          } else {
+            (navigationRef as any).navigate('Main', {
+              screen: redirect.screen,
+              params: redirect.params,
+            });
+          }
         }
       }, 400);
 
@@ -278,14 +297,41 @@ export function RootNavigator() {
           const redirect = { ...pendingRedirect };
           clearPendingRedirect();
           setTimeout(() => {
-            (navigationRef as any).navigate(redirect.screen, redirect.params);
+            if (redirect.tab) {
+              (navigationRef as any).navigate('Main', {
+                screen: redirect.tab,
+                params: {
+                  screen: redirect.screen,
+                  params: redirect.params,
+                },
+              });
+            } else {
+              (navigationRef as any).navigate('Main', {
+                screen: redirect.screen,
+                params: redirect.params,
+              });
+            }
           }, 300);
         }
       }}
     >
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {user ? (
-          <Stack.Screen name="Main" component={MainTabs} />
+          <>
+            <Stack.Screen name="Main" component={MainTabs} />
+            <Stack.Screen 
+              name="CartTab" 
+              component={MainTabs}
+              listeners={({ navigation }) => ({
+                focus: () => {
+                  navigation.navigate('Main', {
+                    screen: 'CartTab',
+                    params: { screen: 'CartScreen' },
+                  });
+                },
+              })}
+            />
+          </>
         ) : (
           <Stack.Screen name="Auth" component={AuthStack} />
         )}
