@@ -50,8 +50,9 @@ class UserSerializer(serializers.ModelSerializer):
         
         # Update User fields
         instance.first_name = validated_data.get('first_name', instance.first_name)
-        instance.username = validated_data.get('username', instance.username)
-        instance.email = validated_data.get('email', instance.email)
+        if not instance.is_customer:
+            instance.username = validated_data.get('username', instance.username)
+            instance.email = validated_data.get('email', instance.email)
         
         if 'password' in validated_data:
             instance.set_password(validated_data['password'])

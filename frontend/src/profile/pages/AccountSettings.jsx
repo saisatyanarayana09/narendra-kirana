@@ -9,18 +9,34 @@ export default function AccountSettings() {
   const { user, syncUser } = useCart();
   const [form, setForm] = useState({
     first_name: user?.first_name || '',
-    username: user?.username || '',
     password: '',
+    confirmPassword: '',
     dob: user?.customer_profile?.dob || '',
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const saveProfile = async () => {
+    if (form.password) {
+      if (form.password.length < 6) {
+        toast.error('Password must be at least 6 characters long.');
+        return;
+      }
+      if (!form.confirmPassword) {
+        toast.error('Please confirm your new password.');
+        return;
+      }
+      if (form.password !== form.confirmPassword) {
+        toast.error('New password and confirm password do not match.');
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       const formData = new FormData();
       formData.append('first_name', form.first_name);
-      formData.append('username', form.username);
       if (form.password) formData.append('password', form.password);
       
       const customerProfileData = { dob: form.dob };
@@ -30,7 +46,7 @@ export default function AccountSettings() {
       localStorage.setItem('smart-kirana-customer-user', JSON.stringify(data));
       syncUser();
       toast.success('Profile updated successfully!');
-      setForm(prev => ({ ...prev, password: '' }));
+      setForm(prev => ({ ...prev, password: '', confirmPassword: '' }));
     } catch (err) {
       toast.error('Failed to update profile.');
     } finally {
@@ -42,7 +58,6 @@ export default function AccountSettings() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showDeletePrompt, setShowDeletePrompt] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [showDeletePassword, setShowDeletePassword] = useState(false);
   const deleteRequested = user?.customer_profile?.delete_requested || false;
 
@@ -91,8 +106,17 @@ export default function AccountSettings() {
               <input required value={form.first_name} onChange={e => setForm({...form, first_name: e.target.value})} className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all shadow-sm"/>
             </div>
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">Email Address</label>
-              <input required type="email" value={form.username} onChange={e => setForm({...form, username: e.target.value})} className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all shadow-sm"/>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-bold text-slate-700">Email Address</label>
+                <span className="text-[11px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Cannot be changed</span>
+              </div>
+              <input 
+                disabled 
+                readOnly 
+                type="email" 
+                value={user?.email || user?.username || ''} 
+                className="w-full rounded-xl border border-slate-200 bg-slate-100/80 p-3.5 text-sm font-medium text-slate-500 cursor-not-allowed outline-none shadow-sm"
+              />
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-bold text-slate-700 mb-2">Date of Birth</label>
@@ -103,15 +127,49 @@ export default function AccountSettings() {
 
         {/* Security Section */}
         <div className="p-6 md:p-8 bg-slate-50 border-t border-slate-200">
-          <h3 className="text-base font-bold text-slate-900 mb-5 pb-2 border-b border-slate-200">Security</h3>
-          <div className="max-w-md">
-            <label className="block text-sm font-bold text-slate-700 mb-2">New Password</label>
-            <div className="relative w-full">
-<input type={showPassword ? "text" : "password"} placeholder="Leave blank to keep current password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} className="w-full rounded-xl border border-slate-200 bg-white p-3.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all shadow-sm"/>
-<button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600">
-{showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-</button>
-</div>
+          <h3 className="text-base font-bold text-slate-900 mb-5 pb-2 border-b border-slate-200">Security & Password</h3>
+          <div className="max-w-md space-y-4">
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-2">New Password</label>
+              <div className="relative w-full">
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  placeholder="Leave blank to keep current password" 
+                  value={form.password} 
+                  onChange={e => setForm({...form, password: e.target.value})} 
+                  className="w-full rounded-xl border border-slate-200 bg-white p-3.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all shadow-sm"
+                />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600">
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+            </div>
+
+            {form.password ? (
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">Confirm New Password</label>
+                <div className="relative w-full">
+                  <input 
+                    type={showConfirmPassword ? "text" : "password"} 
+                    placeholder="Re-enter new password" 
+                    value={form.confirmPassword} 
+                    onChange={e => setForm({...form, confirmPassword: e.target.value})} 
+                    className={`w-full rounded-xl border p-3.5 pr-10 text-sm font-medium outline-none transition-all shadow-sm focus:ring-2 ${
+                      form.confirmPassword && form.password !== form.confirmPassword 
+                        ? 'border-red-300 bg-red-50/30 focus:ring-red-400 focus:border-red-400' 
+                        : 'border-slate-200 bg-white focus:ring-primary-500 focus:border-primary-500'
+                    }`}
+                  />
+                  <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600">
+                    {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+                {form.confirmPassword && form.password !== form.confirmPassword && (
+                  <p className="text-xs text-red-500 mt-1.5 font-medium">Passwords do not match</p>
+                )}
+              </div>
+            ) : null}
+
             <p className="text-xs text-slate-500 mt-2 font-medium">Use 8 or more characters with a mix of letters, numbers & symbols.</p>
           </div>
         </div>

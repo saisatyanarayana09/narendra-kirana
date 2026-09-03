@@ -21,11 +21,12 @@ export function AccountSettingsScreen({ navigation }: { navigation: AppNavigatio
   const { user, updateUser } = useAuth();
   
   const [firstName, setFirstName] = useState(user?.first_name || '');
-  const [username, setUsername] = useState(user?.username || user?.email || '');
   const [dob, setDob] = useState(user?.customer_profile?.dob || '');
   const [dobError, setDobError] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const [saving, setSaving] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -35,9 +36,24 @@ export function AccountSettingsScreen({ navigation }: { navigation: AppNavigatio
   const deleteRequested = Boolean(user?.customer_profile?.delete_requested);
 
   const handleSaveProfile = async () => {
-    if (!firstName.trim() || !username.trim()) {
-      Alert.alert('Validation Error', 'Full Name and Email are required.');
+    if (!firstName.trim()) {
+      Alert.alert('Validation Error', 'Full Name is required.');
       return;
+    }
+
+    if (password) {
+      if (password.length < 6) {
+        Alert.alert('Validation Error', 'Password must be at least 6 characters long.');
+        return;
+      }
+      if (!confirmPassword) {
+        Alert.alert('Validation Error', 'Please confirm your new password.');
+        return;
+      }
+      if (password !== confirmPassword) {
+        Alert.alert('Validation Error', 'New password and confirm password do not match.');
+        return;
+      }
     }
 
     const trimmedDob = dob ? dob.trim() : '';
@@ -70,7 +86,6 @@ export function AccountSettingsScreen({ navigation }: { navigation: AppNavigatio
     try {
       const payload: any = {
         first_name: firstName.trim(),
-        username: username.trim(),
       };
       if (password) payload.password = password;
       if (dob !== undefined) payload.customer_profile = JSON.stringify({ dob: trimmedDob || null });
@@ -81,6 +96,7 @@ export function AccountSettingsScreen({ navigation }: { navigation: AppNavigatio
       }
       Alert.alert('Success', 'Profile updated successfully!');
       setPassword('');
+      setConfirmPassword('');
     } catch (err: any) {
       const msg = err.response?.data?.detail || err.response?.data?.error || 'Failed to update profile.';
       Alert.alert('Error', msg);
@@ -160,15 +176,15 @@ export function AccountSettingsScreen({ navigation }: { navigation: AppNavigatio
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Email Address</Text>
+              <View style={styles.inputLabelRow}>
+                <Text style={styles.inputLabel}>Email Address</Text>
+                <Text style={styles.readOnlyBadge}>Cannot be changed</Text>
+              </View>
               <TextInput
-                style={styles.textInput}
-                value={username}
-                onChangeText={setUsername}
-                placeholder="Your email address"
+                style={[styles.textInput, styles.textInputDisabled]}
+                value={user?.email || user?.username || ''}
+                editable={false}
                 placeholderTextColor="#94A3B8"
-                keyboardType="email-address"
-                autoCapitalize="none"
               />
             </View>
 
@@ -214,6 +230,34 @@ export function AccountSettingsScreen({ navigation }: { navigation: AppNavigatio
               </TouchableOpacity>
             </View>
           </View>
+
+          {Boolean(password) && (
+            <View style={[styles.inputGroup, { marginTop: 4 }]}>
+              <Text style={styles.inputLabel}>Confirm New Password</Text>
+              <View style={[
+                styles.passwordInputWrap, 
+                Boolean(confirmPassword) && password !== confirmPassword && styles.passwordInputError
+              ]}>
+                <TextInput
+                  style={styles.passwordInput}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  placeholder="Re-enter new password"
+                  placeholderTextColor="#94A3B8"
+                  secureTextEntry={!showConfirmPassword}
+                />
+                <TouchableOpacity 
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={styles.eyeBtn}
+                >
+                  <Feather name={showConfirmPassword ? "eye-off" : "eye"} size={18} color="#94A3B8" />
+                </TouchableOpacity>
+              </View>
+              {Boolean(confirmPassword) && password !== confirmPassword && (
+                <Text style={styles.errorText}>Passwords do not match</Text>
+              )}
+            </View>
+          )}
         </View>
 
         {/* Save Changes Button */}
@@ -385,6 +429,21 @@ const styles = StyleSheet.create({
   inputGroup: {
     marginBottom: 14,
   },
+  inputLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  readOnlyBadge: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#94A3B8',
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
   inputLabel: {
     fontSize: 13,
     fontWeight: '700',
@@ -401,6 +460,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#0F172A',
     fontWeight: '500',
+  },
+  textInputDisabled: {
+    backgroundColor: '#F1F5F9',
+    color: '#64748B',
   },
   textInputError: {
     borderColor: '#EF4444',
@@ -427,6 +490,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 14,
     height: 46,
+  },
+  passwordInputError: {
+    borderColor: '#FDA4AF',
+    backgroundColor: '#FFF1F2',
   },
   passwordInput: {
     flex: 1,
