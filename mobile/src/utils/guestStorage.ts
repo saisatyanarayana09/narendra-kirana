@@ -14,7 +14,7 @@ async function isAsyncStorageWorking(): Promise<boolean> {
       asyncStorageAvailable = false;
       return false;
     }
-    await AsyncStorage.getItem('@__storage_test__');
+    await AsyncStorage.getItem('storage_test');
     asyncStorageAvailable = true;
     return true;
   } catch {

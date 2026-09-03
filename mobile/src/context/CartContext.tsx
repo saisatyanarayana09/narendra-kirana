@@ -3,7 +3,7 @@ import { getGuestStorageItem, setGuestStorageItem, removeGuestStorageItem } from
 import { apiClient } from '../api/client';
 import { useAuth } from './AuthContext';
 
-export const GUEST_CART_KEY = '@smart_kirana_guest_cart';
+export const GUEST_CART_KEY = 'smart_kirana_guest_cart';
 
 export interface CartItem {
   id: number;
