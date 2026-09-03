@@ -30,6 +30,22 @@ const SORT_OPTIONS: { id: SortOption; label: string }[] = [
   { id: 'newest', label: 'Newest' },
 ];
 
+type CacheEntry = {
+  products: any[];
+  nextUrl: string | null;
+  timestamp: number;
+};
+
+// Module-level in-memory cache per section/category (TTL: 3 minutes)
+const productSectionCache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 3 * 60 * 1000;
+
+const getSectionCacheKey = (category: number | null, search: string, sort: SortOption) => {
+  return `${category ?? 'all'}_${search.trim().toLowerCase()}_${sort}`;
+};
+
+let cachedCategories: any[] | null = null;
+
 export function ProductListScreen({ navigation, route }: { navigation: AppNavigationProp, route: any }) {
   const initialCategoryId = route.params?.categoryId || null;
   const initialCategoryName = route.params?.categoryName || 'All Products';
@@ -38,13 +54,14 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
   const { user } = useAuth();
   const { addToCart } = useCart();
   
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>(cachedCategories || []);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(initialCategoryId);
   const [searchQuery, setSearchQuery] = useState<string>(initialSearch);
   const [sortOption, setSortOption] = useState<SortOption>('default');
   
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isRevalidating, setIsRevalidating] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -161,21 +178,48 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
   }, []);
 
   useEffect(() => {
-    fetchProducts(1, true);
+    const key = getSectionCacheKey(selectedCategory, searchQuery, sortOption);
+    const cached = productSectionCache.get(key);
+
+    if (cached) {
+      // 0ms instant display from section cache! Zero skeleton flash!
+      setProducts(cached.products);
+      setHasMore(Boolean(cached.nextUrl));
+      setPage(1);
+      setLoading(false);
+
+      // Silent background revalidation
+      fetchProducts(1, true, true);
+    } else {
+      // First visit to this section
+      fetchProducts(1, true, false);
+    }
   }, [selectedCategory, searchQuery, sortOption]);
 
   const fetchCategories = async () => {
+    if (cachedCategories && cachedCategories.length > 0) {
+      setCategories(cachedCategories);
+      return;
+    }
     try {
       const res = await apiClient.get('/categories/');
-      setCategories(Array.isArray(res.data) ? res.data : (res.data?.results || []));
+      const cats = Array.isArray(res.data) ? res.data : (res.data?.results || []);
+      cachedCategories = cats;
+      setCategories(cats);
     } catch (err) {
       console.error('Error fetching categories', err);
     }
   };
 
-  const fetchProducts = async (pageNum: number, isReset = false) => {
+  const fetchProducts = async (pageNum: number, isReset = false, isSilent = false) => {
+    const key = getSectionCacheKey(selectedCategory, searchQuery, sortOption);
+
     if (isReset) {
-      setLoading(true);
+      if (!isSilent) {
+        setLoading(true);
+      } else {
+        setIsRevalidating(true);
+      }
       setPage(1);
     }
 
@@ -193,8 +237,21 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
 
       if (isReset) {
         setProducts(newItems);
+        productSectionCache.set(key, {
+          products: newItems,
+          nextUrl: nextUrl || null,
+          timestamp: Date.now()
+        });
       } else {
-        setProducts(prev => [...prev, ...newItems]);
+        setProducts(prev => {
+          const updated = [...prev, ...newItems];
+          productSectionCache.set(key, {
+            products: updated,
+            nextUrl: nextUrl || null,
+            timestamp: Date.now()
+          });
+          return updated;
+        });
       }
       setHasMore(Boolean(nextUrl));
       setPage(pageNum);
@@ -204,6 +261,7 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
       setLoading(false);
       setRefreshing(false);
       setLoadingMore(false);
+      setIsRevalidating(false);
     }
   };
 
@@ -317,7 +375,11 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
         </Text>
 
         <View style={styles.topBarBadge}>
-          <Text style={styles.topBarBadgeText}>{sortedProducts.length}</Text>
+          {isRevalidating ? (
+            <ActivityIndicator size="small" color="#059669" />
+          ) : (
+            <Text style={styles.topBarBadgeText}>{sortedProducts.length}</Text>
+          )}
         </View>
       </View>
 
@@ -376,7 +438,9 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
           refreshing={refreshing}
           onRefresh={() => {
             setRefreshing(true);
-            fetchProducts(1, true);
+            const key = getSectionCacheKey(selectedCategory, searchQuery, sortOption);
+            productSectionCache.delete(key);
+            fetchProducts(1, true, false);
             fetchFavorites();
           }}
           renderItem={({ item }) => (

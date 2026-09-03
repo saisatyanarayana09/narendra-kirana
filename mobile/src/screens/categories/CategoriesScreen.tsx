@@ -20,9 +20,11 @@ const HORIZONTAL_PADDING = 14;
 const GAP = 10;
 const CARD_WIDTH = Math.floor((width - (HORIZONTAL_PADDING * 2) - (GAP * 2)) / 3);
 
+let cachedGlobalCategories: any[] | null = null;
+
 export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp }) {
-  const [categories, setCategories] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<any[]>(cachedGlobalCategories || []);
+  const [loading, setLoading] = useState(!cachedGlobalCategories);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
@@ -30,12 +32,17 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
   }, []);
 
   const fetchCategories = async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+    if (isRefresh) {
+      setRefreshing(true);
+    } else if (!cachedGlobalCategories) {
+      setLoading(true);
+    }
 
     try {
       const res = await apiClient.get('/categories/');
-      setCategories(Array.isArray(res.data) ? res.data : (res.data?.results || []));
+      const cats = Array.isArray(res.data) ? res.data : (res.data?.results || []);
+      cachedGlobalCategories = cats;
+      setCategories(cats);
     } catch (error) {
       console.error('Error fetching categories:', error);
     } finally {
