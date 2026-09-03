@@ -132,9 +132,9 @@ export function WelcomeScreen({ forceShow = false, onStart, onFinish }: WelcomeS
                 alignItems: 'center'
               }}
             >
-              <View style={[styles.logoWrapper, isDark && { backgroundColor: colors.surface }]}>
+              <View style={styles.logoWrapper}>
                 <Image 
-                  source={require('../../assets/logo.jpg')} 
+                  source={require('../../assets/logo-transparent.png')} 
                   style={styles.logoImage} 
                   resizeMode="contain"
                 />
@@ -208,21 +208,14 @@ const styles = StyleSheet.create({
   logoWrapper: {
     width: 130,
     height: 130,
-    borderRadius: 32,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 18,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 8,
-    overflow: 'hidden',
   },
   logoImage: {
-    width: 118,
-    height: 118,
+    width: 130,
+    height: 130,
   },
   brandRow: {
     flexDirection: 'row',

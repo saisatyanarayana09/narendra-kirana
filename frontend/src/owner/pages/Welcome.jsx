@@ -31,7 +31,7 @@ const Welcome = () => {
       <div className="transition-all duration-700 ease-out" style={{opacity: started ? 1 : 0, transform: started ? 'translateY(0)' : 'translateY(16px)', transitionDelay: '0ms'}}>
         <div className="relative mb-8">
           <div className="absolute inset-0 w-36 h-36 bg-emerald-400/10 rounded-full blur-2xl mx-auto" style={{top: '-10px'}} />
-          <img src="/logo.jpg" className="w-28 h-28 object-contain rounded-3xl shadow-xl relative z-10" alt="Narendra Kirana" />
+          <img src="/logo-transparent.png" className="w-28 h-28 object-contain drop-shadow-xl relative z-10" alt="Narendra Kirana" />
         </div>
       </div>
       

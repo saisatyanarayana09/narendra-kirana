@@ -362,7 +362,7 @@ function WelcomeScreen() {
   <div className={`flex flex-col items-center justify-center relative z-10 transition-[opacity,transform] duration-700 ease-out transform ${stage === 'fade-in' ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'}`}>
   <div className="flex flex-col items-center justify-center mb-10 relative">
   <div className="absolute w-40 h-40 sm:w-48 sm:h-48 bg-emerald-400/10 rounded-full blur-3xl" />
-  <img src="/logo.jpg" className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 object-contain mb-4 drop-shadow-xl relative z-10" alt="Logo" />
+  <img src="/logo-transparent.png" className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 object-contain mb-4 drop-shadow-xl relative z-10" alt="Logo" />
   <div className="text-base sm:text-lg font-black tracking-[0.25em] uppercase text-slate-500 drop-shadow-sm text-center ml-2 relative z-10">
   <span className="text-emerald-900 dark:text-emerald-300">Narendra</span> <span className="text-primary-600 dark:text-primary-400">Kirana</span>
   </div>

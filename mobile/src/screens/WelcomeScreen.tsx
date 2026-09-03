@@ -56,9 +56,9 @@ export function WelcomeScreen({ navigation }: Props) {
             {wrapAnimated(logoAnim, (
               <View style={styles.logoContainer}>
                 <View style={[styles.glow, isDark && { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]} />
-                <View style={[styles.logoWrapper, isDark && { backgroundColor: colors.surface }]}>
+                <View style={styles.logoWrapper}>
                   <Image 
-                    source={require('../../assets/logo.jpg')} 
+                    source={require('../../assets/logo-transparent.png')} 
                     style={styles.logoImage} 
                     resizeMode="contain"
                   />
@@ -151,20 +151,13 @@ const styles = StyleSheet.create({
   logoWrapper: {
     width: 120,
     height: 120,
-    borderRadius: 30,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 8,
-    overflow: 'hidden',
   },
   logoImage: {
-    width: 108,
-    height: 108,
+    width: 120,
+    height: 120,
   },
   brandTitle: {
     fontSize: 28,
