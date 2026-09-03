@@ -28,6 +28,7 @@ interface WelcomeScreenProps {
 
 export function WelcomeScreen({ forceShow = false, onStart, onFinish }: WelcomeScreenProps) {
   const { user } = useAuth();
+  const { colors, isDark } = useTheme();
   const [visible, setVisible] = useState(false);
 
   const mainFadeAnim = useRef(new Animated.Value(0)).current;
@@ -93,7 +94,6 @@ export function WelcomeScreen({ forceShow = false, onStart, onFinish }: WelcomeS
     greeting = 'Good evening';
   }
 
-  const { colors, isDark } = useTheme();
   const name = user?.first_name || user?.username || 'Customer';
 
   return (
