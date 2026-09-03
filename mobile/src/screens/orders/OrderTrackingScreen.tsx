@@ -13,16 +13,23 @@ import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
 import { apiClient } from '../../api/client';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
 
 export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavigationProp; route: any }) {
   const { colors, isDark } = useTheme();
-  const { orderId } = route.params;
+  const { user } = useAuth();
+  const { orderId } = route?.params || {};
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
 
   const fetchOrderDetails = useCallback(async (isPullRefresh = false) => {
+    if (!user) {
+      setLoading(false);
+      if (isPullRefresh) setRefreshing(false);
+      return;
+    }
     if (isPullRefresh) {
       setRefreshing(true);
     }
@@ -39,9 +46,14 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
       setLoading(false);
       if (isPullRefresh) setRefreshing(false);
     }
-  }, [orderId, order]);
+  }, [orderId, order, user]);
 
   useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     let isMounted = true;
     let interval: ReturnType<typeof setInterval> | null = null;
 
@@ -70,7 +82,37 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
       isMounted = false;
       if (interval) clearInterval(interval);
     };
-  }, [orderId]);
+  }, [orderId, user, fetchOrderDetails]);
+
+  if (!user) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Feather name="arrow-left" size={18} color={colors.primary} />
+            <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.guestStateContainer}>
+          <View style={[styles.guestIconBox, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.15)' : '#ECFDF5' }]}>
+            <Feather name="truck" size={44} color={colors.primary} />
+          </View>
+          <Text style={[styles.guestTitle, { color: colors.text }]}>Sign In to Track Order</Text>
+          <Text style={[styles.guestSubtitle, { color: colors.textSecondary }]}>
+            Please sign in to view live delivery status, rider location, and order timeline updates.
+          </Text>
+          <TouchableOpacity
+            style={[styles.guestSignInBtn, { backgroundColor: colors.primary }]}
+            onPress={() => navigation.navigate('Login')}
+            activeOpacity={0.85}
+          >
+            <Feather name="log-in" size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
+            <Text style={styles.guestSignInBtnText}>Sign In / Register</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (loading && !order) {
     return (
@@ -371,7 +413,7 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
                     isItemRejected && styles.orderItemStrikethrough,
                   ]}
                 >
-                  {isItemRejected ? '₹0.00' : `₹${parseFloat(subtotalVal).toFixed(2)}`}
+                  {isItemRejected ? '₹0.00' : `₹${(parseFloat(subtotalVal || '0') || 0).toFixed(2)}`}
                 </Text>
               </View>
             );
@@ -383,14 +425,14 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
             
             <View style={styles.billLine}>
               <Text style={[styles.billLabel, { color: colors.textSecondary }]}>Subtotal</Text>
-              <Text style={[styles.billVal, { color: colors.text }]}>₹{activeSubtotal.toFixed(2)}</Text>
+              <Text style={[styles.billVal, { color: colors.text }]}>₹{(activeSubtotal || 0).toFixed(2)}</Text>
             </View>
 
             {parseFloat(order.discount_applied || '0') > 0 && (
               <View style={styles.billLine}>
                 <Text style={[styles.billLabel, { color: '#818CF8' }]}>Product Savings</Text>
                 <Text style={[styles.billVal, { color: '#818CF8', fontWeight: 'bold' }]}>
-                  - ₹{parseFloat(order.discount_applied).toFixed(2)}
+                  - ₹{(parseFloat(order.discount_applied || '0') || 0).toFixed(2)}
                 </Text>
               </View>
             )}
@@ -399,7 +441,7 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
               <View style={styles.billLine}>
                 <Text style={[styles.billLabel, { color: colors.primary, fontWeight: 'bold' }]}>Promo Discount</Text>
                 <Text style={[styles.billVal, { color: colors.primary, fontWeight: 'bold' }]}>
-                  - ₹{parseFloat(order.promo_discount).toFixed(2)}
+                  - ₹{(parseFloat(order.promo_discount || '0') || 0).toFixed(2)}
                 </Text>
               </View>
             )}
@@ -407,7 +449,7 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
             {parseFloat(order.packaging_fee || '0') > 0 && (
               <View style={styles.billLine}>
                 <Text style={[styles.billLabel, { color: colors.textSecondary }]}>Packaging Fee</Text>
-                <Text style={[styles.billVal, { color: colors.text }]}>₹{parseFloat(order.packaging_fee).toFixed(2)}</Text>
+                <Text style={[styles.billVal, { color: colors.text }]}>₹{(parseFloat(order.packaging_fee || '0') || 0).toFixed(2)}</Text>
               </View>
             )}
 
@@ -416,7 +458,7 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
                 <Text style={[styles.billLabel, { color: colors.textSecondary }]}>Delivery Fee</Text>
                 <Text style={[styles.billVal, { color: colors.text }, parseFloat(order.delivery_fee || '0') === 0 && { color: colors.primary, fontWeight: 'bold' }]}>
                   {parseFloat(order.delivery_fee || '0') > 0 
-                    ? `₹${parseFloat(order.delivery_fee).toFixed(2)}` 
+                    ? `₹${(parseFloat(order.delivery_fee || '0') || 0).toFixed(2)}` 
                     : 'FREE'}
                 </Text>
               </View>
@@ -426,7 +468,7 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
               <View style={styles.billLine}>
                 <Text style={[styles.billLabel, { color: colors.primary, fontWeight: 'bold' }]}>Wallet Applied</Text>
                 <Text style={[styles.billVal, { color: colors.primary, fontWeight: 'bold' }]}>
-                  - ₹{parseFloat(order.wallet_discount).toFixed(2)}
+                  - ₹{(parseFloat(order.wallet_discount || '0') || 0).toFixed(2)}
                 </Text>
               </View>
             )}
@@ -449,7 +491,7 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
                 {order.status === 'COMPLETED' ? 'Total Amount Paid' : 'Total Due'}
               </Text>
               <Text style={[styles.totalRowVal, { color: colors.text }]}>
-                ₹{parseFloat(order.total_amount || '0').toFixed(2)}
+                ₹{(parseFloat(order.total_amount || '0') || 0).toFixed(2)}
               </Text>
             </View>
 
@@ -919,6 +961,51 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#64748B',
     marginTop: 2,
+  },
+  guestStateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingBottom: 60,
+  },
+  guestIconBox: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  guestTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  guestSubtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  guestSignInBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 14,
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  guestSignInBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
   },
 });
 

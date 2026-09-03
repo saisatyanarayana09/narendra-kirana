@@ -59,6 +59,7 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
   };
 
   const checkFavorite = async () => {
+    if (!user) return;
     try {
       const res = await apiClient.get('/favorites/');
       const favList = Array.isArray(res.data) ? res.data : (res.data?.results || []);
@@ -116,7 +117,14 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
 
   const handleFavorite = async () => {
     if (!user) {
-      Alert.alert('Login Required', 'Please login to add favorites');
+      Alert.alert(
+        'Sign In Required',
+        'Please sign in to save your favorite products.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Sign In', onPress: () => navigation.navigate('Login') },
+        ]
+      );
       return;
     }
     if (toggling) return;

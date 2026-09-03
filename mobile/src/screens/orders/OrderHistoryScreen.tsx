@@ -218,7 +218,7 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
       ) : (
         <FlatList
           data={orders}
-          keyExtractor={(item) => String(item.id)}
+          keyExtractor={(item, index) => String(item?.id ?? index)}
           contentContainerStyle={styles.listContainer}
           refreshControl={
             <RefreshControl
@@ -230,7 +230,7 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
           }
           renderItem={({ item }) => {
             const statusStyle = getStatusStyle(item.status);
-            const totalFormatted = parseFloat(item.total_amount || 0).toFixed(2);
+            const totalFormatted = (parseFloat(String(item?.total_amount || 0)) || 0).toFixed(2);
             const itemCount = item.items?.length || 0;
 
             return (

@@ -22,11 +22,13 @@ import { apiClient } from '../../api/client';
 import { fixImageUrl } from '../../utils/image';
 import { getItem, saveItem, deleteItem } from '../../utils/storage';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
 
 const SAVED_DOWNLOAD_DIR_KEY = 'SAVED_SAF_INVOICE_DOWNLOAD_DIR';
 
 export function InvoiceScreen({ navigation, route }: { navigation: AppNavigationProp, route: any }) {
   const { colors, isDark } = useTheme();
+  const { user } = useAuth();
   const { orderId } = route.params || {};
   const [order, setOrder] = useState<any>(null);
   const [settings, setSettings] = useState<any>(null);
@@ -35,10 +37,18 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchInvoiceData();
-  }, [orderId]);
+    if (user) {
+      fetchInvoiceData();
+    } else {
+      setLoading(false);
+    }
+  }, [orderId, user]);
 
   const fetchInvoiceData = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const [orderRes, settingsRes] = await Promise.all([
@@ -89,8 +99,8 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
       const rejected = item.status === 'REJECTED';
       const name = item.product_name_snapshot || item.product_name || 'Product';
       const unit = item.unit_snapshot || '';
-      const price = parseFloat(item.price_snapshot || item.price_at_order || '0').toFixed(2);
-      const itemSubtotal = rejected ? '0.00' : parseFloat(item.subtotal || item.price_snapshot || '0').toFixed(2);
+      const price = (parseFloat(item.price_snapshot || item.price_at_order || '0') || 0).toFixed(2);
+      const itemSubtotal = rejected ? '0.00' : (parseFloat(item.subtotal || item.price_snapshot || '0') || 0).toFixed(2);
 
       return `
         <tr style="border-bottom: 1px solid #E2E8F0; ${rejected ? 'opacity: 0.5;' : ''}">
@@ -210,41 +220,41 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
             <div class="totals-box">
               <div class="total-line">
                 <span>Subtotal</span>
-                <span style="font-weight: 600; color: #0F172A;">₹${subtotal.toFixed(2)}</span>
+                <span style="font-weight: 600; color: #0F172A;">₹${(subtotal || 0).toFixed(2)}</span>
               </div>
 
               ${parseFloat(order?.discount_applied || '0') > 0 ? `
                 <div class="total-line total-line.border-top" style="color: #4F46E5;">
                   <span>Product Savings</span>
-                  <span style="font-weight: bold;">-₹${parseFloat(order.discount_applied).toFixed(2)}</span>
+                  <span style="font-weight: bold;">-₹${(parseFloat(order?.discount_applied || '0') || 0).toFixed(2)}</span>
                 </div>
               ` : ''}
 
               ${parseFloat(order?.promo_discount || '0') > 0 ? `
                 <div class="total-line total-line.border-top" style="color: #059669;">
                   <span>Promo Discount</span>
-                  <span style="font-weight: bold;">-₹${parseFloat(order.promo_discount).toFixed(2)}</span>
+                  <span style="font-weight: bold;">-₹${(parseFloat(order?.promo_discount || '0') || 0).toFixed(2)}</span>
                 </div>
               ` : ''}
 
               ${parseFloat(order?.packaging_fee || '0') > 0 ? `
                 <div class="total-line total-line.border-top">
                   <span>Packaging Fee</span>
-                  <span style="font-weight: 600; color: #0F172A;">₹${parseFloat(order.packaging_fee).toFixed(2)}</span>
+                  <span style="font-weight: 600; color: #0F172A;">₹${(parseFloat(order?.packaging_fee || '0') || 0).toFixed(2)}</span>
                 </div>
               ` : ''}
 
               ${isDelivery ? `
                 <div class="total-line total-line.border-top">
                   <span>Delivery Fee</span>
-                  <span style="font-weight: 600; color: #0F172A;">${parseFloat(order?.delivery_fee || '0') > 0 ? `₹${parseFloat(order.delivery_fee).toFixed(2)}` : 'FREE'}</span>
+                  <span style="font-weight: 600; color: #0F172A;">${parseFloat(order?.delivery_fee || '0') > 0 ? `₹${(parseFloat(order?.delivery_fee || '0') || 0).toFixed(2)}` : 'FREE'}</span>
                 </div>
               ` : ''}
 
               ${parseFloat(order?.wallet_discount || '0') > 0 ? `
                 <div class="total-line total-line.border-top" style="color: #059669;">
                   <span>Wallet Applied</span>
-                  <span style="font-weight: bold;">-₹${parseFloat(order.wallet_discount).toFixed(2)}</span>
+                  <span style="font-weight: bold;">-₹${(parseFloat(order?.wallet_discount || '0') || 0).toFixed(2)}</span>
                 </div>
               ` : ''}
 
@@ -261,7 +271,7 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
 
               <div class="final-total">
                 <span class="final-total-label">${order?.status === 'COMPLETED' ? 'TOTAL PAID' : 'TOTAL DUE'}</span>
-                <span class="final-total-amount">₹${parseFloat(order?.total_amount || '0').toFixed(2)}</span>
+                <span class="final-total-amount">₹${(parseFloat(order?.total_amount || '0') || 0).toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -430,7 +440,7 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
       } else {
         const itemsText = (order.items || [])
           .filter((i: any) => i.status !== 'REJECTED')
-          .map((i: any) => `• ${i.quantity}x ${i.product_name_snapshot || i.product_name} - ₹${parseFloat(i.subtotal || i.price_snapshot).toFixed(2)}`)
+          .map((i: any) => `• ${i.quantity}x ${i.product_name_snapshot || i.product_name} - ₹${(parseFloat(i.subtotal || i.price_snapshot || '0') || 0).toFixed(2)}`)
           .join('\n');
 
         const message = `🧾 *INVOICE: ${invoiceNumber}*\n` +
@@ -438,7 +448,7 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
           `📅 *Date:* ${orderDate}\n` +
           `📦 *Type:* ${isDelivery ? 'Home Delivery' : 'Store Pickup'}\n\n` +
           `*Items Ordered:*\n${itemsText}\n\n` +
-          `💰 *Total Paid:* ₹${parseFloat(order.total_amount).toFixed(2)}\n\n` +
+          `💰 *Total Paid:* ₹${(parseFloat(order?.total_amount || '0') || 0).toFixed(2)}\n\n` +
           `Thank you for shopping with Narendra Kirana!`;
 
         await Share.share({ message });
@@ -449,6 +459,40 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
       setDownloading(false);
     }
   };
+
+  if (!user) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.webActionBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <TouchableOpacity 
+            style={[styles.backToOrderBtn, { backgroundColor: isDark ? colors.background : '#F8FAFC', borderColor: colors.border }]} 
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <Feather name="arrow-left" size={15} color={colors.text} />
+            <Text style={[styles.backToOrderText, { color: colors.text }]}>Back to Order</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.guestStateContainer}>
+          <View style={[styles.guestIconBox, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.15)' : '#ECFDF5' }]}>
+            <Feather name="file-text" size={44} color={colors.primary} />
+          </View>
+          <Text style={[styles.guestTitle, { color: colors.text }]}>Sign In to View Invoice</Text>
+          <Text style={[styles.guestSubtitle, { color: colors.textSecondary }]}>
+            Please sign in to view and download official GST tax invoices for your purchases.
+          </Text>
+          <TouchableOpacity
+            style={[styles.guestSignInBtn, { backgroundColor: colors.primary }]}
+            onPress={() => navigation.navigate('Login')}
+            activeOpacity={0.85}
+          >
+            <Feather name="log-in" size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
+            <Text style={styles.guestSignInBtnText}>Sign In / Register</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (loading) {
     return (
@@ -652,8 +696,8 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
               const itemRejected = item.status === 'REJECTED';
               const name = item.product_name_snapshot || item.product_name || 'Product';
               const unit = item.unit_snapshot;
-              const price = parseFloat(item.price_snapshot || item.price_at_order || '0').toFixed(2);
-              const total = itemRejected ? '0.00' : parseFloat(item.subtotal || item.price_snapshot || '0').toFixed(2);
+              const price = (parseFloat(item.price_snapshot || item.price_at_order || '0') || 0).toFixed(2);
+              const total = itemRejected ? '0.00' : (parseFloat(item.subtotal || item.price_snapshot || '0') || 0).toFixed(2);
 
               return (
                 <View key={item.id || index} style={[styles.tableRow, index % 2 === 1 && styles.tableRowAlt]}>
@@ -690,14 +734,14 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
             <View style={styles.totalsBox}>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Subtotal</Text>
-                <Text style={styles.summaryValue}>₹{subtotal.toFixed(2)}</Text>
+                <Text style={styles.summaryValue}>₹{(subtotal || 0).toFixed(2)}</Text>
               </View>
 
               {parseFloat(order.discount_applied || '0') > 0 && (
                 <View style={styles.summaryRow}>
                   <Text style={[styles.summaryLabel, { color: '#4F46E5' }]}>Product Savings</Text>
                   <Text style={[styles.summaryValue, { color: '#4F46E5', fontWeight: 'bold' }]}>
-                    -₹{parseFloat(order.discount_applied).toFixed(2)}
+                    -₹{(parseFloat(order.discount_applied || '0') || 0).toFixed(2)}
                   </Text>
                 </View>
               )}
@@ -706,7 +750,7 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
                 <View style={styles.summaryRow}>
                   <Text style={[styles.summaryLabel, { color: '#059669' }]}>Promo Discount</Text>
                   <Text style={[styles.summaryValue, { color: '#059669', fontWeight: 'bold' }]}>
-                    -₹{parseFloat(order.promo_discount).toFixed(2)}
+                    -₹{(parseFloat(order.promo_discount || '0') || 0).toFixed(2)}
                   </Text>
                 </View>
               )}
@@ -714,7 +758,7 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
               {parseFloat(order.packaging_fee || '0') > 0 && (
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Packaging Fee</Text>
-                  <Text style={styles.summaryValue}>₹{parseFloat(order.packaging_fee).toFixed(2)}</Text>
+                  <Text style={styles.summaryValue}>₹{(parseFloat(order.packaging_fee || '0') || 0).toFixed(2)}</Text>
                 </View>
               )}
 
@@ -722,7 +766,7 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Delivery Fee</Text>
                   <Text style={styles.summaryValue}>
-                    {parseFloat(order.delivery_fee || '0') > 0 ? `₹${parseFloat(order.delivery_fee).toFixed(2)}` : 'FREE'}
+                    {parseFloat(order.delivery_fee || '0') > 0 ? `₹${(parseFloat(order.delivery_fee || '0') || 0).toFixed(2)}` : 'FREE'}
                   </Text>
                 </View>
               )}
@@ -731,7 +775,7 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
                 <View style={styles.summaryRow}>
                   <Text style={[styles.summaryLabel, { color: '#059669' }]}>Wallet Applied</Text>
                   <Text style={[styles.summaryValue, { color: '#059669', fontWeight: 'bold' }]}>
-                    -₹{parseFloat(order.wallet_discount).toFixed(2)}
+                    -₹{(parseFloat(order.wallet_discount || '0') || 0).toFixed(2)}
                   </Text>
                 </View>
               )}
@@ -752,7 +796,7 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
                   {order.status === 'COMPLETED' ? 'TOTAL PAID' : 'TOTAL DUE'}
                 </Text>
                 <Text style={styles.finalTotalAmount}>
-                  ₹{parseFloat(order.total_amount || '0').toFixed(2)}
+                  ₹{(parseFloat(order.total_amount || '0') || 0).toFixed(2)}
                 </Text>
               </View>
             </View>
@@ -1282,5 +1326,50 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginTop: 1,
+  },
+  guestStateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingBottom: 60,
+  },
+  guestIconBox: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  guestTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  guestSubtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  guestSignInBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 14,
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  guestSignInBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
   },
 });

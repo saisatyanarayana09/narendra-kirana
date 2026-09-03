@@ -1,74 +1,233 @@
-import axios from 'axios';
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { DeviceEventEmitter } from 'react-native';
 import { API_BASE_URL, STORAGE_KEYS } from '../constants/config';
 import { getItem, saveItem, deleteItem } from '../utils/storage';
 
+export interface CustomRequestConfig extends InternalAxiosRequestConfig {
+  _retry?: boolean;
+}
+
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 15000, // 15s network timeout to avoid hanging connections
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Request interceptor to add token
+// Helper to clear stored auth credentials safely
+const clearAuthStorage = async () => {
+  try {
+    await deleteItem(STORAGE_KEYS.TOKEN);
+    await deleteItem(STORAGE_KEYS.REFRESH);
+    await deleteItem(STORAGE_KEYS.USER);
+  } catch (err) {
+    console.warn('[ApiClient] Failed to clear auth storage:', err);
+  }
+};
+
+// Endpoints that should NEVER trigger automatic token refresh
+const isAuthEndpoint = (url?: string): boolean => {
+  if (!url) return false;
+  const cleanUrl = url.toLowerCase();
+  return (
+    cleanUrl.includes('auth/login') ||
+    cleanUrl.includes('auth/token/refresh') ||
+    cleanUrl.includes('auth/signup') ||
+    cleanUrl.includes('auth/register') ||
+    cleanUrl.includes('auth/password-reset')
+  );
+};
+
+// Request interceptor to attach JWT token
 apiClient.interceptors.request.use(
   async (config) => {
-    const token = await getItem(STORAGE_KEYS.TOKEN);
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    try {
+      const token = await getItem(STORAGE_KEYS.TOKEN);
+      if (token) {
+        config.headers = config.headers || {};
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (err) {
+      console.warn('[ApiClient] Failed to retrieve auth token for request:', err);
     }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Response interceptor to handle token refresh
+// Concurrency queue for handling multiple 401s without duplicate refreshes
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (token: string) => void;
+  reject: (error: any) => void;
+}> = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else if (token) {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
+// Response interceptor with robust 401 refresh queue & network failure resilience
 apiClient.interceptors.response.use(
   (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-    
-    // If 401 Unauthorized and not a retry yet, and not the login endpoint
-    if (
-      error.response?.status === 401 && 
-      !originalRequest._retry && 
-      !originalRequest.url?.includes('auth/login')
-    ) {
-      originalRequest._retry = true;
-      
-      try {
-        const refreshToken = await getItem(STORAGE_KEYS.REFRESH);
-        
-        if (refreshToken) {
-          // Attempt to refresh
-          const response = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
-            refresh: refreshToken,
-          });
-          
-          if (response.data.access) {
-            // Save new token
-            await saveItem(STORAGE_KEYS.TOKEN, response.data.access);
-            
-            // Retry the original request with new token
-            originalRequest.headers.Authorization = `Bearer ${response.data.access}`;
-            return apiClient(originalRequest);
+  async (error: AxiosError | any) => {
+    try {
+      // 1. Handle Network Timeout and Disconnect Errors (ECONNABORTED, ERR_NETWORK, etc.)
+      const isTimeout =
+        error?.code === 'ECONNABORTED' ||
+        error?.message?.toLowerCase().includes('timeout');
+
+      const isNetworkError =
+        error?.code === 'ERR_NETWORK' ||
+        error?.code === 'ENOTFOUND' ||
+        error?.code === 'ECONNREFUSED' ||
+        error?.message?.toLowerCase().includes('network') ||
+        (!error?.response && Boolean(error?.request));
+
+      if (isTimeout || isNetworkError) {
+        // Tag error with structured flags
+        if (error) {
+          error.isNetworkError = true;
+          error.isTimeout = isTimeout;
+
+          // Provide user-friendly message
+          if (isTimeout) {
+            error.message = 'Connection timed out. Please check your internet connection.';
+          } else {
+            error.message = 'Network connection error. Please verify your connection.';
+          }
+
+          // Ensure a safe fallback response structure so component catch blocks don't crash
+          if (!error.response) {
+            error.response = {
+              status: isTimeout ? 408 : 0,
+              statusText: isTimeout ? 'Request Timeout' : 'Network Error',
+              data: {
+                detail: error.message,
+                error: isTimeout ? 'Request Timeout' : 'Network Error',
+              },
+              headers: {},
+              config: error.config,
+            };
           }
         }
-      } catch (refreshError) {
-        // Refresh failed (token expired completely)
-        await deleteItem(STORAGE_KEYS.TOKEN);
-        await deleteItem(STORAGE_KEYS.REFRESH);
-        await deleteItem(STORAGE_KEYS.USER);
-        DeviceEventEmitter.emit('AUTH_FAILED');
+
+        console.warn(
+          `[ApiClient] Network/Timeout error: ${error?.code || 'NO_RESPONSE'} - ${error?.message}`
+        );
+        return Promise.reject(error);
       }
-    } else if (error.response?.status === 401 && !originalRequest.url?.includes('auth/login')) {
-      // It is 401, but we don't have refresh token or it's a retry that failed
-      await deleteItem(STORAGE_KEYS.TOKEN);
-      await deleteItem(STORAGE_KEYS.REFRESH);
-      await deleteItem(STORAGE_KEYS.USER);
-      DeviceEventEmitter.emit('AUTH_FAILED');
+
+      const originalRequest = error?.config as CustomRequestConfig | undefined;
+
+      // If no config or error has no response, reject cleanly
+      if (!originalRequest || !error?.response) {
+        return Promise.reject(error);
+      }
+
+      const status = error.response.status;
+
+      // 2. Token Refresh & 401 Loop Prevention
+      if (status === 401) {
+        // If it's an auth endpoint (login, refresh, signup), do NOT attempt refresh
+        if (isAuthEndpoint(originalRequest.url)) {
+          return Promise.reject(error);
+        }
+
+        // If this request was already retried, prevent infinite loop
+        if (originalRequest._retry) {
+          await clearAuthStorage();
+          DeviceEventEmitter.emit('AUTH_FAILED');
+          return Promise.reject(error);
+        }
+
+        // If a refresh is already in progress, queue this request
+        if (isRefreshing) {
+          return new Promise<string>((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
+          })
+            .then((newToken) => {
+              originalRequest.headers = originalRequest.headers || {};
+              originalRequest.headers.Authorization = `Bearer ${newToken}`;
+              return apiClient(originalRequest);
+            })
+            .catch((err) => Promise.reject(err));
+        }
+
+        // Mark as retried and begin refresh process
+        originalRequest._retry = true;
+        isRefreshing = true;
+
+        try {
+          const refreshToken = await getItem(STORAGE_KEYS.REFRESH);
+
+          if (!refreshToken) {
+            processQueue(error, null);
+            await clearAuthStorage();
+            DeviceEventEmitter.emit('AUTH_FAILED');
+            return Promise.reject(error);
+          }
+
+          // Request fresh access token using raw axios to bypass interceptor
+          const refreshResponse = await axios.post(
+            `${API_BASE_URL}/auth/token/refresh/`,
+            { refresh: refreshToken },
+            {
+              timeout: 10000,
+              headers: { 'Content-Type': 'application/json' },
+            }
+          );
+
+          const newAccessToken = refreshResponse.data?.access;
+
+          if (newAccessToken) {
+            await saveItem(STORAGE_KEYS.TOKEN, newAccessToken);
+            if (refreshResponse.data?.refresh) {
+              await saveItem(STORAGE_KEYS.REFRESH, refreshResponse.data.refresh);
+            }
+
+            originalRequest.headers = originalRequest.headers || {};
+            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+
+            processQueue(null, newAccessToken);
+            return apiClient(originalRequest);
+          } else {
+            throw new Error('Refresh response did not return an access token');
+          }
+        } catch (refreshErr: any) {
+          // Check if failure was transient network error or actual invalid token
+          const isRefreshNetworkErr =
+            refreshErr?.code === 'ECONNABORTED' ||
+            refreshErr?.code === 'ERR_NETWORK' ||
+            refreshErr?.message?.toLowerCase().includes('network') ||
+            refreshErr?.message?.toLowerCase().includes('timeout') ||
+            !refreshErr?.response;
+
+          processQueue(refreshErr, null);
+
+          if (!isRefreshNetworkErr) {
+            // Token is expired / invalid / blacklisted: clear session
+            await clearAuthStorage();
+            DeviceEventEmitter.emit('AUTH_FAILED');
+          }
+
+          return Promise.reject(refreshErr);
+        } finally {
+          isRefreshing = false;
+        }
+      }
+
+      return Promise.reject(error);
+    } catch (interceptorErr) {
+      console.error('[ApiClient] Unhandled error inside response interceptor:', interceptorErr);
+      return Promise.reject(error || interceptorErr);
     }
-    
-    return Promise.reject(error);
   }
 );

@@ -8,6 +8,7 @@ export type GlobalParamList = {
   CartTab: { screen?: string; params?: any } | undefined;
   ProfileTab: { screen?: string; params?: any } | undefined;
 
+  Main: { screen?: string; params?: any } | undefined;
   MainTabs: undefined;
   WelcomeScreen: { forceShow?: boolean } | undefined;
   HomeScreen: undefined;
@@ -34,6 +35,9 @@ export type GlobalParamList = {
   LanguageScreen: undefined;
   ForgotPasswordScreen: undefined;
   ResetPasswordScreen: { uid?: string; token?: string } | undefined;
+  Auth: { screen?: string; params?: any } | undefined;
+  Login: undefined;
+  Signup: undefined;
 };
 
 export type AppNavigationProp = NativeStackNavigationProp<GlobalParamList>;

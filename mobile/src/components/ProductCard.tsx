@@ -50,6 +50,7 @@ export function ProductCard({
   isFavorite,
   onToggleFavorite
 }: ProductCardProps) {
+  const { colors, isDark } = useTheme();
   const { cart, addToCart } = useCart();
   const [updating, setUpdating] = useState(false);
   const [added, setAdded] = useState(false);
@@ -108,8 +109,6 @@ export function ProductCard({
       setUpdating(false);
     }
   };
-
-  const { colors, isDark } = useTheme();
 
   return (
     <TouchableOpacity 

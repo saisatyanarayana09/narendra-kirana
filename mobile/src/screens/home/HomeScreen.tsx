@@ -7,7 +7,8 @@ import {
   RefreshControl, 
   TouchableOpacity, 
   Dimensions,
-  FlatList
+  FlatList,
+  Alert
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -86,13 +87,14 @@ export function HomeScreen({ navigation }: Props) {
     if (!productId) return;
 
     if (!user) {
-      // Local toggle for guests
-      setFavoriteIds(prev => {
-        const next = new Set(prev);
-        if (next.has(productId)) next.delete(productId);
-        else next.add(productId);
-        return next;
-      });
+      Alert.alert(
+        'Sign In Required',
+        'Please sign in to save your favorite products.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Sign In', onPress: () => navigation.navigate('Login') },
+        ]
+      );
       return;
     }
 
@@ -313,7 +315,7 @@ export function HomeScreen({ navigation }: Props) {
               decelerationRate="fast"
               getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
               contentContainerStyle={styles.bannersList}
-              keyExtractor={(item: any) => String(item.id)}
+              keyExtractor={(item: any, index) => String(item?.id ?? index)}
               onScrollBeginDrag={() => clearInterval(carouselTimerRef.current)}
               onScrollEndDrag={() => startCarouselTimer()}
               onScrollToIndexFailed={(info) => {

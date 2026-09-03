@@ -293,7 +293,7 @@ export function SearchScreen({ navigation }: Props) {
         ) : (
           <FlatList
             data={results}
-            keyExtractor={(item) => String(item.id)}
+            keyExtractor={(item, index) => String(item?.id ?? index)}
             numColumns={2}
             contentContainerStyle={styles.listContainer}
             columnWrapperStyle={styles.row}

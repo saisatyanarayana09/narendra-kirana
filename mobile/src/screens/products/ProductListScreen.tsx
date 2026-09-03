@@ -7,7 +7,8 @@ import {
   ActivityIndicator, 
   TouchableOpacity, 
   ScrollView, 
-  Dimensions 
+  Dimensions,
+  Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -116,12 +117,14 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
     if (!productId) return;
 
     if (!user) {
-      setFavoriteIds(prev => {
-        const next = new Set(prev);
-        if (next.has(productId)) next.delete(productId);
-        else next.add(productId);
-        return next;
-      });
+      Alert.alert(
+        'Sign In Required',
+        'Please sign in to save your favorite products.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Sign In', onPress: () => navigation.navigate('Login') },
+        ]
+      );
       return;
     }
 
@@ -456,7 +459,7 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
       ) : (
         <FlatList
           data={sortedProducts}
-          keyExtractor={(item) => String(item.id)}
+          keyExtractor={(item, index) => String(item?.id ?? index)}
           numColumns={2}
           ListHeaderComponent={renderListHeader}
           contentContainerStyle={styles.listContainer}

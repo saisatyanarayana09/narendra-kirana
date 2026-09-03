@@ -1,10 +1,12 @@
 import React, { useEffect, useRef } from 'react';
-import { NavigationContainer, createNavigationContainerRef, DefaultTheme, DarkTheme } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as Linking from 'expo-linking';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { ErrorBoundary } from '../components/ErrorBoundary';
+import { navigationRef } from './navigationRef';
 
 import { AuthStack } from './AuthStack';
 import { MainTabs } from './MainTabs';
@@ -13,8 +15,9 @@ import { SignupScreen } from '../screens/auth/SignupScreen';
 import { ForgotPasswordScreen } from '../screens/auth/ForgotPasswordScreen';
 import { ResetPasswordScreen } from '../screens/auth/ResetPasswordScreen';
 
+export { navigationRef } from './navigationRef';
+
 const Stack = createNativeStackNavigator();
-export const navigationRef = createNavigationContainerRef<any>();
 
 export interface ParsedDeepLink {
   screen: string;
@@ -340,40 +343,42 @@ export function RootNavigator() {
   }
 
   return (
-    <NavigationContainer
-      ref={navigationRef}
-      theme={navTheme}
-      linking={linking as any}
-      onReady={() => {
-        isNavReadyRef.current = true;
-        // If a pending redirect was queued before onReady, execute it
-        if (pendingRedirect) {
-          const redirect = { ...pendingRedirect };
-          clearPendingRedirect();
-          setTimeout(() => {
-            if (redirect.tab) {
-              (navigationRef as any).navigate('Main', {
-                screen: redirect.tab,
-                params: {
-                  screen: redirect.screen,
-                  params: redirect.params,
-                },
-              });
-            } else {
-              (navigationRef as any).navigate(redirect.screen, redirect.params);
-            }
-          }, 300);
-        }
-      }}
-    >
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Main" component={MainTabs} />
-        <Stack.Screen name="Auth" component={AuthStack} />
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Signup" component={SignupScreen} />
-        <Stack.Screen name="ForgotPasswordScreen" component={ForgotPasswordScreen} />
-        <Stack.Screen name="ResetPasswordScreen" component={ResetPasswordScreen} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <ErrorBoundary>
+      <NavigationContainer
+        ref={navigationRef}
+        theme={navTheme}
+        linking={linking as any}
+        onReady={() => {
+          isNavReadyRef.current = true;
+          // If a pending redirect was queued before onReady, execute it
+          if (pendingRedirect) {
+            const redirect = { ...pendingRedirect };
+            clearPendingRedirect();
+            setTimeout(() => {
+              if (redirect.tab) {
+                (navigationRef as any).navigate('Main', {
+                  screen: redirect.tab,
+                  params: {
+                    screen: redirect.screen,
+                    params: redirect.params,
+                  },
+                });
+              } else {
+                (navigationRef as any).navigate(redirect.screen, redirect.params);
+              }
+            }, 300);
+          }
+        }}
+      >
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Main" component={MainTabs} />
+          <Stack.Screen name="Auth" component={AuthStack} />
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Signup" component={SignupScreen} />
+          <Stack.Screen name="ForgotPasswordScreen" component={ForgotPasswordScreen} />
+          <Stack.Screen name="ResetPasswordScreen" component={ResetPasswordScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </ErrorBoundary>
   );
 }

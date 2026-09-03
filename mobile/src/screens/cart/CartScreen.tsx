@@ -85,8 +85,8 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
   };
 
   const isStoreClosed = storeSettings?.is_open === false;
-  const minOrderAmount = parseFloat(storeSettings?.min_order_amount || '0');
-  const cartSubtotal = parseFloat(cart?.subtotal || '0');
+  const minOrderAmount = parseFloat(storeSettings?.min_order_amount || '0') || 0;
+  const cartSubtotal = parseFloat(cart?.subtotal || '0') || 0;
   const isBelowMinOrder = minOrderAmount > 0 && cartSubtotal < minOrderAmount;
 
   return (
@@ -118,7 +118,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
         {isBelowMinOrder && (
           <View style={styles.minOrderWarning}>
             <Text style={styles.minOrderWarningText}>
-              Minimum order amount is ₹{minOrderAmount.toFixed(2)}
+              Minimum order amount is ₹{(minOrderAmount || 0).toFixed(2)}
             </Text>
           </View>
         )}
@@ -198,33 +198,33 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
           
           <View style={styles.summaryRow}>
             <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Subtotal</Text>
-            <Text style={[styles.summaryValue, { color: colors.text }]}>₹{parseFloat(cart.subtotal || '0').toFixed(2)}</Text>
+            <Text style={[styles.summaryValue, { color: colors.text }]}>₹{(parseFloat(cart.subtotal || '0') || 0).toFixed(2)}</Text>
           </View>
 
-          {parseFloat(cart.discount || '0') > 0 && (
+          {parseFloat(cart?.discount || '0') > 0 && (
             <View style={styles.summaryRow}>
               <Text style={styles.savingsLabel}>Product Savings</Text>
-              <Text style={styles.savingsValue}>-₹{parseFloat(cart.discount).toFixed(2)}</Text>
+              <Text style={styles.savingsValue}>-₹{(parseFloat(cart.discount || '0') || 0).toFixed(2)}</Text>
             </View>
           )}
 
-          {parseFloat(cart.promo_discount || '0') > 0 && (
+          {parseFloat(cart?.promo_discount || '0') > 0 && (
             <View style={styles.summaryRow}>
               <Text style={styles.savingsLabel}>Promo Discount</Text>
-              <Text style={styles.savingsValue}>-₹{parseFloat(cart.promo_discount).toFixed(2)}</Text>
+              <Text style={styles.savingsValue}>-₹{(parseFloat(cart.promo_discount || '0') || 0).toFixed(2)}</Text>
             </View>
           )}
 
-          {parseFloat(cart.packaging_fee || '0') > 0 && (
+          {parseFloat(cart?.packaging_fee || '0') > 0 && (
             <View style={styles.summaryRow}>
               <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Packaging Fee</Text>
-              <Text style={[styles.summaryValue, { color: colors.text }]}>₹{parseFloat(cart.packaging_fee).toFixed(2)}</Text>
+              <Text style={[styles.summaryValue, { color: colors.text }]}>₹{(parseFloat(cart.packaging_fee || '0') || 0).toFixed(2)}</Text>
             </View>
           )}
 
           <View style={[styles.totalRow, { borderTopColor: colors.border }]}>
             <Text style={[styles.totalLabel, { color: colors.text }]}>Total Due</Text>
-            <Text style={[styles.totalValue, { color: colors.text }]}>₹{parseFloat(cart.total || '0').toFixed(2)}</Text>
+            <Text style={[styles.totalValue, { color: colors.text }]}>₹{(parseFloat(cart.total || '0') || 0).toFixed(2)}</Text>
           </View>
 
           {/* Store status banners in summary */}
@@ -235,7 +235,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
           ) : isBelowMinOrder ? (
             <View style={styles.summaryWarningMinOrder}>
               <Text style={styles.summaryWarningMinOrderText}>
-                Minimum order amount is ₹{minOrderAmount.toFixed(2)}
+                Minimum order amount is ₹{(minOrderAmount || 0).toFixed(2)}
               </Text>
             </View>
           ) : (
@@ -252,7 +252,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
         <View style={[styles.bottomBar, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 8) }]}>
           <View>
             <Text style={[styles.bottomTotalLabel, { color: colors.textSecondary }]}>TOTAL DUE</Text>
-            <Text style={[styles.bottomTotalValue, { color: colors.text }]}>₹{parseFloat(cart.total || '0').toFixed(2)}</Text>
+            <Text style={[styles.bottomTotalValue, { color: colors.text }]}>₹{(parseFloat(cart.total || '0') || 0).toFixed(2)}</Text>
           </View>
 
           <TouchableOpacity 

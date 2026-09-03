@@ -25,9 +25,14 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
     });
     loadProfileData();
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation, user]);
 
   const loadProfileData = async () => {
+    if (!user) {
+      setWalletBalance(0);
+      setReferralCount(0);
+      return;
+    }
     try {
       refreshUser?.();
       const [walletRes, refRes] = await Promise.all([
@@ -317,7 +322,7 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
               <View style={[styles.loyaltyIconBadge, isDark && { backgroundColor: colors.inputBg }]}>
                 <MaterialIcons name="currency-rupee" size={16} color={colors.primary} />
               </View>
-              <Text style={[styles.loyaltyValue, isDark && { color: colors.primary }]}>₹{walletBalance.toFixed(2)}</Text>
+              <Text style={[styles.loyaltyValue, isDark && { color: colors.primary }]}>₹{(walletBalance || 0).toFixed(2)}</Text>
               <Text style={[styles.loyaltyLabel, isDark && { color: colors.textSecondary }]}>{t('wallet')}</Text>
             </TouchableOpacity>
 

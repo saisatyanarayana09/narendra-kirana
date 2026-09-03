@@ -106,7 +106,7 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
       
       <FlatList
         data={categories}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item, index) => String(item?.id ?? index)}
         numColumns={3}
         refreshing={refreshing}
         onRefresh={() => fetchCategories(true)}

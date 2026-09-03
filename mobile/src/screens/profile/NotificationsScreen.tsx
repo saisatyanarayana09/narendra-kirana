@@ -5,19 +5,31 @@ import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
 import { apiClient } from '../../api/client';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
 
 export function NotificationsScreen({ navigation }: { navigation: AppNavigationProp }) {
   const { colors, isDark } = useTheme();
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [markingAll, setMarkingAll] = useState(false);
 
   useEffect(() => {
-    fetchNotifications();
-  }, []);
+    if (user) {
+      fetchNotifications();
+    } else {
+      setNotifications([]);
+      setLoading(false);
+    }
+  }, [user]);
 
   const fetchNotifications = async () => {
+    if (!user) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
     try {
       const res = await apiClient.get('/notifications/');
       setNotifications(Array.isArray(res.data) ? res.data : (res.data?.results || []));
@@ -30,11 +42,16 @@ export function NotificationsScreen({ navigation }: { navigation: AppNavigationP
   };
 
   const onRefresh = useCallback(() => {
+    if (!user) {
+      setRefreshing(false);
+      return;
+    }
     setRefreshing(true);
     fetchNotifications();
-  }, []);
+  }, [user]);
 
   const markAsRead = async (id: number) => {
+    if (!user) return;
     const target = notifications.find(n => n.id === id);
     if (!target || target.is_read) return;
 
@@ -49,6 +66,7 @@ export function NotificationsScreen({ navigation }: { navigation: AppNavigationP
   };
 
   const markAllAsRead = async () => {
+    if (!user) return;
     const unreadList = notifications.filter(n => !n.is_read);
     if (unreadList.length === 0 || markingAll) return;
 
@@ -69,6 +87,7 @@ export function NotificationsScreen({ navigation }: { navigation: AppNavigationP
   };
 
   const deleteNotification = async (id: number) => {
+    if (!user) return;
     try {
       setNotifications(prev => prev.filter(n => n.id !== id));
       await apiClient.delete(`/notifications/${id}/`);
@@ -86,6 +105,37 @@ export function NotificationsScreen({ navigation }: { navigation: AppNavigationP
   };
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
+
+  if (!user) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Feather name="arrow-left" size={18} color={colors.primary} />
+            <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Notifications</Text>
+        </View>
+        <View style={styles.guestStateContainer}>
+          <View style={[styles.guestIconBox, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.15)' : '#ECFDF5' }]}>
+            <Feather name="bell" size={44} color={colors.primary} />
+          </View>
+          <Text style={[styles.guestTitle, { color: colors.text }]}>Sign In to Access Notifications</Text>
+          <Text style={[styles.guestSubtitle, { color: colors.textSecondary }]}>
+            Stay updated on your live order status, special promotions, and instant delivery alerts.
+          </Text>
+          <TouchableOpacity
+            style={[styles.guestSignInBtn, { backgroundColor: colors.primary }]}
+            onPress={() => navigation.navigate('Login')}
+            activeOpacity={0.85}
+          >
+            <Feather name="log-in" size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
+            <Text style={styles.guestSignInBtnText}>Sign In / Register</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (loading) {
     return (
@@ -143,7 +193,7 @@ export function NotificationsScreen({ navigation }: { navigation: AppNavigationP
 
       <FlatList
         data={notifications}
-        keyExtractor={(item) => String(item.id)}
+        keyExtractor={(item, index) => String(item?.id ?? index)}
         contentContainerStyle={styles.listContent}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />
@@ -364,5 +414,50 @@ const styles = StyleSheet.create({
   },
   notifMessageUnread: {
     color: '#047857',
+  },
+  guestStateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingBottom: 60,
+  },
+  guestIconBox: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  guestTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  guestSubtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  guestSignInBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 14,
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  guestSignInBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
   },
 });

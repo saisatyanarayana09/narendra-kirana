@@ -13,6 +13,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
+import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useTheme } from '../../context/ThemeContext';
 import { apiClient } from '../../api/client';
@@ -20,6 +21,7 @@ import { useLocation } from '../../hooks/useLocation';
 
 export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }) {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const { cart, refreshCart, storeSettings } = useCart();
   const { colors, isDark } = useTheme();
   const { requestLocation, isRequesting: gpsLoading } = useLocation();
@@ -54,15 +56,39 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  // Unauthenticated and empty cart navigation side-effects safely handled in useEffect
+  useEffect(() => {
+    if (!user) {
+      Alert.alert(
+        'Sign In Required',
+        'Please sign in to proceed to checkout.',
+        [
+          {
+            text: 'Sign In',
+            onPress: () => navigation.navigate('Login'),
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
+    } else if (!cart || !cart.items || cart.items.length === 0) {
+      navigation.navigate('CartScreen');
+    }
+  }, [user, cart, navigation]);
+
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       fetchAddressesAndWallet();
     });
     fetchAddressesAndWallet();
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation, user]);
 
   const fetchAddressesAndWallet = async () => {
+    if (!user) return;
     try {
       const [addrRes, walletRes] = await Promise.all([
         apiClient.get('/auth/addresses/').catch(() => ({ data: [] })),
@@ -176,27 +202,27 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
 
   // Store status and min order thresholds
   const isStoreClosed = storeSettings?.is_open === false;
-  const minOrderAmount = parseFloat(storeSettings?.min_order_amount || '0');
-  const cartSubtotal = parseFloat(cart?.subtotal || '0');
+  const minOrderAmount = parseFloat(storeSettings?.min_order_amount || '0') || 0;
+  const cartSubtotal = parseFloat(cart?.subtotal || '0') || 0;
   const isBelowMinOrder = minOrderAmount > 0 && cartSubtotal < minOrderAmount;
 
   const isHomeDeliveryActive = storeSettings?.is_home_delivery_active !== false;
-  const minDeliveryAmount = parseFloat(storeSettings?.min_delivery_order_amount || '0');
+  const minDeliveryAmount = parseFloat(storeSettings?.min_delivery_order_amount || '0') || 0;
   const isBelowMinDelivery = orderType === 'DELIVERY' && minDeliveryAmount > 0 && cartSubtotal < minDeliveryAmount;
 
   // Dynamic delivery fee calculation matching store settings
   let deliveryFee = 0;
   if (orderType === 'DELIVERY' && isHomeDeliveryActive) {
-    const freeThreshold = parseFloat(storeSettings?.free_delivery_threshold || '0');
+    const freeThreshold = parseFloat(storeSettings?.free_delivery_threshold || '0') || 0;
     if (freeThreshold > 0 && cartSubtotal >= freeThreshold) {
       deliveryFee = 0;
     } else {
-      deliveryFee = parseFloat(storeSettings?.delivery_fee || '0');
+      deliveryFee = parseFloat(storeSettings?.delivery_fee || '0') || 0;
     }
   }
 
-  const baseCartTotal = parseFloat(cart?.total || '0') + deliveryFee;
-  const walletApplied = useWallet ? Math.min(baseCartTotal, walletBalance) : 0;
+  const baseCartTotal = (parseFloat(cart?.total || '0') || 0) + deliveryFee;
+  const walletApplied = useWallet ? Math.min(baseCartTotal, walletBalance || 0) : 0;
   const finalTotalToPay = Math.max(0, baseCartTotal - walletApplied);
 
   // Dynamic button label matching web cart.jsx
@@ -270,9 +296,14 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
     }
   };
 
-  if (!cart || !cart.items || cart.items.length === 0) {
-    navigation.navigate('CartScreen');
-    return null;
+  if (!user || !cart || !cart.items || cart.items.length === 0) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
   }
 
   return (
@@ -642,7 +673,7 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
               </View>
               <View>
                 <Text style={[styles.walletTitle, { color: colors.text }]}>Use Wallet Balance</Text>
-                <Text style={[styles.walletBalanceText, { color: colors.textSecondary }]}>Available: ₹{walletBalance.toFixed(2)}</Text>
+                <Text style={[styles.walletBalanceText, { color: colors.textSecondary }]}>Available: ₹{(walletBalance || 0).toFixed(2)}</Text>
               </View>
             </View>
             <Switch
@@ -660,14 +691,14 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
           
           <View style={styles.summaryRow}>
             <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Subtotal</Text>
-            <Text style={[styles.summaryValue, { color: colors.text }]}>₹{cartSubtotal.toFixed(2)}</Text>
+            <Text style={[styles.summaryValue, { color: colors.text }]}>₹{(cartSubtotal || 0).toFixed(2)}</Text>
           </View>
 
           {parseFloat(cart?.discount || '0') > 0 && (
             <View style={styles.summaryRow}>
               <Text style={styles.savingsLabel}>Product Savings</Text>
               <Text style={styles.savingsValue}>
-                -₹{parseFloat(cart.discount).toFixed(2)}
+                -₹{(parseFloat(cart?.discount || '0') || 0).toFixed(2)}
               </Text>
             </View>
           )}
@@ -675,14 +706,14 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
           {parseFloat(cart?.promo_discount || '0') > 0 && (
             <View style={styles.summaryRow}>
               <Text style={styles.savingsLabel}>Promo Discount</Text>
-              <Text style={styles.savingsValue}>-₹{parseFloat(cart.promo_discount).toFixed(2)}</Text>
+              <Text style={styles.savingsValue}>-₹{(parseFloat(cart?.promo_discount || '0') || 0).toFixed(2)}</Text>
             </View>
           )}
 
           {parseFloat(cart?.packaging_fee || '0') > 0 && (
             <View style={styles.summaryRow}>
               <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Packaging Fee</Text>
-              <Text style={[styles.summaryValue, { color: colors.text }]}>₹{parseFloat(cart.packaging_fee).toFixed(2)}</Text>
+              <Text style={[styles.summaryValue, { color: colors.text }]}>₹{(parseFloat(cart?.packaging_fee || '0') || 0).toFixed(2)}</Text>
             </View>
           )}
 
@@ -690,7 +721,7 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
             <View style={styles.summaryRow}>
               <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Delivery Fee</Text>
               <Text style={[styles.summaryValue, { color: colors.text }]}>
-                {deliveryFee === 0 ? <Text style={styles.freeText}>FREE</Text> : `₹${deliveryFee.toFixed(2)}`}
+                {deliveryFee === 0 ? <Text style={styles.freeText}>FREE</Text> : `₹${(deliveryFee || 0).toFixed(2)}`}
               </Text>
             </View>
           )}
@@ -698,13 +729,13 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
           {useWallet && walletApplied > 0 && (
             <View style={styles.summaryRow}>
               <Text style={styles.savingsLabel}>Wallet Applied</Text>
-              <Text style={styles.savingsValue}>-₹{walletApplied.toFixed(2)}</Text>
+              <Text style={styles.savingsValue}>-₹{(walletApplied || 0).toFixed(2)}</Text>
             </View>
           )}
 
           <View style={[styles.totalRow, { borderTopColor: colors.border }]}>
             <Text style={[styles.totalLabel, { color: colors.text }]}>Total Due</Text>
-            <Text style={[styles.totalValue, { color: colors.text }]}>₹{finalTotalToPay.toFixed(2)}</Text>
+            <Text style={[styles.totalValue, { color: colors.text }]}>₹{(finalTotalToPay || 0).toFixed(2)}</Text>
           </View>
 
           {/* Store status warnings inside summary */}
@@ -714,7 +745,7 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
             </View>
           ) : isBelowMinOrder ? (
             <View style={styles.summaryMinOrderBanner}>
-              <Text style={styles.summaryMinOrderBannerText}>Minimum order amount is ₹{minOrderAmount.toFixed(2)}</Text>
+              <Text style={styles.summaryMinOrderBannerText}>Minimum order amount is ₹{(minOrderAmount || 0).toFixed(2)}</Text>
             </View>
           ) : null}
         </View>
@@ -724,7 +755,7 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
       <View style={[styles.bottomBar, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 8) }]}>
         <View>
           <Text style={[styles.bottomTotalLabel, { color: colors.textSecondary }]}>TOTAL AMOUNT</Text>
-          <Text style={[styles.bottomTotalValue, { color: colors.text }]}>₹{finalTotalToPay.toFixed(2)}</Text>
+          <Text style={[styles.bottomTotalValue, { color: colors.text }]}>₹{(finalTotalToPay || 0).toFixed(2)}</Text>
         </View>
 
         <TouchableOpacity 
@@ -1384,5 +1415,10 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '800',
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
