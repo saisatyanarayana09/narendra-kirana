@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
 import { getItem, saveItem } from '../utils/storage';
 
@@ -86,25 +86,25 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     loadPreferences();
   }, []);
 
-  const toggleThemeMode = (mode: ThemeMode) => {
+  const toggleThemeMode = useCallback((mode: ThemeMode) => {
     setThemeModeState(mode);
     saveItem(STORAGE_THEME_KEY, mode);
-  };
+  }, []);
 
   const isDark = themeMode === 'system' ? systemColorScheme === 'dark' : themeMode === 'dark';
   const colors = isDark ? darkColors : lightColors;
 
+  const contextValue = useMemo(() => ({
+    theme: themeMode,
+    themeMode,
+    toggleTheme: toggleThemeMode,
+    toggleThemeMode,
+    colors,
+    isDark,
+  }), [themeMode, toggleThemeMode, colors, isDark]);
+
   return (
-    <ThemeContext.Provider
-      value={{
-        theme: themeMode,
-        themeMode,
-        toggleTheme: toggleThemeMode,
-        toggleThemeMode,
-        colors,
-        isDark,
-      }}
-    >
+    <ThemeContext.Provider value={contextValue}>
       {children}
     </ThemeContext.Provider>
   );

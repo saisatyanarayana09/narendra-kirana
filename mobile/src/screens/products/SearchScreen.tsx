@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -8,7 +8,8 @@ import {
   FlatList, 
   ActivityIndicator, 
   Dimensions,
-  Animated 
+  Animated,
+  Platform 
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -297,6 +298,11 @@ export function SearchScreen({ navigation }: Props) {
             numColumns={2}
             contentContainerStyle={styles.listContainer}
             columnWrapperStyle={styles.row}
+            initialNumToRender={6}
+            maxToRenderPerBatch={6}
+            windowSize={5}
+            removeClippedSubviews={Platform.OS === 'android'}
+            updateCellsBatchingPeriod={50}
             ListHeaderComponent={() => (
               <View style={styles.resultsHeader}>
                 <Text style={[styles.resultsCountText, { color: colors.textSecondary }]}>
@@ -308,7 +314,7 @@ export function SearchScreen({ navigation }: Props) {
               <View style={styles.cardWrapper}>
                 <ProductCard 
                   product={item} 
-                  onPress={() => navigation.navigate('ProductDetailScreen', { productId: item.id })} 
+                  onPress={(p) => navigation.navigate('ProductDetailScreen', { productId: p.id })} 
                   onAddToCart={(p) => addToCart(p.id, 1)}
                 />
               </View>

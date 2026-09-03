@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -8,7 +8,8 @@ import {
   TouchableOpacity, 
   ScrollView, 
   Dimensions,
-  Alert
+  Alert,
+  Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -380,6 +381,30 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
     </View>
   );
 
+  const handleProductPress = useCallback((item: any) => {
+    navigation.navigate('ProductDetailScreen', { productId: item.id });
+  }, [navigation]);
+
+  const handleAddToCart = useCallback((p: any) => {
+    addToCart(p.id, 1);
+  }, [addToCart]);
+
+  const handleToggleFavorite = useCallback((p: any) => {
+    toggleFavorite(p?.id ?? p);
+  }, [toggleFavorite]);
+
+  const renderProductItem = useCallback(({ item }: { item: any }) => (
+    <View style={styles.cardWrapper}>
+      <ProductCard 
+        product={item} 
+        onPress={handleProductPress} 
+        onAddToCart={handleAddToCart}
+        isFavorite={favoriteIds.has(item.id)}
+        onToggleFavorite={handleToggleFavorite}
+      />
+    </View>
+  ), [handleProductPress, handleAddToCart, favoriteIds, handleToggleFavorite]);
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Compact Top Bar: Fixed Back Button & Category Name */}
@@ -472,17 +497,12 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
             fetchProducts(1, true, false);
             fetchFavorites();
           }}
-          renderItem={({ item }) => (
-            <View style={styles.cardWrapper}>
-              <ProductCard 
-                product={item} 
-                onPress={() => navigation.navigate('ProductDetailScreen', { productId: item.id })} 
-                onAddToCart={(p) => addToCart(p.id, 1)}
-                isFavorite={favoriteIds.has(item.id)}
-                onToggleFavorite={(p) => toggleFavorite(p?.id ?? p)}
-              />
-            </View>
-          )}
+          renderItem={renderProductItem}
+          initialNumToRender={6}
+          maxToRenderPerBatch={6}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === 'android'}
+          updateCellsBatchingPeriod={50}
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
           ListFooterComponent={() => 

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
 import { getGuestStorageItem, setGuestStorageItem, removeGuestStorageItem } from '../utils/guestStorage';
 import { apiClient } from '../api/client';
 import { useAuth } from './AuthContext';
@@ -50,6 +50,8 @@ interface CartContextType {
   applyPromo: (code: string) => Promise<void>;
   removePromo: () => Promise<void>;
   refreshCart: () => Promise<void>;
+  cartQuantityMap: Record<number, number>;
+  getItemQuantity: (productId: number) => number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -397,20 +399,51 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const cartQuantityMap = useMemo(() => {
+    const map: Record<number, number> = {};
+    if (cart?.items) {
+      for (const item of cart.items) {
+        const pId = item.product?.id ?? item.product;
+        if (pId != null) {
+          map[Number(pId)] = item.quantity;
+        }
+      }
+    }
+    return map;
+  }, [cart?.items]);
+
+  const getItemQuantity = useCallback((productId: number): number => {
+    return cartQuantityMap[productId] || 0;
+  }, [cartQuantityMap]);
+
+  const contextValue = useMemo(() => ({
+    cart,
+    isLoading,
+    storeSettings,
+    addToCart,
+    updateQuantity,
+    removeFromCart,
+    applyPromo,
+    removePromo,
+    refreshCart,
+    cartQuantityMap,
+    getItemQuantity,
+  }), [
+    cart,
+    isLoading,
+    storeSettings,
+    addToCart,
+    updateQuantity,
+    removeFromCart,
+    applyPromo,
+    removePromo,
+    refreshCart,
+    cartQuantityMap,
+    getItemQuantity,
+  ]);
+
   return (
-    <CartContext.Provider
-      value={{
-        cart,
-        isLoading,
-        storeSettings,
-        addToCart,
-        updateQuantity,
-        removeFromCart,
-        applyPromo,
-        removePromo,
-        refreshCart,
-      }}
-    >
+    <CartContext.Provider value={contextValue}>
       {children}
     </CartContext.Provider>
   );

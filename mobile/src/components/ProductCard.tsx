@@ -40,18 +40,20 @@ export interface ProductCardProps {
   style?: StyleProp<ViewStyle>;
   isFavorite?: boolean | ((productId: number) => boolean);
   onToggleFavorite?: (product: any) => void;
+  cartQty?: number;
 }
 
-export function ProductCard({ 
+function ProductCardComponent({ 
   product, 
   onPress, 
   onAddToCart, 
   style,
   isFavorite,
-  onToggleFavorite
+  onToggleFavorite,
+  cartQty: propCartQty,
 }: ProductCardProps) {
   const { colors, isDark } = useTheme();
-  const { cart, addToCart } = useCart();
+  const { addToCart, getItemQuantity } = useCart();
   const [updating, setUpdating] = useState(false);
   const [added, setAdded] = useState(false);
 
@@ -72,19 +74,14 @@ export function ProductCard({
 
   const isInStock = product.is_in_stock !== false && (product.stock_quantity === undefined || product.stock_quantity > 0);
 
-  // In-cart quantity check
-  const cartItem = cart?.items?.find((item: any) => {
-    const pId = item.product?.id ?? item.product;
-    return pId === product.id;
-  });
-
-  const cartQty = cartItem?.quantity || 0;
-  const inCart = cartQty > 0;
+  // In-cart quantity check via instant O(1) map or prop
+  const currentCartQty = propCartQty !== undefined ? propCartQty : (getItemQuantity ? getItemQuantity(product.id) : 0);
+  const inCart = currentCartQty > 0;
 
   const stockQty = product.stock_quantity ?? 999;
   const maxOrderQty = product.max_order_quantity ?? 0;
   const maxAllowed = maxOrderQty > 0 ? Math.min(stockQty, maxOrderQty) : stockQty;
-  const isMaxReached = inCart && cartQty >= maxAllowed;
+  const isMaxReached = inCart && currentCartQty >= maxAllowed;
 
   let primaryImage = fixImageUrl(product.image);
   if (product.name?.toLowerCase().includes('pumpkin') && (!primaryImage || primaryImage.includes('dummyimage.com') || primaryImage.endsWith('/media/'))) {
@@ -159,7 +156,14 @@ export function ProductCard({
 
         {/* Product image or initial letter fallback */}
         {primaryImage ? (
-          <Image source={{ uri: primaryImage }} style={styles.image} contentFit="cover" />
+          <Image 
+            source={{ uri: primaryImage }} 
+            style={styles.image} 
+            contentFit="cover"
+            recyclingKey={primaryImage || String(product.id)}
+            cachePolicy="memory-disk"
+            transition={150}
+          />
         ) : (
           <View style={[styles.placeholderImage, { backgroundColor: colors.inputBg }]}>
             <Text style={[styles.placeholderLetter, { color: colors.textSecondary }]}>
@@ -239,6 +243,24 @@ export function ProductCard({
     </TouchableOpacity>
   );
 }
+
+export const ProductCard = React.memo(ProductCardComponent, (prevProps, nextProps) => {
+  const prevFav = typeof prevProps.isFavorite === 'function' ? Boolean(prevProps.isFavorite(prevProps.product.id)) : Boolean(prevProps.isFavorite);
+  const nextFav = typeof nextProps.isFavorite === 'function' ? Boolean(nextProps.isFavorite(nextProps.product.id)) : Boolean(nextProps.isFavorite);
+
+  return (
+    prevProps.product.id === nextProps.product.id &&
+    prevProps.product.offer_price === nextProps.product.offer_price &&
+    prevProps.product.price === nextProps.product.price &&
+    prevProps.product.stock_quantity === nextProps.product.stock_quantity &&
+    prevProps.product.is_in_stock === nextProps.product.is_in_stock &&
+    prevProps.product.name === nextProps.product.name &&
+    prevProps.product.image === nextProps.product.image &&
+    prevFav === nextFav &&
+    prevProps.cartQty === nextProps.cartQty &&
+    prevProps.style === nextProps.style
+  );
+});
 
 const styles = StyleSheet.create({
   container: {

@@ -8,7 +8,8 @@ import {
   TouchableOpacity, 
   Dimensions,
   FlatList,
-  Alert
+  Alert,
+  Platform
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -37,6 +38,102 @@ const stripEmojis = (str: string) => {
   return str.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F100}-\u{1F1FF}\u{1F200}-\u{1F2FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}]/gu, '').trim();
 };
 
+interface BannerCarouselSectionProps {
+  banners: any[];
+  onBannerPress: () => void;
+}
+
+const BannerCarouselSection = React.memo(function BannerCarouselSection({ banners, onBannerPress }: BannerCarouselSectionProps) {
+  const [activeBannerIndex, setActiveBannerIndex] = useState(0);
+  const bannerRef = useRef<FlatList>(null);
+  const carouselTimerRef = useRef<any>(null);
+
+  const startCarouselTimer = useCallback(() => {
+    if (carouselTimerRef.current) {
+      clearInterval(carouselTimerRef.current);
+    }
+    if (banners.length <= 1) return;
+    carouselTimerRef.current = setInterval(() => {
+      setActiveBannerIndex((prev) => {
+        const nextIndex = (prev + 1) % banners.length;
+        bannerRef.current?.scrollToIndex({
+          index: nextIndex,
+          animated: true,
+        });
+        return nextIndex;
+      });
+    }, 4000);
+  }, [banners.length]);
+
+  useEffect(() => {
+    startCarouselTimer();
+    return () => {
+      if (carouselTimerRef.current) {
+        clearInterval(carouselTimerRef.current);
+      }
+    };
+  }, [startCarouselTimer]);
+
+  if (banners.length === 0) return null;
+
+  return (
+    <View style={styles.carouselWrapper}>
+      <FlatList
+        ref={bannerRef}
+        data={banners}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        snapToInterval={width}
+        snapToAlignment="start"
+        decelerationRate="fast"
+        getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
+        contentContainerStyle={styles.bannersList}
+        keyExtractor={(item: any, index) => String(item?.id ?? index)}
+        onScrollBeginDrag={() => clearInterval(carouselTimerRef.current)}
+        onScrollEndDrag={() => startCarouselTimer()}
+        onScrollToIndexFailed={(info) => {
+          setTimeout(() => bannerRef.current?.scrollToIndex({ index: info.index, animated: false }), 200);
+        }}
+        onMomentumScrollEnd={(e) => {
+          const index = Math.round(e.nativeEvent.contentOffset.x / width);
+          setActiveBannerIndex(index);
+        }}
+        renderItem={({ item }) => (
+          <TouchableOpacity 
+            activeOpacity={0.95}
+            style={styles.bannerSlide}
+            onPress={onBannerPress}
+          >
+            <Image 
+              source={{ uri: fixImageUrl(item.image) || '' }} 
+              style={styles.bannerImage} 
+              contentFit="cover"
+              recyclingKey={fixImageUrl(item.image) || String(item?.id)}
+              cachePolicy="memory-disk"
+            />
+          </TouchableOpacity>
+        )}
+      />
+
+      {/* Carousel Dots matching web app */}
+      {banners.length > 1 && (
+        <View style={styles.dotsContainer}>
+          {banners.map((_, idx) => (
+            <View 
+              key={idx} 
+              style={[
+                styles.dot, 
+                activeBannerIndex === idx && styles.activeDot
+              ]} 
+            />
+          ))}
+        </View>
+      )}
+    </View>
+  );
+});
+
 export function HomeScreen({ navigation }: Props) {
   const { user } = useAuth();
   const { addToCart } = useCart();
@@ -48,15 +145,10 @@ export function HomeScreen({ navigation }: Props) {
   const [banners, setBanners] = useState<any[]>([]);
   const [sections, setSections] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
-  const [activeBannerIndex, setActiveBannerIndex] = useState(0);
 
   // Favorites state
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
   const [favoriteMap, setFavoriteMap] = useState<Record<number, number>>({});
-
-  const bannerRef = useRef<FlatList>(null);
-  const bannerFlatListRef = bannerRef;
-  const carouselTimerRef = useRef<any>(null);
 
   const fetchFavorites = async () => {
     if (!user) {
@@ -185,32 +277,28 @@ export function HomeScreen({ navigation }: Props) {
     return unsubscribe;
   }, [user, navigation]);
 
-  const startCarouselTimer = useCallback(() => {
-    if (carouselTimerRef.current) {
-      clearInterval(carouselTimerRef.current);
-    }
-    if (banners.length <= 1) return;
-    carouselTimerRef.current = setInterval(() => {
-      setActiveBannerIndex((prev) => {
-        const nextIndex = (prev + 1) % banners.length;
-        bannerRef.current?.scrollToIndex({
-          index: nextIndex,
-          animated: true,
-        });
-        return nextIndex;
-      });
-    }, 4000);
-  }, [banners.length]);
+  const handleProductPress = useCallback((p: any) => {
+    navigation.navigate('ProductDetailScreen', { productId: p.id });
+  }, [navigation]);
 
-  // Auto-scroll banners every 4 seconds
-  useEffect(() => {
-    startCarouselTimer();
-    return () => {
-      if (carouselTimerRef.current) {
-        clearInterval(carouselTimerRef.current);
-      }
-    };
-  }, [startCarouselTimer]);
+  const handleAddToCart = useCallback((p: any) => {
+    addToCart(p.id, 1);
+  }, [addToCart]);
+
+  const handleToggleFavorite = useCallback((p: any) => {
+    toggleFavorite(p?.id ?? p);
+  }, [toggleFavorite]);
+
+  const handleCategoryPress = useCallback((c: any) => {
+    navigation.navigate('CategoriesTab', { 
+      screen: 'ProductListScreen', 
+      params: { categoryId: c.id, categoryName: c.name } 
+    });
+  }, [navigation]);
+
+  const handleBannerPress = useCallback(() => {
+    navigation.navigate('CategoriesTab', { screen: 'ProductListScreen', params: {} });
+  }, [navigation]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -303,58 +391,7 @@ export function HomeScreen({ navigation }: Props) {
       >
         {/* Banner Carousel or Web Fallback Hero Banner */}
         {banners.length > 0 ? (
-          <View style={styles.carouselWrapper}>
-            <FlatList
-              ref={bannerRef}
-              data={banners}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              snapToInterval={width}
-              snapToAlignment="start"
-              decelerationRate="fast"
-              getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
-              contentContainerStyle={styles.bannersList}
-              keyExtractor={(item: any, index) => String(item?.id ?? index)}
-              onScrollBeginDrag={() => clearInterval(carouselTimerRef.current)}
-              onScrollEndDrag={() => startCarouselTimer()}
-              onScrollToIndexFailed={(info) => {
-                setTimeout(() => bannerRef.current?.scrollToIndex({ index: info.index, animated: false }), 200);
-              }}
-              onMomentumScrollEnd={(e) => {
-                const index = Math.round(e.nativeEvent.contentOffset.x / width);
-                setActiveBannerIndex(index);
-              }}
-              renderItem={({ item }) => (
-                <TouchableOpacity 
-                  activeOpacity={0.95}
-                  style={styles.bannerSlide}
-                  onPress={() => navigation.navigate('CategoriesTab', { screen: 'ProductListScreen', params: {} })}
-                >
-                  <Image 
-                    source={{ uri: fixImageUrl(item.image) || '' }} 
-                    style={styles.bannerImage} 
-                    contentFit="cover"
-                  />
-                </TouchableOpacity>
-              )}
-            />
-
-            {/* Carousel Dots matching web app */}
-            {banners.length > 1 && (
-              <View style={styles.dotsContainer}>
-                {banners.map((_, idx) => (
-                  <View 
-                    key={idx} 
-                    style={[
-                      styles.dot, 
-                      activeBannerIndex === idx && styles.activeDot
-                    ]} 
-                  />
-                ))}
-              </View>
-            )}
-          </View>
+          <BannerCarouselSection banners={banners} onBannerPress={handleBannerPress} />
         ) : (
           <View style={styles.fallbackHeroBanner}>
             {/* Decorative shapes and floating emojis matching web */}
@@ -404,24 +441,24 @@ export function HomeScreen({ navigation }: Props) {
               </TouchableOpacity>
             </View>
 
-            <ScrollView 
-              horizontal 
+            <FlatList
+              horizontal
+              data={categories}
+              keyExtractor={(cat) => String(cat.id)}
               showsHorizontalScrollIndicator={false} 
               contentContainerStyle={styles.categoriesScrollList}
-            >
-              {categories.map((cat: any, index: number) => (
+              initialNumToRender={5}
+              maxToRenderPerBatch={5}
+              windowSize={3}
+              renderItem={({ item, index }) => (
                 <CategoryCard 
-                  key={cat.id} 
-                  category={cat} 
+                  category={item} 
                   index={index}
                   style={styles.categoryCardHorizontal}
-                  onPress={(c) => navigation.navigate('CategoriesTab', { 
-                    screen: 'ProductListScreen', 
-                    params: { categoryId: c.id, categoryName: c.name } 
-                  })} 
+                  onPress={handleCategoryPress} 
                 />
-              ))}
-            </ScrollView>
+              )}
+            />
           </View>
         )}
 
@@ -461,24 +498,34 @@ export function HomeScreen({ navigation }: Props) {
                 </TouchableOpacity>
               </View>
 
-              {/* Horizontal Scrollable Product Carousel (Scroll Left / Right) */}
-              <ScrollView
+              {/* Horizontal Scrollable Product Carousel (Virtual FlatList) */}
+              <FlatList
                 horizontal
+                data={sectionProducts}
+                keyExtractor={(product) => String(product.id)}
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.horizontalProductsList}
-              >
-                {sectionProducts.map((product: any) => (
-                  <View key={product.id} style={styles.horizontalProductItem}>
+                initialNumToRender={3}
+                maxToRenderPerBatch={3}
+                windowSize={3}
+                removeClippedSubviews={Platform.OS === 'android'}
+                getItemLayout={(_, index) => ({
+                  length: 160 + 12,
+                  offset: (160 + 12) * index,
+                  index,
+                })}
+                renderItem={({ item }) => (
+                  <View style={styles.horizontalProductItem}>
                     <ProductCard 
-                      product={product} 
-                      onPress={(p) => navigation.navigate('ProductDetailScreen', { productId: p.id })}
-                      onAddToCart={(p) => addToCart(p.id, 1)}
-                      isFavorite={favoriteIds.has(product.id)}
-                      onToggleFavorite={(p) => toggleFavorite(p?.id ?? p)}
+                      product={item} 
+                      onPress={handleProductPress}
+                      onAddToCart={handleAddToCart}
+                      isFavorite={favoriteIds.has(item.id)}
+                      onToggleFavorite={handleToggleFavorite}
                     />
                   </View>
-                ))}
-              </ScrollView>
+                )}
+              />
             </View>
           );
         })}

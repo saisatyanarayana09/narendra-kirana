@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -6,7 +6,8 @@ import {
   FlatList, 
   ActivityIndicator, 
   TouchableOpacity, 
-  Dimensions 
+  Dimensions,
+  Platform 
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -112,6 +113,10 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
         onRefresh={() => fetchCategories(true)}
         contentContainerStyle={styles.listContainer}
         columnWrapperStyle={styles.columnWrapper}
+        initialNumToRender={9}
+        maxToRenderPerBatch={9}
+        windowSize={5}
+        removeClippedSubviews={Platform.OS === 'android'}
         renderItem={({ item, index }) => (
           <View style={{ width: CARD_WIDTH }}>
             <CategoryCard 

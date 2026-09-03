@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Dimensions, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
@@ -209,6 +209,11 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
         numColumns={2}
         contentContainerStyle={styles.listContainer}
         columnWrapperStyle={styles.row}
+        initialNumToRender={6}
+        maxToRenderPerBatch={6}
+        windowSize={5}
+        removeClippedSubviews={Platform.OS === 'android'}
+        updateCellsBatchingPeriod={50}
         renderItem={({ item }) => {
           const product = item.product_details || item.product;
           if (!product) return null;
