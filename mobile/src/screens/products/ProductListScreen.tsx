@@ -18,6 +18,7 @@ import { ProductCardSkeleton } from '../../components/SkeletonLoader';
 import { triggerHaptic } from '../../utils/haptics';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
@@ -53,6 +54,7 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
 
   const { user } = useAuth();
   const { addToCart } = useCart();
+  const { colors, isDark } = useTheme();
   
   const [categories, setCategories] = useState<any[]>(cachedCategories || []);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(initialCategoryId);
@@ -280,7 +282,7 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
     : (searchQuery ? `Search: "${searchQuery}"` : 'All Products');
 
   const renderListHeader = () => (
-    <View style={styles.scrollableHeaderContainer}>
+    <View style={[styles.scrollableHeaderContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
       {/* Horizontal Category Filter Pills matching web app */}
       <ScrollView 
         horizontal 
@@ -288,14 +290,22 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
         contentContainerStyle={styles.categoryPillsContainer}
       >
         <TouchableOpacity
-          style={[styles.categoryPill, !selectedCategory && styles.categoryPillActive]}
+          style={[
+            styles.categoryPill, 
+            { backgroundColor: colors.inputBg, borderColor: colors.border },
+            !selectedCategory && styles.categoryPillActive
+          ]}
           onPress={() => {
             triggerHaptic('selection');
             setSelectedCategory(null);
           }}
           activeOpacity={0.8}
         >
-          <Text style={[styles.categoryPillText, !selectedCategory && styles.categoryPillTextActive]}>
+          <Text style={[
+            styles.categoryPillText, 
+            { color: colors.textSecondary },
+            !selectedCategory && styles.categoryPillTextActive
+          ]}>
             All
           </Text>
         </TouchableOpacity>
@@ -305,14 +315,22 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
           return (
             <TouchableOpacity
               key={cat.id}
-              style={[styles.categoryPill, isSelected && styles.categoryPillActive]}
+              style={[
+                styles.categoryPill, 
+                { backgroundColor: colors.inputBg, borderColor: colors.border },
+                isSelected && styles.categoryPillActive
+              ]}
               onPress={() => {
                 triggerHaptic('selection');
                 setSelectedCategory(cat.id);
               }}
               activeOpacity={0.8}
             >
-              <Text style={[styles.categoryPillText, isSelected && styles.categoryPillTextActive]}>
+              <Text style={[
+                styles.categoryPillText, 
+                { color: colors.textSecondary },
+                isSelected && styles.categoryPillTextActive
+              ]}>
                 {cat.name}
               </Text>
             </TouchableOpacity>
@@ -321,9 +339,9 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
       </ScrollView>
 
       {/* Category Title & Count */}
-      <View style={styles.subHeaderRow}>
-        <Text style={styles.categoryTitle}>{activeCategoryName}</Text>
-        <Text style={styles.productCountText}>{sortedProducts.length} products</Text>
+      <View style={[styles.subHeaderRow, { borderTopColor: colors.border }]}>
+        <Text style={[styles.categoryTitle, { color: colors.text }]}>{activeCategoryName}</Text>
+        <Text style={[styles.productCountText, { color: colors.textSecondary }]}>{sortedProducts.length} products</Text>
       </View>
 
       {/* Sorting Pills: Relevance, Price: Low to High, Price: High to Low, Newest */}
@@ -335,14 +353,22 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
         {SORT_OPTIONS.map((opt) => (
           <TouchableOpacity
             key={opt.id}
-            style={[styles.sortChip, sortOption === opt.id && styles.sortChipActive]}
+            style={[
+              styles.sortChip, 
+              { backgroundColor: colors.inputBg, borderColor: colors.border },
+              sortOption === opt.id && [styles.sortChipActive, isDark && { backgroundColor: 'rgba(16, 185, 129, 0.2)', borderColor: colors.primary }]
+            ]}
             onPress={() => {
               triggerHaptic('selection');
               setSortOption(opt.id);
             }}
             activeOpacity={0.8}
           >
-            <Text style={[styles.sortChipText, sortOption === opt.id && styles.sortChipTextActive]}>
+            <Text style={[
+              styles.sortChipText, 
+              { color: colors.textSecondary },
+              sortOption === opt.id && [styles.sortChipTextActive, isDark && { color: colors.primary }]
+            ]}>
               {opt.label}
             </Text>
           </TouchableOpacity>
@@ -352,9 +378,9 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Compact Top Bar: Fixed Back Button & Category Name */}
-      <View style={styles.topBar}>
+      <View style={[styles.topBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity 
           style={styles.backButton} 
           onPress={() => {
@@ -366,19 +392,19 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
           }}
           activeOpacity={0.7}
         >
-          <Feather name="arrow-left" size={18} color="#059669" />
-          <Text style={styles.backButtonText}>Back</Text>
+          <Feather name="arrow-left" size={18} color={colors.primary} />
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
         </TouchableOpacity>
 
-        <Text style={styles.topBarTitle} numberOfLines={1}>
+        <Text style={[styles.topBarTitle, { color: colors.text }]} numberOfLines={1}>
           {activeCategoryName}
         </Text>
 
-        <View style={styles.topBarBadge}>
+        <View style={[styles.topBarBadge, isDark && { backgroundColor: colors.inputBg }]}>
           {isRevalidating ? (
-            <ActivityIndicator size="small" color="#059669" />
+            <ActivityIndicator size="small" color={colors.primary} />
           ) : (
-            <Text style={styles.topBarBadgeText}>{sortedProducts.length}</Text>
+            <Text style={[styles.topBarBadgeText, { color: colors.primary }]}>{sortedProducts.length}</Text>
           )}
         </View>
       </View>

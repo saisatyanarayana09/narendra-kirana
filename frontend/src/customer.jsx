@@ -62,7 +62,7 @@ function ProductImage({ product, large = false, priority = false }) {
     if (large && images.length > 1) {
        return (
           <div className="flex flex-col h-full w-full">
-            <div className="w-full flex-1 flex items-center justify-center relative overflow-hidden bg-gradient-to-b from-transparent to-slate-50/50 h-72 sm:h-80 md:h-96">
+            <div className="w-full flex-1 flex items-center justify-center relative overflow-hidden bg-gradient-to-b from-transparent to-slate-50/50 dark:to-slate-900/50 h-72 sm:h-80 md:h-96">
               <img 
                 src={optimizeImage(images[activeImage], 600)} 
                 onError={(e) => {
@@ -70,10 +70,10 @@ function ProductImage({ product, large = false, priority = false }) {
                     e.currentTarget.src = '/media/products/pumpkin_seeds.jpg';
                   }
                 }}
-                className="w-full h-full object-cover mix-blend-multiply" 
+                className="w-full h-full object-cover mix-blend-multiply dark:mix-blend-normal" 
               />
             </div>
-            <div className="flex gap-3 p-3 overflow-x-auto bg-slate-50 border-t border-slate-100">
+            <div className="flex gap-3 p-3 overflow-x-auto bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800">
                {images.map((img, i) => (
                   <button key={i} onClick={() => setActiveImage(i)} className={`flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden shadow-sm transition-all ${activeImage === i ? 'ring-2 ring-indigo-600 opacity-100' : 'opacity-60 hover:opacity-100'}`}>
                      <img 
@@ -93,8 +93,8 @@ function ProductImage({ product, large = false, priority = false }) {
     }
     
     return (
-       <div className={`w-full flex items-center justify-center relative overflow-hidden bg-gradient-to-b from-transparent to-slate-50/50 ${large ? 'h-72 sm:h-80 md:h-full' : 'h-32 sm:h-36'}`}>
-           <div className={`absolute inset-0 bg-slate-100 transition-opacity duration-300 ${imageLoaded ? 'opacity-0 pointer-events-none' : 'opacity-100 animate-pulse'}`} />
+       <div className={`w-full flex items-center justify-center relative overflow-hidden bg-gradient-to-b from-transparent to-slate-50/50 dark:to-slate-900/50 ${large ? 'h-72 sm:h-80 md:h-full' : 'h-32 sm:h-36'}`}>
+           <div className={`absolute inset-0 bg-slate-100 dark:bg-slate-800 transition-opacity duration-300 ${imageLoaded ? 'opacity-0 pointer-events-none' : 'opacity-100 animate-pulse'}`} />
            <div className="absolute inset-0 bg-slate-900/5 opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 rounded-t-xl z-10 mix-blend-overlay"></div>
            <img 
              loading={priority ? 'eager' : 'lazy'}
@@ -109,7 +109,7 @@ function ProductImage({ product, large = false, priority = false }) {
                  e.currentTarget.src = '/media/products/pumpkin_seeds.jpg';
                }
              }}
-             className={`w-full h-full object-cover mix-blend-multiply transition-transform duration-700 group-hover/card:scale-110 transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+             className={`w-full h-full object-cover mix-blend-multiply dark:mix-blend-normal transition-transform duration-700 group-hover/card:scale-110 transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
            />
        </div>
     );
@@ -248,7 +248,7 @@ export function ProductCard({ product, priority = false, ...props }) {
 
  <div className="p-3 flex flex-col flex-grow bg-white">
 
- <p className="line-clamp-2 text-sm font-bold leading-tight text-slate-800 group-hover/card:text-slate-600 transition-colors">{product.name}</p>
+ <p className="line-clamp-2 text-sm font-bold leading-tight text-slate-800 dark:text-slate-100 group-hover/card:text-emerald-600 dark:group-hover/card:text-emerald-400 transition-colors">{product.name}</p>
 
  <p className="mt-1 text-xs text-slate-500 font-medium">{product.brand && `${product.brand} · `}{product.unit}</p>
 
@@ -710,15 +710,15 @@ export function HomePage() {
 
     return (
       <section key={section.id} className={index === 0 ? "mt-4 relative" : "mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-slate-100 relative"}>
-          <div className="sticky top-[56px] sm:top-[68px] z-20 bg-slate-50/95 backdrop-blur-sm py-2 flex justify-between items-center">
+          <div className="sticky top-[56px] sm:top-[68px] z-20 bg-slate-50/95 dark:bg-[#090d16]/95 backdrop-blur-sm py-2 flex justify-between items-center transition-colors">
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-bold text-slate-900">{stripEmojis(section.title)}</h2>
-              <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">{stripEmojis(section.title)}</h2>
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
                 {sectionProducts.length}
               </span>
             </div>
 
-            <Link to="/products" className="text-xs font-bold text-slate-500 hover:text-slate-600 transition flex items-center gap-1">
+            <Link to="/products" className="text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition flex items-center gap-1">
               View all <ChevronRight size={14} />
             </Link>
           </div>
@@ -741,7 +741,7 @@ export function HomePage() {
                     const el = document.getElementById(`carousel-${section.id}`);
                     if (el) el.scrollBy({ left: -320, behavior: 'smooth' });
                   }}
-                  className="absolute -left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/95 backdrop-blur-md shadow-lg border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-emerald-600 hover:text-white transition-all opacity-0 group-hover/carousel:opacity-100 z-10 hidden sm:flex"
+                  className="absolute -left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/95 dark:bg-slate-800 backdrop-blur-md shadow-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-600 transition-all opacity-0 group-hover/carousel:opacity-100 z-10 hidden sm:flex"
                   aria-label="Scroll left"
                 >
                   <ChevronLeft size={20} />
@@ -768,7 +768,7 @@ export function HomePage() {
                     const el = document.getElementById(`carousel-${section.id}`);
                     if (el) el.scrollBy({ left: 320, behavior: 'smooth' });
                   }}
-                  className="absolute -right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/95 backdrop-blur-md shadow-lg border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-emerald-600 hover:text-white transition-all opacity-0 group-hover/carousel:opacity-100 z-10 hidden sm:flex"
+                  className="absolute -right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/95 dark:bg-slate-800 backdrop-blur-md shadow-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-600 transition-all opacity-0 group-hover/carousel:opacity-100 z-10 hidden sm:flex"
                   aria-label="Scroll right"
                 >
                   <ChevronRight size={20} />
@@ -1050,7 +1050,7 @@ export function ProductsPage() {
           <button 
             onClick={loadMore} 
             disabled={loadingMore} 
-            className="bg-slate-900 text-white hover:bg-black transition-colors px-8 py-3 rounded-xl font-bold shadow-sm disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center min-w-[200px]"
+            className="bg-slate-900 dark:bg-slate-800 dark:border dark:border-slate-700 text-white hover:bg-black dark:hover:bg-slate-700 transition-colors px-8 py-3 rounded-xl font-bold shadow-sm disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center min-w-[200px]"
           >
             {loadingMore ? 'Loading more products...' : 'Load More'}
           </button>

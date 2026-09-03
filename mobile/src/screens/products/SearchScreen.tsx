@@ -17,6 +17,7 @@ import { apiClient } from '../../api/client';
 import { useDebounce } from '../../hooks/useDebounce';
 import { ProductCard } from '../../components/ProductCard';
 import { useCart } from '../../context/CartContext';
+import { useTheme } from '../../context/ThemeContext';
 import { useMobileVoice } from '../../hooks/useMobileVoice';
 
 const { width } = Dimensions.get('window');
@@ -35,6 +36,7 @@ export function SearchScreen({ navigation }: Props) {
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const { addToCart } = useCart();
+  const { colors, isDark } = useTheme();
   const activeQueryRef = useRef('');
 
   // Looping pulsing animation references
@@ -56,22 +58,19 @@ export function SearchScreen({ navigation }: Props) {
     },
   });
 
-  // Animated mic pulse effect
+  // Pulsing animation effect when listening
   useEffect(() => {
     if (isListening) {
-      pulseAnim.setValue(1);
-      pulseOpacity.setValue(0.5);
-
       pulseLoopRef.current = Animated.loop(
         Animated.parallel([
           Animated.sequence([
             Animated.timing(pulseAnim, {
-              toValue: 1.5,
+              toValue: 1.35,
               duration: 700,
               useNativeDriver: true,
             }),
             Animated.timing(pulseAnim, {
-              toValue: 1.0,
+              toValue: 1,
               duration: 700,
               useNativeDriver: true,
             }),
@@ -83,7 +82,7 @@ export function SearchScreen({ navigation }: Props) {
               useNativeDriver: true,
             }),
             Animated.timing(pulseOpacity, {
-              toValue: 0.5,
+              toValue: 0.45,
               duration: 700,
               useNativeDriver: true,
             }),
@@ -92,37 +91,43 @@ export function SearchScreen({ navigation }: Props) {
       );
       pulseLoopRef.current.start();
     } else {
-      if (pulseLoopRef.current) pulseLoopRef.current.stop();
+      if (pulseLoopRef.current) {
+        pulseLoopRef.current.stop();
+        pulseLoopRef.current = null;
+      }
       pulseAnim.setValue(1);
-      pulseOpacity.setValue(0);
+      pulseOpacity.setValue(0.4);
     }
+
     return () => {
-      if (pulseLoopRef.current) pulseLoopRef.current.stop();
+      if (pulseLoopRef.current) {
+        pulseLoopRef.current.stop();
+      }
     };
   }, [isListening]);
 
   useEffect(() => {
-    const trimmed = debouncedQuery.trim();
-    if (trimmed.length >= 1) {
-      performSearch(trimmed);
+    if (debouncedQuery.trim()) {
+      performSearch(debouncedQuery);
     } else {
-      activeQueryRef.current = '';
       setResults([]);
     }
   }, [debouncedQuery]);
 
-  const performSearch = async (searchQuery: string) => {
-    activeQueryRef.current = searchQuery;
+  const performSearch = async (text: string) => {
+    activeQueryRef.current = text;
     setLoading(true);
     try {
-      const res = await apiClient.get(`/products/?search=${encodeURIComponent(searchQuery)}`);
-      if (activeQueryRef.current === searchQuery) {
-        setResults(res.data.results || res.data || []);
+      const response = await apiClient.get('/products/', {
+        params: { search: text },
+      });
+      if (activeQueryRef.current === text) {
+        setResults(response.data.results || response.data || []);
       }
     } catch (error) {
       console.error('Search error:', error);
     } finally {
-      if (activeQueryRef.current === searchQuery) {
+      if (activeQueryRef.current === text) {
         setLoading(false);
       }
     }
@@ -131,9 +136,9 @@ export function SearchScreen({ navigation }: Props) {
   const displaySearchValue = isListening && interimText ? interimText : query;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header Search Bar matching web GlobalSearchBar */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity 
           style={styles.backButton} 
           onPress={() => {
@@ -145,15 +150,19 @@ export function SearchScreen({ navigation }: Props) {
           }}
           activeOpacity={0.7}
         >
-          <Feather name="arrow-left" color="#059669" size={20} />
+          <Feather name="arrow-left" color={colors.primary} size={20} />
         </TouchableOpacity>
 
-        <View style={[styles.searchBar, isListening && styles.searchBarListening]}>
-          <Feather name="search" size={18} color={isListening ? "#E11D48" : "#94A3B8"} />
+        <View style={[
+          styles.searchBar, 
+          { backgroundColor: colors.inputBg, borderColor: colors.border },
+          isListening && styles.searchBarListening
+        ]}>
+          <Feather name="search" size={18} color={isListening ? "#E11D48" : colors.textSecondary} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.text }]}
             placeholder={isListening ? "Listening... Speak now" : "Search products..."}
-            placeholderTextColor={isListening ? "#E11D48" : "#94A3B8"}
+            placeholderTextColor={isListening ? "#E11D48" : colors.textSecondary}
             value={displaySearchValue}
             onChangeText={(text) => {
               setQuery(text);
@@ -182,7 +191,7 @@ export function SearchScreen({ navigation }: Props) {
                 <Feather 
                   name={isSpeaking ? "volume-x" : "volume-2"} 
                   size={16} 
-                  color={isSpeaking ? "#059669" : "#64748B"} 
+                  color={isSpeaking ? colors.primary : colors.textSecondary} 
                 />
               </TouchableOpacity>
             )}
@@ -194,73 +203,90 @@ export function SearchScreen({ navigation }: Props) {
                 style={styles.rightIconBtn}
                 activeOpacity={0.7}
               >
-                <Feather name="x" size={16} color="#64748B" />
+                <Feather name="x" size={16} color={colors.textSecondary} />
               </TouchableOpacity>
             )}
 
-            {/* Speech-to-Text Microphone Button inside right edge */}
-            <TouchableOpacity 
-              onPress={toggleListening}
-              style={[styles.micBtn, isListening && styles.micBtnActive]}
-              activeOpacity={0.8}
-            >
+            {/* Speech-to-Text Microphone Icon Button */}
+            <View>
               {isListening && (
                 <Animated.View 
                   style={[
                     styles.micPulseRing,
-                    { transform: [{ scale: pulseAnim }], opacity: pulseOpacity }
+                    {
+                      transform: [{ scale: pulseAnim }],
+                      opacity: pulseOpacity,
+                    }
                   ]} 
                 />
               )}
-              <Feather name="mic" size={16} color={isListening ? "#FFFFFF" : "#64748B"} />
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={toggleListening}
+                style={[
+                  styles.micBtn,
+                  isDark && { backgroundColor: colors.inputBg },
+                  isListening && styles.micBtnActive
+                ]}
+                activeOpacity={0.75}
+                accessibilityRole="button"
+                accessibilityLabel="Voice Search"
+              >
+                <Feather 
+                  name={isListening ? "mic" : "mic"} 
+                  size={16} 
+                  color={isListening ? "#FFFFFF" : colors.primary} 
+                />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </View>
 
-      {/* Real-time Voice Feedback Banner */}
-      {isListening && (
-        <View style={styles.listeningBanner}>
-          <Feather name="radio" size={14} color="#E11D48" />
-          <Text style={styles.listeningText} numberOfLines={1}>
-            {interimText || "Listening... Speak your product"}
-          </Text>
-          <TouchableOpacity onPress={toggleListening}>
-            <Text style={styles.listeningDoneText}>Done</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
+      {/* Main Body: Voice banner, Popular searches or Results */}
       <View style={styles.content}>
+        {/* Real-Time Live Transcribing Audio Banner */}
+        {isListening && (
+          <View style={styles.listeningBanner}>
+            <Feather name="radio" size={14} color="#E11D48" />
+            <Text style={styles.listeningText} numberOfLines={1}>
+              {interimText ? `"${interimText}"` : "Listening... Speak now"}
+            </Text>
+            <TouchableOpacity onPress={toggleListening}>
+              <Text style={styles.listeningDoneText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {loading ? (
           <View style={styles.center}>
-            <ActivityIndicator size="large" color="#059669" />
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={{ marginTop: 12, fontSize: 14, color: colors.textSecondary, fontWeight: '500' }}>Searching products...</Text>
           </View>
-        ) : query.trim().length < 1 ? (
+        ) : query.trim() === '' ? (
           /* Popular Searches When Empty */
           <View style={styles.initialStateContainer}>
-            <Text style={styles.popularLabel}>Popular Searches</Text>
+            <Text style={[styles.popularLabel, { color: colors.text }]}>Popular Searches</Text>
             <View style={styles.tagsContainer}>
               {POPULAR_SEARCHES.map((tag) => (
                 <TouchableOpacity
                   key={tag}
-                  style={styles.tagChip}
+                  style={[styles.tagChip, { backgroundColor: colors.surface, borderColor: colors.border }]}
                   onPress={() => setQuery(tag)}
                   activeOpacity={0.7}
                 >
-                  <Feather name="trending-up" size={13} color="#059669" style={{ marginRight: 6 }} />
-                  <Text style={styles.tagText}>{tag}</Text>
+                  <Feather name="trending-up" size={13} color={colors.primary} style={{ marginRight: 6 }} />
+                  <Text style={[styles.tagText, { color: colors.text }]}>{tag}</Text>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
         ) : results.length === 0 ? (
           <View style={styles.center}>
-            <View style={styles.emptyIconBox}>
-              <Feather name="search" size={36} color="#CBD5E1" />
+            <View style={[styles.emptyIconBox, { backgroundColor: colors.inputBg }]}>
+              <Feather name="search" size={36} color={colors.textSecondary} />
             </View>
-            <Text style={styles.noResultsText}>No products found for "{query}"</Text>
-            <Text style={styles.noResultsSub}>
+            <Text style={[styles.noResultsText, { color: colors.text }]}>No products found for "{query}"</Text>
+            <Text style={[styles.noResultsSub, { color: colors.textSecondary }]}>
               Try checking your spelling or search for broader keywords.
             </Text>
           </View>
@@ -273,7 +299,7 @@ export function SearchScreen({ navigation }: Props) {
             columnWrapperStyle={styles.row}
             ListHeaderComponent={() => (
               <View style={styles.resultsHeader}>
-                <Text style={styles.resultsCountText}>
+                <Text style={[styles.resultsCountText, { color: colors.textSecondary }]}>
                   Found {results.length} {results.length === 1 ? 'product' : 'products'}
                 </Text>
               </View>

@@ -14,12 +14,14 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
 import { useCart } from '../../context/CartContext';
+import { useTheme } from '../../context/ThemeContext';
 import { apiClient } from '../../api/client';
 import { useLocation } from '../../hooks/useLocation';
 
 export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }) {
   const insets = useSafeAreaInsets();
   const { cart, refreshCart, storeSettings } = useCart();
+  const { colors, isDark } = useTheme();
   const { requestLocation, isRequesting: gpsLoading } = useLocation();
 
   const [orderType, setOrderType] = useState<'DELIVERY' | 'PICKUP'>('PICKUP');
@@ -274,19 +276,19 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header matching web */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity 
           style={styles.backButton} 
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <Feather name="arrow-left" size={18} color="#059669" />
-          <Text style={styles.backButtonText}>Back</Text>
+          <Feather name="arrow-left" size={18} color={colors.primary} />
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Checkout</Text>
-        <Text style={styles.headerSubtitle}>Review your order and pick a time.</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Checkout</Text>
+        <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>Review your order and pick a time.</Text>
       </View>
 
       <ScrollView 
@@ -317,20 +319,27 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
         )}
 
         {/* Order Type Toggle Tabs */}
-        <View style={styles.card}>
-          <Text style={styles.cardSectionLabel}>Order Type</Text>
-          <View style={styles.typeToggleContainer}>
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.cardSectionLabel, { color: colors.text }]}>Order Type</Text>
+          <View style={[styles.typeToggleContainer, { backgroundColor: colors.inputBg }]}>
             <TouchableOpacity 
-              style={[styles.typeToggleBtn, orderType === 'PICKUP' && styles.typeToggleActivePickup]}
+              style={[
+                styles.typeToggleBtn, 
+                orderType === 'PICKUP' && [styles.typeToggleActivePickup, isDark && { backgroundColor: colors.surface }]
+              ]}
               onPress={() => setOrderType('PICKUP')}
               activeOpacity={0.8}
             >
               <Feather 
                 name="shopping-bag" 
                 size={16} 
-                color={orderType === 'PICKUP' ? "#059669" : "#64748B"} 
+                color={orderType === 'PICKUP' ? colors.primary : colors.textSecondary} 
               />
-              <Text style={[styles.typeToggleText, orderType === 'PICKUP' && styles.typeTextActivePickup]}>
+              <Text style={[
+                styles.typeToggleText, 
+                { color: colors.textSecondary },
+                orderType === 'PICKUP' && [styles.typeTextActivePickup, isDark && { color: colors.primary }]
+              ]}>
                 Store Pickup
               </Text>
             </TouchableOpacity>
@@ -338,7 +347,7 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
             <TouchableOpacity 
               style={[
                 styles.typeToggleBtn, 
-                orderType === 'DELIVERY' && styles.typeToggleActiveDelivery,
+                orderType === 'DELIVERY' && [styles.typeToggleActiveDelivery, isDark && { backgroundColor: colors.surface }],
                 !isHomeDeliveryActive && styles.disabledToggleBtn
               ]}
               onPress={() => isHomeDeliveryActive && setOrderType('DELIVERY')}
@@ -348,9 +357,13 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
               <Feather 
                 name="truck" 
                 size={16} 
-                color={orderType === 'DELIVERY' ? "#4F46E5" : "#64748B"} 
+                color={orderType === 'DELIVERY' ? "#6366F1" : colors.textSecondary} 
               />
-              <Text style={[styles.typeToggleText, orderType === 'DELIVERY' && styles.typeTextActiveDelivery]}>
+              <Text style={[
+                styles.typeToggleText, 
+                { color: colors.textSecondary },
+                orderType === 'DELIVERY' && [styles.typeTextActiveDelivery, isDark && { color: "#818CF8" }]
+              ]}>
                 Home Delivery {!isHomeDeliveryActive && '(Unavailable)'}
               </Text>
             </TouchableOpacity>
@@ -576,35 +589,43 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
             )}
           </View>
         ) : (
-          <View style={styles.card}>
-            <Text style={styles.cardSectionLabel}>Pickup time</Text>
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.cardSectionLabel, { color: colors.text }]}>Pickup time</Text>
             <View style={styles.pickupTimeOptions}>
               {['As soon as possible', 'In 30 minutes', 'In 1 hour'].map((slot) => (
                 <TouchableOpacity
                   key={slot}
-                  style={[styles.pickupSlotPill, pickupTime === slot && styles.pickupSlotPillActive]}
+                  style={[
+                    styles.pickupSlotPill,
+                    { backgroundColor: colors.inputBg, borderColor: colors.border },
+                    pickupTime === slot && [styles.pickupSlotPillActive, isDark && { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: colors.primary }]
+                  ]}
                   onPress={() => setPickupTime(slot)}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.pickupSlotText, pickupTime === slot && styles.pickupSlotTextActive]}>
+                  <Text style={[
+                    styles.pickupSlotText,
+                    { color: colors.textSecondary },
+                    pickupTime === slot && [styles.pickupSlotTextActive, isDark && { color: colors.primary }]
+                  ]}>
                     {slot}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
-            <Text style={styles.storeAddressHint}>
+            <Text style={[styles.storeAddressHint, { color: colors.textSecondary }]}>
               Store Location: {storeSettings?.store_address || 'Main Road, Kirana Market'}
             </Text>
           </View>
         )}
 
         {/* Customer Instructions Note */}
-        <View style={styles.card}>
-          <Text style={styles.cardSectionLabel}>Note for the store (optional)</Text>
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.cardSectionLabel, { color: colors.text }]}>Note for the store (optional)</Text>
           <TextInput
-            style={styles.noteInput}
+            style={[styles.noteInput, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
             placeholder="E.g., Please pack fragile items carefully..."
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={colors.textSecondary}
             value={customerNote}
             onChangeText={setCustomerNote}
             multiline
@@ -614,32 +635,32 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
 
         {/* Digital Wallet Card */}
         {walletBalance > 0 && (
-          <View style={styles.walletCard}>
+          <View style={[styles.walletCard, isDark && { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.walletLeft}>
-              <View style={styles.walletIconBox}>
-                <MaterialIcons name="currency-rupee" size={20} color="#059669" />
+              <View style={[styles.walletIconBox, isDark && { backgroundColor: colors.inputBg }]}>
+                <MaterialIcons name="currency-rupee" size={20} color={colors.primary} />
               </View>
               <View>
-                <Text style={styles.walletTitle}>Use Wallet Balance</Text>
-                <Text style={styles.walletBalanceText}>Available: ₹{walletBalance.toFixed(2)}</Text>
+                <Text style={[styles.walletTitle, { color: colors.text }]}>Use Wallet Balance</Text>
+                <Text style={[styles.walletBalanceText, { color: colors.textSecondary }]}>Available: ₹{walletBalance.toFixed(2)}</Text>
               </View>
             </View>
             <Switch
               value={useWallet}
               onValueChange={setUseWallet}
-              trackColor={{ false: '#CBD5E1', true: '#A7F3D0' }}
-              thumbColor={useWallet ? '#059669' : '#FFFFFF'}
+              trackColor={{ false: isDark ? '#334155' : '#CBD5E1', true: isDark ? '#065F46' : '#A7F3D0' }}
+              thumbColor={useWallet ? colors.primary : (isDark ? '#94A3B8' : '#FFFFFF')}
             />
           </View>
         )}
 
         {/* Full Billing Summary Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Order Summary</Text>
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>Order Summary</Text>
           
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Subtotal</Text>
-            <Text style={styles.summaryValue}>₹{cartSubtotal.toFixed(2)}</Text>
+            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Subtotal</Text>
+            <Text style={[styles.summaryValue, { color: colors.text }]}>₹{cartSubtotal.toFixed(2)}</Text>
           </View>
 
           {parseFloat(cart?.discount || '0') > 0 && (
@@ -660,15 +681,15 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
 
           {parseFloat(cart?.packaging_fee || '0') > 0 && (
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Packaging Fee</Text>
-              <Text style={styles.summaryValue}>₹{parseFloat(cart.packaging_fee).toFixed(2)}</Text>
+              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Packaging Fee</Text>
+              <Text style={[styles.summaryValue, { color: colors.text }]}>₹{parseFloat(cart.packaging_fee).toFixed(2)}</Text>
             </View>
           )}
 
           {orderType === 'DELIVERY' && (
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Delivery Fee</Text>
-              <Text style={styles.summaryValue}>
+              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Delivery Fee</Text>
+              <Text style={[styles.summaryValue, { color: colors.text }]}>
                 {deliveryFee === 0 ? <Text style={styles.freeText}>FREE</Text> : `₹${deliveryFee.toFixed(2)}`}
               </Text>
             </View>
@@ -681,9 +702,9 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
             </View>
           )}
 
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Total Due</Text>
-            <Text style={styles.totalValue}>₹{finalTotalToPay.toFixed(2)}</Text>
+          <View style={[styles.totalRow, { borderTopColor: colors.border }]}>
+            <Text style={[styles.totalLabel, { color: colors.text }]}>Total Due</Text>
+            <Text style={[styles.totalValue, { color: colors.text }]}>₹{finalTotalToPay.toFixed(2)}</Text>
           </View>
 
           {/* Store status warnings inside summary */}
@@ -700,10 +721,10 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
       </ScrollView>
 
       {/* Sticky Bottom Place Order Bar */}
-      <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+      <View style={[styles.bottomBar, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 8) }]}>
         <View>
-          <Text style={styles.bottomTotalLabel}>TOTAL AMOUNT</Text>
-          <Text style={styles.bottomTotalValue}>₹{finalTotalToPay.toFixed(2)}</Text>
+          <Text style={[styles.bottomTotalLabel, { color: colors.textSecondary }]}>TOTAL AMOUNT</Text>
+          <Text style={[styles.bottomTotalValue, { color: colors.text }]}>₹{finalTotalToPay.toFixed(2)}</Text>
         </View>
 
         <TouchableOpacity 

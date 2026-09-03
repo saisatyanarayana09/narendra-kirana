@@ -62,6 +62,10 @@ html.dark body {
 
 /* Base Page Backgrounds */
 html.dark .bg-slate-50,
+html.dark .bg-slate-50\/95,
+html.dark .bg-slate-50\/90,
+html.dark .bg-slate-50\/80,
+html.dark .bg-slate-50\/50,
 html.dark .bg-gray-50,
 html.dark .min-h-screen.bg-slate-50,
 html.dark .min-h-screen.bg-gray-50 {
@@ -69,13 +73,19 @@ html.dark .min-h-screen.bg-gray-50 {
 }
 
 /* Level 1 Elevated Surfaces: Cards, Containers, Sections */
-html.dark .bg-white:not(.keep-white):not([data-keep-white="true"]) {
+html.dark .bg-white:not([class*="dark:bg-"]):not(.keep-white):not([data-keep-white="true"]),
+html.dark .bg-white\/95:not([class*="dark:bg-"]):not(.keep-white):not([data-keep-white="true"]),
+html.dark .bg-white\/90:not([class*="dark:bg-"]):not(.keep-white):not([data-keep-white="true"]),
+html.dark .bg-white\/80:not([class*="dark:bg-"]):not(.keep-white):not([data-keep-white="true"]),
+html.dark .bg-white\/70:not([class*="dark:bg-"]):not(.keep-white):not([data-keep-white="true"]) {
   background-color: #111827 !important;
 }
 
 /* Level 2 Sub-surfaces: Secondary Containers, Badges, Hover states */
-html.dark .bg-slate-100,
-html.dark .bg-gray-100 {
+html.dark .bg-slate-100:not([class*="dark:bg-"]),
+html.dark .bg-slate-100\/90:not([class*="dark:bg-"]),
+html.dark .bg-slate-100\/80:not([class*="dark:bg-"]),
+html.dark .bg-gray-100:not([class*="dark:bg-"]) {
   background-color: #182234 !important;
 }
 
@@ -90,6 +100,7 @@ html.dark .border-slate-100,
 html.dark .border-slate-200,
 html.dark .border-slate-200\/50,
 html.dark .border-slate-200\/60,
+html.dark .border-slate-200\/80,
 html.dark .border-slate-300,
 html.dark .border-gray-100,
 html.dark .border-gray-200,
@@ -98,6 +109,7 @@ html.dark .border-gray-300 {
 }
 
 /* High-Contrast Typography */
+html.dark .text-black,
 html.dark .text-slate-900,
 html.dark .text-slate-800,
 html.dark .text-gray-900,
@@ -124,22 +136,141 @@ html.dark .text-gray-400 {
 
 /* Accent Colors Adaptation in Dark Mode */
 html.dark .text-primary-700,
-html.dark .text-primary-800 {
-  color: #34d399 !important;
-}
-
-html.dark .bg-primary-50 {
-  background-color: rgba(16, 185, 129, 0.12) !important;
-  color: #34d399 !important;
-}
-
-html.dark .bg-emerald-50 {
-  background-color: rgba(16, 185, 129, 0.12) !important;
-}
-
+html.dark .text-primary-800,
 html.dark .text-emerald-700,
-html.dark .text-emerald-800 {
+html.dark .text-emerald-800,
+html.dark .text-emerald-900 {
   color: #34d399 !important;
+}
+
+html.dark .bg-primary-50,
+html.dark .bg-emerald-50,
+html.dark .bg-green-50 {
+  background-color: rgba(16, 185, 129, 0.15) !important;
+  color: #34d399 !important;
+}
+
+html.dark .border-emerald-100,
+html.dark .border-emerald-200,
+html.dark .border-green-100 {
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+/* Pastel Tint Box Adaptations (Indigo, Red, Rose, Amber, Blue, Violet, Teal) */
+html.dark .bg-indigo-50 {
+  background-color: rgba(99, 102, 241, 0.15) !important;
+}
+html.dark .bg-indigo-100 {
+  background-color: rgba(99, 102, 241, 0.25) !important;
+}
+html.dark .text-indigo-900,
+html.dark .text-indigo-800,
+html.dark .text-indigo-700 {
+  color: #818cf8 !important;
+}
+html.dark .border-indigo-100,
+html.dark .border-indigo-200 {
+  border-color: rgba(99, 102, 241, 0.3) !important;
+}
+
+html.dark .bg-red-50,
+html.dark .bg-rose-50 {
+  background-color: rgba(244, 63, 94, 0.15) !important;
+}
+html.dark .bg-red-100,
+html.dark .bg-rose-100 {
+  background-color: rgba(244, 63, 94, 0.25) !important;
+}
+html.dark .text-red-900,
+html.dark .text-red-700,
+html.dark .text-red-600,
+html.dark .text-rose-700,
+html.dark .text-rose-600 {
+  color: #fb7185 !important;
+}
+html.dark .border-red-100,
+html.dark .border-red-200,
+html.dark .border-rose-100,
+html.dark .border-rose-200 {
+  border-color: rgba(244, 63, 94, 0.3) !important;
+}
+
+html.dark .bg-amber-50,
+html.dark .bg-yellow-50 {
+  background-color: rgba(245, 158, 11, 0.15) !important;
+}
+html.dark .bg-amber-100 {
+  background-color: rgba(245, 158, 11, 0.22) !important;
+}
+html.dark .text-amber-700,
+html.dark .text-amber-800,
+html.dark .text-amber-900 {
+  color: #fbbf24 !important;
+}
+
+html.dark .bg-blue-50 {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+}
+html.dark .text-blue-700,
+html.dark .text-blue-800,
+html.dark .text-blue-900 {
+  color: #60a5fa !important;
+}
+
+html.dark .bg-violet-50 {
+  background-color: rgba(139, 92, 246, 0.15) !important;
+}
+html.dark .text-violet-700,
+html.dark .text-violet-800 {
+  color: #a78bfa !important;
+}
+
+html.dark .bg-teal-50 {
+  background-color: rgba(20, 184, 166, 0.15) !important;
+}
+html.dark .text-teal-700,
+html.dark .text-teal-800 {
+  color: #2dd4bf !important;
+}
+
+/* Image & QR Code Blending Fixes */
+html.dark img.mix-blend-multiply,
+html.dark .mix-blend-multiply {
+  mix-blend-mode: normal !important;
+}
+
+/* White-preserved containers (QR Codes, Printable Invoices) */
+html.dark .keep-white,
+html.dark [data-keep-white="true"],
+html.dark .keep-white *,
+html.dark [data-keep-white="true"] * {
+  color-scheme: light;
+}
+html.dark .keep-white,
+html.dark [data-keep-white="true"] {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+html.dark .keep-white .text-slate-900,
+html.dark [data-keep-white="true"] .text-slate-900,
+html.dark .keep-white .text-slate-800,
+html.dark [data-keep-white="true"] .text-slate-800 {
+  color: #0f172a !important;
+}
+html.dark .keep-white .text-emerald-900,
+html.dark [data-keep-white="true"] .text-emerald-900 {
+  color: #064e3b !important;
+}
+
+/* Print Safety Rule */
+@media print {
+  html.dark,
+  html.dark body,
+  html.dark .bg-white,
+  html.dark [data-keep-white="true"] {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
 }
 
 /* Form Inputs, Selects, and Textareas */

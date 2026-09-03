@@ -6,7 +6,11 @@ export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
     try {
       const saved = localStorage.getItem('sk_theme');
-      return saved === 'dark' ? 'dark' : 'light';
+      if (saved === 'dark' || saved === 'light') return saved;
+      if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        return 'dark';
+      }
+      return 'light';
     } catch {
       return 'light';
     }
@@ -15,7 +19,8 @@ export function ThemeProvider({ children }) {
   // Apply theme class and data attribute to document.documentElement and body
   useEffect(() => {
     const root = document.documentElement;
-    if (theme === 'dark') {
+    const isDarkMode = theme === 'dark';
+    if (isDarkMode) {
       root.classList.add('dark');
       root.setAttribute('data-theme', 'dark');
       root.style.colorScheme = 'dark';
@@ -26,7 +31,24 @@ export function ThemeProvider({ children }) {
       root.style.colorScheme = 'light';
       document.body.classList.remove('dark');
     }
+
+    // Synchronize browser tab/app header meta theme-color
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) {
+      metaTheme.setAttribute('content', isDarkMode ? '#090d16' : '#059669');
+    }
   }, [theme]);
+
+  // Sync theme changes across browser tabs
+  useEffect(() => {
+    const handleStorage = (e) => {
+      if (e.key === 'sk_theme' && (e.newValue === 'dark' || e.newValue === 'light')) {
+        setTheme(e.newValue);
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
   const toggleTheme = (mode) => {
     const nextTheme = mode ? mode : (theme === 'dark' ? 'light' : 'dark');
@@ -35,18 +57,6 @@ export function ThemeProvider({ children }) {
       localStorage.setItem('sk_theme', nextTheme);
     } catch (e) {
       console.error('Failed to save theme in localStorage', e);
-    }
-    const root = document.documentElement;
-    if (nextTheme === 'dark') {
-      root.classList.add('dark');
-      root.setAttribute('data-theme', 'dark');
-      root.style.colorScheme = 'dark';
-      document.body.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-      root.setAttribute('data-theme', 'light');
-      root.style.colorScheme = 'light';
-      document.body.classList.remove('dark');
     }
   };
 

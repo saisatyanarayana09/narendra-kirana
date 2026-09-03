@@ -15,8 +15,22 @@ import { RootNavigator } from './src/navigation/RootNavigator';
 import { OfflineBanner } from './src/components/OfflineBanner';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 
-import { ThemeProvider } from './src/context/ThemeContext';
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { LanguageProvider } from './src/context/LanguageContext';
+
+function ThemedAppContent() {
+  const { colors, isDark } = useTheme();
+  return (
+    <>
+      <OfflineBanner />
+      <RootNavigator />
+      <StatusBar 
+        style={isDark ? "light" : "dark"} 
+        backgroundColor={colors.background}
+      />
+    </>
+  );
+}
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -46,9 +60,7 @@ export default function App() {
           <SafeAreaProvider>
             <AuthProvider>
               <CartProvider>
-                <OfflineBanner />
-                <RootNavigator />
-                <StatusBar style="auto" />
+                <ThemedAppContent />
               </CartProvider>
             </AuthProvider>
           </SafeAreaProvider>

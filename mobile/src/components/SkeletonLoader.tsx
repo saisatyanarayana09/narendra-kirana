@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated, Dimensions } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
@@ -11,6 +12,7 @@ interface SkeletonProps {
 }
 
 export function SkeletonItem({ width = '100%', height = 20, borderRadius = 8, style }: SkeletonProps) {
+  const { colors, isDark } = useTheme();
   const opacityAnim = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
@@ -39,7 +41,7 @@ export function SkeletonItem({ width = '100%', height = 20, borderRadius = 8, st
           width: width as any,
           height: height as any,
           borderRadius,
-          backgroundColor: '#E2E8F0',
+          backgroundColor: isDark ? colors.border : '#E2E8F0',
           opacity: opacityAnim,
         },
         style,
@@ -49,8 +51,9 @@ export function SkeletonItem({ width = '100%', height = 20, borderRadius = 8, st
 }
 
 export function ProductCardSkeleton() {
+  const { colors } = useTheme();
   return (
-    <View style={styles.productCard}>
+    <View style={[styles.productCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <SkeletonItem width="100%" height={128} borderRadius={14} />
       <View style={{ padding: 10, gap: 6, flex: 1 }}>
         <SkeletonItem width="40%" height={10} borderRadius={4} />

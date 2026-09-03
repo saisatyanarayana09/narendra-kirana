@@ -259,39 +259,39 @@ export function NotificationPopup({ isOpen, onClose }) {
  if (!isOpen) return null;
 
  return (
- <div ref={wrapperRef} className="absolute right-0 top-14 w-80 max-w-[calc(100vw-2rem)] bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl ring-1 ring-slate-900/5 z-50 overflow-hidden flex flex-col max-h-[80vh] transition-all">
- <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50">
- <h3 className="font-extrabold text-slate-900">Notifications</h3>
- <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition"><X size={18}/></button>
- </div>
- <div className="overflow-y-auto p-4 space-y-3">
- {(!notifications || notifications.length === 0) ? (
- <div className="text-center py-6">
- <div className="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-300 mx-auto mb-3">
- <Bell size={24} />
- </div>
- <p className="text-sm font-bold text-slate-900">You're all caught up!</p>
- <p className="text-xs text-slate-500 mt-1">No new notifications.</p>
- </div>
- ) : (
- notifications.map(n => (
- <div key={n.id} className={`p-3 rounded-xl border ${n.is_read ? 'border-slate-100 bg-white ' : 'border-indigo-100 bg-indigo-50 '}`}>
- <div className="flex justify-between items-start mb-1">
- <h4 className={`text-sm font-bold ${n.is_read ? 'text-slate-900 ' : 'text-indigo-900 '}`}>{n.title}</h4>
- <div className="flex items-center gap-2">
- <span className="text-[10px] font-medium text-slate-400">{new Date(n.created_at).toLocaleDateString()}</span>
- <button onClick={() => deleteNotification(n.id)} className="text-slate-300 hover:text-red-500 transition"><Trash2 size={14}/></button>
- </div>
- </div>
- <p className={`text-xs ${n.is_read ? 'text-slate-500 ' : 'text-indigo-700 '}`}>{n.message}</p>
- </div>
- ))
- )}
- </div>
- <div className="p-3 border-t border-slate-100 bg-slate-50 text-center">
- <Link to="/notifications"onClick={onClose} className="text-xs font-bold text-indigo-600 hover:text-indigo-800">Manage notifications</Link>
- </div>
- </div>
+  <div ref={wrapperRef} className="absolute right-0 top-14 w-80 max-w-[calc(100vw-2rem)] bg-white/95 dark:bg-[#0d1322]/95 backdrop-blur-xl rounded-2xl shadow-2xl ring-1 ring-slate-900/5 dark:ring-slate-800 border border-slate-100 dark:border-slate-800 z-50 overflow-hidden flex flex-col max-h-[80vh] transition-all">
+  <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+  <h3 className="font-extrabold text-slate-900 dark:text-white">Notifications</h3>
+  <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition"><X size={18}/></button>
+  </div>
+  <div className="overflow-y-auto p-4 space-y-3">
+  {(!notifications || notifications.length === 0) ? (
+  <div className="text-center py-6">
+  <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-950/40 rounded-full flex items-center justify-center text-indigo-300 mx-auto mb-3">
+  <Bell size={24} />
+  </div>
+  <p className="text-sm font-bold text-slate-900 dark:text-white">You're all caught up!</p>
+  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">No new notifications.</p>
+  </div>
+  ) : (
+  notifications.map(n => (
+  <div key={n.id} className={`p-3 rounded-xl border ${n.is_read ? 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/60 ' : 'border-indigo-100 dark:border-indigo-900/40 bg-indigo-50 dark:bg-indigo-950/30 '}`}>
+  <div className="flex justify-between items-start mb-1">
+  <h4 className={`text-sm font-bold ${n.is_read ? 'text-slate-900 dark:text-slate-100 ' : 'text-indigo-900 dark:text-indigo-300 '}`}>{n.title}</h4>
+  <div className="flex items-center gap-2">
+  <span className="text-[10px] font-medium text-slate-400">{new Date(n.created_at).toLocaleDateString()}</span>
+  <button onClick={() => deleteNotification(n.id)} className="text-slate-300 hover:text-red-500 transition"><Trash2 size={14}/></button>
+  </div>
+  </div>
+  <p className={`text-xs ${n.is_read ? 'text-slate-500 dark:text-slate-400 ' : 'text-indigo-700 dark:text-indigo-300 '}`}>{n.message}</p>
+  </div>
+  ))
+  )}
+  </div>
+  <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-center">
+  <Link to="/notifications" onClick={onClose} className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300">Manage notifications</Link>
+  </div>
+  </div>
  );
 }
 
@@ -336,31 +336,31 @@ function WelcomeScreen() {
  };
 
  return (
- <div onClick={handleSkip} role="button" className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-gradient-to-br from-white via-white to-emerald-50 transition-opacity duration-700 ease-in-out ${stage === 'fade-out' ? 'opacity-0 pointer-events-none' : 'opacity-100'} overflow-hidden cursor-pointer`}>
- <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
- <div className="w-96 h-96 rounded-full border border-emerald-200/10 absolute" />
- <div className="w-72 h-72 rounded-full border border-emerald-300/10 absolute" />
- <div className="w-48 h-48 rounded-full bg-emerald-400/5 absolute" />
- </div>
- <div className="absolute top-[15%] left-[10%] text-2xl opacity-[0.06] animate-bounce" style={{animationDuration: '3s'}}>🥬</div>
- <div className="absolute top-[20%] right-[12%] text-xl opacity-[0.06] animate-bounce" style={{animationDuration: '3.5s'}}>🛒</div>
- <div className="absolute bottom-[20%] left-[15%] text-xl opacity-[0.06] animate-bounce" style={{animationDuration: '4s'}}>🥕</div>
- <div className="absolute bottom-[15%] right-[10%] text-2xl opacity-[0.06] animate-bounce" style={{animationDuration: '2.5s'}}>🌿</div>
+  <div onClick={handleSkip} role="button" className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-gradient-to-br from-white via-white to-emerald-50 dark:from-[#090d16] dark:via-[#0c1220] dark:to-[#0f1b2b] transition-opacity duration-700 ease-in-out ${stage === 'fade-out' ? 'opacity-0 pointer-events-none' : 'opacity-100'} overflow-hidden cursor-pointer`}>
+  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+  <div className="w-96 h-96 rounded-full border border-emerald-200/10 absolute" />
+  <div className="w-72 h-72 rounded-full border border-emerald-300/10 absolute" />
+  <div className="w-48 h-48 rounded-full bg-emerald-400/5 absolute" />
+  </div>
+  <div className="absolute top-[15%] left-[10%] text-2xl opacity-[0.06] animate-bounce" style={{animationDuration: '3s'}}>🥬</div>
+  <div className="absolute top-[20%] right-[12%] text-xl opacity-[0.06] animate-bounce" style={{animationDuration: '3.5s'}}>🛒</div>
+  <div className="absolute bottom-[20%] left-[15%] text-xl opacity-[0.06] animate-bounce" style={{animationDuration: '4s'}}>🥕</div>
+  <div className="absolute bottom-[15%] right-[10%] text-2xl opacity-[0.06] animate-bounce" style={{animationDuration: '2.5s'}}>🌿</div>
 
- <div className={`flex flex-col items-center justify-center relative z-10 transition-[opacity,transform] duration-700 ease-out transform ${stage === 'fade-in' ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'}`}>
- <div className="flex flex-col items-center justify-center mb-10 relative">
- <div className="absolute w-40 h-40 sm:w-48 sm:h-48 bg-emerald-400/10 rounded-full blur-3xl" />
- <img src="/logo.jpg" className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 object-contain mb-4 drop-shadow-xl relative z-10" alt="Logo" />
- <div className="text-base sm:text-lg font-black tracking-[0.25em] uppercase text-slate-500 drop-shadow-sm text-center ml-2 relative z-10">
- <span className="text-emerald-900">Narendra</span> <span className="text-primary-600">Kirana</span>
- </div>
- </div>
- <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-slate-900 tracking-tight text-center px-6 leading-tight">
- {greeting},<br className="sm:hidden" /> {name}.
- </h1>
- </div>
- <p className={`absolute bottom-8 text-sm text-slate-300 transition-opacity duration-700 ${stage === 'fade-in' ? 'opacity-100' : 'opacity-0'}`}>Click anywhere to skip</p>
- </div>
+  <div className={`flex flex-col items-center justify-center relative z-10 transition-[opacity,transform] duration-700 ease-out transform ${stage === 'fade-in' ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'}`}>
+  <div className="flex flex-col items-center justify-center mb-10 relative">
+  <div className="absolute w-40 h-40 sm:w-48 sm:h-48 bg-emerald-400/10 rounded-full blur-3xl" />
+  <img src="/logo.jpg" className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 object-contain mb-4 drop-shadow-xl relative z-10" alt="Logo" />
+  <div className="text-base sm:text-lg font-black tracking-[0.25em] uppercase text-slate-500 drop-shadow-sm text-center ml-2 relative z-10">
+  <span className="text-emerald-900 dark:text-emerald-300">Narendra</span> <span className="text-primary-600 dark:text-primary-400">Kirana</span>
+  </div>
+  </div>
+  <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tight text-center px-6 leading-tight">
+  {greeting},<br className="sm:hidden" /> {name}.
+  </h1>
+  </div>
+  <p className={`absolute bottom-8 text-sm text-slate-300 dark:text-slate-500 transition-opacity duration-700 ${stage === 'fade-in' ? 'opacity-100' : 'opacity-0'}`}>Click anywhere to skip</p>
+  </div>
  );
 }
 
@@ -438,7 +438,7 @@ export function CustomerLayout({ children }) {
  <Link to="/cart"aria-label="Cart"className="relative hidden sm:flex h-11 w-16 items-center justify-center rounded-xl bg-primary-600 text-white hover:bg-primary-700 transition-all ml-2 shadow-sm hover:shadow active:scale-95 group">
  <ShoppingCart size={20} strokeWidth={2.5} className="mt-0.5" />
  {cart?.items?.length > 0 && (
- <span className="absolute -top-2 -right-2 flex h-[22px] min-w-[22px] px-1.5 items-center justify-center rounded-lg bg-slate-900 text-[11px] font-black text-white shadow-sm ring-2 ring-white">
+ <span className="absolute -top-2 -right-2 flex h-[22px] min-w-[22px] px-1.5 items-center justify-center rounded-lg bg-slate-900 text-[11px] font-black text-white shadow-sm ring-2 ring-white dark:ring-slate-900">
  {cart.items.length}
  </span>
  )}

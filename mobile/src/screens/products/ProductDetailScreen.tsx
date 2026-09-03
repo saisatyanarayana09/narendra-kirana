@@ -15,6 +15,7 @@ import { AppNavigationProp } from '../../navigation/types';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { apiClient } from '../../api/client';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { useCart } from '../../context/CartContext';
@@ -28,6 +29,7 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
   const { productId } = route.params || {};
   const { addToCart, cart } = useCart();
   const { user } = useAuth();
+  const { colors, isDark } = useTheme();
   
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -157,11 +159,11 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header Actions */}
       <View style={[styles.header, { top: insets.top + 10 }]}>
         <TouchableOpacity 
-          style={[styles.headerButton, styles.backButton]} 
+          style={[styles.headerButton, styles.backButton, isDark && { backgroundColor: 'rgba(30, 41, 59, 0.92)' }]} 
           onPress={() => {
             if (navigation.canGoBack()) {
               navigation.goBack();
@@ -171,26 +173,26 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
           }}
           activeOpacity={0.8}
         >
-          <Feather name="arrow-left" color="#0F172A" size={20} />
+          <Feather name="arrow-left" color={isDark ? colors.text : "#0F172A"} size={20} />
         </TouchableOpacity>
         
         <View style={styles.headerRight}>
           <TouchableOpacity 
-            style={[styles.headerButton, styles.shareButton]} 
+            style={[styles.headerButton, styles.shareButton, isDark && { backgroundColor: 'rgba(30, 41, 59, 0.92)' }]} 
             onPress={handleShare}
             activeOpacity={0.8}
           >
-            <Feather name="share-2" color="#0F172A" size={18} />
+            <Feather name="share-2" color={isDark ? colors.text : "#0F172A"} size={18} />
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.headerButton, styles.heartButton]} 
+            style={[styles.headerButton, styles.heartButton, isDark && { backgroundColor: 'rgba(30, 41, 59, 0.92)' }]} 
             onPress={handleFavorite} 
             disabled={toggling}
             activeOpacity={0.8}
           >
             <Ionicons 
               name={isFavorite ? "heart" : "heart-outline"} 
-              color={isFavorite ? "#E11D48" : "#0F172A"} 
+              color={isFavorite ? "#E11D48" : (isDark ? colors.text : "#0F172A")} 
               size={20} 
             />
           </TouchableOpacity>
@@ -202,7 +204,7 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
         contentContainerStyle={styles.scrollContent}
       >
         {/* Product Image */}
-        <View style={styles.imageContainer}>
+        <View style={[styles.imageContainer, { backgroundColor: isDark ? colors.surface : '#F8FAFC' }]}>
           {discountPercent > 0 && (
             <View style={[styles.discountBadge, { top: insets.top + 56 }]}>
               <Feather name="zap" size={10} color="#FFFFFF" />
@@ -213,8 +215,8 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
           {currentImage ? (
             <Image source={{ uri: currentImage }} style={styles.image} contentFit="contain" />
           ) : (
-            <View style={styles.placeholderBox}>
-              <Text style={styles.placeholderLetter}>{product.name?.charAt(0) || 'P'}</Text>
+            <View style={[styles.placeholderBox, { backgroundColor: colors.inputBg }]}>
+              <Text style={[styles.placeholderLetter, { color: colors.textSecondary }]}>{product.name?.charAt(0) || 'P'}</Text>
             </View>
           )}
 
@@ -229,15 +231,16 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
         {images.length > 1 && (
           <ScrollView 
             horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.galleryThumbnailsContainer}
+            showsHorizontalScrollIndicator={false} 
+            contentContainerStyle={[styles.galleryThumbnailsContainer, { backgroundColor: isDark ? colors.surface : '#F8FAFC', borderBottomColor: colors.border }]}
           >
-            {images.map((img, i) => (
+            {images.map((img: string, i: number) => (
               <TouchableOpacity
                 key={i}
                 onPress={() => setActiveImageIndex(i)}
                 style={[
                   styles.galleryThumbnail,
+                  { backgroundColor: colors.surface, borderColor: colors.border },
                   activeImageIndex === i && styles.galleryThumbnailActive
                 ]}
                 activeOpacity={0.8}
@@ -254,15 +257,15 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
             <Text style={styles.categoryBadgeText}>{product.category_name || 'GROCERY'}</Text>
           </View>
 
-          {product.brand && <Text style={styles.brand}>{product.brand}</Text>}
-          <Text style={styles.name}>{product.name}</Text>
-          <Text style={styles.unit}>{product.unit}</Text>
+          {product.brand && <Text style={[styles.brand, { color: colors.textSecondary }]}>{product.brand}</Text>}
+          <Text style={[styles.name, { color: colors.text }]}>{product.name}</Text>
+          <Text style={[styles.unit, { color: colors.textSecondary }]}>{product.unit}</Text>
 
           {/* Tags Chips */}
           {product.tags && (
             <View style={styles.tagsRow}>
               {product.tags.split(',').map((tag: string, i: number) => (
-                <View key={i} style={styles.tagChip}>
+                <View key={i} style={[styles.tagChip, isDark && { backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.3)' }]}>
                   <Text style={styles.tagChipText}>{tag.trim()}</Text>
                 </View>
               ))}
@@ -270,9 +273,9 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
           )}
 
           {/* Price Row */}
-          <View style={styles.priceRow}>
+          <View style={[styles.priceRow, { borderBottomColor: colors.border }]}>
             <View style={styles.priceLeft}>
-              <Text style={styles.price}>₹{price}</Text>
+              <Text style={[styles.price, { color: colors.text }]}>₹{price}</Text>
               {product.offer_price && (
                 <Text style={styles.mrp}>₹{product.regular_price}</Text>
               )}
@@ -281,8 +284,8 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
 
           {/* Product Description */}
           <View style={styles.descriptionSection}>
-            <Text style={styles.sectionTitle}>Product Description</Text>
-            <Text style={styles.description}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Product Description</Text>
+            <Text style={[styles.description, { color: colors.textSecondary }]}>
               {product.description || 'Fresh, quality essentials from your local store.'}
             </Text>
           </View>
@@ -290,20 +293,20 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
       </ScrollView>
 
       {/* Sticky Bottom Action Bar matching web app */}
-      <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+      <View style={[styles.bottomBar, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 16) }]}>
         <TouchableOpacity 
           style={[
             styles.addToCartButton, 
-            !product.is_in_stock && styles.disabledButton,
-            added && styles.addedButton,
-            isMaxReached && styles.maxReachedButton
+            !product.is_in_stock && [styles.disabledButton, isDark && { backgroundColor: colors.inputBg }],
+            added && [styles.addedButton, isDark && { backgroundColor: colors.inputBg, borderColor: colors.border }],
+            isMaxReached && [styles.maxReachedButton, isDark && { backgroundColor: colors.inputBg, borderColor: colors.border }]
           ]}
           disabled={!product.is_in_stock || adding || added || isMaxReached}
           onPress={handleAddToCart}
           activeOpacity={0.9}
         >
           {added ? (
-            <Text style={styles.addedText}>✓ Added to cart</Text>
+            <Text style={[styles.addedText, isDark && { color: colors.text }]}>✓ Added to cart</Text>
           ) : isMaxReached ? (
             <Text style={styles.maxReachedText}>Max in cart</Text>
           ) : adding ? (

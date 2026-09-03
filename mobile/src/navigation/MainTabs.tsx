@@ -6,6 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation, getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { theme } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 import { WelcomeScreen } from '../components/WelcomeScreen';
 
 import { HomeScreen } from '../screens/home/HomeScreen';
@@ -170,9 +171,20 @@ export function MainTabs() {
     Platform.OS === 'android' ? (insets.bottom > 0 ? insets.bottom : 10) : 12
   );
   const totalBarHeight = 58 + bottomPadding;
+  const { colors, isDark } = useTheme();
+
+  const dynamicTabBarStyle = [
+    styles.tabBar, 
+    { 
+      height: totalBarHeight, 
+      paddingBottom: bottomPadding,
+      backgroundColor: colors.surface,
+      borderTopColor: colors.border,
+    }
+  ];
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <WelcomeScreen 
         onStart={() => setIsWelcomeActive(true)}
         onFinish={() => setIsWelcomeActive(false)}
@@ -194,8 +206,8 @@ export function MainTabs() {
         }}
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: '#059669', // Emerald-600 matching web
-          tabBarInactiveTintColor: '#64748B', // Slate-500 matching web
+          tabBarActiveTintColor: colors.primary,
+          tabBarInactiveTintColor: colors.textSecondary,
           tabBarItemStyle: {
             paddingBottom: 4,
             justifyContent: 'center',
@@ -217,7 +229,7 @@ export function MainTabs() {
             tabBarIcon: ({ color, size }) => <Feather name="home" color={color} size={20} />,
             tabBarStyle: shouldHideTabBar(route) 
               ? { display: 'none' } 
-              : [styles.tabBar, { height: totalBarHeight, paddingBottom: bottomPadding }],
+              : dynamicTabBarStyle,
           })}
         />
         <Tab.Screen 
@@ -228,7 +240,7 @@ export function MainTabs() {
             tabBarIcon: ({ color, size }) => <Feather name="grid" color={color} size={20} />,
             tabBarStyle: shouldHideTabBar(route) 
               ? { display: 'none' } 
-              : [styles.tabBar, { height: totalBarHeight, paddingBottom: bottomPadding }],
+              : dynamicTabBarStyle,
           })}
         />
         <Tab.Screen 
@@ -239,7 +251,7 @@ export function MainTabs() {
             tabBarIcon: ({ color, size }) => <Feather name="package" color={color} size={20} />,
             tabBarStyle: shouldHideTabBar(route) 
               ? { display: 'none' } 
-              : [styles.tabBar, { height: totalBarHeight, paddingBottom: bottomPadding }],
+              : dynamicTabBarStyle,
           })}
         />
         <Tab.Screen 
@@ -250,7 +262,7 @@ export function MainTabs() {
             tabBarIcon: ({ color, size }) => <Feather name="user" color={color} size={20} />,
             tabBarStyle: shouldHideTabBar(route) 
               ? { display: 'none' } 
-              : [styles.tabBar, { height: totalBarHeight, paddingBottom: bottomPadding }],
+              : dynamicTabBarStyle,
           })}
         />
         <Tab.Screen 
@@ -260,7 +272,7 @@ export function MainTabs() {
             tabBarLabel: t('cart'),
             tabBarBadge: cartItemCount > 0 ? cartItemCount : undefined,
             tabBarBadgeStyle: {
-              backgroundColor: '#0F172A', // slate-900 matching web
+              backgroundColor: isDark ? colors.primary : '#0F172A',
               color: '#FFFFFF',
               fontSize: 10,
               fontWeight: '900',
@@ -273,7 +285,7 @@ export function MainTabs() {
             tabBarIcon: ({ color, size }) => <Feather name="shopping-cart" color={color} size={20} />,
             tabBarStyle: shouldHideTabBar(route) 
               ? { display: 'none' } 
-              : [styles.tabBar, { height: totalBarHeight, paddingBottom: bottomPadding }],
+              : dynamicTabBarStyle,
           })}
         />
       </Tab.Navigator>

@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
 import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
@@ -38,6 +39,7 @@ const stripEmojis = (str: string) => {
 export function HomeScreen({ navigation }: Props) {
   const { user } = useAuth();
   const { addToCart } = useCart();
+  const { colors, isDark } = useTheme();
   
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -216,18 +218,18 @@ export function HomeScreen({ navigation }: Props) {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         {/* Top Header */}
-        <View style={styles.headerRow}>
+        <View style={[styles.headerRow, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
           <View style={styles.brandContainer}>
             <Text style={styles.brandTitle}>
-              <Text style={styles.brandSlate}>Narendra </Text>
+              <Text style={[styles.brandSlate, { color: colors.text }]}>Narendra </Text>
               <Text style={styles.brandRed}>Kirana</Text>
             </Text>
           </View>
-          <View style={styles.searchBar}>
-            <Feather name="search" size={16} color="#94A3B8" />
-            <Text style={styles.searchPlaceholder}>Search products...</Text>
+          <View style={[styles.searchBar, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+            <Feather name="search" size={16} color={colors.textSecondary} />
+            <Text style={[styles.searchPlaceholder, { color: colors.textSecondary }]}>Search products...</Text>
           </View>
         </View>
 
@@ -260,28 +262,28 @@ export function HomeScreen({ navigation }: Props) {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Top Header matching Web App 1:1 in a single row */}
-      <View style={styles.headerRow}>
+      <View style={[styles.headerRow, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <View style={styles.brandContainer}>
           <Text style={styles.brandTitle}>
-            <Text style={styles.brandSlate}>Narendra </Text>
+            <Text style={[styles.brandSlate, { color: colors.text }]}>Narendra </Text>
             <Text style={styles.brandRed}>Kirana</Text>
           </Text>
         </View>
 
         {/* Inline Search Bar matching Web App */}
         <TouchableOpacity 
-          style={styles.searchBar}
+          style={[styles.searchBar, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
           activeOpacity={0.85}
           onPress={() => navigation.navigate('SearchScreen')}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-            <Feather name="search" size={16} color="#94A3B8" />
-            <Text style={styles.searchPlaceholder} numberOfLines={1}>Search products...</Text>
+            <Feather name="search" size={16} color={colors.textSecondary} />
+            <Text style={[styles.searchPlaceholder, { color: colors.textSecondary }]} numberOfLines={1}>Search products...</Text>
           </View>
           <View style={{ padding: 4 }}>
-            <Feather name="mic" size={15} color="#059669" />
+            <Feather name="mic" size={15} color={colors.primary} />
           </View>
         </TouchableOpacity>
       </View>
@@ -376,12 +378,12 @@ export function HomeScreen({ navigation }: Props) {
               </Text>
 
               <TouchableOpacity 
-                style={styles.exploreCatalogBtn}
+                style={[styles.exploreCatalogBtn, isDark && { backgroundColor: colors.surface }]}
                 activeOpacity={0.9}
                 onPress={() => navigation.navigate('CategoriesTab', { screen: 'CategoriesScreen' })}
               >
-                <Text style={styles.exploreCatalogText}>Explore Catalog</Text>
-                <Feather name="chevron-right" size={16} color="#0F172A" />
+                <Text style={[styles.exploreCatalogText, isDark && { color: colors.text }]}>Explore Catalog</Text>
+                <Feather name="chevron-right" size={16} color={isDark ? colors.text : "#0F172A"} />
               </TouchableOpacity>
             </View>
           </View>
@@ -391,12 +393,12 @@ export function HomeScreen({ navigation }: Props) {
         {categories.length > 0 && (
           <View style={styles.sectionContainer}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>Shop by category</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Shop by category</Text>
               <TouchableOpacity 
                 style={styles.seeAllBtn}
                 onPress={() => navigation.navigate('CategoriesTab')}
               >
-                <Text style={styles.seeAllText}>See all →</Text>
+                <Text style={[styles.seeAllText, { color: colors.textSecondary }]}>See all →</Text>
               </TouchableOpacity>
             </View>
 
@@ -423,16 +425,16 @@ export function HomeScreen({ navigation }: Props) {
 
         {/* Dynamic Homepage Product Sections (Horizontal Scrolling Carousel - Scroll Left / Right) */}
         {sections.map((section: any, secIdx: number) => {
-          const sectionProducts = (section.items || []).filter((item: any) => item && item.is_in_stock);
+          const sectionProducts = (section.items || []).filter((item: any) => item && item.is_in_stock !== false);
           if (sectionProducts.length === 0) return null;
 
           return (
             <View key={section.id || secIdx} style={styles.sectionContainer}>
               <View style={styles.sectionHeaderRow}>
                 <View style={styles.sectionTitleGroup}>
-                  <Text style={styles.sectionTitle}>{stripEmojis(section.title)}</Text>
-                  <View style={styles.countBadge}>
-                    <Text style={styles.countBadgeText}>{sectionProducts.length}</Text>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>{stripEmojis(section.title)}</Text>
+                  <View style={[styles.countBadge, { backgroundColor: colors.inputBg }]}>
+                    <Text style={[styles.countBadgeText, { color: colors.textSecondary }]}>{sectionProducts.length}</Text>
                   </View>
                 </View>
                 <TouchableOpacity 
@@ -453,7 +455,7 @@ export function HomeScreen({ navigation }: Props) {
                     }
                   }}
                 >
-                  <Text style={styles.seeAllText}>See all →</Text>
+                  <Text style={[styles.seeAllText, { color: colors.textSecondary }]}>See all →</Text>
                 </TouchableOpacity>
               </View>
 

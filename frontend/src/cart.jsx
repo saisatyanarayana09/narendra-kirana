@@ -719,15 +719,15 @@ export function CartPage() {
  <section className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
  <form onSubmit={handleApplyPromo} className="flex gap-2">
  <input value={promoInput} onChange={e => setPromoInput(e.target.value.toUpperCase())} placeholder="Enter promo code"className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all font-medium"/>
- <button type="submit"disabled={!promoInput} className="rounded-xl bg-slate-900 px-5 py-2.5 font-bold text-white disabled:bg-slate-300 hover:bg-slate-800 transition-colors shadow-sm active:scale-95 disabled:active:scale-100">Apply</button>
- </form>
- {promoError && <p className="mt-3 text-xs text-red-600 font-bold">{promoError}</p>}
- {cart?.promo_code && (
- <div className="mt-4 flex items-center justify-between rounded-xl bg-green-50 p-4 border border-green-100 text-sm text-green-700 shadow-sm">
- <div><span className="font-extrabold uppercase tracking-wider text-xs block text-green-600 mb-0.5">Code Applied</span><span className="font-bold text-base">{cart.promo_code}</span></div>
- <button onClick={() => applyPromo('')} className="text-xs font-bold bg-white px-3 py-1.5 rounded-lg shadow-sm border border-green-200 hover:bg-green-100 transition-colors">Remove</button>
- </div>
- )}
+  <button type="submit" disabled={!promoInput} className="rounded-xl bg-slate-900 dark:bg-slate-800 dark:border dark:border-slate-700 px-5 py-2.5 font-bold text-white disabled:bg-slate-300 dark:disabled:bg-slate-800 dark:disabled:text-slate-500 hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors shadow-sm active:scale-95 disabled:active:scale-100">Apply</button>
+  </form>
+  {promoError && <p className="mt-3 text-xs text-red-600 dark:text-red-400 font-bold">{promoError}</p>}
+  {cart?.promo_code && (
+  <div className="mt-4 flex items-center justify-between rounded-xl bg-green-50 dark:bg-emerald-950/40 p-4 border border-green-100 dark:border-emerald-800/50 text-sm text-green-700 dark:text-emerald-300 shadow-sm">
+  <div><span className="font-extrabold uppercase tracking-wider text-xs block text-green-600 dark:text-emerald-400 mb-0.5">Code Applied</span><span className="font-bold text-base">{cart.promo_code}</span></div>
+  <button onClick={() => applyPromo('')} className="text-xs font-bold bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg shadow-sm border border-green-200 dark:border-emerald-700 text-slate-800 dark:text-slate-200 hover:bg-green-100 dark:hover:bg-slate-700 transition-colors">Remove</button>
+  </div>
+  )}
  </section>
 
  {/* Order Summary Section */}
@@ -983,20 +983,20 @@ export function CheckoutPage() {
                 <div className="p-4 border border-slate-200 border-dashed rounded-xl text-center text-sm text-slate-500">No saved addresses. Please add one.</div>
             ) : (
                 addresses.map(addr => (
-                  <div key={addr.id} onClick={() => setSelectedAddressId(addr.id)} className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 ${selectedAddressId === addr.id ? 'border-indigo-600 bg-indigo-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}>
-                    <div className={`mt-1 w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${selectedAddressId === addr.id ? 'border-indigo-600' : 'border-slate-300'}`}>
+                  <div key={addr.id} onClick={() => setSelectedAddressId(addr.id)} className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 ${selectedAddressId === addr.id ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 dark:border-indigo-500' : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:border-slate-300 dark:hover:border-slate-700'}`}>
+                    <div className={`mt-1 w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${selectedAddressId === addr.id ? 'border-indigo-600' : 'border-slate-300 dark:border-slate-600'}`}>
                         {selectedAddressId === addr.id && <div className="w-2 h-2 rounded-full bg-indigo-600"></div>}
                     </div>
                     <div className="flex-1">
                         <div className="flex justify-between items-start mb-1">
-                            <span className="font-bold text-sm text-slate-900">{addr.title}</span>
-                            <button type="button" onClick={(e) => { e.stopPropagation(); setAddressForm(addr); setEditingAddressId(addr.id); setShowAddressForm(true); }} className="text-slate-400 hover:text-indigo-600 p-1">
+                            <span className="font-bold text-sm text-slate-900 dark:text-white">{addr.title}</span>
+                            <button type="button" onClick={(e) => { e.stopPropagation(); setAddressForm(addr); setEditingAddressId(addr.id); setShowAddressForm(true); }} className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 p-1">
                                 <Edit2 size={14} />
                             </button>
                         </div>
-                        <p className="text-xs text-slate-600 leading-relaxed">{addr.street}</p>
-                        {addr.landmark && <p className="text-xs text-slate-600 leading-relaxed">{addr.landmark}</p>}
-                        <p className="text-xs text-slate-600 font-medium mt-1">{addr.city}, {addr.state} - {addr.zip_code}</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{addr.street}</p>
+                        {addr.landmark && <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{addr.landmark}</p>}
+                        <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1">{addr.city}, {addr.state} - {addr.zip_code}</p>
                     </div>
                   </div>
                 ))
@@ -1005,31 +1005,31 @@ export function CheckoutPage() {
       )}
       
       {parseFloat(storeSettings?.min_delivery_order_amount) > 0 && parseFloat(cart?.subtotal) < parseFloat(storeSettings.min_delivery_order_amount) && (
-        <div className="p-3 bg-red-50 text-red-700 text-sm font-bold rounded-lg border border-red-100 mt-4">
-          Home Delivery requires a minimum cart total of â‚¹{storeSettings.min_delivery_order_amount}.
+        <div className="p-3 bg-red-50 dark:bg-rose-950/40 text-red-700 dark:text-rose-300 text-sm font-bold rounded-lg border border-red-100 dark:border-rose-900/50 mt-4">
+          Home Delivery requires a minimum cart total of ₹{storeSettings.min_delivery_order_amount}.
         </div>
       )}
     </div>
   )}
-  <label className="mt-4 block text-sm font-bold">Note for the store (optional)<textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="E.g., Please pack fragile items carefully..." className="mt-4 w-full rounded-lg border p-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all resize-none h-16" /></label>
+  <label className="mt-4 block text-sm font-bold text-slate-900 dark:text-white">Note for the store (optional)<textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="E.g., Please pack fragile items carefully..." className="mt-4 w-full rounded-lg border border-slate-200 dark:border-slate-700 p-3 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all resize-none h-16" /></label>
  
  {walletBalance > 0 && (
-   <div className="mt-5 p-4 rounded-xl border border-emerald-200 bg-emerald-50 flex items-center justify-between">
+   <div className="mt-5 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-between">
      <div>
-       <div className="font-bold text-emerald-800">Use Wallet Balance</div>
-       <div className="text-sm text-emerald-600">Available: â‚¹{walletBalance.toFixed(2)}</div>
+       <div className="font-bold text-emerald-800 dark:text-emerald-300">Use Wallet Balance</div>
+       <div className="text-sm text-emerald-600 dark:text-emerald-400">Available: ₹{walletBalance.toFixed(2)}</div>
      </div>
      <label className="relative inline-flex items-center cursor-pointer">
        <input type="checkbox" className="sr-only peer" checked={useWallet} onChange={e => setUseWallet(e.target.checked)} />
-       <div className="w-11 h-6 bg-emerald-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-emerald-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+       <div className="w-11 h-6 bg-emerald-200 dark:bg-emerald-900 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-emerald-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
      </label>
    </div>
  )}
 
- <div className="mt-5 space-y-2 text-sm text-slate-600 border-t pt-4"><div className="flex justify-between"><span>Subtotal</span><span>â‚¹{cart?.subtotal || '0.00'}</span></div><div className="flex justify-between text-primary-700"><span>Product Savings</span><span>â‚¹{cart?.discount || '0.00'}</span></div>{cart?.promo_discount > 0 && <div className="flex justify-between text-green-600 font-bold"><span>Promo Discount</span><span>- â‚¹{cart.promo_discount}</span></div>}{cart?.packaging_fee > 0 && <div className="flex justify-between"><span>Packaging Fee</span><span>â‚¹{cart.packaging_fee}</span></div>}
-   {orderType === 'DELIVERY' && <div className="flex justify-between"><span>Delivery Fee</span><span className={deliveryFee === 0 ? 'text-green-600 font-bold' : ''}>{deliveryFee === 0 ? 'FREE' : `â‚¹${deliveryFee}`}</span></div>}
- {useWallet && walletApplied > 0 && <div className="flex justify-between text-emerald-600 font-bold"><span>Wallet Applied</span><span>- â‚¹{walletApplied.toFixed(2)}</span></div>}
- <div className="flex justify-between text-lg font-extrabold text-black pt-2"><span>Total Due</span><span>â‚¹{finalTotal.toFixed(2)}</span></div></div>
+ <div className="mt-5 space-y-2 text-sm text-slate-600 dark:text-slate-300 border-t border-slate-100 dark:border-slate-800 pt-4"><div className="flex justify-between"><span>Subtotal</span><span>₹{cart?.subtotal || '0.00'}</span></div><div className="flex justify-between text-primary-700 dark:text-primary-400"><span>Product Savings</span><span>₹{cart?.discount || '0.00'}</span></div>{cart?.promo_discount > 0 && <div className="flex justify-between text-green-600 dark:text-emerald-400 font-bold"><span>Promo Discount</span><span>- ₹{cart.promo_discount}</span></div>}{cart?.packaging_fee > 0 && <div className="flex justify-between"><span>Packaging Fee</span><span>₹{cart.packaging_fee}</span></div>}
+   {orderType === 'DELIVERY' && <div className="flex justify-between"><span>Delivery Fee</span><span className={deliveryFee === 0 ? 'text-green-600 dark:text-emerald-400 font-bold' : ''}>{deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}</span></div>}
+ {useWallet && walletApplied > 0 && <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-bold"><span>Wallet Applied</span><span>- ₹{walletApplied.toFixed(2)}</span></div>}
+ <div className="flex justify-between text-lg font-extrabold text-slate-900 dark:text-white pt-2"><span>Total Due</span><span>₹{finalTotal.toFixed(2)}</span></div></div>
  {storeSettings?.is_open === false ? (
  <div className="mt-5 rounded-xl bg-red-50 p-4 text-center font-bold text-red-700 border border-red-100">The store is currently closed. Cannot place order.</div>
  ) : Number(storeSettings?.min_order_amount) > 0 && Number(cart.subtotal) < Number(storeSettings.min_order_amount) ? (
@@ -1112,12 +1112,12 @@ export function OrderDetailPage() {
 
                     return (
                       <div key={step.id} className={`flex gap-4 items-start ${!isCompleted ? 'opacity-40' : ''}`}>
-                        <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center border-4 border-white shadow-sm transition-colors duration-500 ${isCompleted ? 'bg-primary-600 text-white' : 'bg-slate-200 text-slate-500'} ${isActive ? 'ring-4 ring-primary-100' : ''}`}>
+                        <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center border-4 border-white dark:border-slate-900 shadow-sm transition-colors duration-500 ${isCompleted ? 'bg-primary-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'} ${isActive ? 'ring-4 ring-primary-100 dark:ring-primary-950/60' : ''}`}>
                           <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
                         </div>
                         <div className="pt-2 flex-1">
-                          <h4 className={`text-sm font-bold ${isActive ? 'text-primary-700' : 'text-slate-900'}`}>{step.label}</h4>
-                          <p className="text-xs text-slate-500 font-medium mt-0.5">{step.desc}</p>
+                          <h4 className={`text-sm font-bold ${isActive ? 'text-primary-700 dark:text-primary-400' : 'text-slate-900 dark:text-white'}`}>{step.label}</h4>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">{step.desc}</p>
                         </div>
                       </div>
                     );

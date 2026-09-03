@@ -13,7 +13,7 @@ import { triggerHaptic } from '../../utils/haptics';
 
 export function ProfileScreen({ navigation }: { navigation: AppNavigationProp }) {
   const { user, logout, refreshUser } = useAuth();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { t, language } = useLanguage();
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const [referralCount, setReferralCount] = useState<number>(0);
@@ -183,7 +183,7 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <ScrollView 
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={styles.scrollContent}
@@ -239,7 +239,7 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
           </View>
 
           {/* Loyalty & Quick Stats Strip: 2 Balanced Interactive Tiles */}
-          <View style={styles.loyaltyCard}>
+          <View style={[styles.loyaltyCard, isDark && { backgroundColor: colors.surface }]}>
             <TouchableOpacity 
               style={styles.loyaltyItem}
               onPress={() => {
@@ -248,14 +248,14 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
               }}
               activeOpacity={0.75}
             >
-              <View style={styles.loyaltyIconBadge}>
-                <MaterialIcons name="currency-rupee" size={16} color="#059669" />
+              <View style={[styles.loyaltyIconBadge, isDark && { backgroundColor: colors.inputBg }]}>
+                <MaterialIcons name="currency-rupee" size={16} color={colors.primary} />
               </View>
-              <Text style={styles.loyaltyValue}>₹{walletBalance.toFixed(2)}</Text>
-              <Text style={styles.loyaltyLabel}>{t('wallet')}</Text>
+              <Text style={[styles.loyaltyValue, isDark && { color: colors.primary }]}>₹{walletBalance.toFixed(2)}</Text>
+              <Text style={[styles.loyaltyLabel, isDark && { color: colors.textSecondary }]}>{t('wallet')}</Text>
             </TouchableOpacity>
 
-            <View style={styles.loyaltyDivider} />
+            <View style={[styles.loyaltyDivider, isDark && { backgroundColor: colors.border }]} />
 
             <TouchableOpacity 
               style={styles.loyaltyItem}
@@ -265,11 +265,11 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
               }}
               activeOpacity={0.75}
             >
-              <View style={[styles.loyaltyIconBadge, { backgroundColor: '#F0FDFA' }]}>
+              <View style={[styles.loyaltyIconBadge, { backgroundColor: isDark ? colors.inputBg : '#F0FDFA' }]}>
                 <Feather name="gift" size={15} color="#0D9488" />
               </View>
               <Text style={[styles.loyaltyValue, { color: '#0D9488' }]}>{referralCount}</Text>
-              <Text style={styles.loyaltyLabel}>{t('referAndEarn')}</Text>
+              <Text style={[styles.loyaltyLabel, isDark && { color: colors.textSecondary }]}>{t('referAndEarn')}</Text>
             </TouchableOpacity>
           </View>
         </LinearGradient>
@@ -284,7 +284,7 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
               activeOpacity={0.75}
             >
               <View style={styles.cardLeftGroup}>
-                <View style={[styles.iconContainer, { backgroundColor: card.bg }]}>
+                <View style={[styles.iconContainer, { backgroundColor: isDark ? colors.inputBg : card.bg }]}>
                   {card.isRupee ? (
                     <MaterialIcons name="currency-rupee" size={20} color={card.color} />
                   ) : (
@@ -307,36 +307,36 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
               </View>
 
               <View style={[styles.chevronCircle, { backgroundColor: colors.background }]}>
-                <Feather name="chevron-right" size={16} color="#94A3B8" />
+                <Feather name="chevron-right" size={16} color={colors.textSecondary} />
               </View>
             </TouchableOpacity>
           ))}
 
           {/* Quick Action Logout Tile at the Bottom */}
           <TouchableOpacity 
-            style={[styles.cardItem, styles.logoutCardItem]}
+            style={[styles.cardItem, styles.logoutCardItem, { backgroundColor: colors.surface, borderColor: isDark ? 'rgba(239, 68, 68, 0.25)' : '#FEE2E2' }]}
             onPress={handleLogout}
             activeOpacity={0.75}
           >
             <View style={styles.cardLeftGroup}>
-              <View style={[styles.iconContainer, { backgroundColor: '#FFF1F2' }]}>
+              <View style={[styles.iconContainer, { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FFF1F2' }]}>
                 <Feather name="log-out" size={20} color="#E11D48" />
               </View>
               <View style={styles.cardTextGroup}>
                 <Text style={[styles.cardTitle, { color: '#E11D48', fontSize: 15 }]}>
                   {t('logout')}
                 </Text>
-                <Text style={styles.cardDesc}>{t('logoutDesc')}</Text>
+                <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>{t('logoutDesc')}</Text>
               </View>
             </View>
 
-            <View style={styles.chevronCircle}>
+            <View style={[styles.chevronCircle, isDark && { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}>
               <Feather name="chevron-right" size={16} color="#E11D48" />
             </View>
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.versionText}>Narendra Kirana App v1.0.0</Text>
+        <Text style={[styles.versionText, { color: colors.textSecondary }]}>Narendra Kirana App v1.0.0</Text>
       </ScrollView>
     </SafeAreaView>
   );

@@ -512,9 +512,9 @@ export default function ReferAndEarn() {
               {/* Glowing QR Container */}
               <div className="relative group mb-8">
                 <div className="absolute -inset-1 bg-gradient-to-r from-emerald-400 to-indigo-500 rounded-3xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
-                <div className="relative bg-white p-5 rounded-3xl border border-white/20 shadow-xl">
+                <div className="relative bg-white p-5 rounded-3xl border border-white/20 shadow-xl keep-white" data-keep-white="true">
                   {qrModal.base64 ? (
-                    <img src={`data:image/png;base64,${qrModal.base64}`} alt="QR Code" className="w-48 h-48 mx-auto object-contain mix-blend-multiply" />
+                    <img src={`data:image/png;base64,${qrModal.base64}`} alt="QR Code" className="w-48 h-48 mx-auto object-contain" />
                   ) : (
                     <div className="w-48 h-48 bg-gray-100 animate-pulse rounded-2xl"></div>
                   )}

@@ -16,6 +16,9 @@ export interface ThemeColors {
   primaryLight: string;
   success: string;
   error: string;
+  inputBg: string;
+  divider: string;
+  mutedSurface: string;
 }
 
 const lightColors: ThemeColors = {
@@ -30,6 +33,9 @@ const lightColors: ThemeColors = {
   primaryLight: '#D1FAE5',
   success: '#10B981',
   error: '#EF4444',
+  inputBg: '#F1F5F9',
+  divider: '#F1F5F9',
+  mutedSurface: '#F8FAFC',
 };
 
 const darkColors: ThemeColors = {
@@ -44,6 +50,9 @@ const darkColors: ThemeColors = {
   primaryLight: '#064E3B',
   success: '#10B981',
   error: '#F87171',
+  inputBg: '#162032',
+  divider: '#1E293B',
+  mutedSurface: '#0E1626',
 };
 
 interface ThemeContextType {

@@ -138,7 +138,7 @@ const Invoice = () => {
   </div>
 
   {/* Printable A4 Invoice Container */}
- <div data-testid="invoice-container" className="relative max-w-4xl mx-auto bg-white p-4 sm:p-8 md:p-12 shadow-xl shadow-slate-200/50 rounded-sm print:shadow-none print:border-none print:rounded-none print:p-0 print:m-0 text-slate-800 overflow-hidden">
+ <div data-testid="invoice-container" data-keep-white="true" className="keep-white relative max-w-4xl mx-auto bg-white p-4 sm:p-8 md:p-12 shadow-xl shadow-slate-200/50 rounded-sm print:shadow-none print:border-none print:rounded-none print:p-0 print:m-0 text-slate-800 overflow-hidden">
 
  {order.status === 'REJECTED' && (
    <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none opacity-40 mix-blend-multiply print:opacity-30">

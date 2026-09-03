@@ -11,6 +11,7 @@ import { Image } from 'expo-image';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { fixImageUrl } from '../utils/image';
 import { theme } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 import { useCart } from '../context/CartContext';
 import { triggerHaptic } from '../utils/haptics';
 
@@ -108,14 +109,24 @@ export function ProductCard({
     }
   };
 
+  const { colors, isDark } = useTheme();
+
   return (
     <TouchableOpacity 
-      style={[styles.container, style]} 
+      style={[
+        styles.container, 
+        { backgroundColor: colors.surface, borderColor: colors.border },
+        style
+      ]} 
       onPress={() => onPress(product)}
       activeOpacity={0.9}
     >
       {/* Image container */}
-      <View style={[styles.imageContainer, !isInStock && styles.imageOutOfStock]}>
+      <View style={[
+        styles.imageContainer, 
+        { backgroundColor: isDark ? colors.background : '#F8FAFC' },
+        !isInStock && styles.imageOutOfStock
+      ]}>
         {/* Discount ribbon at top left */}
         {discount > 0 && (
           <View style={styles.discountBadge}>
@@ -127,7 +138,10 @@ export function ProductCard({
         {/* Favorite button at top right */}
         {onToggleFavorite && (
           <TouchableOpacity 
-            style={styles.favoriteButton} 
+            style={[
+              styles.favoriteButton,
+              isDark && { backgroundColor: 'rgba(30, 41, 59, 0.92)' }
+            ]} 
             onPress={(e) => {
               e.stopPropagation?.();
               triggerHaptic('selection');
@@ -139,7 +153,7 @@ export function ProductCard({
             <Ionicons 
               name={isFav ? "heart" : "heart-outline"} 
               size={16} 
-              color={isFav ? "#E11D48" : "#94A3B8"} 
+              color={isFav ? "#E11D48" : (isDark ? "#64748B" : "#94A3B8")} 
             />
           </TouchableOpacity>
         )}
@@ -148,8 +162,8 @@ export function ProductCard({
         {primaryImage ? (
           <Image source={{ uri: primaryImage }} style={styles.image} contentFit="cover" />
         ) : (
-          <View style={styles.placeholderImage}>
-            <Text style={styles.placeholderLetter}>
+          <View style={[styles.placeholderImage, { backgroundColor: colors.inputBg }]}>
+            <Text style={[styles.placeholderLetter, { color: colors.textSecondary }]}>
               {product.name?.charAt(0)?.toUpperCase() || 'P'}
             </Text>
           </View>
@@ -166,16 +180,16 @@ export function ProductCard({
       {/* Content */}
       <View style={styles.content}>
         {product.brand && (
-          <Text style={styles.brand} numberOfLines={1}>{product.brand}</Text>
+          <Text style={[styles.brand, { color: colors.textSecondary }]} numberOfLines={1}>{product.brand}</Text>
         )}
-        <Text style={styles.name} numberOfLines={2}>{product.name}</Text>
-        <Text style={styles.unit}>{product.unit || '1 unit'}</Text>
+        <Text style={[styles.name, { color: colors.text }]} numberOfLines={2}>{product.name}</Text>
+        <Text style={[styles.unit, { color: colors.textSecondary }]}>{product.unit || '1 unit'}</Text>
         
         {/* Optional Tag Chips */}
         {product.tags && (
           <View style={styles.tagsContainer}>
             {product.tags.split(',').slice(0, 1).map((tag: string, i: number) => (
-              <View key={i} style={styles.tagBadge}>
+              <View key={i} style={[styles.tagBadge, isDark && { backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.3)' }]}>
                 <Text style={styles.tagText} numberOfLines={1}>{tag.trim()}</Text>
               </View>
             ))}
@@ -184,7 +198,7 @@ export function ProductCard({
 
         {/* Price Row: ₹{price} and strikethrough ₹{mrp} */}
         <View style={styles.priceRow}>
-          <Text style={styles.price}>₹{parsedPrice}</Text>
+          <Text style={[styles.price, { color: colors.text }]}>₹{parsedPrice}</Text>
           {discount > 0 && (
             <Text style={styles.mrp}>₹{parsedMrp}</Text>
           )}
@@ -193,15 +207,15 @@ export function ProductCard({
         {/* Add to Cart Button matching web app customer.jsx:250-264 */}
         <View style={styles.actionContainer}>
           {!isInStock ? (
-            <View style={styles.outOfStockButton}>
+            <View style={[styles.outOfStockButton, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
               <Text style={styles.outOfStockButtonText}>Out of stock</Text>
             </View>
           ) : (
             <TouchableOpacity 
               style={[
                 styles.addToCartButton, 
-                added && styles.addedButton,
-                isMaxReached && styles.maxReachedButton
+                added && [styles.addedButton, isDark && { backgroundColor: colors.inputBg, borderColor: colors.border }],
+                isMaxReached && [styles.maxReachedButton, isDark && { backgroundColor: colors.inputBg, borderColor: colors.border }]
               ]}
               onPress={handleAdd}
               disabled={updating || added || isMaxReached}
@@ -210,7 +224,7 @@ export function ProductCard({
               {isMaxReached ? (
                 <Text style={styles.maxReachedText}>Max in cart</Text>
               ) : added ? (
-                <Text style={styles.addedText}>✓ Added!</Text>
+                <Text style={[styles.addedText, isDark && { color: colors.text }]}>✓ Added!</Text>
               ) : updating ? (
                 <Text style={styles.addToCartText}>Adding...</Text>
               ) : (

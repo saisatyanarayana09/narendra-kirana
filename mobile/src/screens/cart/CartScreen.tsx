@@ -13,6 +13,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
 import { theme } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { useCart } from '../../context/CartContext';
 import { CartItemCard } from '../../components/CartItemCard';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
@@ -21,6 +22,7 @@ import { triggerHaptic } from '../../utils/haptics';
 export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
   const insets = useSafeAreaInsets();
   const { cart, isLoading, updateQuantity, removeFromCart, applyPromo, removePromo, storeSettings } = useCart();
+  const { colors, isDark } = useTheme();
   const [promoCode, setPromoCode] = useState('');
   const [promoError, setPromoError] = useState('');
   const [promoApplying, setPromoApplying] = useState(false);
@@ -33,25 +35,25 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
 
   if (items.length === 0) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
           <TouchableOpacity 
             style={styles.backButton}
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
           >
-            <Feather name="arrow-left" size={18} color="#059669" />
-            <Text style={styles.backButtonText}>Back</Text>
+            <Feather name="arrow-left" size={18} color={colors.primary} />
+            <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.emptyContainer}>
-          <View style={styles.emptyIconBox}>
-            <Feather name="shopping-bag" size={44} color="#CBD5E1" />
+          <View style={[styles.emptyIconBox, { backgroundColor: colors.inputBg }]}>
+            <Feather name="shopping-bag" size={44} color={colors.textSecondary} />
           </View>
-          <Text style={styles.emptyTitle}>Your cart is empty</Text>
-          <Text style={styles.emptySubtitle}>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>Your cart is empty</Text>
+          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
             Looks like you haven't added anything to your cart yet. Browse our products and discover great deals.
           </Text>
           <TouchableOpacity 
@@ -59,7 +61,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
             onPress={() => navigation.navigate('HomeTab')}
             activeOpacity={0.85}
           >
-            <Text style={styles.startShoppingText}>Start Shopping</Text>
+            <Text style={styles.startShoppingBtnText}>Start shopping</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -86,18 +88,18 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
   const isBelowMinOrder = minOrderAmount > 0 && cartSubtotal < minOrderAmount;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header matching web */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity 
           style={styles.backButton}
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <Feather name="arrow-left" size={18} color="#059669" />
-          <Text style={styles.backButtonText}>Back</Text>
+          <Feather name="arrow-left" size={18} color={colors.primary} />
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Your cart</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Your cart</Text>
       </View>
 
       <ScrollView 
@@ -133,12 +135,12 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
         </View>
 
         {/* Promo Code Card */}
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.promoForm}>
             <TextInput
-              style={styles.promoInput}
+              style={[styles.promoInput, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
               placeholder="Enter promo code"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.textSecondary}
               value={promoCode}
               onChangeText={(t) => {
                 setPromoCode(t.toUpperCase());
@@ -147,7 +149,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
               autoCapitalize="characters"
             />
             <TouchableOpacity 
-              style={[styles.applyBtn, (!promoCode.trim() || promoApplying) && styles.disabledApplyBtn]} 
+              style={[styles.applyBtn, isDark && { backgroundColor: colors.primary }, (!promoCode.trim() || promoApplying) && styles.disabledApplyBtn]} 
               onPress={handleApplyPromo}
               disabled={!promoCode.trim() || promoApplying || isLoading}
               activeOpacity={0.8}
@@ -168,13 +170,13 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
           ) : null}
 
           {cart.promo_code ? (
-            <View style={styles.appliedPromoRow}>
+            <View style={[styles.appliedPromoRow, isDark && { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.3)' }]}>
               <View>
-                <Text style={styles.appliedPromoTag}>Code Applied</Text>
-                <Text style={styles.appliedPromoCode}>{cart.promo_code}</Text>
+                <Text style={[styles.appliedPromoTag, isDark && { color: '#34D399' }]}>Code Applied</Text>
+                <Text style={[styles.appliedPromoCode, isDark && { color: colors.text }]}>{cart.promo_code}</Text>
               </View>
               <TouchableOpacity 
-                style={styles.removePromoBtn}
+                style={[styles.removePromoBtn, isDark && { backgroundColor: colors.surface, borderColor: colors.border }]}
                 onPress={async () => {
                   setPromoError('');
                   await removePromo();
@@ -182,19 +184,19 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
                 disabled={isLoading}
                 activeOpacity={0.8}
               >
-                <Text style={styles.removePromoText}>Remove</Text>
+                <Text style={[styles.removePromoText, isDark && { color: colors.text }]}>Remove</Text>
               </TouchableOpacity>
             </View>
           ) : null}
         </View>
 
         {/* Order Summary Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Order Summary</Text>
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>Order Summary</Text>
           
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Subtotal</Text>
-            <Text style={styles.summaryValue}>₹{parseFloat(cart.subtotal || '0').toFixed(2)}</Text>
+            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Subtotal</Text>
+            <Text style={[styles.summaryValue, { color: colors.text }]}>₹{parseFloat(cart.subtotal || '0').toFixed(2)}</Text>
           </View>
 
           {parseFloat(cart.discount || '0') > 0 && (
@@ -213,14 +215,14 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
 
           {parseFloat(cart.packaging_fee || '0') > 0 && (
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Packaging Fee</Text>
-              <Text style={styles.summaryValue}>₹{parseFloat(cart.packaging_fee).toFixed(2)}</Text>
+              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Packaging Fee</Text>
+              <Text style={[styles.summaryValue, { color: colors.text }]}>₹{parseFloat(cart.packaging_fee).toFixed(2)}</Text>
             </View>
           )}
 
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Total Due</Text>
-            <Text style={styles.totalValue}>₹{parseFloat(cart.total || '0').toFixed(2)}</Text>
+          <View style={[styles.totalRow, { borderTopColor: colors.border }]}>
+            <Text style={[styles.totalLabel, { color: colors.text }]}>Total Due</Text>
+            <Text style={[styles.totalValue, { color: colors.text }]}>₹{parseFloat(cart.total || '0').toFixed(2)}</Text>
           </View>
 
           {/* Store status banners in summary */}
@@ -236,8 +238,8 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
             </View>
           ) : (
             <View style={styles.summaryTrustRow}>
-              <Feather name="shield" size={13} color="#059669" />
-              <Text style={styles.summaryTrustText}>100% Genuine Products · Safe Delivery</Text>
+              <Feather name="shield" size={13} color={colors.primary} />
+              <Text style={[styles.summaryTrustText, { color: colors.textSecondary }]}>100% Genuine Products · Safe Delivery</Text>
             </View>
           )}
         </View>
@@ -245,10 +247,10 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
 
       {/* Sticky Bottom Checkout Bar – The ONLY checkout action */}
       {!isStoreClosed && !isBelowMinOrder && items.length > 0 && (
-        <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+        <View style={[styles.bottomBar, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 8) }]}>
           <View>
-            <Text style={styles.bottomTotalLabel}>TOTAL DUE</Text>
-            <Text style={styles.bottomTotalValue}>₹{parseFloat(cart.total || '0').toFixed(2)}</Text>
+            <Text style={[styles.bottomTotalLabel, { color: colors.textSecondary }]}>TOTAL DUE</Text>
+            <Text style={[styles.bottomTotalValue, { color: colors.text }]}>₹{parseFloat(cart.total || '0').toFixed(2)}</Text>
           </View>
 
           <TouchableOpacity 

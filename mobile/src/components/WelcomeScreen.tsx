@@ -9,6 +9,7 @@ import {
   Modal
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { 
   getHasShownWelcomeSession, 
   setHasShownWelcomeSession, 
@@ -92,6 +93,7 @@ export function WelcomeScreen({ forceShow = false, onStart, onFinish }: WelcomeS
     greeting = 'Good evening';
   }
 
+  const { colors, isDark } = useTheme();
   const name = user?.first_name || user?.username || 'Customer';
 
   return (
@@ -103,16 +105,16 @@ export function WelcomeScreen({ forceShow = false, onStart, onFinish }: WelcomeS
         ]}
       >
         <LinearGradient 
-          colors={['#FFFFFF', '#F0FDF4', '#ECFDF5']} 
+          colors={isDark ? ['#090D16', '#0C1220', '#064E3B'] : ['#FFFFFF', '#F0FDF4', '#ECFDF5']} 
           start={{ x: 0.5, y: 0 }} 
           end={{ x: 0.5, y: 1 }} 
           style={StyleSheet.absoluteFill} 
         />
         
         {/* Ambient Decoration */}
-        <View style={styles.circle1} />
-        <View style={styles.circle2} />
-        <View style={styles.circle3} />
+        <View style={[styles.circle1, isDark && { borderColor: 'rgba(52, 211, 153, 0.1)' }]} />
+        <View style={[styles.circle2, isDark && { borderColor: 'rgba(52, 211, 153, 0.12)' }]} />
+        <View style={[styles.circle3, isDark && { backgroundColor: 'rgba(52, 211, 153, 0.06)' }]} />
 
         <TouchableOpacity 
           style={styles.touchContainer} 
@@ -130,7 +132,7 @@ export function WelcomeScreen({ forceShow = false, onStart, onFinish }: WelcomeS
                 alignItems: 'center'
               }}
             >
-              <View style={styles.logoWrapper}>
+              <View style={[styles.logoWrapper, isDark && { backgroundColor: colors.surface }]}>
                 <Image 
                   source={require('../../assets/logo.jpg')} 
                   style={styles.logoImage} 
@@ -140,18 +142,18 @@ export function WelcomeScreen({ forceShow = false, onStart, onFinish }: WelcomeS
             </Animated.View>
 
             <Animated.View style={[styles.brandRow, { opacity: brandFadeAnim }]}>
-              <Text style={styles.brandEmerald}>NARENDRA </Text>
-              <Text style={styles.brandPrimary}>KIRANA</Text>
+              <Text style={[styles.brandEmerald, isDark && { color: '#34D399' }]}>NARENDRA </Text>
+              <Text style={[styles.brandPrimary, isDark && { color: colors.primary }]}>KIRANA</Text>
             </Animated.View>
 
             <Animated.View style={{ opacity: greetingFadeAnim }}>
-              <Text style={styles.greetingHeadline}>
+              <Text style={[styles.greetingHeadline, isDark && { color: '#F8FAFC' }]}>
                 {greeting},{'\n'}{name}.
               </Text>
             </Animated.View>
           </View>
           
-          <Text style={styles.dismissHint}>Tap anywhere to continue</Text>
+          <Text style={[styles.dismissHint, isDark && { color: 'rgba(148, 163, 184, 0.6)' }]}>Tap anywhere to continue</Text>
         </TouchableOpacity>
       </Animated.View>
     </Modal>

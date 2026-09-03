@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { Feather } from '@expo/vector-icons';
 import { fixImageUrl } from '../utils/image';
 import { CartItem } from '../context/CartContext';
+import { useTheme } from '../context/ThemeContext';
 import { triggerHaptic } from '../utils/haptics';
 
 interface Props {
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function CartItemCard({ item, onUpdateQuantity, onRemove, isLoading }: Props) {
+  const { colors, isDark } = useTheme();
   const maxOrderQty = item.max_order_quantity ?? item.product?.max_order_quantity ?? 0;
   const stockQty = item.stock_quantity ?? item.product?.stock_quantity ?? 999;
   const maxAllowed = maxOrderQty > 0 ? Math.min(stockQty, maxOrderQty) : stockQty;
@@ -26,13 +28,13 @@ export function CartItemCard({ item, onUpdateQuantity, onRemove, isLoading }: Pr
   const unitName = item.product_unit || item.product?.unit || 'Unit';
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       {/* Product Image / Initial Placeholder */}
-      <View style={styles.imageContainer}>
+      <View style={[styles.imageContainer, { backgroundColor: isDark ? colors.background : '#F8FAFC' }]}>
         {primaryImage ? (
           <Image source={{ uri: primaryImage }} style={styles.image} contentFit="contain" />
         ) : (
-          <View style={styles.placeholderBox}>
+          <View style={[styles.placeholderBox, { backgroundColor: colors.inputBg }]}>
             <Text style={styles.placeholderLetter}>
               {productName.charAt(0)?.toUpperCase() || 'P'}
             </Text>
@@ -42,8 +44,8 @@ export function CartItemCard({ item, onUpdateQuantity, onRemove, isLoading }: Pr
       
       {/* Product Details */}
       <View style={styles.details}>
-        <Text style={styles.name} numberOfLines={2}>{productName}</Text>
-        <Text style={styles.unitText}>
+        <Text style={[styles.name, { color: colors.text }]} numberOfLines={2}>{productName}</Text>
+        <Text style={[styles.unitText, { color: colors.textSecondary }]}>
           ₹{unitPrice} · {unitName}
           {item.quantity > 1 ? ` · Subtotal: ₹${(parseFloat(unitPrice) * item.quantity).toFixed(2)}` : ''}
         </Text>
@@ -57,7 +59,7 @@ export function CartItemCard({ item, onUpdateQuantity, onRemove, isLoading }: Pr
       </View>
 
       {/* Quantity Selector Stepper matching web app */}
-      <View style={styles.stepperContainer}>
+      <View style={[styles.stepperContainer, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
         <TouchableOpacity 
           style={styles.stepperButton}
           onPress={() => {
@@ -67,10 +69,10 @@ export function CartItemCard({ item, onUpdateQuantity, onRemove, isLoading }: Pr
           disabled={isLoading}
           activeOpacity={0.7}
         >
-          <Feather name="minus" size={16} color="#334155" />
+          <Feather name="minus" size={16} color={isDark ? colors.text : "#334155"} />
         </TouchableOpacity>
 
-        <Text style={styles.quantityText}>{item.quantity}</Text>
+        <Text style={[styles.quantityText, { color: colors.text }]}>{item.quantity}</Text>
 
         <TouchableOpacity 
           style={[styles.stepperButton, isMaxReached && styles.disabledStepperBtn]}
@@ -81,18 +83,18 @@ export function CartItemCard({ item, onUpdateQuantity, onRemove, isLoading }: Pr
           disabled={isMaxReached || isLoading}
           activeOpacity={0.7}
         >
-          <Feather name="plus" size={16} color={isMaxReached ? "#CBD5E1" : "#334155"} />
+          <Feather name="plus" size={16} color={isMaxReached ? (isDark ? "#475569" : "#CBD5E1") : (isDark ? colors.text : "#334155")} />
         </TouchableOpacity>
       </View>
 
-      {/* Delete / Trash Button */}
+      {/* Delete / Remove Action */}
       <TouchableOpacity 
         style={styles.deleteButton}
         onPress={() => {
-          triggerHaptic('medium');
+          triggerHaptic('warning');
           Alert.alert(
             'Remove Item',
-            `Remove ${item.product_name || item.product?.name || 'this item'} from your cart?`,
+            `Remove ${productName} from your cart?`,
             [
               { text: 'Cancel', style: 'cancel' },
               { text: 'Remove', style: 'destructive', onPress: () => onRemove(item.id) },
@@ -102,7 +104,7 @@ export function CartItemCard({ item, onUpdateQuantity, onRemove, isLoading }: Pr
         disabled={isLoading}
         activeOpacity={0.7}
       >
-        <Feather name="trash-2" size={18} color="#94A3B8" />
+        <Feather name="trash-2" size={18} color={isDark ? "#F87171" : "#94A3B8"} />
       </TouchableOpacity>
     </View>
   );

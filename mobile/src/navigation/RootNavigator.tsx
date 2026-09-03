@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as Linking from 'expo-linking';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 
 import { AuthStack } from './AuthStack';
@@ -282,6 +283,20 @@ export function RootNavigator() {
     }
   }, [user, pendingRedirect]);
 
+  const { colors, isDark } = useTheme();
+
+  const navTheme = {
+    ...(isDark ? DarkTheme : DefaultTheme),
+    colors: {
+      ...(isDark ? DarkTheme.colors : DefaultTheme.colors),
+      background: colors.background,
+      card: colors.surface,
+      text: colors.text,
+      border: colors.border,
+      primary: colors.primary,
+    },
+  };
+
   if (isLoading) {
     return <LoadingSpinner fullScreen />;
   }
@@ -289,6 +304,7 @@ export function RootNavigator() {
   return (
     <NavigationContainer
       ref={navigationRef}
+      theme={navTheme}
       linking={linking as any}
       onReady={() => {
         isNavReadyRef.current = true;

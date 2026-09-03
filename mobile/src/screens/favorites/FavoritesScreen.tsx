@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
 import { apiClient } from '../../api/client';
+import { useTheme } from '../../context/ThemeContext';
 import { ProductCard } from '../../components/ProductCard';
 import { useCart } from '../../context/CartContext';
 
@@ -13,6 +14,7 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
   const [favorites, setFavorites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { addToCart } = useCart();
+  const { colors, isDark } = useTheme();
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -53,8 +55,8 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
           <TouchableOpacity 
             style={styles.backButton} 
             onPress={() => {
@@ -65,13 +67,13 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
               }
             }}
           >
-            <Feather name="arrow-left" size={18} color="#059669" />
-            <Text style={styles.backButtonText}>Back</Text>
+            <Feather name="arrow-left" size={18} color={colors.primary} />
+            <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Favorites</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Favorites</Text>
         </View>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#059669" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </SafeAreaView>
     );
@@ -79,8 +81,8 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
 
   if (favorites.length === 0) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
           <TouchableOpacity 
             style={styles.backButton} 
             onPress={() => {
@@ -92,19 +94,19 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
             }}
             activeOpacity={0.7}
           >
-            <Feather name="arrow-left" size={18} color="#059669" />
-            <Text style={styles.backButtonText}>Back</Text>
+            <Feather name="arrow-left" size={18} color={colors.primary} />
+            <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Favorites</Text>
-          <Text style={styles.headerSubtitle}>Products you've saved for later.</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Favorites</Text>
+          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>Products you've saved for later.</Text>
         </View>
 
         <View style={styles.emptyContainer}>
-          <View style={styles.emptyIconCircle}>
+          <View style={[styles.emptyIconCircle, isDark && { backgroundColor: 'rgba(239, 68, 68, 0.15)' }]}>
             <Feather name="heart" size={44} color="#E11D48" />
           </View>
-          <Text style={styles.emptyTitle}>No favorites yet</Text>
-          <Text style={styles.emptySubtitle}>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>No favorites yet</Text>
+          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
             Keep track of the products you love by clicking the heart icon on any product.
           </Text>
           <TouchableOpacity 
@@ -121,9 +123,9 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header matching web */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity 
           style={styles.backButton} 
           onPress={() => {
@@ -135,16 +137,16 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
           }}
           activeOpacity={0.7}
         >
-          <Feather name="arrow-left" size={18} color="#059669" />
-          <Text style={styles.backButtonText}>Back</Text>
+          <Feather name="arrow-left" size={18} color={colors.primary} />
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
         </TouchableOpacity>
         <View style={styles.headerTitleRow}>
-          <Text style={styles.headerTitle}>Favorites</Text>
-          <View style={styles.itemCountBadge}>
-            <Text style={styles.itemCountText}>{favorites.length} saved</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Favorites</Text>
+          <View style={[styles.itemCountBadge, isDark && { backgroundColor: colors.inputBg }]}>
+            <Text style={[styles.itemCountText, { color: colors.primary }]}>{favorites.length} saved</Text>
           </View>
         </View>
-        <Text style={styles.headerSubtitle}>Products you've saved for later.</Text>
+        <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>Products you've saved for later.</Text>
       </View>
       
       <FlatList

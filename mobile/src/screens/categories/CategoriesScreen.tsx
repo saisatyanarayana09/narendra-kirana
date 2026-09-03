@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
 import { apiClient } from '../../api/client';
+import { useTheme } from '../../context/ThemeContext';
 import { CategoryCard } from '../../components/CategoryCard';
 import { CategoryCardSkeleton } from '../../components/SkeletonLoader';
 
@@ -23,6 +24,7 @@ const CARD_WIDTH = Math.floor((width - (HORIZONTAL_PADDING * 2) - (GAP * 2)) / 3
 let cachedGlobalCategories: any[] | null = null;
 
 export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp }) {
+  const { colors } = useTheme();
   const [categories, setCategories] = useState<any[]>(cachedGlobalCategories || []);
   const [loading, setLoading] = useState(!cachedGlobalCategories);
   const [refreshing, setRefreshing] = useState(false);
@@ -53,8 +55,8 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
 
   if (loading && !refreshing) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
           <TouchableOpacity 
             style={styles.backButton}
             onPress={() => {
@@ -66,10 +68,10 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
             }}
             activeOpacity={0.7}
           >
-            <Feather name="arrow-left" size={16} color="#475569" />
-            <Text style={styles.backText}>Back</Text>
+            <Feather name="arrow-left" size={16} color={colors.primary} />
+            <Text style={[styles.backText, { color: colors.primary }]}>Back</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>All Categories</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>All Categories</Text>
         </View>
 
         <View style={{ paddingHorizontal: HORIZONTAL_PADDING, paddingTop: 14, flexDirection: 'row', flexWrap: 'wrap', gap: GAP }}>
@@ -82,9 +84,9 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header matching web CategoriesPage 1:1 */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity 
           style={styles.backButton}
           onPress={() => {
@@ -96,10 +98,10 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
           }}
           activeOpacity={0.7}
         >
-          <Feather name="arrow-left" size={16} color="#475569" />
-          <Text style={styles.backText}>Back</Text>
+          <Feather name="arrow-left" size={16} color={colors.primary} />
+          <Text style={[styles.backText, { color: colors.primary }]}>Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>All Categories</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>All Categories</Text>
       </View>
       
       <FlatList
