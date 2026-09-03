@@ -309,12 +309,12 @@ export function NotificationPopup({ isOpen, onClose }) {
 
 function WelcomeScreen() {
  const { user, isCustomer, cart } = useCart();
- const [show, setShow] = useState(() => {
- if (isCustomer && user && !sessionStorage.getItem('hasShownWelcome')) {
- return true;
- }
- return false;
- });
+  const [show, setShow] = useState(() => {
+    if (!sessionStorage.getItem('hasShownWelcome')) {
+      return true;
+    }
+    return false;
+  });
  const [stage, setStage] = useState('initial'); 
 
  useEffect(() => {

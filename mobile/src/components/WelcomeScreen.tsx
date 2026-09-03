@@ -40,7 +40,7 @@ export function WelcomeScreen({ forceShow = false, onStart, onFinish }: WelcomeS
   const greetingFadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (forceShow || (user && !getHasShownWelcomeSession())) {
+    if (forceShow || !getHasShownWelcomeSession()) {
       setHasShownWelcomeSession(true);
       setVisible(true);
       if (onStart) onStart();
@@ -94,7 +94,7 @@ export function WelcomeScreen({ forceShow = false, onStart, onFinish }: WelcomeS
     greeting = 'Good evening';
   }
 
-  const name = user?.first_name || user?.username || 'Customer';
+  const name = user?.first_name || user?.username || 'Guest';
 
   return (
     <Modal transparent statusBarTranslucent visible={visible} animationType="none" onRequestClose={dismiss}>
