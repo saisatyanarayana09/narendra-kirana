@@ -280,8 +280,8 @@ export function CartPage() {
  <div className="mt-6 rounded-xl bg-amber-50 p-4 text-center font-bold text-amber-700 border border-amber-100">Minimum order amount is â‚¹{storeSettings.min_order_amount}</div>
  ) : (
  <>
- <button onClick={() => navigate('/checkout')} className="mt-6 hidden lg:block min-h-14 w-full rounded-xl bg-primary-600 font-bold text-white shadow-sm hover:bg-primary-700 hover:shadow-md transition-all active:scale-[0.98] text-lg">Continue to pickup</button>
- <p className="mt-4 hidden lg:block text-center text-xs text-slate-500 font-medium">Pay securely online or at store pickup.</p>
+ <button onClick={() => navigate('/checkout')} className="mt-4 hidden lg:block min-h-11 w-full rounded-xl bg-primary-600 font-bold text-white shadow-sm hover:bg-primary-700 hover:shadow-md transition-all active:scale-[0.98] text-base py-2.5">Continue to pickup</button>
+ <p className="mt-3 hidden lg:block text-center text-xs text-slate-500 font-medium">Pay securely online or at store pickup.</p>
  </>
  )}
  </section>
@@ -289,13 +289,13 @@ export function CartPage() {
  
  {/* Mobile Sticky Checkout Bar */}
  {storeSettings?.is_open !== false && !(Number(storeSettings?.min_order_amount) > 0 && Number(cart.subtotal) < Number(storeSettings.min_order_amount)) && items.length > 0 && (
-    <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-30 bg-white border-t border-slate-200 p-3 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] lg:hidden">
+    <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-30 bg-white border-t border-slate-200 py-2 px-4 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] lg:hidden">
       <div className="flex items-center justify-between gap-4 max-w-md mx-auto">
         <div>
           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Due</p>
           <p className="text-xl font-black text-slate-900 leading-none mt-0.5">â‚¹{cart?.total}</p>
         </div>
-        <button onClick={() => navigate('/checkout')} className="flex-1 min-h-[44px] rounded-xl bg-primary-600 font-bold text-white shadow-sm active:scale-95 transition-all">
+        <button onClick={() => navigate('/checkout')} className="flex-1 min-h-[38px] py-1.5 px-4 rounded-xl bg-primary-600 font-bold text-white shadow-sm active:scale-95 transition-all text-sm">
           Checkout
         </button>
       </div>
@@ -572,7 +572,7 @@ export function CheckoutPage() {
   {isDeliveryUnderMin && (
     <div className="mt-5 rounded-xl bg-amber-50 p-4 text-center font-bold text-amber-700 border border-amber-100">Minimum delivery order amount is ₹{storeSettings.min_delivery_order_amount}</div>
   )}
-  <button onClick={submit} disabled={loading || isDeliveryUnderMin || (orderType === 'DELIVERY' && !selectedAddressId && (!deliveryAddress || !deliveryPincode))} className="mt-5 min-h-12 w-full rounded-xl bg-primary-600 font-bold text-white disabled:bg-slate-300 hover:bg-primary-700 active:scale-[0.98] transition-all">{loading ? 'Processing...' : (finalTotal > 0 ? (orderType === 'DELIVERY' ? 'Place order (Cash on Delivery)' : 'Place order (Pay at store)') : 'Place order (Paid via Wallet)')}</button>
+  <button onClick={submit} disabled={loading || isDeliveryUnderMin || (orderType === 'DELIVERY' && !selectedAddressId && (!deliveryAddress || !deliveryPincode))} className="mt-4 min-h-10 py-2.5 px-4 w-full rounded-xl bg-primary-600 font-bold text-white disabled:bg-slate-300 hover:bg-primary-700 active:scale-[0.98] transition-all text-sm">{loading ? 'Processing...' : (finalTotal > 0 ? (orderType === 'DELIVERY' ? 'Place order (Cash on Delivery)' : 'Place order (Pay at store)') : 'Place order (Paid via Wallet)')}</button>
   </>
  )}
  </div></main></CustomerLayout>

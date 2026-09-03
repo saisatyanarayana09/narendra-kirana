@@ -291,7 +291,7 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
 
       <ScrollView 
         showsVerticalScrollIndicator={false} 
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 110 + insets.bottom }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 75 + insets.bottom }]}
       >
         {/* Error Banner */}
         {Boolean(error) && (
@@ -700,7 +700,7 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
       </ScrollView>
 
       {/* Sticky Bottom Place Order Bar */}
-      <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+      <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
         <View>
           <Text style={styles.bottomTotalLabel}>TOTAL AMOUNT</Text>
           <Text style={styles.bottomTotalValue}>₹{finalTotalToPay.toFixed(2)}</Text>
@@ -1320,37 +1320,38 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 8,
+    paddingBottom: 8,
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
+    shadowOffset: { width: 0, height: -3 },
     shadowOpacity: 0.05,
-    shadowRadius: 8,
+    shadowRadius: 6,
     elevation: 6,
   },
   bottomTotalLabel: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
     color: '#64748B',
     letterSpacing: 0.5,
   },
   bottomTotalValue: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '900',
     color: '#0F172A',
-    marginTop: 2,
+    marginTop: 1,
   },
   placeOrderBtn: {
     backgroundColor: '#059669',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+    borderRadius: 12,
     alignItems: 'center',
     shadowColor: '#059669',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
-    shadowRadius: 4,
+    shadowRadius: 3,
     elevation: 3,
   },
   disabledPlaceOrderBtn: {
@@ -1360,7 +1361,7 @@ const styles = StyleSheet.create({
   },
   placeOrderBtnText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
   },
 });
