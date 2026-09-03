@@ -93,7 +93,7 @@ function ProductImage({ product, large = false }) {
     
     return (
        <div className={`w-full flex items-center justify-center relative overflow-hidden bg-gradient-to-b from-transparent to-slate-50/50 ${large ? 'h-72 sm:h-80 md:h-full' : 'h-32 sm:h-36'}`}>
-           <div className="absolute inset-0 bg-slate-900/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-t-xl z-10 mix-blend-overlay"></div>
+           <div className="absolute inset-0 bg-slate-900/5 opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 rounded-t-xl z-10 mix-blend-overlay"></div>
            <img 
              loading='lazy' 
              decoding='async' 
@@ -104,7 +104,7 @@ function ProductImage({ product, large = false }) {
                  e.currentTarget.src = '/media/products/pumpkin_seeds.jpg';
                }
              }}
-             className="w-full h-full object-cover mix-blend-multiply transition-transform duration-700 group-hover:scale-110"
+             className="w-full h-full object-cover mix-blend-multiply transition-transform duration-700 group-hover/card:scale-110"
            />
        </div>
     );
@@ -191,7 +191,7 @@ export function ProductCard({ product, ...props }) {
 
 
 
- return <div {...props} className="group relative overflow-hidden rounded-2xl bg-white shadow-sm border border-slate-200/80 transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 hover:border-slate-200 hover:ring-2 hover:ring-emerald-100 flex flex-col h-full">
+ return <div {...props} className="group/card relative overflow-hidden rounded-2xl bg-white shadow-sm border border-slate-200/80 transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 hover:border-slate-200 hover:ring-2 hover:ring-emerald-100 flex flex-col h-full">
 
  {discountPercent > 0 && (
 
@@ -243,7 +243,7 @@ export function ProductCard({ product, ...props }) {
 
  <div className="p-3 flex flex-col flex-grow bg-white">
 
- <p className="line-clamp-2 text-sm font-bold leading-tight text-slate-800 group-hover:text-slate-600 transition-colors">{product.name}</p>
+ <p className="line-clamp-2 text-sm font-bold leading-tight text-slate-800 group-hover/card:text-slate-600 transition-colors">{product.name}</p>
 
  <p className="mt-1 text-xs text-slate-500 font-medium">{product.brand && `${product.brand} · `}{product.unit}</p>
 
@@ -725,7 +725,7 @@ export function HomePage() {
               ))}
             </div>
           ) : (
-            <div className="relative group mt-3">
+            <div className="relative group/carousel mt-3">
               {/* Left Scroll Arrow (Desktop) */}
               {sectionProducts.length > 2 && (
                 <button
@@ -734,7 +734,7 @@ export function HomePage() {
                     const el = document.getElementById(`carousel-${section.id}`);
                     if (el) el.scrollBy({ left: -320, behavior: 'smooth' });
                   }}
-                  className="absolute -left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/95 backdrop-blur-md shadow-lg border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-emerald-600 hover:text-white transition-all opacity-0 group-hover:opacity-100 z-10 hidden sm:flex"
+                  className="absolute -left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/95 backdrop-blur-md shadow-lg border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-emerald-600 hover:text-white transition-all opacity-0 group-hover/carousel:opacity-100 z-10 hidden sm:flex"
                   aria-label="Scroll left"
                 >
                   <ChevronLeft size={20} />
@@ -761,7 +761,7 @@ export function HomePage() {
                     const el = document.getElementById(`carousel-${section.id}`);
                     if (el) el.scrollBy({ left: 320, behavior: 'smooth' });
                   }}
-                  className="absolute -right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/95 backdrop-blur-md shadow-lg border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-emerald-600 hover:text-white transition-all opacity-0 group-hover:opacity-100 z-10 hidden sm:flex"
+                  className="absolute -right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/95 backdrop-blur-md shadow-lg border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-emerald-600 hover:text-white transition-all opacity-0 group-hover/carousel:opacity-100 z-10 hidden sm:flex"
                   aria-label="Scroll right"
                 >
                   <ChevronRight size={20} />
