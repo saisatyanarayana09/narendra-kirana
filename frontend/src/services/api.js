@@ -82,9 +82,9 @@ function evictOldestCache() {
 const originalGet = api.get;
 api.get = async (url, config = {}) => {
   const safeUrl = url || '';
-  const isOwner = localStorage.getItem('smart-kirana-owner-token');
+  const isOwnerRoute = window.location.pathname.startsWith('/owner');
   const hasSearchParams = config?.params?.search || config?.params?.t; // Don't cache search queries or cache-busted requests
-  const isCacheable = !isOwner && !hasSearchParams && CACHEABLE_URLS.some(u => safeUrl.startsWith(u));
+  const isCacheable = !isOwnerRoute && !hasSearchParams && CACHEABLE_URLS.some(u => safeUrl.startsWith(u));
 
   if (!isCacheable) {
     return originalGet.call(api, url, config);

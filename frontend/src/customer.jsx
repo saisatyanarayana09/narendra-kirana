@@ -918,6 +918,7 @@ export function ProductsPage() {
   const initProducts = readCacheSync('/products/', { params });
   const [products, setProducts] = useState(initProducts ? (initProducts.results || initProducts) : []);
   const [loading, setLoading] = useState(() => !initProducts);
+  const [isRevalidating, setIsRevalidating] = useState(false);
   const [nextPage, setNextPage] = useState(initProducts ? initProducts.next : null);
   const [loadingMore, setLoadingMore] = useState(false);
 
@@ -934,6 +935,8 @@ export function ProductsPage() {
     if (cached) {
       setProducts(cached.results || cached || []);
       setNextPage(cached.next || null);
+      setLoading(false);
+      setIsRevalidating(true);
     } else {
       setLoading(true);
     }
@@ -946,7 +949,10 @@ export function ProductsPage() {
            setError(''); 
          })
          .catch(() => setError('Could not load products.'))
-         .finally(() => { setLoading(false); });
+         .finally(() => { 
+           setLoading(false); 
+           setIsRevalidating(false);
+         });
     }, query ? 300 : 0);
     return () => clearTimeout(timer);
   }, [query, category]);
@@ -1009,6 +1015,12 @@ export function ProductsPage() {
 
         {!loading && (
           <div className="flex items-center gap-3">
+            {isRevalidating && (
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full animate-pulse border border-emerald-100">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Syncing...
+              </span>
+            )}
             <select 
               value={sortOption} 
               onChange={e => setSortOption(e.target.value)}
