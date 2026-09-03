@@ -121,14 +121,20 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
     
     setToggling(true);
     try {
-      if (isFavorite && favoriteId) {
-        await apiClient.delete(`/favorites/${favoriteId}/`);
+      if (isFavorite) {
+        if (favoriteId) {
+          await apiClient.delete(`/favorites/${favoriteId}/`).catch(() =>
+            apiClient.post('/favorites/toggle/', { product: productId })
+          );
+        } else {
+          await apiClient.post('/favorites/toggle/', { product: productId });
+        }
         setIsFavorite(false);
         setFavoriteId(null);
       } else {
         const res = await apiClient.post('/favorites/', { product: productId });
         setIsFavorite(true);
-        setFavoriteId(res.data.id);
+        setFavoriteId(res.data?.id || res.data?.favorite?.id || null);
       }
     } catch (error) {
       Alert.alert('Error', 'Could not update favorites');

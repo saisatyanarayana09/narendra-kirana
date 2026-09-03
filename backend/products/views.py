@@ -1,4 +1,4 @@
-from rest_framework import viewsets, filters
+from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -200,9 +200,63 @@ class ProductViewSet(viewsets.ModelViewSet):
 class FavoriteViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = FavoriteSerializer
+    pagination_class = None
 
     def get_queryset(self):
         return Favorite.objects.select_related('product', 'product__category').filter(user=self.request.user)
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+    def create(self, request, *args, **kwargs):
+        product_id = request.data.get('product') or request.data.get('product_id')
+        if not product_id:
+            return Response({'error': 'product is required'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            product = Product.objects.get(id=product_id)
+        except (Product.DoesNotExist, ValueError, TypeError):
+            return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        favorite, created = Favorite.objects.get_or_create(user=request.user, product=product)
+        serializer = self.get_serializer(favorite)
+        return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except Exception:
+            return Response({'status': 'already removed'}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['post'])
+    def toggle(self, request):
+        product_id = request.data.get('product') or request.data.get('product_id')
+        if not product_id:
+            return Response({'error': 'product is required'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            product = Product.objects.get(id=product_id)
+        except (Product.DoesNotExist, ValueError, TypeError):
+            return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        fav = Favorite.objects.filter(user=request.user, product=product).first()
+        if fav:
+            fav.delete()
+            return Response({
+                'status': 'removed',
+                'is_favorite': False,
+                'product_id': product.id
+            }, status=status.HTTP_200_OK)
+        else:
+            fav, _ = Favorite.objects.get_or_create(user=request.user, product=product)
+            serializer = self.get_serializer(fav)
+            return Response({
+                'status': 'added',
+                'is_favorite': True,
+                'id': fav.id,
+                'product_id': product.id,
+                'favorite': serializer.data
+            }, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['delete'])
+    def remove(self, request):
+        product_id = request.data.get('product') or request.data.get('product_id') or request.query_params.get('product')
+        if not product_id:
+            return Response({'error': 'product is required'}, status=status.HTTP_400_BAD_REQUEST)
+        Favorite.objects.filter(user=request.user, product_id=product_id).delete()
+        return Response({'status': 'removed', 'is_favorite': False}, status=status.HTTP_200_OK)

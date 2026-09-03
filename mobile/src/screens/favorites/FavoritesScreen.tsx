@@ -34,13 +34,20 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
   };
 
   const handleToggleFavorite = async (product: any) => {
-    const favItem = favorites.find(f => f.product === product.id || f.product_details?.id === product.id);
-    if (!favItem) return;
+    const pId = product?.id ?? product;
+    const favItem = favorites.find(f => f.product === pId || f.product?.id === pId || f.product_details?.id === pId);
+    setFavorites(prev => prev.filter(f => f.id !== favItem?.id && (f.product?.id ?? f.product ?? f.product_details?.id) !== pId));
     try {
-      await apiClient.delete(`/favorites/${favItem.id}/`);
-      setFavorites(prev => prev.filter(f => f.id !== favItem.id));
+      if (favItem?.id) {
+        await apiClient.delete(`/favorites/${favItem.id}/`).catch(() =>
+          apiClient.post('/favorites/toggle/', { product: pId })
+        );
+      } else {
+        await apiClient.post('/favorites/toggle/', { product: pId });
+      }
     } catch (error) {
       console.error('Error removing favorite:', error);
+      fetchFavorites();
     }
   };
 

@@ -89,16 +89,27 @@ export function CartProvider({ children }) {
    setCart(response.data);
  }, [])
 
- const toggleFavorite = useCallback(async (productId) => {
-   if (!isCustomer) return;
-   const isFav = favorites.find(f => f.product === productId);
-   if (isFav) {
-     await api.delete(`/favorites/${isFav.id}/`);
-   } else {
-     await api.post('/favorites/', { product: productId });
-   }
-   refreshFavorites().catch(console.error);
- }, [isCustomer, favorites, refreshFavorites])
+  const toggleFavorite = useCallback(async (productId) => {
+    if (!isCustomer) return;
+    const numId = Number(productId);
+    const isFav = favorites.find(f => 
+      Number(f.product) === numId || 
+      Number(f.product?.id) === numId || 
+      Number(f.product_details?.id) === numId
+    );
+    try {
+      if (isFav?.id) {
+        await api.delete(`/favorites/${isFav.id}/`).catch(() =>
+          api.post('/favorites/toggle/', { product: numId })
+        );
+      } else {
+        await api.post('/favorites/', { product: numId });
+      }
+    } catch (err) {
+      console.error('Error toggling favorite:', err);
+    }
+    refreshFavorites().catch(console.error);
+  }, [isCustomer, favorites, refreshFavorites])
 
  // Memoize the context value to prevent unnecessary re-renders of all consumers
  const value = useMemo(() => ({

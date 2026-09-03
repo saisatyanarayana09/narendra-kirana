@@ -106,8 +106,14 @@ export function HomeScreen({ navigation }: Props) {
     });
 
     try {
-      if (isFav && favId) {
-        await apiClient.delete(`/favorites/${favId}/`);
+      if (isFav) {
+        if (favId) {
+          await apiClient.delete(`/favorites/${favId}/`).catch(() => 
+            apiClient.post('/favorites/toggle/', { product: productId })
+          );
+        } else {
+          await apiClient.post('/favorites/toggle/', { product: productId });
+        }
         setFavoriteMap(prev => {
           const next = { ...prev };
           delete next[productId];
@@ -115,8 +121,9 @@ export function HomeScreen({ navigation }: Props) {
         });
       } else {
         const res = await apiClient.post('/favorites/', { product: productId });
-        if (res.data?.id) {
-          setFavoriteMap(prev => ({ ...prev, [productId]: res.data.id }));
+        const newId = res.data?.id || res.data?.favorite?.id;
+        if (newId) {
+          setFavoriteMap(prev => ({ ...prev, [productId]: newId }));
         }
       }
     } catch (error) {
