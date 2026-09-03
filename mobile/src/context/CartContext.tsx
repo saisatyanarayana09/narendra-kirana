@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getGuestStorageItem, setGuestStorageItem, removeGuestStorageItem } from '../utils/guestStorage';
 import { apiClient } from '../api/client';
 import { useAuth } from './AuthContext';
 
@@ -88,11 +88,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const loadGuestCart = async (): Promise<CartData | null> => {
     try {
-      const raw = await AsyncStorage.getItem(GUEST_CART_KEY);
+      const raw = await getGuestStorageItem(GUEST_CART_KEY);
       if (!raw) return null;
       return JSON.parse(raw);
     } catch (e) {
-      console.error('Failed to load guest cart from storage:', e);
       return null;
     }
   };
@@ -106,7 +105,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const syncUserCart = async () => {
       if (user) {
         try {
-          const raw = await AsyncStorage.getItem(GUEST_CART_KEY);
+          const raw = await getGuestStorageItem(GUEST_CART_KEY);
           if (raw) {
             const guestCart = JSON.parse(raw);
             const guestItems = guestCart.items || [];
@@ -119,11 +118,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
                   })),
                 })
                 .catch(() => null);
-              await AsyncStorage.removeItem(GUEST_CART_KEY);
+              await removeGuestStorageItem(GUEST_CART_KEY);
             }
           }
         } catch (e) {
-          console.error('Failed to merge guest cart on login:', e);
+          // Ignore merge sync error
         }
         await refreshCart();
       } else {
@@ -257,7 +256,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
         const packagingFee = storeSettings?.packaging_fee || '0';
         const newCartData = calculateGuestTotals(updatedItems, packagingFee);
-        await AsyncStorage.setItem(GUEST_CART_KEY, JSON.stringify(newCartData));
+        await setGuestStorageItem(GUEST_CART_KEY, JSON.stringify(newCartData));
         setCart(newCartData);
       } catch (error) {
         console.error('Failed to add to guest cart:', error);
@@ -312,7 +311,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
         const packagingFee = storeSettings?.packaging_fee || '0';
         const newCartData = calculateGuestTotals(updatedItems, packagingFee);
-        await AsyncStorage.setItem(GUEST_CART_KEY, JSON.stringify(newCartData));
+        await setGuestStorageItem(GUEST_CART_KEY, JSON.stringify(newCartData));
         setCart(newCartData);
       } catch (error) {
         console.error('Failed to update guest cart quantity:', error);
@@ -348,7 +347,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
         const packagingFee = storeSettings?.packaging_fee || '0';
         const newCartData = calculateGuestTotals(updatedItems, packagingFee);
-        await AsyncStorage.setItem(GUEST_CART_KEY, JSON.stringify(newCartData));
+        await setGuestStorageItem(GUEST_CART_KEY, JSON.stringify(newCartData));
         setCart(newCartData);
       } catch (error) {
         console.error('Failed to remove from guest cart:', error);
