@@ -1,4 +1,8 @@
 import time
+import io
+import wave
+import av
+import speech_recognition as sr
 
 from django.db import connection
 from django.http import JsonResponse
@@ -7,6 +11,7 @@ from django.views import View
 from django.views.generic import TemplateView
 from rest_framework import views, response, status, viewsets
 from rest_framework.permissions import AllowAny
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.decorators import action
 from accounts.permissions import IsOwnerUser, IsOwnerOrReadOnly
 from .models import StoreSettings, Feedback, HomepageSection
@@ -168,3 +173,50 @@ class FeedbackViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         customer = self.request.user if self.request.user.is_authenticated and not getattr(self.request.user, 'is_owner', False) else None
         serializer.save(customer=customer)
+
+
+class VoiceSearchView(views.APIView):
+    """
+    Decodes uploaded audio (m4a/aac/wav/3gp/mp3) from mobile/web clients,
+    resamples to 16kHz mono WAV in-memory via PyAV, and transcribes via speech recognition.
+    """
+    permission_classes = [AllowAny]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request, *args, **kwargs):
+        audio_file = request.FILES.get('audio')
+        language = request.data.get('language', 'en-IN')
+        if not audio_file:
+            return response.Response({'error': 'No audio file provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            input_bytes = audio_file.read()
+            in_buf = io.BytesIO(input_bytes)
+            container = av.open(in_buf)
+            resampler = av.AudioResampler(format='s16', layout='mono', rate=16000)
+
+            out_buf = io.BytesIO()
+            with wave.open(out_buf, 'wb') as wav_file:
+                wav_file.setnchannels(1)
+                wav_file.setsampwidth(2)
+                wav_file.setframerate(16000)
+
+                for frame in container.decode(audio=0):
+                    for r in resampler.resample(frame):
+                        wav_file.writeframes(r.to_ndarray().tobytes())
+            out_buf.seek(0)
+
+            recognizer = sr.Recognizer()
+            with sr.AudioFile(out_buf) as source:
+                audio_data = recognizer.record(source)
+
+            # Recognize using Google Speech Recognition
+            query = recognizer.recognize_google(audio_data, language=language)
+            return response.Response({'query': query, 'text': query})
+        except sr.UnknownValueError:
+            return response.Response({'query': '', 'text': '', 'detail': 'Could not understand audio.'}, status=status.HTTP_200_OK)
+        except sr.RequestError as e:
+            return response.Response({'error': f'Speech recognition service unavailable: {e}'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except Exception as e:
+            return response.Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+

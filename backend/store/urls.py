@@ -1,6 +1,6 @@
-﻿from django.urls import path, include
+from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import StoreSettingsView, FeedbackViewSet, HomepageSectionViewSet
+from .views import StoreSettingsView, FeedbackViewSet, HomepageSectionViewSet, VoiceSearchView
 
 router = DefaultRouter()
 router.register(r'feedback', FeedbackViewSet, basename='feedback')
@@ -8,6 +8,7 @@ router.register(r'homepage-sections', HomepageSectionViewSet, basename='homepage
 
 urlpatterns = [
     path('settings/', StoreSettingsView.as_view(), name='store-settings'),
+    path('voice-search/', VoiceSearchView.as_view(), name='store-voice-search'),
 
     path('', include(router.urls)),
 ]

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Platform, PermissionsAndroid, Alert } from 'react-native';
+import { Platform, Alert } from 'react-native';
 import * as Speech from 'expo-speech';
+import { Audio } from 'expo-av';
+import { apiClient } from '../api/client';
 
 interface UseMobileVoiceOptions {
   onResult?: (text: string) => void;
@@ -17,6 +19,8 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
   const isListeningRef = useRef(false);
   const onResultRef = useRef(onResult);
   const recognizerRef = useRef<any>(null);
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const autoStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     onResultRef.current = onResult;
@@ -30,6 +34,10 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
+      if (autoStopTimerRef.current) {
+        clearTimeout(autoStopTimerRef.current);
+        autoStopTimerRef.current = null;
+      }
       if (recognizerRef.current) {
         try {
           recognizerRef.current.abort ? recognizerRef.current.abort() : recognizerRef.current.stop();
@@ -37,6 +45,10 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
           // Ignore
         }
         recognizerRef.current = null;
+      }
+      if (recordingRef.current) {
+        recordingRef.current.stopAndUnloadAsync().catch(() => {});
+        recordingRef.current = null;
       }
       try {
         Speech.stop();
@@ -46,30 +58,13 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
     };
   }, []);
 
-  // Request Android Runtime Permission for audio recording
-  const checkOrRequestPermission = async (): Promise<boolean> => {
-    if (Platform.OS === 'android') {
-      try {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
-          {
-            title: 'Microphone Permission',
-            message: 'Narendra Kirana needs microphone access so you can search products by voice.',
-            buttonNeutral: 'Ask Later',
-            buttonNegative: 'Cancel',
-            buttonPositive: 'Allow',
-          }
-        );
-        return granted === PermissionsAndroid.RESULTS.GRANTED;
-      } catch (err) {
-        console.error('Permission error:', err);
-        return false;
-      }
+  const stopListening = useCallback(async () => {
+    if (autoStopTimerRef.current) {
+      clearTimeout(autoStopTimerRef.current);
+      autoStopTimerRef.current = null;
     }
-    return true;
-  };
 
-  const stopListening = useCallback(() => {
+    // Web Speech API cleanup
     if (recognizerRef.current) {
       try {
         recognizerRef.current.abort ? recognizerRef.current.abort() : recognizerRef.current.stop();
@@ -78,11 +73,75 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
       }
       recognizerRef.current = null;
     }
+
+    // Mobile Audio Recording cleanup & backend speech-to-text
+    const recording = recordingRef.current;
+    if (recording) {
+      recordingRef.current = null;
+      if (isMountedRef.current) {
+        setIsListening(false);
+        setInterimText('Transcribing speech...');
+      }
+
+      try {
+        await recording.stopAndUnloadAsync();
+        const uri = recording.getURI();
+
+        if (uri) {
+          const formData = new FormData();
+          const filename = uri.split('/').pop() || 'voice_search.m4a';
+          
+          formData.append('audio', {
+            uri: Platform.OS === 'android' ? uri : uri.replace('file://', ''),
+            name: filename,
+            type: 'audio/m4a',
+          } as any);
+          formData.append('language', language);
+
+          const res = await apiClient.post('/store/voice-search/', formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          });
+
+          const recognizedText = res.data?.query || res.data?.text || '';
+          if (recognizedText && recognizedText.trim()) {
+            if (isMountedRef.current) {
+              setInterimText(recognizedText);
+            }
+            if (onResultRef.current) {
+              onResultRef.current(recognizedText.trim());
+            }
+          } else {
+            if (isMountedRef.current) {
+              setInterimText('');
+              setError('Could not understand speech. Please try again.');
+            }
+          }
+        }
+      } catch (err: any) {
+        console.error('Speech transcription error:', err);
+        if (isMountedRef.current) {
+          setInterimText('');
+          setError('Voice search failed. Please try typing.');
+        }
+      } finally {
+        try {
+          await Audio.setAudioModeAsync({
+            allowsRecordingIOS: false,
+          });
+        } catch {
+          // Ignore
+        }
+      }
+      return;
+    }
+
     if (isMountedRef.current) {
       setIsListening(false);
       setInterimText('');
     }
-  }, []);
+  }, [language]);
 
   // Start Voice Recognition
   const startListening = useCallback(async () => {
@@ -167,44 +226,56 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
       }
     }
 
-    // 2. Mobile Native Platform (Android / iOS)
-    const hasPermission = await checkOrRequestPermission();
-    if (!hasPermission) {
-      setError('Microphone permission denied.');
-      Alert.alert(
-        'Permission Required',
-        'Please enable microphone access in device settings to use voice search.'
-      );
-      return;
-    }
-
-    // Check if native voice bridge is installed, otherwise alert gracefully
-    const NativeVoiceModule = (globalThis as any).Voice || (globalThis as any).ReactNativeVoice;
-    if (NativeVoiceModule) {
-      try {
-        setError(null);
-        setIsListening(true);
-        setInterimText('Listening for grocery item...');
-        await NativeVoiceModule.start(language);
+    // 2. Mobile Native Platform (Android / iOS): Use expo-av recording + backend speech-to-text
+    try {
+      const perm = await Audio.requestPermissionsAsync();
+      if (!perm.granted) {
+        setError('Microphone permission denied.');
+        Alert.alert(
+          'Permission Required',
+          'Please enable microphone access in device settings to use voice search.'
+        );
         return;
-      } catch (err: any) {
-        console.error('Native voice error:', err);
-        setIsListening(false);
-        setInterimText('');
-        setError('Voice service unavailable.');
       }
-    } else {
-      // Graceful feedback for native Expo managed environment
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      if (recordingRef.current) {
+        try {
+          await recordingRef.current.stopAndUnloadAsync();
+        } catch {
+          // Ignore
+        }
+        recordingRef.current = null;
+      }
+
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      recordingRef.current = recording;
+
+      setError(null);
+      setIsListening(true);
+      setInterimText('Listening... Say grocery item');
+
+      // Auto-stop after 4.5 seconds of speaking
+      if (autoStopTimerRef.current) clearTimeout(autoStopTimerRef.current);
+      autoStopTimerRef.current = setTimeout(() => {
+        if (isListeningRef.current) {
+          stopListening();
+        }
+      }, 4500);
+
+    } catch (err: any) {
+      console.error('Audio recording start error:', err);
       setIsListening(false);
       setInterimText('');
-      setError('Voice recognition is available on web browsers or with native voice service.');
-      Alert.alert(
-        'Voice Search',
-        'Voice recognition is available in web mode (Chrome / Safari) or requires device speech services. Please type your search query above.',
-        [{ text: 'OK' }]
-      );
+      setError('Could not start microphone.');
     }
-  }, [language]);
+  }, [language, stopListening]);
 
   const toggleListening = useCallback(() => {
     if (isListeningRef.current) {
