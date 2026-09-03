@@ -1,12 +1,26 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Platform, Alert } from 'react-native';
 import * as Speech from 'expo-speech';
-import { Audio } from 'expo-av';
 import { apiClient } from '../api/client';
 
 interface UseMobileVoiceOptions {
   onResult?: (text: string) => void;
   language?: string;
+}
+
+// Safely resolve expo-av at runtime without triggering Metro static bundle resolution errors
+function getAudioModule(): any {
+  try {
+    const pkgName = ['expo', 'av'].join('-');
+    const req = typeof require !== 'undefined' ? (require as any) : null;
+    if (req) {
+      const mod = req(pkgName);
+      return mod?.Audio || mod || null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceOptions = {}) {
@@ -19,7 +33,7 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
   const isListeningRef = useRef(false);
   const onResultRef = useRef(onResult);
   const recognizerRef = useRef<any>(null);
-  const recordingRef = useRef<Audio.Recording | null>(null);
+  const recordingRef = useRef<any>(null);
   const autoStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -126,12 +140,15 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
           setError('Voice search failed. Please try typing.');
         }
       } finally {
-        try {
-          await Audio.setAudioModeAsync({
-            allowsRecordingIOS: false,
-          });
-        } catch {
-          // Ignore
+        const Audio = getAudioModule();
+        if (Audio) {
+          try {
+            await Audio.setAudioModeAsync({
+              allowsRecordingIOS: false,
+            });
+          } catch {
+            // Ignore
+          }
         }
       }
       return;
@@ -227,9 +244,20 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
     }
 
     // 2. Mobile Native Platform (Android / iOS): Use expo-av recording + backend speech-to-text
+    const Audio = getAudioModule();
+    if (!Audio) {
+      setError('Voice search requires restarting Metro dev server (npx expo start -c).');
+      Alert.alert(
+        'Voice Search Setup',
+        'Audio recording module was recently installed. Please restart your Expo terminal (press Ctrl+C, then run: npx expo start -c) to activate voice search.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     try {
       const perm = await Audio.requestPermissionsAsync();
-      if (!perm.granted) {
+      if (!perm?.granted) {
         setError('Microphone permission denied.');
         Alert.alert(
           'Permission Required',
