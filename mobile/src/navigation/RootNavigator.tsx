@@ -29,7 +29,10 @@ export interface ParsedDeepLink {
 export function parseDeepLinkUrl(url: string): ParsedDeepLink | null {
   try {
     const parsed = Linking.parse(url);
-    const path = (parsed.path || '').replace(/^\/+|\/+$/g, '');
+    const host = (parsed.hostname || '').toLowerCase();
+    const isWebDomain = host.includes('.') || host === 'localhost';
+    const rawPath = (!isWebDomain && host) ? (parsed.path ? `${host}/${parsed.path}` : host) : (parsed.path || '');
+    const path = rawPath.replace(/^\/+|\/+$/g, '');
     const segments = path.split('/').filter(Boolean);
 
     // 1. Invoice: /orders/:id/invoice or /invoice/:id

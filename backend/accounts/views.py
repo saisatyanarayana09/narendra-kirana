@@ -258,9 +258,12 @@ class PasswordResetRequestView(APIView):
                 reset_link = f"{frontend_url}/reset-password?uid={uid}&token={token}"
                 email_subject = 'Password Reset Request - Narendra Kirana'
                 email_body = (
-                    f"You are receiving this email because you requested a password reset.\n\n"
-                    f"Please click the link below to set a new password:\n{reset_link}\n\n"
-                    f"If you did not request this, please ignore this email."
+                    f"Hello,\n\n"
+                    f"You requested to reset your password for your Narendra Kirana account.\n\n"
+                    f"Click the link below to set a new password:\n{reset_link}\n\n"
+                    f"📱 Mobile Note: If you have the Narendra Kirana mobile app installed on your phone, opening this link will launch the app directly. Otherwise, it will open safely in your web browser.\n\n"
+                    f"If you did not request this password reset, please ignore this email.\n\n"
+                    f"Best regards,\nNarendra Kirana Team"
                 )
             
             import threading

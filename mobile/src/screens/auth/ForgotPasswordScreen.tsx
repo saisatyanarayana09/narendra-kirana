@@ -9,7 +9,8 @@ import {
   Platform, 
   Alert,
   ActivityIndicator,
-  ScrollView 
+  ScrollView,
+  Linking 
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { apiClient } from '../../api/client';
@@ -48,6 +49,34 @@ export function ForgotPasswordScreen({ navigation }: Props) {
     }
   };
 
+  const handleOpenEmailApp = async () => {
+    try {
+      if (Platform.OS === 'android') {
+        const canOpen = await Linking.canOpenURL('mailto:');
+        if (canOpen) {
+          await Linking.openURL('mailto:');
+          return;
+        }
+      } else if (Platform.OS === 'ios') {
+        const canOpenMessage = await Linking.canOpenURL('message://');
+        if (canOpenMessage) {
+          await Linking.openURL('message://');
+          return;
+        }
+        const canOpenMailto = await Linking.canOpenURL('mailto:');
+        if (canOpenMailto) {
+          await Linking.openURL('mailto:');
+          return;
+        }
+      }
+      await Linking.openURL('mailto:');
+    } catch (err) {
+      Linking.openURL('https://mail.google.com').catch(() => {
+        Alert.alert('Email App', 'Please check your email client or webmail for the reset link.');
+      });
+    }
+  };
+
   return (
     <KeyboardAvoidingView 
       style={[styles.container, { backgroundColor: colors.background }]} 
@@ -77,15 +106,29 @@ export function ForgotPasswordScreen({ navigation }: Props) {
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {isSuccess ? (
             <View style={styles.successBox}>
-              <Feather name="check-circle" size={40} color="#10B981" />
+              <View style={[styles.iconCircle, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5' }]}>
+                <Feather name="mail" size={32} color="#10B981" />
+              </View>
               <Text style={[styles.successTitle, { color: colors.text }]}>Check your email</Text>
               <Text style={[styles.successMessage, { color: colors.textSecondary }]}>{message}</Text>
+              
+              {/* Primary: Open Email App */}
               <TouchableOpacity
-                style={[styles.primaryButton, { backgroundColor: colors.primary, marginTop: 16 }]}
-                onPress={() => navigation.navigate('Login')}
+                style={[styles.primaryButton, { backgroundColor: colors.primary, marginTop: 16, width: '100%', flexDirection: 'row', gap: 8 }]}
+                onPress={handleOpenEmailApp}
                 activeOpacity={0.85}
               >
-                <Text style={styles.primaryButtonText}>Return to Sign In</Text>
+                <Feather name="external-link" size={18} color="#FFFFFF" />
+                <Text style={styles.primaryButtonText}>Open Email App</Text>
+              </TouchableOpacity>
+
+              {/* Secondary: Return to Sign In */}
+              <TouchableOpacity
+                style={[styles.secondaryButton, { borderColor: colors.border, marginTop: 10, width: '100%' }]}
+                onPress={() => navigation.navigate('Login')}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>Return to Sign In</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -214,6 +257,14 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     gap: 10,
   },
+  iconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   successTitle: {
     fontSize: 20,
     fontWeight: '800',
@@ -223,5 +274,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  secondaryButton: {
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  secondaryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

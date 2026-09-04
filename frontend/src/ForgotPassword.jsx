@@ -2,7 +2,27 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CustomerLayout } from './customer-layout';
 import api from './services/api';
-import { ArrowLeft, Mail } from 'lucide-react';
+import { ArrowLeft, Mail, ExternalLink, CheckCircle2 } from 'lucide-react';
+
+function getEmailProviderUrl(emailStr) {
+  if (!emailStr) return 'https://mail.google.com';
+  const domain = emailStr.split('@')[1]?.toLowerCase() || '';
+  if (domain.includes('gmail') || domain.includes('googlemail')) return 'https://mail.google.com';
+  if (domain.includes('outlook') || domain.includes('hotmail') || domain.includes('live') || domain.includes('msn')) return 'https://outlook.live.com';
+  if (domain.includes('yahoo') || domain.includes('ymail')) return 'https://mail.yahoo.com';
+  if (domain.includes('icloud')) return 'https://www.icloud.com/mail';
+  return `mailto:${emailStr}`;
+}
+
+function getEmailProviderName(emailStr) {
+  if (!emailStr) return 'Email App';
+  const domain = emailStr.split('@')[1]?.toLowerCase() || '';
+  if (domain.includes('gmail')) return 'Gmail';
+  if (domain.includes('outlook') || domain.includes('hotmail')) return 'Outlook';
+  if (domain.includes('yahoo')) return 'Yahoo Mail';
+  if (domain.includes('icloud')) return 'iCloud Mail';
+  return 'Email App';
+}
 
 export function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -45,8 +65,31 @@ export function ForgotPassword() {
           </p>
 
           {status === 'success' ? (
-            <div className="bg-emerald-50 text-emerald-700 p-4 rounded-xl border border-emerald-100 font-medium">
-              {message}
+            <div className="space-y-4 pt-2">
+              <div className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 p-4 rounded-xl border border-emerald-200 dark:border-emerald-900/50 flex items-start gap-3">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white">Check your email</h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mt-0.5">{message}</p>
+                </div>
+              </div>
+
+              <a
+                href={getEmailProviderUrl(email)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all shadow-md shadow-indigo-600/20 active:scale-[0.98]"
+              >
+                <ExternalLink size={17} />
+                <span>Open {getEmailProviderName(email)}</span>
+              </a>
+
+              <Link
+                to="/login"
+                className="w-full flex items-center justify-center py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold text-sm transition-all"
+              >
+                Return to Sign In
+              </Link>
             </div>
           ) : (
             <>
