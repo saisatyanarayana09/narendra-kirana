@@ -27,7 +27,7 @@ function getEmailProviderName(emailStr) {
 export function ForgotPassword() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
-  const [method, setMethod] = useState('otp'); // 'otp' | 'link'
+  const [method, setMethod] = useState('link'); // 'link' (default) | 'otp'
   const [status, setStatus] = useState('idle');
   const [message, setMessage] = useState('');
 
@@ -48,7 +48,7 @@ export function ForgotPassword() {
       setStatus('success');
       setMessage(String(msg));
 
-      // If user chose OTP, redirect to OTP entry screen after 1.5s
+      // If user chose OTP, automatically navigate to OTP entry screen after 1.5s
       if (method === 'otp') {
         setTimeout(() => {
           navigate(`/reset-password?email=${encodeURIComponent(email.trim())}&mode=otp`);
@@ -65,61 +65,81 @@ export function ForgotPassword() {
   return (
     <CustomerLayout>
       <main className="mx-auto max-w-md px-4 py-10">
-        <button onClick={() => window.history.back()} className="mb-4 flex items-center gap-2 text-sm font-bold text-primary-700 hover:underline">
+        <button 
+          onClick={() => window.history.back()} 
+          className="mb-4 flex items-center gap-2 text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
+        >
           <ArrowLeft size={16} /> Back
         </button>
-        <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
+
+        <div className="rounded-2xl bg-white dark:bg-slate-900 p-6 sm:p-7 shadow-sm border border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-3 mb-2">
-            <div className="bg-indigo-100 text-indigo-600 p-2 rounded-lg">
+            <div className="bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 p-2.5 rounded-xl">
               <Mail size={24} />
             </div>
-            <h1 className="text-2xl font-extrabold text-slate-900">Reset Password</h1>
+            <div>
+              <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">Reset Password</h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Narendra Kirana Account Recovery</p>
+            </div>
           </div>
-          <p className="mt-2 text-sm text-slate-600 mb-6">
-            Choose your recovery method and enter your email address.
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
+            Select your preferred recovery method and enter your registered email address to receive recovery instructions.
           </p>
 
           {status === 'success' ? (
-            <div className="space-y-4 pt-2">
-              <div className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 p-4 rounded-xl border border-emerald-200 dark:border-emerald-900/50 flex items-start gap-3">
+            <div className="space-y-4 pt-2 animate-in fade-in zoom-in-95 duration-200">
+              <div className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 p-4 rounded-2xl border border-emerald-200 dark:border-emerald-900/50 flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                 <div>
                   <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-                    {method === 'otp' ? 'OTP Code Sent!' : 'Reset Link Sent!'}
+                    {method === 'link' ? 'Reset Link Dispatched!' : '6-Digit OTP Dispatched!'}
                   </h3>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mt-0.5">{message}</p>
-                  <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-1 font-semibold">
-                    {method === 'otp' 
-                      ? '⏱ Code expires in 15 minutes. Redirecting to verification screen...' 
-                      : '⏱ Link expires in 15 minutes. Check your inbox or spam folder.'}
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mt-1">{message}</p>
+                  <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-1.5 font-bold">
+                    ⏱ Valid for 15 minutes &bull; Single-use security token
                   </p>
                 </div>
               </div>
 
               <div className="space-y-2.5">
-                {method === 'otp' ? (
+                {method === 'link' ? (
+                  <>
+                    <a
+                      href={getEmailProviderUrl(email)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all shadow-md shadow-indigo-600/20 active:scale-[0.98] text-sm"
+                    >
+                      <ExternalLink size={16} />
+                      <span>Open {getEmailProviderName(email)}</span>
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMethod('otp');
+                        setStatus('idle');
+                        setMessage('');
+                      }}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-indigo-200 dark:border-indigo-900/50 text-indigo-700 dark:text-indigo-300 bg-indigo-50/50 dark:bg-indigo-950/30 hover:bg-indigo-100 font-bold transition-all text-xs"
+                    >
+                      <KeyRound size={14} />
+                      <span>Didn't get an email? Try 6-Digit OTP instead</span>
+                    </button>
+                  </>
+                ) : (
                   <Link
                     to={`/reset-password?email=${encodeURIComponent(email)}&mode=otp`}
-                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all shadow-md shadow-indigo-600/20 active:scale-[0.98]"
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all shadow-md shadow-indigo-600/20 active:scale-[0.98] text-sm"
                   >
                     <KeyRound size={16} />
                     <span>Enter 6-Digit OTP Code Now →</span>
                   </Link>
-                ) : (
-                  <a
-                    href={getEmailProviderUrl(email)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all shadow-md shadow-indigo-600/20"
-                  >
-                    <ExternalLink size={16} />
-                    <span>Open {getEmailProviderName(email)}</span>
-                  </a>
                 )}
 
                 <Link
                   to="/login"
-                  className="w-full flex items-center justify-center py-2.5 px-4 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold text-sm transition-all"
+                  className="w-full flex items-center justify-center py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold text-xs transition-all"
                 >
                   Return to Sign In
                 </Link>
@@ -128,81 +148,96 @@ export function ForgotPassword() {
           ) : (
             <form onSubmit={submit}>
               {status === 'error' && (
-                <div className="mb-4 bg-red-50 text-red-700 p-3 rounded-xl text-sm border border-red-100">
+                <div className="mb-4 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 p-3 rounded-xl text-xs font-bold border border-red-100 dark:border-red-900/50">
                   {message}
                 </div>
               )}
 
               {/* Recovery Method Selection */}
               <div className="mb-5">
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2.5">
                   Select Recovery Method
                 </label>
                 <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setMethod('otp')}
-                    className={`p-3 rounded-xl border text-left transition-all flex flex-col gap-1.5 ${
-                      method === 'otp'
-                        ? 'border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-500/20'
-                        : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100/60'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className={`p-1.5 rounded-lg ${method === 'otp' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600'}`}>
-                        <KeyRound size={16} />
-                      </div>
-                      <span className={`text-xs font-extrabold ${method === 'otp' ? 'text-indigo-900' : 'text-slate-700'}`}>
-                        6-Digit OTP
-                      </span>
-                    </div>
-                    <span className="text-[11px] text-slate-500 leading-tight">
-                      Instant code to reset here in browser
-                    </span>
-                  </button>
-
+                  {/* Option 1: Email Reset Link (Default / Recommended) */}
                   <button
                     type="button"
                     onClick={() => setMethod('link')}
-                    className={`p-3 rounded-xl border text-left transition-all flex flex-col gap-1.5 ${
+                    className={`p-3.5 rounded-xl border text-left transition-all flex flex-col gap-1.5 relative ${
                       method === 'link'
-                        ? 'border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-500/20'
-                        : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100/60'
+                        ? 'border-indigo-600 bg-indigo-50/70 dark:bg-indigo-950/50 ring-2 ring-indigo-500/20 shadow-sm'
+                        : 'border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 hover:bg-slate-100/60 dark:hover:bg-slate-800/80'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-2">
+                        <div className={`p-1.5 rounded-lg ${method === 'link' ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
+                          <Link2 size={16} />
+                        </div>
+                        <span className={`text-xs font-extrabold ${method === 'link' ? 'text-indigo-900 dark:text-indigo-200' : 'text-slate-700 dark:text-slate-300'}`}>
+                          Reset Link
+                        </span>
+                      </div>
+                      <span className="text-[9px] font-extrabold tracking-tight uppercase px-1.5 py-0.5 rounded-md bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300">
+                        Default
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight mt-1">
+                      1-click recovery button sent to your inbox
+                    </span>
+                  </button>
+
+                  {/* Option 2: 6-Digit OTP */}
+                  <button
+                    type="button"
+                    onClick={() => setMethod('otp')}
+                    className={`p-3.5 rounded-xl border text-left transition-all flex flex-col gap-1.5 ${
+                      method === 'otp'
+                        ? 'border-indigo-600 bg-indigo-50/70 dark:bg-indigo-950/50 ring-2 ring-indigo-500/20 shadow-sm'
+                        : 'border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 hover:bg-slate-100/60 dark:hover:bg-slate-800/80'
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <div className={`p-1.5 rounded-lg ${method === 'link' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600'}`}>
-                        <Link2 size={16} />
+                      <div className={`p-1.5 rounded-lg ${method === 'otp' ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
+                        <KeyRound size={16} />
                       </div>
-                      <span className={`text-xs font-extrabold ${method === 'link' ? 'text-indigo-900' : 'text-slate-700'}`}>
-                        Reset Link
+                      <span className={`text-xs font-extrabold ${method === 'otp' ? 'text-indigo-900 dark:text-indigo-200' : 'text-slate-700 dark:text-slate-300'}`}>
+                        6-Digit OTP
                       </span>
                     </div>
-                    <span className="text-[11px] text-slate-500 leading-tight">
-                      1-click recovery button sent to email
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight mt-1">
+                      Instant code to reset here in browser
                     </span>
                   </button>
                 </div>
               </div>
 
-              <label className="block text-sm font-bold text-slate-700">
-                Email address
-                <input
-                  required
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  className="mt-1 w-full rounded-lg border p-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                  placeholder="you@example.com"
-                />
-              </label>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                  Registered Email Address
+                </label>
+                <div className="relative">
+                  <input
+                    required
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 pl-10 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm shadow-sm"
+                    placeholder="name@example.com"
+                  />
+                  <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                </div>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 block">
+                  We'll dispatch {method === 'link' ? 'a 1-click password reset link' : 'a 6-digit verification code'} to this inbox.
+                </span>
+              </div>
 
               <button
                 type="submit"
                 disabled={status === 'loading'}
-                className="mt-6 w-full py-3 rounded-xl bg-indigo-600 font-bold text-white transition-all hover:bg-indigo-700 active:scale-[0.98] disabled:opacity-50 shadow-md shadow-indigo-600/20"
+                className="mt-6 w-full py-3.5 rounded-xl bg-indigo-600 font-bold text-white transition-all hover:bg-indigo-700 active:scale-[0.98] disabled:opacity-50 shadow-md shadow-indigo-600/25 text-sm cursor-pointer"
               >
-                {status === 'loading' ? 'Sending...' : (method === 'otp' ? 'Send 6-Digit OTP Code' : 'Send Reset Link')}
+                {status === 'loading' ? 'Dispatching Instructions...' : (method === 'link' ? 'Send Password Reset Link' : 'Send 6-Digit OTP Code')}
               </button>
             </form>
           )}

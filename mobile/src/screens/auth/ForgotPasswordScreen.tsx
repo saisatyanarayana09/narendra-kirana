@@ -23,7 +23,7 @@ interface Props {
 export function ForgotPasswordScreen({ navigation }: Props) {
   const { colors, isDark } = useTheme();
   const [email, setEmail] = useState('');
-  const [method, setMethod] = useState<'otp' | 'link'>('otp');
+  const [method, setMethod] = useState<'otp' | 'link'>('link');
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [message, setMessage] = useState('');
@@ -112,14 +112,40 @@ export function ForgotPasswordScreen({ navigation }: Props) {
           {isSuccess ? (
             <View style={styles.successBox}>
               <View style={[styles.iconCircle, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5' }]}>
-                <Feather name={method === 'otp' ? 'key' : 'mail'} size={32} color="#10B981" />
+                <Feather name={method === 'link' ? 'mail' : 'key'} size={32} color="#10B981" />
               </View>
               <Text style={[styles.successTitle, { color: colors.text }]}>
-                {method === 'otp' ? 'OTP Code Sent' : 'Reset Link Sent'}
+                {method === 'link' ? 'Reset Link Sent' : 'OTP Code Sent'}
               </Text>
               <Text style={[styles.successMessage, { color: colors.textSecondary }]}>{message}</Text>
               
-              {method === 'otp' ? (
+              {method === 'link' ? (
+                <>
+                  <TouchableOpacity
+                    style={[styles.primaryButton, { backgroundColor: colors.primary, marginTop: 16, width: '100%', flexDirection: 'row', gap: 8 }]}
+                    onPress={handleOpenEmailApp}
+                    activeOpacity={0.85}
+                  >
+                    <Feather name="external-link" size={18} color="#FFFFFF" />
+                    <Text style={styles.primaryButtonText}>Open Email App</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.secondaryButton, { borderColor: colors.border, marginTop: 10, width: '100%', flexDirection: 'row', gap: 8 }]}
+                    onPress={() => {
+                      setMethod('otp');
+                      setIsSuccess(false);
+                      setMessage('');
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Feather name="key" size={16} color={colors.primary} />
+                    <Text style={[styles.secondaryButtonText, { color: colors.primary, fontWeight: '700' }]}>
+                      Didn't get email? Try 6-Digit OTP
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
                 <>
                   <TouchableOpacity
                     style={[styles.primaryButton, { backgroundColor: colors.primary, marginTop: 16, width: '100%', flexDirection: 'row', gap: 8 }]}
@@ -139,15 +165,6 @@ export function ForgotPasswordScreen({ navigation }: Props) {
                     <Text style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>Open Email App</Text>
                   </TouchableOpacity>
                 </>
-              ) : (
-                <TouchableOpacity
-                  style={[styles.primaryButton, { backgroundColor: colors.primary, marginTop: 16, width: '100%', flexDirection: 'row', gap: 8 }]}
-                  onPress={handleOpenEmailApp}
-                  activeOpacity={0.85}
-                >
-                  <Feather name="external-link" size={18} color="#FFFFFF" />
-                  <Text style={styles.primaryButtonText}>Open Email App</Text>
-                </TouchableOpacity>
               )}
 
               {/* Return to Sign In */}
@@ -165,20 +182,7 @@ export function ForgotPasswordScreen({ navigation }: Props) {
               <View style={styles.methodSelectorContainer}>
                 <Text style={[styles.label, { color: colors.text, marginBottom: 8 }]}>Recovery Method</Text>
                 <View style={styles.methodGrid}>
-                  <TouchableOpacity
-                    style={[
-                      styles.methodCard,
-                      { borderColor: method === 'otp' ? colors.primary : colors.border },
-                      method === 'otp' && { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.15)' : '#ECFDF5' }
-                    ]}
-                    onPress={() => setMethod('otp')}
-                    activeOpacity={0.8}
-                  >
-                    <Feather name="key" size={18} color={method === 'otp' ? colors.primary : colors.textSecondary} />
-                    <Text style={[styles.methodTitle, { color: method === 'otp' ? colors.primary : colors.text }]}>6-Digit OTP</Text>
-                    <Text style={[styles.methodSubtitle, { color: colors.textSecondary }]}>Reset in app</Text>
-                  </TouchableOpacity>
-
+                  {/* Option 1: Email Link (Default) */}
                   <TouchableOpacity
                     style={[
                       styles.methodCard,
@@ -188,9 +192,29 @@ export function ForgotPasswordScreen({ navigation }: Props) {
                     onPress={() => setMethod('link')}
                     activeOpacity={0.8}
                   >
-                    <Feather name="link" size={18} color={method === 'link' ? colors.primary : colors.textSecondary} />
+                    <View style={styles.methodTopRow}>
+                      <Feather name="link" size={16} color={method === 'link' ? colors.primary : colors.textSecondary} />
+                      <View style={[styles.defaultBadge, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.25)' : '#DCFCE7' }]}>
+                        <Text style={[styles.defaultBadgeText, { color: isDark ? '#34D399' : '#15803D' }]}>DEFAULT</Text>
+                      </View>
+                    </View>
                     <Text style={[styles.methodTitle, { color: method === 'link' ? colors.primary : colors.text }]}>Email Link</Text>
                     <Text style={[styles.methodSubtitle, { color: colors.textSecondary }]}>1-Click recovery</Text>
+                  </TouchableOpacity>
+
+                  {/* Option 2: 6-Digit OTP */}
+                  <TouchableOpacity
+                    style={[
+                      styles.methodCard,
+                      { borderColor: method === 'otp' ? colors.primary : colors.border },
+                      method === 'otp' && { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.15)' : '#ECFDF5' }
+                    ]}
+                    onPress={() => setMethod('otp')}
+                    activeOpacity={0.8}
+                  >
+                    <Feather name="key" size={16} color={method === 'otp' ? colors.primary : colors.textSecondary} />
+                    <Text style={[styles.methodTitle, { color: method === 'otp' ? colors.primary : colors.text }]}>6-Digit OTP</Text>
+                    <Text style={[styles.methodSubtitle, { color: colors.textSecondary }]}>Reset in app</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -201,11 +225,11 @@ export function ForgotPasswordScreen({ navigation }: Props) {
                   style={[
                     styles.input, 
                     { 
-                      backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', 
-                      borderColor: colors.border, 
-                      color: colors.text 
-                    }
-                  ]}
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', 
+                    borderColor: colors.border, 
+                    color: colors.text 
+                  }
+                ]}
                   placeholder="name@example.com"
                   placeholderTextColor={colors.textSecondary}
                   keyboardType="email-address"
@@ -225,7 +249,7 @@ export function ForgotPasswordScreen({ navigation }: Props) {
                   <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
                   <Text style={styles.primaryButtonText}>
-                    {method === 'otp' ? 'Send 6-Digit OTP Code' : 'Send Reset Link'}
+                    {method === 'link' ? 'Send Recovery Link' : 'Send 6-Digit OTP Code'}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -373,5 +397,21 @@ const styles = StyleSheet.create({
   methodSubtitle: {
     fontSize: 11,
     lineHeight: 14,
+  },
+  methodTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  defaultBadge: {
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 4,
+  },
+  defaultBadgeText: {
+    fontSize: 8.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
 });

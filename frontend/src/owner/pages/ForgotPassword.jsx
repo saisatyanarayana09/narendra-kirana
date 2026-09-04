@@ -1,12 +1,32 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
-import { Store, Mail, ArrowLeft, Loader2, CheckCircle2, ShieldAlert, KeyRound, Link2 } from 'lucide-react';
+import { Store, Mail, ArrowLeft, Loader2, CheckCircle2, ShieldAlert, KeyRound, Link2, ExternalLink } from 'lucide-react';
+
+function getEmailProviderUrl(emailStr) {
+  if (!emailStr) return 'https://mail.google.com';
+  const domain = emailStr.split('@')[1]?.toLowerCase() || '';
+  if (domain.includes('gmail') || domain.includes('googlemail')) return 'https://mail.google.com';
+  if (domain.includes('outlook') || domain.includes('hotmail') || domain.includes('live') || domain.includes('msn')) return 'https://outlook.live.com';
+  if (domain.includes('yahoo') || domain.includes('ymail')) return 'https://mail.yahoo.com';
+  if (domain.includes('icloud')) return 'https://www.icloud.com/mail';
+  return `mailto:${emailStr}`;
+}
+
+function getEmailProviderName(emailStr) {
+  if (!emailStr) return 'Email App';
+  const domain = emailStr.split('@')[1]?.toLowerCase() || '';
+  if (domain.includes('gmail')) return 'Gmail';
+  if (domain.includes('outlook') || domain.includes('hotmail')) return 'Outlook';
+  if (domain.includes('yahoo')) return 'Yahoo Mail';
+  if (domain.includes('icloud')) return 'iCloud Mail';
+  return 'Email App';
+}
 
 export default function OwnerForgotPassword() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
-  const [method, setMethod] = useState('otp'); // 'otp' | 'link'
+  const [method, setMethod] = useState('link'); // 'link' (default) | 'otp'
   const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'success' | 'error'
   const [message, setMessage] = useState('');
 
@@ -79,35 +99,61 @@ export default function OwnerForgotPassword() {
                 <CheckCircle2 size={24} />
               </div>
               <h3 className="text-base font-bold text-emerald-900 dark:text-emerald-200 mb-2">
-                {method === 'otp' ? '6-Digit OTP Sent' : 'Reset Link Sent'}
+                {method === 'link' ? 'Reset Link Sent' : '6-Digit OTP Sent'}
               </h3>
               <p className="text-sm text-emerald-700 dark:text-emerald-300 leading-relaxed mb-4">
                 {message}
               </p>
               <p className="text-xs text-emerald-800 dark:text-emerald-400 font-semibold mb-6">
-                {method === 'otp' 
-                  ? '⏱ Code expires in 15 minutes. Redirecting to verification...' 
-                  : '⏱ Link expires in 15 minutes. Check your inbox or spam folder.'}
+                {method === 'link'
+                  ? '⏱ Link expires in 15 minutes. Check your inbox or spam folder.'
+                  : '⏱ Code expires in 15 minutes. Enter code to set a new password.'}
               </p>
-              <div className="space-y-3">
-                {method === 'otp' && (
+              <div className="space-y-2.5">
+                {method === 'link' ? (
+                  <>
+                    <a
+                      href={getEmailProviderUrl(email)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition shadow-md shadow-indigo-600/20 active:scale-[0.98]"
+                    >
+                      <ExternalLink size={16} />
+                      <span>Open {getEmailProviderName(email)}</span>
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMethod('otp');
+                        setStatus('idle');
+                        setMessage('');
+                      }}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-indigo-200 dark:border-indigo-900/50 text-indigo-700 dark:text-indigo-300 bg-indigo-50/50 dark:bg-indigo-950/30 hover:bg-indigo-100 font-bold transition-all text-xs cursor-pointer"
+                    >
+                      <KeyRound size={14} />
+                      <span>Didn't get an email? Try 6-Digit OTP instead</span>
+                    </button>
+                  </>
+                ) : (
                   <Link
                     to={`/owner/reset-password?email=${encodeURIComponent(email)}&mode=otp`}
-                    className="block w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition shadow-sm"
+                    className="block w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition shadow-md shadow-indigo-600/20"
                   >
                     Enter 6-Digit OTP Code Now →
                   </Link>
                 )}
+
                 <Link
                   to="/owner/login"
-                  className="block w-full py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-300 font-bold text-sm transition shadow-sm"
+                  className="block w-full py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-300 font-bold text-xs transition shadow-sm"
                 >
                   Return to Owner Sign In
                 </Link>
                 <button
                   type="button"
                   onClick={() => { setStatus('idle'); setMessage(''); }}
-                  className="text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition cursor-pointer"
+                  className="text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition cursor-pointer pt-1"
                 >
                   Did not receive an email? Try again
                 </button>
@@ -124,17 +170,46 @@ export default function OwnerForgotPassword() {
 
               {/* Method Choice */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2.5">
                   Select Recovery Method
                 </label>
                 <div className="grid grid-cols-2 gap-3">
+                  {/* Option 1: Reset Link (Default) */}
+                  <button
+                    type="button"
+                    onClick={() => setMethod('link')}
+                    className={`p-3.5 rounded-xl border text-left transition-all flex flex-col gap-1.5 relative cursor-pointer ${
+                      method === 'link'
+                        ? 'border-indigo-600 bg-indigo-50/70 dark:bg-indigo-950/50 ring-2 ring-indigo-500/20 shadow-sm'
+                        : 'border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 hover:bg-slate-100/60'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-2">
+                        <div className={`p-1.5 rounded-lg ${method === 'link' ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
+                          <Link2 size={16} />
+                        </div>
+                        <span className={`text-xs font-extrabold ${method === 'link' ? 'text-indigo-900 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-300'}`}>
+                          Reset Link
+                        </span>
+                      </div>
+                      <span className="text-[9px] font-extrabold tracking-tight uppercase px-1.5 py-0.5 rounded-md bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300">
+                        Default
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight mt-1">
+                      1-click recovery button sent to inbox
+                    </span>
+                  </button>
+
+                  {/* Option 2: 6-Digit OTP */}
                   <button
                     type="button"
                     onClick={() => setMethod('otp')}
-                    className={`p-3 rounded-xl border text-left transition-all flex flex-col gap-1.5 ${
+                    className={`p-3.5 rounded-xl border text-left transition-all flex flex-col gap-1.5 cursor-pointer ${
                       method === 'otp'
-                        ? 'border-indigo-600 bg-indigo-50/60 dark:bg-indigo-950/40 ring-2 ring-indigo-500/20'
-                        : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100/60'
+                        ? 'border-indigo-600 bg-indigo-50/70 dark:bg-indigo-950/50 ring-2 ring-indigo-500/20 shadow-sm'
+                        : 'border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 hover:bg-slate-100/60'
                     }`}
                   >
                     <div className="flex items-center gap-2">
@@ -145,30 +220,8 @@ export default function OwnerForgotPassword() {
                         6-Digit OTP
                       </span>
                     </div>
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight mt-1">
                       Fast reset directly on this screen
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setMethod('link')}
-                    className={`p-3 rounded-xl border text-left transition-all flex flex-col gap-1.5 ${
-                      method === 'link'
-                        ? 'border-indigo-600 bg-indigo-50/60 dark:bg-indigo-950/40 ring-2 ring-indigo-500/20'
-                        : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100/60'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className={`p-1.5 rounded-lg ${method === 'link' ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
-                        <Link2 size={16} />
-                      </div>
-                      <span className={`text-xs font-extrabold ${method === 'link' ? 'text-indigo-900 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-300'}`}>
-                        Reset Link
-                      </span>
-                    </div>
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
-                      1-click recovery button sent to inbox
                     </span>
                   </button>
                 </div>
@@ -204,7 +257,7 @@ export default function OwnerForgotPassword() {
                     Sending Instructions...
                   </>
                 ) : (
-                  method === 'otp' ? 'Send 6-Digit OTP Code' : 'Send Recovery Link'
+                  method === 'link' ? 'Send Recovery Link' : 'Send 6-Digit OTP Code'
                 )}
               </button>
 

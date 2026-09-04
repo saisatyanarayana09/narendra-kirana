@@ -10,9 +10,9 @@ export default function OwnerResetPassword() {
   const uid = searchParams.get('uid');
   const token = searchParams.get('token');
   const emailParam = searchParams.get('email') || '';
-  const initialMode = searchParams.get('mode') === 'otp' || (!uid && !token) ? 'otp' : 'link';
+  const initialMode = searchParams.get('mode') === 'otp' ? 'otp' : 'link';
 
-  const [mode, setMode] = useState(initialMode); // 'otp' | 'link'
+  const [mode, setMode] = useState(initialMode); // 'link' (default) | 'otp'
   const [email, setEmail] = useState(emailParam);
   const [otp, setOtp] = useState('');
   const [password, setPassword] = useState('');
@@ -154,25 +154,25 @@ export default function OwnerResetPassword() {
           <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl mb-6 border border-slate-200 dark:border-slate-800">
             <button
               type="button"
-              onClick={() => { setMode('otp'); setStatus('idle'); setMessage(''); }}
-              className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                mode === 'otp'
-                  ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-              }`}
-            >
-              <KeyRound size={14} /> 6-Digit OTP Code
-            </button>
-            <button
-              type="button"
               onClick={() => { setMode('link'); setStatus('idle'); setMessage(''); }}
-              className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                 mode === 'link'
                   ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
                   : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
               }`}
             >
               <Mail size={14} /> Email Reset Link
+            </button>
+            <button
+              type="button"
+              onClick={() => { setMode('otp'); setStatus('idle'); setMessage(''); }}
+              className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                mode === 'otp'
+                  ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
+            >
+              <KeyRound size={14} /> 6-Digit OTP Code
             </button>
           </div>
 
@@ -329,8 +329,13 @@ export default function OwnerResetPassword() {
                     </button>
                   </div>
                   {confirmPassword && password !== confirmPassword && (
-                    <p className="text-xs font-semibold text-red-500 mt-1.5">
-                      Passwords do not match
+                    <p className="text-xs font-semibold text-red-500 mt-1.5 flex items-center gap-1">
+                      <span>✕</span> Passwords do not match
+                    </p>
+                  )}
+                  {confirmPassword && password === confirmPassword && (
+                    <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-1.5 flex items-center gap-1">
+                      <span>✓</span> Passwords match
                     </p>
                   )}
                 </div>
@@ -338,8 +343,8 @@ export default function OwnerResetPassword() {
 
               <button
                 type="submit"
-                disabled={status === 'loading'}
-                className="w-full rounded-xl bg-indigo-600 px-4 py-3.5 font-bold text-white hover:bg-indigo-700 transition-all shadow-[0_4px_14px_0_rgb(79,70,229,0.39)] hover:shadow-[0_6px_20px_rgba(79,70,229,0.23)] hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:shadow-none disabled:transform-none flex items-center justify-center gap-2 cursor-pointer"
+                disabled={status === 'loading' || (mode === 'link' && isLinkInvalid)}
+                className="w-full rounded-xl bg-indigo-600 px-4 py-3.5 font-bold text-white hover:bg-indigo-700 transition-all shadow-[0_4px_14px_0_rgb(79,70,229,0.39)] hover:shadow-[0_6px_20px_rgba(79,70,229,0.23)] hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:shadow-none disabled:transform-none flex items-center justify-center gap-2 cursor-pointer"
               >
                 {status === 'loading' ? (
                   <>

@@ -32,7 +32,7 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
   const uid = route.params?.uid || '';
   const token = route.params?.token || '';
   const initialEmail = route.params?.email || '';
-  const initialMode = route.params?.mode || (uid && token ? 'link' : 'otp');
+  const initialMode = route.params?.mode === 'otp' ? 'otp' : 'link';
 
   const [mode, setMode] = useState<'otp' | 'link'>(initialMode);
   const [email, setEmail] = useState(initialEmail);
@@ -80,8 +80,8 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
       return;
     }
 
-    if (password.length < 6) {
-      Alert.alert('Password Too Short', 'Password must be at least 6 characters long.');
+    if (password.length < 8) {
+      Alert.alert('Password Too Short', 'Password must be at least 8 characters long.');
       return;
     }
 
@@ -172,20 +172,6 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
           <TouchableOpacity
             style={[
               styles.tabButton,
-              mode === 'otp' && { backgroundColor: colors.surface, elevation: 1 }
-            ]}
-            onPress={() => setMode('otp')}
-            activeOpacity={0.8}
-          >
-            <Feather name="key" size={14} color={mode === 'otp' ? colors.primary : colors.textSecondary} />
-            <Text style={[styles.tabText, { color: mode === 'otp' ? colors.primary : colors.textSecondary, fontWeight: mode === 'otp' ? '700' : '600' }]}>
-              6-Digit OTP
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.tabButton,
               mode === 'link' && { backgroundColor: colors.surface, elevation: 1 }
             ]}
             onPress={() => setMode('link')}
@@ -194,6 +180,20 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
             <Feather name="link" size={14} color={mode === 'link' ? colors.primary : colors.textSecondary} />
             <Text style={[styles.tabText, { color: mode === 'link' ? colors.primary : colors.textSecondary, fontWeight: mode === 'link' ? '700' : '600' }]}>
               Email Link
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.tabButton,
+              mode === 'otp' && { backgroundColor: colors.surface, elevation: 1 }
+            ]}
+            onPress={() => setMode('otp')}
+            activeOpacity={0.8}
+          >
+            <Feather name="key" size={14} color={mode === 'otp' ? colors.primary : colors.textSecondary} />
+            <Text style={[styles.tabText, { color: mode === 'otp' ? colors.primary : colors.textSecondary, fontWeight: mode === 'otp' ? '700' : '600' }]}>
+              6-Digit OTP
             </Text>
           </TouchableOpacity>
         </View>
@@ -233,11 +233,30 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
               )}
 
               {mode === 'link' && (!uid || !token) && (
-                <View style={[styles.warningBox, { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEF2F2', borderColor: isDark ? 'rgba(239, 68, 68, 0.3)' : '#FCA5A5' }]}>
-                  <Feather name="alert-triangle" color="#EF4444" size={16} />
-                  <Text style={styles.warningText}>
-                    Missing reset token. Switch to 6-Digit OTP tab or open the complete link from your email.
-                  </Text>
+                <View style={[styles.warningBox, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.12)' : '#EFF6FF', borderColor: isDark ? 'rgba(59, 130, 246, 0.3)' : '#BFDBFE' }]}>
+                  <Feather name="info" color="#3B82F6" size={18} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.warningTitle, { color: isDark ? '#60A5FA' : '#1D4ED8' }]}>Email Link Recovery</Text>
+                    <Text style={[styles.warningText, { color: isDark ? '#93C5FD' : '#1E40AF' }]}>
+                      Open the reset link from your email inbox to proceed, or switch to 6-Digit OTP.
+                    </Text>
+                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
+                      <TouchableOpacity
+                        style={styles.switchButton}
+                        onPress={() => setMode('otp')}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.switchButtonText, { color: colors.primary }]}>Use 6-Digit OTP →</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.switchButton}
+                        onPress={() => navigation.navigate('ForgotPasswordScreen')}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.switchButtonText, { color: colors.textSecondary }]}>Request Link</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
                 </View>
               )}
 
@@ -283,7 +302,7 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
                 <View style={[styles.passwordContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border }]}>
                   <TextInput
                     style={[styles.passwordInput, { color: colors.text }]}
-                    placeholder="Enter new password (min. 6 chars)"
+                    placeholder="Enter new password (min. 8 chars)"
                     placeholderTextColor={colors.textSecondary}
                     secureTextEntry={!showPassword}
                     value={password}
@@ -316,6 +335,12 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
                     <Feather name={showConfirmPassword ? "eye-off" : "eye"} color={colors.textSecondary} size={18} />
                   </TouchableOpacity>
                 </View>
+                {confirmPassword.length > 0 && password !== confirmPassword && (
+                  <Text style={styles.passwordMismatchText}>✕ Passwords do not match</Text>
+                )}
+                {confirmPassword.length > 0 && password === confirmPassword && (
+                  <Text style={styles.passwordMatchText}>✓ Passwords match</Text>
+                )}
               </View>
 
               <TouchableOpacity 
@@ -505,5 +530,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  passwordMismatchText: {
+    fontSize: 12,
+    color: '#EF4444',
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  passwordMatchText: {
+    fontSize: 12,
+    color: '#10B981',
+    fontWeight: '600',
+    marginTop: 4,
   },
 });

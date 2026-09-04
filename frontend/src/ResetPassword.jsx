@@ -61,9 +61,9 @@ export function ResetPassword() {
       setMessage('Passwords do not match.');
       return;
     }
-    if (password.length < 6) {
+    if (password.length < 8) {
       setStatus('error');
-      setMessage('Password must be at least 6 characters long.');
+      setMessage('Password must be at least 8 characters long.');
       return;
     }
 
@@ -143,34 +143,26 @@ export function ResetPassword() {
           </div>
         )}
 
-        <div className="rounded-2xl bg-white dark:bg-slate-900 p-6 shadow-sm border border-slate-100 dark:border-slate-800">
+        <div className="rounded-2xl bg-white dark:bg-slate-900 p-6 sm:p-7 shadow-sm border border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-3 mb-2">
-            <div className="bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 p-2 rounded-lg">
+            <div className="bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 p-2.5 rounded-xl">
               <Lock size={24} />
             </div>
-            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">Reset Password</h1>
+            <div>
+              <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">Create New Password</h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Secure Account Credentials</p>
+            </div>
           </div>
           <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 mb-5">
-            Choose your verification method to reset your password.
+            Choose your verification method to set a strong new password.
           </p>
 
-          {/* Mode Switcher Tabs */}
-          <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-6">
-            <button
-              type="button"
-              onClick={() => { setMode('otp'); setStatus('idle'); setMessage(''); }}
-              className={`flex-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                mode === 'otp'
-                  ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-              }`}
-            >
-              <KeyRound size={14} /> 6-Digit OTP Code
-            </button>
+          {/* Mode Switcher Tabs: Link first (Default) */}
+          <div className="flex bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl mb-6 border border-slate-200/60 dark:border-slate-700/60">
             <button
               type="button"
               onClick={() => { setMode('link'); setStatus('idle'); setMessage(''); }}
-              className={`flex-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
                 mode === 'link'
                   ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
                   : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
@@ -178,31 +170,43 @@ export function ResetPassword() {
             >
               <Mail size={14} /> Email Reset Link
             </button>
+            <button
+              type="button"
+              onClick={() => { setMode('otp'); setStatus('idle'); setMessage(''); }}
+              className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                mode === 'otp'
+                  ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
+            >
+              <KeyRound size={14} /> 6-Digit OTP Code
+            </button>
           </div>
 
           {status === 'success' ? (
-            <div className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 p-5 rounded-2xl border border-emerald-100 dark:border-emerald-900/50 font-medium text-center">
-              <CheckCircle2 className="w-8 h-8 text-emerald-600 dark:text-emerald-400 mx-auto mb-2" />
-              <p className="font-bold text-base">{message}</p>
-              <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">Redirecting to login in 3 seconds...</p>
+            <div className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-900/50 font-medium text-center animate-in fade-in zoom-in-95 duration-200">
+              <CheckCircle2 className="w-10 h-10 text-emerald-600 dark:text-emerald-400 mx-auto mb-3" />
+              <p className="font-extrabold text-lg text-slate-900 dark:text-white">Password Changed Successfully!</p>
+              <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-300 leading-relaxed">{message}</p>
+              <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Redirecting to login in 3 seconds...</p>
               <Link 
                 to="/login" 
-                className="mt-4 inline-block px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow"
+                className="mt-4 inline-block px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-md"
               >
-                Sign In Now
+                Sign In Now →
               </Link>
             </div>
           ) : (
             <form onSubmit={submit}>
               {status === 'error' && (
-                <div className="mb-4 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 p-3 rounded-xl text-xs font-bold border border-red-100 dark:border-red-900/50">
+                <div className="mb-4 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 p-3.5 rounded-xl text-xs font-bold border border-red-100 dark:border-red-900/50">
                   {message}
                 </div>
               )}
 
               {mode === 'link' && tokenStatus === 'invalid' && (
-                <div className="mb-4 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 p-3.5 rounded-xl text-xs border border-amber-200 dark:border-amber-900/50 space-y-2">
-                  <p className="font-bold">⚠️ Link Expired or Already Used</p>
+                <div className="mb-5 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 p-4 rounded-xl text-xs border border-amber-200 dark:border-amber-900/50 space-y-2">
+                  <p className="font-bold text-sm">⚠️ Link Expired or Already Used</p>
                   <p>{tokenError || 'This password reset link is invalid or has expired.'}</p>
                   <div className="flex gap-2 pt-1">
                     <button
@@ -223,28 +227,28 @@ export function ResetPassword() {
               )}
 
               {mode === 'link' && (!uid || !token) && (
-                <div className="mb-4 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 p-3.5 rounded-xl text-xs border border-amber-200 dark:border-amber-900/50">
-                  Missing reset tokens in URL. Switch to the <strong>"6-Digit OTP Code"</strong> tab above or open the complete link sent to your email.
+                <div className="mb-5 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 p-4 rounded-xl text-xs border border-amber-200 dark:border-amber-900/50">
+                  Missing reset tokens in URL. Click the link sent to your email or switch to the <strong>"6-Digit OTP Code"</strong> tab.
                 </div>
               )}
 
               <div className="space-y-4">
                 {mode === 'otp' && (
                   <>
-                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                       Registered Email
                       <input
                         required
                         type="email"
                         value={email}
                         onChange={e => setEmail(e.target.value)}
-                        className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm"
+                        className="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm font-normal"
                         placeholder="you@example.com"
                       />
                     </label>
 
-                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
-                      6-Digit OTP Code
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                      6-Digit Security OTP
                       <input
                         required
                         type="text"
@@ -252,17 +256,17 @@ export function ResetPassword() {
                         pattern="[0-9]{6}"
                         value={otp}
                         onChange={e => setOtp(e.target.value.replace(/[^0-9]/g, ''))}
-                        className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-center tracking-[0.5em] font-mono text-lg font-extrabold"
+                        className="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-center tracking-[0.5em] font-mono text-xl font-extrabold"
                         placeholder="123456"
                       />
-                      <span className="text-[11px] text-slate-500 block mt-1">
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-1 font-normal">
                         Enter the 6-digit code received in your inbox (valid for 15 minutes).
                       </span>
                     </label>
                   </>
                 )}
 
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                   New Password
                   <div className="relative mt-1">
                     <input
@@ -270,20 +274,20 @@ export function ResetPassword() {
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={e => setPassword(e.target.value)}
-                      className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 pr-10 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm"
-                      placeholder="Enter new password (min. 6 chars)"
+                      className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 pr-10 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm font-normal"
+                      placeholder="Minimum 8 characters"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
                     >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
                 </label>
 
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                   Confirm Password
                   <div className="relative mt-1">
                     <input
@@ -291,30 +295,40 @@ export function ResetPassword() {
                       type={showConfirmPassword ? 'text' : 'password'}
                       value={confirmPassword}
                       onChange={e => setConfirmPassword(e.target.value)}
-                      className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 pr-10 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm"
+                      className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 pr-10 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm font-normal"
                       placeholder="Confirm new password"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
                     >
                       {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
+                  {confirmPassword && password !== confirmPassword && (
+                    <span className="text-[11px] text-red-500 font-semibold block mt-1">
+                      Passwords do not match
+                    </span>
+                  )}
+                  {confirmPassword && password === confirmPassword && (
+                    <span className="text-[11px] text-emerald-600 font-semibold block mt-1">
+                      ✓ Passwords match
+                    </span>
+                  )}
                 </label>
               </div>
 
               <button
                 type="submit"
-                disabled={status === 'loading' || (mode === 'link' && (!uid || !token))}
-                className="mt-6 w-full py-3 rounded-xl bg-indigo-600 font-bold text-white transition-all hover:bg-indigo-700 active:scale-[0.98] disabled:opacity-50 shadow-md shadow-indigo-600/20 text-sm"
+                disabled={status === 'loading' || (mode === 'link' && (!uid || !token || tokenStatus === 'invalid'))}
+                className="mt-6 w-full py-3.5 rounded-xl bg-indigo-600 font-bold text-white transition-all hover:bg-indigo-700 active:scale-[0.98] disabled:opacity-50 shadow-md shadow-indigo-600/25 text-sm cursor-pointer"
               >
                 {status === 'loading' ? 'Saving Password...' : 'Save & Set New Password'}
               </button>
 
               <div className="mt-4 text-center">
-                <Link to="/forgot-password" className="text-xs text-slate-500 hover:text-indigo-600 font-medium">
+                <Link to="/forgot-password" className="text-xs text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium">
                   Need a new OTP or reset link? Request again
                 </Link>
               </div>

@@ -362,7 +362,7 @@ class PasswordResetRequestView(APIView):
     def post(self, request):
         email = request.data.get('email')
         portal = request.data.get('portal', 'customer')
-        method = request.data.get('method', 'otp') # 'otp' or 'link'
+        method = request.data.get('method', 'link') # 'link' (default) or 'otp'
         if not email:
             return Response({'error': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -388,7 +388,41 @@ class PasswordResetRequestView(APIView):
                 ip_address = request.META.get('REMOTE_ADDR') or '127.0.0.1'
             user_agent = request.META.get('HTTP_USER_AGENT', '')[:255]
 
-            if method == 'link':
+            if method == 'otp':
+                # Explicit method: 'otp'
+                otp_code = f"{secrets.randbelow(900000) + 100000}"
+
+                # Invalidate prior active OTPs for this user and portal
+                PasswordResetOTP.objects.filter(user=user, portal=portal, is_used=False).update(is_used=True)
+
+                # Persist the new OTP with strict 15-minute expiration
+                PasswordResetOTP.objects.create(
+                    user=user,
+                    otp_code=otp_code,
+                    portal=portal,
+                    expires_at=timezone.now() + timedelta(minutes=15),
+                    ip_address=ip_address
+                )
+
+                email_payload = build_password_reset_otp_email(
+                    user=user,
+                    otp_code=otp_code,
+                    portal=portal
+                )
+                send_store_email_async(
+                    subject=email_payload['subject'],
+                    message=email_payload['text'],
+                    recipient_list=[user.email],
+                    html_message=email_payload['html'],
+                    fail_silently=True,
+                )
+                return Response({
+                    'message': 'A 6-digit verification code has been sent to your email.',
+                    'method': 'otp'
+                }, status=status.HTTP_200_OK)
+
+            else:
+                # Default method: 'link'
                 uid = urlsafe_base64_encode(force_bytes(user.pk))
                 raw_token = secrets.token_urlsafe(32)
                 token_hash = hashlib.sha256(raw_token.encode('utf-8')).hexdigest()
@@ -429,41 +463,8 @@ class PasswordResetRequestView(APIView):
                     'method': 'link'
                 }, status=status.HTTP_200_OK)
 
-            else:
-                # Default method: 'otp'
-                otp_code = f"{secrets.randbelow(900000) + 100000}"
-
-                # Invalidate prior active OTPs for this user and portal
-                PasswordResetOTP.objects.filter(user=user, portal=portal, is_used=False).update(is_used=True)
-
-                # Persist the new OTP with strict 15-minute expiration
-                PasswordResetOTP.objects.create(
-                    user=user,
-                    otp_code=otp_code,
-                    portal=portal,
-                    expires_at=timezone.now() + timedelta(minutes=15),
-                    ip_address=ip_address
-                )
-
-                email_payload = build_password_reset_otp_email(
-                    user=user,
-                    otp_code=otp_code,
-                    portal=portal
-                )
-                send_store_email_async(
-                    subject=email_payload['subject'],
-                    message=email_payload['text'],
-                    recipient_list=[user.email],
-                    html_message=email_payload['html'],
-                    fail_silently=True,
-                )
-                return Response({
-                    'message': 'A 6-digit verification code has been sent to your email.',
-                    'method': 'otp'
-                }, status=status.HTTP_200_OK)
-
         # Always return generic success to prevent email enumeration
-        generic_msg = 'A 6-digit verification code has been sent to your email.' if method == 'otp' else 'A password reset link has been sent to your email.'
+        generic_msg = 'A password reset link has been sent to your email.' if method == 'link' else 'A 6-digit verification code has been sent to your email.'
         return Response({'message': f'If an account with that email exists, {generic_msg.lower()}', 'method': method}, status=status.HTTP_200_OK)
 
 
