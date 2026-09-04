@@ -195,27 +195,49 @@ class PasswordResetRequestView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [AnonRateThrottle]
 
-    
-
     def post(self, request):
         email = request.data.get('email')
+        portal = request.data.get('portal', 'customer')
         if not email:
             return Response({'error': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
         
         user = User.objects.filter(email__iexact=email).first()
         if user:
+            # If portal is owner, verify user is an owner, staff, or superuser
+            is_owner_account = bool(user.is_staff or getattr(user, 'is_owner', False) or user.is_superuser)
+            if portal == 'owner' and not is_owner_account:
+                # Do not send owner reset link to non-owner accounts; safely return generic response
+                return Response({'message': 'If an account with that email exists, we have sent a password reset link.'}, status=status.HTTP_200_OK)
+
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             token = default_token_generator.make_token(user)
             
             frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')
-            reset_link = f"{frontend_url}/reset-password?uid={uid}&token={token}"
+            if portal == 'owner':
+                reset_link = f"{frontend_url}/owner/reset-password?uid={uid}&token={token}"
+                email_subject = 'Owner Portal - Password Reset Request - Narendra Kirana'
+                email_body = (
+                    f"Hello {user.first_name or user.username},\n\n"
+                    f"You are receiving this email because you requested a password reset for your Narendra Kirana Owner Portal account.\n\n"
+                    f"Please click the link below to set a new password:\n{reset_link}\n\n"
+                    f"If you did not request this password reset, you can safely ignore this email.\n\n"
+                    f"Best regards,\nNarendra Kirana Store Management"
+                )
+            else:
+                reset_link = f"{frontend_url}/reset-password?uid={uid}&token={token}"
+                email_subject = 'Password Reset Request - Narendra Kirana'
+                email_body = (
+                    f"You are receiving this email because you requested a password reset.\n\n"
+                    f"Please click the link below to set a new password:\n{reset_link}\n\n"
+                    f"If you did not request this, please ignore this email."
+                )
             
             import threading
             def send_reset_email():
                 try:
                     send_mail(
-                        'Password Reset Request - Narendra Kirana',
-                        f'You are receiving this email because you requested a password reset.\n\nPlease click the link below to set a new password:\n{reset_link}\n\nIf you did not request this, please ignore this email.',
+                        email_subject,
+                        email_body,
                         getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@narendra-kirana.com'),
                         [user.email],
                         fail_silently=True,
@@ -233,12 +255,11 @@ class PasswordResetConfirmView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [AnonRateThrottle]
 
-    
-
     def post(self, request):
         uidb64 = request.data.get('uid')
         token = request.data.get('token')
         new_password = request.data.get('new_password')
+        portal = request.data.get('portal')
         
         if not uidb64 or not token or not new_password:
             return Response({'error': 'Missing required fields.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -250,6 +271,8 @@ class PasswordResetConfirmView(APIView):
             user = None
 
         if user is not None and default_token_generator.check_token(user, token):
+            if portal == 'owner' and not (user.is_staff or getattr(user, 'is_owner', False) or user.is_superuser):
+                return Response({'error': 'This account does not have owner access.'}, status=status.HTTP_403_FORBIDDEN)
             user.set_password(new_password)
             user.save()
             return Response({'message': 'Password has been reset successfully.'}, status=status.HTTP_200_OK)

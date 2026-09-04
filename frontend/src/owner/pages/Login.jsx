@@ -132,7 +132,7 @@ const OwnerLoginForm = () => {
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label htmlFor="password" className="block text-sm font-bold text-slate-700">Password</label>
-                    <Link to="/forgot-password" className="text-sm font-bold text-indigo-600 hover:text-indigo-700 transition-colors">
+                    <Link to="/owner/forgot-password" className="text-sm font-bold text-indigo-600 hover:text-indigo-700 transition-colors">
                       Forgot password?
                     </Link>
                   </div>

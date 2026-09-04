@@ -40,6 +40,8 @@ const LanguageSettings = lazyWithRetry(() => import('./profile').then(m => ({ de
 
 const OwnerLayout = lazyWithRetry(() => import('./owner/layouts/OwnerLayout'));
 const OwnerLogin = lazyWithRetry(() => import('./owner/pages/Login'));
+const OwnerForgotPassword = lazyWithRetry(() => import('./owner/pages/ForgotPassword'));
+const OwnerResetPassword = lazyWithRetry(() => import('./owner/pages/ResetPassword'));
 const Welcome = lazyWithRetry(() => import('./owner/pages/Welcome'));
 const Dashboard = lazyWithRetry(() => import('./owner/pages/Dashboard'));
 const Sales = lazyWithRetry(() => import('./owner/pages/Sales'));
@@ -245,8 +247,10 @@ function App() {
   </Route>
 
  {/* Owner Portal Routes (No CartProvider needed) */}
- <Route path="/owner/login"element={<OwnerLogin />} />
-        <Route path="/owner/welcome" element={<Guard><Welcome /></Guard>} />
+ <Route path="/owner/login" element={<OwnerLogin />} />
+ <Route path="/owner/forgot-password" element={<OwnerForgotPassword />} />
+ <Route path="/owner/reset-password" element={<OwnerResetPassword />} />
+ <Route path="/owner/welcome" element={<Guard><Welcome /></Guard>} />
  
  <Route path="/owner"element={<Guard><OwnerLayout /></Guard>}>
  <Route index element={<Dashboard />} />
