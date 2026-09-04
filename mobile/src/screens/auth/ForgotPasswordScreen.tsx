@@ -13,6 +13,7 @@ import {
   Linking 
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import * as IntentLauncher from 'expo-intent-launcher';
 import { apiClient } from '../../api/client';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -57,28 +58,34 @@ export function ForgotPasswordScreen({ navigation }: Props) {
   const handleOpenEmailApp = async () => {
     try {
       if (Platform.OS === 'android') {
-        const canOpen = await Linking.canOpenURL('mailto:');
-        if (canOpen) {
-          await Linking.openURL('mailto:');
+        try {
+          // Open default email client inbox directly without compose draft
+          await IntentLauncher.startActivityAsync('android.intent.action.MAIN', {
+            category: 'android.intent.category.APP_EMAIL',
+            flags: 0x10000000,
+          });
           return;
+        } catch (intentErr) {
+          // Fallback: direct Gmail app scheme
+          try {
+            await Linking.openURL('googlegmail://');
+            return;
+          } catch (gmailErr) {
+            await Linking.openURL('https://mail.google.com');
+            return;
+          }
         }
       } else if (Platform.OS === 'ios') {
+        // iOS message:// opens the Mail app inbox directly without compose
         const canOpenMessage = await Linking.canOpenURL('message://');
         if (canOpenMessage) {
           await Linking.openURL('message://');
           return;
         }
-        const canOpenMailto = await Linking.canOpenURL('mailto:');
-        if (canOpenMailto) {
-          await Linking.openURL('mailto:');
-          return;
-        }
       }
-      await Linking.openURL('mailto:');
+      await Linking.openURL('https://mail.google.com');
     } catch (err) {
-      Linking.openURL('https://mail.google.com').catch(() => {
-        Alert.alert('Email App', 'Please check your email client or webmail for the reset code.');
-      });
+      Alert.alert('Email App', 'Please check your email client or webmail for the store message.');
     }
   };
 
@@ -193,13 +200,20 @@ export function ForgotPasswordScreen({ navigation }: Props) {
                     activeOpacity={0.8}
                   >
                     <View style={styles.methodTopRow}>
-                      <Feather name="link" size={16} color={method === 'link' ? colors.primary : colors.textSecondary} />
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Feather name="link" size={16} color={method === 'link' ? colors.primary : colors.textSecondary} />
+                        <Text style={[styles.methodTitle, { color: method === 'link' ? colors.primary : colors.text }]}>Email Link</Text>
+                      </View>
+                      <View style={[styles.radioCircle, { borderColor: method === 'link' ? colors.primary : colors.border }]}>
+                        {method === 'link' && <View style={[styles.radioDot, { backgroundColor: colors.primary }]} />}
+                      </View>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
                       <View style={[styles.defaultBadge, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.25)' : '#DCFCE7' }]}>
                         <Text style={[styles.defaultBadgeText, { color: isDark ? '#34D399' : '#15803D' }]}>DEFAULT</Text>
                       </View>
+                      <Text style={[styles.methodSubtitle, { color: colors.textSecondary }]}>1-Click</Text>
                     </View>
-                    <Text style={[styles.methodTitle, { color: method === 'link' ? colors.primary : colors.text }]}>Email Link</Text>
-                    <Text style={[styles.methodSubtitle, { color: colors.textSecondary }]}>1-Click recovery</Text>
                   </TouchableOpacity>
 
                   {/* Option 2: 6-Digit OTP */}
@@ -212,9 +226,16 @@ export function ForgotPasswordScreen({ navigation }: Props) {
                     onPress={() => setMethod('otp')}
                     activeOpacity={0.8}
                   >
-                    <Feather name="key" size={16} color={method === 'otp' ? colors.primary : colors.textSecondary} />
-                    <Text style={[styles.methodTitle, { color: method === 'otp' ? colors.primary : colors.text }]}>6-Digit OTP</Text>
-                    <Text style={[styles.methodSubtitle, { color: colors.textSecondary }]}>Reset in app</Text>
+                    <View style={styles.methodTopRow}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Feather name="key" size={16} color={method === 'otp' ? colors.primary : colors.textSecondary} />
+                        <Text style={[styles.methodTitle, { color: method === 'otp' ? colors.primary : colors.text }]}>6-Digit OTP</Text>
+                      </View>
+                      <View style={[styles.radioCircle, { borderColor: method === 'otp' ? colors.primary : colors.border }]}>
+                        {method === 'otp' && <View style={[styles.radioDot, { backgroundColor: colors.primary }]} />}
+                      </View>
+                    </View>
+                    <Text style={[styles.methodSubtitle, { color: colors.textSecondary, marginTop: 6 }]}>Code only</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -248,9 +269,12 @@ export function ForgotPasswordScreen({ navigation }: Props) {
                 {isLoading ? (
                   <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
-                  <Text style={styles.primaryButtonText}>
-                    {method === 'link' ? 'Send Recovery Link' : 'Send 6-Digit OTP Code'}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Feather name={method === 'link' ? "link" : "key"} size={18} color="#FFFFFF" />
+                    <Text style={styles.primaryButtonText}>
+                      {method === 'link' ? 'Send Recovery Link' : 'Send 6-Digit OTP Code'}
+                    </Text>
+                  </View>
                 )}
               </TouchableOpacity>
             </>
@@ -413,5 +437,18 @@ const styles = StyleSheet.create({
     fontSize: 8.5,
     fontWeight: '800',
     letterSpacing: 0.5,
+  },
+  radioCircle: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  radioDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
 });

@@ -42,8 +42,32 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [message, setMessage] = useState('');
+
+  const handleSendOtp = async () => {
+    if (!email.trim()) {
+      Alert.alert('Email Required', 'Please enter your registered email address first.');
+      return;
+    }
+    setIsSendingOtp(true);
+    try {
+      const res = await apiClient.post('/auth/password-reset/', {
+        email: email.trim(),
+        method: 'otp',
+        portal: 'customer'
+      });
+      const msg = typeof res.data === 'string' ? res.data : (res.data?.message || 'A 6-digit verification code has been sent to your email.');
+      Alert.alert('OTP Sent', String(msg));
+    } catch (err: any) {
+      const errData = err.response?.data;
+      const errMsg = typeof errData === 'string' ? errData : (errData?.error || errData?.detail || 'Failed to send OTP code.');
+      Alert.alert('Request Failed', String(errMsg));
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
 
   // Proactive token check state for link mode
   const [tokenStatus, setTokenStatus] = useState<'none' | 'checking' | 'valid' | 'invalid'>(
@@ -290,9 +314,22 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
                       value={otp}
                       onChangeText={(t) => setOtp(t.replace(/[^0-9]/g, ''))}
                     />
-                    <Text style={[styles.helperText, { color: colors.textSecondary }]}>
-                      Enter the 6-digit code sent to your email (valid for 15 minutes).
-                    </Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+                      <Text style={[styles.helperText, { color: colors.textSecondary }]}>
+                        Expires in 15 minutes.
+                      </Text>
+                      <TouchableOpacity 
+                        onPress={handleSendOtp}
+                        disabled={isSendingOtp}
+                        activeOpacity={0.7}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                      >
+                        <Feather name="send" size={12} color={colors.primary} />
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primary }}>
+                          {isSendingOtp ? 'Sending...' : (otp ? 'Resend Code' : 'Send 6-Digit OTP')}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </>
               )}

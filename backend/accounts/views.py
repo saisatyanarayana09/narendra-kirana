@@ -360,9 +360,15 @@ class PasswordResetRequestView(APIView):
     throttle_classes = [AnonRateThrottle]
 
     def post(self, request):
-        email = request.data.get('email')
-        portal = request.data.get('portal', 'customer')
-        method = request.data.get('method', 'link') # 'link' (default) or 'otp'
+        email = (request.data.get('email') or '').strip()
+        portal = str(request.data.get('portal', 'customer') or 'customer').strip().lower()
+        raw_method = request.data.get('method', 'link')
+        method = str(raw_method or 'link').strip().lower()
+        if method not in ('otp', 'link'):
+            method = 'link'
+
+        print(f"[PasswordResetRequest] email={email} portal={portal} method={method}")
+
         if not email:
             return Response({'error': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
         

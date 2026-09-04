@@ -11,7 +11,7 @@ function getEmailProviderUrl(emailStr) {
   if (domain.includes('outlook') || domain.includes('hotmail') || domain.includes('live') || domain.includes('msn')) return 'https://outlook.live.com';
   if (domain.includes('yahoo') || domain.includes('ymail')) return 'https://mail.yahoo.com';
   if (domain.includes('icloud')) return 'https://www.icloud.com/mail';
-  return `mailto:${emailStr}`;
+  return 'https://mail.google.com';
 }
 
 function getEmailProviderName(emailStr) {
