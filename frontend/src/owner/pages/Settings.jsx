@@ -48,10 +48,6 @@ const Settings = () => {
     great_deals_title: 'Great Deals',
     show_new_arrivals: true,
     new_arrivals_title: 'New Arrivals',
-    gemini_api_key: '',
-    gemini_vision_model: 'gemini-1.5-flash',
-    groq_api_key: '',
-    groq_text_model: 'llama3-8b-8192',
   });
 
   // Dynamic Email & App Password states
@@ -159,7 +155,18 @@ const Settings = () => {
       toast.success('Store Email & SMTP credentials saved!');
     } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.error || 'Failed to save email settings.');
+      const errors = err.response?.data;
+      let errMsg = 'Failed to save email settings.';
+      if (errors && typeof errors === 'object') {
+        const firstKey = Object.keys(errors)[0];
+        const firstVal = Array.isArray(errors[firstKey]) ? errors[firstKey][0] : errors[firstKey];
+        if (firstVal && typeof firstVal === 'string') {
+          errMsg = `${firstKey.replace(/_/g, ' ')}: ${firstVal}`;
+        }
+      } else if (errors?.detail || errors?.error) {
+        errMsg = errors.detail || errors.error;
+      }
+      toast.error(errMsg);
     } finally {
       setSavingEmail(false);
     }
@@ -223,35 +230,59 @@ const Settings = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      const formData = new FormData();
+      const payload = {
+        store_name: settings.store_name?.trim() || 'Narendra Kirana',
+        store_address: settings.store_address?.trim() || '',
+        store_phone: (settings.store_phone?.trim() || '').slice(0, 20),
+        store_email: settings.store_email?.trim() || '',
+        is_open: Boolean(settings.is_open),
+        min_order_amount: (parseFloat(settings.min_order_amount) || 0).toFixed(2),
+        packaging_fee: (parseFloat(settings.packaging_fee) || 0).toFixed(2),
+        low_stock_threshold: parseInt(settings.low_stock_threshold, 10) || 0,
+        is_home_delivery_active: Boolean(settings.is_home_delivery_active),
+        delivery_mode: settings.is_home_delivery_active ? 'BOTH' : 'PICKUP',
+        delivery_fee: (parseFloat(settings.delivery_fee) || 0).toFixed(2),
+        free_delivery_threshold: (parseFloat(settings.free_delivery_threshold) || 0).toFixed(2),
+        min_delivery_order_amount: (parseFloat(settings.min_delivery_order_amount) || 0).toFixed(2),
+        allowed_pincodes: settings.allowed_pincodes ? settings.allowed_pincodes.trim() : '',
+        auto_accept_orders: Boolean(settings.auto_accept_orders),
+        show_popular_picks: Boolean(settings.show_popular_picks),
+        popular_picks_title: settings.popular_picks_title?.trim() || 'Popular picks',
+        show_great_deals: Boolean(settings.show_great_deals),
+        great_deals_title: settings.great_deals_title?.trim() || 'Great Deals',
+        show_new_arrivals: Boolean(settings.show_new_arrivals),
+        new_arrivals_title: settings.new_arrivals_title?.trim() || 'New Arrivals',
+      };
 
-      // Append standard fields
-      Object.keys(settings).forEach(key => {
-        if (key === 'invoice_signature') return; // handle file separately
-        let value = settings[key];
-
-        // Sanitize numerics
-        if (['min_order_amount', 'packaging_fee', 'delivery_fee', 'free_delivery_threshold', 'min_delivery_order_amount'].includes(key)) {
-          if (!value || value === '') value = '0.00';
-        }
-        if (key === 'low_stock_threshold' && (!value || value === '')) value = 0;
-
-        formData.append(key, value);
-      });
-
-      // Append signature file if selected
+      let savePromise;
       if (signatureFile) {
+        const formData = new FormData();
+        Object.entries(payload).forEach(([key, val]) => {
+          formData.append(key, val);
+        });
         formData.append('invoice_signature', signatureFile);
+        // Do NOT set headers: { 'Content-Type': 'multipart/form-data' } manually;
+        // letting Axios/browser set it ensures the multipart boundary parameter is included!
+        savePromise = api.patch('/store/settings/', formData);
+      } else {
+        // Fast, reliable JSON payload without multipart overhead
+        savePromise = api.patch('/store/settings/', payload);
       }
 
-      const savePromise = api.patch('/store/settings/', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-
       toast.promise(savePromise, {
-        loading: signatureFile ? 'Uploading...' : 'Saving...',
+        loading: signatureFile ? 'Uploading signature & saving...' : 'Saving settings...',
         success: 'Settings saved successfully!',
-        error: 'Failed to save settings.'
+        error: (err) => {
+          const errors = err.response?.data;
+          if (errors && typeof errors === 'object') {
+            const firstKey = Object.keys(errors)[0];
+            const firstVal = Array.isArray(errors[firstKey]) ? errors[firstKey][0] : errors[firstKey];
+            if (firstVal && typeof firstVal === 'string') {
+              return `${firstKey.replace(/_/g, ' ')}: ${firstVal}`;
+            }
+          }
+          return err.response?.data?.detail || err.response?.data?.error || err.message || 'Failed to save settings.';
+        }
       });
 
       await savePromise;
@@ -259,7 +290,7 @@ const Settings = () => {
       setSignatureFile(null);
       fetchSettings();
     } catch (err) {
-      console.error(err);
+      console.error('Settings save failed:', err);
     } finally {
       setSaving(false);
     }

@@ -9,7 +9,7 @@ from django.views import View
 from django.views.generic import TemplateView
 from rest_framework import views, response, status, viewsets
 from rest_framework.permissions import AllowAny
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.decorators import action
 from accounts.permissions import IsOwnerUser, IsOwnerOrReadOnly
 from .models import StoreSettings, Feedback, HomepageSection, StoreEmailSettings
@@ -65,6 +65,8 @@ class BackendHealthView(View):
 
 
 class StoreSettingsView(views.APIView):
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
     def get_permissions(self):
         if self.request.method in ['GET', 'OPTIONS', 'HEAD']:
             return [AllowAny()]
@@ -82,6 +84,9 @@ class StoreSettingsView(views.APIView):
             serializer.save()
             return response.Response(serializer.data)
         return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def put(self, request):
+        return self.patch(request)
 
 
 class StoreEmailSettingsView(views.APIView):
