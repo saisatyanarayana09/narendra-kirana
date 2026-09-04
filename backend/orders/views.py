@@ -314,8 +314,6 @@ class OrderViewSet(ModelViewSet):
             products_to_update.append(item.product)
             
         OrderItem.objects.bulk_create(order_items_to_create)
-        
-        from products.models import Product
         Product.objects.bulk_update(products_to_update, ['stock_quantity', 'is_in_stock'])
 
         cart.items.all().delete()
