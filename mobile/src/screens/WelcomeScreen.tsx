@@ -118,6 +118,16 @@ export function WelcomeScreen({ navigation }: Props) {
                 Already have an account? <Text style={{ color: colors.primary, fontWeight: '800' }}>Log in</Text>
               </Text>
             </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.guestButton}
+              onPress={() => (navigation as any).navigate('Main')}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.guestButtonText, { color: colors.textSecondary }]}>
+                Continue as Guest  →
+              </Text>
+            </TouchableOpacity>
           </Animated.View>
         </ScrollView>
       </SafeAreaView>
@@ -128,6 +138,16 @@ export function WelcomeScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  guestButton: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    marginTop: -4,
+  },
+  guestButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   content: {
     flex: 1,

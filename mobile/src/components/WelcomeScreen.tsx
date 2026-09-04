@@ -27,7 +27,7 @@ interface WelcomeScreenProps {
 }
 
 export function WelcomeScreen({ forceShow = false, onStart, onFinish }: WelcomeScreenProps) {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const { colors, isDark } = useTheme();
   const [visible, setVisible] = useState(false);
 
@@ -40,10 +40,20 @@ export function WelcomeScreen({ forceShow = false, onStart, onFinish }: WelcomeS
   const greetingFadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    if (isLoading) return;
+
     if (forceShow || !getHasShownWelcomeSession()) {
       setHasShownWelcomeSession(true);
       setVisible(true);
       if (onStart) onStart();
+
+      // Reset animation values for clean replay
+      mainFadeAnim.setValue(0);
+      logoScaleAnim.setValue(0.85);
+      logoTranslateYAnim.setValue(24);
+      logoFadeAnim.setValue(0);
+      brandFadeAnim.setValue(0);
+      greetingFadeAnim.setValue(0);
 
       // Fade in background immediately
       Animated.timing(mainFadeAnim, {
@@ -69,7 +79,7 @@ export function WelcomeScreen({ forceShow = false, onStart, onFinish }: WelcomeS
 
       return () => clearTimeout(timer);
     }
-  }, [user, forceShow]);
+  }, [user, isLoading, forceShow]);
 
   const dismiss = () => {
     Animated.timing(mainFadeAnim, {

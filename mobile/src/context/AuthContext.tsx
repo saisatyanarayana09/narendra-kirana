@@ -80,6 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await saveItem(STORAGE_KEYS.REFRESH, refresh);
       await saveItem(STORAGE_KEYS.USER, JSON.stringify(loggedUser));
       
+      resetWelcomeSession();
       setUser(loggedUser);
     } catch (error) {
       throw error;

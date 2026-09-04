@@ -307,25 +307,53 @@ export function NotificationPopup({ isOpen, onClose }) {
 }
 
 function WelcomeScreen() {
- const { user, isCustomer, cart } = useCart();
+  const { user, isCustomer, cart } = useCart();
   const [show, setShow] = useState(() => {
-    if (!sessionStorage.getItem('hasShownWelcome')) {
+    if (typeof window === 'undefined') return false;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('welcome') === '1' || params.get('welcome') === 'true') {
+      return true;
+    }
+    const lastShown = Number(sessionStorage.getItem('welcome_shown_time') || 0);
+    const now = Date.now();
+    // Show if not shown in the last 15 minutes in this tab
+    if (!lastShown || now - lastShown > 15 * 60 * 1000) {
       return true;
     }
     return false;
   });
- const [stage, setStage] = useState('initial'); 
+  const [stage, setStage] = useState('initial');
+  const prevUserIdRef = useRef(user?.id);
 
- useEffect(() => {
- if (show) {
- sessionStorage.setItem('hasShownWelcome', 'true');
- const timer1 = setTimeout(() => setStage('fade-in'), 100); 
- const timer2 = setTimeout(() => setStage('fade-out'), 2500); 
- const timer3 = setTimeout(() => { setShow(false); setStage('hidden'); }, 3500);
- 
- return () => { clearTimeout(timer1); clearTimeout(timer2); clearTimeout(timer3); };
- }
- }, [show]);
+  // Trigger welcome greeting on customer login or user state update
+  useEffect(() => {
+    if (user?.id && user.id !== prevUserIdRef.current) {
+      setShow(true);
+      setStage('initial');
+    }
+    prevUserIdRef.current = user?.id;
+  }, [user?.id]);
+
+  // Listen for explicit welcome triggers
+  useEffect(() => {
+    const handleTrigger = () => {
+      setShow(true);
+      setStage('initial');
+    };
+    window.addEventListener('trigger-welcome-screen', handleTrigger);
+    return () => window.removeEventListener('trigger-welcome-screen', handleTrigger);
+  }, []);
+
+  useEffect(() => {
+    if (show) {
+      sessionStorage.setItem('welcome_shown_time', String(Date.now()));
+      const timer1 = setTimeout(() => setStage('fade-in'), 100); 
+      const timer2 = setTimeout(() => setStage('fade-out'), 2500); 
+      const timer3 = setTimeout(() => { setShow(false); setStage('hidden'); }, 3200);
+      
+      return () => { clearTimeout(timer1); clearTimeout(timer2); clearTimeout(timer3); };
+    }
+  }, [show]);
 
  if (!show) return null;
 
