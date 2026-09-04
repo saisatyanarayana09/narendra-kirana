@@ -471,7 +471,7 @@ function FestivePopupModal({ settings }) {
       onClick={handleClose}
     >
       <div 
-        className="relative w-full max-w-md bg-white dark:bg-[#0f172a] rounded-3xl p-6 sm:p-7 shadow-2xl border border-amber-200/60 dark:border-amber-500/20 text-center overflow-hidden animate-in zoom-in-95 duration-200"
+        className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-white dark:bg-[#0f172a] rounded-3xl p-6 sm:p-7 shadow-2xl border border-amber-200/60 dark:border-amber-500/20 text-center animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="absolute -top-16 -right-16 w-36 h-36 bg-amber-400/20 rounded-full blur-2xl pointer-events-none" />
@@ -487,8 +487,8 @@ function FestivePopupModal({ settings }) {
         </button>
 
         {image ? (
-          <div className="mb-4 rounded-2xl overflow-hidden max-h-52 border border-slate-100 dark:border-slate-800 shadow-sm">
-            <img src={image} alt={title} className="w-full h-full object-cover" />
+          <div className="mb-4 rounded-2xl overflow-hidden max-h-48 border border-slate-100 dark:border-slate-800 shadow-sm">
+            <img src={image} alt={title} className="w-full h-full max-h-48 object-cover" />
           </div>
         ) : (
           <div className="mx-auto w-16 h-16 bg-gradient-to-tr from-amber-400 to-rose-500 text-white rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-amber-500/25">
@@ -530,6 +530,7 @@ function WhatsAppSupportWidget({ settings }) {
     return null;
   }
 
+  const isCartPage = typeof window !== 'undefined' && window.location.pathname.startsWith('/cart');
   const rawNumber = String(settings.whatsapp_number).replace(/\D/g, '');
   const cleanNumber = rawNumber.length === 10 ? `91${rawNumber}` : rawNumber;
   const defaultMessage = settings.whatsapp_default_message || `Hello ${settings.store_name || 'Smart Kirana'}, I would like to inquire about my order.`;
@@ -542,7 +543,7 @@ function WhatsAppSupportWidget({ settings }) {
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Chat with us on WhatsApp"
-        className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-40 flex items-center gap-2 group cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95"
+        className={`fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-40 ${isCartPage ? 'hidden sm:flex' : 'flex'} items-center gap-2 group cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95`}
       >
         <div className="hidden sm:flex items-center px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full shadow-lg text-xs font-bold text-slate-700 dark:text-slate-200 group-hover:text-emerald-600 transition-colors">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping mr-1.5" />

@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import api from './services/api'
 import { CustomerLayout } from './customer-layout'
 import { useCart } from './cart-context'
+import { QRCodeSVG } from 'qrcode.react'
 
 export function CustomerLoginPage() {
   const navigate = useNavigate();
@@ -1591,11 +1592,13 @@ export function CheckoutPage() {
                         />
                       </div>
                     ) : (
-                      <div className="p-2 bg-white rounded-xl shadow-xs border border-slate-200 mb-2">
-                        <img
-                          src={dynamicQrUrl}
-                          alt="Dynamic UPI QR Code"
-                          className="w-44 h-44 sm:w-48 sm:h-48 object-contain"
+                      <div className="p-3 bg-white rounded-xl shadow-xs border border-slate-200 mb-2 flex items-center justify-center">
+                        <QRCodeSVG
+                          value={upiUri}
+                          size={190}
+                          level="M"
+                          includeMargin={false}
+                          className="w-44 h-44 sm:w-48 sm:h-48"
                         />
                       </div>
                     )}

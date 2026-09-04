@@ -173,6 +173,20 @@ class OrderViewSet(ModelViewSet):
             is_open_schedule, schedule_msg = check_store_operating_hours(settings.store_timings_json)
             if not is_open_schedule:
                 return Response({'detail': schedule_msg or 'The store is currently closed outside of operating hours.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check Delivery / Pickup Time Slot Capacity
+        chosen_slot_date = checkout.validated_data.get('delivery_slot_date')
+        chosen_slot_label = (checkout.validated_data.get('delivery_slot_label') or '').strip()
+        if getattr(settings, 'enable_time_slots', False) and chosen_slot_date and chosen_slot_label:
+            max_slot_cap = getattr(settings, 'max_orders_per_slot', 15) or 15
+            active_slot_orders = Order.objects.filter(
+                delivery_slot_date=chosen_slot_date,
+                delivery_slot_label=chosen_slot_label
+            ).exclude(status__in=[Order.Status.REJECTED]).count()
+            if active_slot_orders >= max_slot_cap:
+                return Response({
+                    'detail': f'The selected time slot "{chosen_slot_label}" on {chosen_slot_date} is fully booked ({active_slot_orders}/{max_slot_cap} orders). Please choose another slot.'
+                }, status=status.HTTP_400_BAD_REQUEST)
             
         subtotal = Decimal(str(cart_data['subtotal']))
         if subtotal < settings.min_order_amount:
@@ -351,10 +365,10 @@ class OrderViewSet(ModelViewSet):
                     message=f"Hi {order.customer.first_name}, your order has been successfully delivered/picked up. We hope you enjoy your purchase and see you again soon!"
                 )
                 
-                # Order Cashback Processing
+                # Order Cashback Processing (Strictly Idempotent)
                 store_settings = StoreSettings.load()
                 cashback_pct = getattr(store_settings, 'order_cashback_percentage', Decimal('0.00'))
-                if cashback_pct and Decimal(str(cashback_pct)) > Decimal('0.00') and order.total_amount > Decimal('0.00'):
+                if not getattr(order, 'cashback_credited', False) and cashback_pct and Decimal(str(cashback_pct)) > Decimal('0.00') and order.total_amount > Decimal('0.00'):
                     cashback = ((order.total_amount * Decimal(str(cashback_pct))) / Decimal('100')).quantize(Decimal('0.01'))
                     if cashback > Decimal('0.00'):
                         try:
@@ -369,6 +383,9 @@ class OrderViewSet(ModelViewSet):
                                 transaction_type='PURCHASE_CASHBACK',
                                 description=f"Cashback for completed order #{order.id} ({cashback_pct}%)"
                             )
+
+                            order.cashback_credited = True
+                            order.save(update_fields=['cashback_credited', 'updated_at'])
 
                             Notification.objects.create(
                                 user=order.customer,

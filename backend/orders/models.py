@@ -46,6 +46,7 @@ class Order(models.Model):
     delivery_slot_label = models.CharField(max_length=100, blank=True, default="")
     payment_method = models.CharField(max_length=20, default="COD")
     upi_transaction_id = models.CharField(max_length=100, blank=True, default="")
+    cashback_credited = models.BooleanField(default=False)
     
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     discount_applied = models.DecimalField(max_digits=10, decimal_places=2, default=0)

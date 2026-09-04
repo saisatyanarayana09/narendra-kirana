@@ -5,6 +5,7 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   ActivityIndicator, 
+  BackHandler,
   Linking as RNLinking 
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -31,8 +32,8 @@ export { navigationRef } from './navigationRef';
 
 export function isVersionOlder(currentVersion: string, minVersion: string): boolean {
   if (!minVersion) return false;
-  const cleanCurrent = currentVersion.replace(/^[vV]/, '').trim();
-  const cleanMin = minVersion.replace(/^[vV]/, '').trim();
+  const cleanCurrent = currentVersion.replace(/^[^0-9]+/, '').trim();
+  const cleanMin = minVersion.replace(/^[^0-9]+/, '').trim();
   const cParts = cleanCurrent.split('.').map((p) => parseInt(p, 10) || 0);
   const mParts = cleanMin.split('.').map((p) => parseInt(p, 10) || 0);
   const len = Math.max(cParts.length, mParts.length);
@@ -476,6 +477,12 @@ function MaintenanceView({
   colors: any;
   isDark: boolean;
 }) {
+  useEffect(() => {
+    const backAction = () => true;
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+    return () => backHandler.remove();
+  }, []);
+
   return (
     <SafeAreaView style={[styles.gateContainer, { backgroundColor: colors.background }]}>
       <View style={styles.gateContent}>
@@ -561,6 +568,12 @@ function ForceUpdateView({
       console.warn('Could not open update URL:', err);
     });
   };
+
+  useEffect(() => {
+    const backAction = () => true;
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+    return () => backHandler.remove();
+  }, []);
 
   return (
     <SafeAreaView style={[styles.gateContainer, { backgroundColor: colors.background }]}>
