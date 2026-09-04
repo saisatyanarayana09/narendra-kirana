@@ -6,7 +6,7 @@ import { GSAPFadeUp, GSAPZoomIn } from './components/GSAPScroll'
 
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
-import { ChevronRight, ChevronLeft, Search, X, Heart, ArrowLeft, ShoppingCart, Sparkles, Zap, Star, Megaphone } from 'lucide-react'
+import { ChevronRight, ChevronLeft, Search, X, Heart, ArrowLeft, ShoppingCart, Sparkles, Zap, Star, Megaphone, ShieldCheck, Tag, Minus, Plus, Check } from 'lucide-react'
 
 import api, { readCacheSync } from './services/api'
 
@@ -61,8 +61,8 @@ function ProductImage({ product, large = false, priority = false }) {
   if (images.length > 0) {
     if (large && images.length > 1) {
        return (
-          <div className="flex flex-col h-full w-full">
-            <div className="w-full flex-1 flex items-center justify-center relative overflow-hidden bg-gradient-to-b from-transparent to-slate-50/50 dark:to-slate-900/50 h-72 sm:h-80 md:h-96">
+          <div className="flex flex-col h-full w-full items-center justify-center">
+            <div className="w-full flex items-center justify-center relative overflow-hidden bg-white/60 dark:bg-slate-800/40 rounded-2xl h-64 sm:h-72 md:h-80">
               <img 
                 src={optimizeImage(images[activeImage], 600)} 
                 onError={(e) => {
@@ -70,12 +70,13 @@ function ProductImage({ product, large = false, priority = false }) {
                     e.currentTarget.src = '/media/products/pumpkin_seeds.jpg';
                   }
                 }}
-                className="w-full h-full object-cover mix-blend-multiply dark:mix-blend-normal" 
+                className="max-h-full max-w-full object-contain drop-shadow-sm p-3 transition-all duration-300" 
+                alt={product.name}
               />
             </div>
-            <div className="flex gap-3 p-3 overflow-x-auto bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex gap-2 p-2 mt-2 overflow-x-auto w-full justify-center">
                {images.map((img, i) => (
-                  <button key={i} onClick={() => setActiveImage(i)} className={`flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden shadow-sm transition-all ${activeImage === i ? 'ring-2 ring-indigo-600 opacity-100' : 'opacity-60 hover:opacity-100'}`}>
+                  <button key={i} onClick={() => setActiveImage(i)} className={`flex-shrink-0 w-12 h-12 rounded-xl overflow-hidden shadow-xs transition-all border ${activeImage === i ? 'ring-2 ring-emerald-600 border-emerald-500 opacity-100' : 'border-slate-200 dark:border-slate-700 opacity-60 hover:opacity-100'}`}>
                      <img 
                        src={optimizeImage(img, 100)} 
                        onError={(e) => {
@@ -83,7 +84,8 @@ function ProductImage({ product, large = false, priority = false }) {
                            e.currentTarget.src = '/media/products/pumpkin_seeds.jpg';
                          }
                        }}
-                       className="w-full h-full object-cover" 
+                       className="w-full h-full object-contain p-1" 
+                       alt=""
                      />
                   </button>
                ))}
@@ -93,9 +95,9 @@ function ProductImage({ product, large = false, priority = false }) {
     }
     
     return (
-       <div className={`w-full flex items-center justify-center relative overflow-hidden bg-gradient-to-b from-transparent to-slate-50/50 dark:to-slate-900/50 ${large ? 'h-72 sm:h-80 md:h-full' : 'h-32 sm:h-36'}`}>
+       <div className={`w-full flex items-center justify-center relative overflow-hidden ${large ? 'h-64 sm:h-72 md:h-80 bg-white/60 dark:bg-slate-800/40 rounded-2xl' : 'h-32 sm:h-36 bg-gradient-to-b from-transparent to-slate-50/50 dark:to-slate-900/50'}`}>
            <div className={`absolute inset-0 bg-slate-100 dark:bg-slate-800 transition-opacity duration-300 ${imageLoaded ? 'opacity-0 pointer-events-none' : 'opacity-100 animate-pulse'}`} />
-           <div className="absolute inset-0 bg-slate-900/5 opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 rounded-t-xl z-10 mix-blend-overlay"></div>
+           {!large && <div className="absolute inset-0 bg-slate-900/5 opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 rounded-t-xl z-10 mix-blend-overlay"></div>}
            <img 
              loading={priority ? 'eager' : 'lazy'}
              fetchPriority={priority ? 'high' : undefined}
@@ -109,13 +111,13 @@ function ProductImage({ product, large = false, priority = false }) {
                  e.currentTarget.src = '/media/products/pumpkin_seeds.jpg';
                }
              }}
-             className={`w-full h-full object-cover mix-blend-multiply dark:mix-blend-normal transition-transform duration-700 group-hover/card:scale-110 transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+             className={large ? `max-h-full max-w-full object-contain drop-shadow-sm p-3 transition-transform duration-300 hover:scale-105 ${imageLoaded ? 'opacity-100' : 'opacity-0'}` : `w-full h-full object-cover mix-blend-multiply dark:mix-blend-normal transition-transform duration-700 group-hover/card:scale-110 transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
            />
        </div>
     );
   }
 
-  return <div className={`grid w-full place-items-center bg-slate-100 text-3xl font-bold text-slate-300 ${large ? 'h-72 sm:h-80 md:h-full' : 'h-32 sm:h-36'}`}>{product.name?.charAt(0)?.toUpperCase()}</div>
+  return <div className={`grid w-full place-items-center bg-slate-100 dark:bg-slate-800 text-3xl font-bold text-slate-300 dark:text-slate-600 rounded-2xl ${large ? 'h-64 sm:h-72 md:h-80' : 'h-32 sm:h-36'}`}>{product.name?.charAt(0)?.toUpperCase()}</div>
 }
 
 
@@ -1067,113 +1069,348 @@ export function ProductsPage() {
 
 
 
- export function ProductDetailPage() {
+export function ProductDetailPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { add, update, isCustomer, favorites, toggleFavorite, cart } = useCart();
+  const [product, setProduct] = useState(null);
+  const [error, setError] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [added, setAdded] = useState(false);
 
- const { id } = useParams(); const navigate = useNavigate(); const { add, isCustomer, favorites, toggleFavorite, cart } = useCart(); const [product, setProduct] = useState(null); const [error, setError] = useState(''); const [adding, setAdding] = useState(false); const [added, setAdded] = useState(false)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    setProduct(null);
+    setError('');
+    api.get(`/products/${id}/`)
+      .then((response) => setProduct(response.data))
+      .catch(() => setError('This product is unavailable or no longer active.'));
+  }, [id]);
 
- useEffect(() => { window.scrollTo(0, 0); api.get(`/products/${id}/`).then((response) => setProduct(response.data)).catch(() => setError('This product is unavailable or no longer active.')) }, [id])
+  async function addToCart() {
+    if (!isCustomer) {
+      navigate('/login');
+      return;
+    }
+    setAdding(true);
+    try {
+      await add(product);
+      setAdded(true);
+      toast.success('Added to cart');
+      setTimeout(() => setAdded(false), 2500);
+    } catch (requestError) {
+      toast.error(requestError.response?.data?.detail || 'Could not add this item.');
+    } finally {
+      setAdding(false);
+    }
+  }
 
- async function addToCart() { if (!isCustomer) { navigate('/login'); return } setAdding(true); try { await add(product); setAdded(true); toast.success('Added to cart'); setTimeout(() => setAdded(false), 3000); } catch (requestError) { toast.error(requestError.response?.data?.detail || 'Could not add this item.') } finally { setAdding(false) } }
+  // Error State - bounded in stable max-w-4xl
+  if (error) {
+    return (
+      <CustomerLayout>
+        <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+          <button
+            onClick={() => navigate(-1)}
+            className="group inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 transition-colors mb-6 bg-transparent border-none cursor-pointer"
+          >
+            <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" /> Back
+          </button>
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200/80 dark:border-slate-800 text-center shadow-xs">
+            <div className="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-950/50 text-red-600 flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
+              !
+            </div>
+            <h2 className="text-xl font-black text-slate-900 dark:text-white mb-2">Product Not Found</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">{error}</p>
+            <Link
+              to="/products"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md shadow-emerald-600/20 transition"
+            >
+              Browse All Products
+            </Link>
+          </div>
+        </main>
+      </CustomerLayout>
+    );
+  }
 
- if (error) return <CustomerLayout><main className="mx-auto max-w-3xl p-6"><Link to="/products"className="font-bold text-slate-600">Back to products</Link><p className="mt-6 rounded-xl bg-red-50 p-4 text-red-700">{error}</p></main></CustomerLayout>
+  // Loading Skeleton State - EXACT same layout and max-w-4xl footprint for zero layout shift!
+  if (!product) {
+    return (
+      <CustomerLayout>
+        <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
+          <div className="h-5 w-20 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse mb-4" />
+          <div className="overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-xs border border-slate-200/80 dark:border-slate-800 flex flex-col md:flex-row">
+            <div className="w-full md:w-[380px] lg:w-[400px] shrink-0 bg-slate-50 dark:bg-slate-800/40 p-6 flex items-center justify-center border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800">
+              <div className="w-full aspect-square max-h-[280px] bg-slate-200 dark:bg-slate-800 rounded-2xl animate-pulse" />
+            </div>
+            <div className="flex-1 p-6 sm:p-8 flex flex-col justify-between space-y-4">
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <div className="h-5 w-24 bg-slate-200 dark:bg-slate-800 rounded-full animate-pulse" />
+                  <div className="h-6 w-6 rounded-full bg-slate-200 dark:bg-slate-800 animate-pulse" />
+                </div>
+                <div className="h-7 w-3/4 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse mb-2" />
+                <div className="h-4 w-1/3 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse mb-6" />
+                <div className="h-9 w-28 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse mb-6" />
+                <div className="h-12 w-full bg-slate-200 dark:bg-slate-800 rounded-xl animate-pulse mb-6" />
+              </div>
+              <div className="h-16 w-full bg-slate-100 dark:bg-slate-800/50 rounded-xl animate-pulse" />
+            </div>
+          </div>
+        </main>
+      </CustomerLayout>
+    );
+  }
 
- if (!product) return <CustomerLayout><main className="mx-auto max-w-3xl p-6 text-slate-500">Loading product...</main></CustomerLayout>
+  const price = product.offer_price || product.regular_price;
+  const isFav = favorites?.find((f) => f.product === product.id);
+  const regPrice = Number(product.regular_price);
+  const offPrice = Number(product.offer_price);
+  const discountPercent = product.offer_price && regPrice > offPrice ? Math.round(((regPrice - offPrice) / regPrice) * 100) : 0;
+  const isOutOfStock = !product.is_in_stock || product.stock_quantity <= 0;
+  const cartItem = cart?.items?.find((item) => item.product === product.id);
+  const maxAllowed = product.max_order_quantity > 0 ? Math.min(product.stock_quantity, product.max_order_quantity) : product.stock_quantity;
+  const isMaxReached = cartItem && cartItem.quantity >= maxAllowed;
 
- const price = product.offer_price || product.regular_price
+  return (
+    <CustomerLayout>
+      <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="group inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 transition-colors mb-4 bg-transparent border-none cursor-pointer"
+        >
+          <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" /> Back
+        </button>
 
- const isFav = favorites?.find(f => f.product === product.id);
+        <article className="overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-sm border border-slate-200/80 dark:border-slate-800 relative flex flex-col md:flex-row transition-colors">
+          {/* Stable Minimal Image Frame */}
+          <div className="w-full md:w-[380px] lg:w-[400px] shrink-0 bg-slate-50/80 dark:bg-slate-800/30 p-6 flex flex-col items-center justify-center relative border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800/60">
+            {discountPercent > 0 && (
+              <div className="absolute top-4 left-4 z-10 bg-rose-600 text-white text-[11px] font-black px-2.5 py-1 rounded-lg shadow-xs flex items-center gap-1 uppercase tracking-wider">
+                <Zap size={11} fill="currentColor" /> {discountPercent}% OFF
+              </div>
+            )}
+            <ProductImage product={product} large />
+          </div>
 
- const regPrice = Number(product.regular_price);
+          {/* Stable Info Frame */}
+          <div className="flex-1 p-6 sm:p-8 flex flex-col justify-between">
+            <div>
+              {/* Category + Stock + Favorite */}
+              <div className="flex justify-between items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60">
+                    {product.category_name || 'Grocery'}
+                  </span>
+                  <span
+                    className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
+                      isOutOfStock
+                        ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300'
+                        : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300'
+                    }`}
+                  >
+                    {isOutOfStock ? 'Out of Stock' : 'In Stock'}
+                  </span>
+                </div>
+                {isCustomer && (
+                  <button
+                    onClick={() => toggleFavorite(product.id)}
+                    className="p-2 -mr-2 rounded-full hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
+                    title={isFav ? 'Remove from favorites' : 'Add to favorites'}
+                  >
+                    <Heart
+                      size={22}
+                      fill={isFav ? 'currentColor' : 'none'}
+                      className={isFav ? 'text-rose-500' : 'text-slate-300 dark:text-slate-600 hover:text-rose-400'}
+                    />
+                  </button>
+                )}
+              </div>
 
- const offPrice = Number(product.offer_price);
+              {/* Title & Brand/Unit */}
+              <h1 className="mt-3 text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
+                {product.name}
+              </h1>
+              <p className="mt-1 text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400">
+                {product.brand && `${product.brand} · `}{product.unit}
+              </p>
 
- const discountPercent = product.offer_price && regPrice > offPrice ? Math.round(((regPrice - offPrice) / regPrice) * 100) : 0;
+              {/* Tags */}
+              {product.tags && (
+                <div className="flex flex-wrap gap-1.5 mt-2.5">
+                  {product.tags.split(',').map((tag, i) => (
+                    <span
+                      key={i}
+                      className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-bold uppercase tracking-wider rounded-md"
+                    >
+                      {tag.trim()}
+                    </span>
+                  ))}
+                </div>
+              )}
 
-   const isOutOfStock = !product.is_in_stock || product.stock_quantity <= 0;
+              {/* Pricing */}
+              <div className="mt-4 flex items-baseline gap-3">
+                <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">₹{price}</span>
+                {product.offer_price && regPrice > offPrice && (
+                  <>
+                    <span className="text-sm font-bold text-slate-400 dark:text-slate-500 line-through">₹{regPrice}</span>
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                      Save ₹{regPrice - offPrice}
+                    </span>
+                  </>
+                )}
+              </div>
 
-   const cartItem = cart?.items?.find(item => item.product === product.id);
+              {/* Add to Cart / Quantity Stepper */}
+              <div className="mt-5">
+                {cartItem ? (
+                  <div className="flex items-center gap-3">
+                    <div className="inline-flex items-center rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 p-1">
+                      <button
+                        type="button"
+                        onClick={() => update(cartItem, cartItem.quantity - 1)}
+                        className="w-9 h-9 rounded-lg bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shadow-xs hover:bg-emerald-100 dark:hover:bg-slate-700 transition font-bold cursor-pointer"
+                        title="Decrease"
+                      >
+                        <Minus size={15} />
+                      </button>
+                      <span className="w-10 text-center font-black text-emerald-800 dark:text-emerald-300 text-sm">
+                        {cartItem.quantity}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => update(cartItem, cartItem.quantity + 1)}
+                        disabled={isMaxReached}
+                        className="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition font-bold cursor-pointer"
+                        title="Increase"
+                      >
+                        <Plus size={15} />
+                      </button>
+                    </div>
+                    <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                      <Check size={14} /> In your cart
+                    </span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={addToCart}
+                    disabled={isOutOfStock || adding || isMaxReached}
+                    className={`w-full py-3 px-5 rounded-xl font-black text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer ${
+                      isOutOfStock
+                        ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed border border-slate-200 dark:border-slate-700'
+                        : isMaxReached
+                        ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+                        : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20'
+                    }`}
+                  >
+                    {adding ? (
+                      'Adding...'
+                    ) : isOutOfStock ? (
+                      'Out of Stock'
+                    ) : isMaxReached ? (
+                      'Max in cart'
+                    ) : (
+                      <>
+                        <ShoppingCart size={16} /> Add to Cart · ₹{price}
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
 
- const maxAllowed = product.max_order_quantity > 0 ? Math.min(product.stock_quantity, product.max_order_quantity) : product.stock_quantity;
+              {/* Kirana Perks Strip */}
+              <div className="grid grid-cols-3 gap-2 py-3 my-4 border-y border-slate-100 dark:border-slate-800 text-center">
+                <div className="flex flex-col items-center gap-0.5">
+                  <Zap size={14} className="text-amber-500" />
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Fast Delivery</span>
+                  <span className="text-[10px] text-slate-400">Within 30 mins</span>
+                </div>
+                <div className="flex flex-col items-center gap-0.5 border-x border-slate-100 dark:border-slate-800">
+                  <ShieldCheck size={14} className="text-emerald-500" />
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">100% Fresh</span>
+                  <span className="text-[10px] text-slate-400">Store Guaranteed</span>
+                </div>
+                <div className="flex flex-col items-center gap-0.5">
+                  <Tag size={14} className="text-blue-500" />
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Best Price</span>
+                  <span className="text-[10px] text-slate-400">Direct Kirana</span>
+                </div>
+              </div>
+            </div>
 
- const isMaxReached = cartItem && cartItem.quantity >= maxAllowed;
+            {/* Product Description - bounded height with clean scrolling */}
+            <div className="pt-2">
+              <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 mb-1">
+                Product Details
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed max-h-28 overflow-y-auto pr-1 whitespace-pre-line">
+                {product.description || 'Fresh, quality daily essentials from Narendra Kirana Store.'}
+              </p>
+            </div>
+          </div>
+        </article>
 
-
-
- return <CustomerLayout><main className="mx-auto w-full max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-12"><button onClick={() => navigate(-1)} className="mb-4 flex items-center gap-2 text-sm font-bold text-slate-600 hover:underline bg-transparent border-none cursor-pointer"><ArrowLeft size={16} /> Back</button><article className="mt-5 overflow-hidden rounded-2xl bg-white shadow-lg border border-slate-200 relative flex flex-col md:flex-row">
-
- {discountPercent > 0 && (
-
- <div className="absolute top-0 left-0 z-10 bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-br-2xl shadow-sm tracking-wide flex items-center gap-1.5">
-
- <Zap size={12} fill="currentColor" />
-
- {discountPercent}% OFF
-
- </div>
-
- )}
-
- <div className="w-full md:w-1/2 md:min-h-[400px]">
-
- <ProductImage product={product} large />
-
- </div>
-
- <div className="w-full md:w-1/2 p-6 sm:p-8 border-t md:border-t-0 md:border-l border-slate-100 flex flex-col justify-center">
-
- <div className="flex justify-between items-start"><p className="text-sm font-bold text-slate-500 bg-slate-50 px-3 py-1 rounded-full">{product.category_name || 'Grocery'}</p>{isCustomer && <button onClick={() => toggleFavorite(product.id)} className="p-2 -mr-2 rounded-full hover:bg-rose-50 transition"><Heart size={24} fill={isFav ?"currentColor":"none"} className={isFav ?"text-rose-500":"text-slate-300"} /></button>}</div><h1 className="mt-3 text-2xl sm:text-3xl font-extrabold text-slate-900">{product.name}</h1><p className="mt-1 text-sm font-medium text-slate-500">{product.brand && `${product.brand} · `}{product.unit}</p>
-
- {product.tags && (
-
- <div className="flex flex-wrap gap-2 mt-3">
-
- {product.tags.split(',').map((tag, i) => (
-
- <span key={i} className="px-2 py-1 bg-violet-50 text-violet-700 text-[10px] font-extrabold uppercase tracking-widest rounded-md">{tag.trim()}</span>
-
- ))}
-
- </div>
-
- )}
-
- <div className="mt-6 flex items-center gap-3">
-
- <p className="text-4xl font-black text-slate-600">₹{price}</p>
-
- {product.offer_price && (
-
- <p className="text-lg font-bold text-slate-400 line-through mt-1">₹{product.regular_price}</p>
-
- )}
-
- </div>
-
- <button onClick={addToCart} disabled={isOutOfStock || adding || added || isMaxReached} className={`mt-8 hidden md:flex items-center justify-center gap-2 min-h-14 w-full rounded-xl px-4 py-3 text-lg font-extrabold transition-all active:scale-[0.98] ${added ? 'bg-slate-100 text-slate-800 border border-slate-200 shadow-sm' : isMaxReached ? 'bg-slate-100 text-slate-400 border border-slate-200 shadow-none cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-xl shadow-lg shadow-red-200 disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none border border-transparent disabled:border-slate-200 disabled:active:scale-100'}`}>{!isOutOfStock ? (isMaxReached ? 'Max in cart' : added ? '✓ Added to cart' : adding ? 'Adding...' : <><ShoppingCart size={20} /> Add to Cart</>) : 'Out of stock'}</button>
-
- <div className="mt-8 pt-6 border-t border-slate-100 mb-8 md:mb-0">
-
- <h3 className="text-sm font-extrabold text-slate-900 mb-2">Product Description</h3>
-
- <p className="text-[15px] leading-relaxed text-slate-700 whitespace-pre-line pb-12 md:pb-0">{product.description || 'Fresh, quality essentials from your local store.'}</p>
-
- </div>
-
- </div></article>
-
-
-
- {/* Mobile Sticky Add to Cart */}
-
- <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-30 bg-white border-t border-slate-200 p-3 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] md:hidden">
-
-   <button onClick={addToCart} disabled={isOutOfStock || adding || added || isMaxReached} className={`w-full min-h-[44px] rounded-xl px-4 py-2.5 text-base font-extrabold transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 ${added ? 'bg-slate-100 text-slate-800 border border-slate-200 shadow-sm' : isMaxReached ? 'bg-slate-100 text-slate-400 border border-slate-200 shadow-none cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-md disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none border border-transparent disabled:border-slate-200 disabled:active:scale-100'}`}>{!isOutOfStock ? (isMaxReached ? 'Max in cart' : added ? '✓ Added to cart' : adding ? 'Adding...' : <><ShoppingCart size={16} /> Add to Cart · ₹{price}</>) : 'Out of stock'}</button>
-
- </div>
-
-
-
- </main></CustomerLayout>
-
+        {/* Mobile Sticky Add to Cart Bar */}
+        <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 p-3 shadow-lg md:hidden">
+          {cartItem ? (
+            <div className="flex items-center justify-between gap-3">
+              <div className="inline-flex items-center rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 p-1">
+                <button
+                  type="button"
+                  onClick={() => update(cartItem, cartItem.quantity - 1)}
+                  className="w-8 h-8 rounded-lg bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 flex items-center justify-center font-bold"
+                >
+                  <Minus size={14} />
+                </button>
+                <span className="w-8 text-center font-black text-emerald-800 dark:text-emerald-300 text-sm">
+                  {cartItem.quantity}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => update(cartItem, cartItem.quantity + 1)}
+                  disabled={isMaxReached}
+                  className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold disabled:opacity-40"
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
+              <button
+                onClick={() => navigate('/cart')}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-sm"
+              >
+                View Cart ({cart?.items?.length || 1}) →
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={addToCart}
+              disabled={isOutOfStock || adding || isMaxReached}
+              className={`w-full min-h-[44px] rounded-xl px-4 py-2.5 text-sm font-extrabold transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 ${
+                isOutOfStock
+                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700'
+                  : isMaxReached
+                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                  : 'bg-emerald-600 text-white hover:bg-emerald-700'
+              }`}
+            >
+              {adding ? (
+                'Adding...'
+              ) : isOutOfStock ? (
+                'Out of Stock'
+              ) : isMaxReached ? (
+                'Max in cart'
+              ) : (
+                <>
+                  <ShoppingCart size={16} /> Add to Cart · ₹{price}
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      </main>
+    </CustomerLayout>
+  );
 }
 
