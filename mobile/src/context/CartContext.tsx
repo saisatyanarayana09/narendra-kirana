@@ -144,7 +144,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     };
 
     syncUserCart();
-  }, [user]);
+  }, [user?.id]);
 
   const fetchStoreSettings = async () => {
     try {
@@ -157,7 +157,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const refreshCart = async () => {
+  const refreshCart = useCallback(async () => {
     if (!user) {
       const guestCart = await loadGuestCart();
       if (guestCart) {
@@ -179,13 +179,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       const res = await apiClient.get('/cart/');
-      setCart(res.data);
-    } catch (error) {
-      console.error('Failed to fetch cart:', error);
+      if (res?.data) {
+        setCart(res.data);
+      }
+    } catch (error: any) {
+      const status = error?.response?.status;
+      if (status !== 403 && status !== 401) {
+        console.error('Failed to fetch cart:', error);
+      } else {
+        console.warn(`[CartContext] Cart fetch returned status ${status}.`);
+      }
+      // Ensure cart is at least initialized so screens don't crash
+      setCart((prev) => prev || {
+        items: [],
+        subtotal: '0.00',
+        discount: '0.00',
+        promo_code: null,
+        promo_discount: '0.00',
+        packaging_fee: '0.00',
+        total: '0.00',
+      });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user?.id]);
 
   const addToCart = async (productId: number, quantity: number = 1, productDetails?: any) => {
     if (!user) {

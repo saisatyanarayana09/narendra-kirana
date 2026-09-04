@@ -18,6 +18,15 @@ class IsOwnerUser(permissions.BasePermission):
 
 
 class IsCustomerUser(permissions.BasePermission):
-    """Allow cart and checkout operations only for customer accounts."""
+    """Allow cart and checkout operations for customer accounts as well as staff and owners."""
     def has_permission(self, request, view):
-        return request.user and request.user.is_authenticated and request.user.is_customer
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if getattr(request.user, 'is_locked', False):
+            return False
+        return bool(
+            getattr(request.user, 'is_customer', True) or 
+            request.user.is_staff or 
+            request.user.is_superuser or 
+            getattr(request.user, 'is_owner', False)
+        )

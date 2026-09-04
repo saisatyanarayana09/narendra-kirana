@@ -22,17 +22,54 @@
           "action": "VIEW",
           "autoVerify": true,
           "data": [
-            { "scheme": "smartkirana" },
-            { "scheme": "https", "host": "narendra-kirana.vercel.app", "pathPrefix": "/orders" },
-            { "scheme": "https", "host": "narendra-kirana.vercel.app", "pathPrefix": "/product" },
-            { "scheme": "https", "host": "narendra-kirana.vercel.app", "pathPrefix": "/profile" },
-            { "scheme": "https", "host": "narendra-kirana.vercel.app", "pathPrefix": "/offers" },
-            { "scheme": "https", "host": "narendra-kirana.onrender.com", "pathPrefix": "/orders" },
-            { "scheme": "https", "host": "narendra-kirana.onrender.com", "pathPrefix": "/product" },
-            { "scheme": "https", "host": "narendra-kirana.onrender.com", "pathPrefix": "/profile" },
-            { "scheme": "https", "host": "narendra-kirana.onrender.com", "pathPrefix": "/offers" }
+            {
+              "scheme": "smartkirana"
+            },
+            {
+              "scheme": "https",
+              "host": "narendra-kirana.vercel.app",
+              "pathPrefix": "/orders"
+            },
+            {
+              "scheme": "https",
+              "host": "narendra-kirana.vercel.app",
+              "pathPrefix": "/product"
+            },
+            {
+              "scheme": "https",
+              "host": "narendra-kirana.vercel.app",
+              "pathPrefix": "/profile"
+            },
+            {
+              "scheme": "https",
+              "host": "narendra-kirana.vercel.app",
+              "pathPrefix": "/offers"
+            },
+            {
+              "scheme": "https",
+              "host": "narendra-kirana.onrender.com",
+              "pathPrefix": "/orders"
+            },
+            {
+              "scheme": "https",
+              "host": "narendra-kirana.onrender.com",
+              "pathPrefix": "/product"
+            },
+            {
+              "scheme": "https",
+              "host": "narendra-kirana.onrender.com",
+              "pathPrefix": "/profile"
+            },
+            {
+              "scheme": "https",
+              "host": "narendra-kirana.onrender.com",
+              "pathPrefix": "/offers"
+            }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ],
       "predictiveBackGestureEnabled": false,
@@ -50,7 +87,8 @@
     },
     "plugins": [
       "expo-secure-store",
-      "expo-font"
+      "expo-font",
+      "expo-sharing"
     ]
   }
 }
