@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingBag, Search, Clock, CheckCircle, Package } from 'lucide-react';
+import { ShoppingBag, Search, Clock, CheckCircle, Package, Printer } from 'lucide-react';
 import api from '../../services/api';
 
 const Orders = () => {
@@ -166,6 +166,15 @@ const Orders = () => {
  Reject
  </button>
  )}
+ <Link 
+ to={`/owner/orders/${order.id}/invoice`}
+ target="_blank"
+ rel="noopener noreferrer"
+ title="Print / View Invoice"
+ className="hidden sm:inline-flex items-center justify-center p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl transition-colors border border-slate-200 shadow-sm"
+ >
+ <Printer className="w-4 h-4" />
+ </Link>
  <Link 
  to={`/owner/orders/${order.id}`}
  className="w-full sm:w-auto text-center px-6 py-2.5 bg-indigo-50 text-indigo-700 rounded-xl hover:bg-indigo-600 hover:text-white font-bold transition-colors whitespace-nowrap"

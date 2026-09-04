@@ -50,11 +50,13 @@ const Products = lazyWithRetry(() => import('./owner/pages/Products'));
 const Orders = lazyWithRetry(() => import('./owner/pages/Orders'));
 const OrderDetails = lazyWithRetry(() => import('./owner/pages/OrderDetails'));
 const Invoice = lazyWithRetry(() => import('./owner/pages/Invoice'));
+const Invoices = lazyWithRetry(() => import('./owner/pages/Invoices'));
 const Offers = lazyWithRetry(() => import('./owner/pages/Offers'));
 const Referrals = lazyWithRetry(() => import('./owner/pages/Referrals'));
 const Customers = lazyWithRetry(() => import('./owner/pages/Customers'));
 const Feedback = lazyWithRetry(() => import('./owner/pages/Feedback'));
 const Settings = lazyWithRetry(() => import('./owner/pages/Settings'));
+const AdvancedSettings = lazyWithRetry(() => import('./owner/pages/AdvancedSettings'));
 const Showcase = lazyWithRetry(() => import('./owner/pages/Showcase'));
 
 const ownerToken = () => localStorage.getItem('smart-kirana-owner-token'); // updated to use access_token from our api.js interceptor
@@ -258,15 +260,17 @@ function App() {
           <Route path="sales" element={<Sales />} />
  <Route path="categories"element={<Categories />} />
  <Route path="products"element={<Products />} />
- <Route path="orders"element={<Orders />} />
- <Route path="orders/:id"element={<OrderDetails />} />
- <Route path="offers"element={<Offers />} />
- <Route path="referrals"element={<Referrals />} />
- <Route path="customers"element={<Customers />} />
- <Route path="feedback"element={<Feedback />} />
- <Route path="settings"element={<Settings />} />
- <Route path="showcase"element={<Showcase />} />
- </Route>
+  <Route path="orders"element={<Orders />} />
+  <Route path="orders/:id"element={<OrderDetails />} />
+  <Route path="invoices" element={<Invoices />} />
+  <Route path="offers"element={<Offers />} />
+  <Route path="referrals"element={<Referrals />} />
+  <Route path="customers"element={<Customers />} />
+  <Route path="feedback"element={<Feedback />} />
+  <Route path="settings"element={<Settings />} />
+  <Route path="advanced-settings" element={<AdvancedSettings />} />
+  <Route path="showcase"element={<Showcase />} />
+  </Route>
 
  <Route path="/owner/orders/:id/invoice"element={<Guard><Invoice /></Guard>} />
 

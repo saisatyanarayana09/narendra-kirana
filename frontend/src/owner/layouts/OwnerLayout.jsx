@@ -3,7 +3,7 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, Package, Tags, ShoppingCart, Users, Settings, 
   Menu, X, LogOut, PercentCircle, MessageSquare, Layout, Gift, 
-  TrendingUp, LayoutGrid, Sun, Moon 
+  TrendingUp, LayoutGrid, Sun, Moon, FileText, SlidersHorizontal 
 } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
@@ -19,6 +19,7 @@ const OwnerLayout = () => {
   const navigation = [
     { name: 'Dashboard', href: '/owner', icon: LayoutDashboard, desc: 'Live stats & store overview', color: 'from-blue-500 to-indigo-600', badge: 'Overview' },
     { name: 'Orders', href: '/owner/orders', icon: ShoppingCart, desc: 'Manage & pack orders', color: 'from-emerald-500 to-teal-600', badge: 'Live' },
+    { name: 'Invoices', href: '/owner/invoices', icon: FileText, desc: 'Tax invoices, billing & print', color: 'from-indigo-500 to-blue-600', badge: 'Billing' },
     { name: 'Products', href: '/owner/products', icon: Package, desc: 'Inventory & catalog', color: 'from-amber-500 to-orange-600', badge: 'Stock' },
     { name: 'Sales', href: '/owner/sales', icon: TrendingUp, desc: 'Revenue & analytics', color: 'from-violet-500 to-purple-600', badge: 'Analytics' },
     { name: 'Showcase', href: '/owner/showcase', icon: Layout, desc: 'Banners & home aisles', color: 'from-pink-500 to-rose-600', badge: 'Visual' },
@@ -28,6 +29,7 @@ const OwnerLayout = () => {
     { name: 'Customers', href: '/owner/customers', icon: Users, desc: 'Customer directory & CRM', color: 'from-emerald-600 to-green-700', badge: 'CRM' },
     { name: 'Feedback', href: '/owner/feedback', icon: MessageSquare, desc: 'Reviews & customer ratings', color: 'from-indigo-600 to-blue-700', badge: 'Reviews' },
     { name: 'Settings', href: '/owner/settings', icon: Settings, desc: 'Store hours, delivery & fees', color: 'from-slate-600 to-slate-800', badge: 'Config' },
+    { name: 'Advanced Settings', href: '/owner/advanced-settings', icon: SlidersHorizontal, desc: 'UPI, slots, timings & loyalty', color: 'from-amber-500 to-orange-600', badge: 'Advanced' },
   ];
 
   // Fetch store status for header
