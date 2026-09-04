@@ -155,16 +155,13 @@ class CustomerSignupSerializer(serializers.ModelSerializer):
         frontend_url = settings.FRONTEND_URL if hasattr(settings, 'FRONTEND_URL') else 'http://localhost:5173'
         verify_link = f"{frontend_url}/verify-email?uid={uid}&token={token}"
         
-        try:
-            send_mail(
-                'Activate Your Narendra Kirana Account',
-                f'Welcome to Narendra Kirana!\n\nPlease click the link below to activate your account:\n{verify_link}',
-                getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@narendra-kirana.com'),
-                [user.email],
-                fail_silently=True,
-            )
-        except Exception as e:
-            print("Email sending failed:", str(e))
+        from store.email_service import send_store_email_async
+        send_store_email_async(
+            subject='Activate Your Narendra Kirana Account',
+            message=f'Welcome to Narendra Kirana!\n\nPlease click the link below to activate your account:\n{verify_link}',
+            recipient_list=[user.email],
+            fail_silently=True,
+        )
 
         
         # Profile & Wallet

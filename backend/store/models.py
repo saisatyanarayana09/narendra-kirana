@@ -116,3 +116,58 @@ class Feedback(models.Model):
 
     def __str__(self):
         return f"{self.rating} Star - {self.customer if self.customer else 'Anonymous'}"
+
+
+class StoreEmailSettings(models.Model):
+    PROVIDER_CHOICES = (
+        ('gmail', 'Gmail / Google Workspace'),
+        ('outlook', 'Outlook / Office 365'),
+        ('custom', 'Custom SMTP'),
+    )
+
+    provider = models.CharField(max_length=20, choices=PROVIDER_CHOICES, default='gmail')
+    sender_email = models.EmailField(blank=True, default="", help_text="Email address used to send emails (e.g., your store Gmail)")
+    sender_name = models.CharField(max_length=100, default="Narendra Kirana", help_text="Display name on outgoing emails")
+    smtp_host = models.CharField(max_length=100, default="smtp.gmail.com")
+    smtp_port = models.IntegerField(default=587)
+    use_tls = models.BooleanField(default=True)
+    use_ssl = models.BooleanField(default=False)
+    encrypted_app_password = models.CharField(max_length=500, blank=True, default="")
+    is_active = models.BooleanField(default=False, help_text="Enable custom store email sending. If disabled, fallback to server settings.")
+    last_tested_at = models.DateTimeField(null=True, blank=True)
+    last_test_status = models.CharField(max_length=255, blank=True, default="")
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+        from django.core.cache import cache
+        cache.delete('store_email_settings')
+
+    @classmethod
+    def load(cls):
+        from django.core.cache import cache
+        obj = cache.get('store_email_settings')
+        if not obj:
+            obj, created = cls.objects.get_or_create(pk=1)
+            cache.set('store_email_settings', obj, timeout=3600)
+        return obj
+
+    def get_decrypted_password(self) -> str:
+        from .email_service import decrypt_secret
+        return decrypt_secret(self.encrypted_app_password)
+
+    def set_app_password(self, raw_password: str):
+        from .email_service import encrypt_secret
+        if raw_password:
+            self.encrypted_app_password = encrypt_secret(raw_password)
+
+    def get_from_email_string(self) -> str:
+        name = self.sender_name.strip() if self.sender_name else "Narendra Kirana"
+        email = self.sender_email.strip()
+        if name and email:
+            return f"{name} <{email}>"
+        return email or "noreply@narendra-kirana.com"
+
+    def __str__(self):
+        return f"Store Email Settings ({self.sender_email or 'Unconfigured'})"
+

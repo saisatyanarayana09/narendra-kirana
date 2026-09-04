@@ -266,21 +266,13 @@ class PasswordResetRequestView(APIView):
                     f"Best regards,\nNarendra Kirana Team"
                 )
             
-            import threading
-            def send_reset_email():
-                try:
-                    send_mail(
-                        email_subject,
-                        email_body,
-                        getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@narendra-kirana.com'),
-                        [user.email],
-                        fail_silently=True,
-                    )
-                except Exception as e:
-                    print("Email sending failed:", str(e))
-            
-            # Run in a background thread to prevent Gunicorn timeout (Render blocks SMTP port 587)
-            threading.Thread(target=send_reset_email).start()
+            from store.email_service import send_store_email_async
+            send_store_email_async(
+                subject=email_subject,
+                message=email_body,
+                recipient_list=[user.email],
+                fail_silently=True,
+            )
                 
         # Always return success to prevent email enumeration
         return Response({'message': 'If an account with that email exists, we have sent a password reset link.'}, status=status.HTTP_200_OK)

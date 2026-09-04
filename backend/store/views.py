@@ -12,8 +12,13 @@ from rest_framework.permissions import AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.decorators import action
 from accounts.permissions import IsOwnerUser, IsOwnerOrReadOnly
-from .models import StoreSettings, Feedback, HomepageSection
-from .serializers import StoreSettingsSerializer, FeedbackSerializer, HomepageSectionSerializer
+from .models import StoreSettings, Feedback, HomepageSection, StoreEmailSettings
+from .serializers import (
+    StoreSettingsSerializer, 
+    FeedbackSerializer, 
+    HomepageSectionSerializer,
+    StoreEmailSettingsSerializer
+)
 
 
 from django.shortcuts import redirect
@@ -77,6 +82,59 @@ class StoreSettingsView(views.APIView):
             serializer.save()
             return response.Response(serializer.data)
         return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class StoreEmailSettingsView(views.APIView):
+    permission_classes = [IsOwnerUser]
+
+    def get(self, request):
+        email_settings = StoreEmailSettings.load()
+        serializer = StoreEmailSettingsSerializer(email_settings, context={'request': request})
+        return response.Response(serializer.data)
+
+    def patch(self, request):
+        email_settings = StoreEmailSettings.load()
+        serializer = StoreEmailSettingsSerializer(email_settings, data=request.data, partial=True, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return response.Response(serializer.data)
+        return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def post(self, request):
+        return self.patch(request)
+
+
+class TestStoreEmailView(views.APIView):
+    permission_classes = [IsOwnerUser]
+
+    def post(self, request):
+        from .email_service import test_smtp_connection
+        from django.utils import timezone
+
+        test_email = request.data.get('test_email')
+        if not test_email or '@' not in test_email:
+            return response.Response(
+                {'error': 'Please provide a valid recipient email address.'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        config_override = request.data.get('config_override') or None
+        success, detail = test_smtp_connection(test_email, config_override=config_override)
+
+        # Update last tested timestamp and status on StoreEmailSettings
+        try:
+            email_settings = StoreEmailSettings.load()
+            email_settings.last_tested_at = timezone.now()
+            email_settings.last_test_status = "SUCCESS" if success else f"FAILED: {detail[:200]}"
+            email_settings.save()
+        except Exception:
+            pass
+
+        if success:
+            return response.Response({'success': True, 'message': detail})
+        else:
+            return response.Response({'success': False, 'error': detail}, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 import re

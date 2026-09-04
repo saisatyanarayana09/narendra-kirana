@@ -32,15 +32,14 @@ Best regards,
 {store_settings.store_name} Team
 """
 
-    email = EmailMessage(
-        subject=subject,
-        body=body,
-        from_email=store_settings.store_email or 'noreply@narendrakirana.in',
-        to=[email_address],
-    )
-
+    from store.email_service import send_store_email
     try:
-        email.send(fail_silently=False)
+        send_store_email(
+            subject=subject,
+            message=body,
+            recipient_list=[email_address],
+            fail_silently=False,
+        )
         print(f"Sent confirmation email to {email_address}")
     except Exception as e:
         print(f"Failed to send email: {e}")
@@ -94,18 +93,15 @@ Best regards,
 {store_settings.store_name} Team
 """
 
-    from django.core.mail import EmailMultiAlternatives
-    email = EmailMultiAlternatives(
-        subject=subject,
-        body=text_content,
-        from_email=store_settings.store_email or 'noreply@narendrakirana.in',
-        to=[email_address],
-    )
-    email.attach_alternative(html_content, "text/html")
-
-    # Send email
+    from store.email_service import send_store_email
     try:
-        email.send(fail_silently=False)
+        send_store_email(
+            subject=subject,
+            message=text_content,
+            recipient_list=[email_address],
+            html_message=html_content,
+            fail_silently=False,
+        )
         print(f"Sent HTML invoice email to {email_address}")
     except Exception as e:
         print(f"Failed to send email: {e}")
