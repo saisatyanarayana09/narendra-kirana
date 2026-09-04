@@ -67,8 +67,10 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
 
       setHasMore(Boolean(rawData?.next));
       setPage(pageNum);
-    } catch (error) {
-      console.error('Error fetching orders:', error);
+    } catch (error: any) {
+      if (error?.response?.status !== 401) {
+        console.error('Error fetching orders:', error);
+      }
     } finally {
       if (currentReqId === requestIdRef.current) {
         if (isLoadMore) setLoadingMore(false);

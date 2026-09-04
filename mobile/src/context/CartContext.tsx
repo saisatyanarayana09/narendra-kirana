@@ -186,8 +186,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const status = error?.response?.status;
       if (status !== 403 && status !== 401) {
         console.error('Failed to fetch cart:', error);
-      } else {
-        console.warn(`[CartContext] Cart fetch returned status ${status}.`);
+      } else if (status === 403) {
+        console.warn('[CartContext] Cart fetch returned status 403.');
       }
       // Ensure cart is at least initialized so screens don't crash
       setCart((prev) => prev || {

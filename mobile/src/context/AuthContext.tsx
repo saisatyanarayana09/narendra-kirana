@@ -119,8 +119,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await saveItem(STORAGE_KEYS.USER, JSON.stringify(response.data));
         setUser(response.data);
       }
-    } catch (error) {
-      console.error('Failed to refresh user profile:', error);
+    } catch (error: any) {
+      if (error?.response?.status !== 401) {
+        console.error('Failed to refresh user profile:', error);
+      }
     }
   };
 
