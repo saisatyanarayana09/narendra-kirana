@@ -618,6 +618,59 @@ class LogoutView(APIView):
         return Response({'message': 'Logged out successfully.'}, status=status.HTTP_200_OK)
 
 
+class PasswordResetVerifyOTPView(APIView):
+    """
+    Step 1 of 2 in OTP Reset Flow:
+    Validates that the provided 6-digit OTP matches an active, non-expired OTP record
+    without consuming it, allowing the frontend to transition cleanly to the
+    'Create New Password' step.
+    """
+    permission_classes = [AllowAny]
+    throttle_classes = [AnonRateThrottle]
+
+    def post(self, request):
+        email = request.data.get('email', '').strip()
+        otp = request.data.get('otp', '').strip()
+        portal = request.data.get('portal', 'customer')
+
+        if not email or not otp:
+            return Response({'valid': False, 'error': 'Email and 6-digit OTP code are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.filter(email__iexact=email).first()
+        if not user:
+            return Response({'valid': False, 'error': 'Invalid email or OTP code.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if portal == 'owner' and not (user.is_staff or getattr(user, 'is_owner', False) or user.is_superuser):
+            return Response({'valid': False, 'error': 'This account does not have owner access.'}, status=status.HTTP_403_FORBIDDEN)
+
+        otp_record = PasswordResetOTP.objects.filter(
+            user=user,
+            portal=portal,
+            is_used=False
+        ).order_by('-created_at').first()
+
+        if not otp_record or not otp_record.is_valid():
+            return Response({'valid': False, 'error': 'The OTP code is invalid or has expired (15-minute limit). Please request a new code.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Enforce rate-limiting on OTP verification attempts (max 5)
+        if otp_record.attempts >= 5:
+            otp_record.is_used = True
+            otp_record.save(update_fields=['is_used'])
+            return Response({'valid': False, 'error': 'Too many failed OTP attempts. This code has been invalidated. Please request a new one.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if otp_record.otp_code != otp:
+            otp_record.attempts += 1
+            otp_record.save(update_fields=['attempts'])
+            remaining = 5 - otp_record.attempts
+            return Response({'valid': False, 'error': f'Incorrect OTP code. {remaining} attempt(s) remaining.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({
+            'valid': True,
+            'email': user.email,
+            'message': 'Code verified successfully. Please enter your new password.'
+        }, status=status.HTTP_200_OK)
+
+
 class PasswordResetOTPConfirmView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [AnonRateThrottle]

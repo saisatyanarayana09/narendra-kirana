@@ -36,15 +36,29 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
 
   const [mode, setMode] = useState<'otp' | 'link'>(initialMode);
   const [email, setEmail] = useState(initialEmail);
+  const [otpStep, setOtpStep] = useState<'verify' | 'set_password'>('verify');
   const [otp, setOtp] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [isEditingEmail, setIsEditingEmail] = useState(!initialEmail);
+  const [otpError, setOtpError] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
   const [message, setMessage] = useState('');
+
+  // Countdown timer for OTP resend cooldown
+  useEffect(() => {
+    let timer: any;
+    if (resendCooldown > 0) {
+      timer = setTimeout(() => setResendCooldown(c => c - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
 
   const handleSendOtp = async () => {
     if (!email.trim()) {
@@ -52,6 +66,7 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
       return;
     }
     setIsSendingOtp(true);
+    setOtpError('');
     try {
       const res = await apiClient.post('/auth/password-reset/', {
         email: email.trim(),
@@ -59,13 +74,49 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
         portal: 'customer'
       });
       const msg = typeof res.data === 'string' ? res.data : (res.data?.message || 'A 6-digit verification code has been sent to your email.');
-      Alert.alert('OTP Sent', String(msg));
+      Alert.alert('Code Sent', String(msg));
+      setResendCooldown(60);
+      setIsEditingEmail(false);
     } catch (err: any) {
       const errData = err.response?.data;
       const errMsg = typeof errData === 'string' ? errData : (errData?.error || errData?.detail || 'Failed to send OTP code.');
       Alert.alert('Request Failed', String(errMsg));
     } finally {
       setIsSendingOtp(false);
+    }
+  };
+
+  // Step 1: Verify OTP only (Does not ask for password yet)
+  const handleVerifyOtp = async () => {
+    if (!email.trim()) {
+      Alert.alert('Email Required', 'Please provide your registered email address.');
+      return;
+    }
+    const cleanOtp = otp.trim().replace(/[^0-9]/g, '');
+    if (cleanOtp.length !== 6) {
+      setOtpError('Please enter all 6 digits of the code sent to your email.');
+      return;
+    }
+
+    setIsVerifyingOtp(true);
+    setOtpError('');
+    try {
+      const res = await apiClient.post('/auth/password-reset/verify-otp/', {
+        email: email.trim(),
+        otp: cleanOtp,
+        portal: 'customer'
+      });
+      if (res.data?.valid) {
+        setOtpStep('set_password');
+      } else {
+        setOtpError(res.data?.error || 'Invalid verification code. Please try again.');
+      }
+    } catch (err: any) {
+      const errData = err.response?.data;
+      const errMsg = typeof errData === 'string' ? errData : (errData?.error || errData?.detail || 'Incorrect or expired verification code.');
+      setOtpError(String(errMsg));
+    } finally {
+      setIsVerifyingOtp(false);
     }
   };
 
@@ -98,6 +149,7 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
     }
   }, [uid, token]);
 
+  // Step 2 (or Link mode): Save New Password
   const handleSubmit = async () => {
     if (!password || !confirmPassword) {
       Alert.alert('Required Fields', 'Please fill in both password fields.');
@@ -119,17 +171,6 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
 
     try {
       if (mode === 'otp') {
-        if (!email.trim()) {
-          Alert.alert('Required Field', 'Please enter your registered email address.');
-          setIsLoading(false);
-          return;
-        }
-        if (!otp.trim() || otp.trim().length !== 6) {
-          Alert.alert('Invalid OTP', 'Please enter the 6-digit OTP code received in your email.');
-          setIsLoading(false);
-          return;
-        }
-
         const res = await apiClient.post('/auth/password-reset/otp-confirm/', {
           email: email.trim(),
           otp: otp.trim(),
@@ -141,7 +182,7 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
         setMessage(String(msg));
       } else {
         if (!uid || !token) {
-          Alert.alert('Invalid Link', 'This reset link is missing security parameters. Please switch to the 6-Digit OTP tab.');
+          Alert.alert('Invalid Link', 'This reset link is missing security parameters. Please switch to 6-Digit OTP.');
           setIsLoading(false);
           return;
         }
@@ -183,11 +224,15 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
 
         <View style={styles.header}>
           <View style={[styles.iconBox, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.15)' : '#ECFDF5' }]}>
-            <Feather name="lock" size={28} color={colors.primary} />
+            <Feather name={mode === 'otp' && otpStep === 'verify' ? 'shield' : 'lock'} size={28} color={colors.primary} />
           </View>
-          <Text style={[styles.title, { color: colors.text }]}>New Password</Text>
+          <Text style={[styles.title, { color: colors.text }]}>
+            {mode === 'otp' && otpStep === 'verify' ? 'Verify Code' : 'New Password'}
+          </Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Verify your identity and set a secure new password.
+            {mode === 'otp' && otpStep === 'verify' 
+              ? 'Enter the 6-digit code sent to your email to verify your identity.' 
+              : 'Choose a strong password to protect your account.'}
           </Text>
         </View>
 
@@ -238,6 +283,7 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
             </View>
           ) : (
             <>
+              {/* LINK MODE WARNINGS */}
               {mode === 'link' && tokenStatus === 'invalid' && (
                 <View style={[styles.warningBox, { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEF2F2', borderColor: isDark ? 'rgba(239, 68, 68, 0.3)' : '#FCA5A5' }]}>
                   <Feather name="alert-triangle" color="#EF4444" size={18} />
@@ -284,118 +330,220 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
                 </View>
               )}
 
-              {mode === 'otp' && (
+              {/* OTP MODE: STEP 1 - VERIFY CODE */}
+              {mode === 'otp' && otpStep === 'verify' && (
                 <>
-                  <View style={styles.inputContainer}>
-                    <Text style={[styles.label, { color: colors.text }]}>Registered Email</Text>
-                    <TextInput
-                      style={[styles.input, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border, color: colors.text }]}
-                      placeholder="name@example.com"
-                      placeholderTextColor={colors.textSecondary}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      value={email}
-                      onChangeText={setEmail}
-                    />
+                  {/* Step Tracker */}
+                  <View style={styles.stepHeaderRow}>
+                    <View style={[styles.stepBadge, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.2)' : '#DCFCE7' }]}>
+                      <Text style={[styles.stepBadgeText, { color: isDark ? '#34D399' : '#15803D' }]}>
+                        STEP 1 OF 2: VERIFY CODE
+                      </Text>
+                    </View>
                   </View>
 
+                  {/* Email Destination Display (No need to re-type if already known!) */}
+                  {email && !isEditingEmail ? (
+                    <View style={[styles.emailBadgeBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border }]}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                        <Feather name="mail" size={16} color={colors.primary} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.emailBadgeSmall, { color: colors.textSecondary }]}>Code sent to:</Text>
+                          <Text style={[styles.emailBadgeMain, { color: colors.text }]} numberOfLines={1}>{email}</Text>
+                        </View>
+                      </View>
+                      <TouchableOpacity onPress={() => setIsEditingEmail(true)} style={styles.changeEmailTouch}>
+                        <Text style={[styles.changeEmailLink, { color: colors.primary }]}>Change</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <View style={styles.inputContainer}>
+                      <Text style={[styles.label, { color: colors.text }]}>Registered Email Address</Text>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <TextInput
+                          style={[styles.input, { flex: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border, color: colors.text }]}
+                          placeholder="name@example.com"
+                          placeholderTextColor={colors.textSecondary}
+                          keyboardType="email-address"
+                          autoCapitalize="none"
+                          value={email}
+                          onChangeText={setEmail}
+                        />
+                        <TouchableOpacity
+                          style={[styles.sendCodeBtn, { backgroundColor: colors.primary }]}
+                          onPress={handleSendOtp}
+                          disabled={isSendingOtp}
+                          activeOpacity={0.8}
+                        >
+                          {isSendingOtp ? (
+                            <ActivityIndicator color="#FFFFFF" size="small" />
+                          ) : (
+                            <Text style={styles.sendCodeBtnText}>Send Code</Text>
+                          )}
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* 6-Digit OTP Code Input */}
                   <View style={styles.inputContainer}>
-                    <Text style={[styles.label, { color: colors.text }]}>6-Digit OTP Code</Text>
+                    <Text style={[styles.label, { color: colors.text }]}>6-Digit Verification Code</Text>
                     <TextInput
                       style={[
                         styles.input, 
                         styles.otpInput,
-                        { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border, color: colors.text }
+                        { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: otpError ? '#EF4444' : colors.border, color: colors.text }
                       ]}
                       placeholder="123456"
                       placeholderTextColor={colors.textSecondary}
                       keyboardType="number-pad"
                       maxLength={6}
                       value={otp}
-                      onChangeText={(t) => setOtp(t.replace(/[^0-9]/g, ''))}
+                      onChangeText={(t) => {
+                        setOtp(t.replace(/[^0-9]/g, ''));
+                        if (otpError) setOtpError('');
+                      }}
                     />
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+
+                    {otpError ? (
+                      <View style={styles.errorBanner}>
+                        <Feather name="alert-circle" size={14} color="#EF4444" />
+                        <Text style={styles.errorBannerText}>{otpError}</Text>
+                      </View>
+                    ) : null}
+
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
                       <Text style={[styles.helperText, { color: colors.textSecondary }]}>
                         Expires in 15 minutes.
                       </Text>
-                      <TouchableOpacity 
-                        onPress={handleSendOtp}
-                        disabled={isSendingOtp}
-                        activeOpacity={0.7}
-                        style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
-                      >
-                        <Feather name="send" size={12} color={colors.primary} />
-                        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primary }}>
-                          {isSendingOtp ? 'Sending...' : (otp ? 'Resend Code' : 'Send 6-Digit OTP')}
+                      {resendCooldown > 0 ? (
+                        <Text style={[styles.helperText, { color: colors.textSecondary, fontWeight: '700' }]}>
+                          Resend in {resendCooldown}s
                         </Text>
-                      </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity 
+                          onPress={handleSendOtp}
+                          disabled={isSendingOtp}
+                          activeOpacity={0.7}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                        >
+                          <Feather name="refresh-cw" size={12} color={colors.primary} />
+                          <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primary }}>
+                            {isSendingOtp ? 'Sending...' : 'Resend Code'}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   </View>
+
+                  {/* Step 1 Action Button: Verify Code Only */}
+                  <TouchableOpacity 
+                    style={[
+                      styles.primaryButton, 
+                      { backgroundColor: colors.primary, marginTop: 8 }, 
+                      (isVerifyingOtp || !email.trim() || otp.trim().length !== 6) && styles.primaryButtonDisabled
+                    ]}
+                    onPress={handleVerifyOtp}
+                    disabled={isVerifyingOtp || !email.trim() || otp.trim().length !== 6}
+                    activeOpacity={0.85}
+                  >
+                    {isVerifyingOtp ? (
+                      <ActivityIndicator color="#FFFFFF" size="small" />
+                    ) : (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={styles.primaryButtonText}>Verify Code</Text>
+                        <Feather name="arrow-right" size={16} color="#FFFFFF" />
+                      </View>
+                    )}
+                  </TouchableOpacity>
                 </>
               )}
 
-              <View style={styles.inputContainer}>
-                <Text style={[styles.label, { color: colors.text }]}>New Password</Text>
-                <View style={[styles.passwordContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border }]}>
-                  <TextInput
-                    style={[styles.passwordInput, { color: colors.text }]}
-                    placeholder="Enter new password (min. 8 chars)"
-                    placeholderTextColor={colors.textSecondary}
-                    secureTextEntry={!showPassword}
-                    value={password}
-                    onChangeText={setPassword}
-                  />
-                  <TouchableOpacity 
-                    style={styles.eyeIcon} 
-                    onPress={() => setShowPassword(!showPassword)}
-                  >
-                    <Feather name={showPassword ? "eye-off" : "eye"} color={colors.textSecondary} size={18} />
-                  </TouchableOpacity>
-                </View>
-              </View>
+              {/* STEP 2 (FOR OTP) OR DIRECT FORM (FOR VALID LINK) */}
+              {((mode === 'otp' && otpStep === 'set_password') || mode === 'link') && (
+                <>
+                  {mode === 'otp' && (
+                    <>
+                      <View style={styles.stepHeaderRow}>
+                        <View style={[styles.stepBadge, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.2)' : '#DCFCE7' }]}>
+                          <Text style={[styles.stepBadgeText, { color: isDark ? '#34D399' : '#15803D' }]}>
+                            STEP 2 OF 2: CREATE NEW PASSWORD
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={[styles.verifiedBanner, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5', borderColor: isDark ? 'rgba(16, 185, 129, 0.3)' : '#A7F3D0' }]}>
+                        <Feather name="check-circle" size={16} color="#10B981" />
+                        <Text style={[styles.verifiedBannerText, { color: isDark ? '#34D399' : '#065F46' }]}>
+                          Identity verified for {email}
+                        </Text>
+                      </View>
+                    </>
+                  )}
 
-              <View style={styles.inputContainer}>
-                <Text style={[styles.label, { color: colors.text }]}>Confirm Password</Text>
-                <View style={[styles.passwordContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border }]}>
-                  <TextInput
-                    style={[styles.passwordInput, { color: colors.text }]}
-                    placeholder="Confirm new password"
-                    placeholderTextColor={colors.textSecondary}
-                    secureTextEntry={!showConfirmPassword}
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                  />
-                  <TouchableOpacity 
-                    style={styles.eyeIcon} 
-                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                  >
-                    <Feather name={showConfirmPassword ? "eye-off" : "eye"} color={colors.textSecondary} size={18} />
-                  </TouchableOpacity>
-                </View>
-                {confirmPassword.length > 0 && password !== confirmPassword && (
-                  <Text style={styles.passwordMismatchText}>✕ Passwords do not match</Text>
-                )}
-                {confirmPassword.length > 0 && password === confirmPassword && (
-                  <Text style={styles.passwordMatchText}>✓ Passwords match</Text>
-                )}
-              </View>
+                  <View style={styles.inputContainer}>
+                    <Text style={[styles.label, { color: colors.text }]}>New Password</Text>
+                    <View style={[styles.passwordContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border }]}>
+                      <TextInput
+                        style={[styles.passwordInput, { color: colors.text }]}
+                        placeholder="Enter new password (min. 8 chars)"
+                        placeholderTextColor={colors.textSecondary}
+                        secureTextEntry={!showPassword}
+                        value={password}
+                        onChangeText={setPassword}
+                      />
+                      <TouchableOpacity 
+                        style={styles.eyeIcon} 
+                        onPress={() => setShowPassword(!showPassword)}
+                      >
+                        <Feather name={showPassword ? "eye-off" : "eye"} color={colors.textSecondary} size={18} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
 
-              <TouchableOpacity 
-                style={[
-                  styles.primaryButton, 
-                  { backgroundColor: colors.primary }, 
-                  (isLoading || (mode === 'link' && (!uid || !token || tokenStatus === 'invalid'))) && styles.primaryButtonDisabled
-                ]}
-                onPress={handleSubmit}
-                disabled={isLoading || (mode === 'link' && (!uid || !token || tokenStatus === 'invalid'))}
-                activeOpacity={0.85}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <Text style={styles.primaryButtonText}>Save New Password</Text>
-                )}
-              </TouchableOpacity>
+                  <View style={styles.inputContainer}>
+                    <Text style={[styles.label, { color: colors.text }]}>Confirm Password</Text>
+                    <View style={[styles.passwordContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border }]}>
+                      <TextInput
+                        style={[styles.passwordInput, { color: colors.text }]}
+                        placeholder="Confirm new password"
+                        placeholderTextColor={colors.textSecondary}
+                        secureTextEntry={!showConfirmPassword}
+                        value={confirmPassword}
+                        onChangeText={setConfirmPassword}
+                      />
+                      <TouchableOpacity 
+                        style={styles.eyeIcon} 
+                        onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        <Feather name={showConfirmPassword ? "eye-off" : "eye"} color={colors.textSecondary} size={18} />
+                      </TouchableOpacity>
+                    </View>
+                    {confirmPassword.length > 0 && password !== confirmPassword && (
+                      <Text style={styles.passwordMismatchText}>✕ Passwords do not match</Text>
+                    )}
+                    {confirmPassword.length > 0 && password === confirmPassword && (
+                      <Text style={styles.passwordMatchText}>✓ Passwords match</Text>
+                    )}
+                  </View>
+
+                  <TouchableOpacity 
+                    style={[
+                      styles.primaryButton, 
+                      { backgroundColor: colors.primary }, 
+                      (isLoading || (mode === 'link' && (!uid || !token || tokenStatus === 'invalid')) || password.length < 8 || password !== confirmPassword) && styles.primaryButtonDisabled
+                    ]}
+                    onPress={handleSubmit}
+                    disabled={isLoading || (mode === 'link' && (!uid || !token || tokenStatus === 'invalid')) || password.length < 8 || password !== confirmPassword}
+                    activeOpacity={0.85}
+                  >
+                    {isLoading ? (
+                      <ActivityIndicator color="#FFFFFF" size="small" />
+                    ) : (
+                      <Text style={styles.primaryButtonText}>Save &amp; Set New Password</Text>
+                    )}
+                  </TouchableOpacity>
+                </>
+              )}
             </>
           )}
         </View>
@@ -403,6 +551,7 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
     </KeyboardAvoidingView>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
@@ -580,4 +729,86 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 4,
   },
+  stepHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  stepBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  stepBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  emailBadgeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  emailBadgeSmall: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  emailBadgeMain: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 1,
+  },
+  changeEmailTouch: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  changeEmailLink: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  sendCodeBtn: {
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sendCodeBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    padding: 8,
+    borderRadius: 8,
+    marginTop: 6,
+  },
+  errorBannerText: {
+    fontSize: 12,
+    color: '#EF4444',
+    fontWeight: '600',
+    flex: 1,
+  },
+  verifiedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  verifiedBannerText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
 });
+

@@ -4,7 +4,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     OwnerCustomerDetailView, RequestDeleteView, ApproveDeleteView, RejectDeleteView,
     PasswordResetRequestView, PasswordResetConfirmView, PasswordResetOTPConfirmView,
-    PasswordResetValidateTokenView,
+    PasswordResetVerifyOTPView, PasswordResetValidateTokenView,
     AdminUnlockUserView, AdminLockUserView,
     VerifyEmailView, CustomerSignupView, CustomTokenObtainPairView, ProfileView,
     CustomerListView, AddressViewSet, WalletView, GoogleOwnerLoginView, admin_google_login,
@@ -25,6 +25,7 @@ urlpatterns = [
 
     path('password-reset/', PasswordResetRequestView.as_view(), name='password-reset'),
     path('password-reset/validate-token/', PasswordResetValidateTokenView.as_view(), name='password-reset-validate-token'),
+    path('password-reset/verify-otp/', PasswordResetVerifyOTPView.as_view(), name='password-reset-verify-otp'),
     path('password-reset-confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
     path('password-reset/otp-confirm/', PasswordResetOTPConfirmView.as_view(), name='password-reset-otp-confirm'),
     path('verify-email/', VerifyEmailView.as_view(), name='verify-email'),

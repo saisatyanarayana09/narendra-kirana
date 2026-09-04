@@ -238,93 +238,20 @@ def build_password_reset_link_email(user, reset_link: str, portal: str = 'custom
     }
 
 
-def build_password_reset_email(user, reset_link: str, otp_code: str, portal: str = 'customer') -> dict:
+def build_password_reset_email(user, reset_link: str = '', otp_code: str = '', portal: str = 'customer') -> dict:
     """
-    Backwards-compatible wrapper: delegates to OTP or Link if only one is relevant,
-    or builds combined template.
+    Backwards-compatible wrapper. Strictly isolates recovery methods:
+    never renders both OTP and Reset Link in the same email.
     """
-    if not reset_link and otp_code:
-        return build_password_reset_otp_email(user, otp_code, portal)
-    if not otp_code and reset_link:
+    if reset_link and not otp_code:
         return build_password_reset_link_email(user, reset_link, portal)
+    if otp_code and not reset_link:
+        return build_password_reset_otp_email(user, otp_code, portal)
+    # If both are passed by legacy code, link takes priority for 1-click recovery
+    if reset_link:
+        return build_password_reset_link_email(user, reset_link, portal)
+    return build_password_reset_otp_email(user, otp_code, portal)
 
-    first_name = escape(user.first_name or user.username or "Customer")
-    portal_label = "Owner / Management Portal" if portal == 'owner' else "Customer Account"
-    title = f"Reset Password - {portal_label}"
-    preheader = f"Your verification code is {otp_code}. Valid for 15 minutes."
-
-    content_html = f"""
-      <h2 style="margin: 0 0 12px 0; color: #0f172a; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">
-        Password Reset Request
-      </h2>
-      <p style="margin: 0 0 20px 0; color: #475569; font-size: 14px; line-height: 1.6;">
-        Hello <strong>{first_name}</strong>,<br>
-        We received a request to reset the password for your Narendra Kirana <strong>{portal_label}</strong>.
-      </p>
-
-      <!-- 6-DIGIT OTP BOX -->
-      <div style="background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 16px; padding: 20px; text-align: center; margin: 24px 0;">
-        <div style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px;">
-          One-Time Password (OTP)
-        </div>
-        <div class="otp-digit-box" style="font-family: 'Courier New', Courier, monospace; font-size: 34px; font-weight: 900; letter-spacing: 10px; color: #0f172a; padding: 6px 0;">
-          {otp_code}
-        </div>
-        <div style="display: inline-block; margin-top: 8px; font-size: 11px; font-weight: 700; color: #b45309; background-color: #fef3c7; padding: 3px 10px; border-radius: 20px;">
-          ⏱ Expires in 15 minutes &bull; Single-use only
-        </div>
-      </div>
-
-      <!-- Divider -->
-      <div style="text-align: center; margin: 24px 0; position: relative;">
-        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 0;">
-        <span style="position: relative; top: -10px; background: #ffffff; padding: 0 12px; font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase;">
-          Or Use Recovery Link
-        </span>
-      </div>
-
-      <!-- BULLETPROOF CTA BUTTON -->
-      <div style="text-align: center; margin: 24px 0 16px 0;">
-        <a href="{reset_link}" target="_blank" style="background-color: #4f46e5; border-radius: 12px; color: #ffffff; display: inline-block; font-size: 14px; font-weight: 800; line-height: 48px; text-align: center; text-decoration: none; width: 240px; -webkit-text-size-adjust: none; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);">
-          Reset Password &rarr;
-        </a>
-      </div>
-
-      <!-- SECURITY & TRANSPARENCY RAW FALLBACK URL -->
-      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin-top: 24px;">
-        <div style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 6px;">
-          🔗 Raw Destination Link:
-        </div>
-        <div style="font-family: 'Courier New', Courier, monospace; font-size: 11px; color: #334155; word-break: break-all; line-height: 1.4; background: #ffffff; padding: 8px; border-radius: 8px; border: 1px solid #e2e8f0;">
-          {reset_link}
-        </div>
-      </div>
-
-      <div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid #f1f5f9;">
-        <p style="margin: 0; font-size: 12px; color: #64748b; line-height: 1.5;">
-          <strong>Security Notice:</strong> If you did not request this password reset, please ignore this email. Your password will remain unchanged.
-        </p>
-      </div>
-    """
-
-    html = get_base_email_wrapper(title, preheader, content_html)
-    plain_text = (
-        f"Hello {user.first_name or user.username},\n\n"
-        f"You requested to reset your password for your Narendra Kirana {portal_label}.\n\n"
-        f"YOUR 6-DIGIT OTP: {otp_code}\n"
-        f"(Expires in 15 minutes, single use)\n\n"
-        f"Alternatively, click or paste this link:\n{reset_link}\n\n"
-        f"If you did not request this, please ignore this email.\n\n"
-        f"Best regards,\nNarendra Kirana Security Team"
-    )
-
-    return {
-        'subject': f"{otp_code} is your Narendra Kirana Password Reset Code",
-        'html': html,
-        'html_message': html,
-        'text': plain_text,
-        'message': plain_text
-    }
 
 
 def build_account_activation_email(user, verify_link: str) -> dict:
