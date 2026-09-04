@@ -106,7 +106,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
 
       <ScrollView 
         showsVerticalScrollIndicator={false} 
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 75 + insets.bottom }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: items.length > 0 ? 115 + insets.bottom : 30 }]}
       >
         {/* Store Closed or Minimum Order Warning */}
         {isStoreClosed && (
@@ -249,7 +249,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
 
       {/* Sticky Bottom Checkout Bar – The ONLY checkout action */}
       {!isStoreClosed && !isBelowMinOrder && items.length > 0 && (
-        <View style={[styles.bottomBar, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 8) }]}>
+        <View style={[styles.bottomBar, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 12) }]}>
           <View>
             <Text style={[styles.bottomTotalLabel, { color: colors.textSecondary }]}>TOTAL DUE</Text>
             <Text style={[styles.bottomTotalValue, { color: colors.text }]}>₹{(parseFloat(cart.total || '0') || 0).toFixed(2)}</Text>
@@ -611,8 +611,8 @@ const styles: any = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 8,
+    paddingTop: 12,
+    paddingBottom: 12,
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
     shadowColor: '#000',
@@ -635,9 +635,11 @@ const styles: any = StyleSheet.create({
   },
   checkoutBtn: {
     backgroundColor: '#059669',
-    paddingHorizontal: 20,
-    paddingVertical: 9,
-    borderRadius: 12,
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+    minHeight: 46,
+    borderRadius: 14,
+    justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#059669',
     shadowOffset: { width: 0, height: 2 },

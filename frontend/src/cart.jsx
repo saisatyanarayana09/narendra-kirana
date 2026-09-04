@@ -669,7 +669,7 @@ export function CartPage() {
 
  return (
  <CustomerLayout>
- <main className="mx-auto max-w-6xl px-4 py-8">
+ <main className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-8 pb-36 lg:pb-8">
  <button onClick={() => navigate(-1)} className="mb-4 flex items-center gap-2 text-sm font-bold text-primary-700 hover:underline">
    <ArrowLeft size={16} /> Back
  </button>
@@ -756,20 +756,20 @@ export function CartPage() {
  </section>
  </div>
  
- {/* Mobile Sticky Checkout Bar */}
- {storeSettings?.is_open !== false && !(Number(storeSettings?.min_order_amount) > 0 && Number(cart.subtotal) < Number(storeSettings.min_order_amount)) && items.length > 0 && (
-    <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-30 bg-white border-t border-slate-200 py-2 px-4 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] lg:hidden">
-      <div className="flex items-center justify-between gap-4 max-w-md mx-auto">
-        <div>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Due</p>
-          <p className="text-xl font-black text-slate-900 leading-none mt-0.5">â‚¹{cart?.total}</p>
-        </div>
-        <button onClick={() => navigate('/checkout')} className="flex-1 min-h-[38px] py-1.5 px-4 rounded-xl bg-primary-600 font-bold text-white shadow-sm active:scale-95 transition-all text-sm">
-          Checkout
-        </button>
-      </div>
-    </div>
-  )}
+  {/* Mobile Sticky Checkout Bar */}
+  {storeSettings?.is_open !== false && !(Number(storeSettings?.min_order_amount) > 0 && Number(cart.subtotal) < Number(storeSettings.min_order_amount)) && items.length > 0 && (
+     <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-30 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-3 px-4 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.08)] lg:hidden">
+       <div className="flex items-center justify-between gap-4 max-w-md mx-auto">
+         <div>
+           <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Due</p>
+           <p className="text-xl font-black text-slate-900 dark:text-white leading-none mt-0.5">₹{cart?.total}</p>
+         </div>
+         <button onClick={() => navigate('/checkout')} className="flex-1 min-h-[44px] py-2.5 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] font-bold text-white shadow-md shadow-emerald-600/20 transition-all text-sm sm:text-base flex items-center justify-center gap-2 cursor-pointer">
+           Checkout
+         </button>
+       </div>
+     </div>
+   )}
  </div>
  )}
  </main>
@@ -909,142 +909,277 @@ export function CheckoutPage() {
  const finalTotal = useWallet ? Math.max(0, cartTotal - walletBalance) : cartTotal;
  const walletApplied = useWallet ? Math.min(cartTotal, walletBalance) : 0;
 
- return <CustomerLayout><main className="mx-auto max-w-xl px-4 py-6"><button onClick={() => navigate(-1)} className="mb-4 flex items-center gap-2 text-sm font-bold text-primary-700 hover:underline bg-transparent border-0"><ArrowLeft size={16} /> Back</button><h1 className="text-3xl font-extrabold">Checkout</h1><p className="mt-2 text-slate-600">Review your order and pick a time.</p>{error && <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}<div className="mt-5 rounded-xl bg-white p-5 shadow-sm">
-  
-  <div className="mb-6">
-    <label className="text-sm font-bold block mb-2">Order Type</label>
-    <div className="flex bg-slate-100 p-1 rounded-xl">
-      <button onClick={() => setOrderType('PICKUP')} className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${orderType === 'PICKUP' ? 'bg-white text-primary-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>ðŸª Store Pickup</button>
-      <button 
-        onClick={() => storeSettings?.is_home_delivery_active ? setOrderType('DELIVERY') : null} 
-        className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${orderType === 'DELIVERY' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'} ${!storeSettings?.is_home_delivery_active ? 'opacity-50 cursor-not-allowed' : 'hover:text-slate-700'}`}
-      >
-        ðŸ›µ Home Delivery {!storeSettings?.is_home_delivery_active && '(Unavailable)'}
-      </button>
-    </div>
-  </div>
+  return (
+    <CustomerLayout>
+      <main className="mx-auto max-w-xl px-4 sm:px-6 py-5 sm:py-8 pb-36 sm:pb-16">
+        <button
+          onClick={() => navigate(-1)}
+          className="mb-3 inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400 hover:underline bg-transparent border-0 cursor-pointer"
+        >
+          <ArrowLeft size={16} /> Back to Cart
+        </button>
 
-  {orderType === 'PICKUP' ? (
-    <label className="text-sm font-bold block">Pickup time<select value={time} onChange={(event) => setTime(event.target.value)} className="mt-2 w-full rounded-lg border p-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"><option>As soon as possible</option><option>In 30 minutes</option><option>In 1 hour</option></select></label>
-  ) : (
-    <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-      <div className="flex items-center justify-between mb-2">
-        <label className="text-sm font-bold">Select Delivery Address</label>
-        {!showAddressForm && (
-            <button onClick={() => { setAddressForm({ title: 'Home', street: '', landmark: '', city: '', district: '', state: '', country: 'India', zip_code: '', latitude: null, longitude: null }); setEditingAddressId(null); setShowAddressForm(true); }} className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1">+ Add New</button>
-        )}
-      </div>
+        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Checkout</h1>
+        <p className="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400">Review your order details and choose delivery or pickup.</p>
 
-      {showAddressForm ? (
-        <form onSubmit={saveAddress} className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
-          <div className="flex justify-between items-center mb-2">
-            <h4 className="font-bold text-sm text-slate-900">{editingAddressId ? 'Edit Address' : 'New Address'}</h4>
-            <button type="button" onClick={() => setShowAddressForm(false)} className="text-xs font-bold text-slate-500 hover:text-slate-700">Cancel</button>
+        {error && (
+          <div className="mt-4 p-3.5 rounded-xl bg-red-50 dark:bg-rose-950/40 border border-red-200 dark:border-rose-900/50 text-xs sm:text-sm font-bold text-red-700 dark:text-rose-300 animate-in fade-in">
+            {error}
           </div>
-          {!addressForm.latitude ? (
-            <button type="button" onClick={captureLocation} className="w-full font-extrabold text-sm py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all border-2 active:scale-[0.98] bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100">
-              <MapPin size={18} className="text-indigo-600" />
-              ðŸ“ Capture My Exact Location
-            </button>
-          ) : (
-            <div className="flex items-center justify-between bg-emerald-50 border-2 border-emerald-200 rounded-xl p-3 animate-in zoom-in-95 duration-300">
-              <div className="flex items-center gap-2 text-emerald-700 font-extrabold text-sm">
-                <CheckCircle2 size={18} className="text-emerald-500" />
-                <span>GPS Secured</span>
-              </div>
-              <button type="button" onClick={captureLocation} className="flex items-center gap-1.5 text-xs font-bold bg-white text-emerald-700 border border-emerald-200 px-4 py-2 rounded-lg hover:bg-emerald-100 transition-colors shadow-sm active:scale-95">
-                <RefreshCw size={14} /> Relocate
+        )}
+
+        <div className="mt-5 rounded-2xl bg-white dark:bg-slate-900 p-4 sm:p-6 shadow-xs border border-slate-100 dark:border-slate-800">
+          {/* Order Type Toggle */}
+          <div className="mb-5">
+            <label className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-2">Order Type</label>
+            <div className="flex bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-xl gap-1.5">
+              <button
+                type="button"
+                onClick={() => setOrderType('PICKUP')}
+                className={`flex-1 py-2.5 px-3 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  orderType === 'PICKUP'
+                    ? 'bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-300 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                }`}
+              >
+                <span>🏪</span> Store Pickup
+              </button>
+              <button
+                type="button"
+                onClick={() => storeSettings?.is_home_delivery_active ? setOrderType('DELIVERY') : null}
+                className={`flex-1 py-2.5 px-3 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  orderType === 'DELIVERY'
+                    ? 'bg-white dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 shadow-xs'
+                    : 'text-slate-500'
+                } ${!storeSettings?.is_home_delivery_active ? 'opacity-50 cursor-not-allowed' : 'hover:text-slate-700 dark:hover:text-slate-300'}`}
+              >
+                <span>🛵</span> Home Delivery {!storeSettings?.is_home_delivery_active && '(Unavailable)'}
               </button>
             </div>
-          )}
-          <div className="grid grid-cols-2 gap-3">
-             <div className="col-span-2">
-               <input placeholder="Title (e.g. Home, Office)" value={addressForm.title} onChange={e => setAddressForm({...addressForm, title: e.target.value})} required className="w-full text-sm rounded-lg border p-2.5 outline-none focus:ring-2 focus:ring-indigo-500"/>
-             </div>
-             <div className="col-span-2">
-               <textarea placeholder="House/Flat No, Street" value={addressForm.street} onChange={e => setAddressForm({...addressForm, street: e.target.value})} required className="w-full text-sm rounded-lg border p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 h-16 resize-none"></textarea>
-             </div>
-             <div className="col-span-2">
-               <input placeholder="Landmark (Optional)" value={addressForm.landmark} onChange={e => setAddressForm({...addressForm, landmark: e.target.value})} className="w-full text-sm rounded-lg border p-2.5 outline-none focus:ring-2 focus:ring-indigo-500"/>
-             </div>
-             <div>
-               <input placeholder="City" value={addressForm.city} onChange={e => setAddressForm({...addressForm, city: e.target.value})} required className="w-full text-sm rounded-lg border p-2.5 outline-none focus:ring-2 focus:ring-indigo-500"/>
-             </div>
-             <div>
-               <input placeholder="State" value={addressForm.state} onChange={e => setAddressForm({...addressForm, state: e.target.value})} required className="w-full text-sm rounded-lg border p-2.5 outline-none focus:ring-2 focus:ring-indigo-500"/>
-             </div>
-             <div className="col-span-2">
-               <input placeholder="Pincode" value={addressForm.zip_code} onChange={e => setAddressForm({...addressForm, zip_code: e.target.value})} required className="w-full text-sm rounded-lg border p-2.5 outline-none focus:ring-2 focus:ring-indigo-500"/>
-             </div>
           </div>
-          <button type="submit" disabled={loading} className="w-full mt-2 bg-indigo-600 text-white font-bold text-sm py-2.5 rounded-lg hover:bg-indigo-700 disabled:opacity-50">Save Address</button>
-        </form>
-      ) : (
-        <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-            {addresses.length === 0 ? (
-                <div className="p-4 border border-slate-200 border-dashed rounded-xl text-center text-sm text-slate-500">No saved addresses. Please add one.</div>
-            ) : (
-                addresses.map(addr => (
-                  <div key={addr.id} onClick={() => setSelectedAddressId(addr.id)} className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 ${selectedAddressId === addr.id ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 dark:border-indigo-500' : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:border-slate-300 dark:hover:border-slate-700'}`}>
-                    <div className={`mt-1 w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${selectedAddressId === addr.id ? 'border-indigo-600' : 'border-slate-300 dark:border-slate-600'}`}>
-                        {selectedAddressId === addr.id && <div className="w-2 h-2 rounded-full bg-indigo-600"></div>}
+
+          {orderType === 'PICKUP' ? (
+            <div>
+              <label className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-1.5">
+                Pickup time
+              </label>
+              <select
+                value={time}
+                onChange={(event) => setTime(event.target.value)}
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none transition-all cursor-pointer"
+              >
+                <option>As soon as possible</option>
+                <option>In 30 minutes</option>
+                <option>In 1 hour</option>
+              </select>
+            </div>
+          ) : (
+            <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  Select Delivery Address
+                </label>
+                {!showAddressForm && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAddressForm({ title: 'Home', street: '', landmark: '', city: '', district: '', state: '', country: 'India', zip_code: '', latitude: null, longitude: null });
+                      setEditingAddressId(null);
+                      setShowAddressForm(true);
+                    }}
+                    className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 flex items-center gap-1 cursor-pointer"
+                  >
+                    + Add New
+                  </button>
+                )}
+              </div>
+
+              {showAddressForm ? (
+                <form onSubmit={saveAddress} className="bg-slate-50 dark:bg-slate-800/60 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
+                  <div className="flex justify-between items-center mb-1">
+                    <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">{editingAddressId ? 'Edit Address' : 'New Address'}</h4>
+                    <button type="button" onClick={() => setShowAddressForm(false)} className="text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer">Cancel</button>
+                  </div>
+                  {!addressForm.latitude ? (
+                    <button type="button" onClick={captureLocation} className="w-full font-extrabold text-xs sm:text-sm py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all border-2 active:scale-[0.98] bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 cursor-pointer">
+                      <MapPin size={16} className="text-indigo-600" />
+                      Capture My Exact Location (GPS)
+                    </button>
+                  ) : (
+                    <div className="flex items-center justify-between bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3 animate-in zoom-in-95 duration-200">
+                      <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 font-extrabold text-xs sm:text-sm">
+                        <CheckCircle2 size={16} className="text-emerald-500" />
+                        <span>GPS Location Secured</span>
+                      </div>
+                      <button type="button" onClick={captureLocation} className="flex items-center gap-1.5 text-xs font-bold bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700 px-3 py-1.5 rounded-lg hover:bg-emerald-50 transition-colors shadow-xs active:scale-95 cursor-pointer">
+                        <RefreshCw size={13} /> Relocate
+                      </button>
                     </div>
-                    <div className="flex-1">
-                        <div className="flex justify-between items-start mb-1">
-                            <span className="font-bold text-sm text-slate-900 dark:text-white">{addr.title}</span>
-                            <button type="button" onClick={(e) => { e.stopPropagation(); setAddressForm(addr); setEditingAddressId(addr.id); setShowAddressForm(true); }} className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 p-1">
-                                <Edit2 size={14} />
-                            </button>
-                        </div>
-                        <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{addr.street}</p>
-                        {addr.landmark && <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{addr.landmark}</p>}
-                        <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1">{addr.city}, {addr.state} - {addr.zip_code}</p>
+                  )}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="col-span-2">
+                      <input placeholder="Title (e.g. Home, Office)" value={addressForm.title} onChange={e => setAddressForm({...addressForm, title: e.target.value})} required className="w-full text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 p-2.5 sm:p-3 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-indigo-500"/>
+                    </div>
+                    <div className="col-span-2">
+                      <textarea placeholder="House/Flat No, Street Address *" value={addressForm.street} onChange={e => setAddressForm({...addressForm, street: e.target.value})} required className="w-full text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 p-2.5 sm:p-3 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 h-16 resize-none"></textarea>
+                    </div>
+                    <div className="col-span-2">
+                      <input placeholder="Landmark (Optional)" value={addressForm.landmark} onChange={e => setAddressForm({...addressForm, landmark: e.target.value})} className="w-full text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 p-2.5 sm:p-3 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-indigo-500"/>
+                    </div>
+                    <div>
+                      <input placeholder="City *" value={addressForm.city} onChange={e => setAddressForm({...addressForm, city: e.target.value})} required className="w-full text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 p-2.5 sm:p-3 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-indigo-500"/>
+                    </div>
+                    <div>
+                      <input placeholder="State *" value={addressForm.state} onChange={e => setAddressForm({...addressForm, state: e.target.value})} required className="w-full text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 p-2.5 sm:p-3 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-indigo-500"/>
+                    </div>
+                    <div className="col-span-2">
+                      <input placeholder="Pincode *" value={addressForm.zip_code} onChange={e => setAddressForm({...addressForm, zip_code: e.target.value})} required className="w-full text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 p-2.5 sm:p-3 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-indigo-500"/>
                     </div>
                   </div>
-                ))
-            )}
-        </div>
-      )}
-      
-      {parseFloat(storeSettings?.min_delivery_order_amount) > 0 && parseFloat(cart?.subtotal) < parseFloat(storeSettings.min_delivery_order_amount) && (
-        <div className="p-3 bg-red-50 dark:bg-rose-950/40 text-red-700 dark:text-rose-300 text-sm font-bold rounded-lg border border-red-100 dark:border-rose-900/50 mt-4">
-          Home Delivery requires a minimum cart total of ₹{storeSettings.min_delivery_order_amount}.
-        </div>
-      )}
-    </div>
-  )}
-  <label className="mt-4 block text-sm font-bold text-slate-900 dark:text-white">Note for the store (optional)<textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="E.g., Please pack fragile items carefully..." className="mt-4 w-full rounded-lg border border-slate-200 dark:border-slate-700 p-3 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all resize-none h-16" /></label>
- 
- {walletBalance > 0 && (
-   <div className="mt-5 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-between">
-     <div>
-       <div className="font-bold text-emerald-800 dark:text-emerald-300">Use Wallet Balance</div>
-       <div className="text-sm text-emerald-600 dark:text-emerald-400">Available: ₹{walletBalance.toFixed(2)}</div>
-     </div>
-     <label className="relative inline-flex items-center cursor-pointer">
-       <input type="checkbox" className="sr-only peer" checked={useWallet} onChange={e => setUseWallet(e.target.checked)} />
-       <div className="w-11 h-6 bg-emerald-200 dark:bg-emerald-900 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-emerald-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-     </label>
-   </div>
- )}
+                  <button type="submit" disabled={loading} className="w-full mt-2 bg-indigo-600 text-white font-bold text-xs sm:text-sm py-3 rounded-xl hover:bg-indigo-700 transition disabled:opacity-50 cursor-pointer">
+                    Save Address
+                  </button>
+                </form>
+              ) : (
+                <div className="space-y-2.5 max-h-[260px] overflow-y-auto pr-1 custom-scrollbar">
+                  {addresses.length === 0 ? (
+                    <div className="p-4 border border-slate-200 dark:border-slate-700 border-dashed rounded-xl text-center text-xs sm:text-sm text-slate-500">
+                      No saved addresses found. Please add a delivery address above.
+                    </div>
+                  ) : (
+                    addresses.map(addr => (
+                      <div
+                        key={addr.id}
+                        onClick={() => setSelectedAddressId(addr.id)}
+                        className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 ${
+                          selectedAddressId === addr.id
+                            ? 'border-indigo-600 bg-indigo-50/80 dark:bg-indigo-950/40 dark:border-indigo-500'
+                            : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:border-slate-300 dark:hover:border-slate-700'
+                        }`}
+                      >
+                        <div className={`mt-0.5 w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center ${selectedAddressId === addr.id ? 'border-indigo-600' : 'border-slate-300 dark:border-slate-600'}`}>
+                          {selectedAddressId === addr.id && <div className="w-2 h-2 rounded-full bg-indigo-600" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start mb-0.5">
+                            <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate">{addr.title}</span>
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); setAddressForm(addr); setEditingAddressId(addr.id); setShowAddressForm(true); }}
+                              className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 p-0.5"
+                              title="Edit address"
+                            >
+                              <Edit2 size={13} />
+                            </button>
+                          </div>
+                          <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2">{addr.street}</p>
+                          {addr.landmark && <p className="text-xs text-slate-500 dark:text-slate-400">{addr.landmark}</p>}
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">{addr.city}, {addr.state} - {addr.zip_code}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
 
- <div className="mt-5 space-y-2 text-sm text-slate-600 dark:text-slate-300 border-t border-slate-100 dark:border-slate-800 pt-4"><div className="flex justify-between"><span>Subtotal</span><span>₹{cart?.subtotal || '0.00'}</span></div><div className="flex justify-between text-primary-700 dark:text-primary-400"><span>Product Savings</span><span>₹{cart?.discount || '0.00'}</span></div>{cart?.promo_discount > 0 && <div className="flex justify-between text-green-600 dark:text-emerald-400 font-bold"><span>Promo Discount</span><span>- ₹{cart.promo_discount}</span></div>}{cart?.packaging_fee > 0 && <div className="flex justify-between"><span>Packaging Fee</span><span>₹{cart.packaging_fee}</span></div>}
-   {orderType === 'DELIVERY' && <div className="flex justify-between"><span>Delivery Fee</span><span className={deliveryFee === 0 ? 'text-green-600 dark:text-emerald-400 font-bold' : ''}>{deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}</span></div>}
- {useWallet && walletApplied > 0 && <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-bold"><span>Wallet Applied</span><span>- ₹{walletApplied.toFixed(2)}</span></div>}
- <div className="flex justify-between text-lg font-extrabold text-slate-900 dark:text-white pt-2"><span>Total Due</span><span>₹{finalTotal.toFixed(2)}</span></div></div>
- {storeSettings?.is_open === false ? (
- <div className="mt-5 rounded-xl bg-red-50 p-4 text-center font-bold text-red-700 border border-red-100">The store is currently closed. Cannot place order.</div>
- ) : Number(storeSettings?.min_order_amount) > 0 && Number(cart.subtotal) < Number(storeSettings.min_order_amount) ? (
- <div className="mt-5 rounded-xl bg-amber-50 p-4 text-center font-bold text-amber-700 border border-amber-100">Minimum order amount is â‚¹{storeSettings.min_order_amount}</div>
- ) : (
-  <>
-  {isDeliveryUnderMin && (
-    <div className="mt-5 rounded-xl bg-amber-50 p-4 text-center font-bold text-amber-700 border border-amber-100">Minimum delivery order amount is ₹{storeSettings.min_delivery_order_amount}</div>
-  )}
-  <button onClick={submit} disabled={loading || isDeliveryUnderMin || (orderType === 'DELIVERY' && !selectedAddressId && (!deliveryAddress || !deliveryPincode))} className="mt-4 min-h-10 py-2.5 px-4 w-full rounded-xl bg-primary-600 font-bold text-white disabled:bg-slate-300 hover:bg-primary-700 active:scale-[0.98] transition-all text-sm">{loading ? 'Processing...' : (finalTotal > 0 ? (orderType === 'DELIVERY' ? 'Place order (Cash on Delivery)' : 'Place order (Pay at store)') : 'Place order (Paid via Wallet)')}</button>
-  </>
- )}
- </div></main></CustomerLayout>
+              {parseFloat(storeSettings?.min_delivery_order_amount) > 0 && parseFloat(cart?.subtotal) < parseFloat(storeSettings.min_delivery_order_amount) && (
+                <div className="p-3 bg-red-50 dark:bg-rose-950/40 text-red-700 dark:text-rose-300 text-xs sm:text-sm font-bold rounded-xl border border-red-100 dark:border-rose-900/50">
+                  Home Delivery requires a minimum cart total of ₹{storeSettings.min_delivery_order_amount}.
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Note for the store */}
+          <div className="mt-5">
+            <label className="block text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1.5">
+              Note for the store (optional)
+            </label>
+            <textarea
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              placeholder="E.g., Please pack fragile items carefully..."
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-all resize-none h-18"
+            />
+          </div>
+
+          {/* Digital Wallet */}
+          {walletBalance > 0 && (
+            <div className="mt-5 p-3.5 sm:p-4 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-between">
+              <div>
+                <div className="font-bold text-xs sm:text-sm text-emerald-900 dark:text-emerald-200">Use Wallet Balance</div>
+                <div className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">Available: ₹{walletBalance.toFixed(2)}</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" className="sr-only peer" checked={useWallet} onChange={e => setUseWallet(e.target.checked)} />
+                <div className="w-11 h-6 bg-emerald-200 dark:bg-emerald-900 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-emerald-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600" />
+              </label>
+            </div>
+          )}
+
+          {/* Order Summary breakdown */}
+          <div className="mt-5 space-y-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300 border-t border-slate-100 dark:border-slate-800 pt-4">
+            <div className="flex justify-between"><span>Subtotal</span><span className="font-bold text-slate-900 dark:text-white">₹{cart?.subtotal || '0.00'}</span></div>
+            <div className="flex justify-between text-primary-700 dark:text-primary-400"><span>Product Savings</span><span>-₹{cart?.discount || '0.00'}</span></div>
+            {cart?.promo_discount > 0 && <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-bold"><span>Promo Discount</span><span>-₹{cart.promo_discount}</span></div>}
+            {cart?.packaging_fee > 0 && <div className="flex justify-between"><span>Packaging Fee</span><span>₹{cart.packaging_fee}</span></div>}
+            {orderType === 'DELIVERY' && (
+              <div className="flex justify-between">
+                <span>Delivery Fee</span>
+                <span className={deliveryFee === 0 ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'font-bold'}>
+                  {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}
+                </span>
+              </div>
+            )}
+            {useWallet && walletApplied > 0 && (
+              <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-bold">
+                <span>Wallet Applied</span><span>-₹{walletApplied.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-base sm:text-lg font-black text-slate-900 dark:text-white pt-2.5 border-t border-slate-100 dark:border-slate-800">
+              <span>Total Due</span>
+              <span className="text-emerald-700 dark:text-emerald-400">₹{finalTotal.toFixed(2)}</span>
+            </div>
+          </div>
+
+          {/* Action CTAs */}
+          {storeSettings?.is_open === false ? (
+            <div className="mt-5 rounded-xl bg-red-50 dark:bg-rose-950/40 p-4 text-center font-bold text-red-700 dark:text-rose-300 border border-red-100 dark:border-rose-900/50 text-xs sm:text-sm">
+              The store is currently closed. Cannot place order.
+            </div>
+          ) : Number(storeSettings?.min_order_amount) > 0 && Number(cart.subtotal) < Number(storeSettings.min_order_amount) ? (
+            <div className="mt-5 rounded-xl bg-amber-50 dark:bg-amber-950/40 p-4 text-center font-bold text-amber-700 dark:text-amber-300 border border-amber-100 dark:border-amber-900/50 text-xs sm:text-sm">
+              Minimum order amount is ₹{storeSettings.min_order_amount}
+            </div>
+          ) : (
+            <>
+              {isDeliveryUnderMin && (
+                <div className="mt-5 rounded-xl bg-amber-50 dark:bg-amber-950/40 p-4 text-center font-bold text-amber-700 dark:text-amber-300 border border-amber-100 dark:border-amber-900/50 text-xs sm:text-sm">
+                  Minimum delivery order amount is ₹{storeSettings.min_delivery_order_amount}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={submit}
+                disabled={loading || isDeliveryUnderMin || (orderType === 'DELIVERY' && !selectedAddressId && (!deliveryAddress || !deliveryPincode))}
+                className="mt-6 min-h-[48px] py-3.5 px-6 w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] font-extrabold text-white text-sm sm:text-base shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+              >
+                {loading ? (
+                  <span className="inline-flex items-center gap-2">
+                    <RefreshCw className="animate-spin" size={16} /> Placing Order...
+                  </span>
+                ) : finalTotal > 0 ? (
+                  orderType === 'DELIVERY' ? 'Place Order (Cash on Delivery)' : 'Place Order (Pay at Store)'
+                ) : (
+                  'Place Order (Paid via Wallet)'
+                )}
+              </button>
+            </>
+          )}
+        </div>
+      </main>
+    </CustomerLayout>
+  );
 }
 
 export function OrderDetailPage() {

@@ -324,7 +324,7 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
 
       <ScrollView 
         showsVerticalScrollIndicator={false} 
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 75 + insets.bottom }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 + insets.bottom }]}
       >
         {/* Error Banner */}
         {Boolean(error) && (
@@ -752,7 +752,7 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
       </ScrollView>
 
       {/* Sticky Bottom Place Order Bar */}
-      <View style={[styles.bottomBar, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 8) }]}>
+      <View style={[styles.bottomBar, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 12) }]}>
         <View>
           <Text style={[styles.bottomTotalLabel, { color: colors.textSecondary }]}>TOTAL AMOUNT</Text>
           <Text style={[styles.bottomTotalValue, { color: colors.text }]}>₹{(finalTotalToPay || 0).toFixed(2)}</Text>
@@ -1050,14 +1050,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    minHeight: 44,
     fontSize: 13,
     color: '#0F172A',
   },
   formTextArea: {
-    height: 55,
+    height: 60,
     textAlignVertical: 'top',
   },
   formRowTwo: {
@@ -1066,10 +1067,12 @@ const styles = StyleSheet.create({
   },
   saveAddressBtn: {
     backgroundColor: '#4F46E5',
-    borderRadius: 10,
-    paddingVertical: 12,
+    borderRadius: 12,
+    paddingVertical: 13,
+    minHeight: 46,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: 6,
   },
   saveAddressBtnDisabled: {
     opacity: 0.6,
@@ -1077,7 +1080,7 @@ const styles = StyleSheet.create({
   saveAddressBtnText: {
     color: '#FFFFFF',
     fontWeight: '800',
-    fontSize: 13,
+    fontSize: 14,
   },
   emptyAddressBox: {
     padding: 16,
@@ -1372,8 +1375,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 8,
+    paddingTop: 12,
+    paddingBottom: 12,
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
     shadowColor: '#000',
@@ -1396,9 +1399,11 @@ const styles = StyleSheet.create({
   },
   placeOrderBtn: {
     backgroundColor: '#059669',
-    paddingHorizontal: 18,
-    paddingVertical: 9,
-    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    minHeight: 46,
+    borderRadius: 14,
+    justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#059669',
     shadowOffset: { width: 0, height: 2 },
@@ -1413,7 +1418,7 @@ const styles = StyleSheet.create({
   },
   placeOrderBtnText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '800',
   },
   center: {
