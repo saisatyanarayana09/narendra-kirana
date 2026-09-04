@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import { CustomerLayout } from './customer-layout';
 import api from './services/api';
-import { Lock, Eye, EyeOff, Smartphone, ArrowLeft, CheckCircle2, KeyRound, Mail, ShieldCheck, ArrowRight, RefreshCw } from 'lucide-react';
+import { Lock, Eye, EyeOff, Smartphone, ArrowLeft, CheckCircle2, KeyRound, Mail, ShieldCheck, ArrowRight, RefreshCw, ShoppingBasket } from 'lucide-react';
 
 export function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -34,6 +33,20 @@ export function ResetPassword() {
 
   const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   const appSchemeUrl = uid && token ? `smartkirana://reset-password?uid=${encodeURIComponent(uid)}&token=${encodeURIComponent(token)}` : '';
+
+  // Proactive Service Worker cleanup and reload-counter reset
+  useEffect(() => {
+    sessionStorage.removeItem('vite_preload_reload_count');
+    sessionStorage.removeItem('lazy_chunk_retry_count');
+    sessionStorage.removeItem('eb_chunk_reload_count');
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (const reg of registrations) {
+          reg.update().catch(() => {});
+        }
+      }).catch(() => {});
+    }
+  }, []);
 
   // Countdown timer for OTP resend cooldown
   useEffect(() => {
@@ -192,8 +205,25 @@ export function ResetPassword() {
   }
 
   return (
-    <CustomerLayout>
-      <main className="mx-auto max-w-md px-4 py-10">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#090d16] text-slate-900 dark:text-slate-100 flex flex-col justify-between transition-colors duration-200">
+      {/* Clean Branded Header */}
+      <header className="border-b border-slate-200/80 dark:border-slate-800/80 bg-white/80 dark:bg-[#0d1322]/90 backdrop-blur-xl sticky top-0 z-30 shadow-xs">
+        <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
+          <Link to="/" className="flex items-center gap-2 text-xl sm:text-2xl font-black tracking-tight hover:opacity-85 transition">
+            <span className="text-slate-900 dark:text-white">Narendra</span>
+            <span className="text-primary-600 dark:text-primary-400">Kirana</span>
+          </Link>
+          <Link
+            to="/login"
+            className="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 py-1.5 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800 transition shadow-xs"
+          >
+            <ArrowLeft size={14} /> Back to Sign In
+          </Link>
+        </div>
+      </header>
+
+      {/* Main Container */}
+      <main className="mx-auto w-full max-w-md px-4 py-8 sm:py-12 my-auto">
         {/* Mobile App First Banner */}
         {isMobile && uid && token && mode === 'link' && tokenStatus === 'valid' && (
           <div className="mb-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 p-4 text-white shadow-lg border border-emerald-500/30">
@@ -505,7 +535,15 @@ export function ResetPassword() {
           )}
         </div>
       </main>
-    </CustomerLayout>
+
+      {/* Clean Security Footer */}
+      <footer className="border-t border-slate-200/60 dark:border-slate-800/60 py-6 text-center text-xs text-slate-400 dark:text-slate-500">
+        <div className="flex items-center justify-center gap-1.5 font-medium">
+          <ShieldCheck size={14} className="text-emerald-600 dark:text-emerald-400" />
+          <span>256-Bit SSL Encrypted &bull; Narendra Kirana Security</span>
+        </div>
+      </footer>
+    </div>
   );
 }
 

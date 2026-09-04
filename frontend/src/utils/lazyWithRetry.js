@@ -23,19 +23,20 @@ export function lazyWithRetry(componentImport) {
         /error loading dynamically imported module/i.test(error?.message || '');
 
       if (isChunkLoadFailed) {
-        const lastRetry = Number(window.sessionStorage.getItem(sessionKey) || 0);
-        const now = Date.now();
+        const retryCount = Number(window.sessionStorage.getItem('lazy_chunk_retry_count') || 0);
 
-        // If we haven't auto-reloaded in the last 10 seconds, reload to get fresh index.html
-        if (now - lastRetry > 10000) {
-          window.sessionStorage.setItem(sessionKey, String(now));
+        // Allow at most 1 reload attempt per user session
+        if (retryCount < 1) {
+          window.sessionStorage.setItem('lazy_chunk_retry_count', '1');
           window.location.reload();
           // Return a hanging promise so React Suspense waits for the page reload to execute
           return new Promise(() => {});
+        } else {
+          console.warn('lazyWithRetry: Max reload attempt reached. Halting auto-reload to prevent loop.');
         }
       }
 
-      // If it's another error or already retried recently, let it bubble to ErrorBoundary
+      // Bubble to ErrorBoundary if retry already exhausted or other error
       throw error;
     }
   });

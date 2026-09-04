@@ -34,7 +34,13 @@ export default defineConfig({
         skipWaiting: true,
         clientsClaim: true,
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//],
+        navigateFallbackDenylist: [
+          /^\/api\//,
+          /^\/reset-password/,
+          /^\/owner\/reset-password/,
+          /^\/forgot-password/,
+          /^\/verify-email/,
+        ],
         // Cache API responses and assets
         runtimeCaching: [
           {

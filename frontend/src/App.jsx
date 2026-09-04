@@ -160,12 +160,13 @@ class ErrorBoundary extends React.Component {
       /error loading dynamically imported module/i.test(error?.message || '');
 
     if (isChunkError) {
-      const lastReload = Number(sessionStorage.getItem('last_eb_chunk_reload') || 0);
-      const now = Date.now();
-      if (now - lastReload > 8000) {
-        sessionStorage.setItem('last_eb_chunk_reload', String(now));
+      const ebCount = Number(sessionStorage.getItem('eb_chunk_reload_count') || 0);
+      if (ebCount < 1) {
+        sessionStorage.setItem('eb_chunk_reload_count', '1');
         window.location.reload();
+        return;
       }
+      console.warn('ErrorBoundary: Max reload attempt reached. Displaying recovery UI.');
     }
   }
   render() {
@@ -291,10 +292,12 @@ function App() {
      
      <Route path="/login" element={<CustomerLoginPage />} />
      <Route path="/signup" element={<CustomerSignupPage />} />
-     <Route path="/verify-email" element={<VerifyEmail />} />
-     <Route path="/forgot-password" element={<ForgotPassword />} />
-     <Route path="/reset-password" element={<ResetPassword />} />
-  </Route>
+   </Route>
+
+   {/* Public Auth & Password Recovery Routes (Completely decoupled from CartProvider & background fetches) */}
+   <Route path="/verify-email" element={<VerifyEmail />} />
+   <Route path="/forgot-password" element={<ForgotPassword />} />
+   <Route path="/reset-password" element={<ResetPassword />} />
 
  {/* Owner Portal Routes (No CartProvider needed) */}
  <Route path="/owner/login" element={<OwnerLogin />} />

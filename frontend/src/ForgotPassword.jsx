@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { CustomerLayout } from './customer-layout';
 import api from './services/api';
-import { ArrowLeft, Mail, ExternalLink, CheckCircle2, KeyRound, Link2 } from 'lucide-react';
+import { ArrowLeft, Mail, ExternalLink, CheckCircle2, KeyRound, Link2, ShieldCheck } from 'lucide-react';
 
 function getEmailProviderUrl(emailStr) {
   if (!emailStr) return 'https://mail.google.com';
@@ -63,14 +62,25 @@ export function ForgotPassword() {
   }
 
   return (
-    <CustomerLayout>
-      <main className="mx-auto max-w-md px-4 py-10">
-        <button 
-          onClick={() => window.history.back()} 
-          className="mb-4 flex items-center gap-2 text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
-        >
-          <ArrowLeft size={16} /> Back
-        </button>
+    <div className="min-h-screen bg-slate-50 dark:bg-[#090d16] text-slate-900 dark:text-slate-100 flex flex-col justify-between transition-colors duration-200">
+      {/* Clean Branded Header */}
+      <header className="border-b border-slate-200/80 dark:border-slate-800/80 bg-white/80 dark:bg-[#0d1322]/90 backdrop-blur-xl sticky top-0 z-30 shadow-xs">
+        <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
+          <Link to="/" className="flex items-center gap-2 text-xl sm:text-2xl font-black tracking-tight hover:opacity-85 transition">
+            <span className="text-slate-900 dark:text-white">Narendra</span>
+            <span className="text-primary-600 dark:text-primary-400">Kirana</span>
+          </Link>
+          <Link
+            to="/login"
+            className="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 py-1.5 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800 transition shadow-xs"
+          >
+            <ArrowLeft size={14} /> Back to Sign In
+          </Link>
+        </div>
+      </header>
+
+      {/* Main Container */}
+      <main className="mx-auto w-full max-w-md px-4 py-8 sm:py-12 my-auto">
 
         <div className="rounded-2xl bg-white dark:bg-slate-900 p-6 sm:p-7 shadow-sm border border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-3 mb-2">
@@ -243,6 +253,14 @@ export function ForgotPassword() {
           )}
         </div>
       </main>
-    </CustomerLayout>
+
+      {/* Clean Security Footer */}
+      <footer className="border-t border-slate-200/60 dark:border-slate-800/60 py-6 text-center text-xs text-slate-400 dark:text-slate-500">
+        <div className="flex items-center justify-center gap-1.5 font-medium">
+          <ShieldCheck size={14} className="text-emerald-600 dark:text-emerald-400" />
+          <span>256-Bit SSL Encrypted &bull; Narendra Kirana Security</span>
+        </div>
+      </footer>
+    </div>
   );
 }
