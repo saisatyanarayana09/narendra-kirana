@@ -341,10 +341,13 @@ class VerifyEmailView(APIView):
         else:
             return Response({'error': 'Activation link is invalid or expired.'}, status=status.HTTP_400_BAD_REQUEST)
 
+import hashlib
+import django.contrib.auth
+from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.conf import settings
-from .models import PasswordResetOTP
+from .models import PasswordResetOTP, PasswordResetToken
 from .email_templates import build_password_reset_email
 
 class PasswordResetRequestView(APIView):
@@ -366,24 +369,42 @@ class PasswordResetRequestView(APIView):
                 return Response({'message': 'If an account with that email exists, we have sent a password reset link and OTP.'}, status=status.HTTP_200_OK)
 
             uid = urlsafe_base64_encode(force_bytes(user.pk))
-            token = default_token_generator.make_token(user)
             
-            frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')
-            if portal == 'owner':
-                reset_link = f"{frontend_url}/owner/reset-password?uid={uid}&token={token}"
-            else:
-                reset_link = f"{frontend_url}/reset-password?uid={uid}&token={token}"
-
-            # Generate 6-digit OTP code
-            otp_code = f"{secrets.randbelow(900000) + 100000}"
-
-            # Extract client IP
+            # Generate secure cryptographic random token for URL
+            raw_token = secrets.token_urlsafe(32)
+            # Store SHA-256 hash in database (never plain-text)
+            token_hash = hashlib.sha256(raw_token.encode('utf-8')).hexdigest()
+            
+            # Extract client IP & User-Agent
             ip_address = '127.0.0.1'
             x_forwarded = request.META.get('HTTP_X_FORWARDED_FOR')
             if x_forwarded:
                 ip_address = x_forwarded.split(',')[0].strip()
             else:
                 ip_address = request.META.get('REMOTE_ADDR') or '127.0.0.1'
+            user_agent = request.META.get('HTTP_USER_AGENT', '')[:255]
+
+            # Invalidate any prior active reset tokens for this user and portal
+            PasswordResetToken.objects.filter(user=user, portal=portal, is_used=False).update(is_used=True)
+
+            # Persist token with strict 15-minute expiration
+            PasswordResetToken.objects.create(
+                user=user,
+                token_hash=token_hash,
+                portal=portal,
+                expires_at=timezone.now() + timedelta(minutes=15),
+                ip_address=ip_address,
+                user_agent=user_agent
+            )
+
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')
+            if portal == 'owner':
+                reset_link = f"{frontend_url}/owner/reset-password?uid={uid}&token={raw_token}"
+            else:
+                reset_link = f"{frontend_url}/reset-password?uid={uid}&token={raw_token}"
+
+            # Generate 6-digit OTP code
+            otp_code = f"{secrets.randbelow(900000) + 100000}"
 
             # Invalidate any prior active OTPs for this user and portal
             PasswordResetOTP.objects.filter(user=user, portal=portal, is_used=False).update(is_used=True)
@@ -435,23 +456,72 @@ class PasswordResetConfirmView(APIView):
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
             user = None
 
-        if user is not None and default_token_generator.check_token(user, token):
-            if portal == 'owner' and not (user.is_staff or getattr(user, 'is_owner', False) or user.is_superuser):
-                return Response({'error': 'This account does not have owner access.'}, status=status.HTTP_403_FORBIDDEN)
-            user.set_password(new_password)
-            # Unlock previously locked account upon verified password reset
-            user.is_locked = False
-            user.failed_login_attempts = 0
-            user.lockout_until = None
-            user.lockout_reason = ''
-            user.save()
+        if not user:
+            return Response({'error': 'The reset link is invalid or malformed.'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Invalidate any pending OTPs as well
-            PasswordResetOTP.objects.filter(user=user, is_used=False).update(is_used=True)
+        # Hash incoming token to query database
+        token_hash = hashlib.sha256(token.encode('utf-8')).hexdigest()
+        token_record = PasswordResetToken.objects.filter(user=user, token_hash=token_hash).first()
 
-            return Response({'message': 'Password has been reset successfully.'}, status=status.HTTP_200_OK)
-        else:
-            return Response({'error': 'The reset link is invalid, possibly because it has already been used.'}, status=status.HTTP_400_BAD_REQUEST)
+        is_valid = False
+        if token_record:
+            if token_record.is_used:
+                return Response({'error': 'Link already used / expired. Please request a new link.'}, status=status.HTTP_400_BAD_REQUEST)
+            if timezone.now() >= token_record.expires_at:
+                return Response({'error': 'Reset link has expired (15-minute limit). Please request a new link.'}, status=status.HTTP_400_BAD_REQUEST)
+            is_valid = True
+        elif default_token_generator.check_token(user, token):
+            # Backwards compatibility check for any legacy links
+            is_valid = True
+
+        if not is_valid:
+            return Response({'error': 'Link already used / expired. Please request a new link.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if portal == 'owner' and not (user.is_staff or getattr(user, 'is_owner', False) or user.is_superuser):
+            return Response({'error': 'This account does not have owner access.'}, status=status.HTTP_403_FORBIDDEN)
+
+        # Update password
+        user.set_password(new_password)
+        # Unlock previously locked account upon verified password reset
+        user.is_locked = False
+        user.failed_login_attempts = 0
+        user.lockout_until = None
+        user.lockout_reason = ''
+        user.save()
+
+        # Mark token as used immediately (single-use enforcement)
+        if token_record:
+            token_record.is_used = True
+            token_record.used_at = timezone.now()
+            token_record.save(update_fields=['is_used', 'used_at'])
+
+        # Invalidate all other pending reset tokens and OTPs for this user
+        PasswordResetToken.objects.filter(user=user, is_used=False).update(is_used=True)
+        PasswordResetOTP.objects.filter(user=user, is_used=False).update(is_used=True)
+
+        return Response({'message': 'Password has been reset successfully.'}, status=status.HTTP_200_OK)
+
+
+class LogoutView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        refresh_token = request.data.get('refresh')
+        if refresh_token:
+            try:
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+            except Exception:
+                # Token may be expired, invalid or already blacklisted
+                pass
+
+        # Flush any server-side Django session
+        if hasattr(request, 'session'):
+            request.session.flush()
+        if request.user.is_authenticated:
+            django.contrib.auth.logout(request)
+
+        return Response({'message': 'Logged out successfully.'}, status=status.HTTP_200_OK)
 
 
 class PasswordResetOTPConfirmView(APIView):
@@ -506,8 +576,9 @@ class PasswordResetOTPConfirmView(APIView):
         otp_record.is_used = True
         otp_record.save(update_fields=['is_used'])
 
-        # Invalidate any other active OTPs for this user
+        # Invalidate any other active OTPs and reset tokens for this user
         PasswordResetOTP.objects.filter(user=user, is_used=False).update(is_used=True)
+        PasswordResetToken.objects.filter(user=user, is_used=False).update(is_used=True)
 
         # Reset user password and clear any brute-force lockout
         user.set_password(new_password)

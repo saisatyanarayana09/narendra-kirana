@@ -120,3 +120,26 @@ class PasswordResetOTP(models.Model):
 
     def __str__(self):
         return f"OTP for {self.user.username} ({self.portal}): {self.otp_code}"
+
+
+class PasswordResetToken(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='password_reset_tokens')
+    token_hash = models.CharField(max_length=64, db_index=True)
+    portal = models.CharField(max_length=20, default='customer') # 'customer' or 'owner'
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False, db_index=True)
+    used_at = models.DateTimeField(null=True, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True, default='')
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def is_valid(self):
+        from django.utils import timezone
+        return (not self.is_used) and (timezone.now() < self.expires_at)
+
+    def __str__(self):
+        status_str = "USED" if self.is_used else ("EXPIRED" if not self.is_valid() else "ACTIVE")
+        return f"ResetToken for {self.user.username} ({self.portal}) [{status_str}]"

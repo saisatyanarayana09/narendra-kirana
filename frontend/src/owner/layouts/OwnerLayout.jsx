@@ -49,12 +49,21 @@ const OwnerLayout = () => {
 
   const currentSection = navigation.find(item => isActive(item.href)) || navigation[0];
 
-  const handleLogout = () => {
-    localStorage.removeItem('smart-kirana-owner-token');
-    localStorage.removeItem('smart-kirana-owner-refresh');
-    localStorage.removeItem('smart-kirana-owner-user');
-    localStorage.removeItem('smart-kirana-owner-username');
-    window.location.href = '/owner/login';
+  const handleLogout = async () => {
+    const refresh = localStorage.getItem('smart-kirana-owner-refresh');
+    try {
+      if (refresh) {
+        await api.post('/auth/logout/', { refresh });
+      }
+    } catch {
+      // Ignore network errors on logout
+    } finally {
+      localStorage.removeItem('smart-kirana-owner-token');
+      localStorage.removeItem('smart-kirana-owner-refresh');
+      localStorage.removeItem('smart-kirana-owner-user');
+      localStorage.removeItem('smart-kirana-owner-username');
+      window.location.href = '/owner/login';
+    }
   };
 
   const toggleStoreStatus = async () => {

@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     # Third-party apps
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',
     'corsheaders',
     'django_filters',
@@ -216,10 +217,15 @@ REST_FRAMEWORK = {
     }
 }
 
+# ─── Session Security & Hardening (Render Admin Vault) ───
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_COOKIE_AGE = 1800  # 30 minutes of idle session
+SESSION_SAVE_EVERY_REQUEST = True
+
 # ─── Simple JWT ───
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
+    'REFRESH_TOKEN_LIFETIME': timedelta(hours=12),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
@@ -239,8 +245,8 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
 # ─── Frontend URL ───
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
 
-# Password Reset Link Expiration (10 minutes = 600 seconds)
-PASSWORD_RESET_TIMEOUT = 600
+# Password Reset Link Expiration (15 minutes = 900 seconds)
+PASSWORD_RESET_TIMEOUT = 900
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Narendra Kirana API',

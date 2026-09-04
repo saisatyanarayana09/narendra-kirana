@@ -73,18 +73,27 @@ export function CartProvider({ children }) {
    setUser(getUser());
  }, []);
 
- const logout = useCallback(() => {
-   localStorage.removeItem('smart-kirana-customer-token');
-   localStorage.removeItem('smart-kirana-customer-refresh');
-   localStorage.removeItem('smart-kirana-customer-user');
-   sessionStorage.removeItem('welcome_shown_time');
-   sessionStorage.removeItem('hasShownWelcome');
-   setUser(null);
-   setCart(null);
-   setFavorites([]);
-   setNotifications([]);
-   window.location.href = '/';
- }, []);
+  const logout = useCallback(async () => {
+    const refresh = localStorage.getItem('smart-kirana-customer-refresh');
+    try {
+      if (refresh) {
+        await api.post('/auth/logout/', { refresh });
+      }
+    } catch {
+      // Ignore network errors on logout
+    } finally {
+      localStorage.removeItem('smart-kirana-customer-token');
+      localStorage.removeItem('smart-kirana-customer-refresh');
+      localStorage.removeItem('smart-kirana-customer-user');
+      sessionStorage.removeItem('welcome_shown_time');
+      sessionStorage.removeItem('hasShownWelcome');
+      setUser(null);
+      setCart(null);
+      setFavorites([]);
+      setNotifications([]);
+      window.location.href = '/';
+    }
+  }, []);
 
  const add = useCallback(async (product) => {
    await api.post('/cart/items/', { product: product.id, quantity: 1 });

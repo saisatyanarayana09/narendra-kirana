@@ -89,6 +89,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
+      const refreshToken = await getItem(STORAGE_KEYS.REFRESH);
+      if (refreshToken) {
+        await apiClient.post('/auth/logout/', { refresh: refreshToken }).catch(() => {});
+      }
       await deleteItem(STORAGE_KEYS.TOKEN);
       await deleteItem(STORAGE_KEYS.REFRESH);
       await deleteItem(STORAGE_KEYS.USER);

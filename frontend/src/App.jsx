@@ -59,8 +59,56 @@ const Settings = lazyWithRetry(() => import('./owner/pages/Settings'));
 const AdvancedSettings = lazyWithRetry(() => import('./owner/pages/AdvancedSettings'));
 const Showcase = lazyWithRetry(() => import('./owner/pages/Showcase'));
 
-const ownerToken = () => localStorage.getItem('smart-kirana-owner-token'); // updated to use access_token from our api.js interceptor
-const customerToken = () => localStorage.getItem('smart-kirana-customer-token');
+const isTokenExpired = (token) => {
+  if (!token) return true;
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return true;
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    const payload = JSON.parse(jsonPayload);
+    if (!payload.exp) return false;
+    return Date.now() >= payload.exp * 1000;
+  } catch {
+    return true;
+  }
+};
+
+const getValidAuthToken = (prefix) => {
+  const token = localStorage.getItem(`${prefix}-token`);
+  const refresh = localStorage.getItem(`${prefix}-refresh`);
+
+  if (!token && !refresh) {
+    return null;
+  }
+
+  // If access token is still unexpired, user is validly authenticated
+  if (token && !isTokenExpired(token)) {
+    return token;
+  }
+
+  // If access token expired but refresh token exists and is not expired,
+  // the axios interceptor can refresh the session seamlessly.
+  if (refresh && !isTokenExpired(refresh)) {
+    return refresh;
+  }
+
+  // Both access and refresh are expired or invalid -> purge stale credentials
+  localStorage.removeItem(`${prefix}-token`);
+  localStorage.removeItem(`${prefix}-refresh`);
+  localStorage.removeItem(`${prefix}-user`);
+  localStorage.removeItem(`${prefix}-username`);
+  return null;
+};
+
+const ownerToken = () => getValidAuthToken('smart-kirana-owner');
+const customerToken = () => getValidAuthToken('smart-kirana-customer');
 
 function Guard({ children }) {
   const location = useLocation();
