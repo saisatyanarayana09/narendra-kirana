@@ -26,21 +26,6 @@ export function ResetPassword() {
   const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   const appSchemeUrl = uid && token ? `smartkirana://reset-password?uid=${encodeURIComponent(uid)}&token=${encodeURIComponent(token)}` : '';
 
-  // Mobile-first check: When opened on a mobile device, attempt to launch mobile app first
-  useEffect(() => {
-    if (!isMobile || !uid || !token || mode !== 'link') return;
-
-    try {
-      if (/Android/i.test(navigator.userAgent)) {
-        window.location.href = `intent://reset-password?uid=${encodeURIComponent(uid)}&token=${encodeURIComponent(token)}#Intent;scheme=smartkirana;package=com.narendrakirana.app;S.browser_fallback_url=${encodeURIComponent(window.location.href)};end`;
-      } else {
-        window.location.href = appSchemeUrl;
-      }
-    } catch (err) {
-      console.log('Mobile app redirection attempt:', err);
-    }
-  }, [isMobile, uid, token, appSchemeUrl, mode]);
-
   async function submit(e) {
     e.preventDefault();
 
