@@ -13,6 +13,9 @@ import {
   Search,
   RefreshCw,
   Eye,
+  Lock,
+  Unlock,
+  ShieldAlert,
 } from 'lucide-react';
 import api from '../../services/api';
 import { createPortal } from 'react-dom';
@@ -22,7 +25,7 @@ const Customers = () => {
   const [counts, setCounts] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('all'); // 'all' | 'active' | 'inactive' | 'delete_requested'
+  const [activeTab, setActiveTab] = useState('all'); // 'all' | 'active' | 'inactive' | 'locked' | 'delete_requested'
 
   const [notifyUser, setNotifyUser] = useState(null);
   const [notifForm, setNotifForm] = useState({ title: '', message: '' });
@@ -30,6 +33,7 @@ const Customers = () => {
 
   const [selectedCustomerDetail, setSelectedCustomerDetail] = useState(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const [actionInProgress, setActionInProgress] = useState(null);
 
   const fetchCustomerDetails = async (id) => {
     try {
@@ -67,8 +71,9 @@ const Customers = () => {
 
   // Compute counts (using backend counts if present, or deriving from list)
   const totalCount = counts?.total ?? customers.length;
-  const activeCount = counts?.active ?? customers.filter((c) => c.is_active).length;
+  const activeCount = counts?.active ?? customers.filter((c) => c.is_active && !c.is_locked).length;
   const inactiveCount = counts?.inactive ?? customers.filter((c) => !c.is_active).length;
+  const lockedCount = counts?.locked ?? customers.filter((c) => c.is_locked).length;
   const deleteRequestedCount =
     counts?.delete_requested ??
     customers.filter((c) => c.customer_profile?.delete_requested).length;
@@ -77,8 +82,9 @@ const Customers = () => {
   const displayedCustomers = useMemo(() => {
     return customers.filter((c) => {
       // Tab filter
-      if (activeTab === 'active' && !c.is_active) return false;
+      if (activeTab === 'active' && (!c.is_active || c.is_locked)) return false;
       if (activeTab === 'inactive' && c.is_active) return false;
+      if (activeTab === 'locked' && !c.is_locked) return false;
       if (activeTab === 'delete_requested' && !c.customer_profile?.delete_requested) return false;
 
       // Search query filter
@@ -101,6 +107,52 @@ const Customers = () => {
       return true;
     });
   }, [customers, activeTab, searchQuery]);
+
+  const handleUnlockUser = async (userId, username) => {
+    if (
+      !window.confirm(
+        `Are you sure you want to unlock account "${username}"? This will reset consecutive failed attempts and re-enable login access immediately.`
+      )
+    ) {
+      return;
+    }
+    try {
+      setActionInProgress(userId);
+      await api.post(`/auth/customers/${userId}/unlock/`);
+      await fetchCustomers();
+      if (selectedCustomerDetail && selectedCustomerDetail.id === userId) {
+        await fetchCustomerDetails(userId);
+      }
+      alert(`Account "${username}" has been unlocked successfully!`);
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.error || 'Failed to unlock account.');
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  const handleLockUser = async (userId, username) => {
+    const reason = window.prompt(
+      `Enter reason for manually locking account "${username}":`,
+      'Locked by store administrator'
+    );
+    if (reason === null) return;
+    try {
+      setActionInProgress(userId);
+      await api.post(`/auth/customers/${userId}/lock/`, { reason });
+      await fetchCustomers();
+      if (selectedCustomerDetail && selectedCustomerDetail.id === userId) {
+        await fetchCustomerDetails(userId);
+      }
+      alert(`Account "${username}" has been locked.`);
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.error || 'Failed to lock account.');
+    } finally {
+      setActionInProgress(null);
+    }
+  };
 
   const approveDeletion = async (userId) => {
     if (
@@ -166,8 +218,8 @@ const Customers = () => {
         </button>
       </div>
 
-      {/* Top Summary Metric Cards: Total, Active, Inactive */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Top Summary Metric Cards: Total, Active, Inactive, Locked */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Customers Card */}
         <button
           type="button"
@@ -255,7 +307,7 @@ const Customers = () => {
                 {inactiveCount}
               </div>
               <p className="text-xs font-medium text-slate-500">
-                Deactivated / deleted accounts
+                Deactivated accounts
               </p>
             </div>
             <div
@@ -266,6 +318,40 @@ const Customers = () => {
               }`}
             >
               <UserX size={22} />
+            </div>
+          </div>
+        </button>
+
+        {/* Locked Accounts Card */}
+        <button
+          type="button"
+          onClick={() => setActiveTab('locked')}
+          className={`p-5 rounded-2xl border text-left transition-all relative overflow-hidden group ${
+            activeTab === 'locked'
+              ? 'bg-rose-50/80 border-rose-300 ring-2 ring-rose-500/20 shadow-sm'
+              : 'bg-white border-slate-200 hover:border-rose-200 hover:shadow-sm'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-rose-700">
+                Locked Accounts
+              </span>
+              <div className="text-3xl font-black text-rose-700 tracking-tight">
+                {lockedCount}
+              </div>
+              <p className="text-xs font-medium text-slate-500">
+                Brute-force / blocked
+              </p>
+            </div>
+            <div
+              className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105 ${
+                activeTab === 'locked'
+                  ? 'bg-rose-600 text-white shadow-md'
+                  : 'bg-rose-50 text-rose-600'
+              }`}
+            >
+              <Lock size={22} />
             </div>
           </div>
         </button>
@@ -333,6 +419,16 @@ const Customers = () => {
             }`}
           >
             Inactive ({inactiveCount})
+          </button>
+          <button
+            onClick={() => setActiveTab('locked')}
+            className={`px-3.5 py-2 rounded-lg text-sm font-bold transition-all ${
+              activeTab === 'locked'
+                ? 'bg-white text-rose-700 shadow-sm'
+                : 'text-slate-500 hover:text-rose-700'
+            }`}
+          >
+            Locked ({lockedCount})
           </button>
           {deleteRequestedCount > 0 && (
             <button
@@ -478,7 +574,12 @@ const Customers = () => {
 
                       {/* Status Column */}
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {isDeleteRequested ? (
+                        {customer.is_locked ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200 animate-pulse">
+                            <Lock size={12} />
+                            Locked ({customer.failed_login_attempts || 0} failed)
+                          </span>
+                        ) : isDeleteRequested ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
                             <AlertTriangle size={12} />
                             Delete Requested
@@ -499,7 +600,33 @@ const Customers = () => {
                       {/* Actions */}
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <div className="flex items-center justify-end gap-2">
-                          {customer.is_active && (
+                          {customer.is_locked ? (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleUnlockUser(customer.id, customer.username);
+                              }}
+                              disabled={actionInProgress === customer.id}
+                              className="text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-colors inline-flex items-center gap-1.5 border border-emerald-200 shadow-sm"
+                              title="Unlock Account"
+                            >
+                              <Unlock size={14} /> Unlock
+                            </button>
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleLockUser(customer.id, customer.username);
+                              }}
+                              disabled={actionInProgress === customer.id}
+                              className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 px-2 py-1.5 rounded-xl text-xs font-bold transition-colors inline-flex items-center gap-1"
+                              title="Manually Lock Account"
+                            >
+                              <Lock size={13} /> Lock
+                            </button>
+                          )}
+
+                          {customer.is_active && !customer.is_locked && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -687,6 +814,79 @@ const Customers = () => {
                         <div className="text-2xl font-extrabold text-amber-700">
                           ₹{selectedCustomerDetail.wallet_balance?.toFixed(2) || '0.00'}
                         </div>
+                      </div>
+                    </div>
+
+                    {/* Account Security & Brute-Force Lockout Card */}
+                    <div className={`p-4 rounded-xl border space-y-3 ${selectedCustomerDetail.is_locked ? 'bg-rose-50/70 border-rose-200' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <ShieldAlert size={18} className={selectedCustomerDetail.is_locked ? "text-rose-600" : "text-emerald-600"} />
+                          <h3 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+                            Account Security & Lockout Status
+                          </h3>
+                        </div>
+                        {selectedCustomerDetail.is_locked ? (
+                          <button
+                            onClick={() => handleUnlockUser(selectedCustomerDetail.id, selectedCustomerDetail.username)}
+                            disabled={actionInProgress === selectedCustomerDetail.id}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm transition"
+                          >
+                            <Unlock size={14} /> Unlock Account
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleLockUser(selectedCustomerDetail.id, selectedCustomerDetail.username)}
+                            disabled={actionInProgress === selectedCustomerDetail.id}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white border border-rose-200 rounded-lg text-xs font-bold shadow-sm transition"
+                          >
+                            <Lock size={14} /> Manually Lock Account
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                        <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-2xs">
+                          <span className="text-slate-400 block font-medium">Access Status</span>
+                          <span className={`font-bold flex items-center gap-1 mt-0.5 ${selectedCustomerDetail.is_locked ? 'text-rose-600' : 'text-emerald-600'}`}>
+                            {selectedCustomerDetail.is_locked ? (
+                              <>
+                                <Lock size={13} /> Locked (Blocked)
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle size={13} /> Normal (Access Granted)
+                              </>
+                            )}
+                          </span>
+                        </div>
+                        <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-2xs">
+                          <span className="text-slate-400 block font-medium">Consecutive Failed Logins</span>
+                          <span className={`font-bold mt-0.5 block ${selectedCustomerDetail.failed_login_attempts >= 10 ? 'text-rose-600' : selectedCustomerDetail.failed_login_attempts > 5 ? 'text-amber-600' : 'text-slate-800'}`}>
+                            {selectedCustomerDetail.failed_login_attempts || 0} / 10 threshold
+                          </span>
+                        </div>
+                        {selectedCustomerDetail.is_locked && (
+                          <div className="sm:col-span-2 bg-rose-100/60 p-3 rounded-lg border border-rose-200 text-rose-900 text-xs">
+                            <span className="font-extrabold block">Lock Reason:</span>
+                            <span className="font-medium">{selectedCustomerDetail.lockout_reason || '10 consecutive failed login attempts'}</span>
+                            {selectedCustomerDetail.locked_at && (
+                              <div className="text-[11px] text-rose-700 mt-1 font-medium">
+                                Locked at: {new Date(selectedCustomerDetail.locked_at).toLocaleString()}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {selectedCustomerDetail.last_failed_login_ip && (
+                          <div className="sm:col-span-2 bg-white p-2.5 rounded-lg border border-slate-100 text-slate-600 flex flex-wrap justify-between gap-1">
+                            <span>Last Failed IP: <strong className="font-mono text-slate-800">{selectedCustomerDetail.last_failed_login_ip}</strong></span>
+                            {selectedCustomerDetail.last_failed_login_at && (
+                              <span className="text-slate-400">
+                                {new Date(selectedCustomerDetail.last_failed_login_at).toLocaleString()}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
 

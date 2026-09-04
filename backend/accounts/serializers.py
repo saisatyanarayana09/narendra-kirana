@@ -13,8 +13,18 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_customer', 'is_owner', 'customer_profile', 'password', 'profile_picture', 'is_active']
-        read_only_fields = ['is_customer', 'is_owner', 'is_active', 'id']
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name', 
+            'is_customer', 'is_owner', 'customer_profile', 'password', 
+            'profile_picture', 'is_active', 'failed_login_attempts', 
+            'is_locked', 'locked_at', 'lockout_until', 'lockout_reason', 
+            'last_failed_login_ip'
+        ]
+        read_only_fields = [
+            'is_customer', 'is_owner', 'is_active', 'id',
+            'failed_login_attempts', 'is_locked', 'locked_at', 
+            'lockout_until', 'lockout_reason', 'last_failed_login_ip'
+        ]
         extra_kwargs = {
             'password': {'write_only': True, 'required': False, 'validators': [validate_password]},
             'username': {'required': False},
@@ -156,10 +166,13 @@ class CustomerSignupSerializer(serializers.ModelSerializer):
         verify_link = f"{frontend_url}/verify-email?uid={uid}&token={token}"
         
         from store.email_service import send_store_email_async
+        from .email_templates import build_account_activation_email
+        email_data = build_account_activation_email(user, verify_link)
         send_store_email_async(
-            subject='Activate Your Narendra Kirana Account',
-            message=f'Welcome to Narendra Kirana!\n\nPlease click the link below to activate your account:\n{verify_link}',
+            subject=email_data['subject'],
+            message=email_data['text'],
             recipient_list=[user.email],
+            html_message=email_data['html'],
             fail_silently=True,
         )
 

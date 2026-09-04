@@ -72,13 +72,22 @@ export default function OwnerForgotPassword() {
               <h3 className="text-base font-bold text-emerald-900 dark:text-emerald-200 mb-2">
                 Check Your Inbox
               </h3>
-              <p className="text-sm text-emerald-700 dark:text-emerald-300 leading-relaxed mb-6">
+              <p className="text-sm text-emerald-700 dark:text-emerald-300 leading-relaxed mb-4">
                 {message}
+              </p>
+              <p className="text-xs text-emerald-800 dark:text-emerald-400 font-semibold mb-6">
+                Your email contains both a direct recovery button AND an instant 6-digit OTP code (expires in 10 minutes).
               </p>
               <div className="space-y-3">
                 <Link
+                  to={`/owner/reset-password?email=${encodeURIComponent(email)}&mode=otp`}
+                  className="block w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition shadow-sm"
+                >
+                  Enter 6-Digit OTP Code →
+                </Link>
+                <Link
                   to="/owner/login"
-                  className="block w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition shadow-sm"
+                  className="block w-full py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-300 font-bold text-sm transition shadow-sm"
                 >
                   Return to Owner Sign In
                 </Link>

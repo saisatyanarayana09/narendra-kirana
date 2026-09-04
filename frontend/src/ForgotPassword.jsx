@@ -71,25 +71,37 @@ export function ForgotPassword() {
                 <div>
                   <h3 className="font-bold text-sm text-slate-900 dark:text-white">Check your email</h3>
                   <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mt-0.5">{message}</p>
+                  <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-1 font-semibold">
+                    We've sent a 1-click reset button AND a 6-digit OTP code (expires in 10 minutes).
+                  </p>
                 </div>
               </div>
 
-              <a
-                href={getEmailProviderUrl(email)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all shadow-md shadow-indigo-600/20 active:scale-[0.98]"
-              >
-                <ExternalLink size={17} />
-                <span>Open {getEmailProviderName(email)}</span>
-              </a>
+              <div className="space-y-2.5">
+                <Link
+                  to={`/reset-password?email=${encodeURIComponent(email)}&mode=otp`}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all shadow-md shadow-indigo-600/20 active:scale-[0.98]"
+                >
+                  <span>Enter 6-Digit OTP Code →</span>
+                </Link>
 
-              <Link
-                to="/login"
-                className="w-full flex items-center justify-center py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold text-sm transition-all"
-              >
-                Return to Sign In
-              </Link>
+                <a
+                  href={getEmailProviderUrl(email)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-indigo-200 text-indigo-700 bg-indigo-50/50 hover:bg-indigo-100 font-bold transition-all text-sm"
+                >
+                  <ExternalLink size={16} />
+                  <span>Open {getEmailProviderName(email)}</span>
+                </a>
+
+                <Link
+                  to="/login"
+                  className="w-full flex items-center justify-center py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold text-sm transition-all"
+                >
+                  Return to Sign In
+                </Link>
+              </div>
             </div>
           ) : (
             <>

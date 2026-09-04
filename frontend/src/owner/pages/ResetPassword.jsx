@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import api from '../../services/api';
-import { Store, Lock, Eye, EyeOff, Loader2, CheckCircle2, ShieldAlert, ArrowLeft } from 'lucide-react';
+import { Store, Lock, Eye, EyeOff, Loader2, CheckCircle2, ShieldAlert, ArrowLeft, KeyRound, Mail } from 'lucide-react';
 
 export default function OwnerResetPassword() {
   const [searchParams] = useSearchParams();
@@ -9,7 +9,12 @@ export default function OwnerResetPassword() {
 
   const uid = searchParams.get('uid');
   const token = searchParams.get('token');
+  const emailParam = searchParams.get('email') || '';
+  const initialMode = searchParams.get('mode') === 'otp' || (!uid && !token) ? 'otp' : 'link';
 
+  const [mode, setMode] = useState(initialMode); // 'otp' | 'link'
+  const [email, setEmail] = useState(emailParam);
+  const [otp, setOtp] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -17,15 +22,11 @@ export default function OwnerResetPassword() {
   const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'success' | 'error'
   const [message, setMessage] = useState('');
 
-  const isLinkInvalid = !uid || !token;
+  const isLinkInvalid = mode === 'link' && (!uid || !token);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isLinkInvalid) {
-      setStatus('error');
-      setMessage('The reset link is invalid or incomplete. Please request a new one.');
-      return;
-    }
+
     if (password.length < 8) {
       setStatus('error');
       setMessage('Password must be at least 8 characters long.');
@@ -41,24 +42,55 @@ export default function OwnerResetPassword() {
     setMessage('');
 
     try {
-      const res = await api.post('/auth/password-reset-confirm/', {
-        uid,
-        token,
-        new_password: password,
-        portal: 'owner'
-      });
-      setStatus('success');
-      setMessage(res.data?.message || 'Password has been reset successfully!');
-      setTimeout(() => {
-        navigate('/owner/login', { replace: true });
-      }, 3000);
+      if (mode === 'otp') {
+        if (!email.trim()) {
+          setStatus('error');
+          setMessage('Please enter your registered owner email address.');
+          return;
+        }
+        if (!otp.trim() || otp.trim().length !== 6) {
+          setStatus('error');
+          setMessage('Please enter the 6-digit OTP code received in your inbox.');
+          return;
+        }
+
+        const res = await api.post('/auth/password-reset/otp-confirm/', {
+          email: email.trim(),
+          otp: otp.trim(),
+          new_password: password,
+          portal: 'owner'
+        });
+        setStatus('success');
+        setMessage(res.data?.message || 'Owner password has been reset successfully!');
+        setTimeout(() => {
+          navigate('/owner/login', { replace: true });
+        }, 3000);
+      } else {
+        if (isLinkInvalid) {
+          setStatus('error');
+          setMessage('The reset link is invalid or incomplete. Please use the 6-Digit OTP tab or request a new one.');
+          return;
+        }
+
+        const res = await api.post('/auth/password-reset-confirm/', {
+          uid,
+          token,
+          new_password: password,
+          portal: 'owner'
+        });
+        setStatus('success');
+        setMessage(res.data?.message || 'Owner password has been reset successfully!');
+        setTimeout(() => {
+          navigate('/owner/login', { replace: true });
+        }, 3000);
+      }
     } catch (err) {
       setStatus('error');
       const errData = err.response?.data;
       const errMsg = typeof errData === 'string'
         ? errData
         : (errData?.error || errData?.detail || errData?.message || '');
-      setMessage(String(errMsg || (err.response ? `Server error (${err.response.status})` : 'Failed to reset password. Link may be expired.')));
+      setMessage(String(errMsg || (err.response ? `Server error (${err.response.status})` : 'Failed to reset password. Link or OTP may be expired.')));
     }
   };
 
@@ -75,7 +107,7 @@ export default function OwnerResetPassword() {
             <ArrowLeft size={16} /> Back to Owner Sign In
           </Link>
 
-          <div className="mb-8">
+          <div className="mb-6">
             <p className="text-sm font-black tracking-[0.2em] uppercase drop-shadow-sm mb-3 flex items-center gap-2">
               <span className="p-1.5 bg-indigo-50 dark:bg-indigo-950/60 rounded-md">
                 <Store className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
@@ -86,9 +118,35 @@ export default function OwnerResetPassword() {
             <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               Create New Password
             </h1>
-            <p className="text-base text-slate-500 dark:text-slate-400 mt-2 font-medium">
-              Choose a strong, unique password to secure your owner dashboard account.
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 font-medium">
+              Choose your recovery method below to set a new password for your owner account.
             </p>
+          </div>
+
+          {/* Mode Switcher Tabs */}
+          <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl mb-6 border border-slate-200 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={() => { setMode('otp'); setStatus('idle'); setMessage(''); }}
+              className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                mode === 'otp'
+                  ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
+            >
+              <KeyRound size={14} /> 6-Digit OTP Code
+            </button>
+            <button
+              type="button"
+              onClick={() => { setMode('link'); setStatus('idle'); setMessage(''); }}
+              className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                mode === 'link'
+                  ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
+            >
+              <Mail size={14} /> Email Reset Link
+            </button>
           </div>
 
           {isLinkInvalid ? (
@@ -99,15 +157,24 @@ export default function OwnerResetPassword() {
               <h3 className="text-base font-bold text-amber-900 dark:text-amber-200 mb-2">
                 Invalid Recovery Link
               </h3>
-              <p className="text-sm text-amber-700 dark:text-amber-300 leading-relaxed mb-6">
-                This reset link is missing required security tokens or is corrupted. Please request a new recovery link.
+              <p className="text-sm text-amber-700 dark:text-amber-300 leading-relaxed mb-4">
+                This reset link is missing required security tokens. You can switch to the <strong>"6-Digit OTP Code"</strong> tab above, or request a new link.
               </p>
-              <Link
-                to="/owner/forgot-password"
-                className="block w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition shadow-sm"
-              >
-                Request New Reset Link
-              </Link>
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => setMode('otp')}
+                  className="block w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition shadow-sm"
+                >
+                  Use 6-Digit OTP Instead
+                </button>
+                <Link
+                  to="/owner/forgot-password"
+                  className="block w-full py-2 px-4 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:underline"
+                >
+                  Request New Reset Link
+                </Link>
+              </div>
             </div>
           ) : status === 'success' ? (
             <div className="p-6 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-center animate-in fade-in zoom-in-95 duration-200">
@@ -133,12 +200,54 @@ export default function OwnerResetPassword() {
               </div>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
               {status === 'error' && (
                 <div className="p-4 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-sm font-bold text-red-700 dark:text-red-300 flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
                   <ShieldAlert size={18} className="shrink-0 mt-0.5" />
                   <span>{message}</span>
                 </div>
+              )}
+
+              {mode === 'otp' && (
+                <>
+                  <div>
+                    <label htmlFor="owner-email" className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1.5">
+                      Owner Email Address
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="owner-email"
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="owner@narendra-kirana.com"
+                        className="w-full rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-3 pl-10 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
+                      />
+                      <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="owner-otp" className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1.5">
+                      6-Digit Security OTP
+                    </label>
+                    <input
+                      id="owner-otp"
+                      type="text"
+                      maxLength={6}
+                      pattern="[0-9]{6}"
+                      required
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ''))}
+                      placeholder="123456"
+                      className="w-full rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-3 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 transition-all text-center tracking-[0.5em] font-mono text-lg font-extrabold"
+                    />
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Enter the 6-digit code sent to your owner email (expires in 10 minutes).
+                    </p>
+                  </div>
+                </>
               )}
 
               <div className="space-y-4">
@@ -151,11 +260,10 @@ export default function OwnerResetPassword() {
                       id="new-password"
                       type={showPassword ? 'text' : 'password'}
                       required
-                      autoFocus
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Minimum 8 characters"
-                      className="w-full rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-3.5 pl-11 pr-12 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm text-sm"
+                      className="w-full rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-3 pl-11 pr-12 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
                     />
                     <Lock size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                     <button
@@ -181,7 +289,7 @@ export default function OwnerResetPassword() {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="Re-enter new password"
-                      className="w-full rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-3.5 pl-11 pr-12 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm text-sm"
+                      className="w-full rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-3 pl-11 pr-12 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
                     />
                     <Lock size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                     <button

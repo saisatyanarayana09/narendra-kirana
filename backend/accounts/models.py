@@ -5,6 +5,15 @@ class User(AbstractUser):
     is_customer = models.BooleanField(default=True)
     is_owner = models.BooleanField(default=False)
     
+    # Account Security & Brute-force lockout fields
+    failed_login_attempts = models.PositiveIntegerField(default=0)
+    is_locked = models.BooleanField(default=False)
+    locked_at = models.DateTimeField(null=True, blank=True)
+    lockout_until = models.DateTimeField(null=True, blank=True)
+    lockout_reason = models.CharField(max_length=255, blank=True, default='')
+    last_failed_login_at = models.DateTimeField(null=True, blank=True)
+    last_failed_login_ip = models.GenericIPAddressField(null=True, blank=True)
+    
     # We use Django's default 'username' for login, which can store a mobile number or email
     
     def save(self, *args, **kwargs):
@@ -90,3 +99,24 @@ class WalletTransaction(models.Model):
 
     def __str__(self):
         return f"{self.transaction_type}: {self.amount} for {self.wallet.user.username}"
+
+
+class PasswordResetOTP(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='password_reset_otps')
+    otp_code = models.CharField(max_length=6)
+    portal = models.CharField(max_length=20, default='customer') # 'customer' or 'owner'
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    attempts = models.PositiveIntegerField(default=0)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def is_valid(self):
+        from django.utils import timezone
+        return not self.is_used and self.attempts < 5 and timezone.now() < self.expires_at
+
+    def __str__(self):
+        return f"OTP for {self.user.username} ({self.portal}): {self.otp_code}"

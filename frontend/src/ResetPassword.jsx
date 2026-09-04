@@ -2,11 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { CustomerLayout } from './customer-layout';
 import api from './services/api';
-import { Lock, Eye, EyeOff, Smartphone, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { Lock, Eye, EyeOff, Smartphone, ArrowLeft, CheckCircle2, KeyRound, Mail } from 'lucide-react';
 
 export function ResetPassword() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+
+  const uid = searchParams.get('uid');
+  const token = searchParams.get('token');
+  const emailParam = searchParams.get('email') || '';
+  const initialMode = searchParams.get('mode') === 'otp' || (!uid && !token) ? 'otp' : 'link';
+
+  const [mode, setMode] = useState(initialMode); // 'otp' | 'link'
+  const [email, setEmail] = useState(emailParam);
+  const [otp, setOtp] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -14,36 +23,27 @@ export function ResetPassword() {
   const [status, setStatus] = useState('idle');
   const [message, setMessage] = useState('');
 
-  const uid = searchParams.get('uid');
-  const token = searchParams.get('token');
-
   const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   const appSchemeUrl = uid && token ? `smartkirana://reset-password?uid=${encodeURIComponent(uid)}&token=${encodeURIComponent(token)}` : '';
 
   // Mobile-first check: When opened on a mobile device, attempt to launch mobile app first
   useEffect(() => {
-    if (!isMobile || !uid || !token) return;
+    if (!isMobile || !uid || !token || mode !== 'link') return;
 
     try {
       if (/Android/i.test(navigator.userAgent)) {
-        // Android Intent scheme with seamless web fallback
         window.location.href = `intent://reset-password?uid=${encodeURIComponent(uid)}&token=${encodeURIComponent(token)}#Intent;scheme=smartkirana;package=com.narendrakirana.app;S.browser_fallback_url=${encodeURIComponent(window.location.href)};end`;
       } else {
-        // iOS custom scheme
         window.location.href = appSchemeUrl;
       }
     } catch (err) {
       console.log('Mobile app redirection attempt:', err);
     }
-  }, [isMobile, uid, token, appSchemeUrl]);
+  }, [isMobile, uid, token, appSchemeUrl, mode]);
 
   async function submit(e) {
     e.preventDefault();
-    if (!uid || !token) {
-      setStatus('error');
-      setMessage('Invalid or missing reset link. Please request a new link from the forgot password page.');
-      return;
-    }
+
     if (password !== confirmPassword) {
       setStatus('error');
       setMessage('Passwords do not match.');
@@ -59,17 +59,49 @@ export function ResetPassword() {
     setMessage('');
 
     try {
-      const res = await api.post('/auth/password-reset-confirm/', { 
-        uid, 
-        token, 
-        new_password: password 
-      });
-      setStatus('success');
-      setMessage(res.data.message || 'Password reset successful!');
-      setTimeout(() => navigate('/login'), 3000);
+      if (mode === 'otp') {
+        if (!email.trim()) {
+          setStatus('error');
+          setMessage('Please enter your account email address.');
+          return;
+        }
+        if (!otp.trim() || otp.trim().length !== 6) {
+          setStatus('error');
+          setMessage('Please enter the valid 6-digit OTP sent to your email.');
+          return;
+        }
+
+        const res = await api.post('/auth/password-reset/otp-confirm/', {
+          email: email.trim(),
+          otp: otp.trim(),
+          new_password: password,
+          portal: 'customer'
+        });
+        setStatus('success');
+        setMessage(res.data?.message || 'Password reset successfully!');
+        setTimeout(() => navigate('/login'), 3000);
+      } else {
+        if (!uid || !token) {
+          setStatus('error');
+          setMessage('Invalid or missing reset link. Please use the 6-Digit OTP tab or request a new link.');
+          return;
+        }
+
+        const res = await api.post('/auth/password-reset-confirm/', { 
+          uid, 
+          token, 
+          new_password: password,
+          portal: 'customer'
+        });
+        setStatus('success');
+        setMessage(res.data?.message || 'Password reset successfully!');
+        setTimeout(() => navigate('/login'), 3000);
+      }
     } catch (err) {
       setStatus('error');
-      setMessage(err.response?.data?.error || (err.response ? 'Server Error (' + err.response.status + ')' : err.message) || 'Failed to reset password.');
+      const errData = err.response?.data;
+      const errMsg = typeof errData === 'string' ? errData : (errData?.error || errData?.detail || errData?.message || '');
+      setMessage(String(errMsg || (err.response ? 'Server Error (' + err.response.status + ')' : err.message) || 'Failed to reset password.'));
     }
   }
 
@@ -77,7 +109,7 @@ export function ResetPassword() {
     <CustomerLayout>
       <main className="mx-auto max-w-md px-4 py-10">
         {/* Mobile App First Banner */}
-        {isMobile && uid && token && (
+        {isMobile && uid && token && mode === 'link' && (
           <div className="mb-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 p-4 text-white shadow-lg border border-emerald-500/30">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
@@ -99,16 +131,42 @@ export function ResetPassword() {
           </div>
         )}
 
-        <form onSubmit={submit} className="rounded-2xl bg-white dark:bg-slate-900 p-6 shadow-sm border border-slate-100 dark:border-slate-800">
+        <div className="rounded-2xl bg-white dark:bg-slate-900 p-6 shadow-sm border border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-3 mb-2">
             <div className="bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 p-2 rounded-lg">
               <Lock size={24} />
             </div>
-            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">Create New Password</h1>
+            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">Reset Password</h1>
           </div>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 mb-6">
-            Please enter your new password below.
+          <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 mb-5">
+            Choose your preferred verification method to reset your password.
           </p>
+
+          {/* Mode Switcher Tabs */}
+          <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-6">
+            <button
+              type="button"
+              onClick={() => { setMode('otp'); setStatus('idle'); setMessage(''); }}
+              className={`flex-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                mode === 'otp'
+                  ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
+            >
+              <KeyRound size={14} /> 6-Digit OTP Code
+            </button>
+            <button
+              type="button"
+              onClick={() => { setMode('link'); setStatus('idle'); setMessage(''); }}
+              className={`flex-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                mode === 'link'
+                  ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
+            >
+              <Mail size={14} /> Email Reset Link
+            </button>
+          </div>
 
           {status === 'success' ? (
             <div className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 p-5 rounded-2xl border border-emerald-100 dark:border-emerald-900/50 font-medium text-center">
@@ -123,20 +181,53 @@ export function ResetPassword() {
               </Link>
             </div>
           ) : (
-            <>
+            <form onSubmit={submit}>
               {status === 'error' && (
-                <div className="mb-4 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 p-3 rounded-xl text-sm border border-red-100 dark:border-red-900/50">
+                <div className="mb-4 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 p-3 rounded-xl text-xs font-bold border border-red-100 dark:border-red-900/50">
                   {message}
                 </div>
               )}
 
-              {(!uid || !token) && (
+              {mode === 'link' && (!uid || !token) && (
                 <div className="mb-4 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 p-3.5 rounded-xl text-xs border border-amber-200 dark:border-amber-900/50">
-                  Missing reset tokens in URL. Please check that you followed the complete link sent to your email.
+                  Missing reset tokens in URL. Switch to the <strong>"6-Digit OTP Code"</strong> tab above or open the complete link sent to your email.
                 </div>
               )}
 
               <div className="space-y-4">
+                {mode === 'otp' && (
+                  <>
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
+                      Registered Email
+                      <input
+                        required
+                        type="email"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm"
+                        placeholder="you@example.com"
+                      />
+                    </label>
+
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
+                      6-Digit OTP Code
+                      <input
+                        required
+                        type="text"
+                        maxLength={6}
+                        pattern="[0-9]{6}"
+                        value={otp}
+                        onChange={e => setOtp(e.target.value.replace(/[^0-9]/g, ''))}
+                        className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-center tracking-[0.5em] font-mono text-lg font-extrabold"
+                        placeholder="123456"
+                      />
+                      <span className="text-[11px] text-slate-500 block mt-1">
+                        Enter the 6-digit code received in your inbox (valid for 10 minutes).
+                      </span>
+                    </label>
+                  </>
+                )}
+
                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
                   New Password
                   <div className="relative mt-1">
@@ -182,14 +273,20 @@ export function ResetPassword() {
 
               <button
                 type="submit"
-                disabled={status === 'loading' || !uid || !token}
+                disabled={status === 'loading' || (mode === 'link' && (!uid || !token))}
                 className="mt-6 w-full py-3 rounded-xl bg-indigo-600 font-bold text-white transition-all hover:bg-indigo-700 active:scale-[0.98] disabled:opacity-50 shadow-md shadow-indigo-600/20 text-sm"
               >
-                {status === 'loading' ? 'Saving...' : 'Save Password'}
+                {status === 'loading' ? 'Saving Password...' : 'Save & Set New Password'}
               </button>
-            </>
+
+              <div className="mt-4 text-center">
+                <Link to="/forgot-password" className="text-xs text-slate-500 hover:text-indigo-600 font-medium">
+                  Need a new OTP or reset link? Request again
+                </Link>
+              </div>
+            </form>
           )}
-        </form>
+        </div>
       </main>
     </CustomerLayout>
   );
