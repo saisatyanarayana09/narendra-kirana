@@ -55,12 +55,19 @@ class StoreSettingsSerializer(serializers.ModelSerializer):
         elif isinstance(data, dict):
             data = dict(data)
 
-        # If invoice_signature is string or null (not a newly uploaded file),
-        # omit it so existing signature is preserved without ImageField validation errors
-        if 'invoice_signature' in data:
-            sig = data.get('invoice_signature')
-            if isinstance(sig, str) or sig is None:
-                data.pop('invoice_signature', None)
+        import json
+        for img_field in ['invoice_signature', 'upi_qr_image', 'festive_popup_image']:
+            if img_field in data:
+                sig = data.get(img_field)
+                if isinstance(sig, str) or sig is None:
+                    data.pop(img_field, None)
+
+        for json_field in ['store_timings_json', 'time_slots_json']:
+            if json_field in data and isinstance(data[json_field], str):
+                try:
+                    data[json_field] = json.loads(data[json_field])
+                except Exception:
+                    pass
 
         if 'allowed_pincodes' in data and data.get('allowed_pincodes') is None:
             data['allowed_pincodes'] = ''

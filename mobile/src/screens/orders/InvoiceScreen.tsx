@@ -9,11 +9,12 @@ import {
   Platform,
   Share,
   Alert,
-  StatusBar
+  StatusBar,
+  Linking as RNLinking
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -92,6 +93,36 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
 
   const signatureUrl = fixImageUrl(settings?.invoice_signature);
 
+  const rawTerms = settings?.invoice_terms_and_conditions || 
+    settings?.terms_and_conditions || 
+    "1. Goods once sold will not be taken back without original bill.\n2. In case of any dispute, local jurisdiction applies.\n3. Perishable goods must be reported within 24 hours.";
+  const termsList = rawTerms.split('\n').map((t: string) => t.trim()).filter(Boolean);
+
+  const handleWhatsAppHelp = async () => {
+    const rawNum = settings?.whatsapp_number || settings?.store_phone || '';
+    const cleanNumber = rawNum.replace(/[^0-9]/g, '');
+    const formattedNumber = cleanNumber.length === 10 ? `91${cleanNumber}` : cleanNumber;
+    const helpTemplate = settings?.whatsapp_order_help_template || 'Hi Narendra Kirana, I need help with Order #{order_id}';
+    const orderIdentifier = String(order?.id || orderId || '').trim();
+    const message = helpTemplate.replace('{order_id}', orderIdentifier);
+
+    const waUrl = `whatsapp://send?phone=${formattedNumber}&text=${encodeURIComponent(message)}`;
+    const webWaUrl = `https://wa.me/${formattedNumber}?text=${encodeURIComponent(message)}`;
+
+    try {
+      const canOpen = await RNLinking.canOpenURL(waUrl);
+      if (canOpen) {
+        await RNLinking.openURL(waUrl);
+      } else {
+        await RNLinking.openURL(webWaUrl);
+      }
+    } catch {
+      await RNLinking.openURL(webWaUrl).catch(() => {
+        Alert.alert('WhatsApp Not Available', `Please contact store support directly at ${rawNum}`);
+      });
+    }
+  };
+
   // Generate HTML for printable PDF exactly matching web app
   const generateInvoiceHtml = () => {
     const itemsHtml = (order?.items || []).map((item: any, index: number) => {
@@ -168,6 +199,16 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
                 <div>${settings?.store_address || 'Main Road, Kirana Market'}</div>
                 ${settings?.store_phone ? `<div>Phone: ${settings.store_phone}</div>` : ''}
                 ${settings?.store_email ? `<div>Email: ${settings.store_email}</div>` : ''}
+                ${settings?.fssai_license_number ? `
+                  <div style="display: inline-block; margin-top: 4px; font-size: 11px; font-weight: bold; color: #047857; background: #ECFDF5; border: 1px solid #A7F3D0; padding: 2px 6px; border-radius: 4px;">
+                    ✓ FSSAI Lic. No: ${settings.fssai_license_number}
+                  </div>
+                ` : ''}
+                ${settings?.gstin ? `
+                  <div style="margin-top: 2px; font-size: 11px; font-weight: bold; color: #334155;">
+                    GSTIN: ${settings.gstin}
+                  </div>
+                ` : ''}
               </div>
             </div>
             <div>
@@ -279,9 +320,8 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
 
           <div class="footer">
             <div class="terms">
-              <h4>Terms & Information</h4>
-              <div>1. Please keep this invoice for your records.</div>
-              <div>2. Goods sold are non-refundable without valid receipt.</div>
+              <h4>Terms & Return Policy</h4>
+              ${termsList.map((t: string) => `<div>${t}</div>`).join('')}
               <div style="font-weight: bold; color: #0F172A; margin-top: 6px;">Thank you for your business!</div>
             </div>
 
@@ -632,6 +672,19 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
               {settings?.store_email ? (
                 <Text style={styles.storeDetailText}>{settings.store_email}</Text>
               ) : null}
+              {Boolean(settings?.fssai_license_number || settings?.fssai_number) && (
+                <View style={styles.fssaiBadge}>
+                  <Feather name="check-circle" size={11} color="#047857" />
+                  <Text style={styles.fssaiBadgeText}>
+                    FSSAI Lic: {settings?.fssai_license_number || settings?.fssai_number}
+                  </Text>
+                </View>
+              )}
+              {Boolean(settings?.gstin || settings?.gst_number) && (
+                <Text style={styles.gstinText}>
+                  GSTIN: {settings?.gstin || settings?.gst_number}
+                </Text>
+              )}
             </View>
 
             <View style={styles.invoiceTitleBox}>
@@ -811,11 +864,12 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
           <View style={styles.invoiceFooter}>
             <View style={styles.termsBox}>
               <View style={styles.termsHeader}>
-                <Feather name="check-circle" size={14} color="#047857" />
-                <Text style={styles.termsTitle}>Terms & Info</Text>
+                <Feather name="shield" size={14} color="#047857" />
+                <Text style={styles.termsTitle}>Terms & Return Policy</Text>
               </View>
-              <Text style={styles.termText}>1. Please keep this invoice for your records.</Text>
-              <Text style={styles.termText}>2. Goods sold are non-refundable without valid receipt.</Text>
+              {termsList.map((termLine: string, idx: number) => (
+                <Text key={idx} style={styles.termText}>{termLine}</Text>
+              ))}
               <Text style={styles.thankYouText}>Thank you for your business!</Text>
             </View>
 
@@ -835,6 +889,16 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
           </View>
 
         </View>
+
+        {/* Need Help? Chat on WhatsApp Button */}
+        <TouchableOpacity
+          style={styles.whatsAppHelpBtn}
+          onPress={handleWhatsAppHelp}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="logo-whatsapp" size={18} color="#FFFFFF" />
+          <Text style={styles.whatsAppHelpBtnText}>Need Help? Chat on WhatsApp</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -1377,6 +1441,53 @@ const styles = StyleSheet.create({
   guestSignInBtnText: {
     color: '#FFFFFF',
     fontSize: 15,
+    fontWeight: '800',
+  },
+  fssaiBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  fssaiBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#047857',
+  },
+  gstinText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#334155',
+    marginTop: 3,
+  },
+  whatsAppHelpBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#16A34A',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 14,
+    marginTop: 16,
+    marginBottom: 24,
+    marginHorizontal: 12,
+    shadowColor: '#16A34A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  whatsAppHelpBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: '800',
   },
 });

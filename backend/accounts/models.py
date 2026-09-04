@@ -77,6 +77,7 @@ class WalletTransaction(models.Model):
         PURCHASE_DEDUCTION = 'PURCHASE_DEDUCTION', 'Purchase Deduction'
         REFUND = 'REFUND', 'Refund'
         ADMIN_ADJUSTMENT = 'ADMIN_ADJUSTMENT', 'Admin Adjustment'
+        PURCHASE_CASHBACK = 'PURCHASE_CASHBACK', 'Purchase Cashback'
 
     wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name='transactions')
     amount = models.DecimalField(max_digits=10, decimal_places=2, help_text="Positive for credit, negative for debit")

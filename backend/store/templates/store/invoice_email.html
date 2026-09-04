@@ -160,7 +160,14 @@
                     <!-- Header -->
                     <tr>
                         <td class="header">
-                            <h1>{{ settings.store_name }}</h1>
+                            <h1>{% if store_settings %}{{ store_settings.store_name|default:"Narendra Kirana" }}{% else %}{{ settings.store_name|default:"Narendra Kirana" }}{% endif %}</h1>
+                            {% if store_settings.fssai_license_number or settings.fssai_license_number or store_settings.gstin or settings.gstin %}
+                            <p style="color: #a7f3d0; font-size: 12px; margin: 6px 0 0 0;">
+                                {% if store_settings.fssai_license_number %}FSSAI: {{ store_settings.fssai_license_number }}{% elif settings.fssai_license_number %}FSSAI: {{ settings.fssai_license_number }}{% endif %}
+                                {% if store_settings.fssai_license_number and store_settings.gstin or settings.fssai_license_number and settings.gstin %} | {% endif %}
+                                {% if store_settings.gstin %}GSTIN: {{ store_settings.gstin }}{% elif settings.gstin %}GSTIN: {{ settings.gstin }}{% endif %}
+                            </p>
+                            {% endif %}
                         </td>
                     </tr>
                     
@@ -207,6 +214,19 @@
                             <div class="btn-container">
                                 <a href="{{ invoice_link }}" class="btn" target="_blank">View & Download Invoice</a>
                             </div>
+
+                            <!-- Terms and Conditions -->
+                            {% if store_settings.invoice_terms_and_conditions %}
+                            <div style="margin-top: 25px; margin-bottom: 25px; padding: 16px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 12px; color: #64748b; text-align: left;">
+                                <div style="font-weight: 700; color: #1e293b; margin-bottom: 6px; font-size: 13px;">Terms & Conditions:</div>
+                                <div style="white-space: pre-line; line-height: 1.5;">{{ store_settings.invoice_terms_and_conditions }}</div>
+                            </div>
+                            {% elif settings.invoice_terms_and_conditions %}
+                            <div style="margin-top: 25px; margin-bottom: 25px; padding: 16px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 12px; color: #64748b; text-align: left;">
+                                <div style="font-weight: 700; color: #1e293b; margin-bottom: 6px; font-size: 13px;">Terms & Conditions:</div>
+                                <div style="white-space: pre-line; line-height: 1.5;">{{ settings.invoice_terms_and_conditions }}</div>
+                            </div>
+                            {% endif %}
                             
                             <p class="message" style="font-size: 14px; text-align: center; margin-bottom: 0;">
                                 We would love to hear about your experience.<br>Please let us know how we did!
@@ -218,9 +238,12 @@
                     <tr>
                         <td class="footer">
                             <p class="footer-text">
-                                &copy; {% now "Y" %} {{ settings.store_name }}. All rights reserved.<br>
-                                {% if settings.store_address %}{{ settings.store_address }}<br>{% endif %}
-                                <a href="mailto:{{ settings.store_email }}" class="footer-link">Contact Support</a>
+                                &copy; {% now "Y" %} {% if store_settings %}{{ store_settings.store_name|default:"Narendra Kirana" }}{% else %}{{ settings.store_name|default:"Narendra Kirana" }}{% endif %}. All rights reserved.<br>
+                                {% if store_settings.store_address %}{{ store_settings.store_address }}<br/>{% elif settings.store_address %}{{ settings.store_address }}<br/>{% endif %}
+                                {% if store_settings.fssai_license_number %}FSSAI Lic No: {{ store_settings.fssai_license_number }}{% elif settings.fssai_license_number %}FSSAI Lic No: {{ settings.fssai_license_number }}{% endif %}
+                                {% if store_settings.fssai_license_number and store_settings.gstin or settings.fssai_license_number and settings.gstin %} | {% endif %}
+                                {% if store_settings.gstin %}GSTIN: {{ store_settings.gstin }}<br/>{% elif settings.gstin %}GSTIN: {{ settings.gstin }}<br/>{% elif store_settings.fssai_license_number or settings.fssai_license_number %}<br/>{% endif %}
+                                <a href="mailto:{% if store_settings.store_email %}{{ store_settings.store_email }}{% elif settings.store_email %}{{ settings.store_email }}{% else %}support@narendrakirana.in{% endif %}" class="footer-link">Contact Support</a>
                             </p>
                         </td>
                     </tr>

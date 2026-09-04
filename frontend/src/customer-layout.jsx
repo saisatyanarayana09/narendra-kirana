@@ -1,7 +1,7 @@
 import { optimizeImage } from './utils/image';
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { Home, Search, ShoppingBasket, ShoppingCart, User, X, Heart, Bell, LayoutGrid, Trash2, ShoppingBag, Leaf, Coffee, Package, Mic, Volume2, LogOut } from 'lucide-react'
+import { Home, Search, ShoppingBasket, ShoppingCart, User, X, Heart, Bell, LayoutGrid, Trash2, ShoppingBag, Leaf, Coffee, Package, Mic, Volume2, LogOut, Megaphone, Sparkles, Clock, Wrench, AlertTriangle } from 'lucide-react'
 import { useCart } from './cart-context'
 import { useLanguage } from './context/LanguageContext'
 import { useSpeechRecognition, useTextToSpeech } from './hooks/useVoice'
@@ -405,15 +405,261 @@ function WelcomeScreen() {
 
 import { SmartAppBanner } from './components/SmartAppBanner';
 
+function TopAnnouncementMarquee({ settings }) {
+  if (!settings?.enable_announcement_bar || !settings?.announcement_text) {
+    return null;
+  }
+
+  // Active date range check if provided
+  const now = new Date();
+  if (settings.announcement_start_date) {
+    const start = new Date(settings.announcement_start_date);
+    if (!isNaN(start.getTime()) && now < start) return null;
+  }
+  if (settings.announcement_end_date) {
+    const end = new Date(settings.announcement_end_date);
+    if (!isNaN(end.getTime()) && now > end) return null;
+  }
+
+  const bgColor = settings.announcement_bg_color || '#16a34a';
+  const textColor = settings.announcement_text_color || '#ffffff';
+
+  return (
+    <div
+      className="relative w-full overflow-hidden py-2 px-4 text-xs sm:text-sm font-bold tracking-wide z-40 select-none shadow-xs border-b border-black/10"
+      style={{ backgroundColor: bgColor, color: textColor }}
+    >
+      <div className="flex w-max animate-marquee space-x-12 items-center">
+        {[0, 1, 2, 3].map((idx) => (
+          <span key={idx} className="flex items-center gap-3 whitespace-nowrap">
+            <Megaphone size={15} className="shrink-0 opacity-90 animate-bounce" />
+            <span>{settings.announcement_text}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FestivePopupModal({ settings }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    if (settings?.enable_festive_popup) {
+      const seen = sessionStorage.getItem('festive_popup_seen');
+      if (!seen) {
+        const timer = setTimeout(() => setIsOpen(true), 600);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [settings?.enable_festive_popup]);
+
+  if (!isOpen) return null;
+
+  const handleClose = () => {
+    sessionStorage.setItem('festive_popup_seen', 'true');
+    setIsOpen(false);
+  };
+
+  const title = settings.festive_popup_title || 'Special Festive Offers! 🎉';
+  const content = settings.festive_popup_content || 'Celebrate the festival season with exclusive store savings and specials!';
+  const image = settings.festive_popup_image;
+
+  return (
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
+      onClick={handleClose}
+    >
+      <div 
+        className="relative w-full max-w-md bg-white dark:bg-[#0f172a] rounded-3xl p-6 sm:p-7 shadow-2xl border border-amber-200/60 dark:border-amber-500/20 text-center overflow-hidden animate-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="absolute -top-16 -right-16 w-36 h-36 bg-amber-400/20 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute -bottom-16 -left-16 w-36 h-36 bg-rose-500/20 rounded-full blur-2xl pointer-events-none" />
+
+        <button
+          type="button"
+          onClick={handleClose}
+          className="absolute right-4 top-4 p-1.5 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors z-10 cursor-pointer"
+          aria-label="Close modal"
+        >
+          <X size={20} />
+        </button>
+
+        {image ? (
+          <div className="mb-4 rounded-2xl overflow-hidden max-h-52 border border-slate-100 dark:border-slate-800 shadow-sm">
+            <img src={image} alt={title} className="w-full h-full object-cover" />
+          </div>
+        ) : (
+          <div className="mx-auto w-16 h-16 bg-gradient-to-tr from-amber-400 to-rose-500 text-white rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-amber-500/25">
+            <Sparkles size={32} className="animate-pulse" />
+          </div>
+        )}
+
+        <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight mb-2">
+          {title}
+        </h3>
+
+        <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-6">
+          {content}
+        </p>
+
+        <div className="flex flex-col gap-2.5">
+          <Link
+            to="/products"
+            onClick={handleClose}
+            className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-amber-500 via-rose-500 to-emerald-600 hover:opacity-95 active:scale-95 text-white font-black text-base shadow-lg shadow-rose-500/25 transition-all text-center cursor-pointer"
+          >
+            ✨ Shop Now
+          </Link>
+          <button
+            type="button"
+            onClick={handleClose}
+            className="w-full py-2 text-xs font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+          >
+            Dismiss
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WhatsAppSupportWidget({ settings }) {
+  if (!settings?.enable_whatsapp_support || !settings?.whatsapp_number) {
+    return null;
+  }
+
+  const rawNumber = String(settings.whatsapp_number).replace(/\D/g, '');
+  const cleanNumber = rawNumber.length === 10 ? `91${rawNumber}` : rawNumber;
+  const defaultMessage = settings.whatsapp_default_message || `Hello ${settings.store_name || 'Smart Kirana'}, I would like to inquire about my order.`;
+  const whatsappUrl = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(defaultMessage)}`;
+
+  return (
+    <aside aria-label="Support Widget">
+      <a
+        href={whatsappUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Chat with us on WhatsApp"
+        className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-40 flex items-center gap-2 group cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95"
+      >
+        <div className="hidden sm:flex items-center px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full shadow-lg text-xs font-bold text-slate-700 dark:text-slate-200 group-hover:text-emerald-600 transition-colors">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping mr-1.5" />
+          WhatsApp Support
+        </div>
+        <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-[#25D366] hover:bg-[#20ba59] text-white flex items-center justify-center shadow-xl shadow-emerald-600/30 ring-4 ring-emerald-500/20 group-hover:ring-emerald-500/40 transition-all">
+          <svg
+            className="w-7 h-7 sm:w-8 sm:h-8 fill-current"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+          </svg>
+        </div>
+      </a>
+    </aside>
+  );
+}
+
+function MaintenanceModeOverlay({ settings }) {
+  const message = settings?.maintenance_message || "We are currently performing scheduled system maintenance and upgrades to improve your shopping experience. Please check back shortly.";
+  const estimatedTime = settings?.maintenance_estimated_time || settings?.estimated_maintenance_time || settings?.maintenance_until;
+
+  return (
+    <div className="fixed inset-0 z-[99999] bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 flex flex-col items-center justify-center p-6 text-center text-white select-none overflow-y-auto">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.08)_0,transparent_70%)] pointer-events-none" />
+
+      <div className="relative z-10 max-w-lg mx-auto flex flex-col items-center my-auto">
+        <div className="relative mb-6">
+          <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-2xl animate-pulse" />
+          <img
+            src={settings?.store_logo || "/logo-transparent.png"}
+            alt={settings?.store_name || "Store Logo"}
+            className="w-24 h-24 sm:w-28 sm:h-28 object-contain drop-shadow-2xl relative z-10"
+          />
+        </div>
+
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs sm:text-sm font-black uppercase tracking-wider mb-4">
+          <Wrench size={14} className="animate-spin" style={{ animationDuration: '8s' }} />
+          <span>Under Scheduled Maintenance</span>
+        </div>
+
+        <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight mb-3">
+          {settings?.store_name ? `${settings.store_name} Under Maintenance` : "Store Under Scheduled Maintenance"}
+        </h1>
+
+        <p className="text-slate-300 text-sm sm:text-base leading-relaxed mb-6 font-medium">
+          {message}
+        </p>
+
+        {estimatedTime && (
+          <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700/60 text-xs sm:text-sm font-bold text-amber-300 mb-8 shadow-inner">
+            <Clock size={16} />
+            <span>Estimated Resumption: {estimatedTime}</span>
+          </div>
+        )}
+
+        {(settings?.store_phone || settings?.store_email) && (
+          <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 text-xs text-slate-400 w-full max-w-sm space-y-1.5 mb-6 text-left">
+            <p className="font-bold text-slate-300 uppercase tracking-wider text-[11px]">Need urgent assistance?</p>
+            {settings.store_phone && <p>📞 Phone: <span className="text-slate-200 font-semibold">{settings.store_phone}</span></p>}
+            {settings.store_email && <p>✉️ Email: <span className="text-slate-200 font-semibold">{settings.store_email}</span></p>}
+          </div>
+        )}
+
+        <a
+          href="/owner/login"
+          className="text-xs text-slate-500 hover:text-slate-300 underline transition-colors"
+        >
+          Staff & Owner Sign In
+        </a>
+      </div>
+    </div>
+  );
+}
+
 export function CustomerLayout({ children }) {
-  const { cart, isCustomer, favorites, notifications, logout } = useCart()
+  const { cart, isCustomer, favorites, notifications, logout, storeSettings: contextSettings, user } = useCart()
+  const [storeSettings, setStoreSettings] = useState(contextSettings)
   const [showNotifications, setShowNotifications] = useState(false)
   const location = useLocation();
 
+  useEffect(() => {
+    if (contextSettings) {
+      setStoreSettings(contextSettings);
+    } else {
+      api.get('/store/settings/').then(res => setStoreSettings(res.data)).catch(console.error);
+    }
+  }, [contextSettings]);
+
+  // Check if current user is owner or staff
+  const isStaffOrOwner = Boolean(
+    user?.is_owner || 
+    user?.is_staff || 
+    user?.is_superuser ||
+    (() => {
+      try {
+        const ownerUser = JSON.parse(localStorage.getItem('smart-kirana-owner-user') || 'null');
+        return Boolean(ownerUser?.is_owner || ownerUser?.is_staff || ownerUser?.is_superuser);
+      } catch {
+        return false;
+      }
+    })()
+  );
+
+  // Store Maintenance Mode screen blocker
+  if (storeSettings?.is_maintenance_mode && !isStaffOrOwner) {
+    return <MaintenanceModeOverlay settings={storeSettings} />;
+  }
+
   return (
   <div className="min-h-screen bg-slate-50 dark:bg-[#090d16] pb-20 sm:pb-0 text-slate-900 dark:text-slate-100 transition-colors duration-200">
+  <TopAnnouncementMarquee settings={storeSettings} />
   <SmartAppBanner />
   <WelcomeScreen />
+  <FestivePopupModal settings={storeSettings} />
+  <WhatsAppSupportWidget settings={storeSettings} />
 
   <header className="sticky top-0 z-30 border-b border-slate-200/60 dark:border-slate-800 bg-white/80 dark:bg-[#0d1322]/90 backdrop-blur-xl shadow-sm transition-colors duration-200">
   <div className="mx-auto flex w-full max-w-screen-2xl items-center justify-between px-4 py-3 sm:px-6 lg:px-12">

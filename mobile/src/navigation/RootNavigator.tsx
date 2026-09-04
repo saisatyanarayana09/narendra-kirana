@@ -1,12 +1,24 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  ActivityIndicator, 
+  Linking as RNLinking 
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as Linking from 'expo-linking';
+import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { navigationRef } from './navigationRef';
+import { storeApi, StoreSettings } from '../api/store';
+import { APP_VERSION } from '../constants/config';
 
 import { AuthStack } from './AuthStack';
 import { MainTabs } from './MainTabs';
@@ -16,6 +28,22 @@ import { ForgotPasswordScreen } from '../screens/auth/ForgotPasswordScreen';
 import { ResetPasswordScreen } from '../screens/auth/ResetPasswordScreen';
 
 export { navigationRef } from './navigationRef';
+
+export function isVersionOlder(currentVersion: string, minVersion: string): boolean {
+  if (!minVersion) return false;
+  const cleanCurrent = currentVersion.replace(/^[vV]/, '').trim();
+  const cleanMin = minVersion.replace(/^[vV]/, '').trim();
+  const cParts = cleanCurrent.split('.').map((p) => parseInt(p, 10) || 0);
+  const mParts = cleanMin.split('.').map((p) => parseInt(p, 10) || 0);
+  const len = Math.max(cParts.length, mParts.length);
+  for (let i = 0; i < len; i++) {
+    const c = cParts[i] || 0;
+    const m = mParts[i] || 0;
+    if (c < m) return true;
+    if (c > m) return false;
+  }
+  return false;
+}
 
 const Stack = createNativeStackNavigator();
 
@@ -224,6 +252,24 @@ const linking = {
 export function RootNavigator() {
   const { user, isLoading, pendingRedirect, setPendingRedirect, clearPendingRedirect } = useAuth();
   const isNavReadyRef = useRef(false);
+  const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
+  const [checkingSettings, setCheckingSettings] = useState(false);
+
+  const loadStoreSettings = useCallback(async () => {
+    try {
+      setCheckingSettings(true);
+      const data = await storeApi.getSettings();
+      setStoreSettings(data);
+    } catch (err) {
+      console.warn('[RootNavigator] Could not fetch store settings:', err);
+    } finally {
+      setCheckingSettings(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadStoreSettings();
+  }, [loadStoreSettings]);
 
   // Function to route or queue an incoming deep link
   const handleIncomingUrl = (url: string | null) => {
@@ -345,6 +391,37 @@ export function RootNavigator() {
     return <LoadingSpinner fullScreen />;
   }
 
+  // 1. Mobile Version Gate: Check if current installed version < min_mobile_version and force_app_update is True
+  const isOutdated = storeSettings?.min_mobile_version
+    ? isVersionOlder(APP_VERSION, storeSettings.min_mobile_version)
+    : false;
+  const isForceUpdateRequired = isOutdated && Boolean(storeSettings?.force_app_update);
+
+  if (isForceUpdateRequired) {
+    return (
+      <ForceUpdateView
+        settings={storeSettings}
+        onRefresh={loadStoreSettings}
+        isRefreshing={checkingSettings}
+        colors={colors}
+        isDark={isDark}
+      />
+    );
+  }
+
+  // 2. Store Maintenance Mode: If is_maintenance_mode is True, display full-screen Maintenance View
+  if (storeSettings?.is_maintenance_mode) {
+    return (
+      <MaintenanceView
+        settings={storeSettings}
+        onRefresh={loadStoreSettings}
+        isRefreshing={checkingSettings}
+        colors={colors}
+        isDark={isDark}
+      />
+    );
+  }
+
   return (
     <ErrorBoundary>
       <NavigationContainer
@@ -385,3 +462,294 @@ export function RootNavigator() {
     </ErrorBoundary>
   );
 }
+
+function MaintenanceView({
+  settings,
+  onRefresh,
+  isRefreshing,
+  colors,
+  isDark,
+}: {
+  settings: StoreSettings | null;
+  onRefresh: () => void;
+  isRefreshing: boolean;
+  colors: any;
+  isDark: boolean;
+}) {
+  return (
+    <SafeAreaView style={[styles.gateContainer, { backgroundColor: colors.background }]}>
+      <View style={styles.gateContent}>
+        <View style={[styles.gateIconCircle, { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEE2E2' }]}>
+          <Feather name="tool" size={42} color="#DC2626" />
+        </View>
+
+        <Text style={[styles.gateStoreTitle, { color: colors.text }]}>
+          {settings?.store_name || 'Narendra Kirana Store'}
+        </Text>
+
+        <View style={styles.gateBadge}>
+          <Text style={styles.gateBadgeText}>MAINTENANCE IN PROGRESS</Text>
+        </View>
+
+        <Text style={[styles.gateHeading, { color: colors.text }]}>Under Scheduled Maintenance</Text>
+
+        <Text style={[styles.gateDescription, { color: colors.textSecondary }]}>
+          {settings?.maintenance_message ||
+            'We are currently performing scheduled maintenance to serve you better. We will be back online shortly!'}
+        </Text>
+
+        {Boolean(settings?.store_phone || settings?.store_email) && (
+          <View style={[styles.gateContactBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.gateContactTitle, { color: colors.text }]}>Need Urgent Assistance?</Text>
+            {Boolean(settings?.store_phone) && (
+              <TouchableOpacity
+                style={styles.contactRow}
+                onPress={() => RNLinking.openURL(`tel:${settings?.store_phone}`)}
+              >
+                <Feather name="phone" size={14} color={colors.primary} />
+                <Text style={[styles.contactText, { color: colors.primary }]}>{settings?.store_phone}</Text>
+              </TouchableOpacity>
+            )}
+            {Boolean(settings?.store_email) && (
+              <TouchableOpacity
+                style={styles.contactRow}
+                onPress={() => RNLinking.openURL(`mailto:${settings?.store_email}`)}
+              >
+                <Feather name="mail" size={14} color={colors.primary} />
+                <Text style={[styles.contactText, { color: colors.primary }]}>{settings?.store_email}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        <TouchableOpacity
+          style={[styles.gatePrimaryBtn, { backgroundColor: colors.primary }]}
+          onPress={onRefresh}
+          disabled={isRefreshing}
+          activeOpacity={0.85}
+        >
+          {isRefreshing ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <>
+              <Feather name="refresh-cw" size={16} color="#FFFFFF" />
+              <Text style={styles.gatePrimaryBtnText}>Check Again</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+function ForceUpdateView({
+  settings,
+  onRefresh,
+  isRefreshing,
+  colors,
+  isDark,
+}: {
+  settings: StoreSettings | null;
+  onRefresh: () => void;
+  isRefreshing: boolean;
+  colors: any;
+  isDark: boolean;
+}) {
+  const handleUpdate = () => {
+    const url = settings?.app_update_url || 'https://play.google.com/store';
+    RNLinking.openURL(url).catch((err) => {
+      console.warn('Could not open update URL:', err);
+    });
+  };
+
+  return (
+    <SafeAreaView style={[styles.gateContainer, { backgroundColor: colors.background }]}>
+      <View style={styles.gateContent}>
+        <View style={[styles.gateIconCircle, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5' }]}>
+          <Feather name="arrow-up-circle" size={44} color="#059669" />
+        </View>
+
+        <Text style={[styles.gateStoreTitle, { color: colors.text }]}>
+          {settings?.store_name || 'Narendra Kirana Store'}
+        </Text>
+
+        <View style={[styles.gateBadge, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
+          <Text style={[styles.gateBadgeText, { color: '#047857' }]}>UPDATE REQUIRED</Text>
+        </View>
+
+        <Text style={[styles.gateHeading, { color: colors.text }]}>Please Update Your App</Text>
+
+        <Text style={[styles.gateDescription, { color: colors.textSecondary }]}>
+          {settings?.app_update_message ||
+            'A newer version of the app is available with essential security updates and improvements. Please update to continue shopping.'}
+        </Text>
+
+        <View style={[styles.versionPillContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.versionPillText, { color: colors.textSecondary }]}>
+            Current: <Text style={{ fontWeight: '700', color: colors.text }}>v{APP_VERSION}</Text>
+          </Text>
+          {Boolean(settings?.min_mobile_version) && (
+            <Text style={[styles.versionPillText, { color: colors.textSecondary }]}>
+              Required: <Text style={{ fontWeight: '700', color: colors.primary }}>v{settings?.min_mobile_version}</Text>
+            </Text>
+          )}
+        </View>
+
+        <TouchableOpacity
+          style={[styles.gatePrimaryBtn, { backgroundColor: colors.primary }]}
+          onPress={handleUpdate}
+          activeOpacity={0.85}
+        >
+          <Feather name="download" size={16} color="#FFFFFF" />
+          <Text style={styles.gatePrimaryBtnText}>Update Now</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.gateSecondaryBtn, { borderColor: colors.border }]}
+          onPress={onRefresh}
+          disabled={isRefreshing}
+          activeOpacity={0.8}
+        >
+          {isRefreshing ? (
+            <ActivityIndicator size="small" color={colors.text} />
+          ) : (
+            <>
+              <Feather name="refresh-cw" size={14} color={colors.text} />
+              <Text style={[styles.gateSecondaryBtnText, { color: colors.text }]}>I've Already Updated</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  gateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  gateContent: {
+    width: '100%',
+    maxWidth: 420,
+    alignItems: 'center',
+  },
+  gateIconCircle: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  gateStoreTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+  gateBadge: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+    marginBottom: 16,
+  },
+  gateBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#DC2626',
+    letterSpacing: 0.5,
+  },
+  gateHeading: {
+    fontSize: 22,
+    fontWeight: '900',
+    textAlign: 'center',
+    marginBottom: 10,
+    letterSpacing: -0.3,
+  },
+  gateDescription: {
+    fontSize: 14,
+    lineHeight: 22,
+    textAlign: 'center',
+    marginBottom: 24,
+    paddingHorizontal: 12,
+  },
+  gateContactBox: {
+    width: '100%',
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    gap: 8,
+  },
+  gateContactTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  contactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 2,
+  },
+  contactText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  versionPillContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginBottom: 24,
+    width: '100%',
+  },
+  versionPillText: {
+    fontSize: 13,
+  },
+  gatePrimaryBtn: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  gatePrimaryBtnText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  gateSecondaryBtn: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 13,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginTop: 12,
+  },
+  gateSecondaryBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+});

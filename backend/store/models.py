@@ -50,6 +50,92 @@ class StoreSettings(models.Model):
     # Flash Announcement Theme
     announcement_bg_color = models.CharField(max_length=20, default="#ef4444")
     announcement_text_color = models.CharField(max_length=20, default="#ffffff")
+
+    # UPI
+    upi_id = models.CharField(max_length=100, blank=True, default="")
+    upi_payee_name = models.CharField(max_length=100, blank=True, default="Narendra Kirana")
+    upi_qr_image = models.ImageField(upload_to='upi_qr/', null=True, blank=True)
+    enable_dynamic_upi_qr = models.BooleanField(default=True)
+
+    # Compliance
+    fssai_license_number = models.CharField(max_length=14, blank=True, default="")
+    gstin = models.CharField(max_length=15, blank=True, default="")
+    enable_itemized_tax_invoice = models.BooleanField(default=True)
+    invoice_terms_and_conditions = models.TextField(
+        blank=True,
+        default="1. Goods once sold will not be taken back without original bill.\n2. In case of any dispute, local jurisdiction applies.\n3. Perishable goods must be reported within 24 hours."
+    )
+
+    # Store Timings & Emergency Pause
+    store_timings_json = models.JSONField(default=dict, blank=True)
+    auto_cutoff_orders = models.BooleanField(default=True)
+    is_emergency_paused = models.BooleanField(default=False)
+    emergency_pause_message = models.CharField(
+        max_length=255,
+        blank=True,
+        default="We are currently experiencing high order volume and will resume shortly. Thank you for your patience!"
+    )
+
+    # Delivery & Pickup Time Slots
+    enable_time_slots = models.BooleanField(default=True)
+    preparation_buffer_minutes = models.IntegerField(default=30)
+    max_orders_per_slot = models.IntegerField(default=15)
+    time_slots_json = models.JSONField(default=list, blank=True)
+
+    # WhatsApp Support
+    enable_whatsapp_support = models.BooleanField(default=True)
+    whatsapp_number = models.CharField(max_length=20, blank=True, default="+919876543210")
+    whatsapp_default_message = models.CharField(
+        max_length=255,
+        default="Hi Narendra Kirana, I need help with my grocery order."
+    )
+    whatsapp_order_help_template = models.CharField(
+        max_length=255,
+        default="Hi Narendra Kirana, I need help with Order #{order_id}"
+    )
+
+    # Loyalty Wallet & Referral Rules
+    referral_bonus_referrer = models.DecimalField(max_digits=10, decimal_places=2, default=50.00)
+    referral_bonus_referee = models.DecimalField(max_digits=10, decimal_places=2, default=50.00)
+    referral_min_order_amount = models.DecimalField(max_digits=10, decimal_places=2, default=200.00)
+    max_wallet_usage_percentage = models.IntegerField(default=50)
+    order_cashback_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=2.00)
+
+    # Announcement Marquee & Festive Popup
+    enable_announcement_bar = models.BooleanField(default=True)
+    announcement_text = models.TextField(
+        blank=True,
+        default="🎉 Free Home Delivery on orders above ₹499! Use code FIRST50 for ₹50 off on first order."
+    )
+    announcement_start_date = models.DateTimeField(null=True, blank=True)
+    announcement_end_date = models.DateTimeField(null=True, blank=True)
+    enable_festive_popup = models.BooleanField(default=False)
+    festive_popup_title = models.CharField(max_length=100, blank=True, default="Special Festive Offer! 🪔")
+    festive_popup_content = models.TextField(
+        blank=True,
+        default="Enjoy huge festive discounts on all grocery essentials. Shop today!"
+    )
+    festive_popup_image = models.ImageField(upload_to='festive/', null=True, blank=True)
+
+    # Mobile Version & Maintenance
+    min_mobile_version = models.CharField(max_length=20, default="1.0.0")
+    latest_mobile_version = models.CharField(max_length=20, default="1.0.0")
+    force_app_update = models.BooleanField(default=False)
+    app_update_url = models.URLField(
+        blank=True,
+        default="https://play.google.com/store/apps/details?id=com.narendrakirana.app"
+    )
+    app_update_message = models.CharField(
+        max_length=255,
+        default="A new and improved version of Narendra Kirana is available. Please update to continue shopping."
+    )
+    is_maintenance_mode = models.BooleanField(default=False)
+    maintenance_message = models.TextField(
+        blank=True,
+        default="We are currently performing scheduled maintenance to serve you better. We will be back online shortly!"
+    )
+    maintenance_estimated_end = models.DateTimeField(null=True, blank=True)
+
     
     def save(self, *args, **kwargs):
         self.pk = 1

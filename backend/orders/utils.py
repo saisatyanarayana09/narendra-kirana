@@ -68,6 +68,7 @@ def send_final_invoice_email(order):
         'order': order,
         'items': order.items.all(),
         'settings': store_settings,
+        'store_settings': store_settings,
         'subtotal': subtotal,
         'discount_applied': order.discount_applied,
         'invoice_link': invoice_link,

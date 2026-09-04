@@ -9,11 +9,14 @@ import {
   Dimensions,
   FlatList,
   Alert,
-  Platform
+  Platform,
+  Animated,
+  Easing,
+  Linking as RNLinking
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
 import { theme } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
@@ -134,6 +137,68 @@ const BannerCarouselSection = React.memo(function BannerCarouselSection({ banner
   );
 });
 
+interface AnnouncementMarqueeBarProps {
+  text: string;
+  bgColor: string;
+  textColor: string;
+}
+
+const AnnouncementMarqueeBar = React.memo(function AnnouncementMarqueeBar({
+  text,
+  bgColor,
+  textColor,
+}: AnnouncementMarqueeBarProps) {
+  const animatedX = useRef(new Animated.Value(0)).current;
+  const [textWidth, setTextWidth] = useState(0);
+  const screenWidth = Dimensions.get('window').width;
+
+  useEffect(() => {
+    if (textWidth > 0) {
+      animatedX.setValue(screenWidth);
+      const distance = textWidth + screenWidth;
+      const speed = 45; // pixels per second
+      const duration = (distance / speed) * 1000;
+
+      const animation = Animated.loop(
+        Animated.timing(animatedX, {
+          toValue: -textWidth,
+          duration,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        })
+      );
+      animation.start();
+
+      return () => animation.stop();
+    }
+  }, [textWidth, screenWidth, animatedX]);
+
+  return (
+    <View style={[styles.marqueeBar, { backgroundColor: bgColor }]}>
+      <View style={styles.marqueeIconWrap}>
+        <Feather name="volume-2" size={14} color={textColor} />
+      </View>
+      <View style={styles.marqueeContent}>
+        <Animated.View
+          style={{
+            transform: [{ translateX: animatedX }],
+            flexDirection: 'row',
+            alignItems: 'center',
+          }}
+        >
+          <Text
+            onLayout={(e) => setTextWidth(e.nativeEvent.layout.width)}
+            style={[styles.marqueeText, { color: textColor }]}
+            numberOfLines={1}
+          >
+            {text}
+          </Text>
+        </Animated.View>
+      </View>
+    </View>
+  );
+});
+
 export function HomeScreen({ navigation }: Props) {
   const { user } = useAuth();
   const { addToCart } = useCart();
@@ -145,6 +210,35 @@ export function HomeScreen({ navigation }: Props) {
   const [banners, setBanners] = useState<any[]>([]);
   const [sections, setSections] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
+
+  const nowTime = Date.now();
+  const startDateValid = !settings?.announcement_start_date || new Date(settings.announcement_start_date).getTime() <= nowTime;
+  const endDateValid = !settings?.announcement_end_date || new Date(settings.announcement_end_date).getTime() >= nowTime;
+  const showAnnouncement = Boolean(settings?.enable_announcement_bar) && startDateValid && endDateValid && Boolean(settings?.announcement_text);
+  const announcementText = settings?.announcement_text || '';
+
+  const handleWhatsAppSupport = async () => {
+    const rawNum = settings?.whatsapp_number || settings?.store_phone || '';
+    const cleanNumber = rawNum.replace(/[^0-9]/g, '');
+    const formattedNumber = cleanNumber.length === 10 ? `91${cleanNumber}` : cleanNumber;
+    const msg = settings?.whatsapp_default_message || 'Hi Narendra Kirana, I need help with my grocery order.';
+
+    const waUrl = `whatsapp://send?phone=${formattedNumber}&text=${encodeURIComponent(msg)}`;
+    const webWaUrl = `https://wa.me/${formattedNumber}?text=${encodeURIComponent(msg)}`;
+
+    try {
+      const canOpen = await RNLinking.canOpenURL(waUrl);
+      if (canOpen) {
+        await RNLinking.openURL(waUrl);
+      } else {
+        await RNLinking.openURL(webWaUrl);
+      }
+    } catch {
+      await RNLinking.openURL(webWaUrl).catch(() => {
+        Alert.alert('WhatsApp Not Available', `Please contact store support directly at ${rawNum}`);
+      });
+    }
+  };
 
   // Favorites state
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
@@ -378,6 +472,15 @@ export function HomeScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
 
+      {/* Top Announcement Marquee Bar */}
+      {showAnnouncement && (
+        <AnnouncementMarqueeBar
+          text={announcementText}
+          bgColor={settings?.announcement_bg_color || '#EF4444'}
+          textColor={settings?.announcement_text_color || '#FFFFFF'}
+        />
+      )}
+
       <ScrollView 
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -531,6 +634,17 @@ export function HomeScreen({ navigation }: Props) {
         })}
 
       </ScrollView>
+
+      {/* Floating WhatsApp Support Action Button */}
+      {Boolean(settings?.enable_whatsapp_support) && (
+        <TouchableOpacity
+          style={styles.floatingWhatsAppBtn}
+          onPress={handleWhatsAppSupport}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="logo-whatsapp" size={28} color="#FFFFFF" />
+        </TouchableOpacity>
+      )}
     </SafeAreaView>
   );
 }
@@ -790,4 +904,42 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   categoryCardHorizontal: {},
+  marqueeBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 36,
+    paddingHorizontal: 12,
+    overflow: 'hidden',
+  },
+  marqueeIconWrap: {
+    marginRight: 8,
+    zIndex: 2,
+  },
+  marqueeContent: {
+    flex: 1,
+    overflow: 'hidden',
+    justifyContent: 'center',
+  },
+  marqueeText: {
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  floatingWhatsAppBtn: {
+    position: 'absolute',
+    bottom: 24,
+    right: 18,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: '#25D366',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6,
+    zIndex: 999,
+  },
 });

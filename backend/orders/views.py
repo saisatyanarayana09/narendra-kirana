@@ -1,7 +1,10 @@
+from datetime import datetime
 from decimal import Decimal
 import logging
+import threading
 from django.db import transaction
 from django.db.models import F
+from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -9,14 +12,105 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from accounts.permissions import IsCustomerUser, IsOwnerUser
 from cart.models import Cart
-from .models import Order, OrderItem
+from products.models import Product
 from store.models import StoreSettings
-from .serializers import CheckoutSerializer, OrderSerializer, OrderStatusSerializer
 from notifications.models import Notification
-import threading
+from .models import Order, OrderItem
+from .serializers import CheckoutSerializer, OrderSerializer, OrderStatusSerializer
 from .utils import send_order_confirmation_email, send_final_invoice_email
 
 logger = logging.getLogger(__name__)
+
+
+def parse_time_str(val):
+    if not val or not isinstance(val, str):
+        return None
+    val = val.strip().lower()
+    for fmt in ('%H:%M', '%H:%M:%S', '%I:%M %p', '%I:%M%p'):
+        try:
+            return datetime.strptime(val, fmt).time()
+        except ValueError:
+            pass
+    return None
+
+
+def check_store_operating_hours(timings_json):
+    """
+    Checks whether store is open based on store_timings_json.
+    Returns (is_open: bool, message: str)
+    """
+    if not timings_json:
+        return True, ""
+
+    now = timezone.localtime(timezone.now())
+    day_name_full = now.strftime('%A').lower()   # e.g. "friday"
+    day_name_short = now.strftime('%a').lower()  # e.g. "fri"
+    weekday_idx_mon = str(now.weekday())         # 0=Monday .. 6=Sunday
+    weekday_idx_sun = str((now.weekday() + 1) % 7) # 0=Sunday .. 6=Saturday
+
+    target_keys = {day_name_full, day_name_short, weekday_idx_mon, weekday_idx_sun}
+
+    day_config = None
+    if isinstance(timings_json, dict):
+        for k, v in timings_json.items():
+            if str(k).strip().lower() in target_keys:
+                day_config = v
+                break
+    elif isinstance(timings_json, list):
+        for item in timings_json:
+            if isinstance(item, dict):
+                item_day = str(item.get('day') or item.get('day_name') or item.get('name') or item.get('id', '')).strip().lower()
+                if item_day in target_keys:
+                    day_config = item
+                    break
+
+    if day_config is None:
+        return True, ""
+
+    if isinstance(day_config, bool):
+        if not day_config:
+            return False, f"The store is closed on {now.strftime('%A')}s."
+        return True, ""
+
+    if isinstance(day_config, str):
+        if day_config.strip().lower() in ('closed', 'off'):
+            return False, f"The store is closed on {now.strftime('%A')}s."
+        return True, ""
+
+    if isinstance(day_config, dict):
+        if day_config.get('is_closed') is True or day_config.get('closed') is True:
+            return False, f"The store is closed on {now.strftime('%A')}s."
+        if day_config.get('is_open') is False or day_config.get('open') is False:
+            return False, f"The store is closed on {now.strftime('%A')}s."
+
+        open_str = (
+            day_config.get('open_time')
+            or day_config.get('open')
+            or day_config.get('opening_time')
+            or day_config.get('from')
+            or day_config.get('start_time')
+        )
+        close_str = (
+            day_config.get('close_time')
+            or day_config.get('close')
+            or day_config.get('closing_time')
+            or day_config.get('to')
+            or day_config.get('end_time')
+        )
+
+        if open_str and close_str:
+            t_open = parse_time_str(str(open_str))
+            t_close = parse_time_str(str(close_str))
+            if t_open and t_close:
+                curr_t = now.time()
+                if t_open <= t_close:
+                    if not (t_open <= curr_t <= t_close):
+                        return False, f"Store is currently closed. Today's operating hours are {open_str} - {close_str}."
+                else: # Overnight hours
+                    if not (curr_t >= t_open or curr_t <= t_close):
+                        return False, f"Store is currently closed. Today's operating hours are {open_str} - {close_str}."
+
+    return True, ""
 
 
 class OrderViewSet(ModelViewSet):
@@ -68,6 +162,17 @@ class OrderViewSet(ModelViewSet):
         settings = StoreSettings.load()
         if not settings.is_open:
             return Response({'detail': 'Sorry, the store is currently closed and not accepting new orders.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check Emergency Pause
+        if getattr(settings, 'is_emergency_paused', False):
+            pause_message = getattr(settings, 'emergency_pause_message', '') or "We are currently experiencing high order volume and will resume shortly. Thank you for your patience!"
+            return Response({'detail': pause_message}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check Store Timings & Operating Hours Cutoff
+        if getattr(settings, 'auto_cutoff_orders', False) and getattr(settings, 'store_timings_json', None):
+            is_open_schedule, schedule_msg = check_store_operating_hours(settings.store_timings_json)
+            if not is_open_schedule:
+                return Response({'detail': schedule_msg or 'The store is currently closed outside of operating hours.'}, status=status.HTTP_400_BAD_REQUEST)
             
         subtotal = Decimal(str(cart_data['subtotal']))
         if subtotal < settings.min_order_amount:
@@ -115,23 +220,26 @@ class OrderViewSet(ModelViewSet):
         wallet_discount = Decimal('0.00')
         if checkout.validated_data.get('use_wallet', False):
             from accounts.models import Wallet, WalletTransaction
-            wallet = Wallet.objects.select_for_update().get(user=request.user)
-            if wallet.balance > 0:
-                if wallet.balance >= total:
-                    wallet_discount = total
-                    total = Decimal('0.00')
-                    wallet.balance -= wallet_discount
+            wallet, _ = Wallet.objects.select_for_update().get_or_create(user=request.user)
+            if wallet.balance > 0 and total > 0:
+                max_pct = getattr(settings, 'max_wallet_usage_percentage', 100)
+                if max_pct is not None and max_pct >= 0:
+                    max_allowable_wallet = ((total * Decimal(str(max_pct))) / Decimal('100')).quantize(Decimal('0.01'))
                 else:
-                    wallet_discount = wallet.balance
+                    max_allowable_wallet = total
+
+                spendable_amount = min(wallet.balance, total, max_allowable_wallet).quantize(Decimal('0.01'))
+                if spendable_amount > Decimal('0.00'):
+                    wallet_discount = spendable_amount
                     total -= wallet_discount
-                    wallet.balance = Decimal('0.00')
-                wallet.save()
-                WalletTransaction.objects.create(
-                    wallet=wallet,
-                    amount=-wallet_discount,
-                    transaction_type=WalletTransaction.TransactionType.PURCHASE_DEDUCTION,
-                    description="Used for order checkout"
-                )
+                    wallet.balance -= wallet_discount
+                    wallet.save(update_fields=['balance', 'updated_at'])
+                    WalletTransaction.objects.create(
+                        wallet=wallet,
+                        amount=-wallet_discount,
+                        transaction_type=WalletTransaction.TransactionType.PURCHASE_DEDUCTION,
+                        description="Used for order checkout"
+                    )
 
         initial_status = Order.Status.ACCEPTED if settings.auto_accept_orders else Order.Status.NEW
 
@@ -150,7 +258,11 @@ class OrderViewSet(ModelViewSet):
             delivery_pincode=delivery_pincode,
             delivery_latitude=delivery_latitude,
             delivery_longitude=delivery_longitude,
-            delivery_fee=delivery_fee
+            delivery_fee=delivery_fee,
+            delivery_slot_date=checkout.validated_data.get('delivery_slot_date'),
+            delivery_slot_label=checkout.validated_data.get('delivery_slot_label', ''),
+            payment_method=checkout.validated_data.get('payment_method', 'COD'),
+            upi_transaction_id=checkout.validated_data.get('upi_transaction_id', '')
         )
         
         # Record Promo Usage
@@ -239,6 +351,33 @@ class OrderViewSet(ModelViewSet):
                     message=f"Hi {order.customer.first_name}, your order has been successfully delivered/picked up. We hope you enjoy your purchase and see you again soon!"
                 )
                 
+                # Order Cashback Processing
+                store_settings = StoreSettings.load()
+                cashback_pct = getattr(store_settings, 'order_cashback_percentage', Decimal('0.00'))
+                if cashback_pct and Decimal(str(cashback_pct)) > Decimal('0.00') and order.total_amount > Decimal('0.00'):
+                    cashback = ((order.total_amount * Decimal(str(cashback_pct))) / Decimal('100')).quantize(Decimal('0.01'))
+                    if cashback > Decimal('0.00'):
+                        try:
+                            from accounts.models import Wallet, WalletTransaction
+                            customer_wallet, _ = Wallet.objects.select_for_update().get_or_create(user=order.customer)
+                            customer_wallet.balance += cashback
+                            customer_wallet.save(update_fields=['balance', 'updated_at'])
+
+                            WalletTransaction.objects.create(
+                                wallet=customer_wallet,
+                                amount=cashback,
+                                transaction_type='PURCHASE_CASHBACK',
+                                description=f"Cashback for completed order #{order.id} ({cashback_pct}%)"
+                            )
+
+                            Notification.objects.create(
+                                user=order.customer,
+                                title="Cashback Earned! 💰",
+                                message=f"You earned ₹{cashback} cashback on your Order #{order.id}! Added to your wallet."
+                            )
+                        except Exception as e:
+                            logger.error("Error crediting cashback for order %s: %s", order.id, str(e))
+
                 # Referral Processing
                 try:
                     from offers.models import Referral, ReferralSettings, ReferralMilestone

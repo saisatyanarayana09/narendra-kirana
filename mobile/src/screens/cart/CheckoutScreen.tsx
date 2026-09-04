@@ -8,16 +8,21 @@ import {
   TextInput, 
   ActivityIndicator, 
   Alert, 
-  Switch 
+  Switch,
+  Modal,
+  Linking as RNLinking
 } from 'react-native';
+import { Image } from 'expo-image';
+import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather, MaterialIcons } from '@expo/vector-icons';
+import { Feather, MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useTheme } from '../../context/ThemeContext';
 import { apiClient } from '../../api/client';
 import { useLocation } from '../../hooks/useLocation';
+import { fixImageUrl } from '../../utils/image';
 
 export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }) {
   const insets = useSafeAreaInsets();
@@ -49,6 +54,16 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
 
   const [pickupTime, setPickupTime] = useState('As soon as possible');
   const [customerNote, setCustomerNote] = useState('');
+
+  // Time Slots State
+  const [slotDay, setSlotDay] = useState<'TODAY' | 'TOMORROW'>('TODAY');
+  const [selectedSlotLabel, setSelectedSlotLabel] = useState<string>('');
+
+  // Payment Options & UPI State
+  const [paymentMethod, setPaymentMethod] = useState<'COD' | 'UPI'>('COD');
+  const [upiTransactionId, setUpiTransactionId] = useState('');
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [copiedUpi, setCopiedUpi] = useState(false);
 
   const [walletBalance, setWalletBalance] = useState(0);
   const [useWallet, setUseWallet] = useState(false);
@@ -200,8 +215,12 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
     setShowAddressForm(true);
   };
 
-  // Store status and min order thresholds
+  // Store emergency pause and status
+  const isEmergencyPaused = Boolean(storeSettings?.is_emergency_paused);
+  const emergencyPauseMessage = storeSettings?.emergency_pause_message || 
+    'We are currently experiencing high order volume and will resume shortly. Thank you for your patience!';
   const isStoreClosed = storeSettings?.is_open === false;
+
   const minOrderAmount = parseFloat(storeSettings?.min_order_amount || '0') || 0;
   const cartSubtotal = parseFloat(cart?.subtotal || '0') || 0;
   const isBelowMinOrder = minOrderAmount > 0 && cartSubtotal < minOrderAmount;
@@ -222,19 +241,136 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
   }
 
   const baseCartTotal = (parseFloat(cart?.total || '0') || 0) + deliveryFee;
-  const walletApplied = useWallet ? Math.min(baseCartTotal, walletBalance || 0) : 0;
+
+  // Max Wallet percentage limit enforcement
+  const maxWalletUsagePct = typeof storeSettings?.max_wallet_usage_percentage === 'number'
+    ? storeSettings.max_wallet_usage_percentage
+    : 50;
+  const maxWalletAllowed = Math.round((baseCartTotal * (maxWalletUsagePct / 100)) * 100) / 100;
+  const walletApplied = useWallet ? Math.min(baseCartTotal, walletBalance || 0, maxWalletAllowed) : 0;
   const finalTotalToPay = Math.max(0, baseCartTotal - walletApplied);
 
-  // Dynamic button label matching web cart.jsx
+  // Time Slots parsing and buffer calculation
+  const parseMinutes = (timeStr: string): number => {
+    const match = timeStr.match(/(\d{1,2}):(\d{2})(?:\s*([APap][Mm]))?/);
+    if (!match) return 0;
+    let hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+    const meridiem = match[3]?.toUpperCase();
+    if (meridiem === 'PM' && hours < 12) hours += 12;
+    if (meridiem === 'AM' && hours === 12) hours = 0;
+    return hours * 60 + minutes;
+  };
+
+  const rawSlots = storeSettings?.time_slots_json;
+  let parsedSlotsList: Array<{ start?: string; end?: string; label: string }> = [];
+
+  if (Array.isArray(rawSlots)) {
+    parsedSlotsList = rawSlots.map((s: any) => {
+      if (typeof s === 'string') return { label: s };
+      return { start: s.start || s.start_time, end: s.end || s.end_time, label: s.label || `${s.start} - ${s.end}` };
+    });
+  } else if (typeof rawSlots === 'string' && rawSlots.trim().length > 0) {
+    try {
+      const parsed = JSON.parse(rawSlots);
+      if (Array.isArray(parsed)) {
+        parsedSlotsList = parsed.map((s: any) => {
+          if (typeof s === 'string') return { label: s };
+          return { start: s.start || s.start_time, end: s.end || s.end_time, label: s.label || `${s.start} - ${s.end}` };
+        });
+      }
+    } catch (e) {}
+  }
+
+  if (parsedSlotsList.length === 0) {
+    parsedSlotsList = [
+      { label: '08:00 AM - 10:00 AM', start: '08:00', end: '10:00' },
+      { label: '10:00 AM - 12:00 PM', start: '10:00', end: '12:00' },
+      { label: '12:00 PM - 02:00 PM', start: '12:00', end: '14:00' },
+      { label: '02:00 PM - 04:00 PM', start: '14:00', end: '16:00' },
+      { label: '04:00 PM - 06:00 PM', start: '16:00', end: '18:00' },
+      { label: '06:00 PM - 08:00 PM', start: '18:00', end: '20:00' },
+      { label: '08:00 PM - 10:00 PM', start: '20:00', end: '22:00' },
+    ];
+  }
+
+  const now = new Date();
+  const todayDateStr = now.toISOString().split('T')[0];
+  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const tomorrowDateStr = tomorrow.toISOString().split('T')[0];
+
+  const todayFormatted = now.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+  const tomorrowFormatted = tomorrow.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+
+  const bufferMins = storeSettings?.preparation_buffer_minutes ?? 30;
+  const currentMinutesFromMidnight = now.getHours() * 60 + now.getMinutes() + bufferMins;
+
+  const isSlotPassedToday = (slot: { start?: string; end?: string; label: string }): boolean => {
+    const timeToCompare = slot.start || slot.label.split('-')[0].trim();
+    const slotMinutes = parseMinutes(timeToCompare);
+    return slotMinutes <= currentMinutesFromMidnight;
+  };
+
+  const availableSlotsToday = parsedSlotsList.filter((s) => !isSlotPassedToday(s));
+
+  // Initialize selected slot
+  useEffect(() => {
+    if (!selectedSlotLabel) {
+      if (availableSlotsToday.length > 0) {
+        setSelectedSlotLabel(availableSlotsToday[0].label);
+      } else if (parsedSlotsList.length > 0) {
+        setSlotDay('TOMORROW');
+        setSelectedSlotLabel(parsedSlotsList[0].label);
+      }
+    }
+  }, [availableSlotsToday.length, parsedSlotsList.length, selectedSlotLabel]);
+
+  // UPI configuration & 1-Click Launch
+  const payeeName = storeSettings?.upi_payee_name || storeSettings?.store_name || 'Narendra Kirana';
+  const upiId = storeSettings?.upi_id || 'narendrakirana@okhdfcbank';
+  const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${finalTotalToPay.toFixed(2)}&cu=INR&tn=${encodeURIComponent('Smart Kirana Order')}`;
+  const qrImageUrl = storeSettings?.upi_qr_image 
+    ? fixImageUrl(storeSettings.upi_qr_image) 
+    : `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(upiUrl)}`;
+
+  const handlePayViaUpiApp = async () => {
+    try {
+      const canOpen = await RNLinking.canOpenURL(upiUrl);
+      if (canOpen) {
+        await RNLinking.openURL(upiUrl);
+      } else {
+        await RNLinking.openURL(upiUrl).catch(() => {
+          setShowQrModal(true);
+        });
+      }
+    } catch {
+      setShowQrModal(true);
+    }
+  };
+
+  const handleCopyUpiId = async () => {
+    await Clipboard.setStringAsync(upiId);
+    setCopiedUpi(true);
+    setTimeout(() => setCopiedUpi(false), 2000);
+  };
+
+  // Dynamic button label
   const placeOrderBtnLabel = isSubmitting 
     ? 'Processing...' 
     : finalTotalToPay === 0
       ? 'Place order (Paid via Wallet)'
-      : orderType === 'DELIVERY'
-        ? 'Place order (Cash on Delivery)'
-        : 'Place order (Pay at store)';
+      : paymentMethod === 'UPI'
+        ? `Place order (Pay ₹${finalTotalToPay.toFixed(2)} via UPI)`
+        : orderType === 'DELIVERY'
+          ? 'Place order (Cash on Delivery)'
+          : 'Place order (Pay at store)';
 
   const handlePlaceOrder = async () => {
+    if (isEmergencyPaused) {
+      Alert.alert('Orders Paused', emergencyPauseMessage);
+      return;
+    }
+
     if (isStoreClosed) {
       Alert.alert('Store Closed', 'The store is currently closed and not accepting new orders.');
       return;
@@ -242,6 +378,20 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
 
     if (isBelowMinOrder) {
       Alert.alert('Minimum Order', `Minimum order amount is ₹${minOrderAmount.toFixed(2)}.`);
+      return;
+    }
+
+    if (storeSettings?.enable_time_slots && !selectedSlotLabel) {
+      Alert.alert('Select Time Slot', 'Please select a delivery or pickup time slot.');
+      return;
+    }
+
+    if (paymentMethod === 'UPI' && finalTotalToPay > 0 && !upiTransactionId.trim()) {
+      Alert.alert(
+        'UPI Transaction ID Required',
+        'Please complete the payment in your UPI app and enter the 12-digit UTR or Transaction ID before placing order.',
+        [{ text: 'OK' }]
+      );
       return;
     }
 
@@ -270,16 +420,26 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
 
     const formattedAddress = selectedAddress ? formatAddressString(selectedAddress) : '';
     const formattedPincode = selectedAddress ? (selectedAddress.zip_code || selectedAddress.pincode || '') : '';
+    const chosenSlotDate = storeSettings?.enable_time_slots 
+      ? (slotDay === 'TODAY' ? todayDateStr : tomorrowDateStr) 
+      : null;
+    const chosenSlotLabel = storeSettings?.enable_time_slots 
+      ? selectedSlotLabel 
+      : (orderType === 'PICKUP' ? (pickupTime || 'As soon as possible') : '');
 
     const payload = {
       order_type: orderType,
       use_wallet: useWallet,
       customer_note: customerNote,
-      pickup_time: orderType === 'PICKUP' ? (pickupTime || 'As soon as possible') : '',
+      pickup_time: chosenSlotLabel || pickupTime || 'As soon as possible',
       delivery_address: orderType === 'DELIVERY' ? formattedAddress : '',
       delivery_pincode: orderType === 'DELIVERY' ? formattedPincode : '',
       delivery_latitude: orderType === 'DELIVERY' ? (selectedAddress?.latitude || null) : null,
       delivery_longitude: orderType === 'DELIVERY' ? (selectedAddress?.longitude || null) : null,
+      delivery_slot_date: chosenSlotDate,
+      delivery_slot_label: chosenSlotLabel,
+      payment_method: finalTotalToPay === 0 ? 'WALLET' : paymentMethod,
+      upi_transaction_id: paymentMethod === 'UPI' ? upiTransactionId.trim() : '',
     };
 
     try {
@@ -331,6 +491,19 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
           <View style={styles.errorBanner}>
             <Feather name="alert-circle" size={16} color="#B91C1C" />
             <Text style={styles.errorBannerText}>{error}</Text>
+          </View>
+        )}
+
+        {/* Store Emergency Pause Banner */}
+        {isEmergencyPaused && (
+          <View style={styles.emergencyPauseBanner}>
+            <View style={styles.emergencyPauseIconCircle}>
+              <Feather name="alert-triangle" size={18} color="#B45309" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.emergencyPauseTitle}>Orders Temporarily Paused</Text>
+              <Text style={styles.emergencyPauseText}>{emergencyPauseMessage}</Text>
+            </View>
           </View>
         )}
 
@@ -619,7 +792,7 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
               </View>
             )}
           </View>
-        ) : (
+        ) : (!storeSettings?.enable_time_slots && orderType === 'PICKUP' ? (
           <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Text style={[styles.cardSectionLabel, { color: colors.text }]}>Pickup time</Text>
             <View style={styles.pickupTimeOptions}>
@@ -648,6 +821,117 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
               Store Location: {storeSettings?.store_address || 'Main Road, Kirana Market'}
             </Text>
           </View>
+        ) : null)}
+
+        {/* Dynamic Delivery / Pickup Time Slots Selector */}
+        {Boolean(storeSettings?.enable_time_slots) && (
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.cardHeaderRow}>
+              <View>
+                <Text style={[styles.cardSectionLabel, { color: colors.text, marginBottom: 2 }]}>
+                  {orderType === 'DELIVERY' ? 'Delivery Time Slot' : 'Pickup Time Slot'}
+                </Text>
+                <Text style={[styles.slotSubtitle, { color: colors.textSecondary }]}>
+                  {slotDay === 'TODAY' ? `Today (${todayFormatted})` : `Tomorrow (${tomorrowFormatted})`}
+                </Text>
+              </View>
+              <Feather name="clock" size={18} color={colors.primary} />
+            </View>
+
+            {/* Today / Tomorrow Switcher Tabs */}
+            <View style={[styles.slotDayTabs, { backgroundColor: colors.inputBg }]}>
+              <TouchableOpacity
+                style={[styles.slotDayTab, slotDay === 'TODAY' && [styles.slotDayTabActive, { backgroundColor: colors.surface }]]}
+                onPress={() => {
+                  setSlotDay('TODAY');
+                  if (availableSlotsToday.length > 0) {
+                    setSelectedSlotLabel(availableSlotsToday[0].label);
+                  }
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.slotDayTabText, { color: colors.textSecondary }, slotDay === 'TODAY' && [styles.slotDayTabTextActive, { color: colors.primary }]]}>
+                  Today ({todayFormatted})
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.slotDayTab, slotDay === 'TOMORROW' && [styles.slotDayTabActive, { backgroundColor: colors.surface }]]}
+                onPress={() => {
+                  setSlotDay('TOMORROW');
+                  if (parsedSlotsList.length > 0) {
+                    setSelectedSlotLabel(parsedSlotsList[0].label);
+                  }
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.slotDayTabText, { color: colors.textSecondary }, slotDay === 'TOMORROW' && [styles.slotDayTabTextActive, { color: colors.primary }]]}>
+                  Tomorrow ({tomorrowFormatted})
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Time Slot Grid */}
+            <View style={styles.slotsGrid}>
+              {slotDay === 'TODAY' && availableSlotsToday.length === 0 ? (
+                <View style={styles.noSlotsBox}>
+                  <Feather name="alert-circle" size={16} color="#B45309" />
+                  <Text style={styles.noSlotsText}>
+                    All slots for today are passed/closed (buffer: {bufferMins}m). Please select Tomorrow to schedule your order.
+                  </Text>
+                </View>
+              ) : (
+                parsedSlotsList.map((slot, idx) => {
+                  const isPassed = slotDay === 'TODAY' && isSlotPassedToday(slot);
+                  const isSelected = selectedSlotLabel === slot.label && !isPassed;
+
+                  return (
+                    <TouchableOpacity
+                      key={idx}
+                      style={[
+                        styles.slotCard,
+                        { backgroundColor: colors.inputBg, borderColor: colors.border },
+                        isSelected && [styles.slotCardSelected, { borderColor: colors.primary, backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5' }],
+                        isPassed && styles.slotCardPassed,
+                      ]}
+                      onPress={() => !isPassed && setSelectedSlotLabel(slot.label)}
+                      disabled={isPassed}
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.slotCardHeader}>
+                        <Feather
+                          name="clock"
+                          size={13}
+                          color={isPassed ? '#94A3B8' : isSelected ? colors.primary : colors.textSecondary}
+                        />
+                        <Text
+                          style={[
+                            styles.slotLabelText,
+                            { color: colors.text },
+                            isSelected && { color: colors.primary, fontWeight: '800' },
+                            isPassed && styles.slotLabelPassed,
+                          ]}
+                        >
+                          {slot.label}
+                        </Text>
+                      </View>
+                      {isPassed && (
+                        <View style={styles.closedBadge}>
+                          <Text style={styles.closedBadgeText}>Closed</Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+            </View>
+
+            {orderType === 'PICKUP' && (
+              <Text style={[styles.storeAddressHint, { color: colors.textSecondary, marginTop: 10 }]}>
+                Store Location: {storeSettings?.store_address || 'Main Road, Kirana Market'}
+              </Text>
+            )}
+          </View>
         )}
 
         {/* Customer Instructions Note */}
@@ -664,16 +948,21 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
           />
         </View>
 
-        {/* Digital Wallet Card */}
+        {/* Digital Wallet Card with Max Percentage Limit Enforcement */}
         {walletBalance > 0 && (
           <View style={[styles.walletCard, isDark && { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.walletLeft}>
               <View style={[styles.walletIconBox, isDark && { backgroundColor: colors.inputBg }]}>
                 <MaterialIcons name="currency-rupee" size={20} color={colors.primary} />
               </View>
-              <View>
+              <View style={{ flex: 1, paddingRight: 8 }}>
                 <Text style={[styles.walletTitle, { color: colors.text }]}>Use Wallet Balance</Text>
                 <Text style={[styles.walletBalanceText, { color: colors.textSecondary }]}>Available: ₹{(walletBalance || 0).toFixed(2)}</Text>
+                {maxWalletUsagePct < 100 && (
+                  <Text style={styles.walletLimitText}>
+                    Max {maxWalletUsagePct}% (₹{maxWalletAllowed.toFixed(2)}) usable on this order
+                  </Text>
+                )}
               </View>
             </View>
             <Switch
@@ -684,6 +973,137 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
             />
           </View>
         )}
+
+        {/* Payment Method Selector Card */}
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.cardSectionLabel, { color: colors.text, marginBottom: 12 }]}>Payment Method</Text>
+
+          {/* Option 1: Cash / Pay at Store */}
+          <TouchableOpacity
+            style={[
+              styles.paymentOptionCard,
+              { backgroundColor: colors.inputBg, borderColor: colors.border },
+              paymentMethod === 'COD' && [styles.paymentOptionSelected, { borderColor: colors.primary, backgroundColor: isDark ? 'rgba(16, 185, 129, 0.1)' : '#F0FDF4' }]
+            ]}
+            onPress={() => setPaymentMethod('COD')}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.paymentRadioCircle, paymentMethod === 'COD' && { borderColor: colors.primary }]}>
+              {paymentMethod === 'COD' && <View style={[styles.paymentRadioInner, { backgroundColor: colors.primary }]} />}
+            </View>
+            <View style={styles.paymentOptionContent}>
+              <View style={styles.paymentOptionHeader}>
+                <Feather name="dollar-sign" size={16} color={paymentMethod === 'COD' ? colors.primary : colors.textSecondary} />
+                <Text style={[styles.paymentOptionTitle, { color: colors.text }, paymentMethod === 'COD' && { fontWeight: '800' }]}>
+                  {orderType === 'DELIVERY' ? 'Cash on Delivery' : 'Pay at Store (Cash/Card)'}
+                </Text>
+              </View>
+              <Text style={[styles.paymentOptionDesc, { color: colors.textSecondary }]}>
+                {orderType === 'DELIVERY' ? 'Pay cash to our delivery executive upon arrival' : 'Pay when you collect your items at the store counter'}
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Option 2: UPI (Instant Payment) */}
+          <TouchableOpacity
+            style={[
+              styles.paymentOptionCard,
+              { backgroundColor: colors.inputBg, borderColor: colors.border, marginTop: 10 },
+              paymentMethod === 'UPI' && [styles.paymentOptionSelected, { borderColor: colors.primary, backgroundColor: isDark ? 'rgba(16, 185, 129, 0.1)' : '#F0FDF4' }]
+            ]}
+            onPress={() => setPaymentMethod('UPI')}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.paymentRadioCircle, paymentMethod === 'UPI' && { borderColor: colors.primary }]}>
+              {paymentMethod === 'UPI' && <View style={[styles.paymentRadioInner, { backgroundColor: colors.primary }]} />}
+            </View>
+            <View style={styles.paymentOptionContent}>
+              <View style={styles.paymentOptionHeader}>
+                <Ionicons name="flash-outline" size={16} color="#4F46E5" />
+                <Text style={[styles.paymentOptionTitle, { color: colors.text }, paymentMethod === 'UPI' && { fontWeight: '800' }]}>
+                  UPI (Instant Payment)
+                </Text>
+                <View style={styles.upiBadge}>
+                  <Text style={styles.upiBadgeText}>1-Click Native</Text>
+                </View>
+              </View>
+              <Text style={[styles.paymentOptionDesc, { color: colors.textSecondary }]}>
+                Google Pay, PhonePe, Paytm, BHIM & all UPI apps
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* UPI Actions & Standee Details */}
+          {paymentMethod === 'UPI' && (
+            <View style={[styles.upiContainer, { backgroundColor: isDark ? colors.surface : '#FFFFFF', borderColor: colors.border }]}>
+              <View style={styles.upiNoticeBox}>
+                <Feather name="info" size={14} color="#4F46E5" />
+                <Text style={styles.upiNoticeText}>
+                  Tap below to launch any installed UPI app on your phone, or scan the QR code.
+                </Text>
+              </View>
+
+              {/* 1-Click Native UPI Intent Launch Button */}
+              <TouchableOpacity
+                style={styles.payUpiAppBtn}
+                onPress={handlePayViaUpiApp}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="phone-portrait-outline" size={18} color="#FFFFFF" />
+                <Text style={styles.payUpiAppBtnText}>
+                  Pay ₹{finalTotalToPay.toFixed(2)} with UPI App
+                </Text>
+              </TouchableOpacity>
+
+              {/* Sub-actions Row: View QR & Copy UPI ID */}
+              <View style={styles.upiSubActionsRow}>
+                <TouchableOpacity
+                  style={[styles.upiSecondaryBtn, { borderColor: colors.border }]}
+                  onPress={() => setShowQrModal(true)}
+                  activeOpacity={0.8}
+                >
+                  <Feather name="maximize-2" size={14} color={colors.primary} />
+                  <Text style={[styles.upiSecondaryBtnText, { color: colors.primary }]}>Show QR Code</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.upiSecondaryBtn, { borderColor: colors.border }]}
+                  onPress={handleCopyUpiId}
+                  activeOpacity={0.8}
+                >
+                  <Feather name={copiedUpi ? "check" : "copy"} size={14} color={copiedUpi ? "#059669" : colors.textSecondary} />
+                  <Text style={[styles.upiSecondaryBtnText, { color: copiedUpi ? "#059669" : colors.textSecondary }]}>
+                    {copiedUpi ? 'Copied!' : 'Copy UPI ID'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={[styles.upiIdDisplayBox, { backgroundColor: colors.inputBg }]}>
+                <Text style={[styles.upiIdLabel, { color: colors.textSecondary }]}>Store VPA / UPI ID:</Text>
+                <Text style={[styles.upiIdValue, { color: colors.text }]} selectable>{upiId}</Text>
+              </View>
+
+              {/* UTR / Transaction ID Input */}
+              <View style={styles.utrInputSection}>
+                <Text style={[styles.utrLabel, { color: colors.text }]}>
+                  12-digit UTR / UPI Transaction Reference <Text style={{ color: '#DC2626' }}>*</Text>
+                </Text>
+                <TextInput
+                  style={[styles.utrTextInput, { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }]}
+                  placeholder="e.g. 324512345678"
+                  placeholderTextColor={colors.textSecondary}
+                  value={upiTransactionId}
+                  onChangeText={setUpiTransactionId}
+                  keyboardType="numeric"
+                  maxLength={25}
+                />
+                <Text style={[styles.utrHint, { color: colors.textSecondary }]}>
+                  Enter the 12-digit reference number from your UPI payment receipt.
+                </Text>
+              </View>
+            </View>
+          )}
+        </View>
 
         {/* Full Billing Summary Card */}
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -761,10 +1181,10 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
         <TouchableOpacity 
           style={[
             styles.placeOrderBtn,
-            (isSubmitting || isStoreClosed || isBelowMinOrder || (orderType === 'DELIVERY' && (!selectedAddress || isBelowMinDelivery))) && styles.disabledPlaceOrderBtn
+            (isSubmitting || isStoreClosed || isEmergencyPaused || isBelowMinOrder || (orderType === 'DELIVERY' && (!selectedAddress || isBelowMinDelivery))) && styles.disabledPlaceOrderBtn
           ]}
           onPress={handlePlaceOrder}
-          disabled={isSubmitting || isStoreClosed || isBelowMinOrder || (orderType === 'DELIVERY' && (!selectedAddress || isBelowMinDelivery))}
+          disabled={isSubmitting || isStoreClosed || isEmergencyPaused || isBelowMinOrder || (orderType === 'DELIVERY' && (!selectedAddress || isBelowMinDelivery))}
           activeOpacity={0.9}
         >
           {isSubmitting ? (
@@ -774,6 +1194,56 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
           )}
         </TouchableOpacity>
       </View>
+
+      {/* UPI QR Code Standee Modal */}
+      <Modal
+        visible={showQrModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowQrModal(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.qrModalCard, { backgroundColor: colors.surface }]}>
+            <View style={styles.qrModalHeader}>
+              <View>
+                <Text style={[styles.qrModalStoreName, { color: colors.text }]}>{payeeName}</Text>
+                <Text style={[styles.qrModalSubtitle, { color: colors.textSecondary }]}>Scan with any UPI App</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowQrModal(false)} style={styles.closeModalBtn}>
+                <Feather name="x" size={20} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.qrImageWrap}>
+              <Image
+                source={{ uri: qrImageUrl }}
+                style={styles.qrModalImage}
+                contentFit="contain"
+              />
+            </View>
+
+            <View style={styles.qrModalAmountWrap}>
+              <Text style={styles.qrModalAmountLabel}>Exact Amount to Pay</Text>
+              <Text style={styles.qrModalAmountValue}>₹{finalTotalToPay.toFixed(2)}</Text>
+            </View>
+
+            <View style={[styles.qrUpiIdRow, { backgroundColor: colors.inputBg }]}>
+              <Text style={[styles.qrUpiIdText, { color: colors.text }]} numberOfLines={1}>{upiId}</Text>
+              <TouchableOpacity onPress={handleCopyUpiId} style={styles.qrCopyBtn}>
+                <Feather name={copiedUpi ? "check" : "copy"} size={14} color="#FFFFFF" />
+                <Text style={styles.qrCopyBtnText}>{copiedUpi ? 'Copied' : 'Copy'}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.doneQrBtn, { backgroundColor: colors.primary }]}
+              onPress={() => setShowQrModal(false)}
+            >
+              <Text style={styles.doneQrBtnText}>Done / Back to Checkout</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1425,5 +1895,395 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  emergencyPauseBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+  },
+  emergencyPauseIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FEF3C7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  emergencyPauseTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#92400E',
+    marginBottom: 2,
+  },
+  emergencyPauseText: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#B45309',
+    fontWeight: '500',
+  },
+  slotSubtitle: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  slotDayTabs: {
+    flexDirection: 'row',
+    borderRadius: 12,
+    padding: 4,
+    marginVertical: 12,
+  },
+  slotDayTab: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  slotDayTabActive: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  slotDayTabText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  slotDayTabTextActive: {
+    fontWeight: '800',
+  },
+  slotsGrid: {
+    gap: 8,
+  },
+  slotCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  slotCardSelected: {
+    borderWidth: 1.5,
+  },
+  slotCardPassed: {
+    opacity: 0.5,
+    backgroundColor: '#F8FAFC',
+  },
+  slotCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  slotLabelText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  slotLabelPassed: {
+    color: '#94A3B8',
+    textDecorationLine: 'line-through',
+  },
+  closedBadge: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  closedBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#94A3B8',
+    textTransform: 'uppercase',
+  },
+  noSlotsBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFFBEB',
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  noSlotsText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#B45309',
+    fontWeight: '600',
+  },
+  walletLimitText: {
+    fontSize: 11,
+    color: '#059669',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  paymentOptionCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 12,
+  },
+  paymentOptionSelected: {
+    borderWidth: 1.5,
+  },
+  paymentRadioCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#CBD5E1',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  paymentRadioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  paymentOptionContent: {
+    flex: 1,
+  },
+  paymentOptionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  paymentOptionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  paymentOptionDesc: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  upiBadge: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  upiBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#4F46E5',
+    textTransform: 'uppercase',
+  },
+  upiContainer: {
+    marginTop: 12,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 12,
+  },
+  upiNoticeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#EEF2FF',
+    padding: 10,
+    borderRadius: 10,
+  },
+  upiNoticeText: {
+    flex: 1,
+    fontSize: 11,
+    color: '#4338CA',
+    lineHeight: 16,
+  },
+  payUpiAppBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#4F46E5',
+    paddingVertical: 14,
+    borderRadius: 12,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  payUpiAppBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  upiSubActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  upiSecondaryBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  upiSecondaryBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  upiIdDisplayBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  upiIdLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  upiIdValue: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  utrInputSection: {
+    gap: 6,
+    marginTop: 4,
+  },
+  utrLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  utrTextInput: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  utrHint: {
+    fontSize: 11,
+    fontStyle: 'italic',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  qrModalCard: {
+    width: '100%',
+    maxWidth: 360,
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  qrModalHeader: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  qrModalStoreName: {
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  qrModalSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  closeModalBtn: {
+    padding: 6,
+  },
+  qrImageWrap: {
+    width: 220,
+    height: 220,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 14,
+  },
+  qrModalImage: {
+    width: '100%',
+    height: '100%',
+  },
+  qrModalAmountWrap: {
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  qrModalAmountLabel: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  qrModalAmountValue: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginTop: 2,
+  },
+  qrUpiIdRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    marginBottom: 16,
+    gap: 8,
+  },
+  qrUpiIdText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  qrCopyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#059669',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  qrCopyBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  doneQrBtn: {
+    width: '100%',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  doneQrBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
   },
 });

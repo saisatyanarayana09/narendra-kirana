@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useLocation } from 'react-router-dom'
-import { Minus, Plus, Trash2, ShoppingBasket, ArrowLeft, Eye, EyeOff, CheckCircle2, PackageSearch, Truck, Store, XCircle, MapPin, Edit2, RefreshCw, Gift, Lock, Sparkles, Check, AlertCircle, ShieldCheck, MailCheck, Copy } from 'lucide-react'
+import { Minus, Plus, Trash2, ShoppingBasket, ArrowLeft, Eye, EyeOff, CheckCircle2, PackageSearch, Truck, Store, XCircle, MapPin, Edit2, RefreshCw, Gift, Lock, Sparkles, Check, AlertCircle, ShieldCheck, MailCheck, Copy, AlertTriangle, Clock, Calendar, QrCode } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from './services/api'
 import { CustomerLayout } from './customer-layout'
@@ -671,132 +671,389 @@ export function CustomerSignupPage() {
   );
 }
 
+export function checkOperatingHours(settings) {
+  if (!settings || !settings.auto_cutoff_orders) {
+    return { isClosed: false };
+  }
+  if (!settings.store_timings_json) {
+    return { isClosed: false };
+  }
+
+  try {
+    let timings = settings.store_timings_json;
+    if (typeof timings === 'string') {
+      timings = JSON.parse(timings);
+    }
+
+    const now = new Date();
+    const dayIndex = now.getDay(); // 0 = Sunday, 1 = Monday ... 6 = Saturday
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const currentDayName = dayNames[dayIndex];
+
+    let daySchedule = null;
+    if (Array.isArray(timings)) {
+      daySchedule = timings.find(t => 
+        (t.day && String(t.day).toLowerCase() === currentDayName) || 
+        t.day_index === dayIndex ||
+        t.day === dayIndex
+      );
+    } else if (typeof timings === 'object' && timings !== null) {
+      daySchedule = timings[currentDayName] || 
+                    timings[currentDayName.slice(0, 3)] || 
+                    timings[currentDayName.charAt(0).toUpperCase() + currentDayName.slice(1)] ||
+                    timings[dayIndex] || 
+                    timings[String(dayIndex)];
+    }
+
+    if (!daySchedule) {
+      return { isClosed: false };
+    }
+
+    if (daySchedule.is_closed || daySchedule.closed) {
+      const capitalizedDay = currentDayName.charAt(0).toUpperCase() + currentDayName.slice(1);
+      return {
+        isClosed: true,
+        message: `The store is scheduled closed today (${capitalizedDay}). Online checkout is currently disabled.`
+      };
+    }
+
+    const openTimeStr = daySchedule.open || daySchedule.open_time || daySchedule.start;
+    const closeTimeStr = daySchedule.close || daySchedule.close_time || daySchedule.end;
+
+    if (!openTimeStr || !closeTimeStr) {
+      return { isClosed: false };
+    }
+
+    const [openH, openM] = openTimeStr.split(':').map(Number);
+    const [closeH, closeM] = closeTimeStr.split(':').map(Number);
+
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const openMinutes = openH * 60 + (openM || 0);
+    const closeMinutes = closeH * 60 + (closeM || 0);
+
+    if (currentMinutes < openMinutes || currentMinutes >= closeMinutes) {
+      return {
+        isClosed: true,
+        message: `The store is currently outside operating hours (${openTimeStr} - ${closeTimeStr}). Online orders will resume during regular hours.`
+      };
+    }
+  } catch (err) {
+    console.error('Error checking store operating hours:', err);
+  }
+
+  return { isClosed: false };
+}
+
+export function parseTimeSlots(slotsData) {
+  if (!slotsData) return [];
+  let list = slotsData;
+  if (typeof list === 'string') {
+    try {
+      list = JSON.parse(list);
+    } catch {
+      return [];
+    }
+  }
+  if (!Array.isArray(list) && typeof list === 'object' && list !== null) {
+    list = Object.values(list);
+  }
+  if (!Array.isArray(list)) return [];
+
+  return list.map((item, idx) => {
+    if (typeof item === 'string') {
+      return { id: idx, label: item, raw: item };
+    }
+    const label = item.label || item.name || `${item.start_time || item.start || ''} - ${item.end_time || item.end || ''}`.trim() || `Slot ${idx + 1}`;
+    return {
+      id: item.id || idx,
+      label,
+      startTime: item.start_time || item.start || item.from,
+      endTime: item.end_time || item.end || item.to,
+      raw: item
+    };
+  }).filter(s => s.label);
+}
+
+export function isSlotPassedToday(slot, bufferMinutes = 0) {
+  const now = new Date();
+  const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
+  const cutoffMinutes = currentTotalMinutes + Number(bufferMinutes || 0);
+
+  let startMinutes = null;
+  if (slot.startTime) {
+    const parts = String(slot.startTime).match(/(\d{1,2}):(\d{2})/);
+    if (parts) {
+      startMinutes = parseInt(parts[1], 10) * 60 + parseInt(parts[2], 10);
+    }
+  }
+  if (startMinutes === null && slot.label) {
+    const match = slot.label.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+    if (match) {
+      let h = parseInt(match[1], 10);
+      const m = match[2] ? parseInt(match[2], 10) : 0;
+      const meridiem = match[3]?.toLowerCase();
+      if (meridiem === 'pm' && h < 12) h += 12;
+      if (meridiem === 'am' && h === 12) h = 0;
+      startMinutes = h * 60 + m;
+    }
+  }
+
+  if (startMinutes !== null) {
+    return startMinutes <= cutoffMinutes;
+  }
+  return false;
+}
+
+export function getLocalDateStr(d) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export function CartPage() {
- const navigate = useNavigate(); const { cart, isCustomer, storeSettings, update, applyPromo } = useCart(); const [error, setError] = useState(''); const [promoInput, setPromoInput] = useState(''); const [promoError, setPromoError] = useState(''); const items = cart?.items || []
- if (!isCustomer) return <CustomerLayout><main className="mx-auto max-w-xl p-6 text-center"><h1 className="text-2xl font-extrabold">Your cart</h1><p className="mt-3 text-slate-600">Sign in to add products and place a pickup order.</p><Link to="/login"className="mt-5 inline-block rounded-xl bg-primary-600 px-5 py-3 font-bold text-white transition-all hover:bg-primary-700 active:scale-[0.98]">Sign in</Link></main></CustomerLayout>
- async function change(item, quantity) { try { await update(item, quantity) } catch { setError('Could not update your cart.') } }
- 
- async function handleApplyPromo(e) {
- e.preventDefault(); setPromoError('');
- try { await applyPromo(promoInput); setPromoInput(''); } catch(err) { setPromoError(err.response?.data?.detail || 'Invalid promo code'); }
- }
+  const navigate = useNavigate();
+  const { cart, isCustomer, storeSettings, update, applyPromo } = useCart();
+  const [error, setError] = useState('');
+  const [promoInput, setPromoInput] = useState('');
+  const [promoError, setPromoError] = useState('');
+  const items = cart?.items || [];
 
- return (
- <CustomerLayout>
- <main className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-8 pb-36 lg:pb-8">
- <button onClick={() => navigate(-1)} className="mb-4 flex items-center gap-2 text-sm font-bold text-primary-700 hover:underline">
-   <ArrowLeft size={16} /> Back
- </button>
- <h1 className="text-3xl font-extrabold mb-6">Your cart</h1>
- {error && <p className="mb-6 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
- 
- {!items.length ? (
- <div className="mt-5 rounded-2xl bg-white p-12 text-center shadow-sm border border-slate-100 flex flex-col items-center">
- <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mb-6">
- <ShoppingBasket size={48} />
- </div>
- <h2 className="text-xl font-bold text-slate-900 mb-2">Your cart is empty</h2>
- <p className="text-slate-500 mb-8 max-w-md mx-auto">Looks like you haven't added anything to your cart yet. Browse our products and discover great deals.</p>
- <Link to="/products"className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-6 py-3 font-bold text-white transition hover:bg-primary-700 shadow-sm hover:shadow-md active:scale-[0.98]">
- Start Shopping
- </Link>
- </div>
- ) : (
- <div className="flex flex-col lg:flex-row gap-8 items-start">
- {/* Left Column: Items */}
- <div className="flex-1 w-full space-y-3">
- {items.map((item) => {
- const maxAllowed = item.max_order_quantity > 0 ? Math.min(item.stock_quantity, item.max_order_quantity) : item.stock_quantity;
- const isMaxReached = item.quantity >= maxAllowed;
- return (
- <article key={item.id} className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm border border-slate-100">
- <div className="grid size-16 place-items-center rounded-xl bg-slate-50 font-black text-xl text-primary-300 shrink-0">
- {item.product_name.charAt(0)}
- </div>
- <div className="min-w-0 flex-1">
- <p className="truncate font-bold text-slate-800 text-lg">{item.product_name}</p>
- <p className="text-sm text-slate-500 font-medium">â‚¹{item.unit_price} Â· {item.product_unit}</p>
- </div>
- <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 shadow-sm shrink-0 overflow-hidden">
- <button onClick={() => change(item, item.quantity - 1)} className="p-2.5 text-slate-600 hover:text-primary-700 hover:bg-primary-100 transition-colors active:bg-primary-200"><Minus size={18} /></button>
- <span className="w-8 text-center text-sm font-bold text-slate-900">{item.quantity}</span>
- <button onClick={() => change(item, item.quantity + 1)} disabled={isMaxReached} className={`p-2.5 transition-colors shrink-0 ${isMaxReached ? 'text-slate-300 cursor-not-allowed bg-slate-50' : 'text-slate-600 hover:text-primary-700 hover:bg-primary-100 active:bg-primary-200'}`}><Plus size={18} /></button>
- </div>
- <button onClick={() => change(item, 0)} className="p-2.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors shrink-0">
- <Trash2 size={20} />
- </button>
- </article>
- )})}
- </div>
- 
- {/* Right Column: Summary */}
- <div className="w-full lg:w-96 shrink-0 space-y-5 sticky top-24">
- {/* Promo Code Section */}
- <section className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
- <form onSubmit={handleApplyPromo} className="flex gap-2">
- <input value={promoInput} onChange={e => setPromoInput(e.target.value.toUpperCase())} placeholder="Enter promo code"className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all font-medium"/>
-  <button type="submit" disabled={!promoInput} className="rounded-xl bg-slate-900 dark:bg-slate-800 dark:border dark:border-slate-700 px-5 py-2.5 font-bold text-white disabled:bg-slate-300 dark:disabled:bg-slate-800 dark:disabled:text-slate-500 hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors shadow-sm active:scale-95 disabled:active:scale-100">Apply</button>
-  </form>
-  {promoError && <p className="mt-3 text-xs text-red-600 dark:text-red-400 font-bold">{promoError}</p>}
-  {cart?.promo_code && (
-  <div className="mt-4 flex items-center justify-between rounded-xl bg-green-50 dark:bg-emerald-950/40 p-4 border border-green-100 dark:border-emerald-800/50 text-sm text-green-700 dark:text-emerald-300 shadow-sm">
-  <div><span className="font-extrabold uppercase tracking-wider text-xs block text-green-600 dark:text-emerald-400 mb-0.5">Code Applied</span><span className="font-bold text-base">{cart.promo_code}</span></div>
-  <button onClick={() => applyPromo('')} className="text-xs font-bold bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg shadow-sm border border-green-200 dark:border-emerald-700 text-slate-800 dark:text-slate-200 hover:bg-green-100 dark:hover:bg-slate-700 transition-colors">Remove</button>
-  </div>
-  )}
- </section>
+  if (!isCustomer) return <CustomerLayout><main className="mx-auto max-w-xl p-6 text-center"><h1 className="text-2xl font-extrabold">Your cart</h1><p className="mt-3 text-slate-600">Sign in to add products and place a pickup order.</p><Link to="/login" className="mt-5 inline-block rounded-xl bg-primary-600 px-5 py-3 font-bold text-white transition-all hover:bg-primary-700 active:scale-[0.98]">Sign in</Link></main></CustomerLayout>;
 
- {/* Order Summary Section */}
- <section className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
- <h2 className="text-lg font-extrabold text-slate-900 mb-4">Order Summary</h2>
- <div className="space-y-3">
- <div className="flex justify-between text-sm text-slate-600 font-medium"><span>Subtotal</span><span className="text-slate-900 font-bold">â‚¹{cart?.subtotal || '0.00'}</span></div>
- <div className="flex justify-between text-sm text-primary-700 font-medium"><span>Product Savings</span><span className="font-bold">â‚¹{cart?.discount || '0.00'}</span></div>
- {cart?.promo_discount > 0 && <div className="flex justify-between text-sm text-green-600 font-bold"><span>Promo Discount</span><span>- â‚¹{cart.promo_discount}</span></div>}
- {cart?.packaging_fee > 0 && <div className="flex justify-between text-sm text-slate-600 font-medium"><span>Packaging Fee</span><span className="text-slate-900 font-bold">â‚¹{cart.packaging_fee}</span></div>}
- </div>
- <div className="mt-5 flex justify-between border-t border-slate-100 pt-5 text-xl font-black text-slate-900"><span>Total Due</span><span>â‚¹{cart?.total || '0.00'}</span></div>
- 
- {storeSettings?.is_open === false ? (
- <div className="mt-6 rounded-xl bg-red-50 p-4 text-center font-bold text-red-700 border border-red-100">The store is currently closed.</div>
- ) : Number(storeSettings?.min_order_amount) > 0 && Number(cart.subtotal) < Number(storeSettings.min_order_amount) ? (
- <div className="mt-6 rounded-xl bg-amber-50 p-4 text-center font-bold text-amber-700 border border-amber-100">Minimum order amount is â‚¹{storeSettings.min_order_amount}</div>
- ) : (
- <>
- <button onClick={() => navigate('/checkout')} className="mt-4 hidden lg:block min-h-11 w-full rounded-xl bg-primary-600 font-bold text-white shadow-sm hover:bg-primary-700 hover:shadow-md transition-all active:scale-[0.98] text-base py-2.5">Continue to pickup</button>
- <p className="mt-3 hidden lg:block text-center text-xs text-slate-500 font-medium">Pay securely online or at store pickup.</p>
- </>
- )}
- </section>
- </div>
- 
-  {/* Mobile Sticky Checkout Bar */}
-  {storeSettings?.is_open !== false && !(Number(storeSettings?.min_order_amount) > 0 && Number(cart.subtotal) < Number(storeSettings.min_order_amount)) && items.length > 0 && (
-     <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-30 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-3 px-4 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.08)] lg:hidden">
-       <div className="flex items-center justify-between gap-4 max-w-md mx-auto">
-         <div>
-           <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Due</p>
-           <p className="text-xl font-black text-slate-900 dark:text-white leading-none mt-0.5">₹{cart?.total}</p>
-         </div>
-         <button onClick={() => navigate('/checkout')} className="flex-1 min-h-[44px] py-2.5 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] font-bold text-white shadow-md shadow-emerald-600/20 transition-all text-sm sm:text-base flex items-center justify-center gap-2 cursor-pointer">
-           Checkout
-         </button>
-       </div>
-     </div>
-   )}
- </div>
- )}
- </main>
- </CustomerLayout>
- )
+  async function change(item, quantity) {
+    try {
+      await update(item, quantity);
+    } catch {
+      setError('Could not update your cart.');
+    }
+  }
+
+  async function handleApplyPromo(e) {
+    e.preventDefault();
+    setPromoError('');
+    try {
+      await applyPromo(promoInput);
+      setPromoInput('');
+    } catch(err) {
+      setPromoError(err.response?.data?.detail || 'Invalid promo code');
+    }
+  }
+
+  const isEmergencyPaused = Boolean(storeSettings?.is_emergency_paused);
+  const emergencyPauseMsg = storeSettings?.emergency_pause_message || 'Online order placement is temporarily paused by the store due to high volume. We apologize for the inconvenience.';
+  const operatingHours = checkOperatingHours(storeSettings);
+  const isClosedHours = operatingHours.isClosed;
+
+  return (
+    <CustomerLayout>
+      <main className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-8 pb-36 lg:pb-8">
+        <button onClick={() => navigate(-1)} className="mb-4 flex items-center gap-2 text-sm font-bold text-primary-700 hover:underline">
+          <ArrowLeft size={16} /> Back
+        </button>
+        <h1 className="text-3xl font-extrabold mb-6">Your cart</h1>
+        {error && <p className="mb-6 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+
+        {/* Store Emergency Pause Banner */}
+        {isEmergencyPaused && (
+          <div className="mb-6 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-700/60 p-4 sm:p-5 text-amber-900 dark:text-amber-200 flex items-start gap-3 shadow-xs">
+            <AlertTriangle className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" size={22} />
+            <div>
+              <h2 className="font-black text-amber-800 dark:text-amber-300 uppercase tracking-wider text-xs sm:text-sm mb-1">
+                Store Emergency Pause Active
+              </h2>
+              <p className="text-xs sm:text-sm font-semibold leading-relaxed">
+                {emergencyPauseMsg}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Operating Hours Notice */}
+        {isClosedHours && (
+          <div className="mb-6 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border-2 border-rose-300 dark:border-rose-800/60 p-4 sm:p-5 text-rose-900 dark:text-rose-200 flex items-start gap-3 shadow-xs">
+            <Clock className="text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" size={22} />
+            <div>
+              <h2 className="font-black text-rose-800 dark:text-rose-300 uppercase tracking-wider text-xs sm:text-sm mb-1">
+                Store Outside Operating Hours
+              </h2>
+              <p className="text-xs sm:text-sm font-semibold leading-relaxed">
+                {operatingHours.message}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {!items.length ? (
+          <div className="mt-5 rounded-2xl bg-white p-12 text-center shadow-sm border border-slate-100 flex flex-col items-center">
+            <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mb-6">
+              <ShoppingBasket size={48} />
+            </div>
+            <h2 className="text-xl font-bold text-slate-900 mb-2">Your cart is empty</h2>
+            <p className="text-slate-500 mb-8 max-w-md mx-auto">Looks like you haven't added anything to your cart yet. Browse our products and discover great deals.</p>
+            <Link to="/products" className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-6 py-3 font-bold text-white transition hover:bg-primary-700 shadow-sm hover:shadow-md active:scale-[0.98]">
+              Start Shopping
+            </Link>
+          </div>
+        ) : (
+          <div className="flex flex-col lg:flex-row gap-8 items-start">
+            {/* Left Column: Items */}
+            <div className="flex-1 w-full space-y-3">
+              {items.map((item) => {
+                const maxAllowed = item.max_order_quantity > 0 ? Math.min(item.stock_quantity, item.max_order_quantity) : item.stock_quantity;
+                const isMaxReached = item.quantity >= maxAllowed;
+                return (
+                  <article key={item.id} className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm border border-slate-100">
+                    <div className="grid size-16 place-items-center rounded-xl bg-slate-50 font-black text-xl text-primary-300 shrink-0">
+                      {item.product_name.charAt(0)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-bold text-slate-800 text-lg">{item.product_name}</p>
+                      <p className="text-sm text-slate-500 font-medium">₹{item.unit_price} · {item.product_unit}</p>
+                    </div>
+                    <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 shadow-sm shrink-0 overflow-hidden">
+                      <button onClick={() => change(item, item.quantity - 1)} className="p-2.5 text-slate-600 hover:text-primary-700 hover:bg-primary-100 transition-colors active:bg-primary-200"><Minus size={18} /></button>
+                      <span className="w-8 text-center text-sm font-bold text-slate-900">{item.quantity}</span>
+                      <button onClick={() => change(item, item.quantity + 1)} disabled={isMaxReached} className={`p-2.5 transition-colors shrink-0 ${isMaxReached ? 'text-slate-300 cursor-not-allowed bg-slate-50' : 'text-slate-600 hover:text-primary-700 hover:bg-primary-100 active:bg-primary-200'}`}><Plus size={18} /></button>
+                    </div>
+                    <button onClick={() => change(item, 0)} className="p-2.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors shrink-0">
+                      <Trash2 size={20} />
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
+
+            {/* Right Column: Summary */}
+            <div className="w-full lg:w-96 shrink-0 space-y-5 sticky top-24">
+              {/* Promo Code Section */}
+              <section className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
+                <form onSubmit={handleApplyPromo} className="flex gap-2">
+                  <input value={promoInput} onChange={e => setPromoInput(e.target.value.toUpperCase())} placeholder="Enter promo code" className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all font-medium"/>
+                  <button type="submit" disabled={!promoInput} className="rounded-xl bg-slate-900 dark:bg-slate-800 dark:border dark:border-slate-700 px-5 py-2.5 font-bold text-white disabled:bg-slate-300 dark:disabled:bg-slate-800 dark:disabled:text-slate-500 hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors shadow-sm active:scale-95 disabled:active:scale-100">Apply</button>
+                </form>
+                {promoError && <p className="mt-3 text-xs text-red-600 dark:text-red-400 font-bold">{promoError}</p>}
+                {cart?.promo_code && (
+                  <div className="mt-4 flex items-center justify-between rounded-xl bg-green-50 dark:bg-emerald-950/40 p-4 border border-green-100 dark:border-emerald-800/50 text-sm text-green-700 dark:text-emerald-300 shadow-sm">
+                    <div><span className="font-extrabold uppercase tracking-wider text-xs block text-green-600 dark:text-emerald-400 mb-0.5">Code Applied</span><span className="font-bold text-base">{cart.promo_code}</span></div>
+                    <button onClick={() => applyPromo('')} className="text-xs font-bold bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg shadow-sm border border-green-200 dark:border-emerald-700 text-slate-800 dark:text-slate-200 hover:bg-green-100 dark:hover:bg-slate-700 transition-colors">Remove</button>
+                  </div>
+                )}
+              </section>
+
+              {/* Order Summary Section */}
+              <section className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
+                <h2 className="text-lg font-extrabold text-slate-900 mb-4">Order Summary</h2>
+                <div className="space-y-3">
+                  <div className="flex justify-between text-sm text-slate-600 font-medium"><span>Subtotal</span><span className="text-slate-900 font-bold">₹{cart?.subtotal || '0.00'}</span></div>
+                  <div className="flex justify-between text-sm text-primary-700 font-medium"><span>Product Savings</span><span className="font-bold">₹{cart?.discount || '0.00'}</span></div>
+                  {cart?.promo_discount > 0 && <div className="flex justify-between text-sm text-green-600 font-bold"><span>Promo Discount</span><span>- ₹{cart.promo_discount}</span></div>}
+                  {cart?.packaging_fee > 0 && <div className="flex justify-between text-sm text-slate-600 font-medium"><span>Packaging Fee</span><span className="text-slate-900 font-bold">₹{cart.packaging_fee}</span></div>}
+                </div>
+                <div className="mt-5 flex justify-between border-t border-slate-100 pt-5 text-xl font-black text-slate-900"><span>Total Due</span><span>₹{cart?.total || '0.00'}</span></div>
+
+                {storeSettings?.is_open === false ? (
+                  <div className="mt-6 rounded-xl bg-red-50 p-4 text-center font-bold text-red-700 border border-red-100">The store is currently closed.</div>
+                ) : isEmergencyPaused ? (
+                  <div className="mt-5 p-3.5 rounded-xl bg-amber-100 dark:bg-amber-950/60 p-4 text-center font-bold text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs sm:text-sm">
+                    Order Placement Paused: {emergencyPauseMsg}
+                  </div>
+                ) : isClosedHours ? (
+                  <div className="mt-5 p-3.5 rounded-xl bg-rose-100 dark:bg-rose-950/60 p-4 text-center font-bold text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs sm:text-sm">
+                    Store Closed: Outside scheduled operating hours
+                  </div>
+                ) : Number(storeSettings?.min_order_amount) > 0 && Number(cart.subtotal) < Number(storeSettings.min_order_amount) ? (
+                  <div className="mt-6 rounded-xl bg-amber-50 p-4 text-center font-bold text-amber-700 border border-amber-100">Minimum order amount is ₹{storeSettings.min_order_amount}</div>
+                ) : (
+                  <>
+                    <button onClick={() => navigate('/checkout')} className="mt-4 hidden lg:block min-h-11 w-full rounded-xl bg-primary-600 font-bold text-white shadow-sm hover:bg-primary-700 hover:shadow-md transition-all active:scale-[0.98] text-base py-2.5 cursor-pointer">Continue to checkout</button>
+                    <p className="mt-3 hidden lg:block text-center text-xs text-slate-500 font-medium">Pay securely online or at store pickup.</p>
+                  </>
+                )}
+              </section>
+            </div>
+
+            {/* Mobile Sticky Checkout Bar */}
+            {storeSettings?.is_open !== false && !isEmergencyPaused && !isClosedHours && !(Number(storeSettings?.min_order_amount) > 0 && Number(cart.subtotal) < Number(storeSettings.min_order_amount)) && items.length > 0 && (
+              <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-30 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-3 px-4 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.08)] lg:hidden">
+                <div className="flex items-center justify-between gap-4 max-w-md mx-auto">
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Due</p>
+                    <p className="text-xl font-black text-slate-900 dark:text-white leading-none mt-0.5">₹{cart?.total}</p>
+                  </div>
+                  <button onClick={() => navigate('/checkout')} className="flex-1 min-h-[44px] py-2.5 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] font-bold text-white shadow-md shadow-emerald-600/20 transition-all text-sm sm:text-base flex items-center justify-center gap-2 cursor-pointer">
+                    Checkout
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+    </CustomerLayout>
+  );
 }
 
 export function CheckoutPage() {
-   const navigate = useNavigate(); const { cart, isCustomer, storeSettings, refresh } = useCart(); const [time, setTime] = useState('As soon as possible'); const [note, setNote] = useState(''); const [error, setError] = useState(''); const [loading, setLoading] = useState(false)
-   const [walletBalance, setWalletBalance] = useState(0); const [useWallet, setUseWallet] = useState(false);
+   const navigate = useNavigate(); 
+   const { cart, isCustomer, storeSettings, refresh } = useCart(); 
+   const [time, setTime] = useState('As soon as possible'); 
+   const [note, setNote] = useState(''); 
+   const [error, setError] = useState(''); 
+   const [loading, setLoading] = useState(false);
+   const [walletBalance, setWalletBalance] = useState(0); 
+   const [useWallet, setUseWallet] = useState(false);
    const [orderType, setOrderType] = useState('PICKUP');
    const [deliveryAddress, setDeliveryAddress] = useState('');
    const [deliveryPincode, setDeliveryPincode] = useState('');
+
+   // Payment Method State
+   const [paymentMethod, setPaymentMethod] = useState('COD'); // 'COD' | 'UPI'
+   const [qrViewMode, setQrViewMode] = useState('dynamic'); // 'dynamic' | 'standee'
+   const [upiTransactionId, setUpiTransactionId] = useState('');
+
+   // Time Slot State
+   const enableTimeSlots = Boolean(storeSettings?.enable_time_slots);
+   const allTimeSlots = parseTimeSlots(storeSettings?.time_slots_json);
+   const bufferMinutes = Number(storeSettings?.preparation_buffer_minutes || 0);
+
+   const [slotDay, setSlotDay] = useState('today'); // 'today' | 'tomorrow'
+   const [selectedSlotLabel, setSelectedSlotLabel] = useState('');
+
+   const todaySlots = allTimeSlots.filter(s => !isSlotPassedToday(s, bufferMinutes));
+   const tomorrowSlots = allTimeSlots;
+   const activeSlotList = slotDay === 'today' ? todaySlots : tomorrowSlots;
+
+   const todayStr = getLocalDateStr(new Date());
+   const tomorrowDate = new Date();
+   tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+   const tomorrowStr = getLocalDateStr(tomorrowDate);
+
+   // Auto-switch to tomorrow if today has no slots left
+   useEffect(() => {
+     if (enableTimeSlots && allTimeSlots.length > 0) {
+       if (todaySlots.length === 0 && slotDay === 'today') {
+         setSlotDay('tomorrow');
+       }
+     }
+   }, [enableTimeSlots, allTimeSlots.length, todaySlots.length]);
+
+   // Ensure an active slot is selected
+   useEffect(() => {
+     if (enableTimeSlots && activeSlotList.length > 0) {
+       const exists = activeSlotList.some(s => s.label === selectedSlotLabel);
+       if (!exists) {
+         setSelectedSlotLabel(activeSlotList[0].label);
+         setTime(activeSlotList[0].label);
+       }
+     }
+   }, [enableTimeSlots, slotDay, activeSlotList]);
+
+   // Emergency Pause & Operating Hours
+   const isEmergencyPaused = Boolean(storeSettings?.is_emergency_paused);
+   const emergencyPauseMsg = storeSettings?.emergency_pause_message || 'Online ordering is temporarily paused by the store due to high volume. We apologize for any inconvenience.';
+   const operatingHours = checkOperatingHours(storeSettings);
+   const isClosedHours = operatingHours.isClosed;
    
    // New Address Management State
    const [addresses, setAddresses] = useState([]);
@@ -805,7 +1062,7 @@ export function CheckoutPage() {
    const [editingAddressId, setEditingAddressId] = useState(null);
    const [addressForm, setAddressForm] = useState({ title: 'Home', street: '', landmark: '', city: '', district: '', state: '', country: 'India', zip_code: '', latitude: null, longitude: null });
    
-      const captureLocation = () => {
+   const captureLocation = () => {
      const loadingToast = toast.loading("Getting your exact location...");
      if (navigator.geolocation) {
        navigator.geolocation.getCurrentPosition(
@@ -861,7 +1118,6 @@ export function CheckoutPage() {
        } else {
          const res = await api.post('/auth/addresses/', addressForm);
          setSelectedAddressId(res.data.id);
-         // Immediately inject into local state to prevent race conditions during checkout
          setAddresses(prev => [...prev, res.data]);
        }
        setShowAddressForm(false);
@@ -874,43 +1130,11 @@ export function CheckoutPage() {
      }
    };
 
- if (!isCustomer) return <CartPage />
+ if (!isCustomer) return <CartPage />;
  
  const cartSubtotal = parseFloat(cart?.subtotal || 0);
  const isDeliveryUnderMin = orderType === 'DELIVERY' && parseFloat(storeSettings?.min_delivery_order_amount) > 0 && cartSubtotal < parseFloat(storeSettings.min_delivery_order_amount);
 
- async function submit() { 
-  if (isDeliveryUnderMin) {
-    setError(`Minimum delivery order amount is ₹${storeSettings.min_delivery_order_amount}`);
-    return;
-  }
-  if (orderType === 'DELIVERY') {
-    if (!selectedAddressId && (!deliveryAddress.trim() || !deliveryPincode.trim())) { 
-        setError('Please select or add a delivery address.'); return; 
-    }
-  }
-  setLoading(true); setError(''); 
-  try { 
-    const isPickup = orderType === 'PICKUP';
-    const response = await api.post('/orders/', { 
-      pickup_time: time, 
-      customer_note: note, 
-      use_wallet: useWallet,
-      order_type: orderType,
-      delivery_address: isPickup ? '' : deliveryAddress,
-      delivery_pincode: isPickup ? '' : deliveryPincode,
-      delivery_latitude: isPickup ? null : (selectedAddressId ? addresses.find(a => a.id === selectedAddressId)?.latitude : null),
-      delivery_longitude: isPickup ? null : (selectedAddressId ? addresses.find(a => a.id === selectedAddressId)?.longitude : null)
-    }); 
-    await refresh(); 
-    navigate(`/orders/${response.data.id}`) 
-  } catch (requestError) { 
-    setError(requestError.response?.data?.detail || 'Could not place your order.') 
-  } finally { 
-    setLoading(false) 
-  } 
- }
- 
  let deliveryFee = 0;
  if (orderType === 'DELIVERY' && storeSettings?.is_home_delivery_active) {
    if (parseFloat(storeSettings.free_delivery_threshold) > 0 && cartSubtotal >= parseFloat(storeSettings.free_delivery_threshold)) {
@@ -920,8 +1144,79 @@ export function CheckoutPage() {
    }
  }
  const cartTotal = parseFloat(cart?.total || 0) + deliveryFee;
- const finalTotal = useWallet ? Math.max(0, cartTotal - walletBalance) : cartTotal;
- const walletApplied = useWallet ? Math.min(cartTotal, walletBalance) : 0;
+
+ // Max wallet percentage limit
+ const maxWalletPercentage = storeSettings?.max_wallet_usage_percentage != null && Number(storeSettings.max_wallet_usage_percentage) > 0 
+   ? Number(storeSettings.max_wallet_usage_percentage) 
+   : 100;
+ const maxWalletAllowed = (cartTotal * maxWalletPercentage) / 100;
+ const walletApplied = useWallet ? Math.min(walletBalance, maxWalletAllowed, cartTotal) : 0;
+ const finalTotal = Math.max(0, cartTotal - walletApplied);
+
+ // Dynamic UPI Details
+ const upiId = storeSettings?.upi_id || 'narendrakirana@okaxis';
+ const upiPayee = storeSettings?.upi_payee_name || storeSettings?.store_name || 'Narendra Kirana';
+ const upiUri = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(upiPayee)}&am=${finalTotal.toFixed(2)}&cu=INR&tn=Order`;
+ const dynamicQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(upiUri)}`;
+
+ async function submit() { 
+  if (isEmergencyPaused) {
+    setError(emergencyPauseMsg);
+    return;
+  }
+  if (isClosedHours) {
+    setError(operatingHours.message);
+    return;
+  }
+  if (isDeliveryUnderMin) {
+    setError(`Minimum delivery order amount is ₹${storeSettings.min_delivery_order_amount}`);
+    return;
+  }
+  if (orderType === 'DELIVERY') {
+    if (!selectedAddressId && (!deliveryAddress.trim() || !deliveryPincode.trim())) { 
+        setError('Please select or add a delivery address.'); 
+        return; 
+    }
+  }
+  if (enableTimeSlots && allTimeSlots.length > 0 && !selectedSlotLabel) {
+    setError('Please select a time slot for your order.');
+    return;
+  }
+
+  setLoading(true); 
+  setError(''); 
+  try { 
+    const isPickup = orderType === 'PICKUP';
+    const chosenSlotDate = enableTimeSlots && allTimeSlots.length > 0 ? (slotDay === 'today' ? todayStr : tomorrowStr) : null;
+    const chosenSlotLabel = enableTimeSlots && allTimeSlots.length > 0 ? selectedSlotLabel : null;
+    const effectivePaymentMethod = finalTotal === 0 ? 'WALLET' : paymentMethod;
+
+    const payload = { 
+      pickup_time: chosenSlotLabel || time, 
+      customer_note: note, 
+      use_wallet: useWallet,
+      order_type: orderType,
+      delivery_address: isPickup ? '' : deliveryAddress,
+      delivery_pincode: isPickup ? '' : deliveryPincode,
+      delivery_latitude: isPickup ? null : (selectedAddressId ? addresses.find(a => a.id === selectedAddressId)?.latitude : null),
+      delivery_longitude: isPickup ? null : (selectedAddressId ? addresses.find(a => a.id === selectedAddressId)?.longitude : null),
+      delivery_slot_date: chosenSlotDate,
+      delivery_slot_label: chosenSlotLabel,
+      payment_method: effectivePaymentMethod,
+      upi_transaction_id: effectivePaymentMethod === 'UPI' ? upiTransactionId : ''
+    };
+
+    const response = await api.post('/orders/', payload); 
+    await refresh(); 
+    navigate(`/orders/${response.data.id}`);
+  } catch (requestError) { 
+    setError(requestError.response?.data?.detail || 'Could not place your order.');
+  } finally { 
+    setLoading(false);
+  } 
+ }
+
+ const isOrderBlocked = isEmergencyPaused || isClosedHours || storeSettings?.is_open === false;
 
   return (
     <CustomerLayout>
@@ -935,6 +1230,32 @@ export function CheckoutPage() {
 
         <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Checkout</h1>
         <p className="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400">Review your order details and choose delivery or pickup.</p>
+
+        {/* Emergency Pause Notice */}
+        {isEmergencyPaused && (
+          <div className="mt-4 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-700/60 text-amber-900 dark:text-amber-200 text-xs sm:text-sm font-bold flex items-start gap-2.5 animate-in fade-in">
+            <AlertTriangle size={20} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <span className="block font-black uppercase text-[11px] tracking-wider text-amber-800 dark:text-amber-300 mb-0.5">
+                Orders Temporarily Paused
+              </span>
+              {emergencyPauseMsg}
+            </div>
+          </div>
+        )}
+
+        {/* Operating Hours Notice */}
+        {isClosedHours && (
+          <div className="mt-4 p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border-2 border-rose-300 dark:border-rose-800/60 text-rose-900 dark:text-rose-200 text-xs sm:text-sm font-bold flex items-start gap-2.5 animate-in fade-in">
+            <Clock size={20} className="text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+            <div>
+              <span className="block font-black uppercase text-[11px] tracking-wider text-rose-800 dark:text-rose-300 mb-0.5">
+                Store Outside Operating Hours
+              </span>
+              {operatingHours.message}
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="mt-4 p-3.5 rounded-xl bg-red-50 dark:bg-rose-950/40 border border-red-200 dark:border-rose-900/50 text-xs sm:text-sm font-bold text-red-700 dark:text-rose-300 animate-in fade-in">
@@ -972,7 +1293,81 @@ export function CheckoutPage() {
             </div>
           </div>
 
-          {orderType === 'PICKUP' ? (
+          {/* Time Slot Selector or Pickup Time */}
+          {enableTimeSlots && allTimeSlots.length > 0 ? (
+            <div className="mb-5 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <Calendar size={15} className="text-emerald-600 dark:text-emerald-400" />
+                  Select {orderType === 'PICKUP' ? 'Pickup' : 'Delivery'} Time Slot
+                </label>
+                {storeSettings?.preparation_buffer_minutes > 0 && (
+                  <span className="text-[11px] text-slate-400">
+                    Prep buffer: {storeSettings.preparation_buffer_minutes}m
+                  </span>
+                )}
+              </div>
+
+              {/* Day Selector (Today / Tomorrow) */}
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <button
+                  type="button"
+                  onClick={() => setSlotDay('today')}
+                  className={`py-2 px-3 text-xs sm:text-sm font-bold rounded-xl border transition-all cursor-pointer ${
+                    slotDay === 'today'
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  Today ({new Date().toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' })})
+                  {todaySlots.length === 0 && <span className="block text-[10px] font-normal opacity-80">(No slots left)</span>}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSlotDay('tomorrow')}
+                  className={`py-2 px-3 text-xs sm:text-sm font-bold rounded-xl border transition-all cursor-pointer ${
+                    slotDay === 'tomorrow'
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  Tomorrow ({tomorrowDate.toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' })})
+                </button>
+              </div>
+
+              {/* Slots List */}
+              {activeSlotList.length === 0 ? (
+                <div className="p-3 text-center rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-xs font-semibold text-amber-800 dark:text-amber-200">
+                  All slots for today have closed or passed the preparation buffer. Please choose <button type="button" onClick={() => setSlotDay('tomorrow')} className="font-bold underline text-emerald-700 dark:text-emerald-400">Tomorrow</button>.
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {activeSlotList.map((slot) => {
+                    const isSelected = selectedSlotLabel === slot.label;
+                    return (
+                      <button
+                        key={slot.id || slot.label}
+                        type="button"
+                        onClick={() => {
+                          setSelectedSlotLabel(slot.label);
+                          setTime(slot.label);
+                        }}
+                        className={`p-2.5 rounded-xl border text-xs font-bold transition-all text-center flex items-center justify-center gap-1 cursor-pointer ${
+                          isSelected
+                            ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/20'
+                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                        }`}
+                      >
+                        {isSelected && <Check size={13} className="text-emerald-600 dark:text-emerald-400" />}
+                        <span>{slot.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : orderType === 'PICKUP' ? (
             <div>
               <label className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-1.5">
                 Pickup time
@@ -987,7 +1382,10 @@ export function CheckoutPage() {
                 <option>In 1 hour</option>
               </select>
             </div>
-          ) : (
+          ) : null}
+
+          {/* Delivery Address Section (Home Delivery) */}
+          {orderType === 'DELIVERY' && (
             <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
@@ -1117,12 +1515,149 @@ export function CheckoutPage() {
             />
           </div>
 
+          {/* Payment Method Selection */}
+          {finalTotal > 0 && (
+            <div className="mt-5 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700">
+              <label className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-2.5">
+                Payment Method
+              </label>
+              <div className="grid grid-cols-2 gap-2.5 mb-3">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('COD')}
+                  className={`p-3 rounded-xl border text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    paymentMethod === 'COD'
+                      ? 'bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-300 border-emerald-500 shadow-xs ring-2 ring-emerald-500/20'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-transparent hover:bg-slate-200/70'
+                  }`}
+                >
+                  <span>💵</span>
+                  <span>{orderType === 'DELIVERY' ? 'Cash on Delivery' : 'Pay at Store'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('UPI')}
+                  className={`p-3 rounded-xl border text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    paymentMethod === 'UPI'
+                      ? 'bg-white dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 border-indigo-500 shadow-xs ring-2 ring-indigo-500/20'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-transparent hover:bg-slate-200/70'
+                  }`}
+                >
+                  <QrCode size={16} />
+                  <span>UPI / Dynamic QR</span>
+                </button>
+              </div>
+
+              {/* Dynamic UPI Section */}
+              {paymentMethod === 'UPI' && (
+                <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-indigo-100 dark:border-indigo-900/50 shadow-xs animate-in fade-in slide-in-from-top-2">
+                  {/* Toggle between Dynamic QR & Physical Standee */}
+                  {storeSettings?.upi_qr_image && (
+                    <div className="flex justify-center gap-2 mb-3">
+                      <button
+                        type="button"
+                        onClick={() => setQrViewMode('dynamic')}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition ${
+                          qrViewMode === 'dynamic'
+                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                        }`}
+                      >
+                        Dynamic QR (₹{finalTotal.toFixed(2)})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setQrViewMode('standee')}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition ${
+                          qrViewMode === 'standee'
+                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                        }`}
+                      >
+                        Store Standee QR
+                      </button>
+                    </div>
+                  )}
+
+                  {/* QR Code Container */}
+                  <div className="flex flex-col items-center justify-center p-3 text-center">
+                    {qrViewMode === 'standee' && storeSettings?.upi_qr_image ? (
+                      <div className="p-2 bg-white rounded-xl shadow-xs border border-slate-200 mb-2">
+                        <img
+                          src={storeSettings.upi_qr_image}
+                          alt="Store Standee QR"
+                          className="w-44 h-44 sm:w-48 sm:h-48 object-contain rounded-lg"
+                        />
+                      </div>
+                    ) : (
+                      <div className="p-2 bg-white rounded-xl shadow-xs border border-slate-200 mb-2">
+                        <img
+                          src={dynamicQrUrl}
+                          alt="Dynamic UPI QR Code"
+                          className="w-44 h-44 sm:w-48 sm:h-48 object-contain"
+                        />
+                      </div>
+                    )}
+
+                    <p className="text-xs font-extrabold text-slate-900 dark:text-white mb-0.5">
+                      Scan with any UPI app to pay ₹{finalTotal.toFixed(2)}
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-3">
+                      Google Pay · PhonePe · Paytm · BHIM
+                    </p>
+
+                    {/* Copyable UPI ID */}
+                    <div className="w-full max-w-xs flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 mb-3">
+                      <div className="min-w-0 flex-1 text-left mr-2">
+                        <span className="text-[10px] font-extrabold uppercase text-slate-400 block leading-tight">UPI ID</span>
+                        <span className="text-xs font-mono font-bold text-slate-900 dark:text-white truncate block">{upiId}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(upiId);
+                          toast.success('UPI ID copied to clipboard!');
+                        }}
+                        className="px-2.5 py-1 text-xs font-bold rounded-lg bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 flex items-center gap-1 shrink-0 shadow-2xs cursor-pointer"
+                      >
+                        <Copy size={12} /> Copy
+                      </button>
+                    </div>
+
+                    {/* UPI Reference / UTR Number Input */}
+                    <div className="w-full text-left">
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        UPI Reference / UTR Number (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={upiTransactionId}
+                        onChange={(e) => setUpiTransactionId(e.target.value.trim())}
+                        placeholder="e.g. 423589123456"
+                        className="w-full rounded-xl border border-slate-200 dark:border-slate-700 p-2.5 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800 font-mono outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        Provide your 12-digit transaction UTR for faster payment confirmation.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Digital Wallet */}
           {walletBalance > 0 && (
             <div className="mt-5 p-3.5 sm:p-4 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-between">
               <div>
                 <div className="font-bold text-xs sm:text-sm text-emerald-900 dark:text-emerald-200">Use Wallet Balance</div>
                 <div className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">Available: ₹{walletBalance.toFixed(2)}</div>
+                {maxWalletPercentage < 100 && (
+                  <p className="text-[11px] text-emerald-800 dark:text-emerald-300 font-medium mt-0.5">
+                    Up to {maxWalletPercentage}% of order can be paid via wallet (max ₹{maxWalletAllowed.toFixed(2)})
+                  </p>
+                )}
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" className="sr-only peer" checked={useWallet} onChange={e => setUseWallet(e.target.checked)} />
@@ -1161,6 +1696,14 @@ export function CheckoutPage() {
             <div className="mt-5 rounded-xl bg-red-50 dark:bg-rose-950/40 p-4 text-center font-bold text-red-700 dark:text-rose-300 border border-red-100 dark:border-rose-900/50 text-xs sm:text-sm">
               The store is currently closed. Cannot place order.
             </div>
+          ) : isEmergencyPaused ? (
+            <div className="mt-5 rounded-xl bg-amber-50 dark:bg-amber-950/40 p-4 text-center font-bold text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs sm:text-sm">
+              Online ordering is temporarily paused by the store: {emergencyPauseMsg}
+            </div>
+          ) : isClosedHours ? (
+            <div className="mt-5 rounded-xl bg-rose-50 dark:bg-rose-950/40 p-4 text-center font-bold text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs sm:text-sm">
+              Store Outside Operating Hours: {operatingHours.message}
+            </div>
           ) : Number(storeSettings?.min_order_amount) > 0 && Number(cart.subtotal) < Number(storeSettings.min_order_amount) ? (
             <div className="mt-5 rounded-xl bg-amber-50 dark:bg-amber-950/40 p-4 text-center font-bold text-amber-700 dark:text-amber-300 border border-amber-100 dark:border-amber-900/50 text-xs sm:text-sm">
               Minimum order amount is ₹{storeSettings.min_order_amount}
@@ -1175,15 +1718,31 @@ export function CheckoutPage() {
               <button
                 type="button"
                 onClick={submit}
-                disabled={loading || isDeliveryUnderMin || (orderType === 'DELIVERY' && !selectedAddressId && (!deliveryAddress || !deliveryPincode))}
+                disabled={
+                  loading || 
+                  isOrderBlocked || 
+                  isDeliveryUnderMin || 
+                  (orderType === 'DELIVERY' && !selectedAddressId && (!deliveryAddress || !deliveryPincode)) ||
+                  (enableTimeSlots && allTimeSlots.length > 0 && !selectedSlotLabel)
+                }
                 className="mt-6 min-h-[48px] py-3.5 px-6 w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] font-extrabold text-white text-sm sm:text-base shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
               >
                 {loading ? (
                   <span className="inline-flex items-center gap-2">
                     <RefreshCw className="animate-spin" size={16} /> Placing Order...
                   </span>
+                ) : isEmergencyPaused ? (
+                  'Ordering Temporarily Paused'
+                ) : isClosedHours ? (
+                  'Outside Store Operating Hours'
                 ) : finalTotal > 0 ? (
-                  orderType === 'DELIVERY' ? 'Place Order (Cash on Delivery)' : 'Place Order (Pay at Store)'
+                  paymentMethod === 'UPI' ? (
+                    'Place Order (Pay via UPI QR)'
+                  ) : orderType === 'DELIVERY' ? (
+                    'Place Order (Cash on Delivery)'
+                  ) : (
+                    'Place Order (Pay at Store)'
+                  )
                 ) : (
                   'Place Order (Paid via Wallet)'
                 )}
