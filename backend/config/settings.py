@@ -126,6 +126,12 @@ else:
         )
     }
 
+# ─── Authentication Backends (Email or Username Login) ───
+AUTHENTICATION_BACKENDS = [
+    'accounts.backends.EmailOrUsernameModelBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
 # ─── Password Validation ───
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},

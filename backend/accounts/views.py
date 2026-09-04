@@ -24,15 +24,34 @@ class CustomerSignupView(generics.CreateAPIView):
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
+        # Support either 'username', 'email', or 'emailOrUsername' from frontend
+        identifier = attrs.get(self.username_field) or self.initial_data.get('email') or self.initial_data.get('emailOrUsername')
+        if identifier:
+            attrs[self.username_field] = str(identifier).strip()
+
         data = super().validate(attrs)
-        data['user'] = UserSerializer(self.user).data
+        user = self.user
+
+        # Auto-sync permissions for store operators
+        needs_update = False
+        fields_to_update = []
+        if getattr(user, 'is_owner', False) and not user.is_staff:
+            user.is_staff = True
+            needs_update = True
+            fields_to_update.append('is_staff')
+        if (user.is_staff or user.is_superuser) and not getattr(user, 'is_owner', False):
+            user.is_owner = True
+            needs_update = True
+            fields_to_update.append('is_owner')
+        if needs_update:
+            user.save(update_fields=fields_to_update)
+
+        data['user'] = UserSerializer(user).data
         return data
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
     throttle_classes = [AnonRateThrottle]
-
-    
 
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
@@ -44,8 +63,6 @@ import os
 class GoogleOwnerLoginView(APIView):
     permission_classes = (AllowAny,)
     throttle_classes = [AnonRateThrottle]
-
-    
 
     def post(self, request):
         token = request.data.get('credential')
@@ -76,11 +93,25 @@ class GoogleOwnerLoginView(APIView):
             if not email:
                 return Response({'detail': 'Google account has no email.'}, status=400)
                 
-            # Check if user exists and is owner (handle cases where they might have a customer account too)
-            user = User.objects.filter(email=email, is_owner=True).first()
-            if not user:
-                return Response({'detail': f'No owner account found for {email}.'}, status=403)
+            # Check if user exists and has owner or staff permissions
+            user = User.objects.filter(email__iexact=email).first()
+            if not user or not (getattr(user, 'is_owner', False) or user.is_staff or user.is_superuser):
+                return Response({'detail': f'No owner/staff account associated with Google account {email}.'}, status=403)
                 
+            # Auto-sync permissions
+            needs_update = False
+            fields_to_update = []
+            if not getattr(user, 'is_owner', False):
+                user.is_owner = True
+                needs_update = True
+                fields_to_update.append('is_owner')
+            if not user.is_staff:
+                user.is_staff = True
+                needs_update = True
+                fields_to_update.append('is_staff')
+            if needs_update:
+                user.save(update_fields=fields_to_update)
+
             refresh = RefreshToken.for_user(user)
             
             return Response({
@@ -396,9 +427,23 @@ def admin_google_login(request):
                 idinfo = id_token.verify_oauth2_token(token, google_requests.Request())
                 
             email = idinfo.get('email')
-            user = User.objects.filter(email=email).first()
+            user = User.objects.filter(email__iexact=email).first()
             
-            if user and (user.is_staff or user.is_superuser):
+            if user and (user.is_staff or getattr(user, 'is_owner', False) or user.is_superuser):
+                # Auto-sync permissions
+                needs_update = False
+                fields_to_update = []
+                if not user.is_staff:
+                    user.is_staff = True
+                    needs_update = True
+                    fields_to_update.append('is_staff')
+                if not getattr(user, 'is_owner', False):
+                    user.is_owner = True
+                    needs_update = True
+                    fields_to_update.append('is_owner')
+                if needs_update:
+                    user.save(update_fields=fields_to_update)
+
                 login(request, user)
                 return redirect('/')
             else:

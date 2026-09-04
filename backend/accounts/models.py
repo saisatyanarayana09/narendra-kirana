@@ -7,6 +7,14 @@ class User(AbstractUser):
     
     # We use Django's default 'username' for login, which can store a mobile number or email
     
+    def save(self, *args, **kwargs):
+        # Auto-synchronize owner and staff permissions for store operators
+        if self.is_owner and not self.is_staff:
+            self.is_staff = True
+        elif (self.is_staff or self.is_superuser) and not self.is_owner:
+            self.is_owner = True
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.username
 
