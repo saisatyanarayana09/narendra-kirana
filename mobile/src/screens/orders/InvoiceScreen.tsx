@@ -8,7 +8,8 @@ import {
   ActivityIndicator, 
   Platform,
   Share,
-  Alert
+  Alert,
+  StatusBar
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,13 +22,11 @@ import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
 import { fixImageUrl } from '../../utils/image';
 import { getItem, saveItem, deleteItem } from '../../utils/storage';
-import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 
 const SAVED_DOWNLOAD_DIR_KEY = 'SAVED_SAF_INVOICE_DOWNLOAD_DIR';
 
 export function InvoiceScreen({ navigation, route }: { navigation: AppNavigationProp, route: any }) {
-  const { colors, isDark } = useTheme();
   const { user } = useAuth();
   const { orderId } = route.params || {};
   const [order, setOrder] = useState<any>(null);
@@ -122,8 +121,10 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
       <html>
       <head>
         <meta charset="utf-8">
+        <meta name="color-scheme" content="light">
         <title>Invoice - ${invoiceNumber}</title>
         <style>
+          @media (prefers-color-scheme: dark) { body, .container, .info-card { background: #FFFFFF !important; color: #1E293B !important; } }
           @page { size: A4; margin: 15mm; }
           body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E293B; margin: 0; padding: 0; background: #FFF; }
           .container { max-width: 800px; margin: auto; padding: 20px; box-sizing: border-box; position: relative; }
@@ -462,27 +463,28 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
 
   if (!user) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={[styles.webActionBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: '#F1F5F9' }]} edges={['top']}>
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+        <View style={[styles.webActionBar, { backgroundColor: '#FFFFFF', borderBottomColor: '#E2E8F0' }]}>
           <TouchableOpacity 
-            style={[styles.backToOrderBtn, { backgroundColor: isDark ? colors.background : '#F8FAFC', borderColor: colors.border }]} 
+            style={[styles.backToOrderBtn, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]} 
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
           >
-            <Feather name="arrow-left" size={15} color={colors.text} />
-            <Text style={[styles.backToOrderText, { color: colors.text }]}>Back to Order</Text>
+            <Feather name="arrow-left" size={15} color="#334155" />
+            <Text style={[styles.backToOrderText, { color: '#334155' }]}>Back to Order</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.guestStateContainer}>
-          <View style={[styles.guestIconBox, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.15)' : '#ECFDF5' }]}>
-            <Feather name="file-text" size={44} color={colors.primary} />
+          <View style={[styles.guestIconBox, { backgroundColor: '#ECFDF5' }]}>
+            <Feather name="file-text" size={44} color="#059669" />
           </View>
-          <Text style={[styles.guestTitle, { color: colors.text }]}>Sign In to View Invoice</Text>
-          <Text style={[styles.guestSubtitle, { color: colors.textSecondary }]}>
+          <Text style={[styles.guestTitle, { color: '#0F172A' }]}>Sign In to View Invoice</Text>
+          <Text style={[styles.guestSubtitle, { color: '#64748B' }]}>
             Please sign in to view and download official GST tax invoices for your purchases.
           </Text>
           <TouchableOpacity
-            style={[styles.guestSignInBtn, { backgroundColor: colors.primary }]}
+            style={[styles.guestSignInBtn, { backgroundColor: '#059669' }]}
             onPress={() => navigation.navigate('Login')}
             activeOpacity={0.85}
           >
@@ -496,15 +498,16 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={[styles.webActionBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: '#F1F5F9' }]} edges={['top']}>
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+        <View style={[styles.webActionBar, { backgroundColor: '#FFFFFF', borderBottomColor: '#E2E8F0' }]}>
           <TouchableOpacity 
-            style={[styles.backToOrderBtn, { backgroundColor: isDark ? colors.background : '#F8FAFC', borderColor: colors.border }]} 
+            style={[styles.backToOrderBtn, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]} 
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
           >
-            <Feather name="arrow-left" size={15} color={colors.text} />
-            <Text style={[styles.backToOrderText, { color: colors.text }]}>Back to Order</Text>
+            <Feather name="arrow-left" size={15} color="#334155" />
+            <Text style={[styles.backToOrderText, { color: '#334155' }]}>Back to Order</Text>
           </TouchableOpacity>
 
           <View style={styles.actionButtonsRight}>
@@ -513,13 +516,13 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
               <Text style={styles.downloadPdfButtonText}>Download / Print PDF</Text>
             </View>
             <View style={[styles.shareIconButton, { opacity: 0.4 }]}>
-              <Feather name="share-2" size={15} color={colors.primary} />
+              <Feather name="share-2" size={15} color="#059669" />
             </View>
           </View>
         </View>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading invoice...</Text>
+          <ActivityIndicator size="large" color="#059669" />
+          <Text style={[styles.loadingText, { color: '#64748B' }]}>Loading invoice...</Text>
         </View>
       </SafeAreaView>
     );
@@ -527,19 +530,20 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
 
   if (error || !order) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={[styles.webActionBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: '#F1F5F9' }]} edges={['top']}>
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+        <View style={[styles.webActionBar, { backgroundColor: '#FFFFFF', borderBottomColor: '#E2E8F0' }]}>
           <TouchableOpacity 
-            style={[styles.backToOrderBtn, { backgroundColor: isDark ? colors.background : '#F8FAFC', borderColor: colors.border }]} 
+            style={[styles.backToOrderBtn, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]} 
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
           >
-            <Feather name="arrow-left" size={15} color={colors.text} />
-            <Text style={[styles.backToOrderText, { color: colors.text }]}>Back to Order</Text>
+            <Feather name="arrow-left" size={15} color="#334155" />
+            <Text style={[styles.backToOrderText, { color: '#334155' }]}>Back to Order</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.center}>
-          <Feather name="alert-circle" size={48} color={theme.colors.error} />
+          <Feather name="alert-circle" size={48} color="#DC2626" />
           <Text style={styles.errorText}>{error || 'Could not load invoice'}</Text>
         </View>
       </SafeAreaView>
@@ -547,16 +551,17 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: '#F1F5F9' }]} edges={['top']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       {/* Action Bar matching web Invoice.jsx:76-86 */}
-      <View style={[styles.webActionBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+      <View style={[styles.webActionBar, { backgroundColor: '#FFFFFF', borderBottomColor: '#E2E8F0' }]}>
         <TouchableOpacity 
-          style={[styles.backToOrderBtn, { backgroundColor: isDark ? colors.background : '#F8FAFC', borderColor: colors.border }]} 
+          style={[styles.backToOrderBtn, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]} 
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <Feather name="arrow-left" size={15} color={colors.text} />
-          <Text style={[styles.backToOrderText, { color: colors.text }]}>Back to Order</Text>
+          <Feather name="arrow-left" size={15} color="#334155" />
+          <Text style={[styles.backToOrderText, { color: '#334155' }]}>Back to Order</Text>
         </TouchableOpacity>
 
         <View style={styles.actionButtonsRight}>
@@ -582,7 +587,7 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
             disabled={downloading}
             activeOpacity={0.75}
           >
-            <Feather name="share-2" size={15} color={colors.primary} />
+            <Feather name="share-2" size={15} color="#059669" />
           </TouchableOpacity>
         </View>
       </View>
@@ -846,9 +851,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: '#E2E8F0',
   },
   backButton: {
     padding: 4,
@@ -856,7 +861,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: '#0F172A',
   },
   headerActionBtn: {
     padding: 4,
@@ -870,13 +875,13 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#64748B',
     fontWeight: '500',
   },
   errorText: {
     marginTop: 12,
     fontSize: 15,
-    color: theme.colors.error,
+    color: '#DC2626',
     fontWeight: '600',
     textAlign: 'center',
   },
@@ -898,7 +903,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8FAFC',
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
@@ -911,7 +916,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   backToOrderText: {
-    color: '#475569',
+    color: '#334155',
     fontWeight: '600',
     fontSize: 13,
   },
@@ -1347,12 +1352,14 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginBottom: 8,
     textAlign: 'center',
+    color: '#0F172A',
   },
   guestSubtitle: {
     fontSize: 14,
     lineHeight: 20,
     textAlign: 'center',
     marginBottom: 24,
+    color: '#64748B',
   },
   guestSignInBtn: {
     flexDirection: 'row',

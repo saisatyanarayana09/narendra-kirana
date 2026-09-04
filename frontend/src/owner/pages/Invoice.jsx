@@ -1,43 +1,56 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Printer, ArrowLeft, BadgeCheck, Smartphone } from 'lucide-react';
 import api from '../../services/api';
 
 const Invoice = () => {
- const { id } = useParams();
- const [order, setOrder] = useState(null);
- const [settings, setSettings] = useState(null);
- const [loading, setLoading] = useState(true);
- const [error, setError] = useState(null);
+  const { id } = useParams();
+  const [order, setOrder] = useState(null);
+  const [settings, setSettings] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const invoiceContainerRef = useRef(null);
 
- useEffect(() => {
- const fetchData = async () => {
-    try {
-      const [orderRes, settingsRes] = await Promise.all([
-        api.get(`/orders/${id}/`),
-        api.get('/store/settings/').catch(() => ({ data: {} }))
-      ]);
-      setOrder(orderRes.data);
-      setSettings(settingsRes.data);
-    } catch (err) {
-      console.error(err);
-      if (err.response?.status === 401) {
-        const redirectUrl = encodeURIComponent(window.location.pathname + window.location.search);
-        window.location.href = `/login?redirect=${redirectUrl}`;
-        return;
-      }
-      setError(err.response?.data?.detail || 'Failed to load invoice details.');
-    } finally {
-      setLoading(false);
+  // Enforce light color scheme on mount
+  useEffect(() => {
+    if (invoiceContainerRef.current) {
+      invoiceContainerRef.current.classList.add('invoice-root', 'keep-white');
+      invoiceContainerRef.current.style.colorScheme = 'light';
     }
-  };
-  fetchData();
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [orderRes, settingsRes] = await Promise.all([
+          api.get(`/orders/${id}/`),
+          api.get('/store/settings/').catch(() => ({ data: {} }))
+        ]);
+        setOrder(orderRes.data);
+        setSettings(settingsRes.data);
+      } catch (err) {
+        console.error(err);
+        if (err.response?.status === 401) {
+          const redirectUrl = encodeURIComponent(window.location.pathname + window.location.search);
+          window.location.href = `/login?redirect=${redirectUrl}`;
+          return;
+        }
+        setError(err.response?.data?.detail || 'Failed to load invoice details.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
   }, [id]);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="text-center p-8">
+      <div
+        className="invoice-root keep-white min-h-screen flex items-center justify-center py-10 px-4 font-sans"
+        data-keep-white="true"
+        style={{ backgroundColor: '#f1f5f9', colorScheme: 'light' }}
+      >
+        <div className="text-center p-8 bg-white rounded-2xl shadow-sm border border-slate-200">
           <div className="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
           <p className="font-bold text-slate-700 text-sm">Loading invoice...</p>
         </div>
@@ -47,7 +60,11 @@ const Invoice = () => {
 
   if (error || !order) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+      <div
+        className="invoice-root keep-white min-h-screen flex items-center justify-center p-4 font-sans"
+        data-keep-white="true"
+        style={{ backgroundColor: '#f1f5f9', colorScheme: 'light' }}
+      >
         <div className="max-w-md w-full bg-white rounded-2xl p-8 border border-slate-200 shadow-sm text-center">
           <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-4 font-black">
             !
@@ -73,72 +90,118 @@ const Invoice = () => {
     );
   }
 
- const handlePrint = () => {
- window.print();
- };
+  const handlePrint = () => {
+    window.print();
+  };
 
- // Logic Fix: Robust Date Parsing
- const orderDateObj = new Date(order.created_at);
- const isOrderDateValid = !isNaN(orderDateObj.getTime());
- const orderDate = isOrderDateValid ? orderDateObj.toLocaleString('en-IN', {
-   year: 'numeric', month: 'long', day: 'numeric',
-   hour: '2-digit', minute: '2-digit', hour12: true
- }) : 'N/A';
+  // Logic Fix: Robust Date Parsing
+  const orderDateObj = new Date(order.created_at);
+  const isOrderDateValid = !isNaN(orderDateObj.getTime());
+  const orderDate = isOrderDateValid ? orderDateObj.toLocaleString('en-IN', {
+    year: 'numeric', month: 'long', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: true
+  }) : 'N/A';
 
- const invoiceDateObj = new Date();
- const invoiceDate = invoiceDateObj.toLocaleString('en-IN', {
-   year: 'numeric', month: 'long', day: 'numeric',
-   hour: '2-digit', minute: '2-digit', hour12: true
- });
+  const invoiceDateObj = new Date();
+  const invoiceDate = invoiceDateObj.toLocaleString('en-IN', {
+    year: 'numeric', month: 'long', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: true
+  });
 
- // Logic Fix: Professional Invoice Number Formatting
- const orderYear = isOrderDateValid ? orderDateObj.getFullYear() : invoiceDateObj.getFullYear();
- const invoiceNumber = `INV-${orderYear}-${String(order.id).padStart(5, '0')}`;
+  // Logic Fix: Professional Invoice Number Formatting
+  const orderYear = isOrderDateValid ? orderDateObj.getFullYear() : invoiceDateObj.getFullYear();
+  const invoiceNumber = `INV-${orderYear}-${String(order.id).padStart(5, '0')}`;
 
- // Logic Fix: Brand Rendering Helper
- const renderBrand = (storeNameStr, className = "") => {
- const name = storeNameStr || "Narendra Kirana";
- const nameLower = name.trim().toLowerCase();
- if (nameLower.includes("narendra kirana")) {
- return (
- <span className={`whitespace-nowrap ${className}`}>
- <span className="text-emerald-900">NARENDRA</span> <span className="text-primary-600 ml-1.5">KIRANA</span>
- {nameLower.includes("store") && <span className="text-primary-600 ml-1.5">STORE</span>}
- </span>
- );
- }
- return <span className={`text-emerald-900 whitespace-nowrap ${className}`}>{name}</span>;
- };
+  // Logic Fix: Brand Rendering Helper
+  const renderBrand = (storeNameStr, className = "") => {
+    const name = storeNameStr || "Narendra Kirana";
+    const nameLower = name.trim().toLowerCase();
+    if (nameLower.includes("narendra kirana")) {
+      return (
+        <span className={`whitespace-nowrap ${className}`}>
+          <span className="text-emerald-900">NARENDRA</span> <span className="text-primary-600 ml-1.5">KIRANA</span>
+          {nameLower.includes("store") && <span className="text-primary-600 ml-1.5">STORE</span>}
+        </span>
+      );
+    }
+    return <span className={`text-emerald-900 whitespace-nowrap ${className}`}>{name}</span>;
+  };
 
- return (
- <div className="min-h-screen bg-slate-100 py-10 px-4 sm:px-6 print:bg-white print:py-0 print:px-0 font-sans">
- 
-  {/* Non-printable action bar */}
-  <div className="max-w-4xl mx-auto mb-6 flex flex-col sm:flex-row gap-3 justify-between items-center print:hidden">
-    <Link
-      to={localStorage.getItem('smart-kirana-owner-token') ? `/owner/orders/${id}` : `/orders/${id}`}
-      className="w-full sm:w-auto justify-center inline-flex items-center text-slate-700 hover:text-slate-900 font-bold bg-white px-5 py-2.5 rounded-xl shadow-sm border border-slate-200 transition-colors text-sm"
+  return (
+    <div
+      ref={invoiceContainerRef}
+      data-testid="invoice-root"
+      data-keep-white="true"
+      className="invoice-root keep-white min-h-screen py-10 px-4 sm:px-6 print:bg-white print:py-0 print:px-0 font-sans"
+      style={{ backgroundColor: '#f1f5f9', colorScheme: 'light' }}
     >
-      <ArrowLeft className="w-4 h-4 mr-2" /> Back to Order
-    </Link>
-    <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
-      <a
-        href={`smartkirana://orders/${id}/invoice`}
-        className="w-full sm:w-auto justify-center inline-flex items-center bg-indigo-50 border border-indigo-200 text-indigo-700 px-4 py-2.5 rounded-xl font-bold hover:bg-indigo-100 shadow-sm transition-colors text-sm"
-      >
-        <Smartphone className="w-4 h-4 mr-2" /> Open in Mobile App
-      </a>
-      <button
-        onClick={handlePrint}
-        className="w-full sm:w-auto justify-center inline-flex items-center bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-emerald-700 shadow-sm transition-colors text-sm"
-      >
-        <Printer className="w-4 h-4 mr-2" /> Download / Print PDF
-      </button>
-    </div>
-  </div>
+      {/* Strict Print CSS Override */}
+      <style>{`
+        @media print {
+          @page {
+            size: auto;
+            margin: 8mm;
+          }
+          html, body {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            color-scheme: light !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .invoice-root {
+            background-color: #ffffff !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          .invoice-paper {
+            box-shadow: none !important;
+            border: none !important;
+            border-radius: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+          }
+          .print\\:hidden {
+            display: none !important;
+          }
+        }
+      `}</style>
 
-  {/* Printable A4 Invoice Container */}
- <div data-testid="invoice-container" data-keep-white="true" className="keep-white relative max-w-4xl mx-auto bg-white p-4 sm:p-8 md:p-12 shadow-xl shadow-slate-200/50 rounded-sm print:shadow-none print:border-none print:rounded-none print:p-0 print:m-0 text-slate-800 overflow-hidden">
+      {/* Non-printable action bar */}
+      <div className="max-w-4xl mx-auto mb-6 flex flex-col sm:flex-row gap-3 justify-between items-center print:hidden">
+        <Link
+          to={localStorage.getItem('smart-kirana-owner-token') ? `/owner/orders/${id}` : `/orders/${id}`}
+          className="w-full sm:w-auto justify-center inline-flex items-center text-slate-800 hover:text-slate-900 font-bold bg-white px-5 py-2.5 rounded-xl shadow-sm border border-slate-200 hover:bg-slate-50 transition-colors text-sm"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" /> Back to Order
+        </Link>
+        <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
+          <a
+            href={`smartkirana://orders/${id}/invoice`}
+            className="w-full sm:w-auto justify-center inline-flex items-center bg-white border border-slate-200 text-slate-800 hover:bg-slate-50 hover:text-slate-900 px-4 py-2.5 rounded-xl font-bold shadow-sm transition-colors text-sm"
+          >
+            <Smartphone className="w-4 h-4 mr-2" /> Open in Mobile App
+          </a>
+          <button
+            onClick={handlePrint}
+            className="w-full sm:w-auto justify-center inline-flex items-center bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-emerald-700 shadow-sm transition-colors text-sm"
+          >
+            <Printer className="w-4 h-4 mr-2" /> Download / Print PDF
+          </button>
+        </div>
+      </div>
+
+      {/* Printable A4 Invoice Container */}
+      <div
+        data-testid="invoice-container"
+        data-keep-white="true"
+        className="invoice-paper keep-white relative max-w-4xl mx-auto bg-white p-4 sm:p-8 md:p-12 shadow-xl shadow-slate-200/50 rounded-sm print:shadow-none print:border-none print:rounded-none print:p-0 print:m-0 text-slate-800 overflow-hidden"
+        style={{ colorScheme: 'light', backgroundColor: '#ffffff' }}
+      >
 
  {order.status === 'REJECTED' && (
    <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none opacity-40 mix-blend-multiply print:opacity-30">

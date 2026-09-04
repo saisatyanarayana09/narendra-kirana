@@ -2,8 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
     <title>Invoice</title>
     <style>
+        :root {
+            color-scheme: light;
+            supported-color-schemes: light;
+        }
         /* Modern CSS for Playwright/Chromium */
         @page {
             size: A4;
@@ -19,6 +25,8 @@
             height: 100%;
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             color: #1e293b;
+            background-color: #ffffff;
+            color-scheme: light;
         }
         
         .page-container {
