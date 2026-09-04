@@ -9,51 +9,51 @@ import { WifiOff } from 'lucide-react';
 import { VerifyEmail } from './VerifyEmail';
 import { ForgotPassword } from './ForgotPassword';
 import { ResetPassword } from './ResetPassword';
+import { lazyWithRetry } from './utils/lazyWithRetry';
 
+const HomePage = lazyWithRetry(() => import('./customer').then(m => ({ default: m.HomePage })));
+const ProductDetailPage = lazyWithRetry(() => import('./customer').then(m => ({ default: m.ProductDetailPage })));
+const ProductsPage = lazyWithRetry(() => import('./customer').then(m => ({ default: m.ProductsPage })));
+const CategoriesPage = lazyWithRetry(() => import('./customer').then(m => ({ default: m.CategoriesPage })));
 
-const HomePage = React.lazy(() => import('./customer').then(m => ({ default: m.HomePage })));
-const ProductDetailPage = React.lazy(() => import('./customer').then(m => ({ default: m.ProductDetailPage })));
-const ProductsPage = React.lazy(() => import('./customer').then(m => ({ default: m.ProductsPage })));
-const CategoriesPage = React.lazy(() => import('./customer').then(m => ({ default: m.CategoriesPage })));
+const CartPage = lazyWithRetry(() => import('./cart').then(m => ({ default: m.CartPage })));
+const CheckoutPage = lazyWithRetry(() => import('./cart').then(m => ({ default: m.CheckoutPage })));
+const CustomerLoginPage = lazyWithRetry(() => import('./cart').then(m => ({ default: m.CustomerLoginPage })));
+const CustomerSignupPage = lazyWithRetry(() => import('./cart').then(m => ({ default: m.CustomerSignupPage })));
+const OrderDetailPage = lazyWithRetry(() => import('./cart').then(m => ({ default: m.OrderDetailPage })));
+const CustomerLayout = lazyWithRetry(() => import('./customer-layout').then(m => ({ default: m.CustomerLayout })));
 
-const CartPage = React.lazy(() => import('./cart').then(m => ({ default: m.CartPage })));
-const CheckoutPage = React.lazy(() => import('./cart').then(m => ({ default: m.CheckoutPage })));
-const CustomerLoginPage = React.lazy(() => import('./cart').then(m => ({ default: m.CustomerLoginPage })));
-const CustomerSignupPage = React.lazy(() => import('./cart').then(m => ({ default: m.CustomerSignupPage })));
-const OrderDetailPage = React.lazy(() => import('./cart').then(m => ({ default: m.OrderDetailPage })));
-const CustomerLayout = React.lazy(() => import('./customer-layout').then(m => ({ default: m.CustomerLayout })));
+const ProfileLayout = lazyWithRetry(() => import('./profile').then(m => ({ default: m.ProfileLayout })));
+const DashboardHome = lazyWithRetry(() => import('./profile').then(m => ({ default: m.DashboardHome })));
+const AccountSettings = lazyWithRetry(() => import('./profile').then(m => ({ default: m.AccountSettings })));
+const OrdersHistory = lazyWithRetry(() => import('./profile').then(m => ({ default: m.OrdersHistory })));
+const SavedAddresses = lazyWithRetry(() => import('./profile').then(m => ({ default: m.SavedAddresses })));
+const Favorites = lazyWithRetry(() => import('./profile').then(m => ({ default: m.Favorites })));
+const Notifications = lazyWithRetry(() => import('./profile').then(m => ({ default: m.Notifications })));
+const CustomerFeedback = lazyWithRetry(() => import('./profile').then(m => ({ default: m.Feedback })));
+const HelpCenter = lazyWithRetry(() => import('./profile').then(m => ({ default: m.HelpCenter })));
+const Wallet = lazyWithRetry(() => import('./profile').then(m => ({ default: m.Wallet })));
+const ReferAndEarn = lazyWithRetry(() => import('./profile').then(m => ({ default: m.ReferAndEarn })));
+const AppSettings = lazyWithRetry(() => import('./profile').then(m => ({ default: m.AppSettings })));
+const OffersPromoCodes = lazyWithRetry(() => import('./profile').then(m => ({ default: m.OffersPromoCodes })));
+const LanguageSettings = lazyWithRetry(() => import('./profile').then(m => ({ default: m.LanguageSettings })));
 
-const ProfileLayout = React.lazy(() => import('./profile').then(m => ({ default: m.ProfileLayout })));
-const DashboardHome = React.lazy(() => import('./profile').then(m => ({ default: m.DashboardHome })));
-const AccountSettings = React.lazy(() => import('./profile').then(m => ({ default: m.AccountSettings })));
-const OrdersHistory = React.lazy(() => import('./profile').then(m => ({ default: m.OrdersHistory })));
-const SavedAddresses = React.lazy(() => import('./profile').then(m => ({ default: m.SavedAddresses })));
-const Favorites = React.lazy(() => import('./profile').then(m => ({ default: m.Favorites })));
-const Notifications = React.lazy(() => import('./profile').then(m => ({ default: m.Notifications })));
-const CustomerFeedback = React.lazy(() => import('./profile').then(m => ({ default: m.Feedback })));
-const HelpCenter = React.lazy(() => import('./profile').then(m => ({ default: m.HelpCenter })));
-const Wallet = React.lazy(() => import('./profile').then(m => ({ default: m.Wallet })));
-const ReferAndEarn = React.lazy(() => import('./profile').then(m => ({ default: m.ReferAndEarn })));
-const AppSettings = React.lazy(() => import('./profile').then(m => ({ default: m.AppSettings })));
-const OffersPromoCodes = React.lazy(() => import('./profile').then(m => ({ default: m.OffersPromoCodes })));
-const LanguageSettings = React.lazy(() => import('./profile').then(m => ({ default: m.LanguageSettings })));
-
-const OwnerLayout = React.lazy(() => import('./owner/layouts/OwnerLayout'));
-const OwnerLogin = React.lazy(() => import('./owner/pages/Login'));
-const Welcome = React.lazy(() => import('./owner/pages/Welcome'));
-  const Dashboard = React.lazy(() => import('./owner/pages/Dashboard'));
-const Sales = React.lazy(() => import('./owner/pages/Sales'));
-const Categories = React.lazy(() => import('./owner/pages/Categories'));
-const Products = React.lazy(() => import('./owner/pages/Products'));
-const Orders = React.lazy(() => import('./owner/pages/Orders'));
-const OrderDetails = React.lazy(() => import('./owner/pages/OrderDetails'));
-const Invoice = React.lazy(() => import('./owner/pages/Invoice'));
-const Offers = React.lazy(() => import('./owner/pages/Offers'));
-const Referrals = React.lazy(() => import('./owner/pages/Referrals'));
-const Customers = React.lazy(() => import('./owner/pages/Customers'));
-const Feedback = React.lazy(() => import('./owner/pages/Feedback'));
-const Settings = React.lazy(() => import('./owner/pages/Settings'));
-const Showcase = React.lazy(() => import('./owner/pages/Showcase'));
+const OwnerLayout = lazyWithRetry(() => import('./owner/layouts/OwnerLayout'));
+const OwnerLogin = lazyWithRetry(() => import('./owner/pages/Login'));
+const Welcome = lazyWithRetry(() => import('./owner/pages/Welcome'));
+const Dashboard = lazyWithRetry(() => import('./owner/pages/Dashboard'));
+const Sales = lazyWithRetry(() => import('./owner/pages/Sales'));
+const Categories = lazyWithRetry(() => import('./owner/pages/Categories'));
+const Products = lazyWithRetry(() => import('./owner/pages/Products'));
+const Orders = lazyWithRetry(() => import('./owner/pages/Orders'));
+const OrderDetails = lazyWithRetry(() => import('./owner/pages/OrderDetails'));
+const Invoice = lazyWithRetry(() => import('./owner/pages/Invoice'));
+const Offers = lazyWithRetry(() => import('./owner/pages/Offers'));
+const Referrals = lazyWithRetry(() => import('./owner/pages/Referrals'));
+const Customers = lazyWithRetry(() => import('./owner/pages/Customers'));
+const Feedback = lazyWithRetry(() => import('./owner/pages/Feedback'));
+const Settings = lazyWithRetry(() => import('./owner/pages/Settings'));
+const Showcase = lazyWithRetry(() => import('./owner/pages/Showcase'));
 
 const ownerToken = () => localStorage.getItem('smart-kirana-owner-token'); // updated to use access_token from our api.js interceptor
 const customerToken = () => localStorage.getItem('smart-kirana-customer-token');
@@ -101,18 +101,66 @@ class ErrorBoundary extends React.Component {
   }
   componentDidCatch(error, info) {
     this.setState({ error, info });
+    const isChunkError =
+      error?.name === 'ChunkLoadError' ||
+      /failed to fetch dynamically imported module/i.test(error?.message || '') ||
+      /loading chunk .* failed/i.test(error?.message || '') ||
+      /error loading dynamically imported module/i.test(error?.message || '');
+
+    if (isChunkError) {
+      const lastReload = Number(sessionStorage.getItem('last_eb_chunk_reload') || 0);
+      const now = Date.now();
+      if (now - lastReload > 8000) {
+        sessionStorage.setItem('last_eb_chunk_reload', String(now));
+        window.location.reload();
+      }
+    }
   }
   render() {
     if (this.state.hasError) {
+      const isChunkError =
+        this.state.error?.name === 'ChunkLoadError' ||
+        /failed to fetch dynamically imported module/i.test(this.state.error?.message || '') ||
+        /loading chunk .* failed/i.test(this.state.error?.message || '') ||
+        /error loading dynamically imported module/i.test(this.state.error?.message || '');
+
       return (
-        <div style={{ padding: '20px', color: 'red', fontFamily: 'monospace' }}>
-          <h2>Oops, something went wrong.</h2>
-          <details style={{ whiteSpace: 'pre-wrap' }}>
-            {this.state.error && this.state.error.toString()}
-            <br />
-            {this.state.info && this.state.info.componentStack}
-          </details>
-          <button onClick={() => window.location.reload()} style={{ marginTop: '20px', padding: '10px' }}>Hard Reload</button>
+        <div className="min-h-screen bg-slate-50 dark:bg-[#090d16] flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-xl border border-slate-200 dark:border-slate-800 text-center">
+            <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner">
+              {isChunkError ? '🔄' : '⚠️'}
+            </div>
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight mb-2">
+              {isChunkError ? 'New Update Available!' : 'Oops, something went wrong'}
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+              {isChunkError
+                ? 'We just updated Narendra Kirana with new improvements. Please reload to apply the latest version.'
+                : 'An unexpected error occurred. Please reload the page to continue shopping.'}
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="w-full py-3.5 px-4 rounded-xl bg-emerald-600 text-white font-black text-sm hover:bg-emerald-700 transition shadow-md shadow-emerald-600/20 active:scale-95 cursor-pointer"
+              >
+                Reload Narendra Kirana
+              </button>
+              <button
+                type="button"
+                onClick={() => { window.location.href = '/'; }}
+                className="w-full py-3 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs hover:bg-slate-200 dark:hover:bg-slate-700 transition active:scale-95 cursor-pointer"
+              >
+                Go to Homepage
+              </button>
+            </div>
+            {this.state.error && (
+              <details className="mt-6 text-left text-xs text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700/50 cursor-pointer">
+                <summary className="font-semibold text-slate-500 dark:text-slate-400 mb-1">Technical Details</summary>
+                <p className="font-mono break-all text-[11px]">{this.state.error.toString()}</p>
+              </details>
+            )}
+          </div>
         </div>
       );
     }
