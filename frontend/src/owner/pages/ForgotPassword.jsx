@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
-import { Store, Mail, ArrowLeft, Loader2, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { Store, Mail, ArrowLeft, Loader2, CheckCircle2, ShieldAlert, KeyRound, Link2 } from 'lucide-react';
 
 export default function OwnerForgotPassword() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
+  const [method, setMethod] = useState('otp'); // 'otp' | 'link'
   const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'success' | 'error'
   const [message, setMessage] = useState('');
 
@@ -18,13 +20,20 @@ export default function OwnerForgotPassword() {
     try {
       const res = await api.post('/auth/password-reset/', { 
         email: email.trim(),
+        method,
         portal: 'owner'
       });
       const msg = typeof res.data === 'string' 
         ? res.data 
-        : (res.data?.message || 'If an owner account with that email exists, we have sent a password reset link.');
+        : (res.data?.message || 'Password reset instructions have been sent.');
       setStatus('success');
       setMessage(String(msg));
+
+      if (method === 'otp') {
+        setTimeout(() => {
+          navigate(`/owner/reset-password?email=${encodeURIComponent(email.trim())}&mode=otp`);
+        }, 1500);
+      }
     } catch (err) {
       setStatus('error');
       const errData = err.response?.data;
@@ -60,7 +69,7 @@ export default function OwnerForgotPassword() {
               Reset Password
             </h1>
             <p className="text-base text-slate-500 dark:text-slate-400 mt-2 font-medium">
-              Enter your registered owner or manager email address to receive a secure recovery link.
+              Choose your recovery method and enter your registered owner or manager email address.
             </p>
           </div>
 
@@ -70,21 +79,25 @@ export default function OwnerForgotPassword() {
                 <CheckCircle2 size={24} />
               </div>
               <h3 className="text-base font-bold text-emerald-900 dark:text-emerald-200 mb-2">
-                Check Your Inbox
+                {method === 'otp' ? '6-Digit OTP Sent' : 'Reset Link Sent'}
               </h3>
               <p className="text-sm text-emerald-700 dark:text-emerald-300 leading-relaxed mb-4">
                 {message}
               </p>
               <p className="text-xs text-emerald-800 dark:text-emerald-400 font-semibold mb-6">
-                Your email contains both a direct recovery button AND an instant 6-digit OTP code (expires in 10 minutes).
+                {method === 'otp' 
+                  ? '⏱ Code expires in 15 minutes. Redirecting to verification...' 
+                  : '⏱ Link expires in 15 minutes. Check your inbox or spam folder.'}
               </p>
               <div className="space-y-3">
-                <Link
-                  to={`/owner/reset-password?email=${encodeURIComponent(email)}&mode=otp`}
-                  className="block w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition shadow-sm"
-                >
-                  Enter 6-Digit OTP Code →
-                </Link>
+                {method === 'otp' && (
+                  <Link
+                    to={`/owner/reset-password?email=${encodeURIComponent(email)}&mode=otp`}
+                    className="block w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition shadow-sm"
+                  >
+                    Enter 6-Digit OTP Code Now →
+                  </Link>
+                )}
                 <Link
                   to="/owner/login"
                   className="block w-full py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-300 font-bold text-sm transition shadow-sm"
@@ -108,6 +121,58 @@ export default function OwnerForgotPassword() {
                   <span>{message}</span>
                 </div>
               )}
+
+              {/* Method Choice */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
+                  Select Recovery Method
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setMethod('otp')}
+                    className={`p-3 rounded-xl border text-left transition-all flex flex-col gap-1.5 ${
+                      method === 'otp'
+                        ? 'border-indigo-600 bg-indigo-50/60 dark:bg-indigo-950/40 ring-2 ring-indigo-500/20'
+                        : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100/60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className={`p-1.5 rounded-lg ${method === 'otp' ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
+                        <KeyRound size={16} />
+                      </div>
+                      <span className={`text-xs font-extrabold ${method === 'otp' ? 'text-indigo-900 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-300'}`}>
+                        6-Digit OTP
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
+                      Fast reset directly on this screen
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setMethod('link')}
+                    className={`p-3 rounded-xl border text-left transition-all flex flex-col gap-1.5 ${
+                      method === 'link'
+                        ? 'border-indigo-600 bg-indigo-50/60 dark:bg-indigo-950/40 ring-2 ring-indigo-500/20'
+                        : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100/60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className={`p-1.5 rounded-lg ${method === 'link' ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
+                        <Link2 size={16} />
+                      </div>
+                      <span className={`text-xs font-extrabold ${method === 'link' ? 'text-indigo-900 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-300'}`}>
+                        Reset Link
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
+                      1-click recovery button sent to inbox
+                    </span>
+                  </button>
+                </div>
+              </div>
 
               <div>
                 <label htmlFor="owner-email" className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1.5">
@@ -136,10 +201,10 @@ export default function OwnerForgotPassword() {
                 {status === 'loading' ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    Sending Recovery Link...
+                    Sending Instructions...
                   </>
                 ) : (
-                  'Send Password Reset Link'
+                  method === 'otp' ? 'Send 6-Digit OTP Code' : 'Send Recovery Link'
                 )}
               </button>
 

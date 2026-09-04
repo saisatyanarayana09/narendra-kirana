@@ -171,11 +171,19 @@ export function parseDeepLinkUrl(url: string): ParsedDeepLink | null {
 
     // 9. Password Reset
     if (segments[0] === 'reset-password') {
+      const qp = parsed.queryParams || {};
+      const rawMode = qp.mode as string | undefined;
+      const mode = (rawMode === 'otp' || rawMode === 'link') 
+        ? rawMode 
+        : (qp.uid && qp.token ? 'link' : 'otp');
+
       return {
         screen: 'ResetPasswordScreen',
         params: {
-          uid: parsed.queryParams?.uid || '',
-          token: parsed.queryParams?.token || '',
+          uid: (qp.uid as string) || '',
+          token: (qp.token as string) || '',
+          email: (qp.email as string) || '',
+          mode,
         },
         requiresAuth: false,
       };

@@ -34,7 +34,7 @@ export type GlobalParamList = {
   OffersScreen: undefined;
   LanguageScreen: undefined;
   ForgotPasswordScreen: undefined;
-  ResetPasswordScreen: { uid?: string; token?: string } | undefined;
+  ResetPasswordScreen: { uid?: string; token?: string; email?: string; mode?: 'otp' | 'link' } | undefined;
   Auth: { screen?: string; params?: any } | undefined;
   Login: undefined;
   Signup: undefined;

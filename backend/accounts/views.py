@@ -348,7 +348,12 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.conf import settings
 from .models import PasswordResetOTP, PasswordResetToken
-from .email_templates import build_password_reset_email
+from .email_templates import (
+    build_password_reset_email,
+    build_password_reset_otp_email,
+    build_password_reset_link_email
+)
+from django.contrib.auth.password_validation import validate_password
 
 class PasswordResetRequestView(APIView):
     permission_classes = [AllowAny]
@@ -357,6 +362,7 @@ class PasswordResetRequestView(APIView):
     def post(self, request):
         email = request.data.get('email')
         portal = request.data.get('portal', 'customer')
+        method = request.data.get('method', 'otp') # 'otp' or 'link'
         if not email:
             return Response({'error': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -365,16 +371,14 @@ class PasswordResetRequestView(APIView):
             # If portal is owner, verify user is an owner, staff, or superuser
             is_owner_account = bool(user.is_staff or getattr(user, 'is_owner', False) or user.is_superuser)
             if portal == 'owner' and not is_owner_account:
-                # Do not send owner reset link to non-owner accounts; safely return generic response
-                return Response({'message': 'If an account with that email exists, we have sent a password reset link and OTP.'}, status=status.HTTP_200_OK)
+                # Do not send owner reset link/OTP to non-owner accounts; safely return generic response
+                return Response({
+                    'message': 'If an owner account with that email exists, password reset instructions have been sent.',
+                    'method': method
+                }, status=status.HTTP_200_OK)
 
-            uid = urlsafe_base64_encode(force_bytes(user.pk))
-            
-            # Generate secure cryptographic random token for URL
-            raw_token = secrets.token_urlsafe(32)
-            # Store SHA-256 hash in database (never plain-text)
-            token_hash = hashlib.sha256(raw_token.encode('utf-8')).hexdigest()
-            
+            from store.email_service import send_store_email_async
+
             # Extract client IP & User-Agent
             ip_address = '127.0.0.1'
             x_forwarded = request.META.get('HTTP_X_FORWARDED_FOR')
@@ -384,58 +388,124 @@ class PasswordResetRequestView(APIView):
                 ip_address = request.META.get('REMOTE_ADDR') or '127.0.0.1'
             user_agent = request.META.get('HTTP_USER_AGENT', '')[:255]
 
-            # Invalidate any prior active reset tokens for this user and portal
-            PasswordResetToken.objects.filter(user=user, portal=portal, is_used=False).update(is_used=True)
+            if method == 'link':
+                uid = urlsafe_base64_encode(force_bytes(user.pk))
+                raw_token = secrets.token_urlsafe(32)
+                token_hash = hashlib.sha256(raw_token.encode('utf-8')).hexdigest()
 
-            # Persist token with strict 15-minute expiration
-            PasswordResetToken.objects.create(
-                user=user,
-                token_hash=token_hash,
-                portal=portal,
-                expires_at=timezone.now() + timedelta(minutes=15),
-                ip_address=ip_address,
-                user_agent=user_agent
-            )
+                # Invalidate prior active reset tokens for this user and portal
+                PasswordResetToken.objects.filter(user=user, portal=portal, is_used=False).update(is_used=True)
 
-            frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')
-            if portal == 'owner':
-                reset_link = f"{frontend_url}/owner/reset-password?uid={uid}&token={raw_token}"
+                # Persist token with strict 15-minute expiration
+                PasswordResetToken.objects.create(
+                    user=user,
+                    token_hash=token_hash,
+                    portal=portal,
+                    expires_at=timezone.now() + timedelta(minutes=15),
+                    ip_address=ip_address,
+                    user_agent=user_agent
+                )
+
+                frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')
+                if portal == 'owner':
+                    reset_link = f"{frontend_url}/owner/reset-password?uid={uid}&token={raw_token}"
+                else:
+                    reset_link = f"{frontend_url}/reset-password?uid={uid}&token={raw_token}"
+
+                email_payload = build_password_reset_link_email(
+                    user=user,
+                    reset_link=reset_link,
+                    portal=portal
+                )
+                send_store_email_async(
+                    subject=email_payload['subject'],
+                    message=email_payload['text'],
+                    recipient_list=[user.email],
+                    html_message=email_payload['html'],
+                    fail_silently=True,
+                )
+                return Response({
+                    'message': 'A secure password reset link has been sent to your email.',
+                    'method': 'link'
+                }, status=status.HTTP_200_OK)
+
             else:
-                reset_link = f"{frontend_url}/reset-password?uid={uid}&token={raw_token}"
+                # Default method: 'otp'
+                otp_code = f"{secrets.randbelow(900000) + 100000}"
 
-            # Generate 6-digit OTP code
-            otp_code = f"{secrets.randbelow(900000) + 100000}"
+                # Invalidate prior active OTPs for this user and portal
+                PasswordResetOTP.objects.filter(user=user, portal=portal, is_used=False).update(is_used=True)
 
-            # Invalidate any prior active OTPs for this user and portal
-            PasswordResetOTP.objects.filter(user=user, portal=portal, is_used=False).update(is_used=True)
+                # Persist the new OTP with strict 15-minute expiration
+                PasswordResetOTP.objects.create(
+                    user=user,
+                    otp_code=otp_code,
+                    portal=portal,
+                    expires_at=timezone.now() + timedelta(minutes=15),
+                    ip_address=ip_address
+                )
 
-            # Persist the new OTP
-            PasswordResetOTP.objects.create(
-                user=user,
-                otp_code=otp_code,
-                portal=portal,
-                expires_at=timezone.now() + timedelta(minutes=10),
-                ip_address=ip_address
-            )
+                email_payload = build_password_reset_otp_email(
+                    user=user,
+                    otp_code=otp_code,
+                    portal=portal
+                )
+                send_store_email_async(
+                    subject=email_payload['subject'],
+                    message=email_payload['text'],
+                    recipient_list=[user.email],
+                    html_message=email_payload['html'],
+                    fail_silently=True,
+                )
+                return Response({
+                    'message': 'A 6-digit verification code has been sent to your email.',
+                    'method': 'otp'
+                }, status=status.HTTP_200_OK)
 
-            # Build and send responsive transactional email
-            from store.email_service import send_store_email_async
-            email_payload = build_password_reset_email(
-                user=user,
-                reset_link=reset_link,
-                otp_code=otp_code,
-                portal=portal
-            )
-            send_store_email_async(
-                subject=email_payload['subject'],
-                message=email_payload['text'],
-                recipient_list=[user.email],
-                html_message=email_payload['html'],
-                fail_silently=True,
-            )
-                
-        # Always return success to prevent email enumeration
-        return Response({'message': 'If an account with that email exists, we have sent password reset instructions with a link and OTP.'}, status=status.HTTP_200_OK)
+        # Always return generic success to prevent email enumeration
+        generic_msg = 'A 6-digit verification code has been sent to your email.' if method == 'otp' else 'A password reset link has been sent to your email.'
+        return Response({'message': f'If an account with that email exists, {generic_msg.lower()}', 'method': method}, status=status.HTTP_200_OK)
+
+
+class PasswordResetValidateTokenView(APIView):
+    """
+    Pre-flight health check for reset links without consuming the token.
+    Allows the frontend to show immediate user feedback if a link is expired or used.
+    """
+    permission_classes = [AllowAny]
+    throttle_classes = [AnonRateThrottle]
+
+    def post(self, request):
+        uidb64 = request.data.get('uid')
+        token = request.data.get('token')
+        portal = request.data.get('portal', 'customer')
+
+        if not uidb64 or not token:
+            return Response({'valid': False, 'error': 'Missing reset token parameters.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return Response({'valid': False, 'error': 'The reset link is invalid or malformed.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        token_hash = hashlib.sha256(token.encode('utf-8')).hexdigest()
+        token_record = PasswordResetToken.objects.filter(user=user, token_hash=token_hash).first()
+
+        if token_record:
+            if token_record.is_used:
+                return Response({'valid': False, 'error': 'This reset link has already been used. Please request a new link or enter your 6-digit OTP code.'}, status=status.HTTP_400_BAD_REQUEST)
+            if timezone.now() >= token_record.expires_at:
+                return Response({'valid': False, 'error': 'This reset link has expired (15-minute limit). Please request a new link or enter your 6-digit OTP code.'}, status=status.HTTP_400_BAD_REQUEST)
+            if token_record.portal and portal and token_record.portal != portal:
+                return Response({'valid': False, 'error': f'This reset link was issued for the {token_record.portal} portal and cannot be used here.'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'valid': True, 'email': user.email}, status=status.HTTP_200_OK)
+
+        if default_token_generator.check_token(user, token):
+            return Response({'valid': True, 'email': user.email}, status=status.HTTP_200_OK)
+
+        return Response({'valid': False, 'error': 'The reset link is invalid or has expired.'}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class PasswordResetConfirmView(APIView):
     permission_classes = [AllowAny]
@@ -445,7 +515,7 @@ class PasswordResetConfirmView(APIView):
         uidb64 = request.data.get('uid')
         token = request.data.get('token')
         new_password = request.data.get('new_password')
-        portal = request.data.get('portal')
+        portal = request.data.get('portal', 'customer')
         
         if not uidb64 or not token or not new_password:
             return Response({'error': 'Missing required fields.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -459,6 +529,13 @@ class PasswordResetConfirmView(APIView):
         if not user:
             return Response({'error': 'The reset link is invalid or malformed.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Enforce password validation complexity
+        try:
+            validate_password(new_password, user=user)
+        except Exception as e:
+            msg = list(e.messages) if hasattr(e, 'messages') else [str(e)]
+            return Response({'error': ' '.join(msg)}, status=status.HTTP_400_BAD_REQUEST)
+
         # Hash incoming token to query database
         token_hash = hashlib.sha256(token.encode('utf-8')).hexdigest()
         token_record = PasswordResetToken.objects.filter(user=user, token_hash=token_hash).first()
@@ -469,6 +546,8 @@ class PasswordResetConfirmView(APIView):
                 return Response({'error': 'Link already used / expired. Please request a new link.'}, status=status.HTTP_400_BAD_REQUEST)
             if timezone.now() >= token_record.expires_at:
                 return Response({'error': 'Reset link has expired (15-minute limit). Please request a new link.'}, status=status.HTTP_400_BAD_REQUEST)
+            if token_record.portal and portal and token_record.portal != portal:
+                return Response({'error': f'This reset link was generated for the {token_record.portal} portal and cannot be used here.'}, status=status.HTTP_403_FORBIDDEN)
             is_valid = True
         elif default_token_generator.check_token(user, token):
             # Backwards compatibility check for any legacy links
@@ -498,6 +577,14 @@ class PasswordResetConfirmView(APIView):
         # Invalidate all other pending reset tokens and OTPs for this user
         PasswordResetToken.objects.filter(user=user, is_used=False).update(is_used=True)
         PasswordResetOTP.objects.filter(user=user, is_used=False).update(is_used=True)
+
+        # Revoke all outstanding active JWT refresh tokens across all devices
+        try:
+            from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+            for outstanding in OutstandingToken.objects.filter(user=user):
+                BlacklistedToken.objects.get_or_create(token=outstanding)
+        except Exception:
+            pass
 
         return Response({'message': 'Password has been reset successfully.'}, status=status.HTTP_200_OK)
 
@@ -544,7 +631,6 @@ class PasswordResetOTPConfirmView(APIView):
         if portal == 'owner' and not (user.is_staff or getattr(user, 'is_owner', False) or user.is_superuser):
             return Response({'error': 'This account does not have owner access.'}, status=status.HTTP_403_FORBIDDEN)
 
-        from django.contrib.auth.password_validation import validate_password
         try:
             validate_password(new_password, user=user)
         except Exception as e:
@@ -558,7 +644,7 @@ class PasswordResetOTPConfirmView(APIView):
         ).order_by('-created_at').first()
 
         if not otp_record or not otp_record.is_valid():
-            return Response({'error': 'The OTP code is invalid or has expired (10-minute limit). Please request a new code.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'The OTP code is invalid or has expired (15-minute limit). Please request a new code.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Enforce rate-limiting on OTP verification attempts (max 5)
         if otp_record.attempts >= 5:
@@ -587,6 +673,14 @@ class PasswordResetOTPConfirmView(APIView):
         user.lockout_until = None
         user.lockout_reason = ''
         user.save()
+
+        # Revoke all outstanding active JWT refresh tokens across all devices
+        try:
+            from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+            for outstanding in OutstandingToken.objects.filter(user=user):
+                BlacklistedToken.objects.get_or_create(token=outstanding)
+        except Exception:
+            pass
 
         return Response({'message': 'Password has been reset successfully. You can now log in with your new password.'}, status=status.HTTP_200_OK)
 

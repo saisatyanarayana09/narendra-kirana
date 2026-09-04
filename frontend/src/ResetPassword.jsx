@@ -23,8 +23,35 @@ export function ResetPassword() {
   const [status, setStatus] = useState('idle');
   const [message, setMessage] = useState('');
 
+  // Proactive token health state
+  const [tokenStatus, setTokenStatus] = useState(uid && token ? 'checking' : 'none'); // 'none' | 'checking' | 'valid' | 'invalid'
+  const [tokenError, setTokenError] = useState('');
+
   const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   const appSchemeUrl = uid && token ? `smartkirana://reset-password?uid=${encodeURIComponent(uid)}&token=${encodeURIComponent(token)}` : '';
+
+  useEffect(() => {
+    if (uid && token) {
+      let isMounted = true;
+      setTokenStatus('checking');
+      api.post('/auth/password-reset/validate-token/', { uid, token, portal: 'customer' })
+        .then((res) => {
+          if (!isMounted) return;
+          setTokenStatus('valid');
+          if (res.data?.email && !email) {
+            setEmail(res.data.email);
+          }
+        })
+        .catch((err) => {
+          if (!isMounted) return;
+          setTokenStatus('invalid');
+          const errData = err.response?.data;
+          const errMsg = typeof errData === 'string' ? errData : (errData?.error || 'This reset link has expired or has already been used.');
+          setTokenError(String(errMsg));
+        });
+      return () => { isMounted = false; };
+    }
+  }, [uid, token]);
 
   async function submit(e) {
     e.preventDefault();
@@ -94,7 +121,7 @@ export function ResetPassword() {
     <CustomerLayout>
       <main className="mx-auto max-w-md px-4 py-10">
         {/* Mobile App First Banner */}
-        {isMobile && uid && token && mode === 'link' && (
+        {isMobile && uid && token && mode === 'link' && tokenStatus === 'valid' && (
           <div className="mb-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 p-4 text-white shadow-lg border border-emerald-500/30">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
@@ -124,7 +151,7 @@ export function ResetPassword() {
             <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">Reset Password</h1>
           </div>
           <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 mb-5">
-            Choose your preferred verification method to reset your password.
+            Choose your verification method to reset your password.
           </p>
 
           {/* Mode Switcher Tabs */}
@@ -173,6 +200,28 @@ export function ResetPassword() {
                 </div>
               )}
 
+              {mode === 'link' && tokenStatus === 'invalid' && (
+                <div className="mb-4 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 p-3.5 rounded-xl text-xs border border-amber-200 dark:border-amber-900/50 space-y-2">
+                  <p className="font-bold">⚠️ Link Expired or Already Used</p>
+                  <p>{tokenError || 'This password reset link is invalid or has expired.'}</p>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setMode('otp')}
+                      className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-bold text-xs"
+                    >
+                      Enter 6-Digit OTP Instead
+                    </button>
+                    <Link
+                      to="/forgot-password"
+                      className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 font-semibold text-xs text-slate-700 dark:text-slate-300"
+                    >
+                      Request New Link
+                    </Link>
+                  </div>
+                </div>
+              )}
+
               {mode === 'link' && (!uid || !token) && (
                 <div className="mb-4 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 p-3.5 rounded-xl text-xs border border-amber-200 dark:border-amber-900/50">
                   Missing reset tokens in URL. Switch to the <strong>"6-Digit OTP Code"</strong> tab above or open the complete link sent to your email.
@@ -207,7 +256,7 @@ export function ResetPassword() {
                         placeholder="123456"
                       />
                       <span className="text-[11px] text-slate-500 block mt-1">
-                        Enter the 6-digit code received in your inbox (valid for 10 minutes).
+                        Enter the 6-digit code received in your inbox (valid for 15 minutes).
                       </span>
                     </label>
                   </>

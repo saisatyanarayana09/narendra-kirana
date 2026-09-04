@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import api from '../../services/api';
 import { Store, Lock, Eye, EyeOff, Loader2, CheckCircle2, ShieldAlert, ArrowLeft, KeyRound, Mail } from 'lucide-react';
@@ -22,7 +22,34 @@ export default function OwnerResetPassword() {
   const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'success' | 'error'
   const [message, setMessage] = useState('');
 
-  const isLinkInvalid = mode === 'link' && (!uid || !token);
+  // Proactive token check state
+  const [tokenStatus, setTokenStatus] = useState(uid && token ? 'checking' : 'none');
+  const [tokenError, setTokenError] = useState('');
+
+  useEffect(() => {
+    if (uid && token) {
+      let isMounted = true;
+      setTokenStatus('checking');
+      api.post('/auth/password-reset/validate-token/', { uid, token, portal: 'owner' })
+        .then((res) => {
+          if (!isMounted) return;
+          setTokenStatus('valid');
+          if (res.data?.email && !email) {
+            setEmail(res.data.email);
+          }
+        })
+        .catch((err) => {
+          if (!isMounted) return;
+          setTokenStatus('invalid');
+          const errData = err.response?.data;
+          const errMsg = typeof errData === 'string' ? errData : (errData?.error || 'This reset link has expired or has already been used.');
+          setTokenError(String(errMsg));
+        });
+      return () => { isMounted = false; };
+    }
+  }, [uid, token]);
+
+  const isLinkInvalid = mode === 'link' && (!uid || !token || tokenStatus === 'invalid');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -155,10 +182,10 @@ export default function OwnerResetPassword() {
                 <ShieldAlert size={24} />
               </div>
               <h3 className="text-base font-bold text-amber-900 dark:text-amber-200 mb-2">
-                Invalid Recovery Link
+                Invalid or Expired Link
               </h3>
               <p className="text-sm text-amber-700 dark:text-amber-300 leading-relaxed mb-4">
-                This reset link is missing required security tokens. You can switch to the <strong>"6-Digit OTP Code"</strong> tab above, or request a new link.
+                {tokenError || 'This reset link is missing required security tokens or has expired. You can use your 6-Digit OTP code instead.'}
               </p>
               <div className="space-y-2">
                 <button
@@ -244,7 +271,7 @@ export default function OwnerResetPassword() {
                       className="w-full rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-3 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 transition-all text-center tracking-[0.5em] font-mono text-lg font-extrabold"
                     />
                     <p className="text-[11px] text-slate-500 mt-1">
-                      Enter the 6-digit code sent to your owner email (expires in 10 minutes).
+                      Enter the 6-digit code sent to your owner email (expires in 15 minutes).
                     </p>
                   </div>
                 </>
