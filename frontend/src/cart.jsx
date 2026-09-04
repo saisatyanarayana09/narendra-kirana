@@ -19,14 +19,28 @@ export function CustomerLoginPage() {
   // Parse redirect destination from query (?redirect=...) or location state
   const searchParams = new URLSearchParams(location.search);
   const rawRedirect = searchParams.get('redirect') || location.state?.from?.pathname || '/';
-  const redirectTarget = decodeURIComponent(rawRedirect);
+  let redirectTarget = '/';
+  try {
+    const decoded = decodeURIComponent(rawRedirect).trim();
+    if (
+      decoded.startsWith('/') &&
+      !decoded.startsWith('//') &&
+      !decoded.startsWith('/login') &&
+      !decoded.startsWith('/signup')
+    ) {
+      redirectTarget = decoded;
+    }
+  } catch {
+    redirectTarget = '/';
+  }
 
   async function submit(event) {
     event.preventDefault();
     setSubmitting(true);
     setError('');
     try {
-      const { data } = await api.post('/auth/login/', { username: email, password });
+      const cleanEmail = email.trim();
+      const { data } = await api.post('/auth/login/', { username: cleanEmail, password });
       if (!data.user.is_customer) throw new Error('Please use the owner portal for this account.');
       localStorage.setItem('smart-kirana-customer-token', data.access);
       localStorage.setItem('smart-kirana-customer-refresh', data.refresh);

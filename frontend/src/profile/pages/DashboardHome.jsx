@@ -20,17 +20,12 @@ import { useCart } from '../../cart-context';
 import { useLanguage } from '../../context/LanguageContext';
 
 export default function DashboardHome() {
-  const { user, syncUser } = useCart();
+  const { user, logout } = useCart();
   const { t } = useLanguage();
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.removeItem('smart-kirana-customer-token');
-    localStorage.removeItem('smart-kirana-customer-refresh');
-    localStorage.removeItem('smart-kirana-customer-user');
-    sessionStorage.removeItem('hasShownWelcome');
-    syncUser();
-    navigate('/');
+    logout();
   };
 
   const cards = [

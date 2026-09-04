@@ -73,6 +73,19 @@ export function CartProvider({ children }) {
    setUser(getUser());
  }, []);
 
+ const logout = useCallback(() => {
+   localStorage.removeItem('smart-kirana-customer-token');
+   localStorage.removeItem('smart-kirana-customer-refresh');
+   localStorage.removeItem('smart-kirana-customer-user');
+   sessionStorage.removeItem('welcome_shown_time');
+   sessionStorage.removeItem('hasShownWelcome');
+   setUser(null);
+   setCart(null);
+   setFavorites([]);
+   setNotifications([]);
+   window.location.href = '/';
+ }, []);
+
  const add = useCallback(async (product) => {
    await api.post('/cart/items/', { product: product.id, quantity: 1 });
    refreshCart().catch(console.error);
@@ -113,9 +126,9 @@ export function CartProvider({ children }) {
 
  // Memoize the context value to prevent unnecessary re-renders of all consumers
  const value = useMemo(() => ({
-   cart, add, update, refresh, user, isCustomer, syncUser,
+   cart, add, update, refresh, user, isCustomer, syncUser, logout,
    applyPromo, storeSettings, favorites, toggleFavorite, notifications
- }), [cart, add, update, refresh, user, isCustomer, syncUser,
+ }), [cart, add, update, refresh, user, isCustomer, syncUser, logout,
       applyPromo, storeSettings, favorites, toggleFavorite, notifications])
 
  return (

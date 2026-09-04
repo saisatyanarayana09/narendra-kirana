@@ -371,25 +371,12 @@ export function RootNavigator() {
         }}
       >
         <Stack.Navigator screenOptions={{ headerShown: false }}>
-          {user ? (
-            <>
-              <Stack.Screen name="Main" component={MainTabs} />
-              <Stack.Screen name="Auth" component={AuthStack} />
-              <Stack.Screen name="Login" component={LoginScreen} />
-              <Stack.Screen name="Signup" component={SignupScreen} />
-              <Stack.Screen name="ForgotPasswordScreen" component={ForgotPasswordScreen} />
-              <Stack.Screen name="ResetPasswordScreen" component={ResetPasswordScreen} />
-            </>
-          ) : (
-            <>
-              <Stack.Screen name="Auth" component={AuthStack} />
-              <Stack.Screen name="Main" component={MainTabs} />
-              <Stack.Screen name="Login" component={LoginScreen} />
-              <Stack.Screen name="Signup" component={SignupScreen} />
-              <Stack.Screen name="ForgotPasswordScreen" component={ForgotPasswordScreen} />
-              <Stack.Screen name="ResetPasswordScreen" component={ResetPasswordScreen} />
-            </>
-          )}
+          <Stack.Screen name="Main" component={MainTabs} />
+          <Stack.Screen name="Auth" component={AuthStack} />
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Signup" component={SignupScreen} />
+          <Stack.Screen name="ForgotPasswordScreen" component={ForgotPasswordScreen} />
+          <Stack.Screen name="ResetPasswordScreen" component={ResetPasswordScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </ErrorBoundary>

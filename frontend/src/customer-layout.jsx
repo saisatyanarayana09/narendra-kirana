@@ -1,7 +1,7 @@
 import { optimizeImage } from './utils/image';
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { Home, Search, ShoppingBasket, ShoppingCart, User, X, Heart, Bell, LayoutGrid, Trash2, ShoppingBag, Leaf, Coffee, Package, Mic, Volume2 } from 'lucide-react'
+import { Home, Search, ShoppingBasket, ShoppingCart, User, X, Heart, Bell, LayoutGrid, Trash2, ShoppingBag, Leaf, Coffee, Package, Mic, Volume2, LogOut } from 'lucide-react'
 import { useCart } from './cart-context'
 import { useLanguage } from './context/LanguageContext'
 import { useSpeechRecognition, useTextToSpeech } from './hooks/useVoice'
@@ -406,7 +406,7 @@ function WelcomeScreen() {
 import { SmartAppBanner } from './components/SmartAppBanner';
 
 export function CustomerLayout({ children }) {
-  const { cart, isCustomer, favorites, notifications } = useCart()
+  const { cart, isCustomer, favorites, notifications, logout } = useCart()
   const [showNotifications, setShowNotifications] = useState(false)
   const location = useLocation();
 
@@ -428,7 +428,7 @@ export function CustomerLayout({ children }) {
  {isCustomer ? (
  <>
  <div className="relative">
- <button onClick={() => setShowNotifications(!showNotifications)} className="hidden sm:grid size-10 place-items-center rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition relative">
+ <button onClick={() => setShowNotifications(!showNotifications)} className="hidden sm:grid size-10 place-items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition relative cursor-pointer">
  <Bell size={18} />
  {notifications?.some(n => !n.is_read) && (
  <span className="absolute right-0 top-0 size-3 rounded-full bg-indigo-600 border-2 border-slate-900"></span>
@@ -436,12 +436,20 @@ export function CustomerLayout({ children }) {
  </button>
  <NotificationPopup isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
  </div>
- <Link to="/profile"className="hidden sm:flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 hover:border-slate-300 hover:bg-slate-50 transition ml-1 shadow-sm">
- <div className="bg-primary-50 text-primary-700 rounded-full p-1">
+ <Link to="/profile" className="hidden sm:flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition ml-1 shadow-xs">
+ <div className="bg-primary-50 dark:bg-primary-950/60 text-primary-700 dark:text-primary-400 rounded-full p-1">
  <User size={16} />
  </div>
- <span className="text-sm font-bold text-slate-700 pr-1">My Account</span>
+ <span className="text-sm font-bold text-slate-700 dark:text-slate-200 pr-1">My Account</span>
  </Link>
+ <button 
+   type="button"
+   onClick={logout} 
+   title="Sign Out"
+   className="hidden sm:grid size-9 place-items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
+ >
+   <LogOut size={15} />
+ </button>
  </>
  ) : (
  <Link to="/login"className="hidden sm:block text-sm font-semibold text-primary-700">Sign in</Link>

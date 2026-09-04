@@ -51,6 +51,7 @@ const OwnerLayout = () => {
     localStorage.removeItem('smart-kirana-owner-token');
     localStorage.removeItem('smart-kirana-owner-refresh');
     localStorage.removeItem('smart-kirana-owner-user');
+    localStorage.removeItem('smart-kirana-owner-username');
     window.location.href = '/owner/login';
   };
 

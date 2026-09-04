@@ -7,12 +7,25 @@ const api = axios.create({
 // Helper to get token prefix based on URL
 const getPrefix = () => window.location.pathname.startsWith('/owner') ? 'smart-kirana-owner' : 'smart-kirana-customer';
 
+const isAuthEndpoint = (url = '') => {
+  const cleanUrl = url.toLowerCase();
+  return (
+    cleanUrl.includes('auth/login') ||
+    cleanUrl.includes('auth/google-login') ||
+    cleanUrl.includes('auth/admin-google-login') ||
+    cleanUrl.includes('auth/token/refresh') ||
+    cleanUrl.includes('auth/signup') ||
+    cleanUrl.includes('auth/password-reset')
+  );
+};
+
 // Add a request interceptor to attach the JWT token
 api.interceptors.request.use(
   (config) => {
     const prefix = getPrefix();
     const token = localStorage.getItem(`${prefix}-token`);
     if (token) {
+      config.headers = config.headers || {};
       config.headers['Authorization'] = `Bearer ${token}`;
     }
     return config;
@@ -22,25 +35,119 @@ api.interceptors.request.use(
   }
 );
 
-// Add a response interceptor to handle 401 Unauthorized globally
+// Concurrency queue for handling 401s without duplicate refresh calls
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else if (token) {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
+// Add a response interceptor to handle 401 Unauthorized globally with automatic token refresh
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response && error.response.status === 401) {
-      // Do not redirect or clear tokens if the error is from the login endpoint itself
-      const requestUrl = error.config?.url || '';
-      if (!requestUrl.includes('/auth/login/')) {
-        const prefix = getPrefix();
-        // Clear token and redirect to login
+  async (error) => {
+    const originalRequest = error.config;
+    if (!originalRequest || !error.response) {
+      return Promise.reject(error);
+    }
+
+    if (error.response.status === 401) {
+      const requestUrl = originalRequest.url || '';
+      
+      // If error is from an auth endpoint, do not attempt refresh
+      if (isAuthEndpoint(requestUrl)) {
+        return Promise.reject(error);
+      }
+
+      const prefix = getPrefix();
+
+      // If already retried, prevent infinite loop
+      if (originalRequest._retry) {
         localStorage.removeItem(`${prefix}-token`);
         localStorage.removeItem(`${prefix}-refresh`);
         localStorage.removeItem(`${prefix}-user`);
-        // Redirect logic
         if (prefix === 'smart-kirana-owner') {
           window.location.href = '/owner/login';
         }
+        return Promise.reject(error);
+      }
+
+      // If a refresh is already in progress, queue this request
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((newToken) => {
+            originalRequest.headers = originalRequest.headers || {};
+            originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+            return api(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      const refreshToken = localStorage.getItem(`${prefix}-refresh`);
+      if (!refreshToken) {
+        processQueue(error, null);
+        isRefreshing = false;
+        localStorage.removeItem(`${prefix}-token`);
+        localStorage.removeItem(`${prefix}-refresh`);
+        localStorage.removeItem(`${prefix}-user`);
+        if (prefix === 'smart-kirana-owner') {
+          window.location.href = '/owner/login';
+        }
+        return Promise.reject(error);
+      }
+
+      try {
+        const baseURL = api.defaults.baseURL || 'https://narendra-kirana.onrender.com/api/v1';
+        // Use raw axios to bypass interceptor
+        const response = await axios.post(`${baseURL}/auth/token/refresh/`, {
+          refresh: refreshToken,
+        });
+
+        const newAccessToken = response.data?.access;
+        const newRefreshToken = response.data?.refresh;
+
+        if (newAccessToken) {
+          localStorage.setItem(`${prefix}-token`, newAccessToken);
+          if (newRefreshToken) {
+            localStorage.setItem(`${prefix}-refresh`, newRefreshToken);
+          }
+
+          api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
+          originalRequest.headers = originalRequest.headers || {};
+          originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
+
+          processQueue(null, newAccessToken);
+          return api(originalRequest);
+        } else {
+          throw new Error('No access token returned from refresh');
+        }
+      } catch (refreshErr) {
+        processQueue(refreshErr, null);
+        localStorage.removeItem(`${prefix}-token`);
+        localStorage.removeItem(`${prefix}-refresh`);
+        localStorage.removeItem(`${prefix}-user`);
+        if (prefix === 'smart-kirana-owner') {
+          window.location.href = '/owner/login';
+        }
+        return Promise.reject(refreshErr);
+      } finally {
+        isRefreshing = false;
       }
     }
+
     return Promise.reject(error);
   }
 );

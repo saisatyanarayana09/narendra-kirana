@@ -1,17 +1,9 @@
-import { useEffect } from 'react';
-import { useNavigate, Outlet, Link } from 'react-router-dom';
+import { Outlet, Link } from 'react-router-dom';
 import { useCart } from '../../cart-context';
 import { CustomerLayout } from '../../customer-layout';
 
 export default function ProfileLayout() {
-  const navigate = useNavigate();
   const { isCustomer } = useCart();
-
-  useEffect(() => {
-    if (!isCustomer) {
-      navigate('/login');
-    }
-  }, [isCustomer, navigate]);
 
   if (!isCustomer) return null;
 

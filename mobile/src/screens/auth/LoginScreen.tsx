@@ -23,7 +23,7 @@ type Props = {
 
 export function LoginScreen({ navigation }: Props) {
   const { colors, isDark } = useTheme();
-  const { login, pendingRedirect } = useAuth();
+  const { login, pendingRedirect, clearPendingRedirect } = useAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -39,6 +39,23 @@ export function LoginScreen({ navigation }: Props) {
     setIsLoading(true);
     try {
       await login({ username: email.trim(), password });
+
+      if (pendingRedirect) {
+        const { screen, tab, params } = pendingRedirect;
+        clearPendingRedirect();
+        if (tab) {
+          (navigation as any).navigate('Main', {
+            screen: tab,
+            params: { screen, params },
+          });
+        } else {
+          (navigation as any).navigate(screen as any, params);
+        }
+      } else if (navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        (navigation as any).navigate('Main' as any);
+      }
     } catch (error: any) {
       Alert.alert(
         'Login Failed', 
