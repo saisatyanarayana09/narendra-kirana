@@ -663,93 +663,66 @@ export function CustomerLayout({ children }) {
       <FestivePopupModal settings={storeSettings} />
       <WhatsAppSupportWidget settings={storeSettings} />
 
-      {/* Responsive Customer Header */}
-      <header className="sticky top-0 z-30 border-b border-slate-200/70 dark:border-slate-800/80 bg-white/95 dark:bg-[#0d1322]/95 backdrop-blur-xl shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-between gap-3 sm:gap-6">
-          {/* Brand Logo & Name */}
-          <Link to="/" className="flex items-center gap-2.5 shrink-0 group">
-            <img src="/logo-transparent.png" alt="Logo" className="w-8 h-8 sm:w-9 sm:h-9 object-contain rounded-xl shadow-xs group-hover:scale-105 transition-transform" />
-            <span className="text-lg sm:text-xl font-black tracking-tight whitespace-nowrap">
-              <span className="text-slate-900 dark:text-white">Narendra </span>
-              <span className="text-emerald-600 dark:text-emerald-400">Kirana</span>
-            </span>
+      {/* Original Header Restored */}
+      <header className="sticky top-0 z-30 border-b border-slate-200/60 dark:border-slate-800 bg-white/90 dark:bg-[#0d1322]/90 backdrop-blur-xl shadow-xs transition-colors duration-200">
+        <div className="mx-auto flex w-full max-w-screen-2xl items-center justify-between px-4 py-3 sm:px-6 lg:px-12 gap-3 sm:gap-6">
+          {/* Brand Logo & Text */}
+          <Link to="/" className="text-2xl sm:text-3xl font-black tracking-tighter whitespace-nowrap shrink-0 drop-shadow-sm hover:opacity-80 transition-opacity">
+            <span className="text-slate-800 dark:text-white">Narendra</span>
+            <span className="text-emerald-600 dark:text-emerald-400">Kirana</span>
           </Link>
-
-          {/* Center Search Bar with Voice Recognition */}
-          <div className="flex-1 max-w-2xl min-w-0">
-            <GlobalSearchBar />
-          </div>
-
-          {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-6 text-sm font-bold text-slate-600 dark:text-slate-300">
-            <Link 
-              to="/categories" 
-              className={`transition-colors hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center gap-1.5 ${location.pathname === '/categories' ? 'text-emerald-600 dark:text-emerald-400' : ''}`}
-            >
-              <LayoutGrid size={17} />
-              <span>Categories</span>
-            </Link>
-            <Link 
-              to={isCustomer ? "/profile/orders" : "/login?redirect=/profile/orders"} 
-              className={`transition-colors hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center gap-1.5 ${location.pathname === '/profile/orders' ? 'text-emerald-600 dark:text-emerald-400' : ''}`}
-            >
-              <Package size={17} />
-              <span>Orders</span>
-            </Link>
-            <Link 
-              to={isCustomer ? "/profile" : "/login"} 
-              className={`transition-colors hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center gap-1.5 ${location.pathname.startsWith('/profile') && location.pathname !== '/profile/orders' ? 'text-emerald-600 dark:text-emerald-400' : ''}`}
-            >
-              <User size={17} />
-              <span>{isCustomer ? 'Account' : 'Sign in'}</span>
-            </Link>
-          </nav>
-
-          {/* Right Action Items: Notifications, Desktop Cart Button, Mobile Sign In */}
+          
+          {/* Center Search Bar */}
+          <GlobalSearchBar />
+        
+          {/* Right Controls */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {isCustomer && (
-              <div className="relative">
-                <button 
-                  onClick={() => setShowNotifications(!showNotifications)} 
-                  className="w-9 h-9 grid place-items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition relative cursor-pointer"
-                  title="Notifications"
+            {isCustomer ? (
+              <>
+                <div className="relative">
+                  <button 
+                    onClick={() => setShowNotifications(!showNotifications)} 
+                    className="grid size-9 sm:size-10 place-items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition relative cursor-pointer"
+                    title="Notifications"
+                  >
+                    <Bell size={18} />
+                    {notifications?.some(n => !n.is_read) && (
+                      <span className="absolute right-0 top-0 size-3 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 animate-pulse"></span>
+                    )}
+                  </button>
+                  <NotificationPopup isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+                </div>
+                
+                {/* My Account Pill */}
+                <Link 
+                  to="/profile" 
+                  className="hidden sm:flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition ml-1 shadow-xs"
                 >
-                  <Bell size={17} />
-                  {notifications?.some(n => !n.is_read) && (
-                    <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900 animate-pulse"></span>
-                  )}
-                </button>
-                <NotificationPopup isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
-              </div>
+                  <div className="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 rounded-full p-1">
+                    <User size={16} />
+                  </div>
+                  <span className="text-sm font-bold text-slate-700 dark:text-slate-200 pr-1">My Account</span>
+                </Link>
+              </>
+            ) : (
+              <Link to="/login" className="text-sm font-bold text-emerald-600 dark:text-emerald-400 hover:underline px-2 py-1">
+                Sign in
+              </Link>
             )}
 
-            {/* Desktop Cart Button with Item Counter & Total */}
-            <Link
-              to="/cart"
-              className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-sm shadow-sm transition-all cursor-pointer"
+            {/* Previous Rectangular Cart Button with Badge */}
+            <Link 
+              to="/cart" 
+              aria-label="Cart" 
+              className="relative hidden sm:flex h-11 w-16 items-center justify-center rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-all ml-2 shadow-sm hover:shadow active:scale-95 group cursor-pointer"
             >
-              <div className="relative">
-                <ShoppingCart size={17} />
-                {cart?.items?.length > 0 && (
-                  <span className="absolute -top-2 -right-2.5 min-w-[17px] h-[17px] px-1 rounded-full bg-white text-emerald-700 text-[10px] font-black flex items-center justify-center shadow-xs">
-                    {cart.items.length}
-                  </span>
-                )}
-              </div>
-              <span>Cart</span>
-              {Number(cart?.total || 0) > 0 && (
-                <span className="pl-1.5 border-l border-emerald-500/80 font-black text-xs">
-                  ₹{cart.total}
+              <ShoppingCart size={20} strokeWidth={2.5} className="mt-0.5" />
+              {cart?.items?.length > 0 && (
+                <span className="absolute -top-2 -right-2 flex h-[22px] min-w-[22px] px-1.5 items-center justify-center rounded-lg bg-slate-900 text-[11px] font-black text-white shadow-sm ring-2 ring-white dark:ring-slate-900">
+                  {cart.items.length}
                 </span>
               )}
             </Link>
-
-            {/* Mobile Sign In button (when logged out) */}
-            {!isCustomer && (
-              <Link to="/login" className="md:hidden text-xs font-bold text-emerald-600 dark:text-emerald-400 px-2.5 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 transition whitespace-nowrap">
-                Sign In
-              </Link>
-            )}
           </div>
         </div>
       </header>
