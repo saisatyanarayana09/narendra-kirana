@@ -155,6 +155,8 @@ class OrderViewSet(ModelViewSet):
             product = locked_products.get(item.product_id)
             if not product or not product.is_in_stock or (product.stock_quantity is not None and item.quantity > product.stock_quantity):
                 return Response({'detail': f'Insufficient stock for {item.product_name_snapshot or getattr(product, "name", "product")}.'}, status=400)
+            if product.max_order_quantity and product.max_order_quantity > 0 and item.quantity > product.max_order_quantity:
+                return Response({'detail': f'Order exceeds maximum order limit of {product.max_order_quantity} for {item.product_name_snapshot or getattr(product, "name", "product")}.'}, status=400)
 
         from cart.serializers import CartSerializer
         cart_data = CartSerializer(cart).data

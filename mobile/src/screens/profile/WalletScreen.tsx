@@ -144,6 +144,14 @@ export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) 
               <Text style={styles.heroSubtitle}>
                 Use this balance at checkout to get instant discounts on your groceries.
               </Text>
+              <TouchableOpacity
+                style={styles.earnRewardsBtn}
+                onPress={() => navigation.navigate('ReferAndEarnScreen')}
+                activeOpacity={0.85}
+              >
+                <Feather name="gift" size={15} color="#0D9488" />
+                <Text style={styles.earnRewardsBtnText}>Earn More Rewards →</Text>
+              </TouchableOpacity>
             </LinearGradient>
 
             <View style={styles.sectionHeaderRow}>
@@ -165,11 +173,11 @@ export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) 
           return (
             <View style={[styles.transactionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <View style={styles.transactionLeft}>
-                <View style={[styles.txIconCircle, { backgroundColor: isCredit ? (isDark ? 'rgba(16, 185, 129, 0.2)' : '#ECFDF5') : (isDark ? 'rgba(255, 255, 255, 0.08)' : '#F8FAFC') }]}>
+                <View style={[styles.txIconCircle, { backgroundColor: isCredit ? (isDark ? 'rgba(16, 185, 129, 0.2)' : '#ECFDF5') : (isDark ? 'rgba(239, 68, 68, 0.2)' : '#FEF2F2') }]}>
                   <Feather 
                     name={isCredit ? "arrow-down-left" : "arrow-up-right"} 
                     size={18} 
-                    color={isCredit ? colors.primary : colors.textSecondary} 
+                    color={isCredit ? '#10B981' : '#EF4444'} 
                   />
                 </View>
                 <View style={styles.txDetails}>
@@ -183,7 +191,7 @@ export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) 
                 </View>
               </View>
 
-              <Text style={[styles.txAmount, { color: isCredit ? colors.primary : colors.text }]}>
+              <Text style={[styles.txAmount, { color: isCredit ? '#10B981' : '#EF4444' }]}>
                 {isCredit ? '+' : '-'}₹{(Math.abs(amt) || 0).toFixed(2)}
               </Text>
             </View>
@@ -262,6 +270,27 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: 'rgba(255, 255, 255, 0.85)',
     lineHeight: 18,
+  },
+  earnRewardsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  earnRewardsBtnText: {
+    color: '#0D9488',
+    fontSize: 13,
+    fontWeight: '800',
   },
   sectionHeaderRow: {
     marginBottom: 8,

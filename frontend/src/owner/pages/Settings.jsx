@@ -19,7 +19,9 @@ import {
   RefreshCw,
   X,
   SlidersHorizontal,
-  ArrowRight
+  ArrowRight,
+  Copy,
+  Check
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
@@ -68,6 +70,7 @@ const Settings = () => {
     last_test_status: '',
   });
   const [showAppPassword, setShowAppPassword] = useState(false);
+  const [copiedPassword, setCopiedPassword] = useState(false);
   const [savingEmail, setSavingEmail] = useState(false);
   const [testModalOpen, setTestModalOpen] = useState(false);
   const [testRecipient, setTestRecipient] = useState('');
@@ -92,7 +95,8 @@ const Settings = () => {
         setEmailSettings(prev => ({
           ...prev,
           ...response.data,
-          app_password: '' // never store or display plaintext on load
+          sender_email: response.data.sender_email || prev.sender_email || '',
+          app_password: response.data.app_password || '',
         }));
         if (response.data.sender_email && !testRecipient) {
           setTestRecipient(response.data.sender_email);
@@ -144,7 +148,7 @@ const Settings = () => {
         use_ssl: Boolean(emailSettings.use_ssl),
         is_active: Boolean(emailSettings.is_active),
       };
-      if (emailSettings.app_password && emailSettings.app_password.trim()) {
+      if (emailSettings.app_password !== undefined) {
         payload.app_password = emailSettings.app_password.trim();
       }
 
@@ -152,7 +156,7 @@ const Settings = () => {
       setEmailSettings(prev => ({
         ...prev,
         ...res.data,
-        app_password: '',
+        app_password: res.data?.app_password ?? payload.app_password ?? prev.app_password,
       }));
       toast.success('Store Email & SMTP credentials saved!');
     } catch (err) {
@@ -212,6 +216,13 @@ const Settings = () => {
     try {
       const response = await api.get('/store/settings/', { params: { t: Date.now() } });
       setSettings(prev => ({ ...prev, ...response.data }));
+      if (response.data?.store_email) {
+        setEmailSettings(prev => ({
+          ...prev,
+          sender_email: prev.sender_email || response.data.store_email,
+        }));
+        setTestRecipient(prev => prev || response.data.store_email);
+      }
     } catch (err) {
       console.error(err);
       toast.error('Failed to load settings.');
@@ -611,12 +622,23 @@ const Settings = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Sender Email Address</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">Sender Email Address</label>
+                  {settings.store_email && emailSettings.sender_email !== settings.store_email && (
+                    <button
+                      type="button"
+                      onClick={() => setEmailSettings(prev => ({ ...prev, sender_email: settings.store_email }))}
+                      className="text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 font-medium hover:underline"
+                    >
+                      Use store email ({settings.store_email})
+                    </button>
+                  )}
+                </div>
                 <input 
                   type="email" 
                   value={emailSettings.sender_email} 
                   onChange={(e) => setEmailSettings(prev => ({ ...prev, sender_email: e.target.value }))} 
-                  placeholder="e.g. yourstore@gmail.com"
+                  placeholder={settings.store_email || "e.g. yourstore@gmail.com"}
                   className="w-full rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
                 />
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">The email account used to authenticate and send.</p>
@@ -627,32 +649,63 @@ const Settings = () => {
                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
                     {emailSettings.provider === 'gmail' ? 'Google 16-Character App Password' : 'SMTP Password / API Secret'}
                   </label>
-                  {emailSettings.has_password && (
-                    <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
-                      ✓ Password saved securely
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {(emailSettings.has_password || emailSettings.app_password) ? (
+                      <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
+                        <CheckCircle2 size={12} /> Password saved securely
+                      </span>
+                    ) : (
+                      <span className="text-xs font-semibold text-amber-700 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-400 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800 flex items-center gap-1">
+                        <AlertTriangle size={12} /> Password not configured
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="relative">
                   <input 
                     type={showAppPassword ? 'text' : 'password'} 
                     value={emailSettings.app_password} 
                     onChange={(e) => setEmailSettings(prev => ({ ...prev, app_password: e.target.value }))} 
-                    placeholder={emailSettings.has_password ? '•••••••••••••••• (Leave blank to keep saved password)' : 'e.g. abcd efgh ijkl mnop'}
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 pr-10 text-sm outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-white font-mono"
+                    placeholder="Enter 16-character App Password (e.g. abcd efgh ijkl mnop)"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 pr-20 text-sm outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-white font-mono tracking-wider"
                   />
-                  <button 
-                    type="button" 
-                    onClick={() => setShowAppPassword(!showAppPassword)} 
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    {showAppPassword ? <EyeOff size={16}/> : <Eye size={16}/>}
-                  </button>
+                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                    {emailSettings.app_password && (
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          navigator.clipboard.writeText(emailSettings.app_password);
+                          setCopiedPassword(true);
+                          setTimeout(() => setCopiedPassword(false), 2000);
+                          toast.success('App Password copied to clipboard!');
+                        }} 
+                        title="Copy App Password"
+                        className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded transition-colors"
+                      >
+                        {copiedPassword ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} />}
+                      </button>
+                    )}
+                    <button 
+                      type="button" 
+                      onClick={() => setShowAppPassword(!showAppPassword)} 
+                      title={showAppPassword ? "Hide password" : "Show password"}
+                      className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded transition-colors"
+                    >
+                      {showAppPassword ? <EyeOff size={16}/> : <Eye size={16}/>}
+                    </button>
+                  </div>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  {emailSettings.has_password
-                    ? 'A password is encrypted in the database. Only type here if you wish to change it.'
-                    : 'Paste the 16-letter App Password generated from your Google Account security settings.'}
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center justify-between">
+                  <span>
+                    {(emailSettings.has_password || emailSettings.app_password)
+                      ? 'Saved securely in encrypted database. Click the eye icon to reveal, or edit and save to update.'
+                      : 'Paste the 16-letter App Password generated from your Google Account security settings.'}
+                  </span>
+                  {showAppPassword && emailSettings.app_password && (
+                    <span className="text-indigo-600 dark:text-indigo-400 font-mono text-[11px] font-semibold">
+                      {emailSettings.app_password.replace(/\s+/g, '').length} characters
+                    </span>
+                  )}
                 </p>
               </div>
 

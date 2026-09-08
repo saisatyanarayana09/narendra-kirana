@@ -209,9 +209,14 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
   return (
     <KeyboardAvoidingView 
       style={[styles.container, { backgroundColor: colors.background }]} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Back Button */}
         <TouchableOpacity 
           style={styles.backButton} 

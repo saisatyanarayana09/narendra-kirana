@@ -36,7 +36,7 @@ export interface Product {
 export interface ProductCardProps {
   product: Product;
   onPress: (product: Product) => void;
-  onAddToCart?: (product: Product) => void;
+  onAddToCart?: (product: Product) => void | Promise<void>;
   style?: StyleProp<ViewStyle>;
   isFavorite?: boolean | ((productId: number) => boolean);
   onToggleFavorite?: (product: any) => void;
@@ -94,7 +94,7 @@ function ProductCardComponent({
     setUpdating(true);
     try {
       if (onAddToCart) {
-        onAddToCart(product);
+        await Promise.resolve(onAddToCart(product));
       } else {
         await addToCart(product.id, 1);
       }
@@ -144,7 +144,7 @@ function ProductCardComponent({
               onToggleFavorite(product);
             }}
             activeOpacity={0.8}
-            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons 
               name={isFav ? "heart" : "heart-outline"} 
@@ -159,7 +159,7 @@ function ProductCardComponent({
           <Image 
             source={{ uri: primaryImage }} 
             style={styles.image} 
-            contentFit="cover"
+            contentFit="contain"
             recyclingKey={primaryImage || String(product.id)}
             cachePolicy="memory-disk"
             transition={150}
@@ -383,7 +383,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1E293B',
     lineHeight: 17,
-    maxHeight: 34,
   },
   unit: {
     fontSize: 11,
@@ -433,7 +432,7 @@ const styles = StyleSheet.create({
   addToCartButton: {
     backgroundColor: '#DC2626', // Red-600 matching web app
     borderRadius: 12, // rounded-xl matching web customer.jsx:258
-    height: 38,
+    height: 44,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -478,7 +477,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     borderRadius: 10,
-    height: 36,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',

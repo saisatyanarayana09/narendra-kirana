@@ -8,6 +8,23 @@ export function VerifyEmail() {
   const navigate = useNavigate();
   const [status, setStatus] = useState('verifying');
   const [message, setMessage] = useState('Verifying your email address...');
+  const [resendEmail, setResendEmail] = useState('');
+  const [resending, setResending] = useState(false);
+  const [resendSent, setResendSent] = useState(false);
+
+  const handleResend = async () => {
+    if (!resendEmail.trim()) return;
+    setResending(true);
+    try {
+      await api.post('/auth/resend-activation/', { email: resendEmail.trim() });
+      setResendSent(true);
+    } catch (err) {
+      console.error(err);
+      setMessage(err.response?.data?.error || 'Failed to resend activation email.');
+    } finally {
+      setResending(false);
+    }
+  };
 
   useEffect(() => {
     const uid = searchParams.get('uid');
@@ -74,9 +91,48 @@ export function VerifyEmail() {
           )}
 
           {status === 'error' && (
-            <Link to="/login" className="px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition text-sm shadow-md">
-              Go to Login
-            </Link>
+            <div className="w-full space-y-4">
+              {resendSent ? (
+                <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-left">
+                  <p className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                    ✓ Fresh activation link dispatched!
+                  </p>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+                    Please check your email inbox and spam folder. Click the new link to activate your account.
+                  </p>
+                </div>
+              ) : (
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 text-left space-y-3">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Need a fresh activation link?
+                  </label>
+                  <input
+                    type="email"
+                    value={resendEmail}
+                    onChange={(e) => setResendEmail(e.target.value)}
+                    placeholder="Enter your registered email"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition shadow-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={resending || !resendEmail.trim()}
+                    className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center justify-center gap-1.5"
+                  >
+                    {resending ? 'Sending Link...' : 'Send Fresh Activation Link'}
+                  </button>
+                </div>
+              )}
+
+              <div className="pt-2">
+                <Link
+                  to="/login"
+                  className="w-full inline-block py-2.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 font-bold rounded-xl transition text-xs shadow-xs"
+                >
+                  Back to Sign In
+                </Link>
+              </div>
+            </div>
           )}
         </div>
       </main>

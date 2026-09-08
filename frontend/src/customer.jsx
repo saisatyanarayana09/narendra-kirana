@@ -273,35 +273,20 @@ export function ProductCard({ product, priority = false, ...props }) {
  
 
  <div className="mt-auto pt-3">
-
  <div className="flex items-center gap-2 mb-3">
-
- <span className="text-lg font-black text-slate-600">₹{price}</span>
-
+ <span className="text-lg font-black text-slate-900 dark:text-white">₹{price}</span>
  {product.offer_price && (
-
  <span className="text-xs text-slate-400 line-through font-semibold">₹{product.regular_price}</span>
-
  )}
-
  </div>
 
- 
-
  {(!isOutOfStock) ? (
-
  <button 
-
  onClick={handleAddToCart}
-
  disabled={adding || added || isMaxReached}
-
- className={`w-full rounded-xl py-2.5 min-h-[44px] sm:min-h-0 sm:py-2 text-sm font-bold transition-all active:scale-95 flex items-center justify-center gap-1.5 ${added ? 'bg-slate-100 text-slate-800 border border-slate-200 shadow-sm' : isMaxReached ? 'bg-slate-50 text-slate-400 border border-slate-100 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-lg shadow-red-200 shadow-md'} disabled:opacity-60 disabled:active:scale-100`}
-
+ className={`w-full rounded-xl py-2.5 min-h-[44px] sm:min-h-0 sm:py-2 text-sm font-bold transition-all active:scale-95 flex items-center justify-center gap-1.5 ${added ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-xs' : isMaxReached ? 'bg-slate-50 text-slate-400 border border-slate-100 cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-lg shadow-emerald-600/20 shadow-md'} disabled:opacity-60 disabled:active:scale-100`}
  >
-
- {isMaxReached ? 'Max in cart' : added ? '✓ Added!' : adding ? 'Adding...' : <><ShoppingCart size={14} /> Add to Cart</>}
-
+ {isMaxReached ? 'Max in cart' : added ? '✓ Added!' : adding ? 'Adding...' : <><ShoppingCart size={14} className="stroke-[2.5]" /> Add to Cart</>}
  </button>
 
  ) : (
@@ -816,37 +801,37 @@ export function CategoriesPage() {
 
  <CustomerLayout>
 
-  <main className="mx-auto w-full max-w-screen-2xl px-4 py-8 sm:px-6 lg:px-12">
+   <main className="mx-auto w-full max-w-xl px-3 sm:px-4 py-5 pb-24">
 
-  <div className="w-full mb-6 flex flex-col items-start gap-2">
+   <div className="w-full mb-5 flex flex-col items-start gap-2">
 
-    <button onClick={() => navigate(-1)} className="text-sm font-bold text-slate-600 hover:underline bg-transparent border-none cursor-pointer p-0 flex items-center gap-1"><ArrowLeft size={16} /> Back</button>
+     <button onClick={() => navigate(-1)} className="text-xs sm:text-sm font-bold text-slate-600 hover:underline bg-transparent border-none cursor-pointer p-0 flex items-center gap-1"><ArrowLeft size={16} /> Back</button>
 
-    <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">All Categories</h1>
+     <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">All Categories</h1>
+
+   </div>
+
+   {loading ? (
+
+  <div className="grid grid-cols-3 gap-3 w-full">
+
+  {Array.from({length: 12}).map((_, i) => <CategorySkeleton key={i} />)}
 
   </div>
 
-  {loading ? (
+  ) : (
 
- <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4 w-full">
+  <div className="grid grid-cols-3 gap-3 w-full">
 
- {Array.from({length: 12}).map((_, i) => <CategorySkeleton key={i} />)}
+  {categories.map((category, index) => {
 
- </div>
+  return (
 
- ) : (
+  <Link 
 
- <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4 w-full">
+  key={category.id} 
 
- {categories.map((category, index) => {
-
- return (
-
- <Link 
-
- key={category.id} 
-
- to={`/products?category=${category.id}`} 
+  to={`/products?category=${category.id}`} 
 
  className="aspect-square sm:aspect-[4/3] flex flex-col items-center justify-end p-2 sm:p-3 relative rounded-2xl overflow-hidden shadow-sm ring-1 ring-black/5 transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:scale-105 group bg-slate-50 w-full"
 
@@ -995,30 +980,30 @@ export function ProductsPage() {
 
   <CustomerLayout>
 
-    <main className="mx-auto w-full max-w-screen-2xl px-4 py-4 sm:px-6 lg:px-12">
+    <main className="mx-auto w-full max-w-xl px-3 sm:px-4 py-4 pb-24">
 
-      <div className="-mx-4 px-4 sm:mx-0 sm:px-0 bg-slate-50 py-3 mb-4 border-b border-slate-200/60 sm:border-none sm:bg-transparent sm:py-0">
+      <div className="-mx-3 px-3 sm:-mx-4 sm:px-4 bg-slate-50 dark:bg-slate-900/50 py-2.5 mb-4 border-b border-slate-200/60 dark:border-slate-800">
 
-        <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar items-center">
+        <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar items-center">
 
-          <Link to="/"className="flex shrink-0 items-center justify-center rounded-full bg-white text-slate-600 shadow-sm border border-slate-200/60 hover:bg-slate-50 transition w-9 h-9 mr-1" aria-label="Back to home"><ArrowLeft size={18} /></Link>
+          <Link to="/"className="flex shrink-0 items-center justify-center rounded-full bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 shadow-xs border border-slate-200/60 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition w-8 h-8 mr-1" aria-label="Back to home"><ArrowLeft size={16} /></Link>
 
-          <button onClick={() => { const next = new URLSearchParams(searchParams); next.delete('category'); setSearchParams(next) }} className={`rounded-full px-4 py-2 text-sm font-bold shrink-0 transition-all ${!category ? 'bg-emerald-600 text-white shadow-md' : 'bg-white text-slate-600 shadow-sm border border-slate-200/60 hover:bg-slate-50'}`}>All</button>
+          <button onClick={() => { const next = new URLSearchParams(searchParams); next.delete('category'); setSearchParams(next) }} className={`rounded-full px-3.5 py-1.5 text-xs font-bold shrink-0 transition-all ${!category ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 shadow-xs border border-slate-200/60 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>All</button>
 
-          {categories.map((item) => <button key={item.id} onClick={() => { const next = new URLSearchParams(searchParams); next.set('category', item.id); setSearchParams(next) }} className={`rounded-full px-4 py-2 text-sm font-bold shrink-0 transition-all ${category === String(item.id) ? 'bg-emerald-600 text-white shadow-md' : 'bg-white text-slate-600 shadow-sm border border-slate-200/60 hover:bg-slate-50'}`}>{item.name}</button>)}
+          {categories.map((item) => <button key={item.id} onClick={() => { const next = new URLSearchParams(searchParams); next.set('category', item.id); setSearchParams(next) }} className={`rounded-full px-3.5 py-1.5 text-xs font-bold shrink-0 transition-all ${category === String(item.id) ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 shadow-xs border border-slate-200/60 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{item.name}</button>)}
 
         </div>
 
       </div>
 
-      <div className="flex items-center justify-between mt-2 flex-wrap gap-3">
+      <div className="flex items-center justify-between mt-1 flex-wrap gap-2">
 
-        <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900">{activeCategoryName}</h1>
+        <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">{activeCategoryName}</h1>
 
         {!loading && (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {isRevalidating && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full animate-pulse border border-emerald-100">
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full animate-pulse border border-emerald-100">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                 Syncing...
               </span>
@@ -1026,22 +1011,22 @@ export function ProductsPage() {
             <select 
               value={sortOption} 
               onChange={e => setSortOption(e.target.value)}
-              className="text-sm font-bold text-slate-700 bg-white border border-slate-200 rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm"
+              className="text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
             >
               <option value="default">Relevance</option>
               <option value="price_low">Price: Low to High</option>
               <option value="price_high">Price: High to Low</option>
               <option value="newest">Newest Arrivals</option>
             </select>
-            <p className="text-sm font-medium text-slate-500 hidden sm:block">{products.length} products</p>
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{products.length} items</p>
           </div>
         )}
 
       </div>
 
-      {error && <p className="mt-6 rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
+      {error && <p className="mt-4 rounded-xl bg-red-50 dark:bg-rose-950/40 p-3.5 text-xs sm:text-sm text-red-700 dark:text-rose-300 font-semibold">{error}</p>}
 
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+      <div className="mt-3.5 grid grid-cols-2 gap-3 w-full">
 
         {loading ? Array.from({length: 8}).map((_, i) => <ProductSkeleton key={i} />) : sortedProducts.map((product, index) => <ProductCard key={product.id} product={product} priority={index < 4} />)}
 
@@ -1175,19 +1160,19 @@ export function ProductDetailPage() {
 
   return (
     <CustomerLayout>
-      <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
+      <main className="mx-auto w-full max-w-xl px-3 sm:px-4 py-4 pb-36">
         <button
           onClick={() => navigate(-1)}
-          className="group inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 transition-colors mb-4 bg-transparent border-none cursor-pointer"
+          className="group inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 transition-colors mb-3.5 bg-transparent border-none cursor-pointer"
         >
           <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" /> Back
         </button>
 
-        <article className="overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-sm border border-slate-200/80 dark:border-slate-800 relative flex flex-col md:flex-row transition-colors">
+        <article className="overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-xs border border-slate-200/80 dark:border-slate-800 relative flex flex-col transition-colors">
           {/* Stable Minimal Image Frame */}
-          <div className="w-full md:w-[380px] lg:w-[400px] shrink-0 bg-slate-50/80 dark:bg-slate-800/30 p-6 flex flex-col items-center justify-center relative border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800/60">
+          <div className="w-full bg-slate-50/80 dark:bg-slate-800/30 p-6 flex flex-col items-center justify-center relative border-b border-slate-100 dark:border-slate-800/60">
             {discountPercent > 0 && (
-              <div className="absolute top-4 left-4 z-10 bg-rose-600 text-white text-[11px] font-black px-2.5 py-1 rounded-lg shadow-xs flex items-center gap-1 uppercase tracking-wider">
+              <div className="absolute top-3.5 left-3.5 z-10 bg-rose-600 text-white text-[11px] font-black px-2.5 py-1 rounded-lg shadow-xs flex items-center gap-1 uppercase tracking-wider">
                 <Zap size={11} fill="currentColor" /> {discountPercent}% OFF
               </div>
             )}
@@ -1353,7 +1338,7 @@ export function ProductDetailPage() {
         </article>
 
         {/* Mobile Sticky Add to Cart Bar */}
-        <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 p-3 shadow-lg md:hidden">
+        <div className="fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] inset-x-0 sm:inset-x-auto sm:w-[576px] sm:max-w-xl z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 p-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
           {cartItem ? (
             <div className="flex items-center justify-between gap-3">
               <div className="inline-flex items-center rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 p-1">

@@ -43,8 +43,10 @@ const OwnerLayout = () => {
   }, []);
 
   const isActive = (path) => {
-    if (path === '/owner') return location.pathname === '/owner';
-    return location.pathname.startsWith(path);
+    const currentPath = location.pathname.replace(/\/$/, '') || '/';
+    const targetPath = path.replace(/\/$/, '') || '/';
+    if (targetPath === '/owner') return currentPath === '/owner';
+    return currentPath.startsWith(targetPath);
   };
 
   const currentSection = navigation.find(item => isActive(item.href)) || navigation[0];
@@ -101,7 +103,7 @@ const OwnerLayout = () => {
             </Link>
             <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mt-0.5">Store Manager</span>
           </div>
-          <button className="lg:hidden text-slate-400 hover:text-white transition-colors" onClick={() => setIsSidebarOpen(false)}>
+          <button className="lg:hidden text-slate-400 hover:text-white transition-colors" onClick={() => setIsSidebarOpen(false)} aria-label="Close sidebar">
             <X className="w-6 h-6"/>
           </button>
         </div>
@@ -114,6 +116,7 @@ const OwnerLayout = () => {
               <Link
                 key={item.name}
                 to={item.href}
+                aria-current={active ? 'page' : undefined}
                 className={`flex items-center px-4 py-3 rounded-xl transition-all duration-200 group ${
                   active
                     ? 'bg-emerald-500/10 text-emerald-400 font-bold shadow-sm'
@@ -156,6 +159,61 @@ const OwnerLayout = () => {
 
       {/* Main Content Area */}
       <div className="flex flex-col flex-1 overflow-hidden min-w-0">
+        {/* Desktop Top Header Bar */}
+        <header className="hidden lg:flex items-center justify-between h-14 px-6 bg-white dark:bg-[#0d1322] border-b border-slate-200 dark:border-slate-800 shrink-0 z-20 transition-colors">
+          <div className="flex items-center gap-2.5">
+            <span className="text-[11px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Owner Portal</span>
+            <span className="text-slate-300 dark:text-slate-700">/</span>
+            <span className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+              <currentSection.icon size={16} className="text-emerald-500" />
+              {currentSection.name}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Store Status Toggle for Desktop */}
+            {storeStatus.loaded && (
+              <button
+                type="button"
+                onClick={toggleStoreStatus}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all ${
+                  storeStatus.is_open 
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 dark:hover:bg-emerald-900/60' 
+                    : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800 dark:hover:bg-rose-900/60'
+                }`}
+                title="Click to toggle store online/offline"
+                aria-label={`Store is currently ${storeStatus.is_open ? 'Online' : 'Closed'}. Click to toggle.`}
+              >
+                <span className={`w-2.5 h-2.5 rounded-full ${storeStatus.is_open ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+                <span>Store: <strong className="font-extrabold">{storeStatus.is_open ? 'Online & Open' : 'Closed (Offline)'}</strong></span>
+              </button>
+            )}
+
+            {/* Desktop Theme Switcher */}
+            <button
+              type="button"
+              onClick={() => toggleTheme()}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 text-xs font-semibold shadow-sm hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+              aria-label={theme === 'dark' ? 'Switch to Light theme' : 'Switch to Dark theme'}
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {theme === 'dark' ? <Sun size={15} className="text-amber-400" /> : <Moon size={15} className="text-indigo-400" />}
+              <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+            </button>
+
+            {/* Storefront Link */}
+            <a
+              href="/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs font-bold text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 transition-colors px-2 py-1"
+              title="Open customer storefront in a new tab"
+            >
+              View Store ↗
+            </a>
+          </div>
+        </header>
+
         {/* Mobile Header */}
         <header className="flex items-center justify-between h-14 px-3 sm:px-6 bg-white dark:bg-[#0d1322] border-b border-slate-200 dark:border-slate-800 lg:hidden shrink-0 z-30 shadow-sm transition-colors">
           <div className="flex items-center gap-2">
@@ -184,6 +242,7 @@ const OwnerLayout = () => {
               onClick={() => toggleTheme()}
               className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs shadow-sm active:scale-95 transition-all"
               title={theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
+              aria-label={theme === 'dark' ? 'Switch to Light mode' : 'Switch to Dark mode'}
             >
               {theme === 'dark' ? <Sun size={15} className="text-amber-400" /> : <Moon size={15} className="text-indigo-400" />}
             </button>
@@ -198,6 +257,7 @@ const OwnerLayout = () => {
                     : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800'
                 }`}
                 title="Click to toggle store online/offline"
+                aria-label={`Store is ${storeStatus.is_open ? 'Online' : 'Closed'}. Click to toggle.`}
               >
                 <span className={`w-2 h-2 rounded-full ${storeStatus.is_open ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
                 <span>{storeStatus.is_open ? 'Online' : 'Closed'}</span>
@@ -209,6 +269,7 @@ const OwnerLayout = () => {
               onClick={() => setIsHubOpen(true)}
               className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
               title="View all sections"
+              aria-label="Open sections hub"
             >
               <LayoutGrid className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               <span>Hub</span>
@@ -225,13 +286,14 @@ const OwnerLayout = () => {
               <Link
                 key={item.name}
                 to={item.href}
+                aria-current={active ? 'page' : undefined}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shrink-0 ${
                   active
-                    ? 'bg-slate-900 text-white shadow-sm ring-1 ring-slate-900'
-                    : 'bg-slate-100/90 text-slate-600 hover:bg-slate-200 hover:text-slate-900 border border-slate-200/60'
+                    ? 'bg-slate-900 text-white shadow-sm ring-1 ring-slate-900 dark:bg-emerald-500 dark:text-slate-950 dark:ring-emerald-400'
+                    : 'bg-slate-100/90 text-slate-600 hover:bg-slate-200 hover:text-slate-900 border border-slate-200/60 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700/80 dark:hover:bg-slate-700 dark:hover:text-white'
                 }`}
               >
-                <Icon size={13} className={active ? 'text-emerald-400' : 'text-slate-500'} />
+                <Icon size={13} className={active ? 'text-emerald-400 dark:text-slate-950' : 'text-slate-500 dark:text-slate-400'} />
                 <span>{item.name}</span>
               </Link>
             );
@@ -267,6 +329,7 @@ const OwnerLayout = () => {
                 </div>
                 <button 
                   onClick={() => setIsHubOpen(false)}
+                  aria-label="Close hub modal"
                   className="w-8 h-8 rounded-full bg-slate-200/80 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
                 >
                   <X size={16} />

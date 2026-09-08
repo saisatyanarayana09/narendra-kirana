@@ -16,6 +16,9 @@ import {
   Lock,
   Unlock,
   ShieldAlert,
+  Copy,
+  Check,
+  ExternalLink,
 } from 'lucide-react';
 import api from '../../services/api';
 import { createPortal } from 'react-dom';
@@ -34,6 +37,7 @@ const Customers = () => {
   const [selectedCustomerDetail, setSelectedCustomerDetail] = useState(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [actionInProgress, setActionInProgress] = useState(null);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const fetchCustomerDetails = async (id) => {
     try {
@@ -127,6 +131,30 @@ const Customers = () => {
     } catch (err) {
       console.error(err);
       alert(err.response?.data?.error || 'Failed to unlock account.');
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  const handleActivateUser = async (userId, username) => {
+    if (
+      !window.confirm(
+        `Are you sure you want to activate account "${username}"? The customer will immediately be able to log in and shop.`
+      )
+    ) {
+      return;
+    }
+    try {
+      setActionInProgress(userId);
+      await api.post(`/auth/customers/${userId}/activate/`);
+      await fetchCustomers();
+      if (selectedCustomerDetail && selectedCustomerDetail.id === userId) {
+        await fetchCustomerDetails(userId);
+      }
+      alert(`Account "${username}" has been activated successfully!`);
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.error || 'Failed to activate account.');
     } finally {
       setActionInProgress(null);
     }
@@ -626,6 +654,20 @@ const Customers = () => {
                             </button>
                           )}
 
+                          {!customer.is_active && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleActivateUser(customer.id, customer.username);
+                              }}
+                              disabled={actionInProgress === customer.id}
+                              className="text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-colors inline-flex items-center gap-1.5 border border-emerald-200 shadow-sm"
+                              title="Activate Account"
+                            >
+                              <UserCheck size={14} /> Activate
+                            </button>
+                          )}
+
                           {customer.is_active && !customer.is_locked && (
                             <button
                               onClick={(e) => {
@@ -816,6 +858,64 @@ const Customers = () => {
                         </div>
                       </div>
                     </div>
+
+                    {/* Inactive Account Activation Card */}
+                    {!selectedCustomerDetail.is_active && (
+                      <div className="p-4 rounded-xl border bg-amber-50/70 border-amber-200 space-y-3">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5">
+                            <AlertTriangle size={18} className="text-amber-600 shrink-0" />
+                            <div>
+                              <div className="text-xs font-extrabold text-amber-900 uppercase tracking-wider">
+                                Account Inactive (Pending Verification)
+                              </div>
+                              <div className="text-xs text-amber-700 mt-0.5">
+                                This customer has not activated their account yet.
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleActivateUser(selectedCustomerDetail.id, selectedCustomerDetail.username)}
+                            disabled={actionInProgress === selectedCustomerDetail.id}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm transition shrink-0"
+                          >
+                            <UserCheck size={14} /> Activate Account
+                          </button>
+                        </div>
+
+                        {selectedCustomerDetail.activation_link && (
+                          <div className="pt-2 border-t border-amber-200/70 space-y-1.5">
+                            <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider block">
+                              Account Activation Link:
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                readOnly
+                                value={selectedCustomerDetail.activation_link}
+                                className="w-full bg-white border border-amber-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 font-mono select-all outline-none"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(selectedCustomerDetail.activation_link);
+                                  setCopiedLink(true);
+                                  setTimeout(() => setCopiedLink(false), 2000);
+                                }}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 bg-white hover:bg-amber-100 border border-amber-300 text-amber-900 rounded-lg text-xs font-bold transition shrink-0 shadow-2xs"
+                                title="Copy link to clipboard"
+                              >
+                                {copiedLink ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+                                <span>{copiedLink ? 'Copied!' : 'Copy Link'}</span>
+                              </button>
+                            </div>
+                            <p className="text-[11px] text-amber-700">
+                              You can copy this link and send it directly to the customer via WhatsApp or SMS.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Account Security & Brute-Force Lockout Card */}
                     <div className={`p-4 rounded-xl border space-y-3 ${selectedCustomerDetail.is_locked ? 'bg-rose-50/70 border-rose-200' : 'bg-slate-50 border-slate-200'}`}>

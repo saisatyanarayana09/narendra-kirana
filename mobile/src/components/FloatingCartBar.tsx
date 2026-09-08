@@ -4,12 +4,15 @@ import {
   Text, 
   StyleSheet, 
   TouchableOpacity, 
-  Animated 
+  Animated,
+  Platform
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useCart } from '../context/CartContext';
 import { triggerHaptic } from '../utils/haptics';
+
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 interface FloatingCartBarProps {
   bottomOffset: number;
@@ -62,14 +65,14 @@ export function FloatingCartBar({ bottomOffset, onPress, onClose, currentRouteNa
       Animated.parallel([
         Animated.spring(slideAnim, {
           toValue: 0,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
           tension: 70,
           friction: 9,
         }),
         Animated.timing(opacityAnim, {
           toValue: 1,
           duration: 250,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
       ]).start();
 
@@ -78,12 +81,12 @@ export function FloatingCartBar({ bottomOffset, onPress, onClose, currentRouteNa
         Animated.timing(pulseAnim, {
           toValue: 1.04,
           duration: 150,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
           duration: 150,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
       ]).start();
 
@@ -124,12 +127,12 @@ export function FloatingCartBar({ bottomOffset, onPress, onClose, currentRouteNa
       Animated.timing(slideAnim, {
         toValue: 80,
         duration: 250,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
       }),
       Animated.timing(opacityAnim, {
         toValue: 0,
         duration: 250,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
       }),
     ]).start(() => {
       onClose();
@@ -149,7 +152,6 @@ export function FloatingCartBar({ bottomOffset, onPress, onClose, currentRouteNa
           ],
         },
       ]}
-      pointerEvents="box-none"
     >
       <TouchableOpacity
         activeOpacity={0.94}
@@ -257,6 +259,7 @@ const styles = StyleSheet.create({
     right: 12,
     zIndex: 99999,
     elevation: 20,
+    pointerEvents: 'box-none' as any,
   },
   touchableCard: {
     borderRadius: 20,

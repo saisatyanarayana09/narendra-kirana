@@ -6,10 +6,13 @@ import {
   Animated, 
   TouchableOpacity, 
   Image,
-  Modal
+  Modal,
+  Platform
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 import { 
   getHasShownWelcomeSession, 
   setHasShownWelcomeSession, 
@@ -59,18 +62,18 @@ export function WelcomeScreen({ forceShow = false, onStart, onFinish }: WelcomeS
       Animated.timing(mainFadeAnim, {
         toValue: 1,
         duration: 300,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
       }).start();
 
       // Staggered entrance
       Animated.stagger(150, [
         Animated.parallel([
-          Animated.spring(logoScaleAnim, { toValue: 1, tension: 50, friction: 7, useNativeDriver: true }),
-          Animated.spring(logoTranslateYAnim, { toValue: 0, tension: 50, friction: 7, useNativeDriver: true }),
-          Animated.timing(logoFadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+          Animated.spring(logoScaleAnim, { toValue: 1, tension: 50, friction: 7, useNativeDriver: USE_NATIVE_DRIVER }),
+          Animated.spring(logoTranslateYAnim, { toValue: 0, tension: 50, friction: 7, useNativeDriver: USE_NATIVE_DRIVER }),
+          Animated.timing(logoFadeAnim, { toValue: 1, duration: 400, useNativeDriver: USE_NATIVE_DRIVER }),
         ]),
-        Animated.timing(brandFadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
-        Animated.timing(greetingFadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.timing(brandFadeAnim, { toValue: 1, duration: 400, useNativeDriver: USE_NATIVE_DRIVER }),
+        Animated.timing(greetingFadeAnim, { toValue: 1, duration: 400, useNativeDriver: USE_NATIVE_DRIVER }),
       ]).start();
 
       const timer = setTimeout(() => {
@@ -85,7 +88,7 @@ export function WelcomeScreen({ forceShow = false, onStart, onFinish }: WelcomeS
     Animated.timing(mainFadeAnim, {
       toValue: 0,
       duration: 500,
-      useNativeDriver: true,
+      useNativeDriver: USE_NATIVE_DRIVER,
     }).start(() => {
       setVisible(false);
       if (onFinish) onFinish();

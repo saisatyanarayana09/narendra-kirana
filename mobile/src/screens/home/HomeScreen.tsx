@@ -6,20 +6,23 @@ import {
   ScrollView, 
   RefreshControl, 
   TouchableOpacity, 
-  Dimensions,
-  FlatList,
-  Alert,
-  Platform,
-  Animated,
-  Easing,
-  Linking as RNLinking
+  Dimensions, 
+  FlatList, 
+  Alert, 
+  Platform, 
+  Animated, 
+  Easing, 
+  Modal, 
+  Linking as RNLinking 
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
 import { theme } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
@@ -150,31 +153,43 @@ const AnnouncementMarqueeBar = React.memo(function AnnouncementMarqueeBar({
 }: AnnouncementMarqueeBarProps) {
   const animatedX = useRef(new Animated.Value(0)).current;
   const [textWidth, setTextWidth] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
   const screenWidth = Dimensions.get('window').width;
+  const animRef = useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
-    if (textWidth > 0) {
+    if (textWidth > 0 && !isPaused) {
       animatedX.setValue(screenWidth);
       const distance = textWidth + screenWidth;
       const speed = 45; // pixels per second
       const duration = (distance / speed) * 1000;
 
-      const animation = Animated.loop(
+      animRef.current = Animated.loop(
         Animated.timing(animatedX, {
           toValue: -textWidth,
           duration,
           easing: Easing.linear,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         })
       );
-      animation.start();
+      animRef.current.start();
 
-      return () => animation.stop();
+      return () => {
+        if (animRef.current) animRef.current.stop();
+      };
     }
-  }, [textWidth, screenWidth, animatedX]);
+  }, [textWidth, screenWidth, animatedX, isPaused]);
 
   return (
-    <View style={[styles.marqueeBar, { backgroundColor: bgColor }]}>
+    <TouchableOpacity 
+      activeOpacity={0.95}
+      onPressIn={() => {
+        if (animRef.current) animRef.current.stop();
+        setIsPaused(true);
+      }}
+      onPressOut={() => setIsPaused(false)}
+      style={[styles.marqueeBar, { backgroundColor: bgColor }]}
+    >
       <View style={styles.marqueeIconWrap}>
         <Feather name="volume-2" size={14} color={textColor} />
       </View>
@@ -195,7 +210,7 @@ const AnnouncementMarqueeBar = React.memo(function AnnouncementMarqueeBar({
           </Text>
         </Animated.View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 });
 
@@ -203,6 +218,7 @@ export function HomeScreen({ navigation }: Props) {
   const { user } = useAuth();
   const { addToCart } = useCart();
   const { colors, isDark } = useTheme();
+  const { t } = useLanguage();
   
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -210,6 +226,24 @@ export function HomeScreen({ navigation }: Props) {
   const [banners, setBanners] = useState<any[]>([]);
   const [sections, setSections] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
+  const [festiveModalVisible, setFestiveModalVisible] = useState(false);
+
+  useEffect(() => {
+    if (settings?.enable_festive_popup) {
+      AsyncStorage.getItem('festive_popup_seen').then((seen) => {
+        if (!seen) {
+          setFestiveModalVisible(true);
+        }
+      });
+    }
+  }, [settings?.enable_festive_popup]);
+
+  const handleDismissFestive = async () => {
+    setFestiveModalVisible(false);
+    try {
+      await AsyncStorage.setItem('festive_popup_seen', 'true');
+    } catch {}
+  };
 
   const nowTime = Date.now();
   const startDateValid = !settings?.announcement_start_date || new Date(settings.announcement_start_date).getTime() <= nowTime;
@@ -464,7 +498,7 @@ export function HomeScreen({ navigation }: Props) {
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
             <Feather name="search" size={16} color={colors.textSecondary} />
-            <Text style={[styles.searchPlaceholder, { color: colors.textSecondary }]} numberOfLines={1}>Search products...</Text>
+            <Text style={[styles.searchPlaceholder, { color: colors.textSecondary }]} numberOfLines={1}>{t('searchPlaceholder')}</Text>
           </View>
           <View style={{ padding: 4 }}>
             <Feather name="mic" size={15} color={colors.primary} />
@@ -524,7 +558,7 @@ export function HomeScreen({ navigation }: Props) {
                 activeOpacity={0.9}
                 onPress={() => navigation.navigate('CategoriesTab', { screen: 'CategoriesScreen' })}
               >
-                <Text style={[styles.exploreCatalogText, isDark && { color: colors.text }]}>Explore Catalog</Text>
+                <Text style={[styles.exploreCatalogText, isDark && { color: colors.text }]}>{t('exploreCatalog')}</Text>
                 <Feather name="chevron-right" size={16} color={isDark ? colors.text : "#0F172A"} />
               </TouchableOpacity>
             </View>
@@ -535,12 +569,12 @@ export function HomeScreen({ navigation }: Props) {
         {categories.length > 0 && (
           <View style={styles.sectionContainer}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Shop by category</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('shopByCategory')}</Text>
               <TouchableOpacity 
                 style={styles.seeAllBtn}
                 onPress={() => navigation.navigate('CategoriesTab')}
               >
-                <Text style={[styles.seeAllText, { color: colors.textSecondary }]}>See all →</Text>
+                <Text style={[styles.seeAllText, { color: colors.textSecondary }]}>{t('seeAll')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -597,7 +631,7 @@ export function HomeScreen({ navigation }: Props) {
                     }
                   }}
                 >
-                  <Text style={[styles.seeAllText, { color: colors.textSecondary }]}>See all →</Text>
+                  <Text style={[styles.seeAllText, { color: colors.textSecondary }]}>{t('seeAll')}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -614,7 +648,7 @@ export function HomeScreen({ navigation }: Props) {
                 removeClippedSubviews={Platform.OS === 'android'}
                 getItemLayout={(_, index) => ({
                   length: 160 + 12,
-                  offset: (160 + 12) * index,
+                  offset: 16 + (160 + 12) * index,
                   index,
                 })}
                 renderItem={({ item }) => (
@@ -644,6 +678,60 @@ export function HomeScreen({ navigation }: Props) {
         >
           <Ionicons name="logo-whatsapp" size={28} color="#FFFFFF" />
         </TouchableOpacity>
+      )}
+
+      {/* Festive Popup Modal */}
+      {festiveModalVisible && (
+        <Modal
+          visible={festiveModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={handleDismissFestive}
+        >
+          <View style={styles.festiveModalOverlay}>
+            <View style={[styles.festiveCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              {/* Close Button */}
+              <TouchableOpacity 
+                style={[styles.festiveCloseBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : '#F1F5F9' }]}
+                onPress={handleDismissFestive}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Feather name="x" size={18} color={colors.text} />
+              </TouchableOpacity>
+
+              {/* Optional Festive Banner Image */}
+              {settings?.festive_popup_image ? (
+                <Image
+                  source={{ uri: fixImageUrl(settings.festive_popup_image) }}
+                  style={styles.festiveBannerImage}
+                  contentFit="cover"
+                />
+              ) : null}
+
+              <View style={styles.festiveBody}>
+                <View style={styles.festiveIconWrap}>
+                  <Text style={{ fontSize: 32 }}>🪔</Text>
+                </View>
+                <Text style={[styles.festiveTitle, { color: colors.text }]}>
+                  {settings?.festive_popup_title || 'Special Festive Offer!'}
+                </Text>
+                <Text style={[styles.festiveContent, { color: colors.textSecondary }]}>
+                  {settings?.festive_popup_content || 'Enjoy special savings and festive discounts on your grocery orders today!'}
+                </Text>
+                <TouchableOpacity
+                  style={[styles.festiveActionBtn, { backgroundColor: colors.primary }]}
+                  onPress={() => {
+                    handleDismissFestive();
+                    navigation.navigate('CategoriesTab', { screen: 'ProductListScreen', params: {} });
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.festiveActionBtnText}>Explore Offers Now</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       )}
     </SafeAreaView>
   );
@@ -941,5 +1029,71 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 6,
     zIndex: 999,
+  },
+  festiveModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  festiveCard: {
+    width: '100%',
+    maxWidth: 360,
+    borderRadius: 24,
+    overflow: 'hidden',
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+    position: 'relative',
+  },
+  festiveCloseBtn: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 20,
+  },
+  festiveBannerImage: {
+    width: '100%',
+    height: 150,
+  },
+  festiveBody: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  festiveIconWrap: {
+    marginBottom: 12,
+  },
+  festiveTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  festiveContent: {
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  festiveActionBtn: {
+    width: '100%',
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  festiveActionBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
   },
 });

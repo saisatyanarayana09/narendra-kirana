@@ -5,11 +5,12 @@ import { getItem, saveItem, deleteItem } from '../utils/storage';
 
 export interface CustomRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
+  _retryCount?: number;
 }
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15000, // 15s network timeout to avoid hanging connections
+  timeout: 45000, // 45s network timeout to comfortably accommodate free-tier backend cold starts
   headers: {
     'Content-Type': 'application/json',
   },
@@ -82,6 +83,7 @@ apiClient.interceptors.response.use(
       // 1. Handle Network Timeout and Disconnect Errors (ECONNABORTED, ERR_NETWORK, etc.)
       const isTimeout =
         error?.code === 'ECONNABORTED' ||
+        error?.code === 'ETIMEDOUT' ||
         error?.message?.toLowerCase().includes('timeout');
 
       const isNetworkError =
@@ -90,6 +92,25 @@ apiClient.interceptors.response.use(
         error?.code === 'ECONNREFUSED' ||
         error?.message?.toLowerCase().includes('network') ||
         (!error?.response && Boolean(error?.request));
+
+      const originalRequest = error?.config as CustomRequestConfig | undefined;
+
+      // Automatic retry for idempotent or cold-start waking up requests (max 2 retries)
+      if (originalRequest && (isTimeout || isNetworkError)) {
+        const method = (originalRequest.method || 'get').toLowerCase();
+        const isSafeMethod = ['get', 'head', 'options'].includes(method);
+        const maxRetries = 2;
+
+        originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
+        if (isSafeMethod && originalRequest._retryCount <= maxRetries) {
+          const delayMs = originalRequest._retryCount * 1500;
+          console.log(
+            `[ApiClient] Backend waking up or transient network hiccup. Retrying ${originalRequest.url} (attempt ${originalRequest._retryCount}/${maxRetries}) in ${delayMs}ms...`
+          );
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+          return apiClient(originalRequest);
+        }
+      }
 
       if (isTimeout || isNetworkError) {
         // Tag error with structured flags
@@ -124,8 +145,6 @@ apiClient.interceptors.response.use(
         );
         return Promise.reject(error);
       }
-
-      const originalRequest = error?.config as CustomRequestConfig | undefined;
 
       // If no config or error has no response, reject cleanly
       if (!originalRequest || !error?.response) {
@@ -180,7 +199,7 @@ apiClient.interceptors.response.use(
             `${API_BASE_URL}/auth/token/refresh/`,
             { refresh: refreshToken },
             {
-              timeout: 10000,
+              timeout: 30000,
               headers: { 'Content-Type': 'application/json' },
             }
           );

@@ -23,7 +23,7 @@ import { triggerHaptic } from '../../utils/haptics';
 export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { cart, isLoading, updateQuantity, removeFromCart, applyPromo, removePromo, storeSettings } = useCart();
+  const { cart, isLoading, updateQuantity, removeFromCart, clearCart, applyPromo, removePromo, storeSettings } = useCart();
   const { colors, isDark } = useTheme();
   const [promoCode, setPromoCode] = useState('');
   const [promoError, setPromoError] = useState('');
@@ -63,7 +63,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
             onPress={() => navigation.navigate('HomeTab')}
             activeOpacity={0.85}
           >
-            <Text style={styles.startShoppingBtnText}>Start shopping</Text>
+            <Text style={styles.startShoppingText}>Start shopping</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -85,9 +85,23 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
   };
 
   const isStoreClosed = storeSettings?.is_open === false;
+  const isEmergencyPaused = Boolean(storeSettings?.is_emergency_paused);
+  const emergencyPauseMessage = storeSettings?.emergency_pause_message || "We are currently experiencing high order volume and will resume shortly. Thank you for your patience!";
   const minOrderAmount = parseFloat(storeSettings?.min_order_amount || '0') || 0;
   const cartSubtotal = parseFloat(cart?.subtotal || '0') || 0;
   const isBelowMinOrder = minOrderAmount > 0 && cartSubtotal < minOrderAmount;
+  const minOrderShortfall = Math.max(0, minOrderAmount - cartSubtotal);
+
+  const outOfStockItems = items.filter((item) => {
+    const stockQty = item.stock_quantity ?? item.product?.stock_quantity ?? 999;
+    const inStock = item.is_in_stock !== false && item.product?.is_in_stock !== false;
+    return !inStock || stockQty <= 0;
+  });
+  const hasOutOfStock = outOfStockItems.length > 0;
+
+  const freeDeliveryThreshold = parseFloat(storeSettings?.free_delivery_threshold || '0') || 0;
+  const freeDeliveryGap = Math.max(0, freeDeliveryThreshold - cartSubtotal);
+  const freeDeliveryProgress = freeDeliveryThreshold > 0 ? Math.min(100, Math.round((cartSubtotal / freeDeliveryThreshold) * 100)) : 100;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -102,24 +116,94 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
           <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Your cart</Text>
+        {items.length > 0 && (
+          <TouchableOpacity
+            style={styles.clearBtn}
+            onPress={() => {
+              triggerHaptic('warning');
+              Alert.alert('Clear Cart', 'Are you sure you want to remove all items from your cart?', [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Clear All', style: 'destructive', onPress: () => clearCart() },
+              ]);
+            }}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Feather name="trash-2" size={15} color={isDark ? '#F87171' : '#EF4444'} />
+            <Text style={[styles.clearBtnText, { color: isDark ? '#F87171' : '#EF4444' }]}>Clear</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <ScrollView 
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={[styles.scrollContent, { paddingBottom: items.length > 0 ? 115 + insets.bottom : 30 }]}
       >
-        {/* Store Closed or Minimum Order Warning */}
+        {/* Out of Stock Warning Banner */}
+        {hasOutOfStock && (
+          <View style={styles.outOfStockBanner}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+              <Feather name="alert-circle" size={15} color="#DC2626" />
+              <Text style={styles.outOfStockBannerTitle}>Action Required: Out of Stock</Text>
+            </View>
+            <Text style={styles.outOfStockBannerText}>
+              {outOfStockItems.length === 1 
+                ? `1 item in your cart is currently out of stock. Please remove it to proceed to checkout.`
+                : `${outOfStockItems.length} items in your cart are currently out of stock. Please remove them to proceed.`}
+            </Text>
+          </View>
+        )}
+
+        {/* Emergency Pause Warning */}
+        {isEmergencyPaused && (
+          <View style={styles.emergencyWarning}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <Feather name="alert-triangle" size={16} color="#B45309" />
+              <Text style={styles.emergencyWarningTitle}>Ordering Temporarily Paused</Text>
+            </View>
+            <Text style={styles.emergencyWarningText}>{emergencyPauseMessage}</Text>
+          </View>
+        )}
+
+        {/* Store Closed Warning */}
         {isStoreClosed && (
           <View style={styles.closedWarning}>
             <Text style={styles.closedWarningText}>The store is currently closed.</Text>
           </View>
         )}
 
+        {/* Minimum Order Shortfall Warning */}
         {isBelowMinOrder && (
           <View style={styles.minOrderWarning}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+              <Feather name="info" size={14} color="#B45309" />
+              <Text style={styles.minOrderWarningTitle}>Minimum Order Required</Text>
+            </View>
             <Text style={styles.minOrderWarningText}>
-              Minimum order amount is ₹{(minOrderAmount || 0).toFixed(2)}
+              Minimum order is ₹{(minOrderAmount || 0).toFixed(2)}. Add ₹{minOrderShortfall.toFixed(2)} more to checkout.
             </Text>
+          </View>
+        )}
+
+        {/* Free Delivery Motivational Progress Bar */}
+        {freeDeliveryThreshold > 0 && (
+          <View style={[styles.freeDeliveryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Feather name="truck" size={15} color={freeDeliveryGap === 0 ? '#10B981' : colors.primary} />
+                <Text style={[styles.freeDeliveryText, { color: colors.text }]}>
+                  {freeDeliveryGap === 0
+                    ? '🎉 You unlocked FREE Delivery!'
+                    : `Add ₹${freeDeliveryGap.toFixed(2)} more for FREE Delivery`}
+                </Text>
+              </View>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: freeDeliveryGap === 0 ? '#10B981' : colors.textSecondary }}>
+                {freeDeliveryGap === 0 ? 'FREE' : `₹${cartSubtotal.toFixed(0)} / ₹${freeDeliveryThreshold.toFixed(0)}`}
+              </Text>
+            </View>
+            <View style={[styles.progressTrack, { backgroundColor: colors.inputBg }]}>
+              <View style={[styles.progressBar, { width: `${freeDeliveryProgress}%`, backgroundColor: freeDeliveryGap === 0 ? '#10B981' : colors.primary }]} />
+            </View>
           </View>
         )}
 
@@ -228,14 +312,24 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
           </View>
 
           {/* Store status banners in summary */}
-          {isStoreClosed ? (
+          {hasOutOfStock ? (
+            <View style={styles.summaryWarningOutOfStock}>
+              <Feather name="alert-circle" size={14} color="#DC2626" />
+              <Text style={styles.summaryWarningOutOfStockText}>Some items in your cart are currently out of stock.</Text>
+            </View>
+          ) : isEmergencyPaused ? (
+            <View style={styles.summaryWarningEmergency}>
+              <Feather name="alert-triangle" size={14} color="#B45309" />
+              <Text style={styles.summaryWarningEmergencyText}>Ordering is temporarily paused by the store.</Text>
+            </View>
+          ) : isStoreClosed ? (
             <View style={styles.summaryWarningClosed}>
               <Text style={styles.summaryWarningClosedText}>The store is currently closed.</Text>
             </View>
           ) : isBelowMinOrder ? (
             <View style={styles.summaryWarningMinOrder}>
               <Text style={styles.summaryWarningMinOrderText}>
-                Minimum order amount is ₹{(minOrderAmount || 0).toFixed(2)}
+                Minimum order is ₹{(minOrderAmount || 0).toFixed(2)} (Add ₹{minOrderShortfall.toFixed(2)} more)
               </Text>
             </View>
           ) : (
@@ -247,49 +341,83 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
         </View>
       </ScrollView>
 
-      {/* Sticky Bottom Checkout Bar – The ONLY checkout action */}
-      {!isStoreClosed && !isBelowMinOrder && items.length > 0 && (
+      {/* Sticky Bottom Checkout Bar – Always visible with clear disabled state */}
+      {items.length > 0 && (
         <View style={[styles.bottomBar, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 12) }]}>
           <View>
             <Text style={[styles.bottomTotalLabel, { color: colors.textSecondary }]}>TOTAL DUE</Text>
             <Text style={[styles.bottomTotalValue, { color: colors.text }]}>₹{(parseFloat(cart.total || '0') || 0).toFixed(2)}</Text>
           </View>
 
-          <TouchableOpacity 
-            style={styles.checkoutBtn}
-            onPress={() => {
-              if (!user) {
-                triggerHaptic('light');
-                Alert.alert(
-                  'Sign In Required',
-                  'Please sign in or create an account to place your order. Your cart items will be saved!',
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    {
-                      text: 'Sign In',
-                      onPress: () => {
-                        navigation.navigate('Login' as any);
+          {hasOutOfStock ? (
+            <TouchableOpacity 
+              style={[styles.checkoutBtn, styles.disabledCheckoutBtn]}
+              onPress={() => Alert.alert('Out of Stock', 'Please remove the out-of-stock items from your cart to proceed to checkout.')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.checkoutBtnText}>Remove Out of Stock</Text>
+            </TouchableOpacity>
+          ) : isEmergencyPaused ? (
+            <TouchableOpacity 
+              style={[styles.checkoutBtn, styles.disabledCheckoutBtn]}
+              onPress={() => Alert.alert('Orders Temporarily Paused', emergencyPauseMessage)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.checkoutBtnText}>Orders Paused</Text>
+            </TouchableOpacity>
+          ) : isStoreClosed ? (
+            <TouchableOpacity 
+              style={[styles.checkoutBtn, styles.disabledCheckoutBtn]}
+              onPress={() => Alert.alert('Store Closed', 'The store is currently closed and not accepting new orders.')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.checkoutBtnText}>Store Closed</Text>
+            </TouchableOpacity>
+          ) : isBelowMinOrder ? (
+            <TouchableOpacity 
+              style={[styles.checkoutBtn, styles.disabledCheckoutBtn]}
+              onPress={() => Alert.alert('Minimum Order Required', `Please add ₹${minOrderShortfall.toFixed(2)} more to reach the minimum order amount of ₹${minOrderAmount.toFixed(2)}.`)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.checkoutBtnText}>Add ₹{minOrderShortfall.toFixed(2)} More</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity 
+              style={styles.checkoutBtn}
+              onPress={() => {
+                if (!user) {
+                  triggerHaptic('light');
+                  Alert.alert(
+                    'Sign In Required',
+                    'Please sign in or create an account to place your order. Your cart items will be saved!',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Sign In',
+                        onPress: () => {
+                          navigation.navigate('Login' as any);
+                        },
                       },
-                    },
-                  ]
-                );
-                return;
-              }
-              triggerHaptic('selection');
-              navigation.navigate('CheckoutScreen');
-            }}
-            disabled={isLoading}
-            activeOpacity={0.9}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (
-              <View style={styles.checkoutBtnContent}>
-                <Text style={styles.checkoutBtnText}>Checkout</Text>
-                <Feather name="arrow-right" size={16} color="#FFFFFF" />
-              </View>
-            )}
-          </TouchableOpacity>
+                    ]
+                  );
+                  return;
+                }
+                triggerHaptic('selection');
+                navigation.navigate('CheckoutScreen');
+              }}
+              disabled={isLoading}
+              activeOpacity={0.9}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <View style={styles.checkoutBtnContent}>
+                  <Text style={styles.checkoutBtnText}>Checkout</Text>
+                  <Feather name="arrow-right" size={16} color="#FFFFFF" />
+                </View>
+              )}
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </SafeAreaView>
@@ -307,6 +435,59 @@ const styles: any = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
+    position: 'relative',
+  },
+  clearBtn: {
+    position: 'absolute',
+    right: 16,
+    bottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    backgroundColor: '#FEF2F2',
+  },
+  clearBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#EF4444',
+  },
+  outOfStockBanner: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FCA5A5',
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+  },
+  outOfStockBannerTitle: {
+    color: '#DC2626',
+    fontWeight: '800',
+    fontSize: 14,
+  },
+  outOfStockBannerText: {
+    color: '#991B1B',
+    fontWeight: '600',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  summaryWarningOutOfStock: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FCA5A5',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 12,
+  },
+  summaryWarningOutOfStockText: {
+    color: '#DC2626',
+    fontWeight: '700',
+    fontSize: 12,
+    flex: 1,
   },
   backButton: {
     flexDirection: 'row',
@@ -388,6 +569,25 @@ const styles: any = StyleSheet.create({
     fontWeight: '700',
     fontSize: 14,
   },
+  emergencyWarning: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FCD34D',
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+  },
+  emergencyWarningTitle: {
+    color: '#B45309',
+    fontWeight: '800',
+    fontSize: 14,
+  },
+  emergencyWarningText: {
+    color: '#92400E',
+    fontWeight: '500',
+    fontSize: 13,
+    lineHeight: 18,
+  },
   minOrderWarning: {
     backgroundColor: '#FFFBEB',
     borderColor: '#FEF3C7',
@@ -395,12 +595,36 @@ const styles: any = StyleSheet.create({
     borderRadius: 14,
     padding: 14,
     marginBottom: 14,
-    alignItems: 'center',
+  },
+  minOrderWarningTitle: {
+    color: '#B45309',
+    fontWeight: '800',
+    fontSize: 13,
   },
   minOrderWarningText: {
     color: '#B45309',
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: 13,
+  },
+  freeDeliveryCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 12,
+    marginBottom: 14,
+  },
+  freeDeliveryText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  progressTrack: {
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginTop: 2,
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: 3,
   },
   section: {
     marginBottom: 8,
@@ -566,6 +790,23 @@ const styles: any = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
   },
+  summaryWarningEmergency: {
+    marginTop: 16,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  summaryWarningEmergencyText: {
+    color: '#B45309',
+    fontWeight: '700',
+    fontSize: 13,
+    flex: 1,
+  },
   summaryWarningMinOrder: {
     marginTop: 16,
     backgroundColor: '#FFFBEB',
@@ -646,6 +887,11 @@ const styles: any = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 3,
     elevation: 3,
+  },
+  disabledCheckoutBtn: {
+    backgroundColor: '#94A3B8',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   checkoutBtnText: {
     color: '#FFFFFF',

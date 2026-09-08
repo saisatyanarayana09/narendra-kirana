@@ -5,8 +5,8 @@ from .views import (
     OwnerCustomerDetailView, RequestDeleteView, ApproveDeleteView, RejectDeleteView,
     PasswordResetRequestView, PasswordResetConfirmView, PasswordResetOTPConfirmView,
     PasswordResetVerifyOTPView, PasswordResetValidateTokenView,
-    AdminUnlockUserView, AdminLockUserView,
-    VerifyEmailView, CustomerSignupView, CustomTokenObtainPairView, ProfileView,
+    AdminUnlockUserView, AdminLockUserView, AdminActivateUserView,
+    VerifyEmailView, ResendActivationEmailView, CustomerSignupView, CustomTokenObtainPairView, ProfileView,
     CustomerListView, AddressViewSet, WalletView, GoogleOwnerLoginView, admin_google_login,
     ReferralLookupView, LogoutView
 )
@@ -22,6 +22,7 @@ urlpatterns = [
     path('customers/<int:user_id>/reject-delete/', RejectDeleteView.as_view(), name='reject-delete'),
     path('customers/<int:user_id>/unlock/', AdminUnlockUserView.as_view(), name='admin-unlock-user'),
     path('customers/<int:user_id>/lock/', AdminLockUserView.as_view(), name='admin-lock-user'),
+    path('customers/<int:user_id>/activate/', AdminActivateUserView.as_view(), name='admin-activate-user'),
 
     path('password-reset/', PasswordResetRequestView.as_view(), name='password-reset'),
     path('password-reset/validate-token/', PasswordResetValidateTokenView.as_view(), name='password-reset-validate-token'),
@@ -29,6 +30,7 @@ urlpatterns = [
     path('password-reset-confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
     path('password-reset/otp-confirm/', PasswordResetOTPConfirmView.as_view(), name='password-reset-otp-confirm'),
     path('verify-email/', VerifyEmailView.as_view(), name='verify-email'),
+    path('resend-activation/', ResendActivationEmailView.as_view(), name='resend-activation'),
 
     path('signup/', CustomerSignupView.as_view(), name='signup'),
     path('referral-lookup/', ReferralLookupView.as_view(), name='referral-lookup'),

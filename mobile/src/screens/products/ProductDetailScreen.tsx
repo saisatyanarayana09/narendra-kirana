@@ -214,7 +214,7 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
         {/* Product Image */}
         <View style={[styles.imageContainer, { backgroundColor: isDark ? colors.surface : '#F8FAFC' }]}>
           {discountPercent > 0 && (
-            <View style={[styles.discountBadge, { top: insets.top + 56 }]}>
+            <View style={styles.discountBadge}>
               <Feather name="zap" size={10} color="#FFFFFF" />
               <Text style={styles.discountBadgeText}>{discountPercent}% OFF</Text>
             </View>
@@ -230,7 +230,9 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
 
           {!product.is_in_stock && (
             <View style={styles.outOfStockOverlay}>
-              <Text style={styles.outOfStockText}>OUT OF STOCK</Text>
+              <View style={styles.outOfStockBadge}>
+                <Text style={styles.outOfStockText}>OUT OF STOCK</Text>
+              </View>
             </View>
           )}
         </View>
@@ -431,8 +433,8 @@ const styles = StyleSheet.create({
   },
   discountBadge: {
     position: 'absolute',
-    top: 16,
-    left: 16,
+    top: 14,
+    left: 14,
     zIndex: 10,
     backgroundColor: '#DC2626',
     flexDirection: 'row',
@@ -449,13 +451,22 @@ const styles = StyleSheet.create({
   },
   outOfStockOverlay: {
     position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: [{ translateX: -60 }, { translateY: -15 }],
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.35)',
+    zIndex: 15,
+  },
+  outOfStockBadge: {
+    backgroundColor: 'rgba(15, 23, 42, 0.9)',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   outOfStockText: {
     color: '#FFFFFF',

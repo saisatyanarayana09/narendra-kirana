@@ -107,73 +107,80 @@ export default function Sales() {
     document.body.removeChild(a);
   };
 
-  if (loading) return <div className="p-8 text-slate-500 text-center">Loading sales data...</div>;
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto py-12 text-slate-500 dark:text-slate-400 text-center font-medium">
+        Loading sales data...
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 bg-white dark:bg-[#0d1322] p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 transition-colors">
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-            <TrendingUp className="text-emerald-600" size={32} />
+          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+            <TrendingUp className="text-emerald-600 dark:text-emerald-400" size={32} />
             Sales Analytics
           </h1>
-          <p className="text-slate-500 mt-1">Track your store's performance and top selling items.</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">Track your store's performance and top selling items.</p>
         </div>
         
         <div className="flex items-center gap-3">
-          <div className="bg-slate-100 p-1 rounded-lg inline-flex">
-            <button onClick={() => setTimeframe('7')} className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all ${timeframe === '7' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>7 Days</button>
-            <button onClick={() => setTimeframe('30')} className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all ${timeframe === '30' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>30 Days</button>
-            <button onClick={() => setTimeframe('all')} className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all ${timeframe === 'all' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>All Time</button>
+          <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl inline-flex">
+            <button onClick={() => setTimeframe('7')} className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${timeframe === '7' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>7 Days</button>
+            <button onClick={() => setTimeframe('30')} className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${timeframe === '30' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>30 Days</button>
+            <button onClick={() => setTimeframe('all')} className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${timeframe === 'all' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>All Time</button>
           </div>
           <button 
             onClick={handleDownloadCSV}
-            className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-emerald-700 transition-colors"
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl font-bold transition-colors shadow-sm text-sm"
           >
-            <Download size={18} />
+            <Download size={16} />
             Export CSV
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
-          <div className="p-4 bg-emerald-50 rounded-xl text-emerald-600"><IndianRupee size={28} /></div>
+        <div className="bg-white dark:bg-[#0d1322] p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center gap-4 transition-colors">
+          <div className="p-4 bg-emerald-50 dark:bg-emerald-950/60 rounded-xl text-emerald-600 dark:text-emerald-400"><IndianRupee size={28} /></div>
           <div>
-            <p className="text-sm font-bold text-slate-500">Gross Revenue</p>
-            <p className="text-3xl font-black text-slate-900 mt-1">₹{totalSales.toLocaleString()}</p>
+            <p className="text-sm font-bold text-slate-500 dark:text-slate-400">Gross Revenue</p>
+            <p className="text-3xl font-black text-slate-900 dark:text-white mt-1">₹{totalSales.toLocaleString('en-IN')}</p>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
-          <div className="p-4 bg-indigo-50 rounded-xl text-indigo-600"><ShoppingCart size={28} /></div>
+        <div className="bg-white dark:bg-[#0d1322] p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center gap-4 transition-colors">
+          <div className="p-4 bg-indigo-50 dark:bg-indigo-950/60 rounded-xl text-indigo-600 dark:text-indigo-400"><ShoppingCart size={28} /></div>
           <div>
-            <p className="text-sm font-bold text-slate-500">Completed Orders</p>
-            <p className="text-3xl font-black text-slate-900 mt-1">{totalOrders}</p>
+            <p className="text-sm font-bold text-slate-500 dark:text-slate-400">Completed Orders</p>
+            <p className="text-3xl font-black text-slate-900 dark:text-white mt-1">{totalOrders}</p>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
-          <div className="p-4 bg-amber-50 rounded-xl text-amber-600"><Trophy size={28} /></div>
+        <div className="bg-white dark:bg-[#0d1322] p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center gap-4 transition-colors">
+          <div className="p-4 bg-amber-50 dark:bg-amber-950/60 rounded-xl text-amber-600 dark:text-amber-400"><Trophy size={28} /></div>
           <div>
-            <p className="text-sm font-bold text-slate-500">Average Order Value</p>
-            <p className="text-3xl font-black text-slate-900 mt-1">₹{aov.toFixed(0)}</p>
+            <p className="text-sm font-bold text-slate-500 dark:text-slate-400">Average Order Value</p>
+            <p className="text-3xl font-black text-slate-900 dark:text-white mt-1">₹{aov.toFixed(0)}</p>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <h2 className="text-lg font-extrabold text-slate-900 mb-6 flex items-center gap-2">
+        <div className="lg:col-span-2 bg-white dark:bg-[#0d1322] p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 transition-colors">
+          <h2 className="text-lg font-extrabold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
             <Calendar className="text-emerald-500" size={20} /> Revenue Trend
           </h2>
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <BarChart data={chartData} margin={{ top: 10, right: 15, bottom: 0, left: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" className="dark:opacity-10" />
                 <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `?${val}`} />
+                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `₹${val}`} />
                 <RechartsTooltip 
-                  cursor={{ fill: '#f8fafc' }} 
-                  contentStyle={{ borderRadius: '12px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontWeight: 'bold' }} 
+                  cursor={{ fill: 'transparent' }} 
+                  formatter={(val) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Revenue']}
+                  contentStyle={{ borderRadius: '12px', border: '1px solid #334155', backgroundColor: '#0f172a', color: '#fff', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.3)', fontWeight: 'bold' }} 
                 />
                 <Bar dataKey="sales" fill="#059669" radius={[4, 4, 0, 0]} maxBarSize={50} />
               </BarChart>
@@ -181,27 +188,27 @@ export default function Sales() {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
-          <h2 className="text-lg font-extrabold text-slate-900 mb-4 flex items-center gap-2">
+        <div className="bg-white dark:bg-[#0d1322] p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col transition-colors">
+          <h2 className="text-lg font-extrabold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
             <Trophy className="text-amber-500" size={20} /> Best Sellers
           </h2>
           <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3">
             {topProducts.length === 0 ? (
-              <p className="text-slate-500 text-sm text-center py-8">No sales data found for this period.</p>
+              <p className="text-slate-500 dark:text-slate-400 text-sm text-center py-8">No sales data found for this period.</p>
             ) : (
               topProducts.map((product, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-100 rounded-xl">
+                <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 rounded-xl">
                   <div className="flex items-center gap-3 overflow-hidden">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black flex-shrink-0 ${idx === 0 ? 'bg-amber-100 text-amber-700' : idx === 1 ? 'bg-slate-200 text-slate-600' : idx === 2 ? 'bg-orange-100 text-orange-700' : 'bg-emerald-50 text-emerald-600'}`}>
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black flex-shrink-0 ${idx === 0 ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300' : idx === 1 ? 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300' : idx === 2 ? 'bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-300'}`}>
                       #{idx + 1}
                     </div>
                     <div className="overflow-hidden">
-                      <p className="text-sm font-bold text-slate-900 truncate">{product.name}</p>
-                      <p className="text-xs text-slate-500">{product.quantity} units sold</p>
+                      <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{product.name}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{product.quantity} units sold</p>
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-black text-emerald-600">₹{product.revenue.toFixed(0)}</p>
+                    <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">₹{product.revenue.toFixed(0)}</p>
                   </div>
                 </div>
               ))

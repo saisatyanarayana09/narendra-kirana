@@ -105,11 +105,20 @@ export function CartProvider({ children }) {
    else await api.patch(`/cart/items/${item.id}/`, { quantity });
    refreshCart().catch(console.error);
  }, [refreshCart])
- 
- const applyPromo = useCallback(async (code) => {
-   const response = await api.post('/cart/apply-promo/', { code });
-   setCart(response.data);
- }, [])
+  const clearCart = useCallback(async () => {
+    if (!isCustomer) return;
+    try {
+      await api.post('/cart/clear/');
+    } catch {
+      // ignore
+    }
+    refreshCart().catch(console.error);
+  }, [isCustomer, refreshCart]);
+
+  const applyPromo = useCallback(async (code) => {
+    const response = await api.post('/cart/apply-promo/', { code });
+    setCart(response.data);
+  }, [])
 
   const toggleFavorite = useCallback(async (productId) => {
     if (!isCustomer) return;
@@ -135,9 +144,9 @@ export function CartProvider({ children }) {
 
  // Memoize the context value to prevent unnecessary re-renders of all consumers
  const value = useMemo(() => ({
-   cart, add, update, refresh, user, isCustomer, syncUser, logout,
+   cart, add, update, clearCart, refresh, user, isCustomer, syncUser, logout,
    applyPromo, storeSettings, favorites, toggleFavorite, notifications
- }), [cart, add, update, refresh, user, isCustomer, syncUser, logout,
+ }), [cart, add, update, clearCart, refresh, user, isCustomer, syncUser, logout,
       applyPromo, storeSettings, favorites, toggleFavorite, notifications])
 
  return (

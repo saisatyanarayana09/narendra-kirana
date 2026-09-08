@@ -75,6 +75,19 @@ export function AddressesScreen({ navigation }: { navigation: AppNavigationProp 
     );
   };
 
+  const handleSetDefault = async (id: number) => {
+    try {
+      await apiClient.patch(`/auth/addresses/${id}/`, { is_default: true });
+      setAddresses(prev => prev.map(a => ({
+        ...a,
+        is_default: a.id === id,
+      })));
+    } catch (err) {
+      console.error('Failed to set default address:', err);
+      Alert.alert('Error', 'Failed to set default address.');
+    }
+  };
+
   if (!user) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -187,13 +200,30 @@ export function AddressesScreen({ navigation }: { navigation: AppNavigationProp 
                 <Text style={[styles.titleBadgeText, { color: colors.text }]}>
                   {item.title || item.address_type || 'Home'}
                 </Text>
+                {item.is_default && (
+                  <View style={styles.defaultBadge}>
+                    <Text style={styles.defaultBadgeText}>DEFAULT</Text>
+                  </View>
+                )}
               </View>
 
               <View style={styles.cardActions}>
+                {!item.is_default && (
+                  <TouchableOpacity 
+                    style={[styles.setDefaultBtn, { borderColor: isDark ? 'rgba(255,255,255,0.15)' : '#E2E8F0' }]}
+                    onPress={() => handleSetDefault(item.id)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    activeOpacity={0.7}
+                  >
+                    <Feather name="check" size={12} color={colors.textSecondary} />
+                    <Text style={[styles.setDefaultBtnText, { color: colors.textSecondary }]}>Set Default</Text>
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity 
                   style={[styles.actionBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F8FAFC' }]}
                   onPress={() => navigation.navigate('AddAddressScreen', { editingAddress: item })}
                   activeOpacity={0.7}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                   <Feather name="edit-2" size={16} color="#818CF8" />
                 </TouchableOpacity>
@@ -201,6 +231,7 @@ export function AddressesScreen({ navigation }: { navigation: AppNavigationProp 
                   style={[styles.actionBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F8FAFC' }]}
                   onPress={() => deleteAddress(item.id)}
                   activeOpacity={0.7}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                   <Feather name="trash-2" size={16} color="#FB7185" />
                 </TouchableOpacity>
@@ -386,11 +417,42 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#0F172A',
   },
+  defaultBadge: {
+    backgroundColor: '#059669',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: 6,
+  },
+  defaultBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
   cardActions: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
+  setDefaultBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  setDefaultBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
   actionBtn: {
+    minWidth: 36,
+    minHeight: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: 6,
     borderRadius: 8,
     backgroundColor: '#F8FAFC',

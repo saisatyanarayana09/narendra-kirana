@@ -1,11 +1,11 @@
 import { optimizeImage } from './utils/image';
 import { useState, useEffect, useRef } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { Home, Search, ShoppingBasket, ShoppingCart, User, X, Heart, Bell, LayoutGrid, Trash2, ShoppingBag, Leaf, Coffee, Package, Mic, Volume2, LogOut, Megaphone, Sparkles, Clock, Wrench, AlertTriangle } from 'lucide-react'
+import { Home, Search, ShoppingBasket, ShoppingCart, User, X, Heart, Bell, LayoutGrid, Trash2, ShoppingBag, Leaf, Coffee, Package, Mic, Volume2, Megaphone, Sparkles, Clock, Wrench, AlertTriangle } from 'lucide-react'
 import { useCart } from './cart-context'
 import { useLanguage } from './context/LanguageContext'
 import { useSpeechRecognition, useTextToSpeech } from './hooks/useVoice'
 import api from './services/api'
+import { FloatingCartBar } from './components/FloatingCartBar'
 
 function GlobalSearchBar() {
   const [query, setQuery] = useState('');
@@ -105,7 +105,7 @@ function GlobalSearchBar() {
   };
 
   return (
-    <div ref={wrapperRef} className="relative flex-1 max-w-2xl ml-4 sm:mx-8">
+    <div ref={wrapperRef} className="relative flex-1 min-w-0 mx-1 sm:mx-2">
       <form onSubmit={handleSubmit} className={`relative flex items-center w-full bg-slate-100/80 dark:bg-slate-800/80 rounded-xl border transition-all duration-300 ${
         isListening
           ? 'border-rose-500 ring-4 ring-rose-500/20 bg-rose-50/30 dark:bg-rose-950/20'
@@ -621,7 +621,7 @@ function MaintenanceModeOverlay({ settings }) {
 }
 
 export function CustomerLayout({ children }) {
-  const { cart, isCustomer, favorites, notifications, logout, storeSettings: contextSettings, user } = useCart()
+  const { cart, isCustomer, notifications, storeSettings: contextSettings, user } = useCart()
   const [storeSettings, setStoreSettings] = useState(contextSettings)
   const [showNotifications, setShowNotifications] = useState(false)
   const location = useLocation();
@@ -655,90 +655,120 @@ export function CustomerLayout({ children }) {
   }
 
   return (
-  <div className="min-h-screen bg-slate-50 dark:bg-[#090d16] pb-20 sm:pb-0 text-slate-900 dark:text-slate-100 transition-colors duration-200">
-  <TopAnnouncementMarquee settings={storeSettings} />
-  <SmartAppBanner />
-  <WelcomeScreen />
-  <FestivePopupModal settings={storeSettings} />
-  <WhatsAppSupportWidget settings={storeSettings} />
+    <div className="min-h-screen bg-slate-100/90 dark:bg-slate-950 flex flex-col items-center justify-start text-slate-900 dark:text-slate-100 transition-colors duration-200 antialiased">
+      {/* Mobile App Shell Frame */}
+      <div className="w-full max-w-xl min-h-screen bg-white dark:bg-[#090d16] shadow-2xl border-x border-slate-200/80 dark:border-slate-800/80 relative flex flex-col pb-20 sm:pb-24">
+        <TopAnnouncementMarquee settings={storeSettings} />
+        <SmartAppBanner />
+        <WelcomeScreen />
+        <FestivePopupModal settings={storeSettings} />
+        <WhatsAppSupportWidget settings={storeSettings} />
 
-  <header className="sticky top-0 z-30 border-b border-slate-200/60 dark:border-slate-800 bg-white/80 dark:bg-[#0d1322]/90 backdrop-blur-xl shadow-sm transition-colors duration-200">
-  <div className="mx-auto flex w-full max-w-screen-2xl items-center justify-between px-4 py-3 sm:px-6 lg:px-12">
-  <Link to="/" className="text-2xl sm:text-3xl font-black tracking-tighter whitespace-nowrap shrink-0 drop-shadow-sm hover:opacity-80 transition-opacity">
-  <span className="text-slate-800 dark:text-white">Narendra</span>
-  <span className="text-primary-600 dark:text-primary-400">Kirana</span>
-  </Link>
-  
-  <GlobalSearchBar />
+        {/* Mobile App Header */}
+        <header className="sticky top-0 z-30 border-b border-slate-200/70 dark:border-slate-800/80 bg-white/95 dark:bg-[#0d1322]/95 backdrop-blur-xl shadow-xs">
+          <div className="px-3 py-2.5 sm:px-4 sm:py-3 flex items-center justify-between gap-2">
+            <Link to="/" className="flex items-center gap-2 shrink-0 group">
+              <img src="/logo-transparent.png" alt="Logo" className="w-8 h-8 object-contain rounded-lg shadow-xs group-hover:scale-105 transition-transform" />
+              <span className="text-lg sm:text-xl font-black tracking-tight whitespace-nowrap">
+                <span className="text-slate-900 dark:text-white">Narendra </span>
+                <span className="text-emerald-600 dark:text-emerald-400">Kirana</span>
+              </span>
+            </Link>
 
-  <div className="flex items-center gap-2 sm:gap-3 shrink-0">
- {isCustomer ? (
- <>
- <div className="relative">
- <button onClick={() => setShowNotifications(!showNotifications)} className="hidden sm:grid size-10 place-items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition relative cursor-pointer">
- <Bell size={18} />
- {notifications?.some(n => !n.is_read) && (
- <span className="absolute right-0 top-0 size-3 rounded-full bg-indigo-600 border-2 border-slate-900"></span>
- )}
- </button>
- <NotificationPopup isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
- </div>
- <Link to="/profile" className="hidden sm:flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition ml-1 shadow-xs">
- <div className="bg-primary-50 dark:bg-primary-950/60 text-primary-700 dark:text-primary-400 rounded-full p-1">
- <User size={16} />
- </div>
- <span className="text-sm font-bold text-slate-700 dark:text-slate-200 pr-1">My Account</span>
- </Link>
- <button 
-   type="button"
-   onClick={logout} 
-   title="Sign Out"
-   className="hidden sm:grid size-9 place-items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
- >
-   <LogOut size={15} />
- </button>
- </>
- ) : (
- <Link to="/login"className="hidden sm:block text-sm font-semibold text-primary-700">Sign in</Link>
- )}
- <Link to="/cart"aria-label="Cart"className="relative hidden sm:flex h-11 w-16 items-center justify-center rounded-xl bg-primary-600 text-white hover:bg-primary-700 transition-all ml-2 shadow-sm hover:shadow active:scale-95 group">
- <ShoppingCart size={20} strokeWidth={2.5} className="mt-0.5" />
- {cart?.items?.length > 0 && (
- <span className="absolute -top-2 -right-2 flex h-[22px] min-w-[22px] px-1.5 items-center justify-center rounded-lg bg-slate-900 text-[11px] font-black text-white shadow-sm ring-2 ring-white dark:ring-slate-900">
- {cart.items.length}
- </span>
- )}
- </Link>
- </div>
- </div>
- </header>
+            <GlobalSearchBar />
 
- {children}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {isCustomer ? (
+                <div className="relative">
+                  <button 
+                    onClick={() => setShowNotifications(!showNotifications)} 
+                    className="w-9 h-9 grid place-items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition relative cursor-pointer"
+                    title="Notifications"
+                  >
+                    <Bell size={17} />
+                    {notifications?.some(n => !n.is_read) && (
+                      <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900 animate-pulse"></span>
+                    )}
+                  </button>
+                  <NotificationPopup isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+                </div>
+              ) : (
+                <Link to="/login" className="text-xs font-bold text-emerald-600 dark:text-emerald-400 px-2.5 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 transition whitespace-nowrap">
+                  Sign In
+                </Link>
+              )}
+            </div>
+          </div>
+        </header>
 
-  <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-between border-t border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-[#0c1220]/95 backdrop-blur-md px-2 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:hidden transition-colors duration-200 shadow-[0_-4px_15px_-5px_rgba(0,0,0,0.05)]">
-  <Link className={`flex flex-1 flex-col items-center gap-1 text-xs font-semibold ${location.pathname === '/' ? 'text-primary-700 dark:text-primary-400' : 'text-slate-500 dark:text-slate-400'}`} to="/">
-  <Home size={20} />Home
-  </Link>
-  <Link className={`flex flex-1 flex-col items-center gap-1 text-xs font-semibold ${location.pathname === '/categories' ? 'text-primary-700 dark:text-primary-400' : 'text-slate-500 dark:text-slate-400'}`} to="/categories">
-  <LayoutGrid size={20} />Categories
-  </Link>
-   {isCustomer && (
-   <Link className={`relative flex flex-1 flex-col items-center gap-1 text-xs font-semibold transition-colors ${location.pathname === '/profile/orders' ? 'text-primary-700 dark:text-primary-400' : 'text-slate-500 dark:text-slate-400'}`} to="/profile/orders">
-   <Package size={20} />
-   Orders
-   </Link>
-   )}
-  <Link className={`flex flex-1 flex-col items-center gap-1 text-xs font-semibold ${location.pathname.startsWith('/profile') ? 'text-primary-700 dark:text-primary-400' : 'text-slate-500 dark:text-slate-400'}`} to={isCustomer ?"/profile":"/login"}>
-  <User size={20} />{isCustomer ? 'Profile' : 'Sign in'}
-  </Link>
-  <Link className={`relative flex flex-1 flex-col items-center justify-center gap-1 text-xs font-bold transition-all ${location.pathname === '/cart' ? 'text-primary-700 dark:text-primary-400' : 'text-slate-500 dark:text-slate-400 hover:text-primary-700'}`} to="/cart">
-  <div className="relative">
-  <ShoppingCart size={24} strokeWidth={2.5} className={location.pathname === '/cart' ? 'text-primary-700 dark:text-primary-400' : 'text-slate-500 dark:text-slate-400'} />
-  {cart?.items?.length > 0 && <span className="absolute -right-2 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-md bg-slate-900 px-1 text-[10px] font-black text-white border-2 border-white shadow-sm">{cart.items.length}</span>}
-  </div>
-  <span>Cart</span>
-  </Link>
-  </nav>
- </div>
- )
+        {/* Main Content Area */}
+        <main className="flex-1 w-full flex flex-col">
+          {children}
+        </main>
+
+        {/* Floating Mini-Cart Bar */}
+        <FloatingCartBar />
+
+        {/* 5-Tab Mobile Navigation Bar (Always Visible inside App Shell) */}
+        <nav className="fixed bottom-0 inset-x-0 sm:inset-x-auto sm:w-[576px] sm:max-w-xl z-40 flex items-center justify-around border-t border-slate-200/80 dark:border-slate-800/90 bg-white/95 dark:bg-[#0c1220]/95 backdrop-blur-xl py-2 px-1 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+          <Link 
+            to="/" 
+            className={`flex flex-1 flex-col items-center justify-center py-1 gap-1 text-[11px] font-bold transition-all ${
+              location.pathname === '/' ? 'text-emerald-600 dark:text-emerald-400 scale-105' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+            }`}
+          >
+            <Home size={20} className={location.pathname === '/' ? 'stroke-[2.5]' : 'stroke-2'} />
+            <span>Home</span>
+          </Link>
+
+          <Link 
+            to="/categories" 
+            className={`flex flex-1 flex-col items-center justify-center py-1 gap-1 text-[11px] font-bold transition-all ${
+              location.pathname === '/categories' ? 'text-emerald-600 dark:text-emerald-400 scale-105' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+            }`}
+          >
+            <LayoutGrid size={20} className={location.pathname === '/categories' ? 'stroke-[2.5]' : 'stroke-2'} />
+            <span>Categories</span>
+          </Link>
+
+          <Link 
+            to={isCustomer ? "/profile/orders" : "/login?redirect=/profile/orders"} 
+            className={`flex flex-1 flex-col items-center justify-center py-1 gap-1 text-[11px] font-bold transition-all ${
+              location.pathname === '/profile/orders' ? 'text-emerald-600 dark:text-emerald-400 scale-105' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+            }`}
+          >
+            <Package size={20} className={location.pathname === '/profile/orders' ? 'stroke-[2.5]' : 'stroke-2'} />
+            <span>Orders</span>
+          </Link>
+
+          <Link 
+            to={isCustomer ? "/profile" : "/login"} 
+            className={`flex flex-1 flex-col items-center justify-center py-1 gap-1 text-[11px] font-bold transition-all ${
+              location.pathname.startsWith('/profile') && location.pathname !== '/profile/orders' ? 'text-emerald-600 dark:text-emerald-400 scale-105' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+            }`}
+          >
+            <User size={20} className={location.pathname.startsWith('/profile') && location.pathname !== '/profile/orders' ? 'stroke-[2.5]' : 'stroke-2'} />
+            <span>{isCustomer ? 'Profile' : 'Sign in'}</span>
+          </Link>
+
+          <Link 
+            to="/cart" 
+            className={`relative flex flex-1 flex-col items-center justify-center py-1 gap-1 text-[11px] font-bold transition-all ${
+              location.pathname === '/cart' ? 'text-emerald-600 dark:text-emerald-400 scale-105' : 'text-slate-500 dark:text-slate-400 hover:text-emerald-600'
+            }`}
+          >
+            <div className="relative">
+              <ShoppingCart size={22} className={location.pathname === '/cart' ? 'text-emerald-600 dark:text-emerald-400 stroke-[2.5]' : 'stroke-2'} />
+              {cart?.items?.length > 0 && (
+                <span className="absolute -right-2.5 -top-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-600 dark:bg-emerald-500 text-[10px] font-black text-white flex items-center justify-center ring-2 ring-white dark:ring-[#0c1220] shadow-sm">
+                  {cart.items.length}
+                </span>
+              )}
+            </div>
+            <span>Cart</span>
+          </Link>
+        </nav>
+      </div>
+    </div>
+  );
 }

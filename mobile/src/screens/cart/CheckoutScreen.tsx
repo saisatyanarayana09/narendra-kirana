@@ -27,7 +27,7 @@ import { fixImageUrl } from '../../utils/image';
 export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { cart, refreshCart, storeSettings } = useCart();
+  const { cart, refreshCart, clearCart, storeSettings } = useCart();
   const { colors, isDark } = useTheme();
   const { requestLocation, isRequesting: gpsLoading } = useLocation();
 
@@ -251,12 +251,12 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
   const finalTotalToPay = Math.max(0, baseCartTotal - walletApplied);
 
   // Time Slots parsing and buffer calculation
-  const parseMinutes = (timeStr: string): number => {
+  const parseMinutes = (timeStr: string, fallbackMeridiem?: string): number => {
     const match = timeStr.match(/(\d{1,2}):(\d{2})(?:\s*([APap][Mm]))?/);
     if (!match) return 0;
     let hours = parseInt(match[1], 10);
     const minutes = parseInt(match[2], 10);
-    const meridiem = match[3]?.toUpperCase();
+    const meridiem = match[3]?.toUpperCase() || fallbackMeridiem?.toUpperCase();
     if (meridiem === 'PM' && hours < 12) hours += 12;
     if (meridiem === 'AM' && hours === 12) hours = 0;
     return hours * 60 + minutes;
@@ -307,7 +307,8 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
 
   const isSlotPassedToday = (slot: { start?: string; end?: string; label: string }): boolean => {
     const timeToCompare = slot.start || slot.label.split('-')[0].trim();
-    const slotMinutes = parseMinutes(timeToCompare);
+    const endMeridiem = slot.label.match(/([APap][Mm])\s*$/)?.[1];
+    const slotMinutes = parseMinutes(timeToCompare, endMeridiem);
     return slotMinutes <= currentMinutesFromMidnight;
   };
 
@@ -381,17 +382,51 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
       return;
     }
 
-    if (storeSettings?.enable_time_slots && !selectedSlotLabel) {
-      Alert.alert('Select Time Slot', 'Please select a delivery or pickup time slot.');
-      return;
+    if (storeSettings?.enable_time_slots) {
+      if (slotDay === 'TODAY' && availableSlotsToday.length === 0) {
+        Alert.alert('No Slots Available Today', 'All delivery slots for today have closed. Please select Tomorrow to schedule your order.');
+        return;
+      }
+      if (!selectedSlotLabel) {
+        Alert.alert('Select Time Slot', 'Please select a delivery or pickup time slot.');
+        return;
+      }
+      if (slotDay === 'TODAY') {
+        const matched = parsedSlotsList.find((s) => s.label === selectedSlotLabel);
+        if (matched && isSlotPassedToday(matched)) {
+          Alert.alert('Selected Slot Closed', 'The delivery slot you selected for today has closed. Please choose another available slot or select Tomorrow.');
+          return;
+        }
+      }
     }
 
-    if (paymentMethod === 'UPI' && finalTotalToPay > 0 && !upiTransactionId.trim()) {
-      Alert.alert(
-        'UPI Transaction ID Required',
-        'Please complete the payment in your UPI app and enter the 12-digit UTR or Transaction ID before placing order.',
-        [{ text: 'OK' }]
-      );
+    if (paymentMethod === 'UPI' && finalTotalToPay > 0) {
+      const cleanUtr = upiTransactionId.trim();
+      if (!cleanUtr) {
+        Alert.alert(
+          'UPI Transaction ID Required',
+          'Please complete the payment in your UPI app and enter the 12-digit UTR or Transaction ID before placing order.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+      if (cleanUtr.length < 12) {
+        Alert.alert(
+          'Invalid UTR / Transaction ID',
+          'Please enter a valid 12-digit UTR or Transaction Reference number provided by your UPI app (Google Pay, PhonePe, Paytm).',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+    }
+
+    const hasOutOfStock = (cart?.items || []).some((item) => {
+      const stockQty = item.stock_quantity ?? item.product?.stock_quantity ?? 999;
+      const inStock = item.is_in_stock !== false && item.product?.is_in_stock !== false;
+      return !inStock || stockQty <= 0;
+    });
+    if (hasOutOfStock) {
+      Alert.alert('Items Out of Stock', 'Some items in your cart are currently out of stock. Please return to your cart and remove them before placing your order.');
       return;
     }
 
@@ -444,7 +479,8 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
 
     try {
       const response = await apiClient.post('/orders/', payload);
-      // Non-blocking background cart refresh
+      // Clean up cart state
+      clearCart().catch(() => {});
       refreshCart().catch(() => {});
       navigation.navigate('OrderSuccessScreen', { orderId: response.data.id });
     } catch (err: any) {
@@ -845,7 +881,10 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
                 onPress={() => {
                   setSlotDay('TODAY');
                   if (availableSlotsToday.length > 0) {
-                    setSelectedSlotLabel(availableSlotsToday[0].label);
+                    const stillValid = availableSlotsToday.find(s => s.label === selectedSlotLabel);
+                    setSelectedSlotLabel(stillValid ? stillValid.label : availableSlotsToday[0].label);
+                  } else {
+                    setSelectedSlotLabel('');
                   }
                 }}
                 activeOpacity={0.8}
@@ -859,7 +898,7 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
                 style={[styles.slotDayTab, slotDay === 'TOMORROW' && [styles.slotDayTabActive, { backgroundColor: colors.surface }]]}
                 onPress={() => {
                   setSlotDay('TOMORROW');
-                  if (parsedSlotsList.length > 0) {
+                  if (!selectedSlotLabel && parsedSlotsList.length > 0) {
                     setSelectedSlotLabel(parsedSlotsList[0].label);
                   }
                 }}
@@ -1033,8 +1072,23 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
             </View>
           </TouchableOpacity>
 
+          {/* Order 100% Covered by Wallet Banner */}
+          {finalTotalToPay === 0 && (
+            <View style={[styles.walletFullyPaidBox, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5', borderColor: '#10B981' }]}>
+              <Feather name="check-circle" size={18} color="#10B981" />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: isDark ? '#34D399' : '#047857' }}>
+                  Order 100% Covered by Wallet
+                </Text>
+                <Text style={{ fontSize: 12, color: isDark ? '#A7F3D0' : '#065F46', marginTop: 2 }}>
+                  No additional payment is required. You can place your order directly.
+                </Text>
+              </View>
+            </View>
+          )}
+
           {/* UPI Actions & Standee Details */}
-          {paymentMethod === 'UPI' && (
+          {paymentMethod === 'UPI' && finalTotalToPay > 0 && (
             <View style={[styles.upiContainer, { backgroundColor: isDark ? colors.surface : '#FFFFFF', borderColor: colors.border }]}>
               <View style={styles.upiNoticeBox}>
                 <Feather name="info" size={14} color="#4F46E5" />
@@ -2285,5 +2339,15 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '800',
+  },
+  walletFullyPaidBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginTop: 10,
+    marginBottom: 10,
   },
 });

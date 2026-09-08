@@ -202,7 +202,7 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'accounts.authentication.SafeJWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
@@ -247,6 +247,9 @@ FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
 
 # Password Reset Link Expiration (15 minutes = 900 seconds)
 PASSWORD_RESET_TIMEOUT = 900
+
+# Email Verification / Account Activation Expiration (3 days = 259200 seconds)
+EMAIL_VERIFICATION_TIMEOUT = 259200
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Narendra Kirana API',

@@ -85,6 +85,13 @@ export function SignupScreen({ navigation }: Props) {
       return;
     }
 
+    const cleanMobile = form.mobile_number.trim().replace(/[^0-9]/g, '');
+    const indianMobileRegex = /^[6-9][0-9]{9}$/;
+    if (!indianMobileRegex.test(cleanMobile)) {
+      Alert.alert('Invalid Mobile Number', 'Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
+      return;
+    }
+
     if (!hasMinLength) {
       Alert.alert('Password Too Short', 'Password must be at least 8 characters long.');
       return;
@@ -107,7 +114,7 @@ export function SignupScreen({ navigation }: Props) {
 
     setIsLoading(true);
     try {
-      const payload = { ...form, username: form.email };
+      const payload = { ...form, mobile_number: cleanMobile, username: form.email };
       await apiClient.post('/auth/signup/', payload);
       
       Alert.alert(
@@ -118,12 +125,16 @@ export function SignupScreen({ navigation }: Props) {
     } catch (error: any) {
       const details = error.response?.data;
       let errorMessage = 'Unable to create account.';
-      if (details?.password) {
-        errorMessage = Array.isArray(details.password) ? details.password.join('\n') : details.password;
-      } else if (details) {
-        errorMessage = typeof details === 'object' ? Object.values(details).flat().join('\n') : String(details);
+      if (details) {
+        if (typeof details === 'string') {
+          errorMessage = details;
+        } else if (typeof details === 'object') {
+          const firstKey = Object.keys(details)[0];
+          const val = details[firstKey];
+          errorMessage = Array.isArray(val) ? val[0] : String(val);
+        }
       }
-      Alert.alert('Signup Failed', errorMessage);
+      Alert.alert('Registration Failed', errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -142,6 +153,7 @@ export function SignupScreen({ navigation }: Props) {
           contentContainerStyle={styles.scrollContent}
           bounces={false}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         >
           {/* Header Bar */}
           <View style={styles.headerBar}>

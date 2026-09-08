@@ -4,7 +4,7 @@ from products.serializers import ProductSerializer
 
 
 class StoreEmailSettingsSerializer(serializers.ModelSerializer):
-    app_password = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    app_password = serializers.CharField(required=False, allow_blank=True)
     has_password = serializers.SerializerMethodField()
     masked_password = serializers.SerializerMethodField()
 
@@ -36,10 +36,30 @@ class StoreEmailSettingsSerializer(serializers.ModelSerializer):
             return ""
         return "••••••••••••••••"
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Fallback sender email to store settings if blank
+        if not data.get('sender_email'):
+            try:
+                from .models import StoreSettings
+                s = StoreSettings.load()
+                data['sender_email'] = s.store_email or ""
+            except Exception:
+                pass
+        # Decrypt password so the store owner can view and manage their App Password
+        data['app_password'] = instance.get_decrypted_password() or ""
+        return data
+
     def update(self, instance, validated_data):
         raw_password = validated_data.pop('app_password', None)
-        if raw_password and raw_password.strip():
-            instance.set_app_password(raw_password.strip())
+        if raw_password is not None:
+            raw_password_str = raw_password.strip()
+            if raw_password_str:
+                # Avoid overwriting if masked placeholder bullets are submitted
+                if not all(c in ('•', '*') for c in raw_password_str):
+                    instance.set_app_password(raw_password_str)
+            else:
+                instance.encrypted_app_password = ""
         return super().update(instance, validated_data)
 
 

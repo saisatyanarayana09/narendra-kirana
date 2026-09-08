@@ -98,8 +98,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
       return (
         <SafeAreaView style={styles.safeArea}>
           <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
-          <View style={styles.container}>
-            {/* Header Icon Graphic */}
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            <View style={styles.container}>
+              {/* Header Icon Graphic */}
             <View style={styles.iconOuterCircle}>
               <View style={styles.iconInnerCircle}>
                 <Feather name="alert-triangle" size={42} color="#D97706" />
@@ -172,22 +173,28 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
               </View>
             )}
           </View>
-        </SafeAreaView>
-      );
-    }
-
-    return this.props.children;
+        </ScrollView>
+      </SafeAreaView>
+    );
   }
+
+  return this.props.children;
+}
 }
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#F8FAFC',
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 24) : 0,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 24,
   },
   container: {
-    flex: 1,
+    width: '100%',
     paddingHorizontal: 24,
     justifyContent: 'center',
     alignItems: 'center',

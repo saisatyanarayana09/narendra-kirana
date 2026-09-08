@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated, Dimensions } from 'react-native';
+import { View, StyleSheet, Animated, Dimensions, Platform } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 interface SkeletonProps {
   width?: number | string;
@@ -21,12 +22,12 @@ export function SkeletonItem({ width = '100%', height = 20, borderRadius = 8, st
         Animated.timing(opacityAnim, {
           toValue: 0.8,
           duration: 800,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
         Animated.timing(opacityAnim, {
           toValue: 0.3,
           duration: 800,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
       ])
     );

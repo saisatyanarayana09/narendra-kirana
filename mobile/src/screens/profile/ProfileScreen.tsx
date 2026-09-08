@@ -243,7 +243,7 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
           style={styles.customerHeroCard}
         >
           {/* Decorative Corner Glow */}
-          <View style={styles.heroDecorativeCircle} pointerEvents="none" />
+          <View style={styles.heroDecorativeCircle} />
 
           {/* Back Button at Top Left (Replaces 'Verified Smart Customer') */}
           <TouchableOpacity 
@@ -482,6 +482,7 @@ const styles = StyleSheet.create({
     height: 140,
     borderRadius: 70,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    pointerEvents: 'none' as any,
   },
   heroBackButton: {
     alignSelf: 'flex-start',

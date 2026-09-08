@@ -82,6 +82,25 @@ const translations: Record<Language, Translations> = {
     englishSub: 'English (India)',
     teluguTitle: 'తెలుగు (India)',
     teluguSub: 'Telugu (India)',
+
+    // Catalog & Search
+    searchPlaceholder: 'Search products...',
+    shopByCategory: 'Shop by category',
+    seeAll: 'See all →',
+    exploreCatalog: 'Explore Catalog',
+    popularSearches: 'Popular Searches',
+    noProductsFound: 'No products found',
+    clearFilters: 'Clear Filters / Show All',
+    addToCart: 'ADD TO CART',
+    outOfStock: 'OUT OF STOCK',
+    freeDelivery: 'Free Delivery',
+    digitalWallet: 'Digital Wallet',
+
+    // Auth
+    welcomeBack: 'Welcome back',
+    createAccount: 'Create Account',
+    forgotPassword: 'Forgot Password',
+    resetPassword: 'Reset Password',
   },
   te: {
     // Navigation
@@ -157,6 +176,25 @@ const translations: Record<Language, Translations> = {
     englishSub: 'English (India)',
     teluguTitle: 'తెలుగు (India)',
     teluguSub: 'Telugu (India)',
+
+    // Catalog & Search
+    searchPlaceholder: 'వస్తువులను వెతకండి...',
+    shopByCategory: 'కేటగిరీల వారీగా షాపింగ్ చేయండి',
+    seeAll: 'అన్నీ చూడండి →',
+    exploreCatalog: 'కేటలాగ్ చూడండి',
+    popularSearches: 'ప్రముఖ శోధనలు',
+    noProductsFound: 'వస్తువులు ఏవీ దొరకలేదు',
+    clearFilters: 'ఫిల్టర్లను తొలగించండి / అన్నీ చూపించండి',
+    addToCart: 'కార్ట్‌కు జోడించండి',
+    outOfStock: 'స్టాక్ అయిపోయింది',
+    freeDelivery: 'ఉచిత డెలివరీ',
+    digitalWallet: 'డిజిటల్ వాలెట్',
+
+    // Auth
+    welcomeBack: 'స్వాగతం',
+    createAccount: 'ఖాతా సృష్టించండి',
+    forgotPassword: 'పాస్‌వర్డ్ మర్చిపోయారా',
+    resetPassword: 'పాస్‌వర్డ్ రీసెట్ చేయండి',
   },
 };
 

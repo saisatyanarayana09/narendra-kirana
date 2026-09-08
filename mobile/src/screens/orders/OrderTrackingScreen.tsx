@@ -6,12 +6,14 @@ import {
   ScrollView, 
   TouchableOpacity, 
   ActivityIndicator,
-  RefreshControl 
+  RefreshControl,
+  Linking 
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
 import { apiClient } from '../../api/client';
+import { storeApi, StoreSettings } from '../../api/store';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 
@@ -23,6 +25,28 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
+
+  useEffect(() => {
+    storeApi.getSettings().then(setStoreSettings).catch(() => null);
+  }, []);
+
+  const handleOpenWhatsApp = () => {
+    const rawNumber = storeSettings?.whatsapp_number || '+919876543210';
+    const cleanNumber = rawNumber.replace(/[^0-9]/g, '');
+    const template = storeSettings?.whatsapp_order_help_template || 'Hi Narendra Kirana, I need help with Order #{order_id}';
+    const msg = template.replace('{order_id}', String(order?.id || orderId));
+    const url = `whatsapp://send?phone=${cleanNumber}&text=${encodeURIComponent(msg)}`;
+    Linking.canOpenURL(url).then(supported => {
+      if (supported) {
+        Linking.openURL(url);
+      } else {
+        Linking.openURL(`https://wa.me/${cleanNumber}?text=${encodeURIComponent(msg)}`);
+      }
+    }).catch(() => {
+      Linking.openURL(`https://wa.me/${cleanNumber}?text=${encodeURIComponent(msg)}`);
+    });
+  };
 
   const fetchOrderDetails = useCallback(async (isPullRefresh = false) => {
     if (!user) {
@@ -194,7 +218,18 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
   ];
 
   const statusOrder = ['NEW', 'ACCEPTED', 'PREPARING', 'READY', 'COMPLETED'];
-  const currentIndex = statusOrder.indexOf(order.status);
+  const normalizeStatus = (st?: string): string => {
+    if (!st) return 'NEW';
+    const s = st.toUpperCase();
+    if (s === 'CONFIRMED') return 'ACCEPTED';
+    if (s === 'PROCESSING') return 'PREPARING';
+    if (s === 'OUT_FOR_DELIVERY') return 'READY';
+    if (s === 'DELIVERED') return 'COMPLETED';
+    if (s === 'CANCELLED') return 'REJECTED';
+    return s;
+  };
+  const normalizedStatus = normalizeStatus(order?.status);
+  const currentIndex = statusOrder.indexOf(normalizedStatus);
 
   const activeSubtotal = (order.items || [])
     .filter((i: any) => i.status !== 'REJECTED')
@@ -529,6 +564,18 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
             </>
           )}
         </View>
+
+        {/* Need Help? WhatsApp Support Quick-Connect */}
+        {storeSettings?.enable_whatsapp_support !== false && (
+          <TouchableOpacity 
+            style={styles.whatsappHelpBtn}
+            onPress={handleOpenWhatsApp}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="logo-whatsapp" size={20} color="#FFFFFF" />
+            <Text style={styles.whatsappHelpBtnText}>Need Help with this Order? Chat on WhatsApp</Text>
+          </TouchableOpacity>
+        )}
 
       </ScrollView>
     </SafeAreaView>
@@ -1005,6 +1052,28 @@ const styles = StyleSheet.create({
   guestSignInBtnText: {
     color: '#FFFFFF',
     fontSize: 15,
+    fontWeight: '800',
+  },
+  whatsappHelpBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: '#25D366',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 14,
+    marginTop: 6,
+    marginBottom: 20,
+    shadowColor: '#25D366',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  whatsappHelpBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: '800',
   },
 });

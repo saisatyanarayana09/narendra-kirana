@@ -637,7 +637,7 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
         <View style={styles.invoicePaper}>
           
           {/* Watermark Logo matching web app Invoice.jsx:100-102 */}
-          <View style={styles.watermarkContainer} pointerEvents="none">
+          <View style={styles.watermarkContainer}>
             <Image 
               source={require('../../../assets/logo.jpg')} 
               style={styles.watermarkLogo} 

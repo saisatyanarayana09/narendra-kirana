@@ -1,11 +1,13 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Animated, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Animated, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../navigation/AuthStack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
+
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'Welcome'>;
@@ -21,11 +23,11 @@ export function WelcomeScreen({ navigation }: Props) {
 
   useEffect(() => {
     Animated.stagger(120, [
-      Animated.spring(logoAnim, { toValue: 1, useNativeDriver: true, tension: 60, friction: 8 }),
-      Animated.spring(brandAnim, { toValue: 1, useNativeDriver: true, tension: 60, friction: 8 }),
-      Animated.spring(taglineAnim, { toValue: 1, useNativeDriver: true, tension: 60, friction: 8 }),
-      Animated.spring(pillsAnim, { toValue: 1, useNativeDriver: true, tension: 60, friction: 8 }),
-      Animated.spring(buttonsAnim, { toValue: 1, useNativeDriver: true, tension: 60, friction: 8 }),
+      Animated.spring(logoAnim, { toValue: 1, useNativeDriver: USE_NATIVE_DRIVER, tension: 60, friction: 8 }),
+      Animated.spring(brandAnim, { toValue: 1, useNativeDriver: USE_NATIVE_DRIVER, tension: 60, friction: 8 }),
+      Animated.spring(taglineAnim, { toValue: 1, useNativeDriver: USE_NATIVE_DRIVER, tension: 60, friction: 8 }),
+      Animated.spring(pillsAnim, { toValue: 1, useNativeDriver: USE_NATIVE_DRIVER, tension: 60, friction: 8 }),
+      Animated.spring(buttonsAnim, { toValue: 1, useNativeDriver: USE_NATIVE_DRIVER, tension: 60, friction: 8 }),
     ]).start();
   }, [logoAnim, brandAnim, taglineAnim, pillsAnim, buttonsAnim]);
 

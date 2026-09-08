@@ -457,11 +457,11 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
         <ScrollView contentContainerStyle={styles.listContainer} showsVerticalScrollIndicator={false}>
           {renderListHeader()}
           <View style={styles.emptyContainer}>
-            <View style={styles.emptyIconCircle}>
-              <Feather name="package" size={40} color="#94A3B8" />
+            <View style={[styles.emptyIconCircle, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#F1F5F9' }]}>
+              <Feather name="package" size={40} color={colors.textSecondary} />
             </View>
-            <Text style={styles.emptyTitle}>No products found</Text>
-            <Text style={styles.emptySubtitle}>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>No products found</Text>
+            <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
               {selectedCategory !== null || !!searchQuery
                 ? 'No products match your selected filters. Tap below to see all items.'
                 : 'There are no products available in this category right now.'}

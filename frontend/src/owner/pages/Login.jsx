@@ -13,15 +13,15 @@ const OwnerLoginForm = () => {
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [capsLockActive, setCapsLockActive] = useState(false);
-  const [backendHealthy, setBackendHealthy] = useState(true);
+  const [backendStatus, setBackendStatus] = useState('checking'); // 'checking' | 'online' | 'waking'
 
   const isEmail = identifier.includes('@');
 
   // Quick backend health check
   useEffect(() => {
     api.get('/store/settings/')
-      .then(() => setBackendHealthy(true))
-      .catch(() => setBackendHealthy(true)); // Render server wakes up
+      .then(() => setBackendStatus('online'))
+      .catch(() => setBackendStatus('waking'));
   }, []);
 
   const submit = async (event) => {
@@ -92,9 +92,13 @@ const OwnerLoginForm = () => {
 
           {/* Top Status & Switcher Header */}
           <div className="flex items-center justify-between gap-2 mb-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-[11px] font-bold text-emerald-800 dark:text-emerald-300">
-              <span className={`w-2 h-2 rounded-full ${backendHealthy ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-              Render Server Online
+            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[11px] font-bold ${
+              backendStatus === 'online'
+                ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
+                : 'bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300'
+            }`}>
+              <span className={`w-2 h-2 rounded-full ${backendStatus === 'online' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-ping'}`} />
+              {backendStatus === 'online' ? 'Render Server Online' : backendStatus === 'waking' ? 'Waking Up Server...' : 'Connecting...'}
             </div>
             <a 
               href={`${import.meta.env.VITE_API_URL || 'https://narendra-kirana.onrender.com'}/`}

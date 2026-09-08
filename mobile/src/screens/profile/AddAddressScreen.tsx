@@ -9,7 +9,8 @@ import {
   ActivityIndicator, 
   Alert,
   KeyboardAvoidingView,
-  Platform 
+  Platform,
+  Switch
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -33,6 +34,7 @@ export function AddAddressScreen({ navigation, route }: { navigation: AppNavigat
   const [state, setState] = useState(editingAddress?.state || '');
   const [country, setCountry] = useState(editingAddress?.country || 'India');
   const [zipCode, setZipCode] = useState(editingAddress?.zip_code || editingAddress?.pincode || '');
+  const [isDefault, setIsDefault] = useState(Boolean(editingAddress?.is_default));
   const [latitude, setLatitude] = useState<number | null>(editingAddress?.latitude || null);
   const [longitude, setLongitude] = useState<number | null>(editingAddress?.longitude || null);
 
@@ -67,6 +69,13 @@ export function AddAddressScreen({ navigation, route }: { navigation: AppNavigat
       return;
     }
 
+    const cleanZip = zipCode.trim().replace(/[^0-9]/g, '');
+    const pincodeRegex = /^[1-9][0-9]{5}$/;
+    if (!pincodeRegex.test(cleanZip)) {
+      Alert.alert('Invalid Pincode', 'Please enter a valid 6-digit Indian postal PIN code (e.g. 500001).');
+      return;
+    }
+
     setSaving(true);
     const payload = {
       title,
@@ -76,7 +85,8 @@ export function AddAddressScreen({ navigation, route }: { navigation: AppNavigat
       district,
       state,
       country,
-      zip_code: zipCode,
+      zip_code: cleanZip,
+      is_default: isDefault,
       latitude,
       longitude,
     };
@@ -157,6 +167,7 @@ export function AddAddressScreen({ navigation, route }: { navigation: AppNavigat
           showsVerticalScrollIndicator={false} 
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         >
         {/* GPS Capture Card */}
         <View style={[styles.gpsCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -308,6 +319,23 @@ export function AddAddressScreen({ navigation, route }: { navigation: AppNavigat
               placeholder="Pincode / Zip Code"
               placeholderTextColor={colors.textSecondary}
               keyboardType="numeric"
+              maxLength={6}
+            />
+          </View>
+
+          {/* Set as Default Address Toggle */}
+          <View style={[styles.defaultToggleCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border }]}>
+            <View style={{ flex: 1, marginRight: 12 }}>
+              <Text style={[styles.defaultToggleTitle, { color: colors.text }]}>Set as Default Address</Text>
+              <Text style={[styles.defaultToggleSub, { color: colors.textSecondary }]}>
+                Use this address as your primary delivery destination
+              </Text>
+            </View>
+            <Switch
+              value={isDefault}
+              onValueChange={setIsDefault}
+              trackColor={{ false: isDark ? '#334155' : '#CBD5E1', true: colors.primary }}
+              thumbColor="#FFFFFF"
             />
           </View>
         </View>
@@ -531,5 +559,24 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '800',
+  },
+  defaultToggleCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  defaultToggleTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  defaultToggleSub: {
+    fontSize: 12,
+    lineHeight: 16,
   },
 });

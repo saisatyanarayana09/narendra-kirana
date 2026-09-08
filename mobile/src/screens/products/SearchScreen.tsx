@@ -22,6 +22,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useMobileVoice } from '../../hooks/useMobileVoice';
 
 const { width } = Dimensions.get('window');
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 const POPULAR_SEARCHES = [
   'Rice & Dal', 'Cooking Oil', 'Aashirvaad Atta', 'Maggi', 'Sugar & Salt', 'Ghee', 'Spices', 'Tea'
@@ -50,6 +51,7 @@ export function SearchScreen({ navigation }: Props) {
     isListening,
     interimText,
     isSpeaking,
+    error: voiceError,
     toggleListening,
     speak,
     stopSpeaking,
@@ -68,24 +70,24 @@ export function SearchScreen({ navigation }: Props) {
             Animated.timing(pulseAnim, {
               toValue: 1.35,
               duration: 700,
-              useNativeDriver: true,
+              useNativeDriver: USE_NATIVE_DRIVER,
             }),
             Animated.timing(pulseAnim, {
               toValue: 1,
               duration: 700,
-              useNativeDriver: true,
+              useNativeDriver: USE_NATIVE_DRIVER,
             }),
           ]),
           Animated.sequence([
             Animated.timing(pulseOpacity, {
               toValue: 0.1,
               duration: 700,
-              useNativeDriver: true,
+              useNativeDriver: USE_NATIVE_DRIVER,
             }),
             Animated.timing(pulseOpacity, {
               toValue: 0.45,
               duration: 700,
-              useNativeDriver: true,
+              useNativeDriver: USE_NATIVE_DRIVER,
             }),
           ]),
         ])
@@ -200,7 +202,10 @@ export function SearchScreen({ navigation }: Props) {
             {/* Clear Input Button */}
             {query.length > 0 && !isListening && (
               <TouchableOpacity 
-                onPress={() => setQuery('')}
+                onPress={() => {
+                  setQuery('');
+                  if (isSpeaking) stopSpeaking();
+                }}
                 style={styles.rightIconBtn}
                 activeOpacity={0.7}
               >
@@ -258,6 +263,16 @@ export function SearchScreen({ navigation }: Props) {
           </View>
         )}
 
+        {/* Voice Error Banner */}
+        {!!voiceError && (
+          <View style={[styles.errorBanner, { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.2)' : '#FEE2E2' }]}>
+            <Feather name="alert-circle" size={14} color="#EF4444" />
+            <Text style={[styles.errorBannerText, { color: isDark ? '#FCA5A5' : '#B91C1C' }]}>
+              {voiceError}
+            </Text>
+          </View>
+        )}
+
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator size="large" color={colors.primary} />
@@ -296,6 +311,8 @@ export function SearchScreen({ navigation }: Props) {
             data={results}
             keyExtractor={(item, index) => String(item?.id ?? index)}
             numColumns={2}
+            keyboardDismissMode="on-drag"
+            keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.listContainer}
             columnWrapperStyle={styles.row}
             initialNumToRender={6}
@@ -359,6 +376,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: '100%',
     marginLeft: 8,
+    paddingRight: 100,
     fontSize: 14,
     fontWeight: '600',
     color: '#0F172A',
@@ -421,6 +439,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     color: '#E11D48',
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  errorBannerText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '600',
   },
   content: {
     flex: 1,

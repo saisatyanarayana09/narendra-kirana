@@ -16,10 +16,12 @@ import {
   Sliders,
   Package,
   Clock,
-  ChevronRight
+  ChevronRight,
+  Copy
 } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import InvoiceModal from '../components/InvoiceModal';
 
 const Invoices = () => {
   const [orders, setOrders] = useState([]);
@@ -28,6 +30,7 @@ const Invoices = () => {
   const [dateFilter, setDateFilter] = useState('ALL'); // ALL, TODAY, WEEK, MONTH
   const [paymentFilter, setPaymentFilter] = useState('ALL'); // ALL, UPI, COD
   const [statusFilter, setStatusFilter] = useState('ALL'); // ALL, COMPLETED, ACTIVE
+  const [selectedInvoiceOrderId, setSelectedInvoiceOrderId] = useState(null);
 
   const fetchOrders = async (isPoll = false) => {
     try {
@@ -272,10 +275,23 @@ const Invoices = () => {
             value={paymentFilter}
             onChange={(e) => setPaymentFilter(e.target.value)}
             className="px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-bold text-gray-700 dark:text-slate-300 outline-none"
+            aria-label="Filter by payment method"
           >
             <option value="ALL">All Payments</option>
             <option value="UPI">UPI Only</option>
             <option value="COD">COD Only</option>
+          </select>
+
+          {/* Status Filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-bold text-gray-700 dark:text-slate-300 outline-none"
+            aria-label="Filter by order status"
+          >
+            <option value="ALL">All Statuses</option>
+            <option value="COMPLETED">Completed Only</option>
+            <option value="ACTIVE">Active (In Progress)</option>
           </select>
 
           {/* Refresh Button */}
@@ -372,9 +388,17 @@ const Invoices = () => {
                             </span>
                           )}
                           {order.upi_transaction_id && (
-                            <span className="text-[10px] text-gray-400 font-mono" title={`UTR: ${order.upi_transaction_id}`}>
-                              UTR: {order.upi_transaction_id.slice(0, 8)}...
-                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(order.upi_transaction_id);
+                                toast.success('Copied UTR to clipboard!');
+                              }}
+                              className="text-[10px] text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 font-mono flex items-center gap-1 cursor-pointer transition-colors"
+                              title={`Click to copy full UTR: ${order.upi_transaction_id}`}
+                            >
+                              UTR: {order.upi_transaction_id.slice(0, 8)}... <Copy size={10} />
+                            </button>
                           )}
                         </div>
                       </td>
@@ -407,16 +431,15 @@ const Invoices = () => {
                       {/* Actions */}
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <Link
-                            to={`/owner/orders/${order.id}/invoice`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 font-bold transition-all shadow-sm"
+                          <button
+                            type="button"
+                            onClick={() => setSelectedInvoiceOrderId(order.id)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 font-bold transition-all shadow-sm cursor-pointer"
                             title="Open & Print Tax Invoice"
                           >
                             <Printer className="w-3.5 h-3.5" />
                             <span>Print</span>
-                          </Link>
+                          </button>
 
                           <Link
                             to={`/owner/orders/${order.id}`}
@@ -435,6 +458,14 @@ const Invoices = () => {
           </div>
         )}
       </div>
+
+      {/* Tax Invoice Modal Popup */}
+      {selectedInvoiceOrderId && (
+        <InvoiceModal
+          orderId={selectedInvoiceOrderId}
+          onClose={() => setSelectedInvoiceOrderId(null)}
+        />
+      )}
     </div>
   );
 };

@@ -1,3 +1,5 @@
+import axios from 'axios';
+import { API_BASE_URL } from '../constants/config';
 import { apiClient } from './client';
 
 export interface StoreSettings {
@@ -79,7 +81,24 @@ export interface StoreSettings {
 
 export const storeApi = {
   getSettings: async (): Promise<StoreSettings> => {
-    const res = await apiClient.get('/store/settings/');
-    return Array.isArray(res.data) ? res.data[0] : res.data;
+    try {
+      const res = await apiClient.get('/store/settings/');
+      return Array.isArray(res.data) ? res.data[0] : res.data;
+    } catch (err: any) {
+      // If apiClient failed with 401 (e.g. stale/expired auth token in mobile storage),
+      // fallback to clean unauthenticated request since store settings are public.
+      if (err?.response?.status === 401) {
+        try {
+          const fallbackRes = await axios.get(`${API_BASE_URL}/store/settings/`, {
+            timeout: 30000,
+            headers: { 'Content-Type': 'application/json' },
+          });
+          return Array.isArray(fallbackRes.data) ? fallbackRes.data[0] : fallbackRes.data;
+        } catch {
+          // Bubble original error if unauthenticated fallback also fails
+        }
+      }
+      throw err;
+    }
   },
 };

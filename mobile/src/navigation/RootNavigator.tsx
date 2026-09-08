@@ -6,6 +6,7 @@ import {
   TouchableOpacity, 
   ActivityIndicator, 
   BackHandler,
+  ScrollView,
   Linking as RNLinking 
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -493,66 +494,70 @@ function MaintenanceView({
 
   return (
     <SafeAreaView style={[styles.gateContainer, { backgroundColor: colors.background }]}>
-      <View style={styles.gateContent}>
-        <View style={[styles.gateIconCircle, { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEE2E2' }]}>
-          <Feather name="tool" size={42} color="#DC2626" />
-        </View>
-
-        <Text style={[styles.gateStoreTitle, { color: colors.text }]}>
-          {settings?.store_name || 'Narendra Kirana Store'}
-        </Text>
-
-        <View style={styles.gateBadge}>
-          <Text style={styles.gateBadgeText}>MAINTENANCE IN PROGRESS</Text>
-        </View>
-
-        <Text style={[styles.gateHeading, { color: colors.text }]}>Under Scheduled Maintenance</Text>
-
-        <Text style={[styles.gateDescription, { color: colors.textSecondary }]}>
-          {settings?.maintenance_message ||
-            'We are currently performing scheduled maintenance to serve you better. We will be back online shortly!'}
-        </Text>
-
-        {Boolean(settings?.store_phone || settings?.store_email) && (
-          <View style={[styles.gateContactBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.gateContactTitle, { color: colors.text }]}>Need Urgent Assistance?</Text>
-            {Boolean(settings?.store_phone) && (
-              <TouchableOpacity
-                style={styles.contactRow}
-                onPress={() => RNLinking.openURL(`tel:${settings?.store_phone}`)}
-              >
-                <Feather name="phone" size={14} color={colors.primary} />
-                <Text style={[styles.contactText, { color: colors.primary }]}>{settings?.store_phone}</Text>
-              </TouchableOpacity>
-            )}
-            {Boolean(settings?.store_email) && (
-              <TouchableOpacity
-                style={styles.contactRow}
-                onPress={() => RNLinking.openURL(`mailto:${settings?.store_email}`)}
-              >
-                <Feather name="mail" size={14} color={colors.primary} />
-                <Text style={[styles.contactText, { color: colors.primary }]}>{settings?.store_email}</Text>
-              </TouchableOpacity>
-            )}
+      <ScrollView contentContainerStyle={styles.gateScrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.gateContent}>
+          <View style={[styles.gateIconCircle, { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEE2E2' }]}>
+            <Feather name="tool" size={42} color="#DC2626" />
           </View>
-        )}
 
-        <TouchableOpacity
-          style={[styles.gatePrimaryBtn, { backgroundColor: colors.primary }]}
-          onPress={onRefresh}
-          disabled={isRefreshing}
-          activeOpacity={0.85}
-        >
-          {isRefreshing ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <>
-              <Feather name="refresh-cw" size={16} color="#FFFFFF" />
-              <Text style={styles.gatePrimaryBtnText}>Check Again</Text>
-            </>
+          <Text style={[styles.gateStoreTitle, { color: colors.text }]}>
+            {settings?.store_name || 'Narendra Kirana Store'}
+          </Text>
+
+          <View style={[styles.gateBadge, isDark && { backgroundColor: 'rgba(239, 68, 68, 0.2)', borderColor: 'rgba(239, 68, 68, 0.4)' }]}>
+            <Text style={styles.gateBadgeText}>MAINTENANCE IN PROGRESS</Text>
+          </View>
+
+          <Text style={[styles.gateHeading, { color: colors.text }]}>Under Scheduled Maintenance</Text>
+
+          <Text style={[styles.gateDescription, { color: colors.textSecondary }]}>
+            {settings?.maintenance_message ||
+              'We are currently performing scheduled maintenance to serve you better. We will be back online shortly!'}
+          </Text>
+
+          {Boolean(settings?.store_phone || settings?.store_email) && (
+            <View style={[styles.gateContactBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Text style={[styles.gateContactTitle, { color: colors.text }]}>Need Urgent Assistance?</Text>
+              {Boolean(settings?.store_phone) && (
+                <TouchableOpacity
+                  style={styles.contactRow}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  onPress={() => RNLinking.openURL(`tel:${settings?.store_phone}`)}
+                >
+                  <Feather name="phone" size={14} color={colors.primary} />
+                  <Text style={[styles.contactText, { color: colors.primary }]}>{settings?.store_phone}</Text>
+                </TouchableOpacity>
+              )}
+              {Boolean(settings?.store_email) && (
+                <TouchableOpacity
+                  style={styles.contactRow}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  onPress={() => RNLinking.openURL(`mailto:${settings?.store_email}`)}
+                >
+                  <Feather name="mail" size={14} color={colors.primary} />
+                  <Text style={[styles.contactText, { color: colors.primary }]}>{settings?.store_email}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           )}
-        </TouchableOpacity>
-      </View>
+
+          <TouchableOpacity
+            style={[styles.gatePrimaryBtn, { backgroundColor: colors.primary }]}
+            onPress={onRefresh}
+            disabled={isRefreshing}
+            activeOpacity={0.85}
+          >
+            {isRefreshing ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <Feather name="refresh-cw" size={16} color="#FFFFFF" />
+                <Text style={styles.gatePrimaryBtnText}>Check Again</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -572,8 +577,8 @@ function ForceUpdateView({
 }) {
   const handleUpdate = () => {
     const url = settings?.app_update_url || 'https://play.google.com/store';
-    RNLinking.openURL(url).catch((err) => {
-      console.warn('Could not open update URL:', err);
+    RNLinking.openURL(url).catch(() => {
+      RNLinking.openURL('https://play.google.com/store');
     });
   };
 
@@ -585,62 +590,64 @@ function ForceUpdateView({
 
   return (
     <SafeAreaView style={[styles.gateContainer, { backgroundColor: colors.background }]}>
-      <View style={styles.gateContent}>
-        <View style={[styles.gateIconCircle, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5' }]}>
-          <Feather name="arrow-up-circle" size={44} color="#059669" />
-        </View>
+      <ScrollView contentContainerStyle={styles.gateScrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.gateContent}>
+          <View style={[styles.gateIconCircle, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5' }]}>
+            <Feather name="arrow-up-circle" size={44} color="#059669" />
+          </View>
 
-        <Text style={[styles.gateStoreTitle, { color: colors.text }]}>
-          {settings?.store_name || 'Narendra Kirana Store'}
-        </Text>
-
-        <View style={[styles.gateBadge, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
-          <Text style={[styles.gateBadgeText, { color: '#047857' }]}>UPDATE REQUIRED</Text>
-        </View>
-
-        <Text style={[styles.gateHeading, { color: colors.text }]}>Please Update Your App</Text>
-
-        <Text style={[styles.gateDescription, { color: colors.textSecondary }]}>
-          {settings?.app_update_message ||
-            'A newer version of the app is available with essential security updates and improvements. Please update to continue shopping.'}
-        </Text>
-
-        <View style={[styles.versionPillContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.versionPillText, { color: colors.textSecondary }]}>
-            Current: <Text style={{ fontWeight: '700', color: colors.text }}>v{APP_VERSION}</Text>
+          <Text style={[styles.gateStoreTitle, { color: colors.text }]}>
+            {settings?.store_name || 'Narendra Kirana Store'}
           </Text>
-          {Boolean(settings?.min_mobile_version) && (
+
+          <View style={[styles.gateBadge, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.2)' : '#ECFDF5', borderColor: isDark ? 'rgba(16, 185, 129, 0.4)' : '#A7F3D0' }]}>
+            <Text style={[styles.gateBadgeText, { color: isDark ? '#34D399' : '#047857' }]}>UPDATE REQUIRED</Text>
+          </View>
+
+          <Text style={[styles.gateHeading, { color: colors.text }]}>Please Update Your App</Text>
+
+          <Text style={[styles.gateDescription, { color: colors.textSecondary }]}>
+            {settings?.app_update_message ||
+              'A newer version of the app is available with essential security updates and improvements. Please update to continue shopping.'}
+          </Text>
+
+          <View style={[styles.versionPillContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Text style={[styles.versionPillText, { color: colors.textSecondary }]}>
-              Required: <Text style={{ fontWeight: '700', color: colors.primary }}>v{settings?.min_mobile_version}</Text>
+              Current: <Text style={{ fontWeight: '700', color: colors.text }}>v{APP_VERSION}</Text>
             </Text>
-          )}
+            {Boolean(settings?.min_mobile_version) && (
+              <Text style={[styles.versionPillText, { color: colors.textSecondary }]}>
+                Required: <Text style={{ fontWeight: '700', color: colors.primary }}>v{settings?.min_mobile_version}</Text>
+              </Text>
+            )}
+          </View>
+
+          <TouchableOpacity
+            style={[styles.gatePrimaryBtn, { backgroundColor: colors.primary }]}
+            onPress={handleUpdate}
+            activeOpacity={0.85}
+          >
+            <Feather name="download" size={16} color="#FFFFFF" />
+            <Text style={styles.gatePrimaryBtnText}>Update Now</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.gateSecondaryBtn, { borderColor: colors.border }]}
+            onPress={onRefresh}
+            disabled={isRefreshing}
+            activeOpacity={0.8}
+          >
+            {isRefreshing ? (
+              <ActivityIndicator size="small" color={colors.text} />
+            ) : (
+              <>
+                <Feather name="refresh-cw" size={14} color={colors.text} />
+                <Text style={[styles.gateSecondaryBtnText, { color: colors.text }]}>I've Already Updated</Text>
+              </>
+            )}
+          </TouchableOpacity>
         </View>
-
-        <TouchableOpacity
-          style={[styles.gatePrimaryBtn, { backgroundColor: colors.primary }]}
-          onPress={handleUpdate}
-          activeOpacity={0.85}
-        >
-          <Feather name="download" size={16} color="#FFFFFF" />
-          <Text style={styles.gatePrimaryBtnText}>Update Now</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.gateSecondaryBtn, { borderColor: colors.border }]}
-          onPress={onRefresh}
-          disabled={isRefreshing}
-          activeOpacity={0.8}
-        >
-          {isRefreshing ? (
-            <ActivityIndicator size="small" color={colors.text} />
-          ) : (
-            <>
-              <Feather name="refresh-cw" size={14} color={colors.text} />
-              <Text style={[styles.gateSecondaryBtnText, { color: colors.text }]}>I've Already Updated</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -648,8 +655,12 @@ function ForceUpdateView({
 const styles = StyleSheet.create({
   gateContainer: {
     flex: 1,
+  },
+  gateScrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: 24,
     paddingHorizontal: 24,
   },
   gateContent: {

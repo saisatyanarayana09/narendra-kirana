@@ -1,42 +1,44 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { Feather } from '@expo/vector-icons';
 import { theme } from '../constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
+
 export function OfflineBanner() {
-  const [isConnected, setIsConnected] = useState<boolean | null>(true);
-  const slideAnim = useState(new Animated.Value(-100))[0];
   const insets = useSafeAreaInsets();
+  const hiddenOffset = -(Math.max(insets.top, 20) + 60);
+  const [shouldRender, setShouldRender] = useState(false);
+  const slideAnim = useRef(new Animated.Value(hiddenOffset)).current;
 
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener(state => {
-      // In simulator, it sometimes returns null, so default to true if null
       const connected = state.isConnected ?? true;
-      setIsConnected(connected);
 
       if (!connected) {
-        // Slide down
+        setShouldRender(true);
         Animated.timing(slideAnim, {
           toValue: 0,
           duration: 300,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }).start();
       } else {
-        // Slide up
         Animated.timing(slideAnim, {
-          toValue: -100,
+          toValue: hiddenOffset,
           duration: 300,
-          useNativeDriver: true,
-        }).start();
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }).start(() => {
+          setShouldRender(false);
+        });
       }
     });
 
     return () => unsubscribe();
-  }, [slideAnim]);
+  }, [slideAnim, hiddenOffset]);
 
-  if (isConnected) return null;
+  if (!shouldRender) return null;
 
   return (
     <Animated.View 

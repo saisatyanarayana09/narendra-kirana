@@ -11,11 +11,21 @@ class OrderItemSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     customer_name = serializers.CharField(source='customer.get_full_name', read_only=True)
+    customer_email = serializers.CharField(source='customer.email', read_only=True)
+    customer_phone = serializers.SerializerMethodField()
+
+    def get_customer_phone(self, obj):
+        if obj.customer:
+            if hasattr(obj.customer, 'customer_profile') and obj.customer.customer_profile and obj.customer.customer_profile.mobile_number:
+                return obj.customer.customer_profile.mobile_number
+            if obj.customer.username and obj.customer.username.isdigit():
+                return obj.customer.username
+        return ""
 
     class Meta:
         model = Order
         fields = [
-            'id', 'customer', 'customer_name', 'status', 'total_amount',
+            'id', 'customer', 'customer_name', 'customer_email', 'customer_phone', 'status', 'total_amount',
             'discount_applied', 'promo_discount', 'wallet_discount',
             'packaging_fee', 'pickup_time', 'customer_note', 'owner_note',
             'items', 'created_at', 'updated_at', 'order_type',
@@ -25,7 +35,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'cashback_credited'
         ]
         read_only_fields = [
-            'id', 'customer', 'status', 'total_amount',
+            'id', 'customer', 'customer_name', 'customer_email', 'customer_phone', 'status', 'total_amount',
             'discount_applied', 'promo_discount', 'wallet_discount',
             'packaging_fee', 'items', 'created_at', 'updated_at',
             'order_type', 'delivery_address', 'delivery_pincode',

@@ -105,7 +105,6 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
     await Clipboard.setStringAsync(referralCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-    Alert.alert('Copied!', 'Referral code copied to clipboard.');
   };
 
   const handleShare = async () => {
@@ -174,16 +173,12 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
     : `₹${parseFloat(settings?.referrer_reward || '50').toFixed(0)}`;
 
   // Milestone gamification calculations
-  const nextMilestone = milestones.find(m => m.required_referrals > completedReferrals);
-  let progressPercentage = 0;
-  if (nextMilestone) {
-    const previousMilestone = [...milestones].reverse().find(m => m.required_referrals <= completedReferrals);
-    const start = previousMilestone ? previousMilestone.required_referrals : 0;
-    const end = nextMilestone.required_referrals;
-    progressPercentage = ((completedReferrals - start) / (end - start)) * 100;
-  } else if (milestones.length > 0) {
-    progressPercentage = 100;
-  }
+  const sortedMilestones = [...milestones].sort((a, b) => a.required_referrals - b.required_referrals);
+  const maxMilestoneTarget = sortedMilestones.length > 0 
+    ? sortedMilestones[sortedMilestones.length - 1].required_referrals 
+    : 1;
+  const nextMilestone = sortedMilestones.find(m => m.required_referrals > completedReferrals);
+  const progressPercentage = Math.min(100, Math.max(0, (completedReferrals / maxMilestoneTarget) * 100));
 
   if (!user) {
     return (
@@ -293,7 +288,7 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
             activeOpacity={0.9}
           >
             <Feather name="share-2" size={18} color="#FFFFFF" />
-            <Text style={styles.shareBtnText}>Share via WhatsApp</Text>
+            <Text style={styles.shareBtnText}>Share Invite Link</Text>
           </TouchableOpacity>
         </View>
 

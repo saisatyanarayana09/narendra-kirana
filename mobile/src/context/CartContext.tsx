@@ -24,6 +24,7 @@ export interface CartItem {
   product_name?: string;
   product_unit?: string;
   product_image?: string | null;
+  is_in_stock?: boolean;
   stock_quantity?: number;
   max_order_quantity?: number;
   unit_price?: string;
@@ -40,19 +41,30 @@ export interface CartData {
   total: string;
 }
 
-interface CartContextType {
+export interface CartContextType {
   cart: CartData | null;
   isLoading: boolean;
   storeSettings: any;
   addToCart: (productId: number, quantity?: number, productDetails?: any) => Promise<void>;
   updateQuantity: (itemId: number, quantity: number) => Promise<void>;
   removeFromCart: (itemId: number) => Promise<void>;
+  clearCart: () => Promise<void>;
   applyPromo: (code: string) => Promise<void>;
   removePromo: () => Promise<void>;
   refreshCart: () => Promise<void>;
   cartQuantityMap: Record<number, number>;
   getItemQuantity: (productId: number) => number;
 }
+
+export const getItemProductId = (item: CartItem): number => {
+  if (typeof item.product === 'object' && item.product !== null) {
+    return Number(item.product.id);
+  }
+  if (typeof item.product === 'number') {
+    return item.product;
+  }
+  return Number(item.id);
+};
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
@@ -63,27 +75,35 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
 
   const calculateGuestTotals = (items: CartItem[], packagingFeeStr: string = '0'): CartData => {
-    let subtotalNum = 0;
+    let regularTotalNum = 0;
+    let offerTotalNum = 0;
+
     const computedItems = items.map((item) => {
-      const priceNum = parseFloat(item.product?.price || item.unit_price || '0');
-      const itemSub = priceNum * item.quantity;
-      subtotalNum += itemSub;
+      const offerPriceNum = parseFloat(item.unit_price || item.product?.price || '0');
+      const regularPriceNum = parseFloat(
+        item.product?.mrp || item.product?.regular_price || item.unit_price || item.product?.price || '0'
+      );
+      const itemSub = offerPriceNum * item.quantity;
+      regularTotalNum += regularPriceNum * item.quantity;
+      offerTotalNum += itemSub;
+
       return {
         ...item,
         subtotal: itemSub.toFixed(2),
       };
     });
 
+    const discountNum = Math.max(0, regularTotalNum - offerTotalNum);
     const packagingFeeNum = parseFloat(packagingFeeStr || '0');
-    const totalNum = subtotalNum + (subtotalNum > 0 ? packagingFeeNum : 0);
+    const totalNum = offerTotalNum + (offerTotalNum > 0 ? packagingFeeNum : 0);
 
     return {
       items: computedItems,
-      subtotal: subtotalNum.toFixed(2),
-      discount: '0.00',
+      subtotal: regularTotalNum > 0 ? regularTotalNum.toFixed(2) : offerTotalNum.toFixed(2),
+      discount: discountNum.toFixed(2),
       promo_code: null,
       promo_discount: '0.00',
-      packaging_fee: subtotalNum > 0 ? packagingFeeNum.toFixed(2) : '0.00',
+      packaging_fee: offerTotalNum > 0 ? packagingFeeNum.toFixed(2) : '0.00',
       total: totalNum.toFixed(2),
     };
   };
@@ -112,19 +132,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
             const guestCart = JSON.parse(raw);
             const guestItems = guestCart.items || [];
             if (guestItems.length > 0) {
-              await apiClient
-                .post('/cart/merge/', {
-                  items: guestItems.map((i: any) => ({
-                    product: i.product?.id || i.id,
-                    quantity: i.quantity,
-                  })),
-                })
-                .catch(() => null);
-              await removeGuestStorageItem(GUEST_CART_KEY);
+              const res = await apiClient.post('/cart/merge/', {
+                items: guestItems.map((i: any) => ({
+                  product: getItemProductId(i),
+                  quantity: i.quantity,
+                })),
+              });
+              if (res?.status >= 200 && res?.status < 300) {
+                await removeGuestStorageItem(GUEST_CART_KEY);
+              }
             }
           }
         } catch (e) {
-          // Ignore merge sync error
+          console.warn('[CartContext] Cart merge error:', e);
         }
         await refreshCart();
       } else {
@@ -219,14 +239,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
         };
 
         const existingItemIndex = currentCart.items.findIndex(
-          (item) => (item.product?.id || item.id) === productId
+          (item) => getItemProductId(item) === productId
         );
 
         let updatedItems = [...currentCart.items];
 
         if (existingItemIndex > -1) {
           const existingItem = updatedItems[existingItemIndex];
-          const newQty = existingItem.quantity + quantity;
+          const stockLimit = existingItem.stock_quantity ?? existingItem.product?.stock_quantity ?? 999;
+          const maxOrderLimit = existingItem.max_order_quantity ?? existingItem.product?.max_order_quantity ?? 0;
+          const cap = maxOrderLimit > 0 ? Math.min(stockLimit, maxOrderLimit) : stockLimit;
+          const newQty = Math.min(existingItem.quantity + quantity, cap);
           updatedItems[existingItemIndex] = {
             ...existingItem,
             quantity: newQty,
@@ -250,25 +273,32 @@ export function CartProvider({ children }: { children: ReactNode }) {
             }
           }
 
+          const stockLimit = details.stock_quantity ?? 999;
+          const maxOrderLimit = details.max_order_quantity ?? 0;
+          const cap = maxOrderLimit > 0 ? Math.min(stockLimit, maxOrderLimit) : stockLimit;
+          const safeQty = Math.min(quantity, cap);
+
           const newItem: CartItem = {
             id: productId,
             product: {
               id: productId,
               name: details.name || 'Product',
-              price: String(details.price || '0'),
-              mrp: details.mrp ? String(details.mrp) : null,
+              price: String(details.offer_price || details.price || '0'),
+              mrp: details.regular_price || details.mrp ? String(details.regular_price || details.mrp) : null,
               is_in_stock: details.is_in_stock !== false,
               image: details.image || details.primary_image || null,
               unit: details.unit || 'pack',
               stock_quantity: details.stock_quantity,
               max_order_quantity: details.max_order_quantity,
             },
-            quantity,
-            subtotal: (parseFloat(details.price || '0') * quantity).toFixed(2),
+            quantity: safeQty,
+            subtotal: (parseFloat(details.offer_price || details.price || '0') * safeQty).toFixed(2),
             product_name: details.name,
             product_unit: details.unit,
             product_image: details.image || details.primary_image || null,
-            unit_price: String(details.price || '0'),
+            stock_quantity: details.stock_quantity,
+            max_order_quantity: details.max_order_quantity,
+            unit_price: String(details.offer_price || details.price || '0'),
           };
           updatedItems.push(newItem);
         }
@@ -289,8 +319,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
 
-      if (cart) {
-        const existingItem = cart.items?.find((item) => item.product?.id === productId);
+      if (cart?.items) {
+        const existingItem = cart.items.find((item) => getItemProductId(item) === productId);
         if (existingItem) {
           await updateQuantity(existingItem.id, existingItem.quantity + quantity);
           return;
@@ -314,15 +344,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     if (!user) {
       try {
-        setIsLoading(true);
         const currentCart = (await loadGuestCart()) || cart;
         if (!currentCart) return;
 
         const updatedItems = currentCart.items.map((item) => {
-          if (item.id === itemId || item.product?.id === itemId) {
+          if (item.id === itemId || getItemProductId(item) === itemId) {
+            const stockLimit = item.stock_quantity ?? item.product?.stock_quantity ?? 999;
+            const maxOrderLimit = item.max_order_quantity ?? item.product?.max_order_quantity ?? 0;
+            const cap = maxOrderLimit > 0 ? Math.min(stockLimit, maxOrderLimit) : stockLimit;
+            const safeQty = Math.min(quantity, cap);
             return {
               ...item,
-              quantity,
+              quantity: safeQty,
             };
           }
           return item;
@@ -335,33 +368,65 @@ export function CartProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error('Failed to update guest cart quantity:', error);
         throw error;
-      } finally {
-        setIsLoading(false);
       }
       return;
     }
 
+    // Optimistic update for instant responsiveness
+    const prevCart = cart;
+    if (cart?.items) {
+      const updatedItems = cart.items.map((item) => {
+        if (item.id === itemId) {
+          const unitPriceNum = parseFloat(item.unit_price || item.product?.price || '0');
+          return {
+            ...item,
+            quantity,
+            subtotal: (unitPriceNum * quantity).toFixed(2),
+          };
+        }
+        return item;
+      });
+
+      let newOfferSubtotal = 0;
+      let newRegularSubtotal = 0;
+      updatedItems.forEach((i) => {
+        const offerP = parseFloat(i.unit_price || i.product?.price || '0');
+        const regP = parseFloat(i.product?.mrp || i.product?.regular_price || i.unit_price || i.product?.price || '0');
+        newOfferSubtotal += offerP * i.quantity;
+        newRegularSubtotal += regP * i.quantity;
+      });
+      const packaging = parseFloat(cart.packaging_fee || '0');
+      const promo = parseFloat(cart.promo_discount || '0');
+      const newTotal = Math.max(0, newOfferSubtotal - promo) + (newOfferSubtotal > 0 ? packaging : 0);
+
+      setCart({
+        ...cart,
+        items: updatedItems,
+        subtotal: newRegularSubtotal > 0 ? newRegularSubtotal.toFixed(2) : newOfferSubtotal.toFixed(2),
+        discount: Math.max(0, newRegularSubtotal - newOfferSubtotal).toFixed(2),
+        total: newTotal.toFixed(2),
+      });
+    }
+
     try {
-      setIsLoading(true);
       await apiClient.patch(`/cart/items/${itemId}/`, { quantity });
       await refreshCart();
-    } catch (error) {
+    } catch (error: any) {
+      // Rollback on failure
+      if (prevCart) setCart(prevCart);
       console.error('Failed to update quantity:', error);
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const removeFromCart = async (itemId: number) => {
     if (!user) {
       try {
-        setIsLoading(true);
         const currentCart = (await loadGuestCart()) || cart;
         if (!currentCart) return;
 
         const updatedItems = currentCart.items.filter(
-          (item) => item.id !== itemId && item.product?.id !== itemId
+          (item) => item.id !== itemId && getItemProductId(item) !== itemId
         );
 
         const packagingFee = storeSettings?.packaging_fee || '0';
@@ -371,19 +436,51 @@ export function CartProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error('Failed to remove from guest cart:', error);
         throw error;
-      } finally {
-        setIsLoading(false);
       }
+      return;
+    }
+
+    // Optimistic removal
+    const prevCart = cart;
+    if (cart?.items) {
+      const updatedItems = cart.items.filter((item) => item.id !== itemId);
+      setCart({
+        ...cart,
+        items: updatedItems,
+      });
+    }
+
+    try {
+      await apiClient.delete(`/cart/items/${itemId}/`);
+      await refreshCart();
+    } catch (error) {
+      if (prevCart) setCart(prevCart);
+      console.error('Failed to remove from cart:', error);
+      throw error;
+    }
+  };
+
+  const clearCart = async () => {
+    if (!user) {
+      await removeGuestStorageItem(GUEST_CART_KEY);
+      setCart({
+        items: [],
+        subtotal: '0.00',
+        discount: '0.00',
+        promo_code: null,
+        promo_discount: '0.00',
+        packaging_fee: '0.00',
+        total: '0.00',
+      });
       return;
     }
 
     try {
       setIsLoading(true);
-      await apiClient.delete(`/cart/items/${itemId}/`);
+      await apiClient.post('/cart/clear/').catch(() => null);
       await refreshCart();
     } catch (error) {
-      console.error('Failed to remove from cart:', error);
-      throw error;
+      console.error('Failed to clear cart:', error);
     } finally {
       setIsLoading(false);
     }
@@ -420,9 +517,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const map: Record<number, number> = {};
     if (cart?.items) {
       for (const item of cart.items) {
-        const pId = item.product?.id ?? item.product;
+        const pId = getItemProductId(item);
         if (pId != null) {
-          map[Number(pId)] = item.quantity;
+          map[pId] = item.quantity;
         }
       }
     }
@@ -440,6 +537,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     addToCart,
     updateQuantity,
     removeFromCart,
+    clearCart,
     applyPromo,
     removePromo,
     refreshCart,
@@ -452,6 +550,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     addToCart,
     updateQuantity,
     removeFromCart,
+    clearCart,
     applyPromo,
     removePromo,
     refreshCart,

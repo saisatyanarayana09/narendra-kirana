@@ -66,6 +66,16 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                     'Please reset your password or contact store support.'
                 )
 
+        # Check if account is not activated yet
+        if target_user and not target_user.is_active:
+            password = attrs.get('password')
+            if password and target_user.check_password(password):
+                raise exceptions.AuthenticationFailed({
+                    'detail': 'Your account has not been activated yet. Please verify your email to log in.',
+                    'code': 'account_inactive',
+                    'email': target_user.email
+                })
+
         try:
             data = super().validate(attrs)
         except exceptions.AuthenticationFailed as auth_err:
@@ -292,7 +302,14 @@ class AddressViewSet(viewsets.ModelViewSet):
         return Address.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
+        if serializer.validated_data.get('is_default'):
+            Address.objects.filter(user=self.request.user).update(is_default=False)
         serializer.save(user=self.request.user)
+
+    def perform_update(self, serializer):
+        if serializer.validated_data.get('is_default'):
+            Address.objects.filter(user=self.request.user).exclude(pk=serializer.instance.pk).update(is_default=False)
+        serializer.save()
 
 from .serializers import WalletSerializer
 from .models import Wallet
@@ -340,6 +357,59 @@ class VerifyEmailView(APIView):
             return Response({'message': 'Account activated successfully.'}, status=status.HTTP_200_OK)
         else:
             return Response({'error': 'Activation link is invalid or expired.'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ResendActivationEmailView(APIView):
+    """
+    Allows customers whose initial verification email was lost or expired to request
+    a fresh activation link.
+    """
+    permission_classes = [AllowAny]
+    throttle_classes = [AnonRateThrottle]
+
+    def post(self, request):
+        identifier = (request.data.get('email') or request.data.get('identifier') or '').strip()
+        if not identifier:
+            return Response({'error': 'Email address or username is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.filter(email__iexact=identifier).first()
+        if not user:
+            user = User.objects.filter(username__iexact=identifier).first()
+
+        if not user or not user.email:
+            # Return uniform friendly message for security / account enumeration protection
+            return Response({
+                'message': 'If an inactive account associated with that email exists, a verification link has been sent.'
+            }, status=status.HTTP_200_OK)
+
+        if user.is_active:
+            return Response({
+                'message': 'This account is already active. Please sign in with your password.'
+            }, status=status.HTTP_200_OK)
+
+        from django.utils.http import urlsafe_base64_encode
+        from django.utils.encoding import force_bytes
+        from store.email_service import send_store_email_async
+        from .email_templates import build_account_activation_email
+
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = email_verification_token.make_token(user)
+
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')
+        verify_link = f"{frontend_url}/verify-email?uid={uid}&token={token}"
+
+        email_data = build_account_activation_email(user, verify_link)
+        send_store_email_async(
+            subject=email_data['subject'],
+            message=email_data['text'],
+            recipient_list=[user.email],
+            html_message=email_data['html'],
+            fail_silently=True,
+        )
+
+        return Response({
+            'message': 'A fresh activation link has been sent to your email address.'
+        }, status=status.HTTP_200_OK)
 
 import hashlib
 import django.contrib.auth
@@ -783,6 +853,27 @@ class AdminLockUserView(APIView):
             return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
 
 
+class AdminActivateUserView(APIView):
+    """
+    Allows the store owner to manually activate any customer account directly from
+    the Owner Portal Customer Directory with 1 click.
+    """
+    permission_classes = [IsAuthenticated, IsOwnerUser]
+
+    def post(self, request, user_id):
+        try:
+            user = User.objects.get(pk=user_id)
+            user.is_active = True
+            user.failed_login_attempts = 0
+            user.save(update_fields=['is_active', 'failed_login_attempts'])
+            return Response({
+                'message': f'Account {user.username} has been activated successfully.',
+                'user': UserSerializer(user).data
+            }, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+
 class RequestDeleteView(APIView):
     permission_classes = [IsAuthenticated]
     
@@ -873,12 +964,18 @@ class OwnerCustomerDetailView(APIView):
                 'total_amount': float(order.total_amount)
             } for order in recent_orders]
             
-            # Append aggregated data
-            data['wallet_balance'] = wallet_balance
-            data['total_orders'] = total_orders
-            data['total_spent'] = float(total_spent)
-            data['recent_orders'] = recent_orders_data
-            
+            # If customer is not active, generate the current activation link for the store owner
+            if not customer_user.is_active:
+                from django.utils.http import urlsafe_base64_encode
+                from django.utils.encoding import force_bytes
+                from .utils import email_verification_token
+                uid = urlsafe_base64_encode(force_bytes(customer_user.pk))
+                token = email_verification_token.make_token(customer_user)
+                frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')
+                data['activation_link'] = f"{frontend_url}/verify-email?uid={uid}&token={token}"
+            else:
+                data['activation_link'] = None
+
             return Response(data, status=status.HTTP_200_OK)
         except User.DoesNotExist:
             return Response({'error': 'Customer not found.'}, status=status.HTTP_404_NOT_FOUND)

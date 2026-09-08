@@ -235,6 +235,15 @@ class StoreEmailSettings(models.Model):
         obj = cache.get('store_email_settings')
         if not obj:
             obj, created = cls.objects.get_or_create(pk=1)
+            if not obj.sender_email:
+                try:
+                    from .models import StoreSettings
+                    s = StoreSettings.load()
+                    if s.store_email:
+                        obj.sender_email = s.store_email
+                        obj.save()
+                except Exception:
+                    pass
             cache.set('store_email_settings', obj, timeout=3600)
         return obj
 

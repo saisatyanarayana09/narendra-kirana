@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Image } from 'react-native';
+import { View, Text, StyleSheet, Animated, Image, Platform } from 'react-native';
+
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 export function SplashScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -10,12 +12,12 @@ export function SplashScreen() {
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 800,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
       }),
       Animated.timing(scaleAnim, {
         toValue: 1,
         duration: 800,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
       }),
     ]).start();
   }, []);

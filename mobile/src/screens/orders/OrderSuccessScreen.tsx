@@ -6,13 +6,16 @@ import {
   TouchableOpacity, 
   BackHandler, 
   Animated, 
-  Easing 
+  Easing,
+  Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
 import { triggerHaptic } from '../../utils/haptics';
 import { useTheme } from '../../context/ThemeContext';
+
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 type Props = { 
   navigation: AppNavigationProp; 
@@ -112,7 +115,7 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
       toValue: 1,
       tension: 60,
       friction: 6,
-      useNativeDriver: true,
+      useNativeDriver: USE_NATIVE_DRIVER,
     }).start();
 
     // 2. Halo Pulse Looping
@@ -122,12 +125,12 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
           toValue: 1.5,
           duration: 1800,
           easing: Easing.out(Easing.ease),
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
         Animated.timing(haloOpacity, {
           toValue: 0,
           duration: 1800,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
       ])
     ).start();
@@ -138,13 +141,13 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
         toValue: 0,
         duration: 500,
         delay: 200,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
       }),
       Animated.timing(opacityAnim, {
         toValue: 1,
         duration: 500,
         delay: 200,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
       }),
     ]).start();
 

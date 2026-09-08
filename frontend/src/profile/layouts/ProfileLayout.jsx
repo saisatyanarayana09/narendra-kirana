@@ -1,21 +1,28 @@
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet, Link, useLocation } from 'react-router-dom';
+import { ChevronLeft } from 'lucide-react';
 import { useCart } from '../../cart-context';
 import { CustomerLayout } from '../../customer-layout';
 
 export default function ProfileLayout() {
   const { isCustomer } = useCart();
+  const location = useLocation();
+  const isRootProfile = location.pathname === '/profile' || location.pathname === '/profile/';
 
   if (!isCustomer) return null;
 
   return (
     <CustomerLayout>
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 min-h-[70vh]">
-        <div className="mb-6">
-          <Link to="/products" className="text-sm font-bold text-slate-500 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors inline-flex items-center gap-1.5 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-left"><path d="m15 18-6-6 6-6"/></svg>
-            Back to shop
-          </Link>
-        </div>
+      <main className="mx-auto w-full max-w-xl px-3 sm:px-4 py-4 pb-28 sm:pb-24">
+        {!isRootProfile && (
+          <div className="mb-3.5">
+            <Link 
+              to="/profile" 
+              className="text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors inline-flex items-center gap-1 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-xl shadow-xs border border-slate-200/80 dark:border-slate-700"
+            >
+              <ChevronLeft size={16} /> Back to Profile
+            </Link>
+          </div>
+        )}
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
           <Outlet />
         </div>

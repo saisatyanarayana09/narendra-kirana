@@ -226,7 +226,7 @@ export function MainTabs() {
           component={HomeStack}
           options={({ route }) => ({
             tabBarLabel: t('home'),
-            tabBarIcon: ({ color, size }) => <Feather name="home" color={color} size={20} />,
+            tabBarIcon: ({ color, size }) => <Feather name="home" color={color} size={size || 22} />,
             tabBarStyle: shouldHideTabBar(route) 
               ? { display: 'none' } 
               : dynamicTabBarStyle,
@@ -237,7 +237,7 @@ export function MainTabs() {
           component={CategoriesStack}
           options={({ route }) => ({
             tabBarLabel: t('categories'),
-            tabBarIcon: ({ color, size }) => <Feather name="grid" color={color} size={20} />,
+            tabBarIcon: ({ color, size }) => <Feather name="grid" color={color} size={size || 22} />,
             tabBarStyle: shouldHideTabBar(route) 
               ? { display: 'none' } 
               : dynamicTabBarStyle,
@@ -248,7 +248,7 @@ export function MainTabs() {
           component={OrdersStack}
           options={({ route }) => ({
             tabBarLabel: t('orders'),
-            tabBarIcon: ({ color, size }) => <Feather name="package" color={color} size={20} />,
+            tabBarIcon: ({ color, size }) => <Feather name="package" color={color} size={size || 22} />,
             tabBarStyle: shouldHideTabBar(route) 
               ? { display: 'none' } 
               : dynamicTabBarStyle,
@@ -259,7 +259,7 @@ export function MainTabs() {
           component={ProfileStack}
           options={({ route }) => ({
             tabBarLabel: t('profile'),
-            tabBarIcon: ({ color, size }) => <Feather name="user" color={color} size={20} />,
+            tabBarIcon: ({ color, size }) => <Feather name="user" color={color} size={size || 22} />,
             tabBarStyle: shouldHideTabBar(route) 
               ? { display: 'none' } 
               : dynamicTabBarStyle,
@@ -272,17 +272,19 @@ export function MainTabs() {
             tabBarLabel: t('cart'),
             tabBarBadge: cartItemCount > 0 ? cartItemCount : undefined,
             tabBarBadgeStyle: {
-              backgroundColor: isDark ? colors.primary : '#0F172A',
-              color: '#FFFFFF',
+              backgroundColor: isDark ? '#10B981' : '#0F172A',
+              color: isDark ? '#090D16' : '#FFFFFF',
               fontSize: 10,
               fontWeight: '900',
               minWidth: 18,
               paddingHorizontal: 4,
               height: 18,
+              lineHeight: 18,
               borderRadius: 9,
               textAlign: 'center',
+              textAlignVertical: 'center',
             },
-            tabBarIcon: ({ color, size }) => <Feather name="shopping-cart" color={color} size={20} />,
+            tabBarIcon: ({ color, size }) => <Feather name="shopping-cart" color={color} size={size || 22} />,
             tabBarStyle: shouldHideTabBar(route) 
               ? { display: 'none' } 
               : dynamicTabBarStyle,

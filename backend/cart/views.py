@@ -132,10 +132,39 @@ class ApplyPromoView(APIView):
             if usage_count >= promo.max_uses_per_user:
                 return Response({'detail': f'You have reached the maximum usage limit ({promo.max_uses_per_user}) for this promo code.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # We attach it now. The CartSerializer will check if it meets min_order_amount
+        # Validate minimum order amount and eligible category against cart items
+        from cart.serializers import current_price
+        from decimal import Decimal
+        items = list(cart.items.select_related('product').all())
+        if not items:
+            return Response({'detail': 'Your cart is empty. Add products before applying a promo code.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        base_total = sum((current_price(item.product) * item.quantity for item in items), Decimal('0.00'))
+        if promo.min_order_amount and base_total < promo.min_order_amount:
+            shortfall = promo.min_order_amount - base_total
+            return Response({'detail': f'This promo code requires a minimum order amount of ₹{promo.min_order_amount}. Add ₹{shortfall:.2f} more to apply.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if hasattr(promo, 'applicable_category') and promo.applicable_category:
+            eligible_total = sum((current_price(item.product) * item.quantity for item in items if item.product.category_id == promo.applicable_category_id), Decimal('0.00'))
+            if eligible_total == Decimal('0.00'):
+                return Response({'detail': f'This promo code is only applicable to products in "{promo.applicable_category.name}".'}, status=status.HTTP_400_BAD_REQUEST)
+
         cart.promo_code = promo
         cart.save(update_fields=['promo_code'])
         return Response(CartSerializer(cart, context={'request': request}).data)
+
+
+class CartClearView(APIView):
+    permission_classes = [IsAuthenticated, IsCustomerUser]
+
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        cart = customer_cart(request.user)
+        cart.items.all().delete()
+        cart.promo_code = None
+        cart.save(update_fields=['promo_code'])
+        cart = Cart.objects.prefetch_related('items__product').get(id=cart.id)
+        return Response(CartSerializer(cart, context={'request': request}).data, status=status.HTTP_200_OK)
 
 
 class CartMergeView(APIView):
