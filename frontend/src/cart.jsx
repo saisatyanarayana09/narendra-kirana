@@ -70,7 +70,7 @@ export function CustomerLoginPage() {
       localStorage.setItem('smart-kirana-customer-refresh', data.refresh);
       localStorage.setItem('smart-kirana-customer-user', JSON.stringify(data.user));
       syncUser();
-      sessionStorage.removeItem('welcome_shown_time');
+      sessionStorage.removeItem('welcome_screen_shown_in_session');
       window.dispatchEvent(new Event('trigger-welcome-screen'));
       toast.success('Signed in successfully!');
       navigate(redirectTarget, { replace: true });

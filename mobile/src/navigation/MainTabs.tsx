@@ -142,7 +142,7 @@ export function MainTabs() {
   const [isDismissed, setIsDismissed] = useState(false);
 
   // Cart popup bar should only come after welcome screen is completed
-  const willShowWelcome = Boolean(user && !getHasShownWelcomeSession());
+  const willShowWelcome = !getHasShownWelcomeSession();
   const [isWelcomeActive, setIsWelcomeActive] = useState(willShowWelcome);
 
   const cartItemCount = cart?.items?.length || 0;

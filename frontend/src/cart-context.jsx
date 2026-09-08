@@ -85,6 +85,7 @@ export function CartProvider({ children }) {
       localStorage.removeItem('smart-kirana-customer-token');
       localStorage.removeItem('smart-kirana-customer-refresh');
       localStorage.removeItem('smart-kirana-customer-user');
+      sessionStorage.removeItem('welcome_screen_shown_in_session');
       sessionStorage.removeItem('welcome_shown_time');
       sessionStorage.removeItem('hasShownWelcome');
       setUser(null);

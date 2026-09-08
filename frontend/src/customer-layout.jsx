@@ -308,100 +308,126 @@ export function NotificationPopup({ isOpen, onClose }) {
 }
 
 function WelcomeScreen() {
-  const { user, isCustomer, cart } = useCart();
+  const { user } = useCart();
   const [show, setShow] = useState(() => {
     if (typeof window === 'undefined') return false;
+    
+    // If already shown in this browser session, do not show again
+    if (sessionStorage.getItem('welcome_screen_shown_in_session')) {
+      return false;
+    }
+
+    // Check URL parameter explicitly (e.g. ?welcome=true or ?welcome=1)
     const params = new URLSearchParams(window.location.search);
     if (params.get('welcome') === '1' || params.get('welcome') === 'true') {
       return true;
     }
-    const lastShown = Number(sessionStorage.getItem('welcome_shown_time') || 0);
-    const now = Date.now();
-    // Show if not shown in the last 15 minutes in this tab
-    if (!lastShown || now - lastShown > 15 * 60 * 1000) {
-      return true;
-    }
-    return false;
+
+    // Only show once when the user opens the web app newly
+    return true;
   });
   const [stage, setStage] = useState('initial');
-  const prevUserIdRef = useRef(user?.id);
-
-  // Trigger welcome greeting on customer login or user state update
-  useEffect(() => {
-    if (user?.id && user.id !== prevUserIdRef.current) {
-      setShow(true);
-      setStage('initial');
-    }
-    prevUserIdRef.current = user?.id;
-  }, [user?.id]);
-
-  // Listen for explicit welcome triggers
-  useEffect(() => {
-    const handleTrigger = () => {
-      setShow(true);
-      setStage('initial');
-    };
-    window.addEventListener('trigger-welcome-screen', handleTrigger);
-    return () => window.removeEventListener('trigger-welcome-screen', handleTrigger);
-  }, []);
 
   useEffect(() => {
     if (show) {
-      sessionStorage.setItem('welcome_shown_time', String(Date.now()));
-      const timer1 = setTimeout(() => setStage('fade-in'), 100); 
-      const timer2 = setTimeout(() => setStage('fade-out'), 2500); 
-      const timer3 = setTimeout(() => { setShow(false); setStage('hidden'); }, 3200);
+      // Mark as shown immediately so no other page transition, reload, or timer re-triggers it
+      sessionStorage.setItem('welcome_screen_shown_in_session', 'true');
+      const timer1 = setTimeout(() => setStage('fade-in'), 50); 
+      const timer2 = setTimeout(() => setStage('fade-out'), 2200); 
+      const timer3 = setTimeout(() => { setShow(false); setStage('hidden'); }, 2800);
       
       return () => { clearTimeout(timer1); clearTimeout(timer2); clearTimeout(timer3); };
     }
   }, [show]);
 
- if (!show) return null;
+  // Listen for explicit manual triggers (e.g. login)
+  useEffect(() => {
+    const handleTrigger = () => {
+      if (!sessionStorage.getItem('welcome_screen_shown_in_session')) {
+        sessionStorage.setItem('welcome_screen_shown_in_session', 'true');
+        setShow(true);
+        setStage('initial');
+      }
+    };
+    window.addEventListener('trigger-welcome-screen', handleTrigger);
+    return () => window.removeEventListener('trigger-welcome-screen', handleTrigger);
+  }, []);
 
- const hour = new Date().getHours();
- let greeting = "Welcome";
- if (hour >= 5 && hour < 12) {
- greeting = "Good morning";
- } else if (hour >= 12 && hour < 17) {
- greeting = "Good afternoon";
- } else if (hour >= 17 && hour < 22) {
- greeting = "Good evening";
- }
+  if (!show) return null;
 
- const name = user?.first_name || user?.username || 'Guest';
+  const hour = new Date().getHours();
+  let greeting = "Welcome";
+  if (hour >= 5 && hour < 12) {
+    greeting = "Good morning";
+  } else if (hour >= 12 && hour < 17) {
+    greeting = "Good afternoon";
+  } else if (hour >= 17 && hour < 22) {
+    greeting = "Good evening";
+  }
 
- const handleSkip = () => {
- setStage('fade-out');
- setTimeout(() => { setShow(false); setStage('hidden'); }, 700);
- };
+  // Get user name from context or cached localStorage for instant display
+  const cachedUserStr = typeof window !== 'undefined' ? localStorage.getItem('smart-kirana-customer-user') : null;
+  let cachedName = '';
+  try {
+    const cachedUser = cachedUserStr ? JSON.parse(cachedUserStr) : null;
+    cachedName = cachedUser?.first_name || cachedUser?.username || '';
+  } catch {
+    cachedName = '';
+  }
+  const name = user?.first_name || user?.username || cachedName;
 
- return (
-  <div onClick={handleSkip} role="button" className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-gradient-to-br from-white via-white to-emerald-50 dark:from-[#090d16] dark:via-[#0c1220] dark:to-[#0f1b2b] transition-opacity duration-700 ease-in-out ${stage === 'fade-out' ? 'opacity-0 pointer-events-none' : 'opacity-100'} overflow-hidden cursor-pointer`}>
-  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-  <div className="w-96 h-96 rounded-full border border-emerald-200/10 absolute" />
-  <div className="w-72 h-72 rounded-full border border-emerald-300/10 absolute" />
-  <div className="w-48 h-48 rounded-full bg-emerald-400/5 absolute" />
-  </div>
-  <div className="absolute top-[15%] left-[10%] text-2xl opacity-[0.06] animate-bounce" style={{animationDuration: '3s'}}>🥬</div>
-  <div className="absolute top-[20%] right-[12%] text-xl opacity-[0.06] animate-bounce" style={{animationDuration: '3.5s'}}>🛒</div>
-  <div className="absolute bottom-[20%] left-[15%] text-xl opacity-[0.06] animate-bounce" style={{animationDuration: '4s'}}>🥕</div>
-  <div className="absolute bottom-[15%] right-[10%] text-2xl opacity-[0.06] animate-bounce" style={{animationDuration: '2.5s'}}>🌿</div>
+  const handleSkip = () => {
+    setStage('fade-out');
+    setTimeout(() => { setShow(false); setStage('hidden'); }, 400);
+  };
 
-  <div className={`flex flex-col items-center justify-center relative z-10 transition-[opacity,transform] duration-700 ease-out transform ${stage === 'fade-in' ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'}`}>
-  <div className="flex flex-col items-center justify-center mb-10 relative">
-  <div className="absolute w-40 h-40 sm:w-48 sm:h-48 bg-emerald-400/10 rounded-full blur-3xl" />
-  <img src="/logo-transparent.png" className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 object-contain mb-4 drop-shadow-xl relative z-10" alt="Logo" />
-  <div className="text-base sm:text-lg font-black tracking-[0.25em] uppercase text-slate-500 drop-shadow-sm text-center ml-2 relative z-10">
-  <span className="text-emerald-900 dark:text-emerald-300">Narendra</span> <span className="text-primary-600 dark:text-primary-400">Kirana</span>
-  </div>
-  </div>
-  <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tight text-center px-6 leading-tight">
-  {greeting},<br className="sm:hidden" /> {name}.
-  </h1>
-  </div>
-  <p className={`absolute bottom-8 text-sm text-slate-300 dark:text-slate-500 transition-opacity duration-700 ${stage === 'fade-in' ? 'opacity-100' : 'opacity-0'}`}>Click anywhere to skip</p>
-  </div>
- );
+  return (
+    <div
+      onClick={handleSkip}
+      role="button"
+      className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-gradient-to-br from-white via-white to-emerald-50 dark:from-[#090d16] dark:via-[#0c1220] dark:to-[#0f1b2b] transition-opacity duration-700 ease-in-out ${
+        stage === 'fade-out' ? 'opacity-0 pointer-events-none' : 'opacity-100'
+      } overflow-hidden cursor-pointer`}
+    >
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="w-96 h-96 rounded-full border border-emerald-200/10 absolute" />
+        <div className="w-72 h-72 rounded-full border border-emerald-300/10 absolute" />
+        <div className="w-48 h-48 rounded-full bg-emerald-400/5 absolute" />
+      </div>
+      <div className="absolute top-[15%] left-[10%] text-2xl opacity-[0.06] animate-bounce" style={{ animationDuration: '3s' }}>🥬</div>
+      <div className="absolute top-[20%] right-[12%] text-xl opacity-[0.06] animate-bounce" style={{ animationDuration: '3.5s' }}>🛒</div>
+      <div className="absolute bottom-[20%] left-[15%] text-xl opacity-[0.06] animate-bounce" style={{ animationDuration: '4s' }}>🥕</div>
+      <div className="absolute bottom-[15%] right-[10%] text-2xl opacity-[0.06] animate-bounce" style={{ animationDuration: '2.5s' }}>🌿</div>
+
+      <div
+        className={`flex flex-col items-center justify-center relative z-10 transition-[opacity,transform] duration-700 ease-out transform ${
+          stage === 'fade-in' ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'
+        }`}
+      >
+        <div className="flex flex-col items-center justify-center mb-10 relative">
+          <div className="absolute w-40 h-40 sm:w-48 sm:h-48 bg-emerald-400/10 rounded-full blur-3xl" />
+          <img src="/logo-transparent.png" className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 object-contain mb-4 drop-shadow-xl relative z-10" alt="Logo" />
+          <div className="text-base sm:text-lg font-black tracking-[0.25em] uppercase text-slate-500 drop-shadow-sm text-center ml-2 relative z-10">
+            <span className="text-emerald-900 dark:text-emerald-300">Narendra</span> <span className="text-primary-600 dark:text-primary-400">Kirana</span>
+          </div>
+        </div>
+        <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tight text-center px-6 leading-tight">
+          {name ? (
+            <>
+              {greeting},<br className="sm:hidden" /> {name}.
+            </>
+          ) : (
+            <>
+              {greeting} to<br className="sm:hidden" /> Narendra Kirana
+            </>
+          )}
+        </h1>
+      </div>
+      <p className={`absolute bottom-8 text-sm text-slate-300 dark:text-slate-500 transition-opacity duration-700 ${stage === 'fade-in' ? 'opacity-100' : 'opacity-0'}`}>
+        Click anywhere to skip
+      </p>
+    </div>
+  );
 }
 
 import { SmartAppBanner } from './components/SmartAppBanner';
