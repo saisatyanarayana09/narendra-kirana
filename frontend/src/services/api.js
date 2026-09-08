@@ -5,7 +5,13 @@ const api = axios.create({
 });
 
 // Helper to get token prefix based on URL
-const getPrefix = () => window.location.pathname.startsWith('/owner') ? 'smart-kirana-owner' : 'smart-kirana-customer';
+const getPrefix = () => {
+  if (typeof window !== 'undefined') {
+    if (window.location.pathname.startsWith('/owner')) return 'smart-kirana-owner';
+    if (window.location.pathname.startsWith('/delivery')) return 'smart-kirana-delivery';
+  }
+  return 'smart-kirana-customer';
+};
 
 const isAuthEndpoint = (url = '') => {
   const cleanUrl = url.toLowerCase();
@@ -76,6 +82,8 @@ api.interceptors.response.use(
         localStorage.removeItem(`${prefix}-user`);
         if (prefix === 'smart-kirana-owner') {
           window.location.href = '/owner/login';
+        } else if (prefix === 'smart-kirana-delivery') {
+          window.location.href = '/delivery/login';
         }
         return Promise.reject(error);
       }
@@ -105,6 +113,8 @@ api.interceptors.response.use(
         localStorage.removeItem(`${prefix}-user`);
         if (prefix === 'smart-kirana-owner') {
           window.location.href = '/owner/login';
+        } else if (prefix === 'smart-kirana-delivery') {
+          window.location.href = '/delivery/login';
         }
         return Promise.reject(error);
       }
@@ -141,6 +151,8 @@ api.interceptors.response.use(
         localStorage.removeItem(`${prefix}-user`);
         if (prefix === 'smart-kirana-owner') {
           window.location.href = '/owner/login';
+        } else if (prefix === 'smart-kirana-delivery') {
+          window.location.href = '/delivery/login';
         }
         return Promise.reject(refreshErr);
       } finally {
