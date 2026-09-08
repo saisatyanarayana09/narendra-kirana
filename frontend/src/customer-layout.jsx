@@ -679,7 +679,7 @@ export function CustomerLayout({ children }) {
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {isCustomer ? (
               <>
-                <div className="relative">
+                <div className="relative hidden sm:block">
                   <button 
                     onClick={() => setShowNotifications(!showNotifications)} 
                     className="grid size-9 sm:size-10 place-items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition relative cursor-pointer"
