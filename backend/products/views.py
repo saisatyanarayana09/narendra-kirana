@@ -60,6 +60,16 @@ class ProductViewSet(viewsets.ModelViewSet):
         # Non-owners only see active products
         if not (self.request.user and self.request.user.is_authenticated and getattr(self.request.user, 'is_owner', False)):
             queryset = queryset.filter(is_active=True)
+
+        section_id = self.request.query_params.get('section')
+        if section_id:
+            try:
+                from store.models import HomepageSectionProduct
+                product_ids = HomepageSectionProduct.objects.filter(section_id=section_id).values_list('product_id', flat=True)
+                queryset = queryset.filter(id__in=product_ids)
+            except Exception as e:
+                pass
+
         return queryset
 
     def _handle_gallery_images(self, product, request):

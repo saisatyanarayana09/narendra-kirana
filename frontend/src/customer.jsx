@@ -705,7 +705,10 @@ export function HomePage() {
               </span>
             </div>
 
-            <Link to="/products" className="text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition flex items-center gap-1">
+            <Link 
+              to={`/products?section=${section.id}&section_title=${encodeURIComponent(stripEmojis(section.title))}`} 
+              className="text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition flex items-center gap-1"
+            >
               View all <ChevronRight size={14} />
             </Link>
           </div>
@@ -879,12 +882,15 @@ export function ProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams(); 
   const query = searchParams.get('search') || ''; 
   const category = searchParams.get('category') || '';
+  const section = searchParams.get('section') || '';
+  const sectionTitle = searchParams.get('section_title') || '';
   const [sortOption, setSortOption] = useState('default'); 
   const [error, setError] = useState(''); 
 
   const params = {};
   if (query) params.search = query;
   if (category) params.category = category;
+  if (section) params.section = section;
 
   const initCats = readCacheSync('/categories/');
   const [categories, setCategories] = useState(initCats ? (initCats.results || initCats) : []);
@@ -904,6 +910,7 @@ export function ProductsPage() {
     const params = {};
     if (query) params.search = query;
     if (category) params.category = category;
+    if (section) params.section = section;
 
     const cached = readCacheSync('/products/', { params });
     if (cached) {
@@ -929,7 +936,7 @@ export function ProductsPage() {
          });
     }, query ? 300 : 0);
     return () => clearTimeout(timer);
-  }, [query, category]);
+  }, [query, category, section]);
 
   const loadMore = () => {
     if (!nextPage || loadingMore) return;
@@ -945,11 +952,9 @@ export function ProductsPage() {
 
   function updateSearch(value) { const next = new URLSearchParams(searchParams); if (value) next.set('search', value); else next.delete('search'); setSearchParams(next) }
 
-  
-
-  const activeCategoryName = category && categories.length ? categories.find(c => String(c.id) === category)?.name : 'All products';
-
-  
+  const activeCategoryName = sectionTitle
+    ? sectionTitle
+    : (category && categories.length ? categories.find(c => String(c.id) === category)?.name : 'All products');
 
   const sortedProducts = useMemo(() => {
     if (sortOption === 'default') return products;
@@ -969,8 +974,53 @@ export function ProductsPage() {
       <div className="-mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 bg-slate-50 dark:bg-slate-900/50 py-3 mb-6 border-b border-slate-200/60 dark:border-slate-800">
         <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar items-center">
           <Link to="/" className="flex shrink-0 items-center justify-center rounded-full bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 shadow-xs border border-slate-200/60 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition w-8 h-8 mr-1" aria-label="Back to home"><ArrowLeft size={16} /></Link>
-          <button onClick={() => { const next = new URLSearchParams(searchParams); next.delete('category'); setSearchParams(next) }} className={`rounded-full px-3.5 py-1.5 text-xs font-bold shrink-0 transition-all ${!category ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 shadow-xs border border-slate-200/60 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>All</button>
-          {categories.map((item) => <button key={item.id} onClick={() => { const next = new URLSearchParams(searchParams); next.set('category', item.id); setSearchParams(next) }} className={`rounded-full px-3.5 py-1.5 text-xs font-bold shrink-0 transition-all ${category === String(item.id) ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 shadow-xs border border-slate-200/60 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{item.name}</button>)}
+          <button 
+            onClick={() => { 
+              const next = new URLSearchParams(searchParams); 
+              next.delete('category'); 
+              next.delete('section'); 
+              next.delete('section_title'); 
+              setSearchParams(next); 
+            }} 
+            className={`rounded-full px-3.5 py-1.5 text-xs font-bold shrink-0 transition-all ${!category && !section ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 shadow-xs border border-slate-200/60 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+          >
+            All
+          </button>
+
+          {sectionTitle && (
+            <span className="rounded-full px-3.5 py-1.5 text-xs font-bold shrink-0 bg-emerald-600 text-white shadow-xs flex items-center gap-1.5">
+              <span>{sectionTitle}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = new URLSearchParams(searchParams);
+                  next.delete('section');
+                  next.delete('section_title');
+                  setSearchParams(next);
+                }}
+                className="hover:text-emerald-200 cursor-pointer font-black text-xs leading-none"
+                title="Clear section filter"
+              >
+                ✕
+              </button>
+            </span>
+          )}
+
+          {categories.map((item) => (
+            <button 
+              key={item.id} 
+              onClick={() => { 
+                const next = new URLSearchParams(searchParams); 
+                next.set('category', item.id); 
+                next.delete('section'); 
+                next.delete('section_title'); 
+                setSearchParams(next); 
+              }} 
+              className={`rounded-full px-3.5 py-1.5 text-xs font-bold shrink-0 transition-all ${category === String(item.id) ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 shadow-xs border border-slate-200/60 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+            >
+              {item.name}
+            </button>
+          ))}
         </div>
       </div>
 
