@@ -1893,17 +1893,18 @@ export function OrderDetailPage() {
   const intervalId = setInterval(fetchOrder, 5000); return () => clearInterval(intervalId); 
  }, [id]); 
  
- const getSteps = (type) => [
-   { id: 'NEW', label: 'Order Placed', desc: 'We received your order', icon: CheckCircle2 },
-   { id: 'ACCEPTED', label: 'Processing', desc: 'Store is packing your items', icon: PackageSearch },
-   { id: 'READY', label: type === 'DELIVERY' ? 'Out for Delivery' : 'Ready for Pickup', desc: type === 'DELIVERY' ? 'Your order is on the way!' : 'Waiting for you at the store', icon: type === 'DELIVERY' ? Truck : Store },
-   { id: 'COMPLETED', label: type === 'DELIVERY' ? 'Delivered' : 'Completed', desc: type === 'DELIVERY' ? 'Order delivered successfully' : 'Order picked up successfully', icon: CheckCircle2 }
- ];
- 
- const statusIndex = ['NEW', 'ACCEPTED', 'READY', 'COMPLETED'];
+  const getSteps = (type) => [
+    { id: 'NEW', label: 'Order Placed', desc: 'We received your order', icon: CheckCircle2 },
+    { id: 'ACCEPTED', label: 'Processing', desc: 'Store is packing your items', icon: PackageSearch },
+    { id: 'READY', label: type === 'DELIVERY' ? 'Ready for Handover' : 'Ready for Pickup', desc: type === 'DELIVERY' ? 'Packed and awaiting rider' : 'Waiting for you at the store', icon: type === 'DELIVERY' ? Package : Store },
+    ...(type === 'DELIVERY' ? [{ id: 'OUT_FOR_DELIVERY', label: 'Out for Delivery', desc: 'Rider is on the way to you!', icon: Truck }] : []),
+    { id: 'COMPLETED', label: type === 'DELIVERY' ? 'Delivered' : 'Completed', desc: type === 'DELIVERY' ? 'Order delivered successfully' : 'Order picked up successfully', icon: CheckCircle2 }
+  ];
+  
+  const statusIndex = ['NEW', 'ACCEPTED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY', 'COMPLETED'];
 
- return (
-  <CustomerLayout>
+  return (
+   <CustomerLayout>
     <main className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-6 pb-24 md:pb-12">
       <button onClick={() => navigate(-1)} className="mb-4 flex items-center gap-2 text-sm font-bold text-primary-700 hover:underline bg-transparent border-none cursor-pointer p-0">
         <ArrowLeft size={16} /> Back
@@ -1925,6 +1926,30 @@ export function OrderDetailPage() {
               </Link>
             )}
           </div>
+
+          {/* Delivery OTP Card for Customer Verification */}
+          {order.order_type === 'DELIVERY' && order.delivery_otp && order.status !== 'COMPLETED' && (
+            <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/10 dark:from-emerald-950/40 dark:via-teal-950/40 dark:to-emerald-950/40 rounded-2xl p-4 sm:p-5 border border-emerald-500/30 mb-6 flex items-center justify-between gap-4 shadow-sm">
+              <div>
+                <p className="text-xs uppercase font-black tracking-wider text-emerald-700 dark:text-emerald-400">
+                  Delivery Verification OTP
+                </p>
+                <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+                  Share this OTP with your delivery partner upon arrival:
+                </p>
+                {order.delivery_partner_name && (
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1">
+                    🛵 Rider: {order.delivery_partner_name} {order.delivery_partner_phone ? `(${order.delivery_partner_phone})` : ''}
+                  </p>
+                )}
+              </div>
+              <div className="bg-white dark:bg-slate-900 border-2 border-emerald-500 rounded-2xl px-4 py-2 text-center shadow-md shrink-0">
+                <span className="text-2xl sm:text-3xl font-mono font-black tracking-widest text-emerald-600 dark:text-emerald-400">
+                  {order.delivery_otp}
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Tracking Timeline UI */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 mb-6">

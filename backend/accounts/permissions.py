@@ -30,3 +30,19 @@ class IsCustomerUser(permissions.BasePermission):
             request.user.is_superuser or 
             getattr(request.user, 'is_owner', False)
         )
+
+
+class IsDeliveryPartnerUser(permissions.BasePermission):
+    """Allow access to delivery partner portal operations."""
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if getattr(request.user, 'is_locked', False):
+            return False
+        return bool(
+            getattr(request.user, 'is_delivery_partner', False) or
+            request.user.is_staff or
+            request.user.is_superuser or
+            getattr(request.user, 'is_owner', False)
+        )
+

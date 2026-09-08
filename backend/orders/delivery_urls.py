@@ -1,0 +1,18 @@
+from django.urls import path
+from .delivery_views import (
+    DeliveryDashboardView,
+    DeliveryToggleDutyView,
+    DeliveryPickupOrderView,
+    DeliveryVerifyAndCompleteView,
+    DeliveryHistoryView,
+    OwnerDeliveryPartnersView,
+)
+
+urlpatterns = [
+    path('dashboard/', DeliveryDashboardView.as_view(), name='delivery-dashboard'),
+    path('toggle-duty/', DeliveryToggleDutyView.as_view(), name='delivery-toggle-duty'),
+    path('orders/<str:pk>/pickup/', DeliveryPickupOrderView.as_view(), name='delivery-order-pickup'),
+    path('orders/<str:pk>/complete/', DeliveryVerifyAndCompleteView.as_view(), name='delivery-order-complete'),
+    path('history/', DeliveryHistoryView.as_view(), name='delivery-history'),
+    path('partners/', OwnerDeliveryPartnersView.as_view(), name='owner-delivery-partners'),
+]

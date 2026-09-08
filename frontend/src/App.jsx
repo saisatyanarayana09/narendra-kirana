@@ -58,6 +58,15 @@ const Feedback = lazyWithRetry(() => import('./owner/pages/Feedback'));
 const Settings = lazyWithRetry(() => import('./owner/pages/Settings'));
 const AdvancedSettings = lazyWithRetry(() => import('./owner/pages/AdvancedSettings'));
 const Showcase = lazyWithRetry(() => import('./owner/pages/Showcase'));
+const DeliveryPartners = lazyWithRetry(() => import('./owner/pages/DeliveryPartners'));
+
+const DeliveryLogin = lazyWithRetry(() => import('./delivery/DeliveryLogin'));
+const DeliveryGuard = lazyWithRetry(() => import('./delivery/DeliveryGuard'));
+const DeliveryLayout = lazyWithRetry(() => import('./delivery/DeliveryLayout'));
+const DeliveryDashboard = lazyWithRetry(() => import('./delivery/DeliveryDashboard'));
+const DeliveryHistory = lazyWithRetry(() => import('./delivery/DeliveryHistory'));
+const DeliveryProfile = lazyWithRetry(() => import('./delivery/DeliveryProfile'));
+
 
 const isTokenExpired = (token) => {
   if (!token) return true;
@@ -321,9 +330,18 @@ function App() {
   <Route path="settings"element={<Settings />} />
   <Route path="advanced-settings" element={<AdvancedSettings />} />
   <Route path="showcase"element={<Showcase />} />
+  <Route path="delivery-partners" element={<DeliveryPartners />} />
   </Route>
 
  <Route path="/owner/orders/:id/invoice"element={<Guard><Invoice /></Guard>} />
+
+  {/* Delivery Partner Web Portal Routes */}
+  <Route path="/delivery/login" element={<DeliveryLogin />} />
+  <Route path="/delivery" element={<DeliveryGuard><DeliveryLayout /></DeliveryGuard>}>
+    <Route index element={<DeliveryDashboard />} />
+    <Route path="history" element={<DeliveryHistory />} />
+    <Route path="profile" element={<DeliveryProfile />} />
+  </Route>
 
  <Route path="*"element={<Navigate to="/"replace />} />
  </Routes>

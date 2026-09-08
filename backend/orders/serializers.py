@@ -13,6 +13,9 @@ class OrderSerializer(serializers.ModelSerializer):
     customer_name = serializers.CharField(source='customer.get_full_name', read_only=True)
     customer_email = serializers.CharField(source='customer.email', read_only=True)
     customer_phone = serializers.SerializerMethodField()
+    delivery_partner_name = serializers.SerializerMethodField()
+    delivery_partner_phone = serializers.SerializerMethodField()
+    delivery_otp = serializers.SerializerMethodField()
 
     def get_customer_phone(self, obj):
         if obj.customer:
@@ -20,6 +23,29 @@ class OrderSerializer(serializers.ModelSerializer):
                 return obj.customer.customer_profile.mobile_number
             if obj.customer.username and obj.customer.username.isdigit():
                 return obj.customer.username
+        return ""
+
+    def get_delivery_partner_name(self, obj):
+        if obj.delivery_partner:
+            return obj.delivery_partner.get_full_name() or obj.delivery_partner.username
+        return ""
+
+    def get_delivery_partner_phone(self, obj):
+        if obj.delivery_partner:
+            if hasattr(obj.delivery_partner, 'delivery_profile') and obj.delivery_partner.delivery_profile.phone_number:
+                return obj.delivery_partner.delivery_profile.phone_number
+            if obj.delivery_partner.username and obj.delivery_partner.username.isdigit():
+                return obj.delivery_partner.username
+        return ""
+
+    def get_delivery_otp(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return ""
+        # Customer who ordered or store owner/staff can see the OTP
+        if request.user == obj.customer or getattr(request.user, 'is_owner', False) or request.user.is_staff or request.user.is_superuser:
+            return obj.delivery_otp
+        # Delivery partner cannot see OTP directly (must ask customer)
         return ""
 
     class Meta:
@@ -32,7 +58,9 @@ class OrderSerializer(serializers.ModelSerializer):
             'delivery_address', 'delivery_pincode', 'delivery_latitude',
             'delivery_longitude', 'delivery_fee',
             'delivery_slot_date', 'delivery_slot_label', 'payment_method', 'upi_transaction_id',
-            'cashback_credited'
+            'cashback_credited',
+            'delivery_partner', 'delivery_partner_name', 'delivery_partner_phone',
+            'delivery_otp', 'assigned_at', 'dispatched_at', 'delivered_at'
         ]
         read_only_fields = [
             'id', 'customer', 'customer_name', 'customer_email', 'customer_phone', 'status', 'total_amount',
@@ -41,7 +69,9 @@ class OrderSerializer(serializers.ModelSerializer):
             'order_type', 'delivery_address', 'delivery_pincode',
             'delivery_latitude', 'delivery_longitude', 'delivery_fee',
             'delivery_slot_date', 'delivery_slot_label', 'payment_method', 'upi_transaction_id',
-            'cashback_credited'
+            'cashback_credited',
+            'delivery_partner', 'delivery_partner_name', 'delivery_partner_phone',
+            'delivery_otp', 'assigned_at', 'dispatched_at', 'delivered_at'
         ]
 
 

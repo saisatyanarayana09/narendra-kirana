@@ -1,27 +1,38 @@
 from rest_framework import serializers
 from django.db import transaction
 from django.contrib.auth.password_validation import validate_password
-from .models import User, CustomerProfile, Address
+from .models import User, CustomerProfile, Address, DeliveryPartnerProfile
 
 class CustomerProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomerProfile
         fields = ['mobile_number', 'pickup_preference', 'dob', 'profile_picture', 'referral_code', 'delete_requested']
 
+class DeliveryPartnerProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DeliveryPartnerProfile
+        fields = [
+            'id', 'phone_number', 'vehicle_type', 'vehicle_number', 
+            'is_active', 'is_online', 'current_lat', 'current_lng', 
+            'last_active_at', 'total_deliveries', 'created_at'
+        ]
+
 class UserSerializer(serializers.ModelSerializer):
     customer_profile = CustomerProfileSerializer(read_only=True)
+    delivery_profile = DeliveryPartnerProfileSerializer(read_only=True)
 
     class Meta:
         model = User
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name', 
-            'is_customer', 'is_owner', 'customer_profile', 'password', 
+            'is_customer', 'is_owner', 'is_delivery_partner', 'customer_profile', 
+            'delivery_profile', 'password', 
             'profile_picture', 'is_active', 'failed_login_attempts', 
             'is_locked', 'locked_at', 'lockout_until', 'lockout_reason', 
             'last_failed_login_ip'
         ]
         read_only_fields = [
-            'is_customer', 'is_owner', 'is_active', 'id',
+            'is_customer', 'is_owner', 'is_delivery_partner', 'is_active', 'id',
             'failed_login_attempts', 'is_locked', 'locked_at', 
             'lockout_until', 'lockout_reason', 'last_failed_login_ip'
         ]

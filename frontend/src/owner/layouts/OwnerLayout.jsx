@@ -3,7 +3,8 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, Package, Tags, ShoppingCart, Users, Settings, 
   Menu, X, LogOut, PercentCircle, MessageSquare, Layout, Gift, 
-  TrendingUp, LayoutGrid, Sun, Moon, FileText, SlidersHorizontal 
+  TrendingUp, LayoutGrid, Sun, Moon, FileText, SlidersHorizontal,
+  Truck
 } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
@@ -19,6 +20,7 @@ const OwnerLayout = () => {
   const navigation = [
     { name: 'Dashboard', href: '/owner', icon: LayoutDashboard, desc: 'Live stats & store overview', color: 'from-blue-500 to-indigo-600', badge: 'Overview' },
     { name: 'Orders', href: '/owner/orders', icon: ShoppingCart, desc: 'Manage & pack orders', color: 'from-emerald-500 to-teal-600', badge: 'Live' },
+    { name: 'Delivery Fleet', href: '/owner/delivery-partners', icon: Truck, desc: 'Manage delivery riders & live orders', color: 'from-teal-500 to-emerald-600', badge: 'Fleet' },
     { name: 'Invoices', href: '/owner/invoices', icon: FileText, desc: 'Tax invoices, billing & print', color: 'from-indigo-500 to-blue-600', badge: 'Billing' },
     { name: 'Products', href: '/owner/products', icon: Package, desc: 'Inventory & catalog', color: 'from-amber-500 to-orange-600', badge: 'Stock' },
     { name: 'Sales', href: '/owner/sales', icon: TrendingUp, desc: 'Revenue & analytics', color: 'from-violet-500 to-purple-600', badge: 'Analytics' },

@@ -259,6 +259,11 @@ class OrderViewSet(ModelViewSet):
 
         initial_status = Order.Status.ACCEPTED if settings.auto_accept_orders else Order.Status.NEW
 
+        delivery_otp = ""
+        if order_type == 'DELIVERY':
+            from django.utils.crypto import get_random_string
+            delivery_otp = get_random_string(4, allowed_chars='0123456789')
+
         order = Order.objects.create(
             customer=request.user, 
             total_amount=total, 
@@ -278,7 +283,8 @@ class OrderViewSet(ModelViewSet):
             delivery_slot_date=checkout.validated_data.get('delivery_slot_date'),
             delivery_slot_label=checkout.validated_data.get('delivery_slot_label', ''),
             payment_method=checkout.validated_data.get('payment_method', 'COD'),
-            upi_transaction_id=checkout.validated_data.get('upi_transaction_id', '')
+            upi_transaction_id=checkout.validated_data.get('upi_transaction_id', ''),
+            delivery_otp=delivery_otp
         )
         
         # Record Promo Usage
@@ -345,7 +351,8 @@ class OrderViewSet(ModelViewSet):
             Order.Status.NEW: {Order.Status.ACCEPTED, Order.Status.REJECTED},
             Order.Status.ACCEPTED: {Order.Status.PREPARING, Order.Status.REJECTED},
             Order.Status.PREPARING: {Order.Status.READY, Order.Status.REJECTED},
-            Order.Status.READY: {Order.Status.COMPLETED},
+            Order.Status.READY: {Order.Status.OUT_FOR_DELIVERY, Order.Status.COMPLETED, Order.Status.REJECTED},
+            Order.Status.OUT_FOR_DELIVERY: {Order.Status.COMPLETED, Order.Status.REJECTED},
         }
         next_status = serializer.validated_data['status']
         if next_status == order.status:
@@ -358,7 +365,25 @@ class OrderViewSet(ModelViewSet):
             order.status = next_status
             order.save(update_fields=['status', 'updated_at'])
             
-            if next_status == Order.Status.COMPLETED:
+            if next_status == Order.Status.OUT_FOR_DELIVERY:
+                order.dispatched_at = timezone.now()
+                order.save(update_fields=['dispatched_at', 'updated_at'])
+                Notification.objects.create(
+                    user=order.customer,
+                    title=f"Order #{order.id} is Out for Delivery! 🛵",
+                    message=f"Your order is on the way! Your delivery verification OTP is {order.delivery_otp}."
+                )
+
+            elif next_status == Order.Status.COMPLETED:
+                order.delivered_at = timezone.now()
+                order.save(update_fields=['delivered_at', 'updated_at'])
+                if order.delivery_partner and hasattr(order.delivery_partner, 'delivery_profile'):
+                    try:
+                        order.delivery_partner.delivery_profile.total_deliveries += 1
+                        order.delivery_partner.delivery_profile.save(update_fields=['total_deliveries'])
+                    except Exception:
+                        pass
+
                 Notification.objects.create(
                     user=order.customer,
                     title=f"Order #{order.id} Completed! 🎉",
@@ -452,6 +477,45 @@ class OrderViewSet(ModelViewSet):
         order.owner_note = note
         order.save(update_fields=['owner_note', 'updated_at'])
         return Response(OrderSerializer(order, context=self.get_serializer_context()).data)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsOwnerUser])
+    def assign_partner(self, request, pk=None):
+        order = self.get_object()
+        partner_id = request.data.get('delivery_partner_id')
+
+        if not partner_id:
+            order.delivery_partner = None
+            order.assigned_at = None
+            order.save(update_fields=['delivery_partner', 'assigned_at', 'updated_at'])
+            return Response(OrderSerializer(order, context=self.get_serializer_context()).data)
+
+        from accounts.models import User
+        partner = User.objects.filter(id=partner_id, is_delivery_partner=True, is_active=True).first()
+        if not partner:
+            return Response({'detail': 'Selected delivery partner was not found or is inactive.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        order.delivery_partner = partner
+        order.assigned_at = timezone.now()
+        if not order.delivery_otp:
+            from django.utils.crypto import get_random_string
+            order.delivery_otp = get_random_string(4, allowed_chars='0123456789')
+
+        if order.status in [Order.Status.ACCEPTED, Order.Status.PREPARING]:
+            order.status = Order.Status.READY
+
+        order.save(update_fields=['delivery_partner', 'assigned_at', 'delivery_otp', 'status', 'updated_at'])
+
+        try:
+            Notification.objects.create(
+                user=partner,
+                title=f"New Delivery Assigned! 🛵 Order #{order.id}",
+                message=f"You have been assigned to deliver order #{order.id} to {order.delivery_address or 'Customer'}."
+            )
+        except Exception as e:
+            logger.error("Failed to notify delivery partner: %s", e)
+
+        return Response(OrderSerializer(order, context=self.get_serializer_context()).data)
+
 
     @action(detail=True, methods=['post'], permission_classes=[IsOwnerUser])
     def reject_item(self, request, pk=None):

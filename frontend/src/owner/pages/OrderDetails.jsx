@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { 
   ArrowLeft, CheckCircle, Package, Clock, XCircle, ChevronRight, 
-  Printer, MapPin, Phone, AlertTriangle, X, Loader2 
+  Printer, MapPin, Phone, AlertTriangle, X, Loader2, Truck, Key 
 } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
@@ -21,6 +21,11 @@ const OrderDetails = () => {
   const [savingNote, setSavingNote] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
 
+  // Delivery Partner State
+  const [deliveryPartners, setDeliveryPartners] = useState([]);
+  const [selectedPartnerId, setSelectedPartnerId] = useState('');
+  const [assigningPartner, setAssigningPartner] = useState(false);
+
   // In-app Confirmation Modals
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectingItem, setRejectingItem] = useState(null);
@@ -31,7 +36,12 @@ const OrderDetails = () => {
       if (!isPoll) setLoading(true);
       const response = await api.get(`/orders/${id}/`, { params: { t: Date.now() } });
       setOrder(response.data);
-      if (!isPoll) setOwnerNote(response.data.owner_note || '');
+      if (!isPoll) {
+        setOwnerNote(response.data.owner_note || '');
+        if (response.data.delivery_partner) {
+          setSelectedPartnerId(String(response.data.delivery_partner));
+        }
+      }
     } catch (err) {
       console.error(err);
       if (!isPoll) setError('Failed to fetch order details.');
@@ -39,6 +49,13 @@ const OrderDetails = () => {
       if (!isPoll) setLoading(false);
     }
   }, [id]);
+
+  // Load registered delivery partners for assignment
+  useEffect(() => {
+    api.get('/delivery/partners/')
+      .then(res => setDeliveryPartners(res.data || []))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetchOrder();
@@ -118,9 +135,25 @@ const OrderDetails = () => {
        console.warn("Location error:", error);
        window.open(`https://www.google.com/maps/dir/?api=1&destination=${destination}`, '_blank');
      },
-     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+     { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 }
    );
  };
+
+  const handleAssignPartner = async () => {
+    setAssigningPartner(true);
+    try {
+      await api.post(`/orders/${id}/assign_partner/`, {
+        delivery_partner_id: selectedPartnerId ? parseInt(selectedPartnerId) : null
+      });
+      toast.success(selectedPartnerId ? 'Delivery partner assigned! 🛵' : 'Delivery partner unassigned.');
+      fetchOrder();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to assign partner.');
+    } finally {
+      setAssigningPartner(false);
+    }
+  };
+
 
   if (loading && !order) {
     return (
@@ -154,6 +187,8 @@ const OrderDetails = () => {
         return { bg: 'bg-gradient-to-r from-amber-500 to-orange-500', text: 'Packing Order', msg: 'Check off items as you place them into bags.', icon: Clock };
       case 'READY':
         return { bg: 'bg-gradient-to-r from-emerald-600 to-teal-600', text: 'Ready for Handover', msg: order.order_type === 'DELIVERY' ? 'Ready for delivery dispatch.' : 'Waiting for customer pickup.', icon: CheckCircle };
+      case 'OUT_FOR_DELIVERY':
+        return { bg: 'bg-gradient-to-r from-amber-500 to-emerald-600', text: 'Out for Delivery 🛵', msg: `Order is with ${order.delivery_partner_name || 'delivery rider'}.`, icon: Truck };
       case 'COMPLETED':
         return { bg: 'bg-gradient-to-r from-slate-700 to-slate-800', text: 'Order Completed', msg: 'Delivered and payment settled.', icon: CheckCircle };
       case 'REJECTED':
@@ -168,7 +203,7 @@ const OrderDetails = () => {
 
   // Render Action Buttons
   const renderActionButtons = (isMobileView = false) => {
-    if (!['NEW', 'ACCEPTED', 'PREPARING', 'READY'].includes(order.status)) return null;
+    if (!['NEW', 'ACCEPTED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY'].includes(order.status)) return null;
 
     return (
       <div className={`bg-white dark:bg-[#0d1322] rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-5 sm:p-6 transition-colors ${isMobileView ? 'block md:hidden' : 'hidden md:block'}`}>
@@ -248,6 +283,21 @@ const OrderDetails = () => {
               className="w-full py-3.5 px-4 bg-slate-900 hover:bg-black dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-sm text-sm disabled:opacity-60"
             >
               {parseFloat(order.total_amount) > 0 ? 'Payment Received & Handed Over' : 'Handover & Complete'}
+            </button>
+          </div>
+        )}
+
+        {order.status === 'OUT_FOR_DELIVERY' && (
+          <div className="space-y-3">
+            <p className="text-xs text-slate-600 dark:text-slate-300 font-medium text-center bg-amber-50 dark:bg-amber-950/40 p-3 rounded-xl border border-amber-200 dark:border-amber-800">
+              Order is out for delivery with <strong className="text-slate-900 dark:text-white">{order.delivery_partner_name || 'Delivery Partner'}</strong>.
+            </p>
+            <button 
+              onClick={() => updateStatus('COMPLETED')} 
+              disabled={isUpdating} 
+              className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-sm text-sm disabled:opacity-60 cursor-pointer"
+            >
+              <CheckCircle size={16} /> Mark as Delivered (Staff Override)
             </button>
           </div>
         )}
@@ -471,6 +521,73 @@ const OrderDetails = () => {
                     <MapPin className="w-3.5 h-3.5 mr-1.5" /> 
                     {gettingLocation ? 'Locating...' : 'Get GPS Directions'}
                   </button>
+                )}
+              </div>
+            )}
+
+            {/* Delivery Partner Assignment Card */}
+            {order.order_type === 'DELIVERY' && (
+              <div className="p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-800/60 rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-extrabold text-emerald-800 dark:text-emerald-300 uppercase tracking-widest flex items-center gap-1.5">
+                    <Truck size={14} /> Delivery Partner
+                  </h3>
+                  {order.delivery_otp && (
+                    <span className="text-[11px] font-mono font-black text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded-md border border-emerald-300 dark:border-emerald-700">
+                      OTP: {order.delivery_otp}
+                    </span>
+                  )}
+                </div>
+
+                {order.delivery_partner_name ? (
+                  <div className="text-xs space-y-1">
+                    <p className="font-bold text-slate-900 dark:text-white">
+                      Rider: <span className="text-emerald-600 dark:text-emerald-400">{order.delivery_partner_name}</span>
+                    </p>
+                    {order.delivery_partner_phone && (
+                      <p className="text-slate-500 dark:text-slate-400">📞 {order.delivery_partner_phone}</p>
+                    )}
+                    {order.dispatched_at && (
+                      <p className="text-[11px] text-slate-400">
+                        Dispatched: {new Date(order.dispatched_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">
+                    No delivery partner assigned yet.
+                  </p>
+                )}
+
+                {/* Assignment Dropdown */}
+                {['NEW', 'ACCEPTED', 'PREPARING', 'READY'].includes(order.status) && (
+                  <div className="space-y-1.5 pt-2 border-t border-emerald-200/60 dark:border-emerald-800/40">
+                    <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-300">
+                      Assign / Change Rider:
+                    </label>
+                    <div className="flex gap-2">
+                      <select
+                        value={selectedPartnerId}
+                        onChange={(e) => setSelectedPartnerId(e.target.value)}
+                        className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs rounded-lg px-2.5 py-1.5 text-slate-900 dark:text-white outline-none"
+                      >
+                        <option value="">-- Unassigned --</option>
+                        {deliveryPartners.map((dp) => (
+                          <option key={dp.id} value={dp.id}>
+                            {dp.name} ({dp.is_online ? '🟢 Online' : '⚪ Offline'})
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={handleAssignPartner}
+                        disabled={assigningPartner}
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition disabled:opacity-50 cursor-pointer shrink-0"
+                      >
+                        {assigningPartner ? '...' : 'Save'}
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
             )}

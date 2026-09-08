@@ -4,6 +4,7 @@ from django.contrib.auth.models import AbstractUser
 class User(AbstractUser):
     is_customer = models.BooleanField(default=True)
     is_owner = models.BooleanField(default=False)
+    is_delivery_partner = models.BooleanField(default=False)
     
     # Account Security & Brute-force lockout fields
     failed_login_attempts = models.PositiveIntegerField(default=0)
@@ -143,3 +144,28 @@ class PasswordResetToken(models.Model):
     def __str__(self):
         status_str = "USED" if self.is_used else ("EXPIRED" if not self.is_valid() else "ACTIVE")
         return f"ResetToken for {self.user.username} ({self.portal}) [{status_str}]"
+
+
+class DeliveryPartnerProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='delivery_profile')
+    phone_number = models.CharField(max_length=15, unique=True, null=True, blank=True)
+    vehicle_type = models.CharField(max_length=50, default='Bike', choices=[
+        ('Bike', 'Motorcycle / Bike'),
+        ('Scooter', 'Scooter'),
+        ('Bicycle', 'Bicycle'),
+        ('Van', 'Delivery Van / Auto')
+    ])
+    vehicle_number = models.CharField(max_length=50, blank=True, default='')
+    is_active = models.BooleanField(default=True)
+    is_online = models.BooleanField(default=False)
+    current_lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    current_lng = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    last_active_at = models.DateTimeField(null=True, blank=True)
+    total_deliveries = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        status = "Online" if self.is_online else "Offline"
+        return f"DeliveryPartner: {self.user.get_full_name() or self.user.username} ({status})"
+

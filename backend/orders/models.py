@@ -28,12 +28,13 @@ class Order(models.Model):
         ACCEPTED = 'ACCEPTED', 'Accepted'
         PREPARING = 'PREPARING', 'Preparing'
         READY = 'READY', 'Ready for pickup'
+        OUT_FOR_DELIVERY = 'OUT_FOR_DELIVERY', 'Out for delivery'
         COMPLETED = 'COMPLETED', 'Completed'
         REJECTED = 'REJECTED', 'Rejected'
 
     id = models.CharField(primary_key=True, max_length=20, default=order_id, editable=False)
     customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='orders')
-    status = models.CharField(max_length=12, choices=Status.choices, default=Status.NEW, db_index=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.NEW, db_index=True)
     
     # Delivery Info
     order_type = models.CharField(max_length=15, choices=[('PICKUP', 'Store Pickup'), ('DELIVERY', 'Home Delivery')], default='PICKUP')
@@ -47,6 +48,19 @@ class Order(models.Model):
     payment_method = models.CharField(max_length=20, default="COD")
     upi_transaction_id = models.CharField(max_length=100, blank=True, default="")
     cashback_credited = models.BooleanField(default=False)
+    
+    # Delivery Partner & Dispatch Tracking
+    delivery_partner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='partner_deliveries'
+    )
+    delivery_otp = models.CharField(max_length=6, blank=True, default="")
+    assigned_at = models.DateTimeField(null=True, blank=True)
+    dispatched_at = models.DateTimeField(null=True, blank=True)
+    delivered_at = models.DateTimeField(null=True, blank=True)
     
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     discount_applied = models.DecimalField(max_digits=10, decimal_places=2, default=0)

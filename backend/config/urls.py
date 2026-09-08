@@ -20,6 +20,7 @@ urlpatterns = [
     path('api/v1/offers/', include('offers.urls')),
     path('api/v1/store/', include('store.urls')),
     path('api/v1/notifications/', include('notifications.urls')),
+    path('api/v1/delivery/', include('orders.delivery_urls')),
 ]
 
 if settings.DEBUG:
