@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { User, Phone, Bike, ShieldCheck, CheckCircle2, LogOut } from 'lucide-react';
+import { 
+  User, Phone, Bike, ShieldCheck, CheckCircle2, 
+  LogOut, Shield, MapPin, Award, Navigation, Calendar 
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
@@ -30,83 +33,94 @@ export default function DeliveryProfile() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 space-y-4">
-        <div className="size-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm font-medium text-slate-400">Loading partner profile...</p>
+      <div className="flex flex-col items-center justify-center py-28 space-y-4">
+        <div className="size-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm font-bold text-slate-400">Loading partner profile...</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-5 max-w-md mx-auto">
-      {/* Profile Card */}
-      <div className="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-xl text-center relative overflow-hidden">
-        <div className="size-20 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 p-1 mx-auto mb-4 shadow-lg shadow-emerald-500/20 flex items-center justify-center">
-          <div className="size-full bg-slate-950 rounded-[14px] flex items-center justify-center text-emerald-400">
-            <User size={36} />
+    <div className="space-y-5 max-w-lg mx-auto">
+      {/* Rider Identity Card */}
+      <div className="p-6 sm:p-8 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-2xl text-center relative overflow-hidden">
+        {/* Glow */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 bg-emerald-500/10 blur-2xl pointer-events-none" />
+
+        <div className="size-24 rounded-3xl bg-gradient-to-tr from-emerald-500 via-teal-400 to-emerald-300 p-1 mx-auto mb-4 shadow-xl shadow-emerald-500/20 flex items-center justify-center">
+          <div className="size-full bg-slate-950 rounded-[20px] flex items-center justify-center text-emerald-400 font-black text-3xl">
+            {(profile?.name || 'R').charAt(0).toUpperCase()}
           </div>
         </div>
 
-        <h2 className="text-xl font-black text-white">{profile?.name || 'Rider'}</h2>
-        <p className="text-xs text-slate-400 mt-0.5">@{profile?.username}</p>
+        <h2 className="text-2xl font-black text-white tracking-tight">{profile?.name || 'Rider'}</h2>
+        <p className="text-xs sm:text-sm font-mono text-slate-400 mt-0.5">@{profile?.username}</p>
 
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold mt-3">
-          <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span>Active Narendra Kirana Delivery Partner</span>
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-black mt-4">
+          <span className="size-2 rounded-full bg-emerald-400 animate-ping" />
+          <span>Verified Partner Fleet Member</span>
         </div>
       </div>
 
-      {/* Stats and Vehicle Details */}
+      {/* Rider Details Breakdown */}
       <div className="space-y-3">
-        <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-              <CheckCircle2 size={20} />
+        <div className="p-4 sm:p-5 rounded-3xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="size-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
+              <Award size={24} />
             </div>
             <div>
-              <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Lifetime Deliveries</p>
-              <p className="text-base font-black text-white">{profile?.total_deliveries || 0} orders</p>
+              <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Lifetime Deliveries</p>
+              <p className="text-lg font-black text-white">{profile?.total_deliveries || 0} completed</p>
             </div>
           </div>
+          <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-xl">
+            Active
+          </span>
         </div>
 
-        <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
-              <Bike size={20} />
+        <div className="p-4 sm:p-5 rounded-3xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="size-12 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center shrink-0">
+              <Bike size={24} />
             </div>
             <div>
-              <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Vehicle Details</p>
-              <p className="text-base font-black text-white">
-                {profile?.vehicle_type || 'Bike'} {profile?.vehicle_number ? `(${profile.vehicle_number})` : ''}
+              <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Vehicle Registered</p>
+              <p className="text-base sm:text-lg font-black text-white">
+                {profile?.vehicle_type || 'Motorcycle / Bike'}
               </p>
+              {profile?.vehicle_number && (
+                <p className="text-xs font-mono text-slate-400 mt-0.5">{profile.vehicle_number}</p>
+              )}
             </div>
           </div>
         </div>
 
         {profile?.phone && (
-          <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
-                <Phone size={20} />
+          <div className="p-4 sm:p-5 rounded-3xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="size-12 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0">
+                <Phone size={24} />
               </div>
               <div>
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Registered Phone</p>
-                <p className="text-base font-black text-white">{profile.phone}</p>
+                <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Contact Phone</p>
+                <p className="text-base font-black text-white font-mono">{profile.phone}</p>
               </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Logout Button */}
-      <button
-        onClick={handleLogout}
-        className="w-full py-3.5 px-4 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 font-bold text-sm flex items-center justify-center gap-2 transition cursor-pointer"
-      >
-        <LogOut size={16} />
-        <span>End Shift & Sign Out</span>
-      </button>
+      {/* End Shift / Sign Out Button */}
+      <div className="pt-2">
+        <button
+          onClick={handleLogout}
+          className="w-full py-4 px-4 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 font-black text-sm flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer shadow-lg shadow-rose-950/20"
+        >
+          <LogOut size={18} />
+          <span>End Shift & Sign Out</span>
+        </button>
+      </div>
     </div>
   );
 }
