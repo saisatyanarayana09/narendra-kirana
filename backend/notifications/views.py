@@ -1,8 +1,10 @@
-from rest_framework import viewsets, generics
+from rest_framework import viewsets, generics, status
+from rest_framework.views import APIView
+from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from accounts.permissions import IsOwnerUser
-from .models import Notification
-from .serializers import NotificationSerializer
+from .models import Notification, DevicePushToken
+from .serializers import NotificationSerializer, DevicePushTokenSerializer
 
 class NotificationViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
@@ -22,3 +24,44 @@ class OwnerNotificationCreateView(generics.CreateAPIView):
         # Allow owner to create a notification for any user.
         # The user field must be provided in the request payload.
         serializer.save()
+
+
+class RegisterPushTokenView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        token = request.data.get('token', '').strip()
+        platform = request.data.get('platform', 'expo').strip().lower()
+        device_name = request.data.get('device_name', '').strip()
+
+        if not token:
+            return Response({'detail': 'Push token is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Update existing token to current user, or create new
+        device_token, created = DevicePushToken.objects.update_or_create(
+            token=token,
+            defaults={
+                'user': request.user,
+                'platform': platform,
+                'device_name': device_name,
+            }
+        )
+
+        return Response(
+            DevicePushTokenSerializer(device_token).data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        )
+
+
+class UnregisterPushTokenView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        token = request.data.get('token', '').strip()
+        if token:
+            DevicePushToken.objects.filter(user=request.user, token=token).delete()
+        else:
+            DevicePushToken.objects.filter(user=request.user).delete()
+
+        return Response({'status': 'unregistered'}, status=status.HTTP_200_OK)
+

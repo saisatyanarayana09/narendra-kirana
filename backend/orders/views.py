@@ -15,6 +15,7 @@ from cart.models import Cart
 from products.models import Product
 from store.models import StoreSettings
 from notifications.models import Notification
+from notifications.services import send_push_notification
 from .models import Order, OrderItem
 from .serializers import CheckoutSerializer, OrderSerializer, OrderStatusSerializer
 from .utils import send_order_confirmation_email, send_final_invoice_email
@@ -328,11 +329,33 @@ class OrderViewSet(ModelViewSet):
         cart.promo_code = None
         cart.save(update_fields=['promo_code'])
         
+        created_title = f"Order #{order.id} Placed Successfully! 🎉"
+        created_msg = f"Hi {request.user.first_name or 'there'}, thank you for your purchase! We've received your order and will start processing it shortly."
         Notification.objects.create(
             user=request.user,
-            title=f"Order #{order.id} Placed Successfully! 🎉",
-            message=f"Hi {request.user.first_name}, thank you for your purchase! We've received your order and will start processing it shortly."
+            title=created_title,
+            message=created_msg
         )
+        send_push_notification(
+            user=request.user,
+            title=created_title,
+            body=created_msg,
+            data={'order_id': str(order.id), 'status': order.status, 'type': 'ORDER_PLACED'}
+        )
+
+        # Notify store owners about incoming order
+        try:
+            from accounts.models import User
+            owners = User.objects.filter(is_owner=True, is_active=True)
+            for owner in owners:
+                send_push_notification(
+                    user=owner,
+                    title=f"New Order #{order.id} Received! 🛒",
+                    body=f"New order for ₹{order.total_amount} placed by {request.user.get_full_name() or request.user.username}.",
+                    data={'order_id': str(order.id), 'type': 'NEW_ORDER'}
+                )
+        except Exception as e:
+            logger.error("Error notifying store owner of new order: %s", e)
         
         # Dispatch email asynchronously but ONLY after the transaction commits
         def send_email_task():
@@ -364,14 +387,70 @@ class OrderViewSet(ModelViewSet):
         with transaction.atomic():
             order.status = next_status
             order.save(update_fields=['status', 'updated_at'])
-            
-            if next_status == Order.Status.OUT_FOR_DELIVERY:
-                order.dispatched_at = timezone.now()
-                order.save(update_fields=['dispatched_at', 'updated_at'])
+
+            if next_status == Order.Status.ACCEPTED:
+                accept_title = f"Order #{order.id} Accepted! 🛍️"
+                accept_body = f"Your order #{order.id} has been accepted by Narendra Kirana and is being processed."
                 Notification.objects.create(
                     user=order.customer,
-                    title=f"Order #{order.id} is Out for Delivery! 🛵",
-                    message=f"Your order is on the way! Your delivery verification OTP is {order.delivery_otp}."
+                    title=accept_title,
+                    message=accept_body
+                )
+                send_push_notification(
+                    user=order.customer,
+                    title=accept_title,
+                    body=accept_body,
+                    data={'order_id': str(order.id), 'status': 'ACCEPTED'}
+                )
+
+            elif next_status == Order.Status.PREPARING:
+                prep_title = f"Order #{order.id} Being Packed! 📦"
+                prep_body = f"Your grocery items for order #{order.id} are being packed fresh and carefully."
+                Notification.objects.create(
+                    user=order.customer,
+                    title=prep_title,
+                    message=prep_body
+                )
+                send_push_notification(
+                    user=order.customer,
+                    title=prep_title,
+                    body=prep_body,
+                    data={'order_id': str(order.id), 'status': 'PREPARING'}
+                )
+
+            elif next_status == Order.Status.READY:
+                ready_title = f"Order #{order.id} Ready! 🛍️"
+                if order.order_type == 'DELIVERY':
+                    ready_body = f"Your order #{order.id} is packed and waiting for delivery partner pickup."
+                else:
+                    ready_body = f"Your order #{order.id} is ready for pickup at Narendra Kirana Store!"
+                Notification.objects.create(
+                    user=order.customer,
+                    title=ready_title,
+                    message=ready_body
+                )
+                send_push_notification(
+                    user=order.customer,
+                    title=ready_title,
+                    body=ready_body,
+                    data={'order_id': str(order.id), 'status': 'READY'}
+                )
+
+            elif next_status == Order.Status.OUT_FOR_DELIVERY:
+                order.dispatched_at = timezone.now()
+                order.save(update_fields=['dispatched_at', 'updated_at'])
+                out_title = f"Order #{order.id} is Out for Delivery! 🛵"
+                out_body = f"Your order is on the way! Your delivery verification OTP is {order.delivery_otp}."
+                Notification.objects.create(
+                    user=order.customer,
+                    title=out_title,
+                    message=out_body
+                )
+                send_push_notification(
+                    user=order.customer,
+                    title=out_title,
+                    body=out_body,
+                    data={'order_id': str(order.id), 'status': 'OUT_FOR_DELIVERY', 'otp': order.delivery_otp or ''}
                 )
 
             elif next_status == Order.Status.COMPLETED:
@@ -384,10 +463,18 @@ class OrderViewSet(ModelViewSet):
                     except Exception:
                         pass
 
+                comp_title = f"Order #{order.id} Delivered! 🎉"
+                comp_body = f"Hi {order.customer.first_name or 'there'}, your order has been successfully delivered/picked up. Thank you for shopping with us!"
                 Notification.objects.create(
                     user=order.customer,
-                    title=f"Order #{order.id} Completed! 🎉",
-                    message=f"Hi {order.customer.first_name}, your order has been successfully delivered/picked up. We hope you enjoy your purchase and see you again soon!"
+                    title=comp_title,
+                    message=comp_body
+                )
+                send_push_notification(
+                    user=order.customer,
+                    title=comp_title,
+                    body=comp_body,
+                    data={'order_id': str(order.id), 'status': 'COMPLETED'}
                 )
                 
                 # Order Cashback Processing (Strictly Idempotent)
@@ -462,10 +549,18 @@ class OrderViewSet(ModelViewSet):
                         description=f"Refund for cancelled order #{order.id}"
                     )
                         
+                rej_title = f"Order #{order.id} Cancelled"
+                rej_body = f"Hi {order.customer.first_name or 'there'}, unfortunately we had to cancel your order. Please contact the store for more details."
                 Notification.objects.create(
                     user=order.customer,
-                    title=f"Order #{order.id} Cancelled",
-                    message=f"Hi {order.customer.first_name}, unfortunately we had to cancel your order. Please contact the store for more details."
+                    title=rej_title,
+                    message=rej_body
+                )
+                send_push_notification(
+                    user=order.customer,
+                    title=rej_title,
+                    body=rej_body,
+                    data={'order_id': str(order.id), 'status': 'REJECTED'}
                 )
                 
         return Response(OrderSerializer(order, context=self.get_serializer_context()).data)
@@ -506,13 +601,36 @@ class OrderViewSet(ModelViewSet):
         order.save(update_fields=['delivery_partner', 'assigned_at', 'delivery_otp', 'status', 'updated_at'])
 
         try:
+            partner_title = f"New Delivery Assigned! 🛵 Order #{order.id}"
+            partner_msg = f"You have been assigned to deliver order #{order.id} to {order.delivery_address or 'Customer'}."
             Notification.objects.create(
                 user=partner,
-                title=f"New Delivery Assigned! 🛵 Order #{order.id}",
-                message=f"You have been assigned to deliver order #{order.id} to {order.delivery_address or 'Customer'}."
+                title=partner_title,
+                message=partner_msg
+            )
+            send_push_notification(
+                user=partner,
+                title=partner_title,
+                body=partner_msg,
+                data={'order_id': str(order.id), 'type': 'DELIVERY_ASSIGNED'}
+            )
+
+            # Notify customer that delivery partner is assigned
+            cust_title = f"Delivery Partner Assigned! 🛵"
+            cust_msg = f"{partner.get_full_name() or partner.username} has been assigned to deliver your order #{order.id}."
+            Notification.objects.create(
+                user=order.customer,
+                title=cust_title,
+                message=cust_msg
+            )
+            send_push_notification(
+                user=order.customer,
+                title=cust_title,
+                body=cust_msg,
+                data={'order_id': str(order.id), 'status': 'PARTNER_ASSIGNED', 'type': 'DELIVERY_UPDATE'}
             )
         except Exception as e:
-            logger.error("Failed to notify delivery partner: %s", e)
+            logger.error("Failed to notify delivery partner/customer: %s", e)
 
         return Response(OrderSerializer(order, context=self.get_serializer_context()).data)
 

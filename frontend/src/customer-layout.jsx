@@ -244,38 +244,53 @@ function GlobalSearchBar() {
 }
 
 export function NotificationPopup({ isOpen, onClose }) {
- const { notifications, refresh } = useCart();
- const wrapperRef = useRef(null);
+  const { notifications, refresh, notificationPermission, requestWebPushPermission } = useCart();
+  const wrapperRef = useRef(null);
 
- useEffect(() => {
- const handleClickOutside = (event) => {
- if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
- onClose();
- }
- };
- if (isOpen) {
- document.addEventListener('mousedown', handleClickOutside);
- }
- return () => document.removeEventListener('mousedown', handleClickOutside);
- }, [isOpen, onClose]);
+  useEffect(() => {
+  const handleClickOutside = (event) => {
+  if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+  onClose();
+  }
+  };
+  if (isOpen) {
+  document.addEventListener('mousedown', handleClickOutside);
+  }
+  return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen, onClose]);
 
- const deleteNotification = async (id) => {
- try {
- await api.delete(`/notifications/${id}/`);
- refresh();
- } catch (err) {
- console.error(err);
- }
- };
+  const deleteNotification = async (id) => {
+  try {
+  await api.delete(`/notifications/${id}/`);
+  refresh();
+  } catch (err) {
+  console.error(err);
+  }
+  };
 
- if (!isOpen) return null;
+  if (!isOpen) return null;
 
- return (
-  <div ref={wrapperRef} className="absolute right-0 top-14 w-80 max-w-[calc(100vw-2rem)] bg-white/95 dark:bg-[#0d1322]/95 backdrop-blur-xl rounded-2xl shadow-2xl ring-1 ring-slate-900/5 dark:ring-slate-800 border border-slate-100 dark:border-slate-800 z-50 overflow-hidden flex flex-col max-h-[80vh] transition-all">
-  <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-  <h3 className="font-extrabold text-slate-900 dark:text-white">Notifications</h3>
-  <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition"><X size={18}/></button>
-  </div>
+  return (
+   <div ref={wrapperRef} className="absolute right-0 top-14 w-80 max-w-[calc(100vw-2rem)] bg-white/95 dark:bg-[#0d1322]/95 backdrop-blur-xl rounded-2xl shadow-2xl ring-1 ring-slate-900/5 dark:ring-slate-800 border border-slate-100 dark:border-slate-800 z-50 overflow-hidden flex flex-col max-h-[80vh] transition-all">
+   <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+   <h3 className="font-extrabold text-slate-900 dark:text-white">Notifications</h3>
+   <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition"><X size={18}/></button>
+   </div>
+
+   {notificationPermission !== 'granted' && (
+     <div className="p-3 bg-gradient-to-r from-emerald-500/15 to-teal-500/10 border-b border-emerald-500/20 flex items-center justify-between gap-2.5">
+       <div className="flex items-center gap-2">
+         <Bell size={16} className="text-emerald-500 shrink-0" />
+         <p className="text-xs text-slate-700 dark:text-slate-200 font-semibold">Instant Order Push Alerts</p>
+       </div>
+       <button
+         onClick={requestWebPushPermission}
+         className="px-2.5 py-1 text-[11px] font-extrabold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg shadow-sm transition active:scale-95 cursor-pointer shrink-0"
+       >
+         Enable
+       </button>
+     </div>
+   )}
   <div className="overflow-y-auto p-4 space-y-3">
   {(!notifications || notifications.length === 0) ? (
   <div className="text-center py-6">

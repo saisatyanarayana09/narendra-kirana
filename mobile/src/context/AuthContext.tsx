@@ -4,6 +4,7 @@ import { apiClient } from '../api/client';
 import { STORAGE_KEYS } from '../constants/config';
 import { getItem, saveItem, deleteItem } from '../utils/storage';
 import { resetWelcomeSession } from '../utils/welcomeSession';
+import { registerForPushNotificationsAsync, unregisterPushNotificationsAsync } from '../services/notificationService';
 
 export type User = {
   id: number;
@@ -63,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const storedUser = await getItem(STORAGE_KEYS.USER);
       if (storedUser) {
         setUser(JSON.parse(storedUser));
+        registerForPushNotificationsAsync().catch(() => {});
       }
     } catch (error) {
       console.error('Failed to load user', error);
@@ -82,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       resetWelcomeSession();
       setUser(loggedUser);
+      registerForPushNotificationsAsync().catch(() => {});
     } catch (error) {
       throw error;
     }
@@ -89,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
+      await unregisterPushNotificationsAsync().catch(() => {});
       const refreshToken = await getItem(STORAGE_KEYS.REFRESH);
       if (refreshToken) {
         await apiClient.post('/auth/logout/', { refresh: refreshToken }).catch(() => {});

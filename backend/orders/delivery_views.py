@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from accounts.models import User, DeliveryPartnerProfile
 from accounts.permissions import IsDeliveryPartnerUser, IsOwnerUser
 from notifications.models import Notification
+from notifications.services import send_push_notification
 from store.models import StoreSettings
 from .models import Order
 from .serializers import OrderSerializer
@@ -117,15 +118,75 @@ class DeliveryPickupOrderView(APIView):
 
         # Notify Customer
         try:
+            pickup_title = f"Order #{order.id} is Out for Delivery! 🛵"
+            pickup_body = f"Your delivery partner has picked up your order and is heading your way. Your delivery OTP is {order.delivery_otp}."
             Notification.objects.create(
                 user=order.customer,
-                title=f"Order #{order.id} is Out for Delivery! 🛵",
-                message=f"Your delivery partner has picked up your order and is heading your way. Share OTP {order.delivery_otp} upon arrival."
+                title=pickup_title,
+                message=pickup_body
+            )
+            send_push_notification(
+                user=order.customer,
+                title=pickup_title,
+                body=pickup_body,
+                data={'order_id': str(order.id), 'status': 'OUT_FOR_DELIVERY', 'otp': order.delivery_otp or ''}
             )
         except Exception as e:
             logger.error("Error notifying customer on pickup: %s", e)
 
         return Response(OrderSerializer(order, context={'request': request}).data)
+
+
+class DeliveryNotifyArrivalView(APIView):
+    permission_classes = [IsDeliveryPartnerUser]
+
+    def post(self, request, pk):
+        user = request.user
+        try:
+            order = Order.objects.get(pk=pk)
+        except Order.DoesNotExist:
+            return Response({'detail': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Verify assignment or staff override
+        if order.delivery_partner != user and not (getattr(user, 'is_owner', False) or user.is_staff):
+            return Response({'detail': 'This order is not assigned to you.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if order.status not in [Order.Status.READY, Order.Status.OUT_FOR_DELIVERY]:
+            return Response({
+                'detail': f'Cannot notify arrival for order with status {order.status}.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Notify Customer
+        title = "Rider is 2 minutes away! 🛵"
+        otp_text = f" Your delivery verification OTP is {order.delivery_otp}." if order.delivery_otp else ""
+        partner_name = user.get_full_name() or user.username
+        body = f"Your delivery partner {partner_name} is arriving shortly at your address.{otp_text} Please keep OTP ready!"
+
+        try:
+            Notification.objects.create(
+                user=order.customer,
+                title=title,
+                message=body
+            )
+            send_push_notification(
+                user=order.customer,
+                title=title,
+                body=body,
+                data={
+                    'order_id': str(order.id),
+                    'status': 'RIDER_ARRIVING',
+                    'otp': order.delivery_otp or '',
+                    'type': 'ARRIVAL_ALERT'
+                }
+            )
+        except Exception as e:
+            logger.error("Error sending arrival notification: %s", e)
+
+        return Response({
+            'detail': 'Customer notified that you are 2 minutes away!',
+            'order_id': order.id,
+            'notified': True
+        })
 
 
 class DeliveryVerifyAndCompleteView(APIView):
@@ -169,10 +230,18 @@ class DeliveryVerifyAndCompleteView(APIView):
                     pass
 
             # Notify Customer
+            delivery_title = f"Order #{order.id} Delivered Successfully! 🎉"
+            delivery_msg = f"Hi {order.customer.first_name or 'there'}, your Narendra Kirana order #{order.id} has been delivered. Thank you for shopping with us!"
             Notification.objects.create(
                 user=order.customer,
-                title=f"Order #{order.id} Delivered Successfully! 🎉",
-                message=f"Hi {order.customer.first_name}, your Narendra Kirana order #{order.id} has been delivered. Thank you for shopping with us!"
+                title=delivery_title,
+                message=delivery_msg
+            )
+            send_push_notification(
+                user=order.customer,
+                title=delivery_title,
+                body=delivery_msg,
+                data={'order_id': order.id, 'status': 'COMPLETED'}
             )
 
             # Order Cashback Processing (Strictly Idempotent)

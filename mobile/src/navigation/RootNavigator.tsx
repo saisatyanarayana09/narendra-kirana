@@ -21,6 +21,7 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { navigationRef } from './navigationRef';
 import { storeApi, StoreSettings } from '../api/store';
 import { APP_VERSION } from '../constants/config';
+import { addNotificationResponseReceivedListener } from '../services/notificationService';
 
 import { AuthStack } from './AuthStack';
 import { MainTabs } from './MainTabs';
@@ -348,8 +349,25 @@ export function RootNavigator() {
       handleIncomingUrl(event.url);
     });
 
+    // 3. Listen for push notification click / tap events
+    const notifSub = addNotificationResponseReceivedListener((response) => {
+      const data = response.notification?.request?.content?.data;
+      if (data?.order_id) {
+        if (navigationRef.isReady()) {
+          (navigationRef as any).navigate('Main', {
+            screen: 'OrdersTab',
+            params: {
+              screen: 'OrderTrackingScreen',
+              params: { orderId: String(data.order_id) },
+            },
+          });
+        }
+      }
+    });
+
     return () => {
       subscription.remove();
+      notifSub.remove();
     };
   }, [user]);
 

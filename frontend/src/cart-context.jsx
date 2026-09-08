@@ -36,38 +36,94 @@ export function CartProvider({ children }) {
    setCart(res.data);
  }, [isCustomer])
 
- const refreshFavorites = useCallback(async () => {
-   if (!isCustomer) return;
-   const res = await api.get('/favorites/');
-   setFavorites(res.data.results || res.data || []);
- }, [isCustomer])
- 
- const refreshNotifications = useCallback(async () => {
-   if (!isCustomer) return;
-   const res = await api.get('/notifications/');
-   setNotifications(res.data.results || res.data || []);
- }, [isCustomer])
+  const initialNotifsLoadedRef = useRef(false);
+  const seenNotifIdsRef = useRef(new Set());
+  const [notificationPermission, setNotificationPermission] = useState(() => {
+    return typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'denied';
+  });
 
- const refresh = useCallback(async () => {
-   if (!isCustomer) { setCart(null); setFavorites([]); setNotifications([]); return }
-   // Run them independently so one slow request doesn't block the others
-   refreshCart().catch(console.error);
-   refreshFavorites().catch(console.error);
-   refreshNotifications().catch(console.error);
- }, [isCustomer, refreshCart, refreshFavorites, refreshNotifications])
+  const requestWebPushPermission = useCallback(async () => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      try {
+        const perm = await Notification.requestPermission();
+        setNotificationPermission(perm);
+        return perm;
+      } catch (err) {
+        console.error('Failed to request notification permission:', err);
+      }
+    }
+    return 'denied';
+  }, []);
 
- useEffect(() => { 
-    refresh();
-    fetchSettings();
-    fetchProfile();
-    
-    // Poll settings every 60s (reduced from 30s — settings rarely change)
-    const interval = setInterval(() => {
-        // Skip polling when tab is not visible to save bandwidth
-        if (!document.hidden) fetchSettings();
-    }, 60000);
-    return () => clearInterval(interval);
-  }, [refresh, fetchSettings, fetchProfile])
+  const refreshFavorites = useCallback(async () => {
+    if (!isCustomer) return;
+    const res = await api.get('/favorites/');
+    setFavorites(res.data.results || res.data || []);
+  }, [isCustomer])
+  
+  const refreshNotifications = useCallback(async () => {
+    if (!isCustomer) return;
+    try {
+      const res = await api.get('/notifications/');
+      const list = res.data.results || res.data || [];
+      setNotifications(list);
+
+      if (!initialNotifsLoadedRef.current) {
+        list.forEach(n => seenNotifIdsRef.current.add(n.id));
+        initialNotifsLoadedRef.current = true;
+      } else {
+        list.forEach(n => {
+          if (!seenNotifIdsRef.current.has(n.id)) {
+            seenNotifIdsRef.current.add(n.id);
+            if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+              try {
+                new Notification(n.title || 'Narendra Kirana Alert', {
+                  body: n.message || '',
+                  icon: '/favicon.ico',
+                  tag: `nk-${n.id}`
+                });
+              } catch (e) {
+                console.warn('Browser notification error:', e);
+              }
+            }
+          }
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }, [isCustomer])
+
+  const refresh = useCallback(async () => {
+    if (!isCustomer) { setCart(null); setFavorites([]); setNotifications([]); return }
+    // Run them independently so one slow request doesn't block the others
+    refreshCart().catch(console.error);
+    refreshFavorites().catch(console.error);
+    refreshNotifications().catch(console.error);
+  }, [isCustomer, refreshCart, refreshFavorites, refreshNotifications])
+
+  useEffect(() => { 
+     refresh();
+     fetchSettings();
+     fetchProfile();
+     
+     // Poll settings every 60s
+     const interval = setInterval(() => {
+         if (!document.hidden) fetchSettings();
+     }, 60000);
+
+     // Poll active notifications every 12s when tab is active
+     const notifInterval = setInterval(() => {
+         if (!document.hidden && isCustomer) {
+           refreshNotifications();
+         }
+     }, 12000);
+
+     return () => {
+       clearInterval(interval);
+       clearInterval(notifInterval);
+     };
+   }, [refresh, fetchSettings, fetchProfile, isCustomer, refreshNotifications])
 
  const syncUser = useCallback(() => {
    setUser(getUser());
@@ -146,9 +202,11 @@ export function CartProvider({ children }) {
  // Memoize the context value to prevent unnecessary re-renders of all consumers
  const value = useMemo(() => ({
    cart, add, update, clearCart, refresh, user, isCustomer, syncUser, logout,
-   applyPromo, storeSettings, favorites, toggleFavorite, notifications
+   applyPromo, storeSettings, favorites, toggleFavorite, notifications,
+   notificationPermission, requestWebPushPermission
  }), [cart, add, update, clearCart, refresh, user, isCustomer, syncUser, logout,
-      applyPromo, storeSettings, favorites, toggleFavorite, notifications])
+      applyPromo, storeSettings, favorites, toggleFavorite, notifications,
+      notificationPermission, requestWebPushPermission])
 
  return (
    <CartContext.Provider value={value}>

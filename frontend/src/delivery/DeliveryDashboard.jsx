@@ -4,7 +4,7 @@ import {
   Truck, Phone, MapPin, Navigation, CheckCircle2, 
   Package, Clock, ChevronDown, ChevronUp, 
   ShieldCheck, AlertCircle, RefreshCw, X, ArrowUpRight,
-  Sparkles, Banknote, ShieldAlert, Check
+  Sparkles, Banknote, ShieldAlert, Check, Bell
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
@@ -16,6 +16,8 @@ export default function DeliveryDashboard() {
   const [dashboardData, setDashboardData] = useState(null);
   const [expandedOrders, setExpandedOrders] = useState({});
   const [actionLoading, setActionLoading] = useState({});
+  const [notifiedArrival, setNotifiedArrival] = useState({});
+  const [notifyingArrival, setNotifyingArrival] = useState({});
 
   // 4-Digit Split OTP Modal State
   const [otpModalOrder, setOtpModalOrder] = useState(null);
@@ -138,6 +140,19 @@ export default function DeliveryDashboard() {
       setOtpError(err.response?.data?.detail || 'Invalid OTP code. Please ask customer to confirm the code.');
     } finally {
       setSubmittingOtp(false);
+    }
+  };
+
+  const handleNotifyArrival = async (orderId) => {
+    setNotifyingArrival(prev => ({ ...prev, [orderId]: true }));
+    try {
+      await api.post(`/delivery/orders/${orderId}/notify-arrival/`);
+      setNotifiedArrival(prev => ({ ...prev, [orderId]: true }));
+      toast.success("Customer notified: You are 2 minutes away! 🛵", { duration: 3500 });
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Could not notify customer. Please try again.");
+    } finally {
+      setNotifyingArrival(prev => ({ ...prev, [orderId]: false }));
     }
   };
 
@@ -428,13 +443,35 @@ export default function DeliveryDashboard() {
                 )}
 
                 {isOutForDelivery && (
-                  <button
-                    onClick={() => openOtpModal(order)}
-                    className="w-full py-4 px-5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 hover:opacity-95 text-slate-950 font-black text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-500/30 transition active:scale-98 cursor-pointer"
-                  >
-                    <ShieldCheck size={22} />
-                    <span>Enter Customer OTP & Handover</span>
-                  </button>
+                  <div className="space-y-2.5">
+                    <button
+                      type="button"
+                      onClick={() => handleNotifyArrival(order.id)}
+                      disabled={notifyingArrival[order.id] || notifiedArrival[order.id]}
+                      className={`w-full py-3 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 border transition cursor-pointer active:scale-98 ${
+                        notifiedArrival[order.id]
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                          : 'bg-slate-800 hover:bg-slate-750 text-amber-400 border-slate-700 hover:border-amber-500/40'
+                      }`}
+                    >
+                      <Bell size={16} className={notifyingArrival[order.id] ? 'animate-bounce' : ''} />
+                      <span>
+                        {notifyingArrival[order.id]
+                          ? 'Sending Alert to Customer...'
+                          : notifiedArrival[order.id]
+                          ? 'Arrival Alert Sent (2 Mins Away) ✓'
+                          : 'Notify Customer: Rider is 2 Minutes Away 🛵'}
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={() => openOtpModal(order)}
+                      className="w-full py-4 px-5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 hover:opacity-95 text-slate-950 font-black text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-500/30 transition active:scale-98 cursor-pointer"
+                    >
+                      <ShieldCheck size={22} />
+                      <span>Enter Customer OTP & Handover</span>
+                    </button>
+                  </div>
                 )}
               </div>
             );
