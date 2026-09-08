@@ -902,7 +902,7 @@ export function CartPage() {
 
   return (
     <CustomerLayout>
-      <main className="mx-auto w-full max-w-xl px-3 sm:px-4 py-5 pb-36">
+      <main className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8 py-6 pb-36 lg:pb-16">
         <button onClick={() => navigate(-1)} className="mb-3 flex items-center gap-1.5 text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400 hover:underline bg-transparent border-0 cursor-pointer p-0">
           <ArrowLeft size={16} /> Back
         </button>
@@ -984,10 +984,10 @@ export function CartPage() {
             </Link>
           </div>
         ) : (
-          <div className="flex flex-col gap-4 w-full">
+          <div className="flex flex-col lg:flex-row gap-6 items-start w-full">
             {/* Items List */}
-            <div className="w-full space-y-3">
-              {/* Free Delivery Threshold Progress Bar matching mobile 1:1 */}
+            <div className="flex-1 w-full space-y-3">
+              {/* Free Delivery Threshold Progress Bar */}
               {Number(storeSettings?.free_delivery_threshold) > 0 && (
                 <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 shadow-xs mb-3">
                   <div className="flex justify-between items-center text-xs font-bold text-emerald-900 dark:text-emerald-200 mb-1.5">
@@ -1039,8 +1039,8 @@ export function CartPage() {
               })}
             </div>
 
-            {/* Promo Code & Order Summary Section */}
-            <div className="w-full space-y-4">
+            {/* Promo Code & Order Summary Section (Sticky Sidebar on Desktop) */}
+            <div className="w-full lg:w-96 shrink-0 lg:sticky lg:top-24 space-y-4">
               {/* Promo Code Section */}
               <section className="rounded-2xl bg-white dark:bg-slate-900 p-4 sm:p-5 shadow-xs border border-slate-200/80 dark:border-slate-800">
                 <form onSubmit={handleApplyPromo} className="flex gap-2">
@@ -1094,9 +1094,9 @@ export function CartPage() {
               </section>
             </div>
 
-            {/* Mobile Sticky Checkout Bar */}
+            {/* Mobile Sticky Checkout Bar (strictly mobile: lg:hidden) */}
             {storeSettings?.is_open !== false && !isEmergencyPaused && !isClosedHours && !hasOutOfStock && !(Number(storeSettings?.min_order_amount) > 0 && Number(cart.subtotal) < Number(storeSettings.min_order_amount)) && items.length > 0 && (
-              <div className="fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] inset-x-0 sm:inset-x-auto sm:w-[576px] sm:max-w-xl z-30 bg-white/95 dark:bg-[#0c1220]/95 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 py-3 px-4 shadow-[0_-10px_20px_-3px_rgba(0,0,0,0.1)]">
+              <div className="lg:hidden fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] inset-x-0 z-30 bg-white/95 dark:bg-[#0c1220]/95 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 py-3 px-4 shadow-[0_-10px_20px_-3px_rgba(0,0,0,0.1)]">
                 <div className="flex items-center justify-between gap-4 w-full">
                   <div>
                     <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Payable</p>
@@ -1347,7 +1347,7 @@ export function CheckoutPage() {
 
   return (
     <CustomerLayout>
-      <main className="mx-auto max-w-xl px-4 sm:px-6 py-5 sm:py-8 pb-36 sm:pb-16">
+      <main className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-5 sm:py-8 pb-36 sm:pb-16">
         <button
           onClick={() => navigate(-1)}
           className="mb-3 inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400 hover:underline bg-transparent border-0 cursor-pointer"
@@ -1904,7 +1904,7 @@ export function OrderDetailPage() {
 
  return (
   <CustomerLayout>
-    <main className="mx-auto max-w-xl px-4 py-6">
+    <main className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-6 pb-24 md:pb-12">
       <button onClick={() => navigate(-1)} className="mb-4 flex items-center gap-2 text-sm font-bold text-primary-700 hover:underline bg-transparent border-none cursor-pointer p-0">
         <ArrowLeft size={16} /> Back
       </button>

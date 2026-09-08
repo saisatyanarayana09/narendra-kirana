@@ -797,33 +797,20 @@ export function CategoriesPage() {
 
 
 
- return (
-
- <CustomerLayout>
-
-   <main className="mx-auto w-full max-w-xl px-3 sm:px-4 py-5 pb-24">
-
-   <div className="w-full mb-5 flex flex-col items-start gap-2">
-
-     <button onClick={() => navigate(-1)} className="text-xs sm:text-sm font-bold text-slate-600 hover:underline bg-transparent border-none cursor-pointer p-0 flex items-center gap-1"><ArrowLeft size={16} /> Back</button>
-
-     <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">All Categories</h1>
-
+  return (
+  <CustomerLayout>
+    <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-12">
+    <div className="w-full mb-6 flex flex-col items-start gap-2">
+      <button onClick={() => navigate(-1)} className="text-xs sm:text-sm font-bold text-slate-600 hover:underline bg-transparent border-none cursor-pointer p-0 flex items-center gap-1"><ArrowLeft size={16} /> Back</button>
+      <h1 className="text-xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">All Categories</h1>
+    </div>
+    {loading ? (
+   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 sm:gap-4 w-full">
+   {Array.from({length: 16}).map((_, i) => <CategorySkeleton key={i} />)}
    </div>
-
-   {loading ? (
-
-  <div className="grid grid-cols-3 gap-3 w-full">
-
-  {Array.from({length: 12}).map((_, i) => <CategorySkeleton key={i} />)}
-
-  </div>
-
-  ) : (
-
-  <div className="grid grid-cols-3 gap-3 w-full">
-
-  {categories.map((category, index) => {
+   ) : (
+   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 sm:gap-4 w-full">
+   {categories.map((category, index) => {
 
   return (
 
@@ -977,29 +964,18 @@ export function ProductsPage() {
   }, [products, sortOption]);
 
   return (
-
   <CustomerLayout>
-
-    <main className="mx-auto w-full max-w-xl px-3 sm:px-4 py-4 pb-24">
-
-      <div className="-mx-3 px-3 sm:-mx-4 sm:px-4 bg-slate-50 dark:bg-slate-900/50 py-2.5 mb-4 border-b border-slate-200/60 dark:border-slate-800">
-
+    <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-12">
+      <div className="-mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 bg-slate-50 dark:bg-slate-900/50 py-3 mb-6 border-b border-slate-200/60 dark:border-slate-800">
         <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar items-center">
-
-          <Link to="/"className="flex shrink-0 items-center justify-center rounded-full bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 shadow-xs border border-slate-200/60 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition w-8 h-8 mr-1" aria-label="Back to home"><ArrowLeft size={16} /></Link>
-
+          <Link to="/" className="flex shrink-0 items-center justify-center rounded-full bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 shadow-xs border border-slate-200/60 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition w-8 h-8 mr-1" aria-label="Back to home"><ArrowLeft size={16} /></Link>
           <button onClick={() => { const next = new URLSearchParams(searchParams); next.delete('category'); setSearchParams(next) }} className={`rounded-full px-3.5 py-1.5 text-xs font-bold shrink-0 transition-all ${!category ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 shadow-xs border border-slate-200/60 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>All</button>
-
           {categories.map((item) => <button key={item.id} onClick={() => { const next = new URLSearchParams(searchParams); next.set('category', item.id); setSearchParams(next) }} className={`rounded-full px-3.5 py-1.5 text-xs font-bold shrink-0 transition-all ${category === String(item.id) ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 shadow-xs border border-slate-200/60 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{item.name}</button>)}
-
         </div>
-
       </div>
 
-      <div className="flex items-center justify-between mt-1 flex-wrap gap-2">
-
-        <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">{activeCategoryName}</h1>
-
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">{activeCategoryName}</h1>
         {!loading && (
           <div className="flex items-center gap-2">
             {isRevalidating && (
@@ -1021,15 +997,12 @@ export function ProductsPage() {
             <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{products.length} items</p>
           </div>
         )}
-
       </div>
 
       {error && <p className="mt-4 rounded-xl bg-red-50 dark:bg-rose-950/40 p-3.5 text-xs sm:text-sm text-red-700 dark:text-rose-300 font-semibold">{error}</p>}
 
-      <div className="mt-3.5 grid grid-cols-2 gap-3 w-full">
-
-        {loading ? Array.from({length: 8}).map((_, i) => <ProductSkeleton key={i} />) : sortedProducts.map((product, index) => <ProductCard key={product.id} product={product} priority={index < 4} />)}
-
+      <div className="mt-3.5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 w-full">
+        {loading ? Array.from({length: 12}).map((_, i) => <ProductSkeleton key={i} />) : sortedProducts.map((product, index) => <ProductCard key={product.id} product={product} priority={index < 6} />)}
       </div>
       
       {nextPage && (
@@ -1160,17 +1133,17 @@ export function ProductDetailPage() {
 
   return (
     <CustomerLayout>
-      <main className="mx-auto w-full max-w-xl px-3 sm:px-4 py-4 pb-36">
+      <main className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8 py-6 pb-36 md:pb-12">
         <button
           onClick={() => navigate(-1)}
-          className="group inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 transition-colors mb-3.5 bg-transparent border-none cursor-pointer"
+          className="group inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 transition-colors mb-4 bg-transparent border-none cursor-pointer"
         >
           <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" /> Back
         </button>
 
-        <article className="overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-xs border border-slate-200/80 dark:border-slate-800 relative flex flex-col transition-colors">
+        <article className="overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-xs border border-slate-200/80 dark:border-slate-800 relative flex flex-col md:flex-row transition-colors">
           {/* Stable Minimal Image Frame */}
-          <div className="w-full bg-slate-50/80 dark:bg-slate-800/30 p-6 flex flex-col items-center justify-center relative border-b border-slate-100 dark:border-slate-800/60">
+          <div className="w-full md:w-1/2 bg-slate-50/80 dark:bg-slate-800/30 p-6 sm:p-10 flex flex-col items-center justify-center relative border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800/60">
             {discountPercent > 0 && (
               <div className="absolute top-3.5 left-3.5 z-10 bg-rose-600 text-white text-[11px] font-black px-2.5 py-1 rounded-lg shadow-xs flex items-center gap-1 uppercase tracking-wider">
                 <Zap size={11} fill="currentColor" /> {discountPercent}% OFF
@@ -1180,7 +1153,7 @@ export function ProductDetailPage() {
           </div>
 
           {/* Stable Info Frame */}
-          <div className="flex-1 p-6 sm:p-8 flex flex-col justify-between">
+          <div className="w-full md:w-1/2 p-6 sm:p-8 flex flex-col justify-between">
             <div>
               {/* Category + Stock + Favorite */}
               <div className="flex justify-between items-center gap-2">
@@ -1337,8 +1310,8 @@ export function ProductDetailPage() {
           </div>
         </article>
 
-        {/* Mobile Sticky Add to Cart Bar */}
-        <div className="fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] inset-x-0 sm:inset-x-auto sm:w-[576px] sm:max-w-xl z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 p-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+        {/* Mobile Sticky Add to Cart Bar (strictly mobile: md:hidden) */}
+        <div className="md:hidden fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] inset-x-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 p-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
           {cartItem ? (
             <div className="flex items-center justify-between gap-3">
               <div className="inline-flex items-center rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 p-1">

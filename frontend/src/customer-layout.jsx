@@ -656,120 +656,171 @@ export function CustomerLayout({ children }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100/90 dark:bg-slate-950 flex flex-col items-center justify-start text-slate-900 dark:text-slate-100 transition-colors duration-200 antialiased">
-      {/* Mobile App Shell Frame */}
-      <div className="w-full max-w-xl min-h-screen bg-white dark:bg-[#090d16] shadow-2xl border-x border-slate-200/80 dark:border-slate-800/80 relative flex flex-col pb-20 sm:pb-24">
-        <TopAnnouncementMarquee settings={storeSettings} />
-        <SmartAppBanner />
-        <WelcomeScreen />
-        <FestivePopupModal settings={storeSettings} />
-        <WhatsAppSupportWidget settings={storeSettings} />
+    <div className="min-h-screen bg-slate-50 dark:bg-[#090d16] flex flex-col justify-start text-slate-900 dark:text-slate-100 transition-colors duration-200 antialiased pb-20 md:pb-0">
+      <TopAnnouncementMarquee settings={storeSettings} />
+      <SmartAppBanner />
+      <WelcomeScreen />
+      <FestivePopupModal settings={storeSettings} />
+      <WhatsAppSupportWidget settings={storeSettings} />
 
-        {/* Mobile App Header */}
-        <header className="sticky top-0 z-30 border-b border-slate-200/70 dark:border-slate-800/80 bg-white/95 dark:bg-[#0d1322]/95 backdrop-blur-xl shadow-xs">
-          <div className="px-3 py-2.5 sm:px-4 sm:py-3 flex items-center justify-between gap-2">
-            <Link to="/" className="flex items-center gap-2 shrink-0 group">
-              <img src="/logo-transparent.png" alt="Logo" className="w-8 h-8 object-contain rounded-lg shadow-xs group-hover:scale-105 transition-transform" />
-              <span className="text-lg sm:text-xl font-black tracking-tight whitespace-nowrap">
-                <span className="text-slate-900 dark:text-white">Narendra </span>
-                <span className="text-emerald-600 dark:text-emerald-400">Kirana</span>
-              </span>
-            </Link>
+      {/* Responsive Customer Header */}
+      <header className="sticky top-0 z-30 border-b border-slate-200/70 dark:border-slate-800/80 bg-white/95 dark:bg-[#0d1322]/95 backdrop-blur-xl shadow-xs">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-between gap-3 sm:gap-6">
+          {/* Brand Logo & Name */}
+          <Link to="/" className="flex items-center gap-2.5 shrink-0 group">
+            <img src="/logo-transparent.png" alt="Logo" className="w-8 h-8 sm:w-9 sm:h-9 object-contain rounded-xl shadow-xs group-hover:scale-105 transition-transform" />
+            <span className="text-lg sm:text-xl font-black tracking-tight whitespace-nowrap">
+              <span className="text-slate-900 dark:text-white">Narendra </span>
+              <span className="text-emerald-600 dark:text-emerald-400">Kirana</span>
+            </span>
+          </Link>
 
+          {/* Center Search Bar with Voice Recognition */}
+          <div className="flex-1 max-w-2xl min-w-0">
             <GlobalSearchBar />
-
-            <div className="flex items-center gap-1.5 shrink-0">
-              {isCustomer ? (
-                <div className="relative">
-                  <button 
-                    onClick={() => setShowNotifications(!showNotifications)} 
-                    className="w-9 h-9 grid place-items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition relative cursor-pointer"
-                    title="Notifications"
-                  >
-                    <Bell size={17} />
-                    {notifications?.some(n => !n.is_read) && (
-                      <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900 animate-pulse"></span>
-                    )}
-                  </button>
-                  <NotificationPopup isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
-                </div>
-              ) : (
-                <Link to="/login" className="text-xs font-bold text-emerald-600 dark:text-emerald-400 px-2.5 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 transition whitespace-nowrap">
-                  Sign In
-                </Link>
-              )}
-            </div>
           </div>
-        </header>
 
-        {/* Main Content Area */}
-        <main className="flex-1 w-full flex flex-col">
-          {children}
-        </main>
+          {/* Desktop Navigation Links */}
+          <nav className="hidden md:flex items-center gap-6 text-sm font-bold text-slate-600 dark:text-slate-300">
+            <Link 
+              to="/categories" 
+              className={`transition-colors hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center gap-1.5 ${location.pathname === '/categories' ? 'text-emerald-600 dark:text-emerald-400' : ''}`}
+            >
+              <LayoutGrid size={17} />
+              <span>Categories</span>
+            </Link>
+            <Link 
+              to={isCustomer ? "/profile/orders" : "/login?redirect=/profile/orders"} 
+              className={`transition-colors hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center gap-1.5 ${location.pathname === '/profile/orders' ? 'text-emerald-600 dark:text-emerald-400' : ''}`}
+            >
+              <Package size={17} />
+              <span>Orders</span>
+            </Link>
+            <Link 
+              to={isCustomer ? "/profile" : "/login"} 
+              className={`transition-colors hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center gap-1.5 ${location.pathname.startsWith('/profile') && location.pathname !== '/profile/orders' ? 'text-emerald-600 dark:text-emerald-400' : ''}`}
+            >
+              <User size={17} />
+              <span>{isCustomer ? 'Account' : 'Sign in'}</span>
+            </Link>
+          </nav>
 
-        {/* Floating Mini-Cart Bar */}
-        <FloatingCartBar />
+          {/* Right Action Items: Notifications, Desktop Cart Button, Mobile Sign In */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {isCustomer && (
+              <div className="relative">
+                <button 
+                  onClick={() => setShowNotifications(!showNotifications)} 
+                  className="w-9 h-9 grid place-items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition relative cursor-pointer"
+                  title="Notifications"
+                >
+                  <Bell size={17} />
+                  {notifications?.some(n => !n.is_read) && (
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900 animate-pulse"></span>
+                  )}
+                </button>
+                <NotificationPopup isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+              </div>
+            )}
 
-        {/* 5-Tab Mobile Navigation Bar (Always Visible inside App Shell) */}
-        <nav className="fixed bottom-0 inset-x-0 sm:inset-x-auto sm:w-[576px] sm:max-w-xl z-40 flex items-center justify-around border-t border-slate-200/80 dark:border-slate-800/90 bg-white/95 dark:bg-[#0c1220]/95 backdrop-blur-xl py-2 px-1 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
-          <Link 
-            to="/" 
-            className={`flex flex-1 flex-col items-center justify-center py-1 gap-1 text-[11px] font-bold transition-all ${
-              location.pathname === '/' ? 'text-emerald-600 dark:text-emerald-400 scale-105' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-            }`}
-          >
-            <Home size={20} className={location.pathname === '/' ? 'stroke-[2.5]' : 'stroke-2'} />
-            <span>Home</span>
-          </Link>
-
-          <Link 
-            to="/categories" 
-            className={`flex flex-1 flex-col items-center justify-center py-1 gap-1 text-[11px] font-bold transition-all ${
-              location.pathname === '/categories' ? 'text-emerald-600 dark:text-emerald-400 scale-105' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-            }`}
-          >
-            <LayoutGrid size={20} className={location.pathname === '/categories' ? 'stroke-[2.5]' : 'stroke-2'} />
-            <span>Categories</span>
-          </Link>
-
-          <Link 
-            to={isCustomer ? "/profile/orders" : "/login?redirect=/profile/orders"} 
-            className={`flex flex-1 flex-col items-center justify-center py-1 gap-1 text-[11px] font-bold transition-all ${
-              location.pathname === '/profile/orders' ? 'text-emerald-600 dark:text-emerald-400 scale-105' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-            }`}
-          >
-            <Package size={20} className={location.pathname === '/profile/orders' ? 'stroke-[2.5]' : 'stroke-2'} />
-            <span>Orders</span>
-          </Link>
-
-          <Link 
-            to={isCustomer ? "/profile" : "/login"} 
-            className={`flex flex-1 flex-col items-center justify-center py-1 gap-1 text-[11px] font-bold transition-all ${
-              location.pathname.startsWith('/profile') && location.pathname !== '/profile/orders' ? 'text-emerald-600 dark:text-emerald-400 scale-105' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-            }`}
-          >
-            <User size={20} className={location.pathname.startsWith('/profile') && location.pathname !== '/profile/orders' ? 'stroke-[2.5]' : 'stroke-2'} />
-            <span>{isCustomer ? 'Profile' : 'Sign in'}</span>
-          </Link>
-
-          <Link 
-            to="/cart" 
-            className={`relative flex flex-1 flex-col items-center justify-center py-1 gap-1 text-[11px] font-bold transition-all ${
-              location.pathname === '/cart' ? 'text-emerald-600 dark:text-emerald-400 scale-105' : 'text-slate-500 dark:text-slate-400 hover:text-emerald-600'
-            }`}
-          >
-            <div className="relative">
-              <ShoppingCart size={22} className={location.pathname === '/cart' ? 'text-emerald-600 dark:text-emerald-400 stroke-[2.5]' : 'stroke-2'} />
-              {cart?.items?.length > 0 && (
-                <span className="absolute -right-2.5 -top-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-600 dark:bg-emerald-500 text-[10px] font-black text-white flex items-center justify-center ring-2 ring-white dark:ring-[#0c1220] shadow-sm">
-                  {cart.items.length}
+            {/* Desktop Cart Button with Item Counter & Total */}
+            <Link
+              to="/cart"
+              className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-sm shadow-sm transition-all cursor-pointer"
+            >
+              <div className="relative">
+                <ShoppingCart size={17} />
+                {cart?.items?.length > 0 && (
+                  <span className="absolute -top-2 -right-2.5 min-w-[17px] h-[17px] px-1 rounded-full bg-white text-emerald-700 text-[10px] font-black flex items-center justify-center shadow-xs">
+                    {cart.items.length}
+                  </span>
+                )}
+              </div>
+              <span>Cart</span>
+              {Number(cart?.total || 0) > 0 && (
+                <span className="pl-1.5 border-l border-emerald-500/80 font-black text-xs">
+                  ₹{cart.total}
                 </span>
               )}
-            </div>
-            <span>Cart</span>
-          </Link>
-        </nav>
-      </div>
+            </Link>
+
+            {/* Mobile Sign In button (when logged out) */}
+            {!isCustomer && (
+              <Link to="/login" className="md:hidden text-xs font-bold text-emerald-600 dark:text-emerald-400 px-2.5 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 transition whitespace-nowrap">
+                Sign In
+              </Link>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="flex-1 w-full flex flex-col">
+        {children}
+      </main>
+
+      {/* Floating Mini-Cart Bar */}
+      <FloatingCartBar />
+
+      {/* 5-Tab Mobile Navigation Bar (strictly mobile & tablet: md:hidden) */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 flex items-center justify-around border-t border-slate-200/80 dark:border-slate-800/90 bg-white/95 dark:bg-[#0c1220]/95 backdrop-blur-xl py-2 px-1 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+        <Link 
+          to="/" 
+          className={`flex flex-1 flex-col items-center justify-center py-1 gap-1 text-[11px] font-bold transition-all ${
+            location.pathname === '/' ? 'text-emerald-600 dark:text-emerald-400 scale-105' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+          }`}
+        >
+          <Home size={20} className={location.pathname === '/' ? 'stroke-[2.5]' : 'stroke-2'} />
+          <span>Home</span>
+        </Link>
+
+        <Link 
+          to="/categories" 
+          className={`flex flex-1 flex-col items-center justify-center py-1 gap-1 text-[11px] font-bold transition-all ${
+            location.pathname === '/categories' ? 'text-emerald-600 dark:text-emerald-400 scale-105' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+          }`}
+        >
+          <LayoutGrid size={20} className={location.pathname === '/categories' ? 'stroke-[2.5]' : 'stroke-2'} />
+          <span>Categories</span>
+        </Link>
+
+        <Link 
+          to={isCustomer ? "/profile/orders" : "/login?redirect=/profile/orders"} 
+          className={`flex flex-1 flex-col items-center justify-center py-1 gap-1 text-[11px] font-bold transition-all ${
+            location.pathname === '/profile/orders' ? 'text-emerald-600 dark:text-emerald-400 scale-105' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+          }`}
+        >
+          <Package size={20} className={location.pathname === '/profile/orders' ? 'stroke-[2.5]' : 'stroke-2'} />
+          <span>Orders</span>
+        </Link>
+
+        <Link 
+          to={isCustomer ? "/profile" : "/login"} 
+          className={`flex flex-1 flex-col items-center justify-center py-1 gap-1 text-[11px] font-bold transition-all ${
+            location.pathname.startsWith('/profile') && location.pathname !== '/profile/orders' ? 'text-emerald-600 dark:text-emerald-400 scale-105' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+          }`}
+        >
+          <User size={20} className={location.pathname.startsWith('/profile') && location.pathname !== '/profile/orders' ? 'stroke-[2.5]' : 'stroke-2'} />
+          <span>{isCustomer ? 'Profile' : 'Sign in'}</span>
+        </Link>
+
+        <Link 
+          to="/cart" 
+          className={`relative flex flex-1 flex-col items-center justify-center py-1 gap-1 text-[11px] font-bold transition-all ${
+            location.pathname === '/cart' ? 'text-emerald-600 dark:text-emerald-400 scale-105' : 'text-slate-500 dark:text-slate-400 hover:text-emerald-600'
+          }`}
+        >
+          <div className="relative">
+            <ShoppingCart size={22} className={location.pathname === '/cart' ? 'text-emerald-600 dark:text-emerald-400 stroke-[2.5]' : 'stroke-2'} />
+            {cart?.items?.length > 0 && (
+              <span className="absolute -right-2.5 -top-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-600 dark:bg-emerald-500 text-[10px] font-black text-white flex items-center justify-center ring-2 ring-white dark:ring-[#0c1220] shadow-sm">
+                {cart.items.length}
+              </span>
+            )}
+          </div>
+          <span>Cart</span>
+        </Link>
+      </nav>
     </div>
   );
 }

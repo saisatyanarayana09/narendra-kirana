@@ -85,7 +85,7 @@ export function FloatingCartBar() {
   };
 
   return (
-    <div className="fixed bottom-18 sm:bottom-20 inset-x-3 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 w-auto sm:w-[480px] max-w-[calc(100vw-1.5rem)] z-50 animate-in fade-in slide-in-from-bottom-6 duration-300">
+    <div className="fixed bottom-18 sm:bottom-20 md:bottom-6 md:right-6 md:left-auto md:translate-x-0 inset-x-3 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 w-auto sm:w-[460px] md:w-[420px] max-w-[calc(100vw-1.5rem)] z-50 animate-in fade-in slide-in-from-bottom-6 duration-300">
       <div 
         onClick={handleOpenCart}
         className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 border-2 border-emerald-400/90 shadow-2xl shadow-emerald-950/40 text-white cursor-pointer group hover:scale-[1.01] transition-transform active:scale-[0.99]"

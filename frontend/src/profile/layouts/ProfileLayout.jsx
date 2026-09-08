@@ -12,7 +12,7 @@ export default function ProfileLayout() {
 
   return (
     <CustomerLayout>
-      <main className="mx-auto w-full max-w-xl px-3 sm:px-4 py-4 pb-28 sm:pb-24">
+      <main className="mx-auto w-full max-w-4xl px-4 sm:px-6 lg:px-8 py-6 pb-28 md:pb-12">
         {!isRootProfile && (
           <div className="mb-3.5">
             <Link 
