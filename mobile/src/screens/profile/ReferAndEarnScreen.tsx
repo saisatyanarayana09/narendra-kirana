@@ -136,9 +136,9 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
   const handleShowQR = async (referralId: number) => {
     try {
       const res = await apiClient.get(`/offers/referrals/${referralId}/qr_code/`);
-      setQrModal({ isOpen: true, referralId, base64: res.data.qr_code_base64 });
-    } catch (err) {
-      Alert.alert('Error', 'Failed to load QR code.');
+      setQrModal({ isOpen: true, referralId, base64: res.data?.qr_code_base64 || null });
+    } catch (err: any) {
+      Alert.alert('Error', err.response?.data?.detail || 'Failed to load QR code.');
     }
   };
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { useCart } from '../../cart-context';
 import { Users, Clock, XCircle, Wallet, Gift, Copy, Check, Share2, ArrowRight, Star, Target, Sparkles, ChevronRight, Award } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import toast from 'react-hot-toast';
 
 export default function ReferAndEarn() {
@@ -13,7 +14,7 @@ export default function ReferAndEarn() {
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('network');
-  const [qrModal, setQrModal] = useState({ isOpen: false, referralId: null, base64: null });
+  const [qrModal, setQrModal] = useState({ isOpen: false, referralId: null, base64: null, qrData: null });
 
   useEffect(() => {
     Promise.all([
@@ -63,9 +64,14 @@ export default function ReferAndEarn() {
   const handleShowQR = async (referralId) => {
     try {
       const res = await api.get(`/offers/referrals/${referralId}/qr_code/`);
-      setQrModal({ isOpen: true, referralId, base64: res.data.qr_code_base64 });
+      setQrModal({
+        isOpen: true,
+        referralId,
+        base64: res.data?.qr_code_base64 || null,
+        qrData: res.data?.qr_data || (res.data?.token ? `secure_qr:${res.data.token}` : null),
+      });
     } catch (err) {
-      toast.error('Failed to load QR Code');
+      toast.error(err.response?.data?.detail || 'Failed to load QR Code');
       console.error(err);
     }
   };
@@ -515,8 +521,20 @@ export default function ReferAndEarn() {
                 <div className="relative bg-white p-5 rounded-3xl border border-white/20 shadow-xl keep-white" data-keep-white="true">
                   {qrModal.base64 ? (
                     <img src={`data:image/png;base64,${qrModal.base64}`} alt="QR Code" className="w-48 h-48 mx-auto object-contain" />
+                  ) : qrModal.qrData ? (
+                    <div className="flex items-center justify-center p-2 bg-white rounded-2xl">
+                      <QRCodeSVG
+                        value={qrModal.qrData}
+                        size={192}
+                        level="M"
+                        includeMargin={false}
+                        className="w-48 h-48 mx-auto"
+                      />
+                    </div>
                   ) : (
-                    <div className="w-48 h-48 bg-gray-100 animate-pulse rounded-2xl"></div>
+                    <div className="w-48 h-48 bg-gray-100 animate-pulse rounded-2xl flex items-center justify-center text-xs text-slate-400">
+                      Loading QR...
+                    </div>
                   )}
                 </div>
               </div>

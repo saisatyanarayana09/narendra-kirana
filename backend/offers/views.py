@@ -72,40 +72,65 @@ class ReferralHistoryViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        if getattr(self.request.user, 'is_owner', False):
+        user = self.request.user
+        if not user or not user.is_authenticated:
+            return Referral.objects.none()
+        if getattr(user, 'is_owner', False) or user.is_staff or user.is_superuser:
             return Referral.objects.all()
-        return Referral.objects.filter(referrer=self.request.user)
+        return Referral.objects.filter(models.Q(referrer=user) | models.Q(referred_user=user))
 
     @action(detail=True, methods=['get'])
     def qr_code(self, request, pk=None):
-        referral = self.get_object()
-        if referral.referrer != request.user and not getattr(request.user, 'is_owner', False):
-            return Response({'detail': 'Not authorized.'}, status=403)
+        try:
+            referral = self.get_object()
+        except Exception:
+            return Response({'detail': 'Referral record not found or inaccessible.'}, status=404)
+
+        user = request.user
+        is_owner = getattr(user, 'is_owner', False) or user.is_staff or user.is_superuser
+        if referral.referrer != user and referral.referred_user != user and not is_owner:
+            return Response({'detail': 'Not authorized to view QR code for this referral.'}, status=403)
             
         from django.core.signing import TimestampSigner
         signer = TimestampSigner()
         token = signer.sign(str(referral.id))
+        qr_data = f"secure_qr:{token}"
         
-        import qrcode
-        import base64
-        from io import BytesIO
+        img_str = ""
+        try:
+            import qrcode
+            import base64
+            from io import BytesIO
+            
+            qr = qrcode.QRCode(version=1, box_size=10, border=4)
+            qr.add_data(qr_data)
+            qr.make(fit=True)
+            img = qr.make_image(fill_color="black", back_color="white")
+            
+            buffer = BytesIO()
+            img.save(buffer, format="PNG")
+            img_str = base64.b64encode(buffer.getvalue()).decode()
+        except Exception:
+            # Fallback gracefully so frontend can still render qr_data via SVG
+            pass
         
-        qr = qrcode.QRCode(version=1, box_size=10, border=4)
-        qr.add_data(f"secure_qr:{token}")
-        qr.make(fit=True)
-        img = qr.make_image(fill_color="black", back_color="white")
-        
-        buffer = BytesIO()
-        img.save(buffer, format="PNG")
-        img_str = base64.b64encode(buffer.getvalue()).decode()
-        
-        return Response({'qr_code_base64': img_str})
+        return Response({
+            'qr_code_base64': img_str,
+            'token': token,
+            'qr_data': qr_data
+        })
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def claim(self, request, pk=None):
-        referral = self.get_object()
-        if referral.referrer != request.user:
-            return Response({'detail': 'Not authorized.'}, status=403)
+        try:
+            referral = self.get_object()
+        except Exception:
+            return Response({'detail': 'Referral record not found or inaccessible.'}, status=404)
+
+        user = request.user
+        is_owner = getattr(user, 'is_owner', False) or user.is_staff or user.is_superuser
+        if referral.referrer != user and referral.referred_user != user and not is_owner:
+            return Response({'detail': 'Not authorized to claim this referral.'}, status=403)
         if referral.status != Referral.Status.READY_TO_CLAIM:
             return Response({'detail': 'Referral not ready to claim.'}, status=400)
             
