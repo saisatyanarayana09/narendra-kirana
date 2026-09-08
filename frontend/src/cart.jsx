@@ -1927,10 +1927,10 @@ export function OrderDetailPage() {
           </div>
 
           {/* Tracking Timeline UI */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 mb-6">
-            <h2 className="text-lg font-bold text-slate-900 mb-5">Track Order</h2>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 mb-6">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-5">Track Order</h2>
             {order.status === 'REJECTED' ? (
-              <div className="flex items-center gap-4 bg-red-50 text-red-700 p-4 rounded-xl border border-red-100">
+              <div className="flex items-center gap-4 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 p-4 rounded-xl border border-red-100 dark:border-red-900">
                 <XCircle className="w-8 h-8 flex-shrink-0" />
                 <div>
                   <h3 className="font-bold text-lg">Order Cancelled</h3>
@@ -1940,7 +1940,7 @@ export function OrderDetailPage() {
             ) : (
               <div className="relative">
                 {/* Vertical Line */}
-                <div className="absolute left-[19px] top-4 bottom-4 w-[2px] bg-slate-100"></div>
+                <div className="absolute left-[19px] top-4 bottom-4 w-[2px] bg-slate-100 dark:bg-slate-800"></div>
                 
                 <div className="space-y-6 relative">
                   {getSteps(order.order_type).map((step, index) => {
@@ -1951,11 +1951,11 @@ export function OrderDetailPage() {
 
                     return (
                       <div key={step.id} className={`flex gap-4 items-start ${!isCompleted ? 'opacity-40' : ''}`}>
-                        <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center border-4 border-white dark:border-slate-900 shadow-sm transition-colors duration-500 ${isCompleted ? 'bg-primary-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'} ${isActive ? 'ring-4 ring-primary-100 dark:ring-primary-950/60' : ''}`}>
+                        <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center border-4 border-white dark:border-slate-900 shadow-sm transition-colors duration-500 ${isCompleted ? 'bg-emerald-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'} ${isActive ? 'ring-4 ring-emerald-100 dark:ring-emerald-950/60' : ''}`}>
                           <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
                         </div>
                         <div className="pt-2 flex-1">
-                          <h4 className={`text-sm font-bold ${isActive ? 'text-primary-700 dark:text-primary-400' : 'text-slate-900 dark:text-white'}`}>{step.label}</h4>
+                          <h4 className={`text-sm font-bold ${isActive ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>{step.label}</h4>
                           <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">{step.desc}</p>
                         </div>
                       </div>
@@ -1967,62 +1967,62 @@ export function OrderDetailPage() {
           </div>
 
           {order.customer_note && (
-            <div className="mb-4 p-4 bg-slate-50 border border-slate-200 rounded-xl">
-              <p className="text-xs font-extrabold uppercase text-slate-500 mb-1">Your Note</p>
-              <p className="text-sm text-slate-800">{order.customer_note}</p>
+            <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl">
+              <p className="text-xs font-extrabold uppercase text-slate-500 dark:text-slate-400 mb-1">Your Note</p>
+              <p className="text-sm text-slate-800 dark:text-slate-200">{order.customer_note}</p>
             </div>
           )}
           {order.owner_note && (
-            <div className="mb-6 p-4 bg-primary-50 border border-primary-200 rounded-xl">
-              <p className="text-xs font-extrabold uppercase text-primary-600 mb-1">Store Reply</p>
-              <p className="text-sm text-primary-900">{order.owner_note}</p>
+            <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl">
+              <p className="text-xs font-extrabold uppercase text-emerald-600 dark:text-emerald-400 mb-1">Store Reply</p>
+              <p className="text-sm text-emerald-900 dark:text-emerald-200">{order.owner_note}</p>
             </div>
           )}
 
-          <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
-            <h2 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3 mb-3">Order Items</h2>
+          <div className="rounded-xl bg-white dark:bg-slate-900 p-5 shadow-sm border border-slate-100 dark:border-slate-800">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3 mb-3">Order Items</h2>
             {order.items.map((item) => (
               <div key={item.id} className="flex justify-between py-2 text-sm">
-                <span className={item.status === 'REJECTED' ? 'line-through text-slate-400' : 'text-slate-800 font-medium'}>
+                <span className={item.status === 'REJECTED' ? 'line-through text-slate-400' : 'text-slate-800 dark:text-slate-200 font-medium'}>
                   {item.quantity} x {item.product_name_snapshot} 
-                  {item.status === 'REJECTED' && <span className="ml-2 text-xs font-bold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-md">Unavailable</span>}
+                  {item.status === 'REJECTED' && <span className="ml-2 text-xs font-bold text-rose-500 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded-md">Unavailable</span>}
                 </span>
-                <span className={item.status === 'REJECTED' ? 'line-through text-slate-400' : 'text-slate-800 font-bold'}>â‚¹{item.subtotal}</span>
+                <span className={item.status === 'REJECTED' ? 'line-through text-slate-400' : 'text-slate-800 dark:text-slate-200 font-bold'}>₹{item.subtotal}</span>
               </div>
             ))}
             
-            <div className="mt-6 border-t border-slate-100 pt-4">
-              <h2 className="text-lg font-bold text-slate-900 mb-3">Billing Summary</h2>
-              <div className="space-y-2 text-sm text-slate-600 font-medium">
+            <div className="mt-6 border-t border-slate-100 dark:border-slate-800 pt-4">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-3">Billing Summary</h2>
+              <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400 font-medium">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span className="text-slate-900">â‚¹{order.items.reduce((sum, item) => sum + (item.status !== 'REJECTED' ? parseFloat(item.subtotal) : 0), 0).toFixed(2)}</span>
+                  <span className="text-slate-900 dark:text-white">₹{order.items.reduce((sum, item) => sum + (item.status !== 'REJECTED' ? parseFloat(item.subtotal) : 0), 0).toFixed(2)}</span>
                 </div>
-                {parseFloat(order.discount_applied) > 0 && <div className="flex justify-between text-primary-700"><span>Product Savings</span><span>- â‚¹{order.discount_applied}</span></div>}
-                {parseFloat(order.promo_discount) > 0 && <div className="flex justify-between text-emerald-600 font-bold"><span>Promo Discount</span><span>- â‚¹{order.promo_discount}</span></div>}
-                {parseFloat(order.packaging_fee) > 0 && <div className="flex justify-between"><span>Packaging Fee</span><span className="text-slate-900">â‚¹{order.packaging_fee}</span></div>}
-                {parseFloat(order.delivery_fee) > 0 && <div className="flex justify-between"><span>Delivery Fee</span><span className="text-slate-900">â‚¹{order.delivery_fee}</span></div>}
-                {parseFloat(order.wallet_discount) > 0 && <div className="flex justify-between text-emerald-600 font-bold"><span>Wallet Applied</span><span>- â‚¹{order.wallet_discount}</span></div>}
+                {parseFloat(order.discount_applied) > 0 && <div className="flex justify-between text-emerald-700 dark:text-emerald-400"><span>Product Savings</span><span>- ₹{order.discount_applied}</span></div>}
+                {parseFloat(order.promo_discount) > 0 && <div className="flex justify-between text-emerald-600 font-bold"><span>Promo Discount</span><span>- ₹{order.promo_discount}</span></div>}
+                {parseFloat(order.packaging_fee) > 0 && <div className="flex justify-between"><span>Packaging Fee</span><span className="text-slate-900 dark:text-white">₹{order.packaging_fee}</span></div>}
+                {parseFloat(order.delivery_fee) > 0 && <div className="flex justify-between"><span>Delivery Fee</span><span className="text-slate-900 dark:text-white">₹{order.delivery_fee}</span></div>}
+                {parseFloat(order.wallet_discount) > 0 && <div className="flex justify-between text-emerald-600 font-bold"><span>Wallet Applied</span><span>- ₹{order.wallet_discount}</span></div>}
               </div>
-              <div className="flex justify-between font-extrabold text-lg pt-3 mt-3 border-t border-slate-100">
-                <span className="text-slate-900">{order.status === 'COMPLETED' ? 'Total Amount Paid' : 'Total Due'}</span>
-                <span className="text-primary-600">â‚¹{order.total_amount}</span>
+              <div className="flex justify-between font-extrabold text-lg pt-3 mt-3 border-t border-slate-100 dark:border-slate-800">
+                <span className="text-slate-900 dark:text-white">{order.status === 'COMPLETED' ? 'Total Amount Paid' : 'Total Due'}</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-black">₹{order.total_amount}</span>
               </div>
             </div>
           </div>
 
-          <div className="mt-5 p-4 rounded-xl bg-slate-50 border border-slate-100 text-sm text-slate-600 text-center font-medium shadow-sm">
+          <div className="mt-5 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-sm text-slate-600 dark:text-slate-400 text-center font-medium shadow-sm">
             {order.order_type === 'DELIVERY' ? (
               <>
                 <Truck className="w-5 h-5 mx-auto mb-2 text-slate-400" />
                 Delivery to: <br/>
-                <strong className="text-slate-800">{order.delivery_address}</strong>
+                <strong className="text-slate-800 dark:text-slate-200">{order.delivery_address}</strong>
                 {order.delivery_pincode && <><br/>Pincode: {order.delivery_pincode}</>}
               </>
             ) : (
               <>
                 <Store className="w-5 h-5 mx-auto mb-2 text-slate-400" />
-                Pickup: <strong className="text-slate-800">{order.pickup_time || 'As soon as possible'}</strong> <br/>
+                Pickup: <strong className="text-slate-800 dark:text-slate-200">{order.pickup_time || 'As soon as possible'}</strong> <br/>
                 Pay at store
               </>
             )}
