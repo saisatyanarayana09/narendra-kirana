@@ -22,7 +22,7 @@ export default function DeliveryLayout() {
         setActiveCount(res.data.active_orders.length);
       }
     } catch (err) {
-      console.warn("Could not sync delivery status:", err);
+      console.warn('Could not sync delivery status:', err);
     }
   };
 
@@ -32,17 +32,10 @@ export default function DeliveryLayout() {
     return () => clearInterval(interval);
   }, []);
 
-  const isDeliveryDomain = typeof window !== 'undefined' && (
-    window.location.hostname.includes('delivery') ||
-    window.location.hostname.startsWith('delivery.')
-  );
-
   const handleLogout = async () => {
     const refresh = localStorage.getItem('smart-kirana-delivery-refresh');
     try {
-      if (refresh) {
-        await api.post('/auth/logout/', { refresh });
-      }
+      if (refresh) await api.post('/auth/logout/', { refresh });
     } catch {}
     localStorage.removeItem('smart-kirana-delivery-token');
     localStorage.removeItem('smart-kirana-delivery-refresh');
@@ -52,48 +45,42 @@ export default function DeliveryLayout() {
 
   const navItems = [
     { label: 'Active Trips', path: '/', icon: Truck, badge: activeCount > 0 ? activeCount : null },
-    { label: 'Trip History', path: '/history', icon: CheckCircle2 },
+    { label: 'History', path: '/history', icon: CheckCircle2 },
     { label: 'Profile', path: '/profile', icon: User },
   ];
 
-  const riderName = partnerUser?.first_name 
-    ? `${partnerUser.first_name} ${partnerUser.last_name || ''}`.trim() 
+  const riderName = partnerUser?.first_name
+    ? `${partnerUser.first_name} ${partnerUser.last_name || ''}`.trim()
     : partnerUser?.username || 'Rider';
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col antialiased selection:bg-emerald-500 selection:text-black">
-      {/* Top Mobile-First & Desktop App Header */}
-      <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-2xl border-b border-slate-800/80 px-4 py-3 sm:px-8 lg:px-12 transition-all shadow-lg shadow-black/20">
-        <div className="w-full flex items-center justify-between gap-4">
-          
-          {/* Rider Identity */}
-          <Link to="/profile" className="flex items-center gap-3 group min-w-0">
-            <div className="relative shrink-0">
-              <div className="size-11 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 p-0.5 shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform">
-                <div className="size-full bg-slate-950 rounded-[14px] flex items-center justify-center font-black text-emerald-400 text-sm">
-                  {riderName.charAt(0).toUpperCase()}
-                </div>
-              </div>
-              <span className="absolute -bottom-0.5 -right-0.5 size-3.5 rounded-full border-2 border-slate-950 bg-emerald-500" />
-            </div>
 
+      {/* ── Top Header ── */}
+      <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-2xl border-b border-slate-800/80 px-4 py-2.5 sm:px-8 lg:px-12 shadow-lg shadow-black/20">
+        <div className="w-full flex items-center justify-between gap-4">
+
+          {/* Brand Mark + Rider identity */}
+          <Link to="/profile" className="flex items-center gap-3 group min-w-0">
+            {/* NK Logo mark */}
+            <div className="size-9 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20">
+              <Truck size={17} className="text-white" />
+            </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h1 className="text-sm font-black text-white tracking-tight truncate group-hover:text-emerald-400 transition-colors">
+                <p className="text-sm font-black text-white truncate group-hover:text-emerald-400 transition-colors">
                   {riderName}
-                </h1>
-                <span className="hidden sm:inline-block text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                  Fleet Rider
+                </p>
+                <span className="hidden sm:inline-block text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 tracking-wider">
+                  Rider
                 </span>
               </div>
-              <p className="text-[11px] font-medium text-slate-400 truncate">
-                Narendra Kirana Store
-              </p>
+              <p className="text-[11px] text-slate-500 truncate">Narendra Kirana</p>
             </div>
           </Link>
 
-          {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-1.5 bg-slate-800/70 p-1.5 rounded-2xl border border-slate-700/60 shadow-inner">
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-1 bg-slate-800/50 p-1 rounded-xl border border-slate-700/50">
             {navItems.map((item) => {
               const active = location.pathname === item.path;
               const Icon = item.icon;
@@ -101,53 +88,45 @@ export default function DeliveryLayout() {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all ${
+                  className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
                     active
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-700/40'
+                      ? 'bg-emerald-500/15 text-emerald-300 shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/40'
                   }`}
                 >
-                  <Icon size={16} />
+                  <Icon size={14} />
                   <span>{item.label}</span>
                   {item.badge && (
-                    <span className="size-5 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-black flex items-center justify-center ml-0.5">
+                    <span className="size-4 rounded-full bg-emerald-500 text-slate-950 text-[9px] font-black flex items-center justify-center ml-0.5">
                       {item.badge}
                     </span>
+                  )}
+                  {active && (
+                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-emerald-400 rounded-full" />
                   )}
                 </Link>
               );
             })}
           </nav>
 
-          {/* Right Header: Active Fleet Badge & Logout */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-black">
-              <span className="relative flex size-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full size-2 bg-emerald-400" />
-              </span>
-              <span className="tracking-wider text-[11px] uppercase">Active Fleet</span>
-            </div>
-
-            {/* Logout Icon */}
-            <button
-              onClick={handleLogout}
-              className="size-9 rounded-xl bg-slate-800/80 hover:bg-rose-500/20 hover:text-rose-400 border border-slate-700/80 flex items-center justify-center text-slate-400 transition-all cursor-pointer"
-              title="Logout"
-            >
-              <LogOut size={16} />
-            </button>
-          </div>
+          {/* Right: Logout */}
+          <button
+            onClick={handleLogout}
+            className="size-9 rounded-xl bg-slate-800/70 hover:bg-rose-500/15 hover:text-rose-400 border border-slate-700/60 flex items-center justify-center text-slate-400 transition-all cursor-pointer shrink-0"
+            title="Sign Out"
+          >
+            <LogOut size={15} />
+          </button>
         </div>
       </header>
 
-      {/* Main Outlet Container - Full Width */}
-      <main className="flex-1 w-full px-4 sm:px-8 lg:px-12 py-6 pb-28 sm:pb-8">
+      {/* Main Content */}
+      <main className="flex-1 w-full px-4 sm:px-8 lg:px-12 py-6 pb-24 sm:pb-8">
         <Outlet context={{ fetchStatus, activeCount }} />
       </main>
 
-      {/* Bottom Floating Navigation Bar for Mobile */}
-      <nav className="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900/95 backdrop-blur-2xl border-t border-slate-800/90 px-3 py-2 flex items-center justify-around pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] shadow-2xl shadow-black">
+      {/* Mobile Bottom Nav */}
+      <nav className="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900/95 backdrop-blur-2xl border-t border-slate-800/80 px-2 py-2 flex items-center justify-around pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] shadow-2xl shadow-black">
         {navItems.map((item) => {
           const active = location.pathname === item.path;
           const Icon = item.icon;
@@ -155,21 +134,23 @@ export default function DeliveryLayout() {
             <Link
               key={item.path}
               to={item.path}
-              className={`relative flex flex-col items-center justify-center py-1.5 px-4 rounded-2xl transition-all duration-200 cursor-pointer ${
-                active 
-                  ? 'text-emerald-400 font-black scale-105' 
-                  : 'text-slate-400 hover:text-slate-200'
+              className={`relative flex flex-col items-center justify-center py-1.5 px-5 rounded-xl transition-all duration-200 cursor-pointer ${
+                active ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'
               }`}
             >
+              {/* Active indicator dot */}
+              {active && (
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-5 h-0.5 bg-emerald-400 rounded-full" />
+              )}
               <div className="relative">
-                <Icon size={22} className={active ? 'stroke-[2.5]' : 'stroke-2'} />
+                <Icon size={21} className={active ? 'stroke-[2.5]' : 'stroke-[1.75]'} />
                 {item.badge && (
-                  <span className="absolute -top-1.5 -right-2.5 size-4 rounded-full bg-emerald-500 text-slate-950 font-black text-[9px] flex items-center justify-center ring-2 ring-slate-900 animate-pulse">
+                  <span className="absolute -top-1.5 -right-2 size-4 rounded-full bg-emerald-500 text-slate-950 font-black text-[9px] flex items-center justify-center ring-2 ring-slate-900">
                     {item.badge}
                   </span>
                 )}
               </div>
-              <span className="text-[10px] tracking-wide mt-1 font-bold">
+              <span className={`text-[10px] mt-1 font-bold ${active ? 'text-emerald-400' : 'text-slate-500'}`}>
                 {item.label}
               </span>
             </Link>
