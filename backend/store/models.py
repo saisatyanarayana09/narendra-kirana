@@ -136,6 +136,11 @@ class StoreSettings(models.Model):
     )
     maintenance_estimated_end = models.DateTimeField(null=True, blank=True)
 
+    # Mobile App Downloads Hub Customization
+    app_name = models.CharField(max_length=100, blank=True, default="Narendra Kirana")
+    app_icon = models.ImageField(upload_to='app_icon/', null=True, blank=True)
+    app_download_btn_text = models.CharField(max_length=50, blank=True, default="Download APK")
+
     
     def save(self, *args, **kwargs):
         self.pk = 1

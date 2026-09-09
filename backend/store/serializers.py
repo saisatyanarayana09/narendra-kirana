@@ -76,7 +76,7 @@ class StoreSettingsSerializer(serializers.ModelSerializer):
             data = dict(data)
 
         import json
-        for img_field in ['invoice_signature', 'upi_qr_image', 'festive_popup_image']:
+        for img_field in ['invoice_signature', 'upi_qr_image', 'festive_popup_image', 'app_icon']:
             if img_field in data:
                 sig = data.get(img_field)
                 if isinstance(sig, str) or sig is None:

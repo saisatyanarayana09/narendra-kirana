@@ -17,10 +17,12 @@ import {
   Plus,
   Trash2,
   CheckCircle2,
-  Info
+  Info,
+  Package
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import ImageCropper from '../components/ImageCropper';
 
 const DAYS_OF_WEEK = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
@@ -72,7 +74,10 @@ const AdvancedSettings = () => {
     festive_popup_title: '',
     festive_popup_content: '',
     festive_popup_image: null,
-    // 8. Mobile App Version & Maintenance
+    // 8. Mobile App Version, Downloads Page & Maintenance
+    app_name: '',
+    app_icon: null,
+    app_download_btn_text: 'Download APK',
     min_mobile_version: '1.0.0',
     latest_mobile_version: '1.0.0',
     force_app_update: false,
@@ -88,6 +93,8 @@ const AdvancedSettings = () => {
   const [upiQrPreview, setUpiQrPreview] = useState(null);
   const [festiveImageFile, setFestiveImageFile] = useState(null);
   const [festiveImagePreview, setFestiveImagePreview] = useState(null);
+  const [appIconFile, setAppIconFile] = useState(null);
+  const [appIconPreview, setAppIconPreview] = useState(null);
 
   // New slot inputs
   const [newSlotStart, setNewSlotStart] = useState('09:00');
@@ -114,6 +121,7 @@ const AdvancedSettings = () => {
       }));
       if (data.upi_qr_image) setUpiQrPreview(data.upi_qr_image);
       if (data.festive_popup_image) setFestiveImagePreview(data.festive_popup_image);
+      if (data.app_icon) setAppIconPreview(data.app_icon);
     } catch (err) {
       console.error('Failed to load settings:', err);
       toast.error('Failed to load advanced store settings.');
@@ -230,7 +238,9 @@ const AdvancedSettings = () => {
         enable_festive_popup: Boolean(settings.enable_festive_popup),
         festive_popup_title: settings.festive_popup_title?.trim() || '',
         festive_popup_content: settings.festive_popup_content?.trim() || '',
-        // Mobile Version & Maintenance
+        // Mobile App Version, Downloads Page & Maintenance
+        app_name: settings.app_name?.trim() || '',
+        app_download_btn_text: settings.app_download_btn_text?.trim() || 'Download APK',
         min_mobile_version: settings.min_mobile_version?.trim() || '1.0.0',
         latest_mobile_version: settings.latest_mobile_version?.trim() || '1.0.0',
         force_app_update: Boolean(settings.force_app_update),
@@ -242,7 +252,7 @@ const AdvancedSettings = () => {
       };
 
       let savePromise;
-      if (upiQrFile || festiveImageFile) {
+      if (upiQrFile || festiveImageFile || appIconFile) {
         const formData = new FormData();
         Object.entries(payload).forEach(([k, v]) => {
           if (typeof v === 'object' && v !== null) {
@@ -253,6 +263,7 @@ const AdvancedSettings = () => {
         });
         if (upiQrFile) formData.append('upi_qr_image', upiQrFile);
         if (festiveImageFile) formData.append('festive_popup_image', festiveImageFile);
+        if (appIconFile) formData.append('app_icon', appIconFile);
         savePromise = api.patch('/store/settings/', formData);
       } else {
         savePromise = api.patch('/store/settings/', payload);
@@ -275,6 +286,7 @@ const AdvancedSettings = () => {
       await savePromise;
       setUpiQrFile(null);
       setFestiveImageFile(null);
+      setAppIconFile(null);
       fetchSettings();
     } catch (err) {
       console.error('Save failed:', err);
@@ -1117,9 +1129,90 @@ const AdvancedSettings = () => {
             <div>
               <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                 <Smartphone className="w-5 h-5 text-indigo-600" />
-                <span>Mobile App Version & Whole-Store Maintenance</span>
+                <span>Mobile App Branding, Downloads Page & Maintenance</span>
               </h2>
-              <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">Control Android/iOS minimum app version gates and trigger storewide scheduled maintenance overlays.</p>
+              <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">Customize the public downloads page (icon, title, APK download button), set version gates, and trigger storewide maintenance.</p>
+            </div>
+
+            {/* Downloads Hub Branding & Customization */}
+            <div className="p-5 rounded-2xl border bg-white dark:bg-slate-800/60 border-gray-200 dark:border-slate-700 shadow-sm space-y-5">
+              <div>
+                <div className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Package className="w-5 h-5 text-emerald-600" />
+                  <span>Downloads Page Branding & APK Setup</span>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+                  Customize the app icon, title, and download button shown on the public downloads hub (<span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">narendra-kirana-downloads.vercel.app</span>).
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                {/* Left: App Icon Cropper */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 mb-2">
+                    App Icon / Logo
+                  </label>
+                  <ImageCropper
+                    aspect={1}
+                    currentImageUrl={appIconPreview || settings.app_icon}
+                    label="Upload App Icon"
+                    onCropComplete={(file) => {
+                      setAppIconFile(file);
+                      setAppIconPreview(URL.createObjectURL(file));
+                    }}
+                  />
+                  <p className="text-[11px] text-gray-400 mt-2">
+                    1:1 Square icon recommended. Formats: PNG, JPG, WebP.
+                  </p>
+                </div>
+
+                {/* Right: App Name & Button Text */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 mb-1">
+                      App Name / Title
+                    </label>
+                    <input
+                      type="text"
+                      name="app_name"
+                      value={settings.app_name}
+                      onChange={handleChange}
+                      placeholder="e.g. Narendra Kirana"
+                      className="w-full rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                    <p className="text-[11px] text-gray-400 mt-1">If blank, defaults to Store Name.</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 mb-1">
+                      Download Button Text
+                    </label>
+                    <input
+                      type="text"
+                      name="app_download_btn_text"
+                      value={settings.app_download_btn_text}
+                      onChange={handleChange}
+                      placeholder="Download APK"
+                      className="w-full rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 mb-1">
+                      Direct APK Download Link
+                    </label>
+                    <input
+                      type="url"
+                      name="app_update_url"
+                      value={settings.app_update_url}
+                      onChange={handleChange}
+                      placeholder="https://.../smart-kirana.apk"
+                      className="w-full rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 font-mono text-xs"
+                    />
+                    <p className="text-[11px] text-gray-400 mt-1">Direct link to your APK file hosted on GitHub or cloud storage.</p>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Whole Store Maintenance Mode */}
