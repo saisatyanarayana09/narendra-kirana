@@ -282,7 +282,48 @@ function OfflineBanner() {
   );
 }
 
+function OwnerExternalRedirect() {
+  const location = useLocation();
+  useEffect(() => {
+    const subPath = location.pathname.replace(/^\/owner\/?/, '/') || '/';
+    const target = `https://narendra-kirana-owner.vercel.app${subPath}${location.search}${location.hash}`;
+    window.location.replace(target);
+  }, [location]);
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white font-sans p-6 text-center">
+      <div className="size-10 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin mb-4" />
+      <h2 className="text-lg font-black text-white">Redirecting to Owner Portal...</h2>
+      <p className="text-xs text-slate-400 mt-1">Taking you to https://narendra-kirana-owner.vercel.app</p>
+    </div>
+  );
+}
+
+function DeliveryExternalRedirect() {
+  const location = useLocation();
+  useEffect(() => {
+    const subPath = location.pathname.replace(/^\/delivery\/?/, '/') || '/';
+    const target = `https://narendra-kirana-delivery.vercel.app${subPath}${location.search}${location.hash}`;
+    window.location.replace(target);
+  }, [location]);
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-white font-sans p-6 text-center">
+      <div className="size-10 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin mb-4" />
+      <h2 className="text-lg font-black text-white">Redirecting to Delivery Portal...</h2>
+      <p className="text-xs text-slate-400 mt-1">Taking you to https://narendra-kirana-delivery.vercel.app</p>
+    </div>
+  );
+}
+
 function App() {
+  const isLocalhost = typeof window !== 'undefined' && (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname.startsWith('192.168.') ||
+    window.location.hostname.startsWith('10.') ||
+    window.location.hostname.endsWith('.local')
+  );
   const isDeliveryDomain = typeof window !== 'undefined' && (
     window.location.hostname.includes('delivery') ||
     window.location.hostname.startsWith('delivery.')
@@ -425,35 +466,49 @@ function App() {
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
 
-                  {/* Owner Portal Routes (No CartProvider needed) */}
-                  <Route path="/owner/login" element={<OwnerLogin />} />
-                  <Route path="/owner/forgot-password" element={<OwnerForgotPassword />} />
-                  <Route path="/owner/reset-password" element={<OwnerResetPassword />} />
-                  <Route path="/owner/welcome" element={<Guard><Welcome /></Guard>} />
-                  
-                  <Route path="/owner" element={<Guard><OwnerLayout /></Guard>}>
-                    <Route index element={<Dashboard />} />
-                    <Route path="sales" element={<Sales />} />
-                    <Route path="categories" element={<Categories />} />
-                    <Route path="products" element={<Products />} />
-                    <Route path="orders" element={<Orders />} />
-                    <Route path="orders/:id" element={<OrderDetails />} />
-                    <Route path="invoices" element={<Invoices />} />
-                    <Route path="offers" element={<Offers />} />
-                    <Route path="referrals" element={<Referrals />} />
-                    <Route path="customers" element={<Customers />} />
-                    <Route path="feedback" element={<Feedback />} />
-                    <Route path="settings" element={<Settings />} />
-                    <Route path="advanced-settings" element={<AdvancedSettings />} />
-                    <Route path="showcase" element={<Showcase />} />
-                    <Route path="delivery-partners" element={<DeliveryPartners />} />
-                  </Route>
+                  {/* Owner & Delivery Portal Routes: Redirect to dedicated domains on production, keep available on localhost */}
+                  {isLocalhost ? (
+                    <>
+                      <Route path="/owner/login" element={<OwnerLogin />} />
+                      <Route path="/owner/forgot-password" element={<OwnerForgotPassword />} />
+                      <Route path="/owner/reset-password" element={<OwnerResetPassword />} />
+                      <Route path="/owner/welcome" element={<Guard><Welcome /></Guard>} />
+                      
+                      <Route path="/owner" element={<Guard><OwnerLayout /></Guard>}>
+                        <Route index element={<Dashboard />} />
+                        <Route path="sales" element={<Sales />} />
+                        <Route path="categories" element={<Categories />} />
+                        <Route path="products" element={<Products />} />
+                        <Route path="orders" element={<Orders />} />
+                        <Route path="orders/:id" element={<OrderDetails />} />
+                        <Route path="invoices" element={<Invoices />} />
+                        <Route path="offers" element={<Offers />} />
+                        <Route path="referrals" element={<Referrals />} />
+                        <Route path="customers" element={<Customers />} />
+                        <Route path="feedback" element={<Feedback />} />
+                        <Route path="settings" element={<Settings />} />
+                        <Route path="advanced-settings" element={<AdvancedSettings />} />
+                        <Route path="showcase" element={<Showcase />} />
+                        <Route path="delivery-partners" element={<DeliveryPartners />} />
+                      </Route>
 
-                  <Route path="/owner/orders/:id/invoice" element={<Guard><Invoice /></Guard>} />
+                      <Route path="/owner/orders/:id/invoice" element={<Guard><Invoice /></Guard>} />
 
-                  {/* Delivery Partner routes removed from customer domain - redirects to root */}
-                  <Route path="/delivery/*" element={<Navigate to="/" replace />} />
-                  <Route path="/delivery" element={<Navigate to="/" replace />} />
+                      <Route path="/delivery/login" element={<DeliveryLogin />} />
+                      <Route element={<DeliveryGuard><DeliveryLayout /></DeliveryGuard>}>
+                        <Route path="/delivery" element={<DeliveryDashboard />} />
+                        <Route path="/delivery/history" element={<DeliveryHistory />} />
+                        <Route path="/delivery/profile" element={<DeliveryProfile />} />
+                      </Route>
+                    </>
+                  ) : (
+                    <>
+                      <Route path="/owner/*" element={<OwnerExternalRedirect />} />
+                      <Route path="/owner" element={<OwnerExternalRedirect />} />
+                      <Route path="/delivery/*" element={<DeliveryExternalRedirect />} />
+                      <Route path="/delivery" element={<DeliveryExternalRedirect />} />
+                    </>
+                  )}
 
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
