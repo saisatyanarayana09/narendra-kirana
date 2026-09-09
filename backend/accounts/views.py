@@ -1,6 +1,9 @@
+import logging
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import redirect
 from django.contrib.auth import login
+
+logger = logging.getLogger(__name__)
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from rest_framework import generics, viewsets
@@ -981,21 +984,48 @@ class OwnerCustomerDetailView(APIView):
             return Response({'error': 'Customer not found.'}, status=status.HTTP_404_NOT_FOUND)
 
 
+DEFAULT_ADMIN_GOOGLE_CLIENT_ID = '729937153109-6e8fivp20b3ri2qsah1d6u2a7oi0uls6.apps.googleusercontent.com'
+
 @csrf_exempt
 def admin_google_login(request):
     if request.method == 'POST':
         token = request.POST.get('credential')
         if not token:
-            return redirect('/narendra_secure_vault_99/login/?error=missing_token')
+            return redirect('/admin/login/?error=missing_token')
             
         try:
-            client_id = os.getenv('GOOGLE_CLIENT_ID')
-            if client_id:
-                idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), client_id)
-            else:
-                idinfo = id_token.verify_oauth2_token(token, google_requests.Request())
-                
-            email = idinfo.get('email')
+            client_id = os.getenv('GOOGLE_CLIENT_ID', DEFAULT_ADMIN_GOOGLE_CLIENT_ID)
+            email = None
+
+            # 1. Verify via google.oauth2.id_token with clock skew tolerance
+            try:
+                idinfo = id_token.verify_oauth2_token(
+                    token, 
+                    google_requests.Request(), 
+                    client_id, 
+                    clock_skew_in_seconds=15
+                )
+                email = idinfo.get('email')
+            except Exception as lib_err:
+                logger.warning(f"Local id_token verification failed: {lib_err}. Trying Google tokeninfo API fallback.")
+
+            # 2. Fallback to Google's official tokeninfo endpoint
+            if not email:
+                import requests
+                resp = requests.get(f'https://oauth2.googleapis.com/tokeninfo?id_token={token}', timeout=10)
+                if resp.ok:
+                    info = resp.json()
+                    aud = info.get('aud')
+                    if not client_id or aud == client_id:
+                        email = info.get('email')
+                    else:
+                        logger.error(f"Google token audience mismatch: expected {client_id}, got {aud}")
+                else:
+                    logger.error(f"Google tokeninfo request failed: {resp.status_code} {resp.text}")
+
+            if not email:
+                return redirect('/admin/login/?error=invalid_token')
+
             user = User.objects.filter(email__iexact=email).first()
             
             if user and (user.is_staff or getattr(user, 'is_owner', False) or user.is_superuser):
@@ -1016,10 +1046,11 @@ def admin_google_login(request):
                 login(request, user)
                 return redirect('/')
             else:
-                return redirect('/narendra_secure_vault_99/login/?error=unauthorized')
+                return redirect('/admin/login/?error=unauthorized')
         except Exception as e:
-            return redirect('/narendra_secure_vault_99/login/?error=invalid_token')
-    return redirect('/narendra_secure_vault_99/login/')
+            logger.error(f"admin_google_login unexpected error: {e}", exc_info=True)
+            return redirect('/admin/login/?error=invalid_token')
+    return redirect('/admin/login/')
 
 
 class ReferralLookupView(APIView):

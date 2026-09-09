@@ -29,7 +29,7 @@ class RootDashboardView(TemplateView):
     
     def get(self, request, *args, **kwargs):
         if not request.user.is_authenticated or not request.user.is_staff:
-            return redirect('/narendra_secure_vault_99/login/')
+            return redirect('/admin/login/')
             
         # Extremely lightweight query to prevent Neon database from auto-suspending (Scale to Zero)
         try:

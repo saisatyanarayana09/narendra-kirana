@@ -21,7 +21,7 @@
                 </div>
                 <div class="flex items-center gap-4">
                     <span class="text-sm font-medium text-slate-500">Logged in as <b>{{ request.user.username }}</b></span>
-                    <a href="/narendra_secure_vault_99/logout/" class="text-sm font-bold text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-md transition-colors">
+                    <a href="/admin/logout/" class="text-sm font-bold text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-md transition-colors">
                         Sign Out
                     </a>
                 </div>
@@ -39,7 +39,7 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <!-- Owner Web Portal Quick Launch -->
-            <a href="https://narendra-kirana.vercel.app/owner/" target="_blank" rel="noopener" class="group block p-6 bg-gradient-to-br from-emerald-800 to-teal-950 rounded-2xl border border-emerald-500/50 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all md:col-span-2 lg:col-span-3">
+            <a href="https://narendra-kirana-owner.vercel.app/" target="_blank" rel="noopener" class="group block p-6 bg-gradient-to-br from-emerald-800 to-teal-950 rounded-2xl border border-emerald-500/50 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all md:col-span-2 lg:col-span-3">
                 <div class="flex items-center justify-between gap-6">
                     <div class="flex items-center gap-6">
                         <div class="w-16 h-16 bg-white/10 text-emerald-300 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
@@ -74,12 +74,12 @@
                 </div>
             </a>
             
-            <!-- Vault Card -->
-            <a href="/narendra_secure_vault_99/" class="group block p-6 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all">
+            <!-- Admin DB Card -->
+            <a href="/admin/" class="group block p-6 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all">
                 <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <i class="fa-solid fa-vault text-xl"></i>
+                    <i class="fa-solid fa-database text-xl"></i>
                 </div>
-                <h3 class="text-xl font-bold text-slate-900 mb-2">Django Admin Vault</h3>
+                <h3 class="text-xl font-bold text-slate-900 mb-2">Django Admin Database</h3>
                 <p class="text-slate-500 text-sm">Direct, unrestricted access to the raw PostgreSQL database tables and user management.</p>
             </a>
 
