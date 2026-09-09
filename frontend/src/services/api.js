@@ -4,10 +4,10 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'https://narendra-kirana.onrender.com/api/v1',
 });
 
-// Helper to get token prefix based on URL or domain
 const getPrefix = () => {
   if (typeof window !== 'undefined') {
     if (window.location.hostname.includes('delivery')) return 'smart-kirana-delivery';
+    if (window.location.hostname.includes('owner') || window.location.hostname.includes('admin')) return 'smart-kirana-owner';
     if (window.location.pathname.startsWith('/owner')) return 'smart-kirana-owner';
     if (window.location.pathname.startsWith('/delivery')) return 'smart-kirana-delivery';
   }
@@ -82,7 +82,7 @@ api.interceptors.response.use(
         localStorage.removeItem(`${prefix}-refresh`);
         localStorage.removeItem(`${prefix}-user`);
         if (prefix === 'smart-kirana-owner') {
-          window.location.href = '/owner/login';
+          window.location.href = (window.location.hostname.includes('owner') || window.location.hostname.includes('admin')) ? '/login' : '/owner/login';
         } else if (prefix === 'smart-kirana-delivery') {
           window.location.href = window.location.hostname.includes('delivery') ? '/login' : 'https://narendra-kirana-delivery.vercel.app/login';
         }
@@ -113,7 +113,7 @@ api.interceptors.response.use(
         localStorage.removeItem(`${prefix}-refresh`);
         localStorage.removeItem(`${prefix}-user`);
         if (prefix === 'smart-kirana-owner') {
-          window.location.href = '/owner/login';
+          window.location.href = (window.location.hostname.includes('owner') || window.location.hostname.includes('admin')) ? '/login' : '/owner/login';
         } else if (prefix === 'smart-kirana-delivery') {
           window.location.href = window.location.hostname.includes('delivery') ? '/login' : 'https://narendra-kirana-delivery.vercel.app/login';
         }
