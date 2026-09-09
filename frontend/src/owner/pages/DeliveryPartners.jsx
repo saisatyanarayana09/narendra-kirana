@@ -159,13 +159,9 @@ export default function DeliveryPartners() {
                     </div>
                   </div>
 
-                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
-                    partner.is_online
-                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
-                  }`}>
-                    <span className={`size-2 rounded-full ${partner.is_online ? 'bg-emerald-500 animate-ping' : 'bg-slate-400'}`} />
-                    <span>{partner.is_online ? 'On Duty' : 'Offline'}</span>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                    <span className="size-2 rounded-full bg-emerald-500" />
+                    <span>Active Fleet</span>
                   </span>
                 </div>
 

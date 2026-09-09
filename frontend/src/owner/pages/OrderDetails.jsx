@@ -574,7 +574,7 @@ const OrderDetails = () => {
                         <option value="">-- Unassigned --</option>
                         {deliveryPartners.map((dp) => (
                           <option key={dp.id} value={dp.id}>
-                            {dp.name} ({dp.is_online ? '🟢 Online' : '⚪ Offline'})
+                            {dp.name} • Active Fleet
                           </option>
                         ))}
                       </select>

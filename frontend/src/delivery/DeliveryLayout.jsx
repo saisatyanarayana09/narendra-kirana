@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Truck, CheckCircle2, User, LogOut, Navigation, Power, Bell, Shield, MapPin } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { Truck, CheckCircle2, User, LogOut } from 'lucide-react';
 import api from '../services/api';
 
 export default function DeliveryLayout() {
@@ -14,16 +13,11 @@ export default function DeliveryLayout() {
       return null;
     }
   });
-  const [isOnline, setIsOnline] = useState(false);
   const [activeCount, setActiveCount] = useState(0);
-  const [togglingDuty, setTogglingDuty] = useState(false);
 
   const fetchStatus = async () => {
     try {
       const res = await api.get('/delivery/dashboard/');
-      if (res.data?.profile) {
-        setIsOnline(Boolean(res.data.profile.is_online));
-      }
       if (res.data?.active_orders) {
         setActiveCount(res.data.active_orders.length);
       }
@@ -37,40 +31,6 @@ export default function DeliveryLayout() {
     const interval = setInterval(fetchStatus, 15000);
     return () => clearInterval(interval);
   }, []);
-
-  const handleToggleDuty = async () => {
-    setTogglingDuty(true);
-    const nextState = !isOnline;
-    try {
-      let lat = null;
-      let lng = null;
-      if (navigator.geolocation && nextState) {
-        try {
-          const pos = await new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 4000 });
-          });
-          lat = pos.coords.latitude;
-          lng = pos.coords.longitude;
-        } catch {}
-      }
-
-      const res = await api.post('/delivery/toggle-duty/', {
-        is_online: nextState,
-        latitude: lat,
-        longitude: lng
-      });
-      setIsOnline(Boolean(res.data.is_online));
-      if (res.data.is_online) {
-        toast.success('You are now Online! 🛵 Orders will be routed to you.');
-      } else {
-        toast('You are now Offline. Have a good rest! ☕', { icon: '🛑' });
-      }
-    } catch (err) {
-      toast.error('Failed to change duty status.');
-    } finally {
-      setTogglingDuty(false);
-    }
-  };
 
   const isDeliveryDomain = typeof window !== 'undefined' && (
     window.location.hostname.includes('delivery') ||
@@ -114,9 +74,7 @@ export default function DeliveryLayout() {
                   {riderName.charAt(0).toUpperCase()}
                 </div>
               </div>
-              <span className={`absolute -bottom-0.5 -right-0.5 size-3.5 rounded-full border-2 border-slate-950 ${
-                isOnline ? 'bg-emerald-500' : 'bg-slate-500'
-              }`} />
+              <span className="absolute -bottom-0.5 -right-0.5 size-3.5 rounded-full border-2 border-slate-950 bg-emerald-500" />
             </div>
 
             <div className="min-w-0">
@@ -161,35 +119,21 @@ export default function DeliveryLayout() {
             })}
           </nav>
 
-          {/* Right Duty Switch & Logout */}
+          {/* Right Header: Active Fleet Badge & Logout */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Interactive Duty Slider Pill */}
-            <button
-              onClick={handleToggleDuty}
-              disabled={togglingDuty}
-              className={`relative flex items-center gap-2 pl-3 pr-3.5 py-1.5 rounded-full text-xs font-black transition-all duration-300 shadow-md active:scale-95 cursor-pointer ${
-                isOnline
-                  ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/25 shadow-emerald-950/50 ring-2 ring-emerald-500/20'
-                  : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-750'
-              }`}
-              title={isOnline ? "You are Online: Tap to go Offline" : "You are Offline: Tap to go Online"}
-            >
-              <span className="relative flex size-2.5">
-                {isOnline && (
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                )}
-                <span className={`relative inline-flex rounded-full size-2.5 ${isOnline ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-black">
+              <span className="relative flex size-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full size-2 bg-emerald-400" />
               </span>
-              <span className="tracking-wider text-[11px] uppercase">
-                {togglingDuty ? 'Updating...' : isOnline ? 'On Duty' : 'Off Duty'}
-              </span>
-            </button>
+              <span className="tracking-wider text-[11px] uppercase">Active Fleet</span>
+            </div>
 
             {/* Logout Icon */}
             <button
               onClick={handleLogout}
               className="size-9 rounded-xl bg-slate-800/80 hover:bg-rose-500/20 hover:text-rose-400 border border-slate-700/80 flex items-center justify-center text-slate-400 transition-all cursor-pointer"
-              title="End shift and logout"
+              title="Logout"
             >
               <LogOut size={16} />
             </button>
@@ -199,7 +143,7 @@ export default function DeliveryLayout() {
 
       {/* Main Outlet Container - Full Width */}
       <main className="flex-1 w-full px-4 sm:px-8 lg:px-12 py-6 pb-28 sm:pb-8">
-        <Outlet context={{ isOnline, handleToggleDuty, togglingDuty, fetchStatus, activeCount }} />
+        <Outlet context={{ fetchStatus, activeCount }} />
       </main>
 
       {/* Bottom Floating Navigation Bar for Mobile */}

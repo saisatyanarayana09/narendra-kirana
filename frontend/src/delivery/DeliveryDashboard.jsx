@@ -10,7 +10,7 @@ import toast from 'react-hot-toast';
 import api from '../services/api';
 
 export default function DeliveryDashboard() {
-  const { isOnline, handleToggleDuty, togglingDuty, fetchStatus } = useOutletContext();
+  const { fetchStatus } = useOutletContext();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [dashboardData, setDashboardData] = useState(null);
@@ -170,53 +170,39 @@ export default function DeliveryDashboard() {
 
   return (
     <div className="space-y-5">
-      {/* Hero Shift / Radar Banner */}
-      <div className={`relative overflow-hidden rounded-3xl p-5 sm:p-6 border transition-all duration-300 shadow-xl ${
-        isOnline
-          ? 'bg-gradient-to-br from-emerald-950/60 via-slate-900 to-slate-950 border-emerald-500/40 shadow-emerald-950/40'
-          : 'bg-gradient-to-br from-amber-950/40 via-slate-900 to-slate-950 border-amber-500/30'
-      }`}>
+      {/* Top Store Logistics Hub Header */}
+      <div className="relative overflow-hidden rounded-3xl p-5 sm:p-6 bg-gradient-to-br from-emerald-950/50 via-slate-900 to-slate-950 border border-emerald-500/30 shadow-xl shadow-black/40">
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-start sm:items-center gap-3.5">
-            <div className={`size-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg ${
-              isOnline 
-                ? 'bg-emerald-500 text-slate-950 shadow-emerald-500/30' 
-                : 'bg-amber-500 text-slate-950 shadow-amber-500/30'
-            }`}>
-              <Truck size={28} className={isOnline ? 'animate-pulse' : ''} />
+          <div className="flex items-center gap-3.5">
+            <div className="size-13 rounded-2xl bg-emerald-500 text-slate-950 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/20">
+              <Truck size={26} />
             </div>
-
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg sm:text-xl font-black text-white">
-                  {isOnline ? 'You are Online & On Duty' : 'You are Currently Offline'}
-                </h2>
-                <span className={`size-2.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-ping' : 'bg-slate-500'}`} />
+                <h2 className="text-lg sm:text-xl font-black text-white">Narendra Kirana Partner Fleet</h2>
+                <span className="size-2 rounded-full bg-emerald-400 animate-ping" />
               </div>
               <p className="text-xs sm:text-sm text-slate-300 mt-0.5">
-                {isOnline 
-                  ? 'Ready to accept assignments. Real-time GPS location active.' 
-                  : 'Toggle on your shift to receive delivery assignments.'}
+                Ready for store assignments. Orders dispatched to you will appear below in real time.
               </p>
             </div>
           </div>
 
-          <button
-            onClick={handleToggleDuty}
-            disabled={togglingDuty}
-            className={`px-5 py-3 rounded-2xl font-black text-xs sm:text-sm shadow-md transition-all duration-200 active:scale-95 shrink-0 cursor-pointer ${
-              isOnline
-                ? 'bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700'
-                : 'bg-gradient-to-r from-emerald-500 to-teal-400 hover:opacity-95 text-slate-950 shadow-emerald-500/25'
-            }`}
-          >
-            {togglingDuty ? 'Updating...' : isOnline ? 'Go Off Duty' : 'Go On Duty 🛵'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => fetchDashboard(false)}
+              disabled={refreshing}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-xs font-bold text-slate-200 transition active:scale-95 cursor-pointer"
+            >
+              <RefreshCw size={14} className={refreshing ? 'animate-spin text-emerald-400' : ''} />
+              <span>{refreshing ? 'Syncing...' : 'Sync Deliveries'}</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Quick Shift Metrics - Full Width Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {/* Quick Shift Metrics - 3 Clean Full-Width Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <div className="p-4 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-md flex items-center gap-3.5 backdrop-blur-md">
           <div className="size-11 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
             <Package size={22} />
@@ -245,22 +231,6 @@ export default function DeliveryDashboard() {
             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Active Value</p>
             <p className="text-2xl font-black text-white">
               ₹{activeOrders.reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0)}
-            </p>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-md flex items-center gap-3.5 backdrop-blur-md">
-          <div className={`size-11 rounded-2xl border flex items-center justify-center shrink-0 ${
-            isOnline 
-              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
-              : 'bg-slate-800 border-slate-700 text-slate-400'
-          }`}>
-            <Navigation size={22} className={isOnline ? 'animate-pulse' : ''} />
-          </div>
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Fleet Status</p>
-            <p className="text-sm sm:text-base font-black text-white mt-1">
-              {isOnline ? 'Online & Active 🛵' : 'Shift Paused ☕'}
             </p>
           </div>
         </div>
@@ -293,11 +263,9 @@ export default function DeliveryDashboard() {
           <div className="size-16 rounded-3xl bg-slate-800/80 text-slate-400 flex items-center justify-center mb-3.5 shadow-inner">
             <Truck size={32} />
           </div>
-          <h4 className="text-base font-bold text-slate-200">No active deliveries</h4>
+          <h4 className="text-base font-bold text-slate-200">No active delivery assignments</h4>
           <p className="text-xs text-slate-400 max-w-sm mt-1 leading-relaxed">
-            {isOnline 
-              ? "You are Online! As soon as the store assigns a delivery to you, it will ring and appear right here."
-              : "You are currently Offline. Turn on your shift toggle above to receive incoming orders."}
+            When the store assigns orders for pickup and customer delivery, they will appear right here in real time.
           </p>
         </div>
       ) : (
