@@ -215,8 +215,8 @@ export default function DeliveryDashboard() {
         </div>
       </div>
 
-      {/* Quick Shift Metrics */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+      {/* Quick Shift Metrics - Full Width Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <div className="p-4 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-md flex items-center gap-3.5 backdrop-blur-md">
           <div className="size-11 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
             <Package size={22} />
@@ -234,6 +234,34 @@ export default function DeliveryDashboard() {
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Delivered Today</p>
             <p className="text-2xl font-black text-white">{completedTodayCount}</p>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-md flex items-center gap-3.5 backdrop-blur-md">
+          <div className="size-11 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
+            <Banknote size={22} />
+          </div>
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Active Value</p>
+            <p className="text-2xl font-black text-white">
+              ₹{activeOrders.reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0)}
+            </p>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-md flex items-center gap-3.5 backdrop-blur-md">
+          <div className={`size-11 rounded-2xl border flex items-center justify-center shrink-0 ${
+            isOnline 
+              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+              : 'bg-slate-800 border-slate-700 text-slate-400'
+          }`}>
+            <Navigation size={22} className={isOnline ? 'animate-pulse' : ''} />
+          </div>
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Fleet Status</p>
+            <p className="text-sm sm:text-base font-black text-white mt-1">
+              {isOnline ? 'Online & Active 🛵' : 'Shift Paused ☕'}
+            </p>
           </div>
         </div>
       </div>
@@ -273,8 +301,8 @@ export default function DeliveryDashboard() {
           </p>
         </div>
       ) : (
-        /* Zepto / Swiggy style Order Cards */
-        <div className="space-y-5">
+        /* Zepto / Swiggy style Order Cards - Full Width Responsive Grid */
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5 items-start">
           {activeOrders.map((order) => {
             const isExpanded = Boolean(expandedOrders[order.id]);
             const isReadyForPickup = order.status === 'READY';

@@ -102,12 +102,12 @@ export default function DeliveryLayout() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col antialiased selection:bg-emerald-500 selection:text-black">
-      {/* Top Mobile-First App Header */}
-      <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-2xl border-b border-slate-800/80 px-4 py-3 sm:px-6 transition-all shadow-lg shadow-black/20">
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
+      {/* Top Mobile-First & Desktop App Header */}
+      <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-2xl border-b border-slate-800/80 px-4 py-3 sm:px-8 lg:px-12 transition-all shadow-lg shadow-black/20">
+        <div className="w-full flex items-center justify-between gap-4">
           
           {/* Rider Identity */}
-          <Link to="/delivery/profile" className="flex items-center gap-3 group min-w-0">
+          <Link to={isDeliveryDomain ? '/profile' : '/delivery/profile'} className="flex items-center gap-3 group min-w-0">
             <div className="relative shrink-0">
               <div className="size-11 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 p-0.5 shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform">
                 <div className="size-full bg-slate-950 rounded-[14px] flex items-center justify-center font-black text-emerald-400 text-sm">
@@ -134,7 +134,34 @@ export default function DeliveryLayout() {
             </div>
           </Link>
 
-          {/* Center / Right Duty Switch & Logout */}
+          {/* Desktop Navigation Links */}
+          <nav className="hidden md:flex items-center gap-1.5 bg-slate-800/70 p-1.5 rounded-2xl border border-slate-700/60 shadow-inner">
+            {navItems.map((item) => {
+              const active = location.pathname === item.path;
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all ${
+                    active
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-700/40'
+                  }`}
+                >
+                  <Icon size={16} />
+                  <span>{item.label}</span>
+                  {item.badge && (
+                    <span className="size-5 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-black flex items-center justify-center ml-0.5">
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Right Duty Switch & Logout */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Interactive Duty Slider Pill */}
             <button
@@ -170,8 +197,8 @@ export default function DeliveryLayout() {
         </div>
       </header>
 
-      {/* Main Outlet Container */}
-      <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 pb-28 sm:pb-8">
+      {/* Main Outlet Container - Full Width */}
+      <main className="flex-1 w-full px-4 sm:px-8 lg:px-12 py-6 pb-28 sm:pb-8">
         <Outlet context={{ isOnline, handleToggleDuty, togglingDuty, fetchStatus, activeCount }} />
       </main>
 

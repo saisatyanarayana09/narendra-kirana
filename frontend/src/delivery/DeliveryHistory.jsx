@@ -39,8 +39,8 @@ export default function DeliveryHistory() {
         <p className="text-xs sm:text-sm text-slate-400 mt-0.5">Your record of successfully completed grocery deliveries</p>
       </div>
 
-      {/* Summary KPI Banner */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+      {/* Summary KPI Banner - Full Width */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         <div className="p-4 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-md flex items-center gap-3.5 backdrop-blur-md">
           <div className="size-11 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
             <CheckCircle2 size={22} />
@@ -58,6 +58,18 @@ export default function DeliveryHistory() {
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Orders Delivered</p>
             <p className="text-2xl font-black text-white">{orders.length} pkgs</p>
+          </div>
+        </div>
+
+        <div className="col-span-2 lg:col-span-1 p-4 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-md flex items-center gap-3.5 backdrop-blur-md">
+          <div className="size-11 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
+            <CheckCircle2 size={22} />
+          </div>
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Fulfilled Value</p>
+            <p className="text-2xl font-black text-white">
+              ₹{orders.reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0)}
+            </p>
           </div>
         </div>
       </div>
@@ -78,7 +90,7 @@ export default function DeliveryHistory() {
         </div>
       )}
 
-      {/* Orders List */}
+      {/* Orders List - Full Width Responsive Grid */}
       {filtered.length === 0 ? (
         <div className="text-center py-16 px-6 bg-slate-900/40 rounded-3xl border border-dashed border-slate-800 flex flex-col items-center">
           <div className="size-16 rounded-3xl bg-slate-800/80 text-slate-400 flex items-center justify-center mb-3.5">
@@ -90,7 +102,7 @@ export default function DeliveryHistory() {
           </p>
         </div>
       ) : (
-        <div className="space-y-3.5">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map(order => (
             <div 
               key={order.id} 

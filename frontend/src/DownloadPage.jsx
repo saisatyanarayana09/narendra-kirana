@@ -136,9 +136,9 @@ export default function DownloadPage() {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b10_1px,transparent_1px),linear-gradient(to_bottom,#1e293b10_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
       </div>
 
-      {/* Top Security Verification Strip */}
-      <div className="relative z-20 bg-slate-950/80 border-b border-slate-800/60 backdrop-blur-md px-4 py-2 text-[11px] font-semibold text-slate-400">
-        <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      {/* Top Security Verification Strip - Full Width */}
+      <div className="relative z-20 bg-slate-950/80 border-b border-slate-800/60 backdrop-blur-md px-4 sm:px-8 lg:px-12 py-2 text-[11px] font-semibold text-slate-400">
+        <div className="w-full flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="relative flex size-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -165,9 +165,9 @@ export default function DownloadPage() {
         </div>
       </div>
 
-      {/* Main Header */}
-      <header className="relative z-10 border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-xl sticky top-0">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+      {/* Main Header - Full Width */}
+      <header className="relative z-10 border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-xl sticky top-0 px-4 sm:px-8 lg:px-12">
+        <div className="w-full py-4 flex items-center justify-between">
           <a href="https://narendra-kirana.vercel.app" className="flex items-center gap-3 text-white group">
             <div className="size-11 rounded-2xl bg-gradient-to-tr from-emerald-500 via-teal-400 to-cyan-400 p-0.5 shadow-lg shadow-emerald-950/50">
               <div className="size-full bg-slate-950 rounded-[14px] flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform">
@@ -206,8 +206,8 @@ export default function DownloadPage() {
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main className="relative z-10 flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-12 flex flex-col items-center">
+      {/* Main Content Area - Full Width */}
+      <main className="relative z-10 flex-1 w-full px-4 sm:px-8 lg:px-12 py-8 sm:py-12 flex flex-col items-center">
         {/* Hero Section */}
         <div className="text-center max-w-3xl mx-auto mb-8">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/90 border border-slate-700 text-slate-300 text-xs font-bold mb-4 shadow-lg">
@@ -267,8 +267,8 @@ export default function DownloadPage() {
           <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${currentApp.accentColor}`} />
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            {/* Left: App Details & Action Section (7 Cols) */}
-            <div className="lg:col-span-7 flex flex-col justify-between">
+            {/* Left: App Details & Action Section (8 Cols) */}
+            <div className="lg:col-span-8 flex flex-col justify-between">
               <div>
                 {/* Header info */}
                 <div className="flex items-start gap-4 mb-5">
@@ -316,8 +316,8 @@ export default function DownloadPage() {
                   </div>
                 </div>
 
-                {/* Key Features Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-7">
+                {/* Key Features Grid - Full Width Responsive */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-7">
                   {currentApp.features.map((feat, idx) => (
                     <div key={idx} className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-800/40 border border-slate-700/40">
                       <CheckCircle2 size={16} className={`shrink-0 mt-0.5 ${activeTab === 'customer' ? 'text-emerald-400' : 'text-indigo-400'}`} />
@@ -373,8 +373,8 @@ export default function DownloadPage() {
               </div>
             </div>
 
-            {/* Right: High-Resolution QR Code & Mobile Scan Unit (5 Cols) */}
-            <div className="lg:col-span-5 flex flex-col items-center justify-center bg-slate-950/80 border border-slate-800 rounded-2xl p-6 sm:p-8 text-center relative shadow-inner">
+            {/* Right: High-Resolution QR Code & Mobile Scan Unit (4 Cols) */}
+            <div className="lg:col-span-4 flex flex-col items-center justify-center bg-slate-950/80 border border-slate-800 rounded-2xl p-6 sm:p-8 text-center relative shadow-inner">
               <div className="relative p-4 bg-white rounded-2xl shadow-2xl border border-slate-200 mb-4 group">
                 <QRCodeSVG
                   value={currentApp.downloadUrl}
@@ -535,9 +535,9 @@ export default function DownloadPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {currentApp.permissions.map((perm, idx) => (
-              <div key={idx} className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 flex items-start gap-3.5">
+              <div key={idx} className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 flex items-start gap-3.5 shadow-lg">
                 <div className="size-10 rounded-xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center text-emerald-400 shrink-0">
                   <perm.icon size={18} />
                 </div>
@@ -577,7 +577,7 @@ export default function DownloadPage() {
 
           {/* 3 Step Visual Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl relative">
+            <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl relative shadow-xl">
               <div className="size-9 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-black text-sm mb-3">
                 01
               </div>
@@ -587,7 +587,7 @@ export default function DownloadPage() {
               </p>
             </div>
 
-            <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl relative">
+            <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl relative shadow-xl">
               <div className="size-9 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-black text-sm mb-3">
                 02
               </div>
@@ -597,7 +597,7 @@ export default function DownloadPage() {
               </p>
             </div>
 
-            <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl relative">
+            <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl relative shadow-xl">
               <div className="size-9 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-black text-sm mb-3">
                 03
               </div>
@@ -609,7 +609,7 @@ export default function DownloadPage() {
           </div>
         </section>
 
-        {/* Frequently Asked Questions (FAQ) Accordion */}
+        {/* Frequently Asked Questions (FAQ) Accordion - Full Width Grid */}
         <section className="w-full mb-12">
           <div className="flex items-center gap-3 mb-5">
             <div className="size-8 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
@@ -625,7 +625,7 @@ export default function DownloadPage() {
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {[
               {
                 q: 'Is it completely safe to install this APK on my phone?',
@@ -646,7 +646,7 @@ export default function DownloadPage() {
             ].map((item, idx) => (
               <div
                 key={idx}
-                className="rounded-2xl bg-slate-900/60 border border-slate-800 overflow-hidden transition-colors"
+                className="rounded-2xl bg-slate-900/60 border border-slate-800 overflow-hidden transition-colors shadow-lg"
               >
                 <button
                   type="button"
@@ -670,8 +670,8 @@ export default function DownloadPage() {
           </div>
         </section>
 
-        {/* Direct Web Store CTA Banner */}
-        <div className="p-5 rounded-3xl bg-gradient-to-r from-slate-900 to-slate-950 border border-slate-800 max-w-4xl w-full flex flex-col sm:flex-row items-center justify-between gap-4 text-left shadow-2xl">
+        {/* Direct Web Store CTA Banner - Full Width */}
+        <div className="p-6 rounded-3xl bg-gradient-to-r from-slate-900 to-slate-950 border border-slate-800 w-full flex flex-col sm:flex-row items-center justify-between gap-4 text-left shadow-2xl">
           <div className="flex items-center gap-3.5">
             <div className="size-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400 shrink-0">
               <Smartphone size={24} />
@@ -691,9 +691,9 @@ export default function DownloadPage() {
         </div>
       </main>
 
-      {/* Enterprise Compliance & Legal Footer */}
-      <footer className="relative z-10 border-t border-slate-800/80 bg-[#05080f] py-8 px-4 text-xs text-slate-500">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+      {/* Enterprise Compliance & Legal Footer - Full Width */}
+      <footer className="relative z-10 border-t border-slate-800/80 bg-[#05080f] py-8 px-4 sm:px-8 lg:px-12 text-xs text-slate-500">
+        <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <div>
             <p className="font-extrabold text-slate-400 text-sm">{storeName} Retail</p>
             <p className="text-[11px] text-slate-500 mt-0.5">
@@ -710,7 +710,7 @@ export default function DownloadPage() {
           </div>
         </div>
 
-        <div className="max-w-6xl mx-auto mt-6 pt-4 border-t border-slate-900 text-center text-[10px] text-slate-600">
+        <div className="w-full mt-6 pt-4 border-t border-slate-900 text-center text-[10px] text-slate-600">
           © {new Date().getFullYear()} {storeName}. Built for trusted daily grocery commerce. All software artifacts cryptographically signed.
         </div>
       </footer>
