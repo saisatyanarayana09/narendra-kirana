@@ -1044,6 +1044,7 @@ def admin_google_login(request):
                     user.save(update_fields=fields_to_update)
 
                 login(request, user)
+                request.session.set_expiry(60 * 60 * 24 * 30)  # 30 days
                 return redirect('/')
             else:
                 return redirect('/admin/login/?error=unauthorized')

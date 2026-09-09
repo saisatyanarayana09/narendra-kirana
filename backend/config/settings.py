@@ -220,15 +220,15 @@ REST_FRAMEWORK = {
     }
 }
 
-# ─── Session Security & Hardening (Render Admin Vault) ───
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-SESSION_COOKIE_AGE = 1800  # 30 minutes of idle session
+# ─── Session Persistence (Stay Logged In for 30 Days) ───
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 30  # 30 days persistent session
 SESSION_SAVE_EVERY_REQUEST = True
 
 # ─── Simple JWT ───
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
-    'REFRESH_TOKEN_LIFETIME': timedelta(hours=12),
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),  # 30 days persistent login
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
