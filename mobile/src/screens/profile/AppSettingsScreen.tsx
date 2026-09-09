@@ -63,7 +63,7 @@ export function AppSettingsScreen({ navigation }: { navigation: AppNavigationPro
         setUpdateInfo(null);
         Alert.alert(
           t('upToDate') || 'Up to Date',
-          `Smart Kirana v${APP_VERSION} is currently the latest version. Checked just now.`,
+          `Narendra Kirana v${APP_VERSION} is currently the latest version. Checked just now.`,
           [{ text: 'OK' }]
         );
       }
@@ -336,7 +336,7 @@ export function AppSettingsScreen({ navigation }: { navigation: AppNavigationPro
                   { color: colors.text, fontSize: 15 },
                 ]}
               >
-                Smart Kirana v{APP_VERSION}
+                Narendra Kirana v{APP_VERSION}
               </Text>
             </View>
           </View>

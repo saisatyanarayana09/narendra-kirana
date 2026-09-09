@@ -5,7 +5,7 @@ import { APP_VERSION } from '../constants/config';
 import { StoreSettings } from '../api/store';
 
 export const DEFAULT_APK_URL =
-  'https://github.com/saisatyanarayana09/narendra-kirana/releases/latest/download/smart-kirana.apk';
+  'https://github.com/saisatyanarayana09/narendra-kirana/releases/latest/download/narendra-kirana.apk';
 
 export function isVersionOlder(currentVersion: string, targetVersion: string): boolean {
   if (!targetVersion) return false;

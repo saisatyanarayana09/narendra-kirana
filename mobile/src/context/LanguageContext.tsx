@@ -58,10 +58,10 @@ const translations: Record<Language, Translations> = {
     checkForUpdates: 'Check for Updates',
     checkingUpdates: 'Checking for updates...',
     upToDate: 'You are on the latest version!',
-    appearanceHint: 'Customize how Smart Kirana looks on your device.',
+    appearanceHint: 'Customize how Narendra Kirana looks on your device.',
     fontSizeHint: 'Adjust text size across the app for comfortable reading.',
     previewTitle: 'Live Preview',
-    previewText: 'Smart Kirana delivers fresh groceries, daily essentials, and veggies straight to your doorstep at wholesale prices.',
+    previewText: 'Narendra Kirana delivers fresh groceries, daily essentials, and veggies straight to your doorstep at wholesale prices.',
 
     // Offers terms
     availableOffers: 'Available Offers',
@@ -152,10 +152,10 @@ const translations: Record<Language, Translations> = {
     checkForUpdates: 'అప్డేట్ల కోసం తనిఖీ చేయండి',
     checkingUpdates: 'అప్డేట్ల కోసం తనిఖీ చేస్తోంది...',
     upToDate: 'మీరు తాజా వెర్షన్లో ఉన్నారు!',
-    appearanceHint: 'మీ పరికరంలో స్మార్ట్ కిరాణా రూపాన్ని అనుకూలీకరించండి.',
+    appearanceHint: 'మీ పరికరంలో నరేంద్ర కిరాణా రూపాన్ని అనుకూలీకరించండి.',
     fontSizeHint: 'సులభంగా చదవడానికి యాప్ అంతటా టెక్స్ట్ పరిమాణాన్ని మార్చండి.',
     previewTitle: 'లైవ్ ప్రివ్యూ',
-    previewText: 'స్మార్ట్ కిరాణా తాజా కూరగాయలు, నిత్యావసర సరుకులను హోల్‌సేల్ ధరలకే మీ ఇంటి వద్దకు అందిస్తుంది.',
+    previewText: 'నరేంద్ర కిరాణా తాజా కూరగాయలు, నిత్యావసర సరుకులను హోల్‌సేల్ ధరలకే మీ ఇంటి వద్దకు అందిస్తుంది.',
 
     // Offers terms
     availableOffers: 'అందుబాటులో ఉన్న ఆఫర్లు',

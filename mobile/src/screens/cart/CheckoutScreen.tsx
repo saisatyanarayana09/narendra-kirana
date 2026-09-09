@@ -332,7 +332,7 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
   // UPI configuration & 1-Click Launch
   const payeeName = storeSettings?.upi_payee_name || storeSettings?.store_name || 'Narendra Kirana';
   const upiId = storeSettings?.upi_id || 'narendrakirana@okhdfcbank';
-  const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${finalTotalToPay.toFixed(2)}&cu=INR&tn=${encodeURIComponent('Smart Kirana Order')}`;
+  const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${finalTotalToPay.toFixed(2)}&cu=INR&tn=${encodeURIComponent('Narendra Kirana Order')}`;
   const qrImageUrl = storeSettings?.upi_qr_image 
     ? fixImageUrl(storeSettings.upi_qr_image) 
     : `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(upiUrl)}`;

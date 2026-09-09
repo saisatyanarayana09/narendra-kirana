@@ -84,18 +84,18 @@ jobs:
             --ks-pass pass:narendrakirana123 \
             --ks-key-alias narendrakirana \
             --key-pass pass:narendrakirana123 \
-            --out smart-kirana.apk \
+            --out narendra-kirana.apk \
             aligned-app.apk
             
-          $BUILD_TOOLS_DIR/apksigner verify -v smart-kirana.apk
+          $BUILD_TOOLS_DIR/apksigner verify -v narendra-kirana.apk
           
-          echo "Signed APK created successfully: $(ls -lh smart-kirana.apk)"
+          echo "Signed APK created successfully: $(ls -lh narendra-kirana.apk)"
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: smart-kirana-apk
-          path: mobile/smart-kirana.apk
+          name: narendra-kirana-apk
+          path: mobile/narendra-kirana.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -111,14 +111,14 @@ jobs:
             This is the latest production build of the Narendra Kirana Android mobile app.
             
             - Package: com.narendrakirana.app
-            - Direct Download: [smart-kirana.apk](https://github.com/${{ github.repository }}/releases/latest/download/smart-kirana.apk)
+            - Direct Download: [narendra-kirana.apk](https://github.com/${{ github.repository }}/releases/latest/download/narendra-kirana.apk)
             - In-App Updater Compatible: Yes (signed with permanent keystore)
             
             ### How to Install:
-            1. Download smart-kirana.apk to your phone.
+            1. Download narendra-kirana.apk to your phone.
             2. Tap the downloaded file and choose Install.
             3. If prompted, tap Settings and toggle Allow from this source.
-          files: mobile/smart-kirana.apk
+          files: mobile/narendra-kirana.apk
           draft: false
           prerelease: false
         env:
