@@ -21,7 +21,9 @@ import {
   SlidersHorizontal,
   ArrowRight,
   Copy,
-  Check
+  Check,
+  Download,
+  Database
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
@@ -76,6 +78,33 @@ const Settings = () => {
   const [testRecipient, setTestRecipient] = useState('');
   const [testingEmail, setTestingEmail] = useState(false);
   const [showGoogleGuide, setShowGoogleGuide] = useState(false);
+  const [downloadingBackup, setDownloadingBackup] = useState(false);
+
+  const handleQuickDownloadBackup = async () => {
+    setDownloadingBackup(true);
+    const toastId = toast.loading('Exporting complete store database...');
+    try {
+      const response = await api.get('/store/backup/export/', {
+        responseType: 'blob'
+      });
+      const blob = new Blob([response.data], { type: 'application/json' });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      const dateStr = new Date().toISOString().slice(0, 10);
+      link.download = `narendra_kirana_backup_${dateStr}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+      toast.success('Complete store backup downloaded!', { id: toastId });
+    } catch (err) {
+      console.error('Backup download error:', err);
+      toast.error('Failed to export backup. Please try again.', { id: toastId });
+    } finally {
+      setDownloadingBackup(false);
+    }
+  };
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -315,14 +344,26 @@ const Settings = () => {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Store Settings</h1>
           <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Configure your core store operations, fees, and invoice branding.</p>
         </div>
-        <Link
-          to="/owner/advanced-settings"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold text-xs shadow-sm shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-95 shrink-0"
-        >
-          <SlidersHorizontal className="w-4 h-4" />
-          <span>Advanced Settings</span>
-          <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
-        </Link>
+        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+          <button
+            type="button"
+            onClick={handleQuickDownloadBackup}
+            disabled={downloadingBackup}
+            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-800 font-bold text-xs transition-all active:scale-95 disabled:opacity-50 cursor-pointer shadow-sm"
+            title="Download complete offline store backup (.json)"
+          >
+            <Download className={`w-4 h-4 text-emerald-600 dark:text-emerald-400 ${downloadingBackup ? 'animate-bounce' : ''}`} />
+            <span>{downloadingBackup ? 'Exporting...' : '1-Click Backup'}</span>
+          </button>
+          <Link
+            to="/owner/advanced-settings"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold text-xs shadow-sm shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-95"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            <span>Advanced Settings</span>
+            <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
+          </Link>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">

@@ -6,7 +6,9 @@ from .views import (
     HomepageSectionViewSet, 
     VoiceSearchView,
     StoreEmailSettingsView,
-    TestStoreEmailView
+    TestStoreEmailView,
+    StoreBackupStatsView,
+    StoreBackupExportView
 )
 
 router = DefaultRouter()
@@ -18,6 +20,8 @@ urlpatterns = [
     path('email-settings/', StoreEmailSettingsView.as_view(), name='store-email-settings'),
     path('email-settings/test/', TestStoreEmailView.as_view(), name='store-email-settings-test'),
     path('voice-search/', VoiceSearchView.as_view(), name='store-voice-search'),
+    path('backup/stats/', StoreBackupStatsView.as_view(), name='store-backup-stats'),
+    path('backup/export/', StoreBackupExportView.as_view(), name='store-backup-export'),
 
     path('', include(router.urls)),
 ]

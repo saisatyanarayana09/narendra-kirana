@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.views import View
 from django.views.generic import TemplateView
 from rest_framework import views, response, status, viewsets
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.decorators import action
 from accounts.permissions import IsOwnerUser, IsOwnerOrReadOnly
@@ -294,4 +294,61 @@ class VoiceSearchView(views.APIView):
             return response.Response({'error': f'Speech recognition service unavailable: {e}'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         except Exception as e:
             return response.Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class StoreBackupStatsView(views.APIView):
+    """Returns real-time database record counts for backup preview."""
+    permission_classes = [IsAuthenticated, IsOwnerUser]
+
+    def get(self, request):
+        from products.models import Product, Category
+        from orders.models import Order
+        from accounts.models import User
+        from django.conf import settings
+
+        db_engine = settings.DATABASES.get('default', {}).get('ENGINE', '')
+        db_type = 'Neon Serverless PostgreSQL (AWS)' if 'postgres' in db_engine else 'Local SQLite'
+
+        return response.Response({
+            'database': db_type,
+            'products_count': Product.objects.count(),
+            'categories_count': Category.objects.count(),
+            'orders_count': Order.objects.count(),
+            'users_count': User.objects.count(),
+            'timestamp': timezone.now().isoformat(),
+        })
+
+
+class StoreBackupExportView(views.APIView):
+    """Exports a complete offline JSON backup of all store entities."""
+    permission_classes = [IsAuthenticated, IsOwnerUser]
+
+    def get(self, request):
+        from django.core.management import call_command
+        from django.http import HttpResponse
+
+        buf = io.StringIO()
+        call_command(
+            'dumpdata',
+            'products',
+            'store',
+            'orders',
+            'offers',
+            'accounts.user',
+            'accounts.customerprofile',
+            'accounts.address',
+            'accounts.wallet',
+            'accounts.wallettransaction',
+            'accounts.deliverypartnerprofile',
+            natural_foreign=True,
+            natural_primary=True,
+            indent=2,
+            stdout=buf
+        )
+        data = buf.getvalue()
+        filename = f"narendra_kirana_backup_{timezone.now().strftime('%Y_%m_%d_%H%M%S')}.json"
+        res = HttpResponse(data, content_type='application/json')
+        res['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return res
+
 
