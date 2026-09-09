@@ -1,4 +1,4 @@
-﻿import { StyleSheet, Platform } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 
 export const fonts = {
   regular: 'Nunito_400Regular',
@@ -32,26 +32,37 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
   }
 }
 
-// Intercept StyleSheet.create to inject Nunito font family for all text styles
+// Intercept StyleSheet.create to inject Nunito font family for text styles safely
 const originalCreate = StyleSheet.create;
 
 (StyleSheet as any).create = function <T extends StyleSheet.NamedStyles<T> | StyleSheet.NamedStyles<any>>(styles: T): T {
-  if (styles && typeof styles === 'object') {
-    for (const key of Object.keys(styles)) {
-      const style = (styles as any)[key];
-      if (style && typeof style === 'object') {
-        const isTextStyle = 
-          style.fontSize !== undefined ||
-          style.fontWeight !== undefined ||
-          style.letterSpacing !== undefined ||
-          style.lineHeight !== undefined ||
-          (style.color !== undefined && style.backgroundColor === undefined && style.flexDirection === undefined);
+  try {
+    if (styles && typeof styles === 'object') {
+      const enhancedStyles: any = {};
+      for (const key of Object.keys(styles)) {
+        const style = (styles as any)[key];
+        if (style && typeof style === 'object') {
+          const isTextStyle = 
+            style.fontSize !== undefined ||
+            style.fontWeight !== undefined ||
+            style.letterSpacing !== undefined ||
+            style.lineHeight !== undefined ||
+            (style.color !== undefined && style.backgroundColor === undefined && style.flexDirection === undefined);
 
-        if (isTextStyle && !style.fontFamily) {
-          style.fontFamily = getFontFamily(style.fontWeight);
+          if (isTextStyle && !style.fontFamily) {
+            enhancedStyles[key] = {
+              ...style,
+              fontFamily: getFontFamily(style.fontWeight),
+            };
+            continue;
+          }
         }
+        enhancedStyles[key] = style;
       }
+      return originalCreate(enhancedStyles);
     }
+  } catch {
+    // If any error occurs, safely fallback to unmodified styles
   }
   return originalCreate(styles);
 };

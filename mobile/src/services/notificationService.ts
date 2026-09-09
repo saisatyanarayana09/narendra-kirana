@@ -30,8 +30,8 @@ function getNotifications(): NotificationsModuleType | null {
   }
   if (!NotificationsModule) {
     try {
-      NotificationsModule = require('expo-notifications');
-      NotificationsModule?.setNotificationHandler({
+      const mod = require('expo-notifications');
+      mod?.setNotificationHandler?.({
         handleNotification: async () => ({
           shouldShowAlert: true,
           shouldPlaySound: true,
@@ -40,17 +40,13 @@ function getNotifications(): NotificationsModuleType | null {
           shouldShowList: true,
         }),
       });
+      NotificationsModule = mod;
     } catch (err) {
       console.log('[NotificationService] Notice: could not load expo-notifications:', err);
       NotificationsModule = null;
     }
   }
   return NotificationsModule;
-}
-
-// Initialize handler eagerly when running in standalone or dev builds
-if (!isExpoGoAndroid) {
-  getNotifications();
 }
 
 /**

@@ -90,8 +90,12 @@
     "plugins": [
       "expo-secure-store",
       "expo-font",
-      "expo-sharing",
-      "expo-notifications"
-    ]
+      "expo-sharing"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "f9d70244-0cb5-46bb-afee-248399d310de"
+      }
+    }
   }
 }

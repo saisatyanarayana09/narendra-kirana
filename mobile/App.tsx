@@ -1,4 +1,5 @@
-import { View, ActivityIndicator } from 'react-native';
+import React, { Component, ReactNode } from 'react';
+import { View, Text, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { 
@@ -19,6 +20,30 @@ import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { LanguageProvider } from './src/context/LanguageContext';
 
+class TopLevelErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: any }> {
+  state: { hasError: boolean; error: any } = { hasError: false, error: null };
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: any) {
+    console.error('[TopLevelErrorBoundary] Uncaught app error:', error);
+  }
+  render() {
+    if (this.state.hasError) {
+      const msg = this.state.error?.message || String(this.state.error || 'Unknown error occurred.');
+      return (
+        <View style={{ flex: 1, backgroundColor: '#090D16', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <Text style={{ color: '#EF4444', fontSize: 20, fontWeight: '900', marginBottom: 8 }}>App Error</Text>
+          <Text style={{ color: '#94A3B8', fontSize: 13, textAlign: 'center', lineHeight: 20 }}>
+            {msg}
+          </Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function ThemedAppContent() {
   const { colors, isDark } = useTheme();
   return (
@@ -30,7 +55,7 @@ function ThemedAppContent() {
   );
 }
 
-export default function App() {
+function MainApp() {
   const [fontsLoaded, fontError] = useFonts({
     Nunito_400Regular,
     Nunito_500Medium,
@@ -38,13 +63,6 @@ export default function App() {
     Nunito_700Bold,
     Nunito_800ExtraBold,
     Nunito_900Black,
-    'Nunito': Nunito_400Regular,
-    'Nunito-Regular': Nunito_400Regular,
-    'Nunito-Medium': Nunito_500Medium,
-    'Nunito-SemiBold': Nunito_600SemiBold,
-    'Nunito-Bold': Nunito_700Bold,
-    'Nunito-ExtraBold': Nunito_800ExtraBold,
-    'Nunito-Black': Nunito_900Black,
   });
 
   if (!fontsLoaded && !fontError) {
@@ -69,5 +87,13 @@ export default function App() {
         </LanguageProvider>
       </ThemeProvider>
     </ErrorBoundary>
+  );
+}
+
+export default function App() {
+  return (
+    <TopLevelErrorBoundary>
+      <MainApp />
+    </TopLevelErrorBoundary>
   );
 }
