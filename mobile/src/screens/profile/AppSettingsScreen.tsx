@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -15,12 +16,28 @@ import { AppNavigationProp } from '../../navigation/types';
 import { useTheme, ThemeMode } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { triggerHaptic, getVibrationEnabled, setVibrationEnabled } from '../../utils/haptics';
+import { APP_VERSION } from '../../constants/config';
+import { storeApi } from '../../api/store';
+import {
+  checkAppVersion,
+  downloadAndInstallApk,
+  installDownloadedApk,
+  UpdateCheckResult,
+  DownloadProgressInfo,
+  DEFAULT_APK_URL,
+} from '../../services/updateService';
 
 export function AppSettingsScreen({ navigation }: { navigation: AppNavigationProp }) {
-  const { colors, themeMode, toggleThemeMode } = useTheme();
+  const { colors, themeMode, toggleThemeMode, isDark } = useTheme();
   const { t } = useLanguage();
   const [checkingUpdates, setCheckingUpdates] = useState(false);
   const [vibrationOn, setVibrationOn] = useState(() => getVibrationEnabled());
+  const [updateInfo, setUpdateInfo] = useState<UpdateCheckResult | null>(null);
+  const [isDownloadingUpdate, setIsDownloadingUpdate] = useState(false);
+  const [updateProgress, setUpdateProgress] = useState(0);
+  const [updateProgressText, setUpdateProgressText] = useState('');
+  const [downloadedUpdateUri, setDownloadedUpdateUri] = useState<string | null>(null);
+  const [updateError, setUpdateError] = useState<string | null>(null);
 
   const handleToggleVibration = async () => {
     const nextVal = !vibrationOn;
@@ -28,20 +45,73 @@ export function AppSettingsScreen({ navigation }: { navigation: AppNavigationPro
     await setVibrationEnabled(nextVal);
   };
 
-  const handleCheckUpdates = () => {
-    if (checkingUpdates) return;
+  const handleCheckUpdates = async () => {
+    if (checkingUpdates || isDownloadingUpdate) return;
     triggerHaptic('light');
     setCheckingUpdates(true);
+    setUpdateError(null);
 
-    setTimeout(() => {
-      setCheckingUpdates(false);
-      triggerHaptic('success');
+    try {
+      const settings = await storeApi.getSettings();
+      const result = checkAppVersion(settings);
+
+      if (result.hasUpdate) {
+        triggerHaptic('success');
+        setUpdateInfo(result);
+      } else {
+        triggerHaptic('success');
+        setUpdateInfo(null);
+        Alert.alert(
+          t('upToDate') || 'Up to Date',
+          `Smart Kirana v${APP_VERSION} is currently the latest version. Checked just now.`,
+          [{ text: 'OK' }]
+        );
+      }
+    } catch {
+      triggerHaptic('error');
       Alert.alert(
-        t('upToDate'),
-        'Smart Kirana v1.0.0 is currently the latest version. Checked just now.',
+        'Check Failed',
+        'Could not connect to update server. Please check your internet connection.',
         [{ text: 'OK' }]
       );
-    }, 1200);
+    } finally {
+      setCheckingUpdates(false);
+    }
+  };
+
+  const handleStartInAppUpdate = async () => {
+    if (!updateInfo) return;
+
+    if (downloadedUpdateUri) {
+      try {
+        await installDownloadedApk(downloadedUpdateUri);
+      } catch {
+        Alert.alert('Notice', 'Could not open package installer. Please check app permissions or download via browser.');
+      }
+      return;
+    }
+
+    triggerHaptic('medium');
+    setIsDownloadingUpdate(true);
+    setUpdateProgress(0);
+    setUpdateProgressText('Connecting...');
+    setUpdateError(null);
+
+    const res = await downloadAndInstallApk(updateInfo.updateUrl, (info: DownloadProgressInfo) => {
+      setUpdateProgress(info.percent);
+      setUpdateProgressText(info.progressText);
+    });
+
+    setIsDownloadingUpdate(false);
+
+    if (res.success && res.uri) {
+      triggerHaptic('success');
+      setDownloadedUpdateUri(res.uri);
+      setUpdateProgressText('Download completed. Tap to install.');
+    } else if (!res.success) {
+      triggerHaptic('error');
+      setUpdateError(res.error || 'Failed to download update.');
+    }
   };
 
   const appearanceOptions: { mode: ThemeMode; label: string; icon: keyof typeof Feather.glyphMap; desc: string }[] = [
@@ -266,33 +336,149 @@ export function AppSettingsScreen({ navigation }: { navigation: AppNavigationPro
                   { color: colors.text, fontSize: 15 },
                 ]}
               >
-                Smart Kirana v1.0.0 (Build 1)
+                Smart Kirana v{APP_VERSION}
               </Text>
             </View>
           </View>
         </View>
+
+        {/* In-App Update Available Card */}
+        {Boolean(updateInfo?.hasUpdate) && (
+          <View
+            style={[
+              styles.updateCard,
+              {
+                backgroundColor: isDark ? 'rgba(16, 185, 129, 0.1)' : '#ECFDF5',
+                borderColor: isDark ? 'rgba(16, 185, 129, 0.3)' : '#A7F3D0',
+              },
+            ]}
+          >
+            <View style={styles.updateCardHeader}>
+              <View style={[styles.updateBadge, { backgroundColor: colors.primary }]}>
+                <Feather name="zap" size={12} color="#FFFFFF" />
+                <Text style={styles.updateBadgeText}>NEW UPDATE</Text>
+              </View>
+              <Text style={[styles.updateVersionHeading, { color: colors.text }]}>
+                v{updateInfo?.targetVersion} Available
+              </Text>
+            </View>
+
+            <Text style={[styles.updateCardMessage, { color: colors.textSecondary }]}>
+              {updateInfo?.updateMessage}
+            </Text>
+
+            {/* Progress Bar while downloading */}
+            {isDownloadingUpdate && (
+              <View style={[styles.inAppProgressWrap, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <View style={styles.inAppProgressRow}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                    <Text style={[styles.inAppProgressLabel, { color: colors.text }]}>Downloading Update...</Text>
+                  </View>
+                  <Text style={[styles.inAppProgressPct, { color: colors.primary }]}>{updateProgress}%</Text>
+                </View>
+                <View style={[styles.progressBarTrack, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0' }]}>
+                  <View
+                    style={[
+                      styles.progressBarFill,
+                      { width: `${updateProgress}%`, backgroundColor: colors.primary },
+                    ]}
+                  />
+                </View>
+                <View style={styles.inAppProgressRow}>
+                  <Text style={[styles.progressBytesText, { color: colors.textSecondary }]}>
+                    {updateProgressText || 'Downloading APK...'}
+                  </Text>
+                  <Text style={[styles.progressBytesText, { color: colors.textSecondary }]}>1-Tap Updater</Text>
+                </View>
+              </View>
+            )}
+
+            {/* Downloaded and ready */}
+            {Boolean(downloadedUpdateUri) && !isDownloadingUpdate && (
+              <View style={[styles.readyCardSmall, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.2)' : '#D1FAE5' }]}>
+                <Feather name="check-circle" size={16} color="#059669" />
+                <Text style={[styles.readyCardSmallText, { color: isDark ? '#34D399' : '#047857' }]}>
+                  Update package downloaded & ready to install!
+                </Text>
+              </View>
+            )}
+
+            {/* Download Error */}
+            {Boolean(updateError) && !isDownloadingUpdate && (
+              <View style={[styles.errorCardSmall, { backgroundColor: '#FEF2F2' }]}>
+                <Feather name="alert-circle" size={16} color="#DC2626" />
+                <Text style={styles.errorCardSmallText}>{updateError}</Text>
+              </View>
+            )}
+
+            {/* 1-Tap Action Button */}
+            <TouchableOpacity
+              style={[
+                styles.actionBtn,
+                { backgroundColor: colors.primary },
+                isDownloadingUpdate && { opacity: 0.8 },
+              ]}
+              onPress={handleStartInAppUpdate}
+              disabled={isDownloadingUpdate}
+              activeOpacity={0.85}
+            >
+              {isDownloadingUpdate ? (
+                <>
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <Text style={styles.actionBtnText}>Downloading ({updateProgress}%)...</Text>
+                </>
+              ) : downloadedUpdateUri ? (
+                <>
+                  <Feather name="package" size={16} color="#FFFFFF" />
+                  <Text style={styles.actionBtnText}>Install Downloaded Update</Text>
+                </>
+              ) : (
+                <>
+                  <Feather name="download" size={16} color="#FFFFFF" />
+                  <Text style={styles.actionBtnText}>1-Tap In-App Update</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.browserLinkBtnSmall}
+              onPress={() => Linking.openURL(updateInfo?.updateUrl || DEFAULT_APK_URL)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.browserLinkBtnSmallText, { color: colors.primary }]}>
+                Download via Browser instead
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Section 4 (Mobile only): Check for Updates */}
         <View style={styles.updateSection}>
           <TouchableOpacity
             style={[
               styles.updateButton,
-              { backgroundColor: colors.primary },
+              { backgroundColor: updateInfo?.hasUpdate ? colors.surface : colors.primary },
+              updateInfo?.hasUpdate && { borderWidth: 1, borderColor: colors.border },
               checkingUpdates && { opacity: 0.8 },
             ]}
             onPress={handleCheckUpdates}
-            disabled={checkingUpdates}
+            disabled={checkingUpdates || isDownloadingUpdate}
             activeOpacity={0.8}
           >
             {checkingUpdates ? (
               <View style={styles.buttonInnerRow}>
-                <ActivityIndicator size="small" color="#FFFFFF" />
-                <Text style={styles.updateButtonText}>{t('checkingUpdates')}</Text>
+                <ActivityIndicator size="small" color={updateInfo?.hasUpdate ? colors.text : '#FFFFFF'} />
+                <Text style={[styles.updateButtonText, updateInfo?.hasUpdate && { color: colors.text }]}>
+                  {t('checkingUpdates')}
+                </Text>
               </View>
             ) : (
               <View style={styles.buttonInnerRow}>
-                <Feather name="refresh-cw" size={16} color="#FFFFFF" />
-                <Text style={styles.updateButtonText}>{t('checkForUpdates')}</Text>
+                <Feather name="refresh-cw" size={16} color={updateInfo?.hasUpdate ? colors.text : '#FFFFFF'} />
+                <Text style={[styles.updateButtonText, updateInfo?.hasUpdate && { color: colors.text }]}>
+                  {updateInfo?.hasUpdate ? 'Check Again' : t('checkForUpdates')}
+                </Text>
               </View>
             )}
           </TouchableOpacity>
@@ -526,5 +712,125 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '800',
+  },
+  updateCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    gap: 12,
+  },
+  updateCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  updateBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  updateBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  updateVersionHeading: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  updateCardMessage: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  inAppProgressWrap: {
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 8,
+  },
+  inAppProgressRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  inAppProgressLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  inAppProgressPct: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  progressBarTrack: {
+    height: 8,
+    width: '100%',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressBytesText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  readyCardSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 10,
+    borderRadius: 10,
+  },
+  readyCardSmallText: {
+    fontSize: 12,
+    fontWeight: '700',
+    flex: 1,
+  },
+  errorCardSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  errorCardSmallText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#DC2626',
+    flex: 1,
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  actionBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  browserLinkBtnSmall: {
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  browserLinkBtnSmallText: {
+    fontSize: 12,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
 });

@@ -7,6 +7,8 @@ import {
   ActivityIndicator, 
   BackHandler,
   ScrollView,
+  Platform,
+  Alert,
   Linking as RNLinking 
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,6 +24,12 @@ import { navigationRef } from './navigationRef';
 import { storeApi, StoreSettings } from '../api/store';
 import { APP_VERSION } from '../constants/config';
 import { addNotificationResponseReceivedListener } from '../services/notificationService';
+import { 
+  downloadAndInstallApk, 
+  installDownloadedApk, 
+  DEFAULT_APK_URL,
+  DownloadProgressInfo 
+} from '../services/updateService';
 
 import { AuthStack } from './AuthStack';
 import { MainTabs } from './MainTabs';
@@ -593,11 +601,69 @@ function ForceUpdateView({
   colors: any;
   isDark: boolean;
 }) {
-  const handleUpdate = () => {
-    const url = settings?.app_update_url || 'https://play.google.com/store';
-    RNLinking.openURL(url).catch(() => {
-      RNLinking.openURL('https://play.google.com/store');
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [progressText, setProgressText] = useState('');
+  const [downloadedUri, setDownloadedUri] = useState<string | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [isInstalling, setIsInstalling] = useState(false);
+
+  const rawUrl = settings?.app_update_url?.trim() || DEFAULT_APK_URL;
+  const isAndroid = Platform.OS === 'android';
+  const isPlayStore = rawUrl.includes('play.google.com') || rawUrl.startsWith('market://');
+  const canInAppUpdate = isAndroid && !isPlayStore;
+
+  const handleOpenBrowser = () => {
+    RNLinking.openURL(rawUrl).catch(() => {
+      RNLinking.openURL(DEFAULT_APK_URL);
     });
+  };
+
+  const handleStartInAppUpdate = async () => {
+    if (downloadedUri) {
+      try {
+        setIsInstalling(true);
+        await installDownloadedApk(downloadedUri);
+      } catch (err: any) {
+        Alert.alert(
+          'Installation Notice',
+          'Could not trigger package installer automatically. Please grant "Install unknown apps" permission if prompted, or install manually from your notifications.',
+          [
+            { text: 'Try Again', onPress: () => handleStartInAppUpdate() },
+            { text: 'Download via Browser', onPress: handleOpenBrowser },
+          ]
+        );
+      } finally {
+        setIsInstalling(false);
+      }
+      return;
+    }
+
+    if (!canInAppUpdate) {
+      handleOpenBrowser();
+      return;
+    }
+
+    setIsDownloading(true);
+    setDownloadProgress(0);
+    setProgressText('Connecting to server...');
+    setDownloadError(null);
+
+    const res = await downloadAndInstallApk(rawUrl, (info: DownloadProgressInfo) => {
+      setDownloadProgress(info.percent);
+      setProgressText(info.progressText);
+    });
+
+    setIsDownloading(false);
+
+    if (res.success && res.uri) {
+      setDownloadedUri(res.uri);
+      setProgressText('Download completed. Tap below to launch installer.');
+    } else if (!res.success) {
+      setDownloadError(
+        res.error || 'Failed to download update. Please check your connection or download via browser.'
+      );
+    }
   };
 
   useEffect(() => {
@@ -611,7 +677,7 @@ function ForceUpdateView({
       <ScrollView contentContainerStyle={styles.gateScrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.gateContent}>
           <View style={[styles.gateIconCircle, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5' }]}>
-            <Feather name="arrow-up-circle" size={44} color="#059669" />
+            <Feather name={downloadedUri ? 'check-circle' : 'arrow-up-circle'} size={44} color="#059669" />
           </View>
 
           <Text style={[styles.gateStoreTitle, { color: colors.text }]}>
@@ -619,10 +685,14 @@ function ForceUpdateView({
           </Text>
 
           <View style={[styles.gateBadge, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.2)' : '#ECFDF5', borderColor: isDark ? 'rgba(16, 185, 129, 0.4)' : '#A7F3D0' }]}>
-            <Text style={[styles.gateBadgeText, { color: isDark ? '#34D399' : '#047857' }]}>UPDATE REQUIRED</Text>
+            <Text style={[styles.gateBadgeText, { color: isDark ? '#34D399' : '#047857' }]}>
+              {downloadedUri ? 'UPDATE READY TO INSTALL' : 'UPDATE REQUIRED'}
+            </Text>
           </View>
 
-          <Text style={[styles.gateHeading, { color: colors.text }]}>Please Update Your App</Text>
+          <Text style={[styles.gateHeading, { color: colors.text }]}>
+            {downloadedUri ? 'Ready to Install Update' : 'Please Update Your App'}
+          </Text>
 
           <Text style={[styles.gateDescription, { color: colors.textSecondary }]}>
             {settings?.app_update_message ||
@@ -640,19 +710,108 @@ function ForceUpdateView({
             )}
           </View>
 
+          {/* Download in progress box */}
+          {isDownloading && (
+            <View style={[styles.progressContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={styles.progressStatsRow}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                  <Text style={[styles.progressLabelText, { color: colors.text }]}>Downloading Update...</Text>
+                </View>
+                <Text style={[styles.progressPercentText, { color: colors.primary }]}>{downloadProgress}%</Text>
+              </View>
+
+              <View style={[styles.progressBarTrack, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0' }]}>
+                <View
+                  style={[
+                    styles.progressBarFill,
+                    { width: `${downloadProgress}%`, backgroundColor: colors.primary },
+                  ]}
+                />
+              </View>
+
+              <View style={styles.progressStatsRow}>
+                <Text style={[styles.progressBytesText, { color: colors.textSecondary }]}>
+                  {progressText || 'Downloading...'}
+                </Text>
+                <Text style={[styles.progressBytesText, { color: colors.textSecondary }]}>In-App Updater</Text>
+              </View>
+            </View>
+          )}
+
+          {/* Download ready card */}
+          {Boolean(downloadedUri) && !isDownloading && (
+            <View style={[styles.readyCard, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5', borderColor: '#A7F3D0' }]}>
+              <Feather name="check-circle" size={20} color="#059669" />
+              <Text style={[styles.readyCardText, { color: isDark ? '#34D399' : '#047857' }]}>
+                Update package downloaded. Tap below to launch installation.
+              </Text>
+            </View>
+          )}
+
+          {/* Download error card */}
+          {Boolean(downloadError) && !isDownloading && (
+            <View style={[styles.errorCard, { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEF2F2', borderColor: '#FCA5A5' }]}>
+              <Feather name="alert-circle" size={20} color="#DC2626" />
+              <Text style={[styles.errorCardText, { color: isDark ? '#F87171' : '#B91C1C' }]}>
+                {downloadError}
+              </Text>
+            </View>
+          )}
+
+          {/* Primary Action Button */}
           <TouchableOpacity
-            style={[styles.gatePrimaryBtn, { backgroundColor: colors.primary }]}
-            onPress={handleUpdate}
+            style={[
+              styles.gatePrimaryBtn,
+              { backgroundColor: colors.primary },
+              (isDownloading || isInstalling) && { opacity: 0.8 },
+            ]}
+            onPress={handleStartInAppUpdate}
+            disabled={isDownloading || isInstalling}
             activeOpacity={0.85}
           >
-            <Feather name="download" size={16} color="#FFFFFF" />
-            <Text style={styles.gatePrimaryBtnText}>Update Now</Text>
+            {isDownloading || isInstalling ? (
+              <>
+                <ActivityIndicator size="small" color="#FFFFFF" />
+                <Text style={styles.gatePrimaryBtnText}>
+                  {isDownloading ? `Downloading (${downloadProgress}%)` : 'Launching Installer...'}
+                </Text>
+              </>
+            ) : downloadedUri ? (
+              <>
+                <Feather name="package" size={18} color="#FFFFFF" />
+                <Text style={styles.gatePrimaryBtnText}>Install Update Now</Text>
+              </>
+            ) : canInAppUpdate ? (
+              <>
+                <Feather name="download" size={18} color="#FFFFFF" />
+                <Text style={styles.gatePrimaryBtnText}>1-Tap In-App Update</Text>
+              </>
+            ) : (
+              <>
+                <Feather name="external-link" size={18} color="#FFFFFF" />
+                <Text style={styles.gatePrimaryBtnText}>Update on Google Play</Text>
+              </>
+            )}
           </TouchableOpacity>
+
+          {/* Secondary Action / Fallback links */}
+          {canInAppUpdate && !isDownloading && (
+            <TouchableOpacity
+              style={styles.browserLinkBtn}
+              onPress={handleOpenBrowser}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.browserLinkBtnText, { color: colors.primary }]}>
+                Or download via web browser
+              </Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             style={[styles.gateSecondaryBtn, { borderColor: colors.border }]}
             onPress={onRefresh}
-            disabled={isRefreshing}
+            disabled={isRefreshing || isDownloading}
             activeOpacity={0.8}
           >
             {isRefreshing ? (
@@ -801,5 +960,86 @@ const styles = StyleSheet.create({
   gateSecondaryBtnText: {
     fontSize: 14,
     fontWeight: '700',
+  },
+  progressContainer: {
+    width: '100%',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 20,
+    gap: 8,
+  },
+  progressStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
+  progressLabelText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  progressPercentText: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  progressBarTrack: {
+    height: 8,
+    width: '100%',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginVertical: 4,
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressBytesText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  readyCard: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  readyCardText: {
+    fontSize: 13,
+    fontWeight: '700',
+    flex: 1,
+    lineHeight: 18,
+  },
+  errorCard: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  errorCardText: {
+    fontSize: 13,
+    fontWeight: '600',
+    flex: 1,
+    lineHeight: 18,
+  },
+  browserLinkBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginTop: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  browserLinkBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
 });
