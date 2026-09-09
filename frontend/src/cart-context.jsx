@@ -1,8 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, useRef } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import api from './services/api'
 
 const CartContext = createContext(null)
 const getUser = () => JSON.parse(localStorage.getItem('smart-kirana-customer-user') || 'null')
+
+// Module-level cache to track dispatched notifications without hook dependencies
+const seenNotificationIds = new Set();
+let hasLoadedInitialNotifications = false;
 
 export function CartProvider({ children }) {
  const [cart, setCart] = useState(null)
@@ -36,8 +40,6 @@ export function CartProvider({ children }) {
    setCart(res.data);
  }, [isCustomer])
 
-  const initialNotifsLoadedRef = useRef(false);
-  const seenNotifIdsRef = useRef(new Set());
   const [notificationPermission, setNotificationPermission] = useState(() => {
     return typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'denied';
   });
@@ -68,13 +70,13 @@ export function CartProvider({ children }) {
       const list = res.data.results || res.data || [];
       setNotifications(list);
 
-      if (!initialNotifsLoadedRef.current) {
-        list.forEach(n => seenNotifIdsRef.current.add(n.id));
-        initialNotifsLoadedRef.current = true;
+      if (!hasLoadedInitialNotifications) {
+        list.forEach(n => seenNotificationIds.add(n.id));
+        hasLoadedInitialNotifications = true;
       } else {
         list.forEach(n => {
-          if (!seenNotifIdsRef.current.has(n.id)) {
-            seenNotifIdsRef.current.add(n.id);
+          if (!seenNotificationIds.has(n.id)) {
+            seenNotificationIds.add(n.id);
             if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
               try {
                 new Notification(n.title || 'Narendra Kirana Alert', {
@@ -148,6 +150,8 @@ export function CartProvider({ children }) {
       setCart(null);
       setFavorites([]);
       setNotifications([]);
+      seenNotificationIds.clear();
+      hasLoadedInitialNotifications = false;
       window.location.href = '/';
     }
   }, []);

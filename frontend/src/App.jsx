@@ -178,6 +178,31 @@ class ErrorBoundary extends React.Component {
       console.warn('ErrorBoundary: Max reload attempt reached. Displaying recovery UI.');
     }
   }
+
+  handleHardReload = async () => {
+    try {
+      sessionStorage.removeItem('eb_chunk_reload_count');
+      sessionStorage.removeItem('lazy_chunk_retry_count');
+      sessionStorage.removeItem('vite_preload_reload_count');
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const reg of registrations) {
+          await reg.unregister();
+        }
+      }
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        for (const key of keys) {
+          await caches.delete(key);
+        }
+      }
+    } catch (e) {
+      console.warn('Error clearing caches on reload:', e);
+    }
+    const cleanUrl = window.location.origin + window.location.pathname;
+    window.location.href = cleanUrl + '?ts=' + Date.now();
+  };
+
   render() {
     if (this.state.hasError) {
       const isChunkError =
@@ -203,7 +228,7 @@ class ErrorBoundary extends React.Component {
             <div className="flex flex-col gap-3">
               <button
                 type="button"
-                onClick={() => window.location.reload()}
+                onClick={this.handleHardReload}
                 className="w-full py-3.5 px-4 rounded-xl bg-emerald-600 text-white font-black text-sm hover:bg-emerald-700 transition shadow-md shadow-emerald-600/20 active:scale-95 cursor-pointer"
               >
                 Reload Narendra Kirana
