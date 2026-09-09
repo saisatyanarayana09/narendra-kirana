@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
+import { isRunningInExpoGo } from 'expo';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { apiClient } from '../api/client';
 import { getItem, saveItem, deleteItem } from '../utils/storage';
@@ -9,32 +9,56 @@ const PUSH_TOKEN_KEY = 'user_device_push_token';
 
 /**
  * Detect if currently running inside the Expo Go app client.
- * Starting in Expo SDK 53, remote FCM push notifications are not supported in Expo Go on Android.
+ * Expo SDK 53+ removed remote FCM push notification token support from Expo Go on Android.
  */
 export const isExpoGo =
+  isRunningInExpoGo() ||
   Constants?.appOwnership === 'expo' ||
   Constants?.executionEnvironment === ExecutionEnvironment.StoreClient;
 
-// Configure how notifications appear when app is in foreground
-try {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-      shouldShowBanner: true,
-      shouldShowList: true,
-    }),
-  });
-} catch (handlerErr) {
-  console.log('[NotificationService] Notice: setNotificationHandler setup skipped:', handlerErr);
+export const isExpoGoAndroid = isExpoGo && Platform.OS === 'android';
+
+// Lazy-load expo-notifications only when NOT running in Expo Go on Android.
+// Statically importing expo-notifications executes DevicePushTokenAutoRegistration.fx at startup,
+// which invokes warnOfExpoGoPushUsage and throws an uncatchable runtime error in Expo Go SDK 53+ on Android.
+type NotificationsModuleType = typeof import('expo-notifications');
+let NotificationsModule: NotificationsModuleType | null = null;
+
+function getNotifications(): NotificationsModuleType | null {
+  if (isExpoGoAndroid) {
+    return null;
+  }
+  if (!NotificationsModule) {
+    try {
+      NotificationsModule = require('expo-notifications');
+      NotificationsModule?.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: true,
+          shouldShowBanner: true,
+          shouldShowList: true,
+        }),
+      });
+    } catch (err) {
+      console.log('[NotificationService] Notice: could not load expo-notifications:', err);
+      NotificationsModule = null;
+    }
+  }
+  return NotificationsModule;
+}
+
+// Initialize handler eagerly when running in standalone or dev builds
+if (!isExpoGoAndroid) {
+  getNotifications();
 }
 
 /**
  * Configure high-priority Android notification channels for order updates
  */
 export async function setupNotificationChannels(): Promise<void> {
-  if (Platform.OS === 'android') {
+  const Notifications = getNotifications();
+  if (Platform.OS === 'android' && Notifications) {
     try {
       await Notifications.setNotificationChannelAsync('orders', {
         name: 'Order Updates & Delivery',
@@ -52,7 +76,7 @@ export async function setupNotificationChannels(): Promise<void> {
         sound: 'default',
       });
     } catch (error) {
-      console.log('[NotificationService] Notice: Android notification channels skipped (safe in Expo Go):', error);
+      console.log('[NotificationService] Notice: Android notification channels skipped:', error);
     }
   }
 }
@@ -64,19 +88,24 @@ export async function setupNotificationChannels(): Promise<void> {
  * and returns null without throwing, preserving full functionality for development and production builds.
  */
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
+  // In Expo Go on Android, remote push notification tokens are restricted by Expo SDK 53+
+  if (isExpoGoAndroid) {
+    console.log(
+      '[NotificationService] Notice: Remote push tokens are disabled in Expo Go on Android (Expo SDK 53+ requirement). Skipping remote token registration; local notifications and in-app updates remain fully active. For remote push on physical device, use a development build (expo-dev-client) or standalone APK.'
+    );
+    return null;
+  }
+
+  const Notifications = getNotifications();
+  if (!Notifications) {
+    return null;
+  }
+
   let token: string | null = null;
 
   try {
     // Setup Android channels first
     await setupNotificationChannels();
-
-    // In Expo Go on Android, remote push notification tokens are restricted by Expo SDK 53+
-    if (isExpoGo && Platform.OS === 'android') {
-      console.log(
-        '[NotificationService] Notice: Remote push tokens are disabled in Expo Go on Android (Expo SDK 53+ requirement). Skipping remote token registration; local notifications and in-app updates remain fully active. For remote push on physical device, use a development build (expo-dev-client) or standalone APK.'
-      );
-      return null;
-    }
 
     // Check if running on a physical device (push tokens require physical device)
     if (!Device.isDevice) {
@@ -156,8 +185,12 @@ export async function unregisterPushNotificationsAsync(): Promise<void> {
  * Attach notification received listener (fires when notification arrives while app is foregrounded)
  */
 export function addNotificationReceivedListener(
-  callback: (notification: Notifications.Notification) => void
+  callback: (notification: any) => void
 ): { remove: () => void } {
+  const Notifications = getNotifications();
+  if (!Notifications) {
+    return { remove: () => {} };
+  }
   try {
     return Notifications.addNotificationReceivedListener(callback);
   } catch (err) {
@@ -170,8 +203,12 @@ export function addNotificationReceivedListener(
  * Attach notification response listener (fires when user taps on lock-screen notification banner)
  */
 export function addNotificationResponseReceivedListener(
-  callback: (response: Notifications.NotificationResponse) => void
+  callback: (response: any) => void
 ): { remove: () => void } {
+  const Notifications = getNotifications();
+  if (!Notifications) {
+    return { remove: () => {} };
+  }
   try {
     return Notifications.addNotificationResponseReceivedListener(callback);
   } catch (err) {
