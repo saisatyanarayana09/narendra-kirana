@@ -120,13 +120,14 @@ const getValidAuthToken = (prefix) => {
 const ownerToken = () => getValidAuthToken('smart-kirana-owner');
 const customerToken = () => getValidAuthToken('smart-kirana-customer');
 
-function Guard({ children }) {
+function Guard({ children, isOwnerDomain = false }) {
   const location = useLocation();
   // Bypass auth check when running under Cypress tests
   if (typeof window !== 'undefined' && window.Cypress) {
     return children;
   }
-  return ownerToken() ? children : <Navigate to="/owner/login" state={{ from: location }} replace />;
+  const loginPath = isOwnerDomain ? "/login" : "/owner/login";
+  return ownerToken() ? children : <Navigate to={loginPath} state={{ from: location }} replace />;
 }
 
 function CustomerGuard({ children }) {
@@ -292,6 +293,13 @@ function App() {
     window.location.hostname.startsWith('download.')
   );
 
+  const isOwnerDomain = typeof window !== 'undefined' && (
+    window.location.hostname.includes('owner') ||
+    window.location.hostname.includes('admin') ||
+    window.location.hostname.startsWith('owner.') ||
+    window.location.hostname.startsWith('admin.')
+  );
+
   return (
     <ErrorBoundary>
       <ThemeProvider>
@@ -299,7 +307,56 @@ function App() {
           <BrowserRouter>
             <Toaster position="top-center" toastOptions={{ style: { borderRadius: '12px', background: '#333', color: '#fff' } }} />
             <Suspense fallback={null}>
-              {isDeliveryDomain ? (
+              {isOwnerDomain ? (
+                <Routes>
+                  <Route path="/login" element={<OwnerLogin />} />
+                  <Route path="/owner/login" element={<OwnerLogin />} />
+                  <Route path="/forgot-password" element={<OwnerForgotPassword />} />
+                  <Route path="/owner/forgot-password" element={<OwnerForgotPassword />} />
+                  <Route path="/reset-password" element={<OwnerResetPassword />} />
+                  <Route path="/owner/reset-password" element={<OwnerResetPassword />} />
+                  <Route path="/welcome" element={<Guard isOwnerDomain><Welcome /></Guard>} />
+                  <Route path="/owner/welcome" element={<Guard isOwnerDomain><Welcome /></Guard>} />
+
+                  <Route element={<Guard isOwnerDomain><OwnerLayout /></Guard>}>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/owner" element={<Dashboard />} />
+                    <Route path="/sales" element={<Sales />} />
+                    <Route path="/owner/sales" element={<Sales />} />
+                    <Route path="/categories" element={<Categories />} />
+                    <Route path="/owner/categories" element={<Categories />} />
+                    <Route path="/products" element={<Products />} />
+                    <Route path="/owner/products" element={<Products />} />
+                    <Route path="/orders" element={<Orders />} />
+                    <Route path="/owner/orders" element={<Orders />} />
+                    <Route path="/orders/:id" element={<OrderDetails />} />
+                    <Route path="/owner/orders/:id" element={<OrderDetails />} />
+                    <Route path="/invoices" element={<Invoices />} />
+                    <Route path="/owner/invoices" element={<Invoices />} />
+                    <Route path="/offers" element={<Offers />} />
+                    <Route path="/owner/offers" element={<Offers />} />
+                    <Route path="/referrals" element={<Referrals />} />
+                    <Route path="/owner/referrals" element={<Referrals />} />
+                    <Route path="/customers" element={<Customers />} />
+                    <Route path="/owner/customers" element={<Customers />} />
+                    <Route path="/feedback" element={<Feedback />} />
+                    <Route path="/owner/feedback" element={<Feedback />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/owner/settings" element={<Settings />} />
+                    <Route path="/advanced-settings" element={<AdvancedSettings />} />
+                    <Route path="/owner/advanced-settings" element={<AdvancedSettings />} />
+                    <Route path="/showcase" element={<Showcase />} />
+                    <Route path="/owner/showcase" element={<Showcase />} />
+                    <Route path="/delivery-partners" element={<DeliveryPartners />} />
+                    <Route path="/owner/delivery-partners" element={<DeliveryPartners />} />
+                  </Route>
+
+                  <Route path="/orders/:id/invoice" element={<Guard isOwnerDomain><Invoice /></Guard>} />
+                  <Route path="/owner/orders/:id/invoice" element={<Guard isOwnerDomain><Invoice /></Guard>} />
+
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              ) : isDeliveryDomain ? (
                 <Routes>
                   <Route path="/login" element={<DeliveryLogin />} />
                   <Route path="/delivery/login" element={<Navigate to="/login" replace />} />
