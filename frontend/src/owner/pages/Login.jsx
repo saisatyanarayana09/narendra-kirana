@@ -42,11 +42,12 @@ const OwnerLoginForm = () => {
       }
 
       localStorage.setItem('smart-kirana-owner-token', data.access);
-      localStorage.setItem('smart-kirana-owner-refresh', data.refresh);
-      localStorage.setItem('smart-kirana-owner-user', JSON.stringify(data.user));
-      localStorage.setItem('smart-kirana-owner-username', identifier.trim());
-
-      const from = location.state?.from?.pathname || '/owner/welcome';
+      const isOwnerDomain = typeof window !== 'undefined' && (
+        window.location.hostname.includes('owner') ||
+        window.location.hostname.includes('admin')
+      );
+      const defaultRedirect = isOwnerDomain ? '/welcome' : '/owner/welcome';
+      const from = location.state?.from?.pathname || defaultRedirect;
       navigate(from, { replace: true });
     } catch (requestError) {
       setError(requestError.response?.data?.detail || requestError.message || 'Unable to sign in. Please verify your credentials.');
@@ -73,7 +74,12 @@ const OwnerLoginForm = () => {
         localStorage.setItem('smart-kirana-owner-refresh', data.refresh);
         localStorage.setItem('smart-kirana-owner-user', JSON.stringify(data.user));
 
-        const from = location.state?.from?.pathname || '/owner/welcome';
+        const isOwnerDomain = typeof window !== 'undefined' && (
+          window.location.hostname.includes('owner') ||
+          window.location.hostname.includes('admin')
+        );
+        const defaultRedirect = isOwnerDomain ? '/welcome' : '/owner/welcome';
+        const from = location.state?.from?.pathname || defaultRedirect;
         navigate(from, { replace: true });
       } catch (requestError) {
         setError(requestError.response?.data?.detail || 'Unable to sign in with Google.');
@@ -339,9 +345,12 @@ const OwnerLoginForm = () => {
   );
 };
 
+const DEFAULT_GOOGLE_CLIENT_ID = '729937153109-6e8fivp20b3ri2qsah1d6u2a7oi0uls6.apps.googleusercontent.com';
+
 const OwnerLogin = () => {
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID;
   return (
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || 'dummy-client-id'}>
+    <GoogleOAuthProvider clientId={clientId}>
       <OwnerLoginForm />
     </GoogleOAuthProvider>
   );
