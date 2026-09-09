@@ -66,6 +66,7 @@ const DeliveryLayout = lazyWithRetry(() => import('./delivery/DeliveryLayout'));
 const DeliveryDashboard = lazyWithRetry(() => import('./delivery/DeliveryDashboard'));
 const DeliveryHistory = lazyWithRetry(() => import('./delivery/DeliveryHistory'));
 const DeliveryProfile = lazyWithRetry(() => import('./delivery/DeliveryProfile'));
+const DownloadPage = lazyWithRetry(() => import('./DownloadPage'));
 
 
 const isTokenExpired = (token) => {
@@ -286,6 +287,11 @@ function App() {
     window.location.hostname.startsWith('delivery.')
   );
 
+  const isDownloadDomain = typeof window !== 'undefined' && (
+    window.location.hostname.includes('download') ||
+    window.location.hostname.startsWith('download.')
+  );
+
   return (
     <ErrorBoundary>
       <ThemeProvider>
@@ -307,6 +313,13 @@ function App() {
                   </Route>
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
+              ) : isDownloadDomain ? (
+                <Routes>
+                  <Route path="/" element={<DownloadPage />} />
+                  <Route path="/download" element={<Navigate to="/" replace />} />
+                  <Route path="/downloads" element={<Navigate to="/" replace />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
               ) : (
                 <Routes>
                   {/* Customer Routes with CartProvider */}
@@ -316,6 +329,8 @@ function App() {
                     <Route path="/categories" element={<CategoriesPage />} />
                     <Route path="/product/:id" element={<ProductDetailPage />} />
                     <Route path="/cart" element={<CartPage />} />
+                    <Route path="/download" element={<DownloadPage />} />
+                    <Route path="/downloads" element={<DownloadPage />} />
                     <Route path="/checkout" element={<CustomerGuard><CheckoutPage /></CustomerGuard>} />
                     <Route path="/orders/:id" element={<CustomerGuard><OrderDetailPage /></CustomerGuard>} />
                     <Route path="/order/:id" element={<CustomerGuard><OrderDetailPage /></CustomerGuard>} />
