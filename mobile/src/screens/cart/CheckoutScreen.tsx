@@ -224,6 +224,7 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
   const mrpTotal = parseFloat(cart?.subtotal || '0') || 0;
   const discount = parseFloat(cart?.discount || '0') || 0;
   const itemsTotal = parseFloat(cart?.items_total || '0') || Math.max(0, mrpTotal - discount);
+  const cartSubtotal = itemsTotal;
   const minOrderAmount = parseFloat(storeSettings?.min_order_amount || '0') || 0;
   const isBelowMinOrder = minOrderAmount > 0 && itemsTotal < minOrderAmount;
 
