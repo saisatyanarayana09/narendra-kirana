@@ -4,11 +4,17 @@ import { Navigate, useLocation } from 'react-router-dom';
 export default function DeliveryGuard({ children }) {
   const location = useLocation();
 
+  const isDeliveryDomain = typeof window !== 'undefined' && (
+    window.location.hostname.includes('delivery') ||
+    window.location.hostname.startsWith('delivery.')
+  );
+  const loginPath = isDeliveryDomain ? '/login' : '/delivery/login';
+
   const token = localStorage.getItem('smart-kirana-delivery-token') || localStorage.getItem('smart-kirana-token');
   const userStr = localStorage.getItem('smart-kirana-delivery-user') || localStorage.getItem('smart-kirana-user');
 
   if (!token) {
-    return <Navigate to="/delivery/login" state={{ from: location }} replace />;
+    return <Navigate to={loginPath} state={{ from: location }} replace />;
   }
 
   try {
@@ -21,10 +27,10 @@ export default function DeliveryGuard({ children }) {
     );
 
     if (user && !isPartner) {
-      return <Navigate to="/delivery/login" state={{ from: location }} replace />;
+      return <Navigate to={loginPath} state={{ from: location }} replace />;
     }
   } catch {
-    return <Navigate to="/delivery/login" state={{ from: location }} replace />;
+    return <Navigate to={loginPath} state={{ from: location }} replace />;
   }
 
   return children;

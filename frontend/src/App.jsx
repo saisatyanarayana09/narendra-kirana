@@ -281,101 +281,121 @@ function OfflineBanner() {
 }
 
 function App() {
- return (
- <ErrorBoundary>
- <ThemeProvider>
- <LanguageProvider>
- <BrowserRouter>
- <Toaster position="top-center"toastOptions={{ style: { borderRadius: '12px', background: '#333', color: '#fff' } }} />
- <Suspense fallback={null}>
- <Routes>
-  {/* Customer Routes with CartProvider */}
-  <Route element={<CustomerApp />}>
-    <Route path="/" element={<HomePage />} />
-    <Route path="/products" element={<ProductsPage />} />
-    <Route path="/categories" element={<CategoriesPage />} />
-    <Route path="/product/:id" element={<ProductDetailPage />} />
-     <Route path="/cart" element={<CartPage />} />
-     <Route path="/checkout" element={<CustomerGuard><CheckoutPage /></CustomerGuard>} />
-     <Route path="/orders/:id" element={<CustomerGuard><OrderDetailPage /></CustomerGuard>} />
-     <Route path="/order/:id" element={<CustomerGuard><OrderDetailPage /></CustomerGuard>} />
-     <Route path="/orders/:id/invoice" element={<CustomerGuard><Invoice /></CustomerGuard>} />
-     <Route path="/order/:id/invoice" element={<CustomerGuard><Invoice /></CustomerGuard>} />
-     <Route path="/invoice/:id" element={<CustomerGuard><Invoice /></CustomerGuard>} />
-     
-     {/* Modular Customer Profile */}
-     <Route path="/profile" element={<CustomerGuard><ProfileLayout /></CustomerGuard>}>
-       <Route index element={<DashboardHome />} />
-       <Route path="account" element={<AccountSettings />} />
-       <Route path="orders" element={<OrdersHistory />} />
-       <Route path="addresses" element={<SavedAddresses />} />
-       <Route path="favorites" element={<Favorites />} />
-       <Route path="notifications" element={<Notifications />} />
-       <Route path="feedback" element={<CustomerFeedback />} />
-       <Route path="help" element={<HelpCenter />} />
-       <Route path="wallet" element={<Wallet />} />
-       <Route path="refer-and-earn" element={<ReferAndEarn />} />
-       <Route path="settings" element={<AppSettings />} />
-       <Route path="offers" element={<OffersPromoCodes />} />
-       <Route path="language" element={<LanguageSettings />} />
-     </Route>
-     
-     <Route path="/settings" element={<CustomerLayout><main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-[70vh]"><AppSettings /></main></CustomerLayout>} />
-     <Route path="/offers" element={<CustomerGuard><Navigate to="/profile/offers" replace /></CustomerGuard>} />
-     <Route path="/notifications" element={<Navigate to="/profile/notifications" replace />} />
-     
-     <Route path="/login" element={<CustomerLoginPage />} />
-     <Route path="/signup" element={<CustomerSignupPage />} />
-   </Route>
+  const isDeliveryDomain = typeof window !== 'undefined' && (
+    window.location.hostname.includes('delivery') ||
+    window.location.hostname.startsWith('delivery.')
+  );
 
-   {/* Public Auth & Password Recovery Routes (Completely decoupled from CartProvider & background fetches) */}
-   <Route path="/verify-email" element={<VerifyEmail />} />
-   <Route path="/forgot-password" element={<ForgotPassword />} />
-   <Route path="/reset-password" element={<ResetPassword />} />
+  return (
+    <ErrorBoundary>
+      <ThemeProvider>
+        <LanguageProvider>
+          <BrowserRouter>
+            <Toaster position="top-center" toastOptions={{ style: { borderRadius: '12px', background: '#333', color: '#fff' } }} />
+            <Suspense fallback={null}>
+              {isDeliveryDomain ? (
+                <Routes>
+                  <Route path="/login" element={<DeliveryLogin />} />
+                  <Route path="/delivery/login" element={<Navigate to="/login" replace />} />
+                  <Route element={<DeliveryGuard><DeliveryLayout /></DeliveryGuard>}>
+                    <Route path="/" element={<DeliveryDashboard />} />
+                    <Route path="/delivery" element={<Navigate to="/" replace />} />
+                    <Route path="/history" element={<DeliveryHistory />} />
+                    <Route path="/delivery/history" element={<Navigate to="/history" replace />} />
+                    <Route path="/profile" element={<DeliveryProfile />} />
+                    <Route path="/delivery/profile" element={<Navigate to="/profile" replace />} />
+                  </Route>
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              ) : (
+                <Routes>
+                  {/* Customer Routes with CartProvider */}
+                  <Route element={<CustomerApp />}>
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/products" element={<ProductsPage />} />
+                    <Route path="/categories" element={<CategoriesPage />} />
+                    <Route path="/product/:id" element={<ProductDetailPage />} />
+                    <Route path="/cart" element={<CartPage />} />
+                    <Route path="/checkout" element={<CustomerGuard><CheckoutPage /></CustomerGuard>} />
+                    <Route path="/orders/:id" element={<CustomerGuard><OrderDetailPage /></CustomerGuard>} />
+                    <Route path="/order/:id" element={<CustomerGuard><OrderDetailPage /></CustomerGuard>} />
+                    <Route path="/orders/:id/invoice" element={<CustomerGuard><Invoice /></CustomerGuard>} />
+                    <Route path="/order/:id/invoice" element={<CustomerGuard><Invoice /></CustomerGuard>} />
+                    <Route path="/invoice/:id" element={<CustomerGuard><Invoice /></CustomerGuard>} />
+                    
+                    {/* Modular Customer Profile */}
+                    <Route path="/profile" element={<CustomerGuard><ProfileLayout /></CustomerGuard>}>
+                      <Route index element={<DashboardHome />} />
+                      <Route path="account" element={<AccountSettings />} />
+                      <Route path="orders" element={<OrdersHistory />} />
+                      <Route path="addresses" element={<SavedAddresses />} />
+                      <Route path="favorites" element={<Favorites />} />
+                      <Route path="notifications" element={<Notifications />} />
+                      <Route path="feedback" element={<CustomerFeedback />} />
+                      <Route path="help" element={<HelpCenter />} />
+                      <Route path="wallet" element={<Wallet />} />
+                      <Route path="refer-and-earn" element={<ReferAndEarn />} />
+                      <Route path="settings" element={<AppSettings />} />
+                      <Route path="offers" element={<OffersPromoCodes />} />
+                      <Route path="language" element={<LanguageSettings />} />
+                    </Route>
+                    
+                    <Route path="/settings" element={<CustomerLayout><main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-[70vh]"><AppSettings /></main></CustomerLayout>} />
+                    <Route path="/offers" element={<CustomerGuard><Navigate to="/profile/offers" replace /></CustomerGuard>} />
+                    <Route path="/notifications" element={<Navigate to="/profile/notifications" replace />} />
+                    
+                    <Route path="/login" element={<CustomerLoginPage />} />
+                    <Route path="/signup" element={<CustomerSignupPage />} />
+                  </Route>
 
- {/* Owner Portal Routes (No CartProvider needed) */}
- <Route path="/owner/login" element={<OwnerLogin />} />
- <Route path="/owner/forgot-password" element={<OwnerForgotPassword />} />
- <Route path="/owner/reset-password" element={<OwnerResetPassword />} />
- <Route path="/owner/welcome" element={<Guard><Welcome /></Guard>} />
- 
- <Route path="/owner"element={<Guard><OwnerLayout /></Guard>}>
- <Route index element={<Dashboard />} />
-            
-          <Route path="sales" element={<Sales />} />
- <Route path="categories"element={<Categories />} />
- <Route path="products"element={<Products />} />
-  <Route path="orders"element={<Orders />} />
-  <Route path="orders/:id"element={<OrderDetails />} />
-  <Route path="invoices" element={<Invoices />} />
-  <Route path="offers"element={<Offers />} />
-  <Route path="referrals"element={<Referrals />} />
-  <Route path="customers"element={<Customers />} />
-  <Route path="feedback"element={<Feedback />} />
-  <Route path="settings"element={<Settings />} />
-  <Route path="advanced-settings" element={<AdvancedSettings />} />
-  <Route path="showcase"element={<Showcase />} />
-  <Route path="delivery-partners" element={<DeliveryPartners />} />
-  </Route>
+                  {/* Public Auth & Password Recovery Routes (Completely decoupled from CartProvider & background fetches) */}
+                  <Route path="/verify-email" element={<VerifyEmail />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
 
- <Route path="/owner/orders/:id/invoice"element={<Guard><Invoice /></Guard>} />
+                  {/* Owner Portal Routes (No CartProvider needed) */}
+                  <Route path="/owner/login" element={<OwnerLogin />} />
+                  <Route path="/owner/forgot-password" element={<OwnerForgotPassword />} />
+                  <Route path="/owner/reset-password" element={<OwnerResetPassword />} />
+                  <Route path="/owner/welcome" element={<Guard><Welcome /></Guard>} />
+                  
+                  <Route path="/owner" element={<Guard><OwnerLayout /></Guard>}>
+                    <Route index element={<Dashboard />} />
+                    <Route path="sales" element={<Sales />} />
+                    <Route path="categories" element={<Categories />} />
+                    <Route path="products" element={<Products />} />
+                    <Route path="orders" element={<Orders />} />
+                    <Route path="orders/:id" element={<OrderDetails />} />
+                    <Route path="invoices" element={<Invoices />} />
+                    <Route path="offers" element={<Offers />} />
+                    <Route path="referrals" element={<Referrals />} />
+                    <Route path="customers" element={<Customers />} />
+                    <Route path="feedback" element={<Feedback />} />
+                    <Route path="settings" element={<Settings />} />
+                    <Route path="advanced-settings" element={<AdvancedSettings />} />
+                    <Route path="showcase" element={<Showcase />} />
+                    <Route path="delivery-partners" element={<DeliveryPartners />} />
+                  </Route>
 
-  {/* Delivery Partner Web Portal Routes */}
-  <Route path="/delivery/login" element={<DeliveryLogin />} />
-  <Route path="/delivery" element={<DeliveryGuard><DeliveryLayout /></DeliveryGuard>}>
-    <Route index element={<DeliveryDashboard />} />
-    <Route path="history" element={<DeliveryHistory />} />
-    <Route path="profile" element={<DeliveryProfile />} />
-  </Route>
+                  <Route path="/owner/orders/:id/invoice" element={<Guard><Invoice /></Guard>} />
 
- <Route path="*"element={<Navigate to="/"replace />} />
- </Routes>
- </Suspense>
- </BrowserRouter>
- </LanguageProvider>
- </ThemeProvider>
- </ErrorBoundary>
- );
+                  {/* Delivery Partner Web Portal Routes */}
+                  <Route path="/delivery/login" element={<DeliveryLogin />} />
+                  <Route path="/delivery" element={<DeliveryGuard><DeliveryLayout /></DeliveryGuard>}>
+                    <Route index element={<DeliveryDashboard />} />
+                    <Route path="history" element={<DeliveryHistory />} />
+                    <Route path="profile" element={<DeliveryProfile />} />
+                  </Route>
+
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              )}
+            </Suspense>
+          </BrowserRouter>
+        </LanguageProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
+  );
 }
 
 export default App;

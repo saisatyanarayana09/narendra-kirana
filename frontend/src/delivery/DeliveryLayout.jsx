@@ -72,6 +72,11 @@ export default function DeliveryLayout() {
     }
   };
 
+  const isDeliveryDomain = typeof window !== 'undefined' && (
+    window.location.hostname.includes('delivery') ||
+    window.location.hostname.startsWith('delivery.')
+  );
+
   const handleLogout = async () => {
     const refresh = localStorage.getItem('smart-kirana-delivery-refresh');
     try {
@@ -82,13 +87,13 @@ export default function DeliveryLayout() {
     localStorage.removeItem('smart-kirana-delivery-token');
     localStorage.removeItem('smart-kirana-delivery-refresh');
     localStorage.removeItem('smart-kirana-delivery-user');
-    navigate('/delivery/login');
+    navigate(isDeliveryDomain ? '/login' : '/delivery/login');
   };
 
   const navItems = [
-    { label: 'Active Trips', path: '/delivery', icon: Truck, badge: activeCount > 0 ? activeCount : null },
-    { label: 'Trip History', path: '/delivery/history', icon: CheckCircle2 },
-    { label: 'Profile', path: '/delivery/profile', icon: User },
+    { label: 'Active Trips', path: isDeliveryDomain ? '/' : '/delivery', icon: Truck, badge: activeCount > 0 ? activeCount : null },
+    { label: 'Trip History', path: isDeliveryDomain ? '/history' : '/delivery/history', icon: CheckCircle2 },
+    { label: 'Profile', path: isDeliveryDomain ? '/profile' : '/delivery/profile', icon: User },
   ];
 
   const riderName = partnerUser?.first_name 
