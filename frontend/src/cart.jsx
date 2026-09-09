@@ -900,26 +900,26 @@ export function CartPage() {
   const outOfStockItems = items.filter(item => item.is_in_stock === false || (item.stock_quantity !== undefined && item.stock_quantity <= 0));
   const hasOutOfStock = outOfStockItems.length > 0;
 
+  const discount = parseFloat(cart?.discount || 0);
+  const mrpTotal = parseFloat(cart?.subtotal || 0);
+  const itemsTotal = parseFloat(cart?.items_total || (mrpTotal - discount)) || mrpTotal;
+  const packagingFee = parseFloat(cart?.packaging_fee || 0);
+  const promoDiscount = parseFloat(cart?.promo_discount || 0);
+  const totalPayable = parseFloat(cart?.total || (itemsTotal - promoDiscount + packagingFee));
+  const freeThreshold = parseFloat(storeSettings?.free_delivery_threshold || 0);
+  const freeDeliveryGap = Math.max(0, freeThreshold - itemsTotal);
+  const isFreeDeliveryUnlocked = freeThreshold > 0 && itemsTotal >= freeThreshold;
+  const minOrderAmount = parseFloat(storeSettings?.min_order_amount || 0);
+  const isBelowMinOrder = minOrderAmount > 0 && itemsTotal < minOrderAmount;
+
   return (
     <CustomerLayout>
       <main className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8 py-6 pb-36 lg:pb-16">
         <button onClick={() => navigate(-1)} className="mb-3 flex items-center gap-1.5 text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400 hover:underline bg-transparent border-0 cursor-pointer p-0">
           <ArrowLeft size={16} /> Back
         </button>
-        <div className="flex items-center justify-between mb-5">
+        <div className="mb-5">
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Your Cart</h1>
-          {items.length > 0 && (
-            <button
-              onClick={() => {
-                if (window.confirm('Are you sure you want to remove all items from your cart?')) {
-                  clearCart();
-                }
-              }}
-              className="text-xs font-bold text-red-600 dark:text-red-400 hover:text-red-700 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/50 px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-900/60 transition-colors flex items-center gap-1.5 cursor-pointer"
-            >
-              <Trash2 size={14} /> Clear Cart
-            </button>
-          )}
         </div>
         {error && <p className="mb-4 rounded-xl bg-red-50 p-3 text-xs sm:text-sm font-bold text-red-700">{error}</p>}
 
@@ -988,20 +988,20 @@ export function CartPage() {
             {/* Items List */}
             <div className="flex-1 w-full space-y-3">
               {/* Free Delivery Threshold Progress Bar */}
-              {Number(storeSettings?.free_delivery_threshold) > 0 && (
+              {freeThreshold > 0 && (
                 <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 shadow-xs mb-3">
                   <div className="flex justify-between items-center text-xs font-bold text-emerald-900 dark:text-emerald-200 mb-1.5">
                     <span>
-                      {Number(cart?.subtotal || 0) >= Number(storeSettings.free_delivery_threshold)
+                      {isFreeDeliveryUnlocked
                         ? '🎉 Free Home Delivery unlocked!'
-                        : `Add ₹${(Number(storeSettings.free_delivery_threshold) - Number(cart?.subtotal || 0)).toFixed(0)} more for FREE Delivery`}
+                        : `Add ₹${freeDeliveryGap.toFixed(0)} more for FREE Delivery`}
                     </span>
-                    <span>₹{cart?.subtotal || '0'} / ₹{storeSettings.free_delivery_threshold}</span>
+                    <span>₹{itemsTotal.toFixed(2)} / ₹{freeThreshold.toFixed(0)}</span>
                   </div>
                   <div className="w-full h-2 rounded-full bg-emerald-200/60 dark:bg-emerald-900 overflow-hidden">
                     <div 
                       className="h-full bg-emerald-600 dark:bg-emerald-400 rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min(100, (Number(cart?.subtotal || 0) / Number(storeSettings.free_delivery_threshold)) * 100)}%` }}
+                      style={{ width: `${Math.min(100, (itemsTotal / freeThreshold) * 100)}%` }}
                     />
                   </div>
                 </div>
@@ -1012,6 +1012,8 @@ export function CartPage() {
                 const isItemOutOfStock = item.is_in_stock === false || stockQty <= 0;
                 const maxAllowed = maxOrderQty > 0 ? Math.min(stockQty, maxOrderQty) : stockQty;
                 const isMaxReached = isItemOutOfStock || item.quantity >= maxAllowed;
+                const unitPriceNum = parseFloat(item.unit_price || 0);
+                const itemLineTotal = (unitPriceNum * item.quantity).toFixed(2);
                 return (
                   <article key={item.id} className={`flex items-center gap-3.5 rounded-2xl bg-white dark:bg-slate-900 p-3.5 shadow-xs border transition-colors ${isItemOutOfStock ? 'border-red-200 bg-red-50/20 dark:bg-red-950/20' : 'border-slate-200/80 dark:border-slate-800'}`}>
                     <div className="grid size-14 place-items-center rounded-xl bg-emerald-50 dark:bg-emerald-950/50 font-black text-lg text-emerald-700 dark:text-emerald-400 shrink-0">
@@ -1019,7 +1021,15 @@ export function CartPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-bold text-slate-900 dark:text-white text-sm sm:text-base">{item.product_name}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">₹{item.unit_price} · {item.product_unit}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                        ₹{item.unit_price} · {item.product_unit}
+                        {item.regular_price && Number(item.regular_price) > unitPriceNum && (
+                          <span className="ml-1.5 line-through text-slate-400 text-[11px]">₹{item.regular_price}</span>
+                        )}
+                        {item.quantity > 1 && (
+                          <span className="ml-1.5 text-slate-700 dark:text-slate-300 font-bold">· ₹{itemLineTotal}</span>
+                        )}
+                      </p>
                       {isItemOutOfStock && (
                         <span className="inline-block mt-1 text-[10px] font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/60 px-2 py-0.5 rounded-md border border-red-200 dark:border-red-900">
                           Out of Stock · Please remove
@@ -1060,12 +1070,53 @@ export function CartPage() {
               <section className="rounded-2xl bg-white dark:bg-slate-900 p-4 sm:p-5 shadow-xs border border-slate-200/80 dark:border-slate-800">
                 <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white mb-3.5">Bill Details</h2>
                 <div className="space-y-2.5 text-xs sm:text-sm">
-                  <div className="flex justify-between text-slate-600 dark:text-slate-400 font-medium"><span>Item Subtotal</span><span className="text-slate-900 dark:text-white font-bold">₹{cart?.subtotal || '0.00'}</span></div>
-                  <div className="flex justify-between text-emerald-700 dark:text-emerald-400 font-medium"><span>Product Savings</span><span className="font-bold">₹{cart?.discount || '0.00'}</span></div>
-                  {cart?.promo_discount > 0 && <div className="flex justify-between text-emerald-600 font-bold"><span>Promo Discount</span><span>- ₹{cart.promo_discount}</span></div>}
-                  {cart?.packaging_fee > 0 && <div className="flex justify-between text-slate-600 dark:text-slate-400 font-medium"><span>Packaging Fee</span><span className="text-slate-900 dark:text-white font-bold">₹{cart.packaging_fee}</span></div>}
+                  {discount > 0 ? (
+                    <>
+                      <div className="flex justify-between text-slate-600 dark:text-slate-400 font-medium">
+                        <span>Item MRP Total</span>
+                        <span className="text-slate-900 dark:text-white font-bold">₹{mrpTotal.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-emerald-700 dark:text-emerald-400 font-medium">
+                        <span>Product Savings</span>
+                        <span className="font-bold">- ₹{discount.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-slate-600 dark:text-slate-400 font-medium border-t border-dashed border-slate-200 dark:border-slate-800 pt-1.5">
+                        <span>Item Subtotal</span>
+                        <span className="text-slate-900 dark:text-white font-bold">₹{itemsTotal.toFixed(2)}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex justify-between text-slate-600 dark:text-slate-400 font-medium">
+                      <span>Item Subtotal</span>
+                      <span className="text-slate-900 dark:text-white font-bold">₹{itemsTotal.toFixed(2)}</span>
+                    </div>
+                  )}
+
+                  {promoDiscount > 0 && (
+                    <div className="flex justify-between text-emerald-600 font-bold">
+                      <span>Promo Discount</span>
+                      <span>- ₹{promoDiscount.toFixed(2)}</span>
+                    </div>
+                  )}
+
+                  {packagingFee > 0 && (
+                    <div className="flex justify-between text-slate-600 dark:text-slate-400 font-medium">
+                      <span>Packaging Fee</span>
+                      <span className="text-slate-900 dark:text-white font-bold">₹{packagingFee.toFixed(2)}</span>
+                    </div>
+                  )}
                 </div>
-                <div className="mt-4 flex justify-between border-t border-slate-100 dark:border-slate-800 pt-3.5 text-lg font-black text-slate-900 dark:text-white"><span>Total Payable</span><span className="text-emerald-600 dark:text-emerald-400">₹{cart?.total || '0.00'}</span></div>
+
+                <div className="mt-4 flex justify-between border-t border-slate-100 dark:border-slate-800 pt-3.5 text-lg font-black text-slate-900 dark:text-white">
+                  <span>Total Payable</span>
+                  <span className="text-emerald-600 dark:text-emerald-400">₹{totalPayable.toFixed(2)}</span>
+                </div>
+
+                {discount > 0 && (
+                  <div className="mt-3 py-2 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-center text-xs font-black text-emerald-800 dark:text-emerald-300">
+                    🎉 You are saving ₹{discount.toFixed(2)} on this order!
+                  </div>
+                )}
 
                 {storeSettings?.is_open === false ? (
                   <div className="mt-4 rounded-xl bg-red-50 dark:bg-red-950/40 p-3.5 text-center font-bold text-red-700 dark:text-red-300 border border-red-100 dark:border-red-900 text-xs sm:text-sm">The store is currently closed.</div>
@@ -1081,8 +1132,8 @@ export function CartPage() {
                   <div className="mt-4 rounded-xl bg-red-50 dark:bg-red-950/60 p-3.5 text-center font-bold text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900 text-xs sm:text-sm">
                     Remove out-of-stock items before checkout
                   </div>
-                ) : Number(storeSettings?.min_order_amount) > 0 && Number(cart.subtotal) < Number(storeSettings.min_order_amount) ? (
-                  <div className="mt-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 p-3.5 text-center font-bold text-amber-700 dark:text-amber-300 border border-amber-100 dark:border-amber-800 text-xs sm:text-sm">Minimum order amount is ₹{storeSettings.min_order_amount}</div>
+                ) : isBelowMinOrder ? (
+                  <div className="mt-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 p-3.5 text-center font-bold text-amber-700 dark:text-amber-300 border border-amber-100 dark:border-amber-800 text-xs sm:text-sm">Minimum order amount is ₹{minOrderAmount.toFixed(0)}</div>
                 ) : (
                   <>
                     <button onClick={() => navigate('/checkout')} className="mt-4 w-full min-h-[46px] rounded-xl bg-emerald-600 hover:bg-emerald-700 font-black text-white shadow-md shadow-emerald-600/20 transition-all active:scale-[0.98] text-sm sm:text-base py-3 cursor-pointer flex items-center justify-center gap-2">
@@ -1095,12 +1146,12 @@ export function CartPage() {
             </div>
 
             {/* Mobile Sticky Checkout Bar (strictly mobile: lg:hidden) */}
-            {storeSettings?.is_open !== false && !isEmergencyPaused && !isClosedHours && !hasOutOfStock && !(Number(storeSettings?.min_order_amount) > 0 && Number(cart.subtotal) < Number(storeSettings.min_order_amount)) && items.length > 0 && (
+            {storeSettings?.is_open !== false && !isEmergencyPaused && !isClosedHours && !hasOutOfStock && !isBelowMinOrder && items.length > 0 && (
               <div className="lg:hidden fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] inset-x-0 z-30 bg-white/95 dark:bg-[#0c1220]/95 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 py-3 px-4 shadow-[0_-10px_20px_-3px_rgba(0,0,0,0.1)]">
                 <div className="flex items-center justify-between gap-4 w-full">
                   <div>
                     <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Payable</p>
-                    <p className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400 leading-none mt-0.5">₹{cart?.total}</p>
+                    <p className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400 leading-none mt-0.5">₹{totalPayable.toFixed(2)}</p>
                   </div>
                   <button onClick={() => navigate('/checkout')} className="flex-1 min-h-[44px] py-2.5 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] font-black text-white shadow-md shadow-emerald-600/20 transition-all text-sm sm:text-base flex items-center justify-center gap-2 cursor-pointer">
                     Proceed to Checkout →
@@ -1253,18 +1304,20 @@ export function CheckoutPage() {
 
  if (!isCustomer) return <CartPage />;
  
- const cartSubtotal = parseFloat(cart?.subtotal || 0);
- const isDeliveryUnderMin = orderType === 'DELIVERY' && parseFloat(storeSettings?.min_delivery_order_amount) > 0 && cartSubtotal < parseFloat(storeSettings.min_delivery_order_amount);
+  const mrpTotal = parseFloat(cart?.subtotal || 0);
+  const discount = parseFloat(cart?.discount || 0);
+  const itemsTotal = parseFloat(cart?.items_total || 0) || Math.max(0, mrpTotal - discount);
+  const isDeliveryUnderMin = orderType === 'DELIVERY' && parseFloat(storeSettings?.min_delivery_order_amount) > 0 && itemsTotal < parseFloat(storeSettings.min_delivery_order_amount);
 
- let deliveryFee = 0;
- if (orderType === 'DELIVERY' && storeSettings?.is_home_delivery_active) {
-   if (parseFloat(storeSettings.free_delivery_threshold) > 0 && cartSubtotal >= parseFloat(storeSettings.free_delivery_threshold)) {
-     deliveryFee = 0;
-   } else {
-     deliveryFee = parseFloat(storeSettings.delivery_fee || 0);
-   }
- }
- const cartTotal = parseFloat(cart?.total || 0) + deliveryFee;
+  let deliveryFee = 0;
+  if (orderType === 'DELIVERY' && storeSettings?.is_home_delivery_active) {
+    if (parseFloat(storeSettings.free_delivery_threshold) > 0 && itemsTotal >= parseFloat(storeSettings.free_delivery_threshold)) {
+      deliveryFee = 0;
+    } else {
+      deliveryFee = parseFloat(storeSettings.delivery_fee || 0);
+    }
+  }
+  const cartTotal = parseFloat(cart?.total || 0) + deliveryFee;
 
  // Max wallet percentage limit
  const maxWalletPercentage = storeSettings?.max_wallet_usage_percentage != null && Number(storeSettings.max_wallet_usage_percentage) > 0 
@@ -1797,21 +1850,52 @@ export function CheckoutPage() {
 
           {/* Order Summary breakdown */}
           <div className="mt-5 space-y-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300 border-t border-slate-100 dark:border-slate-800 pt-4">
-            <div className="flex justify-between"><span>Subtotal</span><span className="font-bold text-slate-900 dark:text-white">₹{cart?.subtotal || '0.00'}</span></div>
-            <div className="flex justify-between text-primary-700 dark:text-primary-400"><span>Product Savings</span><span>-₹{cart?.discount || '0.00'}</span></div>
-            {cart?.promo_discount > 0 && <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-bold"><span>Promo Discount</span><span>-₹{cart.promo_discount}</span></div>}
-            {cart?.packaging_fee > 0 && <div className="flex justify-between"><span>Packaging Fee</span><span>₹{cart.packaging_fee}</span></div>}
+            {discount > 0 && (
+              <div className="flex justify-between text-slate-500 dark:text-slate-400">
+                <span>Item MRP Total</span>
+                <span className="font-semibold text-slate-700 dark:text-slate-300 line-through">₹{mrpTotal.toFixed(2)}</span>
+              </div>
+            )}
+            {discount > 0 && (
+              <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-bold">
+                <span>Product Savings</span>
+                <span>- ₹{discount.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-slate-700 dark:text-slate-200">
+              <span className="font-medium">{discount > 0 ? 'Item Subtotal' : 'Subtotal'}</span>
+              <span className="font-bold text-slate-900 dark:text-white">₹{itemsTotal.toFixed(2)}</span>
+            </div>
+            {parseFloat(cart?.promo_discount || 0) > 0 && (
+              <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-bold">
+                <span>Promo Discount</span>
+                <span>- ₹{parseFloat(cart.promo_discount).toFixed(2)}</span>
+              </div>
+            )}
+            {parseFloat(cart?.packaging_fee || 0) > 0 && (
+              <div className="flex justify-between">
+                <span>Packaging Fee</span>
+                <span>₹{parseFloat(cart.packaging_fee).toFixed(2)}</span>
+              </div>
+            )}
             {orderType === 'DELIVERY' && (
               <div className="flex justify-between">
                 <span>Delivery Fee</span>
                 <span className={deliveryFee === 0 ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'font-bold'}>
-                  {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}
+                  {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee.toFixed(2)}`}
                 </span>
               </div>
             )}
             {useWallet && walletApplied > 0 && (
               <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-bold">
-                <span>Wallet Applied</span><span>-₹{walletApplied.toFixed(2)}</span>
+                <span>Wallet Applied</span>
+                <span>- ₹{walletApplied.toFixed(2)}</span>
+              </div>
+            )}
+            {(discount > 0 || parseFloat(cart?.promo_discount || 0) > 0) && (
+              <div className="py-2 px-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center justify-between">
+                <span>🎉 Total Savings on this order:</span>
+                <span>₹{(discount + parseFloat(cart?.promo_discount || 0)).toFixed(2)}</span>
               </div>
             )}
             <div className="flex justify-between text-base sm:text-lg font-black text-slate-900 dark:text-white pt-2.5 border-t border-slate-100 dark:border-slate-800">
@@ -1833,7 +1917,7 @@ export function CheckoutPage() {
             <div className="mt-5 rounded-xl bg-rose-50 dark:bg-rose-950/40 p-4 text-center font-bold text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs sm:text-sm">
               Store Outside Operating Hours: {operatingHours.message}
             </div>
-          ) : Number(storeSettings?.min_order_amount) > 0 && Number(cart.subtotal) < Number(storeSettings.min_order_amount) ? (
+          ) : Number(storeSettings?.min_order_amount) > 0 && itemsTotal < Number(storeSettings.min_order_amount) ? (
             <div className="mt-5 rounded-xl bg-amber-50 dark:bg-amber-950/40 p-4 text-center font-bold text-amber-700 dark:text-amber-300 border border-amber-100 dark:border-amber-900/50 text-xs sm:text-sm">
               Minimum order amount is ₹{storeSettings.min_order_amount}
             </div>

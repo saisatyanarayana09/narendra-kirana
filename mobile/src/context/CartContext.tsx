@@ -7,18 +7,7 @@ export const GUEST_CART_KEY = 'smart_kirana_guest_cart';
 
 export interface CartItem {
   id: number;
-  product: {
-    id: number;
-    name: string;
-    price: string;
-    mrp: string | null;
-    is_in_stock: boolean;
-    image: string | null;
-    unit?: string;
-    stock_quantity?: number;
-    max_order_quantity?: number;
-    [key: string]: any;
-  };
+  product: any;
   quantity: number;
   subtotal: string;
   product_name?: string;
@@ -28,12 +17,14 @@ export interface CartItem {
   stock_quantity?: number;
   max_order_quantity?: number;
   unit_price?: string;
+  regular_price?: string;
 }
 
 export interface CartData {
   id?: number;
   items: CartItem[];
   subtotal: string;
+  items_total?: string;
   discount: string;
   promo_code: string | null;
   promo_discount: string;
@@ -100,6 +91,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return {
       items: computedItems,
       subtotal: regularTotalNum > 0 ? regularTotalNum.toFixed(2) : offerTotalNum.toFixed(2),
+      items_total: offerTotalNum.toFixed(2),
       discount: discountNum.toFixed(2),
       promo_code: null,
       promo_discount: '0.00',
@@ -390,8 +382,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       let newOfferSubtotal = 0;
       let newRegularSubtotal = 0;
       updatedItems.forEach((i) => {
-        const offerP = parseFloat(i.unit_price || i.product?.price || '0');
-        const regP = parseFloat(i.product?.mrp || i.product?.regular_price || i.unit_price || i.product?.price || '0');
+        const pObj = typeof i.product === 'object' && i.product !== null ? i.product : null;
+        const offerP = parseFloat(i.unit_price || pObj?.price || '0');
+        const regP = parseFloat(i.regular_price || pObj?.mrp || pObj?.regular_price || i.unit_price || pObj?.price || '0');
         newOfferSubtotal += offerP * i.quantity;
         newRegularSubtotal += regP * i.quantity;
       });
@@ -403,6 +396,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         ...cart,
         items: updatedItems,
         subtotal: newRegularSubtotal > 0 ? newRegularSubtotal.toFixed(2) : newOfferSubtotal.toFixed(2),
+        items_total: newOfferSubtotal.toFixed(2),
         discount: Math.max(0, newRegularSubtotal - newOfferSubtotal).toFixed(2),
         total: newTotal.toFixed(2),
       });
@@ -444,9 +438,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const prevCart = cart;
     if (cart?.items) {
       const updatedItems = cart.items.filter((item) => item.id !== itemId);
+      let newOfferSubtotal = 0;
+      let newRegularSubtotal = 0;
+      updatedItems.forEach((i) => {
+        const pObj = typeof i.product === 'object' && i.product !== null ? i.product : null;
+        const offerP = parseFloat(i.unit_price || pObj?.price || '0');
+        const regP = parseFloat(i.regular_price || pObj?.mrp || pObj?.regular_price || i.unit_price || pObj?.price || '0');
+        newOfferSubtotal += offerP * i.quantity;
+        newRegularSubtotal += regP * i.quantity;
+      });
+      const packaging = updatedItems.length > 0 ? parseFloat(cart.packaging_fee || '0') : 0;
+      const promo = parseFloat(cart.promo_discount || '0');
+      const newTotal = Math.max(0, newOfferSubtotal - promo) + packaging;
+
       setCart({
         ...cart,
         items: updatedItems,
+        subtotal: newRegularSubtotal > 0 ? newRegularSubtotal.toFixed(2) : newOfferSubtotal.toFixed(2),
+        items_total: newOfferSubtotal.toFixed(2),
+        discount: Math.max(0, newRegularSubtotal - newOfferSubtotal).toFixed(2),
+        total: newTotal.toFixed(2),
       });
     }
 
@@ -466,6 +477,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setCart({
         items: [],
         subtotal: '0.00',
+        items_total: '0.00',
         discount: '0.00',
         promo_code: null,
         promo_discount: '0.00',

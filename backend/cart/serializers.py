@@ -17,12 +17,13 @@ class CartItemSerializer(serializers.ModelSerializer):
     stock_quantity = serializers.IntegerField(source='product.stock_quantity', read_only=True)
     max_order_quantity = serializers.IntegerField(source='product.max_order_quantity', read_only=True)
     quantity = serializers.IntegerField(min_value=1, required=False)
+    regular_price = serializers.DecimalField(source='product.regular_price', max_digits=10, decimal_places=2, read_only=True)
     unit_price = serializers.SerializerMethodField()
     subtotal = serializers.SerializerMethodField()
 
     class Meta:
         model = CartItem
-        fields = ['id', 'product', 'product_name', 'product_unit', 'product_image', 'is_in_stock', 'stock_quantity', 'max_order_quantity', 'quantity', 'unit_price', 'subtotal']
+        fields = ['id', 'product', 'product_name', 'product_unit', 'product_image', 'is_in_stock', 'stock_quantity', 'max_order_quantity', 'quantity', 'regular_price', 'unit_price', 'subtotal']
         read_only_fields = ['id']
 
     def get_unit_price(self, item):
@@ -42,13 +43,14 @@ class CartSerializer(serializers.ModelSerializer):
     promo_code = serializers.CharField(source='promo_code.code', read_only=True)
     promo_discount = serializers.SerializerMethodField()
     subtotal = serializers.SerializerMethodField()
+    items_total = serializers.SerializerMethodField()
     discount = serializers.SerializerMethodField()
     packaging_fee = serializers.SerializerMethodField()
     total = serializers.SerializerMethodField()
 
     class Meta:
         model = Cart
-        fields = ['id', 'items', 'promo_code', 'promo_discount', 'subtotal', 'discount', 'packaging_fee', 'total', 'updated_at']
+        fields = ['id', 'items', 'promo_code', 'promo_discount', 'subtotal', 'items_total', 'discount', 'packaging_fee', 'total', 'updated_at']
 
     def _items(self, cart):
         if not hasattr(cart, '_prefetched_items'):
@@ -57,6 +59,9 @@ class CartSerializer(serializers.ModelSerializer):
 
     def get_subtotal(self, cart):
         return sum((item.product.regular_price * item.quantity for item in self._items(cart)), Decimal('0.00'))
+
+    def get_items_total(self, cart):
+        return sum((current_price(item.product) * item.quantity for item in self._items(cart)), Decimal('0.00'))
 
     def get_discount(self, cart):
         return sum(((item.product.regular_price - current_price(item.product)) * item.quantity for item in self._items(cart)), Decimal('0.00'))

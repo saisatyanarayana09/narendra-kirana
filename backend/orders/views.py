@@ -191,7 +191,8 @@ class OrderViewSet(ModelViewSet):
                     'detail': f'The selected time slot "{chosen_slot_label}" on {chosen_slot_date} is fully booked ({active_slot_orders}/{max_slot_cap} orders). Please choose another slot.'
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-        subtotal = Decimal(str(cart_data['subtotal']))
+        items_total = Decimal(str(cart_data.get('items_total', cart_data['subtotal'])))
+        subtotal = items_total
         if subtotal < settings.min_order_amount:
             return Response({'detail': f'Minimum order amount is Rs. {settings.min_order_amount}.'}, status=status.HTTP_400_BAD_REQUEST)
 

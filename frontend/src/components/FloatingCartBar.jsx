@@ -19,12 +19,14 @@ export function FloatingCartBar() {
 
   // Calculate accurate total price
   const rawSubtotal = items.reduce((sum, item) => {
-    const p = item.product || {};
-    const price = parseFloat(p.offer_price || p.price || p.regular_price || 0);
+    const itemSub = parseFloat(item.subtotal || 0);
+    if (itemSub > 0) return sum + itemSub;
+    const p = typeof item.product === 'object' && item.product !== null ? item.product : {};
+    const price = parseFloat(item.unit_price || p.offer_price || p.price || p.regular_price || 0);
     return sum + price * (item.quantity || 1);
   }, 0);
 
-  const totalAmount = parseFloat(cart?.total || cart?.subtotal || rawSubtotal) || rawSubtotal;
+  const totalAmount = parseFloat(cart?.items_total || cart?.total || rawSubtotal) || rawSubtotal;
   const freeThreshold = parseFloat(storeSettings?.free_delivery_threshold || '0');
   const isFreeDelivery = freeThreshold > 0 && totalAmount >= freeThreshold;
   const shortfall = freeThreshold > 0 && !isFreeDelivery ? freeThreshold - totalAmount : 0;

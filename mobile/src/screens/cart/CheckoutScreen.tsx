@@ -221,19 +221,21 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
     'We are currently experiencing high order volume and will resume shortly. Thank you for your patience!';
   const isStoreClosed = storeSettings?.is_open === false;
 
+  const mrpTotal = parseFloat(cart?.subtotal || '0') || 0;
+  const discount = parseFloat(cart?.discount || '0') || 0;
+  const itemsTotal = parseFloat(cart?.items_total || '0') || Math.max(0, mrpTotal - discount);
   const minOrderAmount = parseFloat(storeSettings?.min_order_amount || '0') || 0;
-  const cartSubtotal = parseFloat(cart?.subtotal || '0') || 0;
-  const isBelowMinOrder = minOrderAmount > 0 && cartSubtotal < minOrderAmount;
+  const isBelowMinOrder = minOrderAmount > 0 && itemsTotal < minOrderAmount;
 
   const isHomeDeliveryActive = storeSettings?.is_home_delivery_active !== false;
   const minDeliveryAmount = parseFloat(storeSettings?.min_delivery_order_amount || '0') || 0;
-  const isBelowMinDelivery = orderType === 'DELIVERY' && minDeliveryAmount > 0 && cartSubtotal < minDeliveryAmount;
+  const isBelowMinDelivery = orderType === 'DELIVERY' && minDeliveryAmount > 0 && itemsTotal < minDeliveryAmount;
 
   // Dynamic delivery fee calculation matching store settings
   let deliveryFee = 0;
   if (orderType === 'DELIVERY' && isHomeDeliveryActive) {
     const freeThreshold = parseFloat(storeSettings?.free_delivery_threshold || '0') || 0;
-    if (freeThreshold > 0 && cartSubtotal >= freeThreshold) {
+    if (freeThreshold > 0 && itemsTotal >= freeThreshold) {
       deliveryFee = 0;
     } else {
       deliveryFee = parseFloat(storeSettings?.delivery_fee || '0') || 0;
@@ -1163,19 +1165,28 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={[styles.cardTitle, { color: colors.text }]}>Order Summary</Text>
           
-          <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Subtotal</Text>
-            <Text style={[styles.summaryValue, { color: colors.text }]}>₹{(cartSubtotal || 0).toFixed(2)}</Text>
-          </View>
+          {discount > 0 && (
+            <View style={styles.summaryRow}>
+              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Item MRP Total</Text>
+              <Text style={[styles.mrpStrikeText, { color: colors.textSecondary }]}>₹{mrpTotal.toFixed(2)}</Text>
+            </View>
+          )}
 
-          {parseFloat(cart?.discount || '0') > 0 && (
+          {discount > 0 && (
             <View style={styles.summaryRow}>
               <Text style={styles.savingsLabel}>Product Savings</Text>
               <Text style={styles.savingsValue}>
-                -₹{(parseFloat(cart?.discount || '0') || 0).toFixed(2)}
+                -₹{discount.toFixed(2)}
               </Text>
             </View>
           )}
+
+          <View style={styles.summaryRow}>
+            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
+              {discount > 0 ? 'Item Subtotal' : 'Subtotal'}
+            </Text>
+            <Text style={[styles.summaryValue, { color: colors.text }]}>₹{itemsTotal.toFixed(2)}</Text>
+          </View>
 
           {parseFloat(cart?.promo_discount || '0') > 0 && (
             <View style={styles.summaryRow}>
@@ -1204,6 +1215,15 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
             <View style={styles.summaryRow}>
               <Text style={styles.savingsLabel}>Wallet Applied</Text>
               <Text style={styles.savingsValue}>-₹{(walletApplied || 0).toFixed(2)}</Text>
+            </View>
+          )}
+
+          {(discount > 0 || parseFloat(cart?.promo_discount || '0') > 0) && (
+            <View style={[styles.savingsHighlightCard, isDark && { backgroundColor: 'rgba(16, 185, 129, 0.12)', borderColor: 'rgba(16, 185, 129, 0.3)' }]}>
+              <Feather name="gift" size={14} color="#059669" />
+              <Text style={styles.savingsHighlightText}>
+                You are saving ₹{(discount + (parseFloat(cart?.promo_discount || '0') || 0)).toFixed(2)} on this order!
+              </Text>
             </View>
           )}
 
@@ -1840,6 +1860,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#059669',
     fontWeight: '700',
+  },
+  mrpStrikeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    textDecorationLine: 'line-through',
+  },
+  savingsHighlightCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  savingsHighlightText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#059669',
+    flex: 1,
   },
   freeText: {
     color: '#059669',

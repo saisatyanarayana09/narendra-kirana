@@ -87,10 +87,12 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
   const isStoreClosed = storeSettings?.is_open === false;
   const isEmergencyPaused = Boolean(storeSettings?.is_emergency_paused);
   const emergencyPauseMessage = storeSettings?.emergency_pause_message || "We are currently experiencing high order volume and will resume shortly. Thank you for your patience!";
+  const mrpTotal = parseFloat(cart?.subtotal || '0') || 0;
+  const discount = parseFloat(cart?.discount || '0') || 0;
+  const itemsTotal = parseFloat(cart?.items_total || '0') || Math.max(0, mrpTotal - discount);
   const minOrderAmount = parseFloat(storeSettings?.min_order_amount || '0') || 0;
-  const cartSubtotal = parseFloat(cart?.subtotal || '0') || 0;
-  const isBelowMinOrder = minOrderAmount > 0 && cartSubtotal < minOrderAmount;
-  const minOrderShortfall = Math.max(0, minOrderAmount - cartSubtotal);
+  const isBelowMinOrder = minOrderAmount > 0 && itemsTotal < minOrderAmount;
+  const minOrderShortfall = Math.max(0, minOrderAmount - itemsTotal);
 
   const outOfStockItems = items.filter((item) => {
     const stockQty = item.stock_quantity ?? item.product?.stock_quantity ?? 999;
@@ -100,8 +102,8 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
   const hasOutOfStock = outOfStockItems.length > 0;
 
   const freeDeliveryThreshold = parseFloat(storeSettings?.free_delivery_threshold || '0') || 0;
-  const freeDeliveryGap = Math.max(0, freeDeliveryThreshold - cartSubtotal);
-  const freeDeliveryProgress = freeDeliveryThreshold > 0 ? Math.min(100, Math.round((cartSubtotal / freeDeliveryThreshold) * 100)) : 100;
+  const freeDeliveryGap = Math.max(0, freeDeliveryThreshold - itemsTotal);
+  const freeDeliveryProgress = freeDeliveryThreshold > 0 ? Math.min(100, Math.round((itemsTotal / freeDeliveryThreshold) * 100)) : 100;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -116,23 +118,6 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
           <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Your cart</Text>
-        {items.length > 0 && (
-          <TouchableOpacity
-            style={styles.clearBtn}
-            onPress={() => {
-              triggerHaptic('warning');
-              Alert.alert('Clear Cart', 'Are you sure you want to remove all items from your cart?', [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Clear All', style: 'destructive', onPress: () => clearCart() },
-              ]);
-            }}
-            activeOpacity={0.7}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Feather name="trash-2" size={15} color={isDark ? '#F87171' : '#EF4444'} />
-            <Text style={[styles.clearBtnText, { color: isDark ? '#F87171' : '#EF4444' }]}>Clear</Text>
-          </TouchableOpacity>
-        )}
       </View>
 
       <ScrollView 
@@ -198,7 +183,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
                 </Text>
               </View>
               <Text style={{ fontSize: 11, fontWeight: '700', color: freeDeliveryGap === 0 ? '#10B981' : colors.textSecondary }}>
-                {freeDeliveryGap === 0 ? 'FREE' : `₹${cartSubtotal.toFixed(0)} / ₹${freeDeliveryThreshold.toFixed(0)}`}
+                {freeDeliveryGap === 0 ? 'FREE' : `₹${itemsTotal.toFixed(0)} / ₹${freeDeliveryThreshold.toFixed(0)}`}
               </Text>
             </View>
             <View style={[styles.progressTrack, { backgroundColor: colors.inputBg }]}>
@@ -280,17 +265,26 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={[styles.cardTitle, { color: colors.text }]}>Order Summary</Text>
           
-          <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Subtotal</Text>
-            <Text style={[styles.summaryValue, { color: colors.text }]}>₹{(parseFloat(cart.subtotal || '0') || 0).toFixed(2)}</Text>
-          </View>
-
-          {parseFloat(cart?.discount || '0') > 0 && (
+          {discount > 0 && (
             <View style={styles.summaryRow}>
-              <Text style={styles.savingsLabel}>Product Savings</Text>
-              <Text style={styles.savingsValue}>-₹{(parseFloat(cart.discount || '0') || 0).toFixed(2)}</Text>
+              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Item MRP Total</Text>
+              <Text style={[styles.mrpStrikeText, { color: colors.textSecondary }]}>₹{mrpTotal.toFixed(2)}</Text>
             </View>
           )}
+
+          {discount > 0 && (
+            <View style={styles.summaryRow}>
+              <Text style={styles.savingsLabel}>Product Savings</Text>
+              <Text style={styles.savingsValue}>-₹{discount.toFixed(2)}</Text>
+            </View>
+          )}
+
+          <View style={styles.summaryRow}>
+            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
+              {discount > 0 ? 'Item Subtotal' : 'Subtotal'}
+            </Text>
+            <Text style={[styles.summaryValue, { color: colors.text }]}>₹{itemsTotal.toFixed(2)}</Text>
+          </View>
 
           {parseFloat(cart?.promo_discount || '0') > 0 && (
             <View style={styles.summaryRow}>
@@ -303,6 +297,15 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
             <View style={styles.summaryRow}>
               <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Packaging Fee</Text>
               <Text style={[styles.summaryValue, { color: colors.text }]}>₹{(parseFloat(cart.packaging_fee || '0') || 0).toFixed(2)}</Text>
+            </View>
+          )}
+
+          {(discount > 0 || parseFloat(cart?.promo_discount || '0') > 0) && (
+            <View style={[styles.savingsHighlightCard, isDark && { backgroundColor: 'rgba(16, 185, 129, 0.12)', borderColor: 'rgba(16, 185, 129, 0.3)' }]}>
+              <Feather name="gift" size={14} color="#059669" />
+              <Text style={styles.savingsHighlightText}>
+                You are saving ₹{(discount + (parseFloat(cart?.promo_discount || '0') || 0)).toFixed(2)} on this order!
+              </Text>
             </View>
           )}
 
@@ -437,21 +440,29 @@ const styles: any = StyleSheet.create({
     borderBottomColor: '#F1F5F9',
     position: 'relative',
   },
-  clearBtn: {
-    position: 'absolute',
-    right: 16,
-    bottom: 12,
+  mrpStrikeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    textDecorationLine: 'line-through',
+  },
+  savingsHighlightCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    backgroundColor: '#FEF2F2',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginTop: 8,
+    marginBottom: 4,
   },
-  clearBtnText: {
-    fontSize: 13,
+  savingsHighlightText: {
+    fontSize: 12,
     fontWeight: '700',
-    color: '#EF4444',
+    color: '#059669',
+    flex: 1,
   },
   outOfStockBanner: {
     backgroundColor: '#FEF2F2',
