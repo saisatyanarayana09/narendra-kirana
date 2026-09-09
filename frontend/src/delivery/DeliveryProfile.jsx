@@ -28,7 +28,7 @@ export default function DeliveryProfile() {
     localStorage.removeItem('smart-kirana-delivery-token');
     localStorage.removeItem('smart-kirana-delivery-refresh');
     localStorage.removeItem('smart-kirana-delivery-user');
-    navigate('/delivery/login');
+    navigate('/login');
   };
 
   if (loading) {

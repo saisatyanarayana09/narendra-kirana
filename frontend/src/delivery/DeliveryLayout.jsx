@@ -87,13 +87,13 @@ export default function DeliveryLayout() {
     localStorage.removeItem('smart-kirana-delivery-token');
     localStorage.removeItem('smart-kirana-delivery-refresh');
     localStorage.removeItem('smart-kirana-delivery-user');
-    navigate(isDeliveryDomain ? '/login' : '/delivery/login');
+    navigate('/login');
   };
 
   const navItems = [
-    { label: 'Active Trips', path: isDeliveryDomain ? '/' : '/delivery', icon: Truck, badge: activeCount > 0 ? activeCount : null },
-    { label: 'Trip History', path: isDeliveryDomain ? '/history' : '/delivery/history', icon: CheckCircle2 },
-    { label: 'Profile', path: isDeliveryDomain ? '/profile' : '/delivery/profile', icon: User },
+    { label: 'Active Trips', path: '/', icon: Truck, badge: activeCount > 0 ? activeCount : null },
+    { label: 'Trip History', path: '/history', icon: CheckCircle2 },
+    { label: 'Profile', path: '/profile', icon: User },
   ];
 
   const riderName = partnerUser?.first_name 
@@ -107,7 +107,7 @@ export default function DeliveryLayout() {
         <div className="w-full flex items-center justify-between gap-4">
           
           {/* Rider Identity */}
-          <Link to={isDeliveryDomain ? '/profile' : '/delivery/profile'} className="flex items-center gap-3 group min-w-0">
+          <Link to="/profile" className="flex items-center gap-3 group min-w-0">
             <div className="relative shrink-0">
               <div className="size-11 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 p-0.5 shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform">
                 <div className="size-full bg-slate-950 rounded-[14px] flex items-center justify-center font-black text-emerald-400 text-sm">

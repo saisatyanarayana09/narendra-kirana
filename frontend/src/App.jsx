@@ -394,13 +394,9 @@ function App() {
 
                   <Route path="/owner/orders/:id/invoice" element={<Guard><Invoice /></Guard>} />
 
-                  {/* Delivery Partner Web Portal Routes */}
-                  <Route path="/delivery/login" element={<DeliveryLogin />} />
-                  <Route path="/delivery" element={<DeliveryGuard><DeliveryLayout /></DeliveryGuard>}>
-                    <Route index element={<DeliveryDashboard />} />
-                    <Route path="history" element={<DeliveryHistory />} />
-                    <Route path="profile" element={<DeliveryProfile />} />
-                  </Route>
+                  {/* Delivery Partner routes removed from customer domain - redirects to root */}
+                  <Route path="/delivery/*" element={<Navigate to="/" replace />} />
+                  <Route path="/delivery" element={<Navigate to="/" replace />} />
 
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>

@@ -4,9 +4,10 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'https://narendra-kirana.onrender.com/api/v1',
 });
 
-// Helper to get token prefix based on URL
+// Helper to get token prefix based on URL or domain
 const getPrefix = () => {
   if (typeof window !== 'undefined') {
+    if (window.location.hostname.includes('delivery')) return 'smart-kirana-delivery';
     if (window.location.pathname.startsWith('/owner')) return 'smart-kirana-owner';
     if (window.location.pathname.startsWith('/delivery')) return 'smart-kirana-delivery';
   }
@@ -83,7 +84,7 @@ api.interceptors.response.use(
         if (prefix === 'smart-kirana-owner') {
           window.location.href = '/owner/login';
         } else if (prefix === 'smart-kirana-delivery') {
-          window.location.href = '/delivery/login';
+          window.location.href = window.location.hostname.includes('delivery') ? '/login' : 'https://narendra-kirana-delivery.vercel.app/login';
         }
         return Promise.reject(error);
       }
@@ -114,7 +115,7 @@ api.interceptors.response.use(
         if (prefix === 'smart-kirana-owner') {
           window.location.href = '/owner/login';
         } else if (prefix === 'smart-kirana-delivery') {
-          window.location.href = '/delivery/login';
+          window.location.href = window.location.hostname.includes('delivery') ? '/login' : 'https://narendra-kirana-delivery.vercel.app/login';
         }
         return Promise.reject(error);
       }
@@ -152,7 +153,7 @@ api.interceptors.response.use(
         if (prefix === 'smart-kirana-owner') {
           window.location.href = '/owner/login';
         } else if (prefix === 'smart-kirana-delivery') {
-          window.location.href = '/delivery/login';
+          window.location.href = window.location.hostname.includes('delivery') ? '/login' : 'https://narendra-kirana-delivery.vercel.app/login';
         }
         return Promise.reject(refreshErr);
       } finally {
