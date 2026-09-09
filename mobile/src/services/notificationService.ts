@@ -1,21 +1,34 @@
 import { Platform } from 'react-native';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { apiClient } from '../api/client';
 import { getItem, saveItem, deleteItem } from '../utils/storage';
 
 const PUSH_TOKEN_KEY = 'user_device_push_token';
 
+/**
+ * Detect if currently running inside the Expo Go app client.
+ * Starting in Expo SDK 53, remote FCM push notifications are not supported in Expo Go on Android.
+ */
+export const isExpoGo =
+  Constants?.appOwnership === 'expo' ||
+  Constants?.executionEnvironment === ExecutionEnvironment.StoreClient;
+
 // Configure how notifications appear when app is in foreground
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+try {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+} catch (handlerErr) {
+  console.log('[NotificationService] Notice: setNotificationHandler setup skipped:', handlerErr);
+}
 
 /**
  * Configure high-priority Android notification channels for order updates
@@ -39,13 +52,16 @@ export async function setupNotificationChannels(): Promise<void> {
         sound: 'default',
       });
     } catch (error) {
-      console.warn('[NotificationService] Error setting up Android channels:', error);
+      console.log('[NotificationService] Notice: Android notification channels skipped (safe in Expo Go):', error);
     }
   }
 }
 
 /**
- * Requests push permissions and registers the Expo push token with the Django backend
+ * Requests push permissions and registers the Expo push token with the Django backend.
+ * In Expo Go on Android (Expo SDK 53+), remote push notifications are not supported
+ * by the prebuilt Expo Go client. In that case, this function gracefully logs a notice
+ * and returns null without throwing, preserving full functionality for development and production builds.
  */
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
   let token: string | null = null;
@@ -54,9 +70,18 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
     // Setup Android channels first
     await setupNotificationChannels();
 
-    // Check if running on a physical device (Expo push tokens require physical device)
+    // In Expo Go on Android, remote push notification tokens are restricted by Expo SDK 53+
+    if (isExpoGo && Platform.OS === 'android') {
+      console.log(
+        '[NotificationService] Notice: Remote push tokens are disabled in Expo Go on Android (Expo SDK 53+ requirement). Skipping remote token registration; local notifications and in-app updates remain fully active. For remote push on physical device, use a development build (expo-dev-client) or standalone APK.'
+      );
+      return null;
+    }
+
+    // Check if running on a physical device (push tokens require physical device)
     if (!Device.isDevice) {
-      console.log('[NotificationService] Running in emulator/simulator. Push notifications may be simulated.');
+      console.log('[NotificationService] Running in emulator/simulator. Remote push tokens unavailable.');
+      return null;
     }
 
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
@@ -72,9 +97,23 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
       return null;
     }
 
-    // Get Expo push token
-    const pushTokenData = await Notifications.getExpoPushTokenAsync();
-    token = pushTokenData.data;
+    // Safely retrieve Expo push token
+    try {
+      const projectId =
+        Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
+
+      const pushTokenData = projectId
+        ? await Notifications.getExpoPushTokenAsync({ projectId })
+        : await Notifications.getExpoPushTokenAsync();
+
+      token = pushTokenData?.data || null;
+    } catch (tokenErr: any) {
+      console.log(
+        '[NotificationService] Could not obtain push token (safe fallback for Expo Go without EAS credentials):',
+        tokenErr?.message || tokenErr
+      );
+      return null;
+    }
 
     if (token) {
       // Check if already registered to avoid redundant backend requests
@@ -118,8 +157,13 @@ export async function unregisterPushNotificationsAsync(): Promise<void> {
  */
 export function addNotificationReceivedListener(
   callback: (notification: Notifications.Notification) => void
-) {
-  return Notifications.addNotificationReceivedListener(callback);
+): { remove: () => void } {
+  try {
+    return Notifications.addNotificationReceivedListener(callback);
+  } catch (err) {
+    console.log('[NotificationService] Notice: addNotificationReceivedListener skipped:', err);
+    return { remove: () => {} };
+  }
 }
 
 /**
@@ -127,6 +171,11 @@ export function addNotificationReceivedListener(
  */
 export function addNotificationResponseReceivedListener(
   callback: (response: Notifications.NotificationResponse) => void
-) {
-  return Notifications.addNotificationResponseReceivedListener(callback);
+): { remove: () => void } {
+  try {
+    return Notifications.addNotificationResponseReceivedListener(callback);
+  } catch (err) {
+    console.log('[NotificationService] Notice: addNotificationResponseReceivedListener skipped:', err);
+    return { remove: () => {} };
+  }
 }

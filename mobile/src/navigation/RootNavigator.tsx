@@ -366,8 +366,8 @@ export function RootNavigator() {
     });
 
     return () => {
-      subscription.remove();
-      notifSub.remove();
+      subscription?.remove?.();
+      notifSub?.remove?.();
     };
   }, [user]);
 
