@@ -706,7 +706,7 @@ export function CustomerLayout({ children }) {
 
       {/* Original Header Restored */}
       <header className="sticky top-0 z-30 border-b border-slate-200/60 dark:border-slate-800 bg-white/90 dark:bg-[#0d1322]/90 backdrop-blur-xl shadow-xs transition-colors duration-200">
-        <div className="mx-auto flex w-full max-w-screen-2xl items-center justify-between px-4 py-3 sm:px-6 lg:px-12 gap-3 sm:gap-6">
+        <div className="mx-auto flex w-full items-center justify-between px-4 py-3 sm:px-6 lg:px-8 xl:px-12 gap-3 sm:gap-6">
           {/* Brand Logo & Text */}
           <Link to="/" className="text-2xl sm:text-3xl font-black tracking-tighter whitespace-nowrap shrink-0 drop-shadow-sm hover:opacity-80 transition-opacity">
             <span className="text-slate-800 dark:text-white">Narendra</span>

@@ -573,7 +573,7 @@ export function HomePage() {
 
     
 
-    <div className="relative z-10 mx-auto w-full max-w-screen-2xl px-4 py-6 sm:px-6 sm:py-8 lg:px-12">
+    <div className="relative z-10 w-full px-4 py-6 sm:px-6 sm:py-8 lg:px-8 xl:px-12">
 
     <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 mb-2">
 
@@ -605,7 +605,7 @@ export function HomePage() {
 
 
 
-  <main className="mx-auto w-full max-w-screen-2xl px-4 pb-5 sm:px-6 sm:pb-8 lg:px-12">
+  <main className="w-full px-4 pb-5 sm:px-6 sm:pb-8 lg:px-8 xl:px-12">
 
   
 
@@ -802,17 +802,17 @@ export function CategoriesPage() {
 
   return (
   <CustomerLayout>
-    <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-12">
+    <main className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-6 pb-24 md:pb-12">
     <div className="w-full mb-6 flex flex-col items-start gap-2">
       <button onClick={() => navigate(-1)} className="text-xs sm:text-sm font-bold text-slate-600 hover:underline bg-transparent border-none cursor-pointer p-0 flex items-center gap-1"><ArrowLeft size={16} /> Back</button>
       <h1 className="text-xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">All Categories</h1>
     </div>
     {loading ? (
-   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 sm:gap-4 w-full">
-   {Array.from({length: 16}).map((_, i) => <CategorySkeleton key={i} />)}
+   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-12 gap-3 sm:gap-4 w-full">
+   {Array.from({length: 24}).map((_, i) => <CategorySkeleton key={i} />)}
    </div>
    ) : (
-   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 sm:gap-4 w-full">
+   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-12 gap-3 sm:gap-4 w-full">
    {categories.map((category, index) => {
 
   return (
@@ -970,7 +970,7 @@ export function ProductsPage() {
 
   return (
   <CustomerLayout>
-    <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-12">
+    <main className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-6 pb-24 md:pb-12">
       <div className="-mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 bg-slate-50 dark:bg-slate-900/50 py-3 mb-6 border-b border-slate-200/60 dark:border-slate-800">
         <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar items-center">
           <Link to="/" className="flex shrink-0 items-center justify-center rounded-full bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 shadow-xs border border-slate-200/60 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition w-8 h-8 mr-1" aria-label="Back to home"><ArrowLeft size={16} /></Link>
@@ -1051,7 +1051,7 @@ export function ProductsPage() {
 
       {error && <p className="mt-4 rounded-xl bg-red-50 dark:bg-rose-950/40 p-3.5 text-xs sm:text-sm text-red-700 dark:text-rose-300 font-semibold">{error}</p>}
 
-      <div className="mt-3.5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 w-full">
+      <div className="mt-3.5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 gap-3 sm:gap-4 w-full">
         {loading ? Array.from({length: 12}).map((_, i) => <ProductSkeleton key={i} />) : sortedProducts.map((product, index) => <ProductCard key={product.id} product={product} priority={index < 6} />)}
       </div>
       
@@ -1117,7 +1117,7 @@ export function ProductDetailPage() {
   if (error) {
     return (
       <CustomerLayout>
-        <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+        <main className="w-full px-4 py-8 sm:px-6 lg:px-8 xl:px-12">
           <button
             onClick={() => navigate(-1)}
             className="group inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 transition-colors mb-6 bg-transparent border-none cursor-pointer"
@@ -1142,11 +1142,11 @@ export function ProductDetailPage() {
     );
   }
 
-  // Loading Skeleton State - EXACT same layout and max-w-4xl footprint for zero layout shift!
+  // Loading Skeleton State
   if (!product) {
     return (
       <CustomerLayout>
-        <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
+        <main className="w-full px-4 py-6 sm:px-6 lg:px-8 xl:px-12">
           <div className="h-5 w-20 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse mb-4" />
           <div className="overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-xs border border-slate-200/80 dark:border-slate-800 flex flex-col md:flex-row">
             <div className="w-full md:w-[380px] lg:w-[400px] shrink-0 bg-slate-50 dark:bg-slate-800/40 p-6 flex items-center justify-center border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800">
@@ -1183,7 +1183,7 @@ export function ProductDetailPage() {
 
   return (
     <CustomerLayout>
-      <main className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8 py-6 pb-36 md:pb-12">
+      <main className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-6 pb-36 md:pb-12">
         <button
           onClick={() => navigate(-1)}
           className="group inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 transition-colors mb-4 bg-transparent border-none cursor-pointer"
@@ -1191,7 +1191,7 @@ export function ProductDetailPage() {
           <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" /> Back
         </button>
 
-        <article className="overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-xs border border-slate-200/80 dark:border-slate-800 relative flex flex-col md:flex-row transition-colors">
+        <article className="overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-xs border border-slate-200/80 dark:border-slate-800 relative flex flex-col md:flex-row transition-colors w-full">
           {/* Stable Minimal Image Frame */}
           <div className="w-full md:w-1/2 bg-slate-50/80 dark:bg-slate-800/30 p-6 sm:p-10 flex flex-col items-center justify-center relative border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800/60">
             {discountPercent > 0 && (

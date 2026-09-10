@@ -914,7 +914,7 @@ export function CartPage() {
 
   return (
     <CustomerLayout>
-      <main className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8 py-6 pb-36 lg:pb-16">
+      <main className="mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-6 pb-36 lg:pb-16">
         <button onClick={() => navigate(-1)} className="mb-3 flex items-center gap-1.5 text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400 hover:underline bg-transparent border-0 cursor-pointer p-0">
           <ArrowLeft size={16} /> Back
         </button>
@@ -1402,7 +1402,7 @@ export function CheckoutPage() {
 
   return (
     <CustomerLayout>
-      <main className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-5 sm:py-8 pb-36 sm:pb-16">
+      <main className="mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-5 sm:py-8 pb-36 sm:pb-16">
         <button
           onClick={() => navigate(-1)}
           className="mb-3 inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400 hover:underline bg-transparent border-0 cursor-pointer"
@@ -2007,7 +2007,7 @@ export function OrderDetailPage() {
 
   return (
     <CustomerLayout>
-      <main className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-6 pb-24 md:pb-12">
+      <main className="mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-6 pb-24 md:pb-12">
         <button
           onClick={() => navigate(-1)}
           className="mb-4 flex items-center gap-2 text-sm font-bold text-primary-700 hover:underline bg-transparent border-none cursor-pointer p-0"

@@ -166,7 +166,7 @@ export default function ReferAndEarn() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-10 py-6">
+    <div className="w-full mx-auto space-y-10 py-6">
       
       {/* High-End Hero / Invite Card */}
       <div className="relative bg-[#0f172a] rounded-[2rem] p-8 sm:p-12 overflow-hidden shadow-2xl">

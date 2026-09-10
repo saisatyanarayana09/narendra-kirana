@@ -38,7 +38,7 @@ export default function Feedback() {
         </div>
       </div>
       
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-6 md:p-8 border border-slate-200 dark:border-slate-800 max-w-2xl">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-6 md:p-8 border border-slate-200 dark:border-slate-800 w-full">
         <form onSubmit={submit} className="space-y-6">
           <div>
             <label className="block text-sm font-bold text-slate-900 dark:text-white mb-3">Rate your overall experience</label>

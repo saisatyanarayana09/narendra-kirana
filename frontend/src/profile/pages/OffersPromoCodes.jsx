@@ -145,7 +145,7 @@ export default function OffersPromoCodes() {
 
       {/* Promo Cards Grid */}
       {!loading && promos.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           {promos.map((promo) => {
             const isCopied = copiedCode === promo.code;
             const minSpend = parseFloat(promo.min_order_amount) || 0;
