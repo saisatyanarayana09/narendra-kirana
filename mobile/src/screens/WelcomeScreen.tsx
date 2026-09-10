@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, Animated, ScrollView, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AuthStackParamList } from '../navigation/AuthStack';
+import type { AuthStackParamList } from '../navigation/AuthStack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
 

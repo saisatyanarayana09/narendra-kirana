@@ -7,6 +7,7 @@ import { useLanguage } from './context/LanguageContext'
 import { useSpeechRecognition, useTextToSpeech } from './hooks/useVoice'
 import api from './services/api'
 import { FloatingCartBar } from './components/FloatingCartBar'
+import { SmartAppBanner } from './components/SmartAppBanner'
 
 function GlobalSearchBar() {
   const [query, setQuery] = useState('');
@@ -445,8 +446,6 @@ function WelcomeScreen() {
   );
 }
 
-import { SmartAppBanner } from './components/SmartAppBanner';
-
 function TopAnnouncementMarquee({ settings }) {
   if (!settings?.enable_announcement_bar || !settings?.announcement_text) {
     return null;
@@ -838,3 +837,5 @@ export function CustomerLayout({ children }) {
     </div>
   );
 }
+
+export default CustomerLayout;

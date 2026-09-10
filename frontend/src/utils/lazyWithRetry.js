@@ -14,7 +14,23 @@ export function lazyWithRetry(componentImport) {
     const sessionKey = 'lazy_chunk_retry_timestamp';
     try {
       const component = await componentImport();
-      return component;
+      if (!component) {
+        return { default: () => null };
+      }
+      if (typeof component === 'function') {
+        return { default: component };
+      }
+      if (component.default) {
+        return component;
+      }
+      // Look for first exported function component
+      const keys = Object.keys(component);
+      for (const k of keys) {
+        if (typeof component[k] === 'function') {
+          return { default: component[k] };
+        }
+      }
+      return { default: () => null };
     } catch (error) {
       const isChunkLoadFailed =
         error?.name === 'ChunkLoadError' ||

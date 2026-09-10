@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
-import { AuthStackParamList } from '../../navigation/AuthStack';
+import type { AuthStackParamList } from '../../navigation/AuthStack';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
