@@ -292,6 +292,9 @@ export function MainTabs() {
         />
       </Tab.Navigator>
 
+      {/* Welcome Splash Screen on app launch */}
+      <WelcomeScreen onFinish={() => setIsWelcomeActive(false)} />
+
       {/* Floating Mini-Cart Bar rendered after Tab.Navigator only after welcome screen has completed */}
       {!isWelcomeActive && currentTab !== 'CartTab' && cartItemCount > 0 && !isDismissed && (
         <FloatingCartBar 

@@ -1309,12 +1309,14 @@ export function CheckoutPage() {
   const itemsTotal = parseFloat(cart?.items_total || 0) || Math.max(0, mrpTotal - discount);
   const isDeliveryUnderMin = orderType === 'DELIVERY' && parseFloat(storeSettings?.min_delivery_order_amount) > 0 && itemsTotal < parseFloat(storeSettings.min_delivery_order_amount);
 
+  const isHomeDeliveryActive = Boolean(storeSettings?.is_home_delivery_active || storeSettings?.delivery_mode === 'BOTH' || storeSettings?.delivery_mode === 'DELIVERY');
+
   let deliveryFee = 0;
-  if (orderType === 'DELIVERY' && storeSettings?.is_home_delivery_active) {
-    if (parseFloat(storeSettings.free_delivery_threshold) > 0 && itemsTotal >= parseFloat(storeSettings.free_delivery_threshold)) {
+  if (orderType === 'DELIVERY' && isHomeDeliveryActive) {
+    if (parseFloat(storeSettings?.free_delivery_threshold) > 0 && itemsTotal >= parseFloat(storeSettings.free_delivery_threshold)) {
       deliveryFee = 0;
     } else {
-      deliveryFee = parseFloat(storeSettings.delivery_fee || 0);
+      deliveryFee = parseFloat(storeSettings?.delivery_fee || 0);
     }
   }
   const cartTotal = parseFloat(cart?.total || 0) + deliveryFee;
@@ -1461,14 +1463,14 @@ export function CheckoutPage() {
               </button>
               <button
                 type="button"
-                onClick={() => storeSettings?.is_home_delivery_active ? setOrderType('DELIVERY') : null}
+                onClick={() => isHomeDeliveryActive ? setOrderType('DELIVERY') : null}
                 className={`flex-1 py-2.5 px-3 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   orderType === 'DELIVERY'
                     ? 'bg-white dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 shadow-xs'
                     : 'text-slate-500'
-                } ${!storeSettings?.is_home_delivery_active ? 'opacity-50 cursor-not-allowed' : 'hover:text-slate-700 dark:hover:text-slate-300'}`}
+                } ${!isHomeDeliveryActive ? 'opacity-50 cursor-not-allowed' : 'hover:text-slate-700 dark:hover:text-slate-300'}`}
               >
-                <span>🛵</span> Home Delivery {!storeSettings?.is_home_delivery_active && '(Unavailable)'}
+                <span>🛵</span> Home Delivery {!isHomeDeliveryActive && '(Unavailable)'}
               </button>
             </div>
           </div>

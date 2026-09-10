@@ -21,7 +21,7 @@ export const isExpoGoAndroid = isExpoGo && Platform.OS === 'android';
 // Lazy-load expo-notifications only when NOT running in Expo Go on Android.
 // Statically importing expo-notifications executes DevicePushTokenAutoRegistration.fx at startup,
 // which invokes warnOfExpoGoPushUsage and throws an uncatchable runtime error in Expo Go SDK 53+ on Android.
-type NotificationsModuleType = typeof import('expo-notifications');
+type NotificationsModuleType = any;
 let NotificationsModule: NotificationsModuleType | null = null;
 
 function getNotifications(): NotificationsModuleType | null {

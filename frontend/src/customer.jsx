@@ -142,7 +142,7 @@ export function ProductCard({ product, priority = false, ...props }) {
 
  const price = product.offer_price || product.regular_price
 
- const isFav = favorites?.find(f => f.product === product.id);
+ const isFav = favorites?.find(f => f.product === product.id || f.product?.id === product.id || f.id === product.id);
 
  
 
@@ -621,7 +621,7 @@ export function HomePage() {
 
     <div className="flex items-center gap-2">
 
-      <h2 className="text-lg font-bold text-slate-900">Shop by category</h2>
+      <h2 className="text-lg font-bold text-slate-900 dark:text-white">Shop by category</h2>
 
     </div>
 
@@ -1172,7 +1172,7 @@ export function ProductDetailPage() {
   }
 
   const price = product.offer_price || product.regular_price;
-  const isFav = favorites?.find((f) => f.product === product.id);
+  const isFav = favorites?.find((f) => f.product === product.id || f.product?.id === product.id || f.id === product.id);
   const regPrice = Number(product.regular_price);
   const offPrice = Number(product.offer_price);
   const discountPercent = product.offer_price && regPrice > offPrice ? Math.round(((regPrice - offPrice) / regPrice) * 100) : 0;

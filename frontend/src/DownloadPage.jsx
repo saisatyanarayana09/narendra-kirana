@@ -14,8 +14,10 @@ export default function DownloadPage() {
   }, []);
 
   const appName = storeSettings?.app_name || storeSettings?.store_name || 'Narendra Kirana';
-  const downloadUrl = storeSettings?.app_update_url ||
-    'https://github.com/saisatyanarayana09/narendra-kirana/releases/latest/download/narendra-kirana.apk';
+  const directApkUrl = 'https://github.com/saisatyanarayana09/narendra-kirana/releases/latest/download/narendra-kirana.apk';
+  const downloadUrl = (storeSettings?.app_update_url && storeSettings.app_update_url.toLowerCase().includes('.apk'))
+    ? storeSettings.app_update_url
+    : directApkUrl;
   const buttonText = storeSettings?.app_download_btn_text || 'Download APK';
   const appIconUrl = storeSettings?.app_icon || null;
 

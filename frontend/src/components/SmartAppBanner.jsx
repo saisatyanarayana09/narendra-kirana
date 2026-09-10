@@ -38,8 +38,14 @@ export function SmartAppBanner() {
   };
 
   const handleOpenApp = () => {
-    // Attempt to launch the mobile app via custom URI scheme
+    // Attempt to launch the mobile app via custom URI scheme with graceful fallback to /download
+    const start = Date.now();
     window.location.href = appSchemeUrl;
+    setTimeout(() => {
+      if (Date.now() - start < 2000 && !document.hidden) {
+        window.location.href = '/download';
+      }
+    }, 1500);
   };
 
   return (

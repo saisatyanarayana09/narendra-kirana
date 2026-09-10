@@ -8,7 +8,7 @@ export default function OrdersHistory() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/orders/').then(res => setOrders(res.data.results || res.data)).finally(() => setLoading(false));
+    api.get('/orders/').then(res => setOrders(res.data.results || res.data)).catch(() => setOrders([])).finally(() => setLoading(false));
   }, []);
 
   const getStatusColor = (status) => {
