@@ -21,6 +21,7 @@ import { triggerHaptic } from '../../utils/haptics';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 const { width } = Dimensions.get('window');
 
@@ -57,6 +58,7 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
   const { user } = useAuth();
   const { addToCart } = useCart();
   const { colors, isDark } = useTheme();
+  const { t } = useLanguage();
   
   const [categories, setCategories] = useState<any[]>(cachedCategories || []);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(initialCategoryId);
@@ -421,7 +423,7 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
           activeOpacity={0.7}
         >
           <Feather name="arrow-left" size={18} color={colors.primary} />
-          <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
 
         <Text style={[styles.topBarTitle, { color: colors.text }]} numberOfLines={1}>
@@ -460,7 +462,7 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
             <View style={[styles.emptyIconCircle, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#F1F5F9' }]}>
               <Feather name="package" size={40} color={colors.textSecondary} />
             </View>
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>No products found</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('noProductsFound')}</Text>
             <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
               {selectedCategory !== null || !!searchQuery
                 ? 'No products match your selected filters. Tap below to see all items.'
@@ -477,7 +479,7 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
               activeOpacity={0.8}
             >
               <Feather name="refresh-cw" size={14} color="#FFFFFF" style={{ marginRight: 6 }} />
-              <Text style={styles.clearFiltersBtnText}>Clear Filters / Show All</Text>
+              <Text style={styles.clearFiltersBtnText}>{t('clearFilters')}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -667,12 +669,10 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#0F172A',
     marginBottom: 6,
   },
   emptySubtitle: {
     fontSize: 13,
-    color: '#64748B',
     textAlign: 'center',
     lineHeight: 18,
   },

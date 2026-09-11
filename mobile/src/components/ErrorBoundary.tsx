@@ -8,7 +8,6 @@ import {
   StatusBar,
   Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { navigationRef } from '../navigation/navigationRef';
 import { triggerHaptic } from '../utils/haptics';
@@ -96,7 +95,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
       const isDev = __DEV__;
 
       return (
-        <SafeAreaView style={styles.safeArea}>
+        <View style={[styles.safeArea, { paddingTop: StatusBar.currentHeight || 44 }]}>
           <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
             <View style={styles.container}>
@@ -174,7 +173,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
             )}
           </View>
         </ScrollView>
-      </SafeAreaView>
+      </View>
     );
   }
 

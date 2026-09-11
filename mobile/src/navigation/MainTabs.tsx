@@ -32,6 +32,12 @@ import { NotificationsScreen } from '../screens/profile/NotificationsScreen';
 import { AppSettingsScreen } from '../screens/profile/AppSettingsScreen';
 import { OffersScreen } from '../screens/profile/OffersScreen';
 import { LanguageScreen } from '../screens/profile/LanguageScreen';
+import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import { getHasShownWelcomeSession } from '../utils/welcomeSession';
+import { FloatingCartBar } from '../components/FloatingCartBar';
+import { triggerHaptic } from '../utils/haptics';
 
 export type MainTabParamList = {
   HomeTab: undefined;
@@ -42,81 +48,78 @@ export type MainTabParamList = {
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
-const Stack = createNativeStackNavigator<any>();
+const HomeStackNav = createNativeStackNavigator<any>();
+const CategoriesStackNav = createNativeStackNavigator<any>();
+const OrdersStackNav = createNativeStackNavigator<any>();
+const ProfileStackNav = createNativeStackNavigator<any>();
+const CartStackNav = createNativeStackNavigator<any>();
 
 function HomeStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="HomeScreen" component={HomeScreen} />
-      <Stack.Screen name="ProductDetailScreen" component={ProductDetailScreen} />
-      <Stack.Screen name="SearchScreen" component={SearchScreen} />
-      <Stack.Screen name="ProductListScreen" component={ProductListScreen} />
-      <Stack.Screen name="OrderTrackingScreen" component={OrderTrackingScreen} />
-      <Stack.Screen name="InvoiceScreen" component={InvoiceScreen} />
-    </Stack.Navigator>
+    <HomeStackNav.Navigator screenOptions={{ headerShown: false }}>
+      <HomeStackNav.Screen name="HomeScreen" component={HomeScreen} />
+      <HomeStackNav.Screen name="ProductDetailScreen" component={ProductDetailScreen} />
+      <HomeStackNav.Screen name="SearchScreen" component={SearchScreen} />
+      <HomeStackNav.Screen name="ProductListScreen" component={ProductListScreen} />
+      <HomeStackNav.Screen name="OrderTrackingScreen" component={OrderTrackingScreen} />
+      <HomeStackNav.Screen name="InvoiceScreen" component={InvoiceScreen} />
+    </HomeStackNav.Navigator>
   );
 }
 
 function CategoriesStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="CategoriesScreen" component={CategoriesScreen} />
-      <Stack.Screen name="ProductListScreen" component={ProductListScreen} />
-      <Stack.Screen name="ProductDetailScreen" component={ProductDetailScreen} />
-    </Stack.Navigator>
+    <CategoriesStackNav.Navigator screenOptions={{ headerShown: false }}>
+      <CategoriesStackNav.Screen name="CategoriesScreen" component={CategoriesScreen} />
+      <CategoriesStackNav.Screen name="ProductListScreen" component={ProductListScreen} />
+      <CategoriesStackNav.Screen name="ProductDetailScreen" component={ProductDetailScreen} />
+    </CategoriesStackNav.Navigator>
   );
 }
 
 function OrdersStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="OrderHistoryScreen" component={OrderHistoryScreen} />
-      <Stack.Screen name="OrderTrackingScreen" component={OrderTrackingScreen} />
-      <Stack.Screen name="InvoiceScreen" component={InvoiceScreen} />
-    </Stack.Navigator>
+    <OrdersStackNav.Navigator screenOptions={{ headerShown: false }}>
+      <OrdersStackNav.Screen name="OrderHistoryScreen" component={OrderHistoryScreen} />
+      <OrdersStackNav.Screen name="OrderTrackingScreen" component={OrderTrackingScreen} />
+      <OrdersStackNav.Screen name="InvoiceScreen" component={InvoiceScreen} />
+    </OrdersStackNav.Navigator>
   );
 }
 
 function ProfileStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
-      <Stack.Screen name="OrderHistoryScreen" component={OrderHistoryScreen} />
-      <Stack.Screen name="OrderTrackingScreen" component={OrderTrackingScreen} />
-      <Stack.Screen name="InvoiceScreen" component={InvoiceScreen} />
-      <Stack.Screen name="AddressesScreen" component={AddressesScreen} />
-      <Stack.Screen name="AddAddressScreen" component={AddAddressScreen} />
-      <Stack.Screen name="WalletScreen" component={WalletScreen} />
-      <Stack.Screen name="ReferAndEarnScreen" component={ReferAndEarnScreen} />
-      <Stack.Screen name="AccountSettingsScreen" component={AccountSettingsScreen} />
-      <Stack.Screen name="NotificationsScreen" component={NotificationsScreen} />
-      <Stack.Screen name="FavoritesScreen" component={FavoritesScreen} />
-      <Stack.Screen name="AppSettingsScreen" component={AppSettingsScreen} />
-      <Stack.Screen name="OffersScreen" component={OffersScreen} />
-      <Stack.Screen name="LanguageScreen" component={LanguageScreen} />
-    </Stack.Navigator>
+    <ProfileStackNav.Navigator screenOptions={{ headerShown: false }}>
+      <ProfileStackNav.Screen name="ProfileScreen" component={ProfileScreen} />
+      <ProfileStackNav.Screen name="OrderHistoryScreen" component={OrderHistoryScreen} />
+      <ProfileStackNav.Screen name="OrderTrackingScreen" component={OrderTrackingScreen} />
+      <ProfileStackNav.Screen name="InvoiceScreen" component={InvoiceScreen} />
+      <ProfileStackNav.Screen name="AddressesScreen" component={AddressesScreen} />
+      <ProfileStackNav.Screen name="AddAddressScreen" component={AddAddressScreen} />
+      <ProfileStackNav.Screen name="WalletScreen" component={WalletScreen} />
+      <ProfileStackNav.Screen name="ReferAndEarnScreen" component={ReferAndEarnScreen} />
+      <ProfileStackNav.Screen name="AccountSettingsScreen" component={AccountSettingsScreen} />
+      <ProfileStackNav.Screen name="NotificationsScreen" component={NotificationsScreen} />
+      <ProfileStackNav.Screen name="FavoritesScreen" component={FavoritesScreen} />
+      <ProfileStackNav.Screen name="AppSettingsScreen" component={AppSettingsScreen} />
+      <ProfileStackNav.Screen name="OffersScreen" component={OffersScreen} />
+      <ProfileStackNav.Screen name="LanguageScreen" component={LanguageScreen} />
+    </ProfileStackNav.Navigator>
   );
 }
 
 function CartStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="CartScreen" component={CartScreen} />
-      <Stack.Screen name="CheckoutScreen" component={CheckoutScreen} />
-      <Stack.Screen name="OrderSuccessScreen" component={OrderSuccessScreen} />
-      <Stack.Screen name="OrderTrackingScreen" component={OrderTrackingScreen} />
-      <Stack.Screen name="InvoiceScreen" component={InvoiceScreen} />
-      <Stack.Screen name="AddAddressScreen" component={AddAddressScreen} />
-    </Stack.Navigator>
+    <CartStackNav.Navigator screenOptions={{ headerShown: false }}>
+      <CartStackNav.Screen name="CartScreen" component={CartScreen} />
+      <CartStackNav.Screen name="CheckoutScreen" component={CheckoutScreen} />
+      <CartStackNav.Screen name="OrderSuccessScreen" component={OrderSuccessScreen} />
+      <CartStackNav.Screen name="OrderTrackingScreen" component={OrderTrackingScreen} />
+      <CartStackNav.Screen name="InvoiceScreen" component={InvoiceScreen} />
+      <CartStackNav.Screen name="AddAddressScreen" component={AddAddressScreen} />
+    </CartStackNav.Navigator>
   );
 }
-
-import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext';
-import { useLanguage } from '../context/LanguageContext';
-import { getHasShownWelcomeSession } from '../utils/welcomeSession';
-import { FloatingCartBar } from '../components/FloatingCartBar';
-import { triggerHaptic } from '../utils/haptics';
 
 const shouldHideTabBar = (route: any) => {
   const routeName = getFocusedRouteNameFromRoute(route) ?? '';
@@ -291,9 +294,6 @@ export function MainTabs() {
           })}
         />
       </Tab.Navigator>
-
-      {/* Welcome Splash Screen on app launch */}
-      <WelcomeScreen onFinish={() => setIsWelcomeActive(false)} />
 
       {/* Floating Mini-Cart Bar rendered after Tab.Navigator only after welcome screen has completed */}
       {!isWelcomeActive && currentTab !== 'CartTab' && cartItemCount > 0 && !isDismissed && (

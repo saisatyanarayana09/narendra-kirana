@@ -346,11 +346,15 @@ export function RootNavigator() {
 
   // 1. Listen for initial URL on app launch
   useEffect(() => {
-    Linking.getInitialURL().then((url) => {
-      if (url) {
-        handleIncomingUrl(url);
-      }
-    });
+    Linking.getInitialURL()
+      .then((url) => {
+        if (url) {
+          handleIncomingUrl(url);
+        }
+      })
+      .catch((err) => {
+        console.warn('[RootNavigator] Failed to get initial URL:', err);
+      });
 
     // 2. Listen for runtime deep link events (app already open/backgrounded)
     const subscription = Linking.addEventListener('url', (event) => {
@@ -359,17 +363,21 @@ export function RootNavigator() {
 
     // 3. Listen for push notification click / tap events
     const notifSub = addNotificationResponseReceivedListener((response) => {
-      const data = response.notification?.request?.content?.data;
-      if (data?.order_id) {
-        if (navigationRef.isReady()) {
-          (navigationRef as any).navigate('Main', {
-            screen: 'OrdersTab',
-            params: {
-              screen: 'OrderTrackingScreen',
-              params: { orderId: String(data.order_id) },
-            },
-          });
+      try {
+        const data = response.notification?.request?.content?.data;
+        if (data?.order_id) {
+          if (navigationRef.isReady()) {
+            (navigationRef as any).navigate('Main', {
+              screen: 'OrdersTab',
+              params: {
+                screen: 'OrderTrackingScreen',
+                params: { orderId: String(data.order_id) },
+              },
+            });
+          }
         }
+      } catch (e) {
+        console.warn('[RootNavigator] Notification tap navigation error:', e);
       }
     });
 
@@ -387,21 +395,25 @@ export function RootNavigator() {
 
       // Give React Navigation a short tick to switch to MainTabs
       const timer = setTimeout(() => {
-        if (navigationRef.isReady()) {
-          if (redirect.tab) {
-            (navigationRef as any).navigate('Main', {
-              screen: redirect.tab,
-              params: {
+        try {
+          if (navigationRef.isReady()) {
+            if (redirect.tab) {
+              (navigationRef as any).navigate('Main', {
+                screen: redirect.tab,
+                params: {
+                  screen: redirect.screen,
+                  params: redirect.params,
+                },
+              });
+            } else {
+              (navigationRef as any).navigate('Main', {
                 screen: redirect.screen,
                 params: redirect.params,
-              },
-            });
-          } else {
-            (navigationRef as any).navigate('Main', {
-              screen: redirect.screen,
-              params: redirect.params,
-            });
+              });
+            }
           }
+        } catch (e) {
+          console.warn('[RootNavigator] Post-login redirect error:', e);
         }
       }, 400);
 
@@ -471,16 +483,22 @@ export function RootNavigator() {
             const redirect = { ...pendingRedirect };
             clearPendingRedirect();
             setTimeout(() => {
-              if (redirect.tab) {
-                (navigationRef as any).navigate('Main', {
-                  screen: redirect.tab,
-                  params: {
-                    screen: redirect.screen,
-                    params: redirect.params,
-                  },
-                });
-              } else {
-                (navigationRef as any).navigate(redirect.screen, redirect.params);
+              try {
+                if (navigationRef.isReady()) {
+                  if (redirect.tab) {
+                    (navigationRef as any).navigate('Main', {
+                      screen: redirect.tab,
+                      params: {
+                        screen: redirect.screen,
+                        params: redirect.params,
+                      },
+                    });
+                  } else {
+                    (navigationRef as any).navigate(redirect.screen, redirect.params);
+                  }
+                }
+              } catch (e) {
+                console.warn('[RootNavigator] onReady redirect error:', e);
               }
             }, 300);
           }

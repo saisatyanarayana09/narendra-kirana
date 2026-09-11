@@ -14,6 +14,7 @@ import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
 import { apiClient } from '../../api/client';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { CategoryCard } from '../../components/CategoryCard';
 import { CategoryCardSkeleton } from '../../components/SkeletonLoader';
 
@@ -26,6 +27,7 @@ let cachedGlobalCategories: any[] | null = null;
 
 export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp }) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const [categories, setCategories] = useState<any[]>(cachedGlobalCategories || []);
   const [loading, setLoading] = useState(!cachedGlobalCategories);
   const [refreshing, setRefreshing] = useState(false);
@@ -70,9 +72,9 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
             activeOpacity={0.7}
           >
             <Feather name="arrow-left" size={16} color={colors.primary} />
-            <Text style={[styles.backText, { color: colors.primary }]}>Back</Text>
+            <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>All Categories</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('categories')}</Text>
         </View>
 
         <View style={{ paddingHorizontal: HORIZONTAL_PADDING, paddingTop: 14, flexDirection: 'row', flexWrap: 'wrap', gap: GAP }}>
@@ -100,9 +102,9 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
           activeOpacity={0.7}
         >
           <Feather name="arrow-left" size={16} color={colors.primary} />
-          <Text style={[styles.backText, { color: colors.primary }]}>Back</Text>
+          <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>All Categories</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('categories')}</Text>
       </View>
       
       <FlatList

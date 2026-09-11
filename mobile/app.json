@@ -16,7 +16,6 @@
       "adaptiveIcon": {
         "backgroundColor": "#059669",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "intentFilters": [
@@ -76,7 +75,13 @@
       ],
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "android.permission.RECORD_AUDIO"
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.REQUEST_INSTALL_PACKAGES"
       ]
     },
     "splash": {
@@ -90,7 +95,11 @@
     "plugins": [
       "expo-secure-store",
       "expo-font",
-      "expo-sharing"
+      "expo-sharing",
+      "expo-location",
+      "expo-file-system",
+      "expo-av",
+      "expo-image"
     ],
     "extra": {
       "eas": {

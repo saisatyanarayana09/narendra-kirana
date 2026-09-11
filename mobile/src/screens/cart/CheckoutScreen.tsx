@@ -413,10 +413,10 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
         );
         return;
       }
-      if (cleanUtr.length < 12) {
+      if (!/^[A-Za-z0-9]{12,}$/.test(cleanUtr)) {
         Alert.alert(
           'Invalid UTR / Transaction ID',
-          'Please enter a valid 12-digit UTR or Transaction Reference number provided by your UPI app (Google Pay, PhonePe, Paytm).',
+          'Please enter a valid 12-digit UTR or Transaction Reference number provided by your UPI app (e.g. 12 digits from Google Pay, PhonePe, Paytm).',
           [{ text: 'OK' }]
         );
         return;
@@ -2396,3 +2396,5 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 });
+
+export default CheckoutScreen;

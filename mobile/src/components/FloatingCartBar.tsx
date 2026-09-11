@@ -213,7 +213,7 @@ export function FloatingCartBar({ bottomOffset, onPress, onClose, currentRouteNa
               style={styles.closeButton}
               onPress={handleDismiss}
               activeOpacity={0.7}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
               <Feather name="x" size={14} color="#FFFFFF" />
             </TouchableOpacity>

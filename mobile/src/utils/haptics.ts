@@ -6,18 +6,20 @@ export const STORAGE_VIBRATION_KEY = 'sk_vibration_enabled';
 
 let isVibrationActive = true;
 
-// Initialize vibration preference from persistent storage
-getItem(STORAGE_VIBRATION_KEY).then((val) => {
-  if (val !== null) {
-    isVibrationActive = val !== 'false';
-  }
-});
+// Initialize vibration preference from persistent storage safely
+getItem(STORAGE_VIBRATION_KEY)
+  .then((val) => {
+    if (val !== null) {
+      isVibrationActive = val !== 'false';
+    }
+  })
+  .catch(() => {});
 
 export const getVibrationEnabled = (): boolean => isVibrationActive;
 
 export const setVibrationEnabled = async (enabled: boolean): Promise<void> => {
   isVibrationActive = enabled;
-  await saveItem(STORAGE_VIBRATION_KEY, enabled ? 'true' : 'false');
+  await saveItem(STORAGE_VIBRATION_KEY, enabled ? 'true' : 'false').catch(() => {});
   if (enabled) {
     triggerHaptic('medium');
   }
@@ -27,29 +29,31 @@ export const triggerHaptic = (type: 'light' | 'medium' | 'heavy' | 'selection' |
   if (Platform.OS === 'web' || !isVibrationActive) return;
 
   try {
+    let p: Promise<void> | undefined;
     switch (type) {
       case 'light':
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        p = Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         break;
       case 'medium':
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        p = Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         break;
       case 'heavy':
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        p = Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
         break;
       case 'selection':
-        Haptics.selectionAsync();
+        p = Haptics.selectionAsync();
         break;
       case 'success':
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        p = Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         break;
       case 'warning':
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        p = Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
         break;
       case 'error':
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        p = Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         break;
     }
+    p?.catch(() => {});
   } catch (error) {
     // Graceful fallback
   }

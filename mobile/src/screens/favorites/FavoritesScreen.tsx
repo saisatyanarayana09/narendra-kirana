@@ -5,6 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
 import { apiClient } from '../../api/client';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { ProductCard } from '../../components/ProductCard';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
@@ -17,6 +18,7 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
   const [loading, setLoading] = useState(true);
   const { addToCart } = useCart();
   const { colors, isDark } = useTheme();
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (!user) {
@@ -149,9 +151,9 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
             activeOpacity={0.7}
           >
             <Feather name="arrow-left" size={18} color={colors.primary} />
-            <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
+            <Text style={[styles.backButtonText, { color: colors.primary }]}>{t('back')}</Text>
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Favorites</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('favorites')}</Text>
           <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>Products you've saved for later.</Text>
         </View>
 
@@ -168,7 +170,7 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
             onPress={() => navigation.navigate('HomeTab')}
             activeOpacity={0.85}
           >
-            <Text style={styles.browseButtonText}>Browse Products</Text>
+            <Text style={styles.browseButtonText}>{t('exploreCatalog')}</Text>
             <Feather name="chevron-right" size={16} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
@@ -192,10 +194,10 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
           activeOpacity={0.7}
         >
           <Feather name="arrow-left" size={18} color={colors.primary} />
-          <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
         <View style={styles.headerTitleRow}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Favorites</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('favorites')}</Text>
           <View style={[styles.itemCountBadge, isDark && { backgroundColor: colors.inputBg }]}>
             <Text style={[styles.itemCountText, { color: colors.primary }]}>{favorites.length} saved</Text>
           </View>

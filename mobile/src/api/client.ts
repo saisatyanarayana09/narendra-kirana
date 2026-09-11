@@ -227,7 +227,8 @@ apiClient.interceptors.response.use(
             refreshErr?.code === 'ERR_NETWORK' ||
             refreshErr?.message?.toLowerCase().includes('network') ||
             refreshErr?.message?.toLowerCase().includes('timeout') ||
-            !refreshErr?.response;
+            !refreshErr?.response ||
+            (refreshErr?.response?.status >= 500 && refreshErr?.response?.status <= 599);
 
           processQueue(refreshErr, null);
 

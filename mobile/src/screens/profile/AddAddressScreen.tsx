@@ -181,7 +181,11 @@ export function AddAddressScreen({ navigation, route }: { navigation: AppNavigat
           </View>
 
           <TouchableOpacity 
-            style={[styles.gpsBtn, Boolean(latitude) && styles.gpsBtnSecured]}
+            style={[
+              styles.gpsBtn,
+              isDark && { backgroundColor: 'rgba(79, 70, 229, 0.15)', borderColor: 'rgba(99, 102, 241, 0.3)' },
+              Boolean(latitude) && [styles.gpsBtnSecured, isDark && { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.3)' }]
+            ]}
             onPress={handleCaptureGps}
             disabled={gpsLoading}
             activeOpacity={0.85}
@@ -580,3 +584,5 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 });
+
+export default AddAddressScreen;

@@ -911,3 +911,5 @@ const styles: any = StyleSheet.create({
     fontWeight: '800',
   },
 });
+
+export default CartScreen;

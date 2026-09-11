@@ -65,7 +65,16 @@ function MainApp() {
     Nunito_900Black,
   });
 
-  if (!fontsLoaded && !fontError) {
+  const [fontTimeout, setFontTimeout] = React.useState(false);
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setFontTimeout(true);
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!fontsLoaded && !fontError && !fontTimeout) {
     return (
       <View style={{ flex: 1, backgroundColor: '#059669', justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#ffffff" />

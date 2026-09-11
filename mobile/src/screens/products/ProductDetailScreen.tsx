@@ -16,6 +16,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { apiClient } from '../../api/client';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { useCart } from '../../context/CartContext';
@@ -30,6 +31,7 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
   const { addToCart, cart } = useCart();
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
+  const { t } = useLanguage();
   
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -325,7 +327,7 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
             <>
               <Feather name="shopping-cart" color="#FFFFFF" size={18} />
               <Text style={styles.addToCartText}>
-                {product.is_in_stock ? `Add to Cart · ₹${price}` : 'Out of Stock'}
+                {product.is_in_stock ? `${t('addToCart')} · ₹${price}` : t('outOfStock')}
               </Text>
             </>
           )}
