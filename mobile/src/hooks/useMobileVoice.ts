@@ -8,14 +8,14 @@ interface UseMobileVoiceOptions {
   language?: string;
 }
 
-// Safely resolve expo-av at runtime without triggering Metro static bundle resolution errors
+// Safely resolve expo-audio at runtime (replacement for deprecated expo-av)
 function getAudioModule(): any {
   try {
-    const pkgName = ['expo', 'av'].join('-');
+    const pkgName = ['expo', 'audio'].join('-');
     const req = typeof require !== 'undefined' ? (require as any) : null;
     if (req) {
       const mod = req(pkgName);
-      return mod?.Audio || mod || null;
+      return mod || null;
     }
     return null;
   } catch {
@@ -243,7 +243,7 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
       }
     }
 
-    // 2. Mobile Native Platform (Android / iOS): Use expo-av recording + backend speech-to-text
+    // 2. Mobile Native Platform (Android / iOS): Use expo-audio recording + backend speech-to-text
     const Audio = getAudioModule();
     if (!Audio) {
       setError('Voice search requires restarting Metro dev server (npx expo start -c).');

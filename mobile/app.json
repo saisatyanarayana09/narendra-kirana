@@ -98,7 +98,6 @@
       "expo-sharing",
       "expo-location",
       "expo-file-system",
-      "expo-av",
       "expo-image"
     ],
     "extra": {
