@@ -1319,30 +1319,25 @@ const AdvancedSettings = () => {
             <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-slate-800">
               <div className="text-sm font-bold text-gray-900 dark:text-white">Mobile App Release & Force-Update Gates</div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 mb-1">Minimum Supported Version</label>
-                  <input
-                    type="text"
-                    name="min_mobile_version"
-                    value={settings.min_mobile_version}
-                    onChange={handleChange}
-                    placeholder="1.0.0"
-                    className="w-full rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
-                  />
-                  <p className="text-[11px] text-gray-400 mt-1">Older versions will be forced to update.</p>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 mb-1">Latest Release Version</label>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 mb-1">Latest App Version</label>
                   <input
                     type="text"
                     name="latest_mobile_version"
                     value={settings.latest_mobile_version}
-                    onChange={handleChange}
-                    placeholder="1.1.0"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSettings(prev => ({
+                        ...prev,
+                        latest_mobile_version: val,
+                        min_mobile_version: val,
+                      }));
+                    }}
+                    placeholder="1.3.0"
                     className="w-full rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
                   />
+                  <p className="text-[11px] text-gray-400 mt-1">Set to your newest release version (e.g. 1.3.1).</p>
                 </div>
 
                 <div className="flex flex-col justify-center">

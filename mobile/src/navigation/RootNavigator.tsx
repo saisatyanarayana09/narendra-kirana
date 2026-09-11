@@ -439,11 +439,33 @@ export function RootNavigator() {
     return <LoadingSpinner fullScreen />;
   }
 
-  // 1. Mobile Version Gate: Check if current installed version < min_mobile_version and force_app_update is True
-  const isOutdated = storeSettings?.min_mobile_version
-    ? isVersionOlder(APP_VERSION, storeSettings.min_mobile_version)
+  // 1. Mobile Version Gate: Check if current installed version < latest_mobile_version (or min_mobile_version)
+  const targetVersion = storeSettings?.latest_mobile_version || storeSettings?.min_mobile_version;
+  const isOutdated = targetVersion
+    ? isVersionOlder(APP_VERSION, targetVersion)
     : false;
   const isForceUpdateRequired = isOutdated && Boolean(storeSettings?.force_app_update);
+
+  const hasPromptedOptionalUpdateRef = useRef(false);
+  useEffect(() => {
+    if (storeSettings && isOutdated && !isForceUpdateRequired && !hasPromptedOptionalUpdateRef.current) {
+      hasPromptedOptionalUpdateRef.current = true;
+      const updateUrl = storeSettings.app_update_url || DEFAULT_APK_URL;
+      Alert.alert(
+        'Update Available',
+        storeSettings.app_update_message || `A new and improved version of Narendra Kirana (v${targetVersion}) is available. Would you like to update?`,
+        [
+          { text: 'Later', style: 'cancel' },
+          {
+            text: 'Update Now',
+            onPress: () => {
+              RNLinking.openURL(updateUrl).catch(() => {});
+            },
+          },
+        ]
+      );
+    }
+  }, [storeSettings, isOutdated, isForceUpdateRequired, targetVersion]);
 
   if (isForceUpdateRequired) {
     return (
