@@ -21,7 +21,7 @@ export type GlobalParamList = {
   OrderSuccessScreen: { orderId: string | number };
   OrderTrackingScreen: { orderId: string | number };
   InvoiceScreen: { orderId: string | number };
-  SearchScreen: undefined;
+  SearchScreen: { autoStartVoice?: boolean } | undefined;
   ProfileScreen: undefined;
   OrderHistoryScreen: undefined;
   AddressesScreen: undefined;

@@ -1,26 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Platform, Alert } from 'react-native';
 import * as Speech from 'expo-speech';
-import { apiClient } from '../api/client';
+import * as IntentLauncher from 'expo-intent-launcher';
 
 interface UseMobileVoiceOptions {
   onResult?: (text: string) => void;
   language?: string;
-}
-
-// Safely resolve expo-audio at runtime (replacement for deprecated expo-av)
-function getAudioModule(): any {
-  try {
-    const pkgName = ['expo', 'audio'].join('-');
-    const req = typeof require !== 'undefined' ? (require as any) : null;
-    if (req) {
-      const mod = req(pkgName);
-      return mod || null;
-    }
-    return null;
-  } catch {
-    return null;
-  }
 }
 
 export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceOptions = {}) {
@@ -33,8 +18,6 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
   const isListeningRef = useRef(false);
   const onResultRef = useRef(onResult);
   const recognizerRef = useRef<any>(null);
-  const recordingRef = useRef<any>(null);
-  const autoStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     onResultRef.current = onResult;
@@ -48,10 +31,6 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      if (autoStopTimerRef.current) {
-        clearTimeout(autoStopTimerRef.current);
-        autoStopTimerRef.current = null;
-      }
       if (recognizerRef.current) {
         try {
           recognizerRef.current.abort ? recognizerRef.current.abort() : recognizerRef.current.stop();
@@ -59,10 +38,6 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
           // Ignore
         }
         recognizerRef.current = null;
-      }
-      if (recordingRef.current) {
-        recordingRef.current.stopAndUnloadAsync().catch(() => {});
-        recordingRef.current = null;
       }
       try {
         Speech.stop();
@@ -73,11 +48,6 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
   }, []);
 
   const stopListening = useCallback(async () => {
-    if (autoStopTimerRef.current) {
-      clearTimeout(autoStopTimerRef.current);
-      autoStopTimerRef.current = null;
-    }
-
     // Web Speech API cleanup
     if (recognizerRef.current) {
       try {
@@ -88,77 +58,11 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
       recognizerRef.current = null;
     }
 
-    // Mobile Audio Recording cleanup & backend speech-to-text
-    const recording = recordingRef.current;
-    if (recording) {
-      recordingRef.current = null;
-      if (isMountedRef.current) {
-        setIsListening(false);
-        setInterimText('Transcribing speech...');
-      }
-
-      try {
-        await recording.stopAndUnloadAsync();
-        const uri = recording.getURI();
-
-        if (uri) {
-          const formData = new FormData();
-          const filename = uri.split('/').pop() || 'voice_search.m4a';
-          
-          formData.append('audio', {
-            uri: Platform.OS === 'android' ? uri : uri.replace('file://', ''),
-            name: filename,
-            type: 'audio/m4a',
-          } as any);
-          formData.append('language', language);
-
-          const res = await apiClient.post('/store/voice-search/', formData, {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-            },
-          });
-
-          const recognizedText = res.data?.query || res.data?.text || '';
-          if (recognizedText && recognizedText.trim()) {
-            if (isMountedRef.current) {
-              setInterimText(recognizedText);
-            }
-            if (onResultRef.current) {
-              onResultRef.current(recognizedText.trim());
-            }
-          } else {
-            if (isMountedRef.current) {
-              setInterimText('');
-              setError('Could not understand speech. Please try again.');
-            }
-          }
-        }
-      } catch (err: any) {
-        console.error('Speech transcription error:', err);
-        if (isMountedRef.current) {
-          setInterimText('');
-          setError('Voice search failed. Please try typing.');
-        }
-      } finally {
-        const Audio = getAudioModule();
-        if (Audio) {
-          try {
-            await Audio.setAudioModeAsync({
-              allowsRecordingIOS: false,
-            });
-          } catch {
-            // Ignore
-          }
-        }
-      }
-      return;
-    }
-
     if (isMountedRef.current) {
       setIsListening(false);
       setInterimText('');
     }
-  }, [language]);
+  }, []);
 
   // Start Voice Recognition
   const startListening = useCallback(async () => {
@@ -168,7 +72,80 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
       // Ignore
     }
 
-    // 1. Web Platform: Native Web Speech API
+    // 1. Android Platform: Native Google SpeechRecognizer Intent (built into all Android devices, 0 native crashes)
+    if (Platform.OS === 'android') {
+      try {
+        setError(null);
+        setIsListening(true);
+        setInterimText('Listening... Speak grocery item');
+
+        const intentLanguage = language?.toLowerCase().includes('te')
+          ? 'te-IN'
+          : language?.toLowerCase().includes('hi')
+          ? 'hi-IN'
+          : 'en-IN';
+
+        const result = await IntentLauncher.startActivityAsync(
+          'android.speech.action.RECOGNIZE_SPEECH',
+          {
+            extra: {
+              'android.speech.extra.LANGUAGE_MODEL': 'free_form',
+              'android.speech.extra.LANGUAGE': intentLanguage,
+              'android.speech.extra.PROMPT': 'Say grocery item (e.g. Milk, Rice, Atta)...',
+              'android.speech.extra.MAX_RESULTS': 1,
+            },
+          }
+        );
+
+        if (isMountedRef.current) {
+          setIsListening(false);
+        }
+
+        if (result.resultCode === IntentLauncher.ResultCode.Success) {
+          const extraObj = (result.extra || {}) as any;
+          const matches =
+            extraObj['android.speech.extra.RESULTS'] ||
+            extraObj['results'] ||
+            [];
+
+          let spokenText = '';
+          if (Array.isArray(matches) && matches.length > 0) {
+            spokenText = String(matches[0] || '').trim();
+          } else if (typeof matches === 'string') {
+            spokenText = matches.trim();
+          }
+
+          if (spokenText && isMountedRef.current) {
+            setInterimText(spokenText);
+            if (onResultRef.current) {
+              onResultRef.current(spokenText);
+            }
+          } else if (isMountedRef.current) {
+            setInterimText('');
+          }
+        } else {
+          // User canceled or pressed back
+          if (isMountedRef.current) {
+            setInterimText('');
+          }
+        }
+        return;
+      } catch (err: any) {
+        if (isMountedRef.current) {
+          setIsListening(false);
+          setInterimText('');
+        }
+        console.warn('[useMobileVoice] Android speech recognition intent unavailable:', err);
+        Alert.alert(
+          'Voice Search',
+          'Voice input was canceled or speech recognition is not enabled on this device. Please type your search.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+    }
+
+    // 2. Web Platform: Native Web Speech API
     if (Platform.OS === 'web') {
       if (typeof window === 'undefined') return;
 
@@ -243,67 +220,13 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
       }
     }
 
-    // 2. Mobile Native Platform (Android / iOS): Use expo-audio recording + backend speech-to-text
-    const Audio = getAudioModule();
-    if (!Audio) {
-      setError('Voice search requires restarting Metro dev server (npx expo start -c).');
-      Alert.alert(
-        'Voice Search Setup',
-        'Audio recording module was recently installed. Please restart your Expo terminal (press Ctrl+C, then run: npx expo start -c) to activate voice search.',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-
-    try {
-      const perm = await Audio.requestPermissionsAsync();
-      if (!perm?.granted) {
-        setError('Microphone permission denied.');
-        Alert.alert(
-          'Permission Required',
-          'Please enable microphone access in device settings to use voice search.'
-        );
-        return;
-      }
-
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-      });
-
-      if (recordingRef.current) {
-        try {
-          await recordingRef.current.stopAndUnloadAsync();
-        } catch {
-          // Ignore
-        }
-        recordingRef.current = null;
-      }
-
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
-      recordingRef.current = recording;
-
-      setError(null);
-      setIsListening(true);
-      setInterimText('Listening... Say grocery item');
-
-      // Auto-stop after 4.5 seconds of speaking
-      if (autoStopTimerRef.current) clearTimeout(autoStopTimerRef.current);
-      autoStopTimerRef.current = setTimeout(() => {
-        if (isListeningRef.current) {
-          stopListening();
-        }
-      }, 4500);
-
-    } catch (err: any) {
-      console.error('Audio recording start error:', err);
-      setIsListening(false);
-      setInterimText('');
-      setError('Could not start microphone.');
-    }
-  }, [language, stopListening]);
+    // Other platforms (iOS without native speech module)
+    Alert.alert(
+      'Voice Search',
+      'Please use your keyboard microphone to dictate your search.',
+      [{ text: 'OK' }]
+    );
+  }, [language]);
 
   const toggleListening = useCallback(() => {
     if (isListeningRef.current) {

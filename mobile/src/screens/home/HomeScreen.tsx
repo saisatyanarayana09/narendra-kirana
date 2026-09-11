@@ -500,9 +500,16 @@ export function HomeScreen({ navigation }: Props) {
             <Feather name="search" size={16} color={colors.textSecondary} />
             <Text style={[styles.searchPlaceholder, { color: colors.textSecondary }]} numberOfLines={1}>{t('searchPlaceholder')}</Text>
           </View>
-          <View style={{ padding: 4 }}>
-            <Feather name="mic" size={15} color={colors.primary} />
-          </View>
+          <TouchableOpacity 
+            style={{ padding: 6 }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            onPress={(e) => {
+              e.stopPropagation();
+              navigation.navigate('SearchScreen', { autoStartVoice: true });
+            }}
+          >
+            <Feather name="mic" size={16} color={colors.primary} />
+          </TouchableOpacity>
         </TouchableOpacity>
       </View>
 

@@ -30,9 +30,10 @@ const POPULAR_SEARCHES = [
 
 type Props = {
   navigation: AppNavigationProp;
+  route?: { params?: { autoStartVoice?: boolean } };
 };
 
-export function SearchScreen({ navigation }: Props) {
+export function SearchScreen({ navigation, route }: Props) {
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebounce(query, 300);
   const [results, setResults] = useState<any[]>([]);
@@ -52,6 +53,7 @@ export function SearchScreen({ navigation }: Props) {
     interimText,
     isSpeaking,
     error: voiceError,
+    startListening,
     toggleListening,
     speak,
     stopSpeaking,
@@ -60,6 +62,16 @@ export function SearchScreen({ navigation }: Props) {
       setQuery(spokenText);
     },
   });
+
+  // Auto-trigger voice search if launched from mic shortcut
+  useEffect(() => {
+    if (route?.params?.autoStartVoice) {
+      const timer = setTimeout(() => {
+        startListening();
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [route?.params?.autoStartVoice, startListening]);
 
   // Pulsing animation effect when listening
   useEffect(() => {
@@ -238,7 +250,7 @@ export function SearchScreen({ navigation }: Props) {
                 accessibilityLabel="Voice Search"
               >
                 <Feather 
-                  name={isListening ? "mic" : "mic"} 
+                  name={isListening ? "mic-off" : "mic"} 
                   size={16} 
                   color={isListening ? "#FFFFFF" : colors.primary} 
                 />
