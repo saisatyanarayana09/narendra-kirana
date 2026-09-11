@@ -447,13 +447,16 @@ export function RootNavigator() {
   const isForceUpdateRequired = isOutdated && Boolean(storeSettings?.force_app_update);
 
   const hasPromptedOptionalUpdateRef = useRef(false);
+  const customerName = user?.first_name || user?.name || user?.username || '';
+
   useEffect(() => {
     if (storeSettings && isOutdated && !isForceUpdateRequired && !hasPromptedOptionalUpdateRef.current) {
       hasPromptedOptionalUpdateRef.current = true;
       const updateUrl = storeSettings.app_update_url || DEFAULT_APK_URL;
+      const greeting = customerName ? `Hi, ${customerName}! ` : '';
       Alert.alert(
         'Update Available',
-        storeSettings.app_update_message || `A new and improved version of Narendra Kirana (v${targetVersion}) is available. Would you like to update?`,
+        `${greeting}A new and improved version of Narendra Kirana (v${targetVersion}) is available. Would you like to update?`,
         [
           { text: 'Later', style: 'cancel' },
           {
@@ -465,12 +468,13 @@ export function RootNavigator() {
         ]
       );
     }
-  }, [storeSettings, isOutdated, isForceUpdateRequired, targetVersion]);
+  }, [storeSettings, isOutdated, isForceUpdateRequired, targetVersion, customerName]);
 
   if (isForceUpdateRequired) {
     return (
       <ForceUpdateView
         settings={storeSettings}
+        user={user}
         onRefresh={loadStoreSettings}
         isRefreshing={checkingSettings}
         colors={colors}
@@ -630,12 +634,14 @@ function MaintenanceView({
 
 function ForceUpdateView({
   settings,
+  user,
   onRefresh,
   isRefreshing,
   colors,
   isDark,
 }: {
   settings: StoreSettings | null;
+  user: any;
   onRefresh: () => void;
   isRefreshing: boolean;
   colors: any;
@@ -648,6 +654,7 @@ function ForceUpdateView({
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [isInstalling, setIsInstalling] = useState(false);
 
+  const customerName = user?.first_name || user?.name || user?.username || '';
   const rawUrl = settings?.app_update_url?.trim() || DEFAULT_APK_URL;
   const isAndroid = Platform.OS === 'android';
   const isPlayStore = rawUrl.includes('play.google.com') || rawUrl.startsWith('market://');
@@ -698,7 +705,16 @@ function ForceUpdateView({
 
     if (res.success && res.uri) {
       setDownloadedUri(res.uri);
-      setProgressText('Download completed. Tap below to launch installer.');
+      setProgressText('Download completed! Launching installer...');
+      // Automatically launch package installer immediately when download finishes!
+      try {
+        setIsInstalling(true);
+        await installDownloadedApk(res.uri);
+      } catch (installErr) {
+        console.warn('Auto launch installer notice:', installErr);
+      } finally {
+        setIsInstalling(false);
+      }
     } else if (!res.success) {
       setDownloadError(
         res.error || 'Failed to download update. Please check your connection or download via browser.'
@@ -706,11 +722,24 @@ function ForceUpdateView({
     }
   };
 
+  // Block hardware back button during update
   useEffect(() => {
     const backAction = () => true;
     const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
     return () => backHandler.remove();
   }, []);
+
+  // Automatically start downloading update the moment user opens the app!
+  const hasAutoStartedRef = useRef(false);
+  useEffect(() => {
+    if (canInAppUpdate && !downloadedUri && !isDownloading && !hasAutoStartedRef.current) {
+      hasAutoStartedRef.current = true;
+      const timer = setTimeout(() => {
+        handleStartInAppUpdate();
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [canInAppUpdate, downloadedUri, isDownloading]);
 
   return (
     <SafeAreaView style={[styles.gateContainer, { backgroundColor: colors.background }]}>
@@ -724,19 +753,28 @@ function ForceUpdateView({
             {settings?.store_name || 'Narendra Kirana Store'}
           </Text>
 
-          <View style={[styles.gateBadge, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.2)' : '#ECFDF5', borderColor: isDark ? 'rgba(16, 185, 129, 0.4)' : '#A7F3D0' }]}>
-            <Text style={[styles.gateBadgeText, { color: isDark ? '#34D399' : '#047857' }]}>
-              {downloadedUri ? 'UPDATE READY TO INSTALL' : 'UPDATE REQUIRED'}
+          {/* Customer Greeting Badge */}
+          <View style={[
+            styles.userGreetingBadge, 
+            { 
+              backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5', 
+              borderColor: isDark ? 'rgba(16, 185, 129, 0.3)' : '#A7F3D0' 
+            }
+          ]}>
+            <Feather name="user" size={15} color={colors.primary} />
+            <Text style={[styles.userGreetingText, { color: colors.text }]}>
+              {customerName ? `Hi, ${customerName}!` : 'Welcome!'}
             </Text>
           </View>
 
           <Text style={[styles.gateHeading, { color: colors.text }]}>
-            {downloadedUri ? 'Ready to Install Update' : 'Please Update Your App'}
+            App updating, please wait...
           </Text>
 
           <Text style={[styles.gateDescription, { color: colors.textSecondary }]}>
-            {settings?.app_update_message ||
-              'A newer version of the app is available with essential security updates and improvements. Please update to continue shopping.'}
+            {customerName
+              ? `We are getting the latest store updates ready for you, ${customerName}. Please hold on a moment.`
+              : (settings?.app_update_message || 'A newer version of the app is installing. Please wait a moment.')}
           </Text>
 
           <View style={[styles.versionPillContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -899,6 +937,21 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: 'uppercase',
     marginBottom: 8,
+  },
+  userGreetingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  userGreetingText: {
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
   gateBadge: {
     backgroundColor: '#FEF2F2',
