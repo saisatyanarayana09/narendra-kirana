@@ -23,12 +23,14 @@ export const isExpoGoAndroid = isExpoGo && Platform.OS === 'android';
 // which invokes warnOfExpoGoPushUsage and throws an uncatchable runtime error in Expo Go SDK 53+ on Android.
 type NotificationsModuleType = any;
 let NotificationsModule: NotificationsModuleType | null = null;
+let hasAttemptedLoad = false;
 
 function getNotifications(): NotificationsModuleType | null {
-  if (isExpoGoAndroid) {
+  if (isExpoGoAndroid || Platform.OS === 'web') {
     return null;
   }
-  if (!NotificationsModule) {
+  if (!hasAttemptedLoad) {
+    hasAttemptedLoad = true;
     try {
       const mod = require('expo-notifications');
       mod?.setNotificationHandler?.({
@@ -42,7 +44,9 @@ function getNotifications(): NotificationsModuleType | null {
       });
       NotificationsModule = mod;
     } catch (err) {
-      console.log('[NotificationService] Notice: could not load expo-notifications:', err);
+      if (__DEV__) {
+        console.log('[NotificationService] expo-notifications not available in this environment');
+      }
       NotificationsModule = null;
     }
   }
