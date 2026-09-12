@@ -10,7 +10,9 @@ import { ErrorBoundary } from './src/components/ErrorBoundary';
 
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { LanguageProvider } from './src/context/LanguageContext';
-import { checkAndDownloadOtaUpdateSilently } from './src/services/otaService';
+import { OtaLaunchScreen } from './src/components/OtaLaunchScreen';
+import { OtaUpdateBanner } from './src/components/OtaUpdateBanner';
+import { runStartupOtaFlow, subscribeOtaState } from './src/services/otaService';
 
 class TopLevelErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: any }> {
   state: { hasError: boolean; error: any } = { hasError: false, error: null };
@@ -39,17 +41,10 @@ class TopLevelErrorBoundary extends Component<{ children: ReactNode }, { hasErro
 function ThemedAppContent() {
   const { colors, isDark } = useTheme();
 
-  React.useEffect(() => {
-    // Non-blocking silent background OTA check
-    const timer = setTimeout(() => {
-      checkAndDownloadOtaUpdateSilently().catch(() => {});
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, []);
-
   return (
     <>
       <OfflineBanner />
+      <OtaUpdateBanner />
       <RootNavigator />
       <StatusBar style={isDark ? "light" : "dark"} />
     </>
@@ -57,6 +52,28 @@ function ThemedAppContent() {
 }
 
 function MainApp() {
+  const [isUpdatingOnStartup, setIsUpdatingOnStartup] = React.useState(false);
+
+  React.useEffect(() => {
+    // 1. Listen for startup downloading state
+    const unsubscribe = subscribeOtaState((state) => {
+      if (state.isDownloading && state.isUpdateAvailable) {
+        setIsUpdatingOnStartup(true);
+      } else if (!state.isDownloading) {
+        setIsUpdatingOnStartup(false);
+      }
+    });
+
+    // 2. Run quick startup check (max 2000ms race)
+    runStartupOtaFlow(2000).catch(() => {});
+
+    return () => unsubscribe();
+  }, []);
+
+  if (isUpdatingOnStartup) {
+    return <OtaLaunchScreen onSkip={() => setIsUpdatingOnStartup(false)} />;
+  }
+
   return (
     <ErrorBoundary>
       <ThemeProvider>

@@ -27,7 +27,7 @@ import {
   DEFAULT_APK_URL,
 } from '../../services/updateService';
 import {
-  checkAndDownloadOtaUpdateSilently,
+  checkAndDownloadOtaSilently,
   applyOtaUpdate,
 } from '../../services/otaService';
 
@@ -57,8 +57,8 @@ export function AppSettingsScreen({ navigation }: { navigation: AppNavigationPro
 
     try {
       try {
-        const otaResult = await checkAndDownloadOtaUpdateSilently();
-        if (otaResult.isDownloaded) {
+        const isDownloaded = await checkAndDownloadOtaSilently();
+        if (isDownloaded) {
           triggerHaptic('success');
           Alert.alert(
             'Update Ready',
