@@ -1,6 +1,6 @@
 import { optimizeImage } from './utils/image';
 import React, { useState, useEffect, useRef } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom'
 import { Home, Search, ShoppingBasket, ShoppingCart, User, X, Heart, Bell, LayoutGrid, Trash2, ShoppingBag, Leaf, Coffee, Package, Mic, Volume2, Megaphone, Sparkles, Clock, Wrench, AlertTriangle } from 'lucide-react'
 import { useCart } from './cart-context'
 import { useLanguage } from './context/LanguageContext'
@@ -323,44 +323,86 @@ export function NotificationPopup({ isOpen, onClose }) {
  );
 }
 
+// Module-level in-memory flag that survives route transitions in the current tab session
+let hasShownWelcomeScreenInSession = false;
+
+function isWelcomeAlreadyShown() {
+  if (hasShownWelcomeScreenInSession) return true;
+  try {
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      if (window.sessionStorage.getItem('welcome_screen_shown_in_session') === 'true') {
+        hasShownWelcomeScreenInSession = true;
+        return true;
+      }
+    }
+  } catch {
+    // Storage restricted or blocked (e.g. private browsing)
+  }
+  return false;
+}
+
+function markWelcomeAsShown() {
+  hasShownWelcomeScreenInSession = true;
+  try {
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      window.sessionStorage.setItem('welcome_screen_shown_in_session', 'true');
+    }
+  } catch {
+    // Storage restricted or blocked
+  }
+}
+
 function WelcomeScreen() {
   const { user } = useCart();
   const [show, setShow] = useState(() => {
     if (typeof window === 'undefined') return false;
-    
-    // If already shown in this browser session, do not show again
-    if (sessionStorage.getItem('welcome_screen_shown_in_session')) {
+
+    // 1. If already shown in this tab session (in-memory or sessionStorage), DO NOT show again
+    if (isWelcomeAlreadyShown()) {
       return false;
     }
 
-    // Check URL parameter explicitly (e.g. ?welcome=true or ?welcome=1)
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('welcome') === '1' || params.get('welcome') === 'true') {
-      return true;
+    // 2. Check URL parameter explicitly (e.g. ?welcome=true or ?welcome=1)
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('welcome') === '1' || params.get('welcome') === 'true') {
+        markWelcomeAsShown();
+        return true;
+      }
+    } catch {}
+
+    // 3. NEVER show the welcome splash on product, cart, checkout, or subpages!
+    const pathname = window.location.pathname || '';
+    const isRootHome = pathname === '/' || pathname === '';
+    if (!isRootHome) {
+      // Mark as shown so navigating to '/' later doesn't randomly pop it up
+      markWelcomeAsShown();
+      return false;
     }
 
-    // Only show once when the user opens the web app newly
+    // 4. On initial visit to the root Home Page ('/'), show once and mark immediately
+    markWelcomeAsShown();
     return true;
   });
   const [stage, setStage] = useState('initial');
 
   useEffect(() => {
     if (show) {
-      // Mark as shown immediately so no other page transition, reload, or timer re-triggers it
-      sessionStorage.setItem('welcome_screen_shown_in_session', 'true');
+      markWelcomeAsShown();
       const timer1 = setTimeout(() => setStage('fade-in'), 50); 
-      const timer2 = setTimeout(() => setStage('fade-out'), 2200); 
-      const timer3 = setTimeout(() => { setShow(false); setStage('hidden'); }, 2800);
+      const timer2 = setTimeout(() => setStage('fade-out'), 2000); 
+      const timer3 = setTimeout(() => { setShow(false); setStage('hidden'); }, 2600);
       
       return () => { clearTimeout(timer1); clearTimeout(timer2); clearTimeout(timer3); };
     }
   }, [show]);
 
-  // Listen for explicit manual triggers (e.g. login)
+  // Listen for explicit manual triggers (e.g. login) ONLY if on the homepage
   useEffect(() => {
     const handleTrigger = () => {
-      if (!sessionStorage.getItem('welcome_screen_shown_in_session')) {
-        sessionStorage.setItem('welcome_screen_shown_in_session', 'true');
+      const pathname = window.location.pathname || '';
+      if (pathname === '/' || pathname === '') {
+        markWelcomeAsShown();
         setShow(true);
         setStage('initial');
       }
@@ -369,7 +411,7 @@ function WelcomeScreen() {
     return () => window.removeEventListener('trigger-welcome-screen', handleTrigger);
   }, []);
 
-  if (!show) return null;
+  if (!show || stage === 'hidden') return null;
 
   const hour = new Date().getHours();
   let greeting = "Welcome";
@@ -394,7 +436,7 @@ function WelcomeScreen() {
 
   const handleSkip = () => {
     setStage('fade-out');
-    setTimeout(() => { setShow(false); setStage('hidden'); }, 400);
+    setTimeout(() => { setShow(false); setStage('hidden'); }, 300);
   };
 
   return (
@@ -402,7 +444,7 @@ function WelcomeScreen() {
       onClick={handleSkip}
       role="button"
       className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-gradient-to-br from-white via-white to-emerald-50 dark:from-[#090d16] dark:via-[#0c1220] dark:to-[#0f1b2b] transition-opacity duration-700 ease-in-out ${
-        stage === 'fade-out' ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        stage === 'fade-out' || stage === 'hidden' ? 'opacity-0 pointer-events-none' : 'opacity-100'
       } overflow-hidden cursor-pointer`}
     >
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -482,12 +524,28 @@ function TopAnnouncementMarquee({ settings }) {
   );
 }
 
+let hasSeenFestivePopupInSession = false;
+
 function FestivePopupModal({ settings }) {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     if (settings?.enable_festive_popup) {
-      const seen = sessionStorage.getItem('festive_popup_seen');
+      if (hasSeenFestivePopupInSession) return;
+      
+      const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+      // Only pop up on homepage or main catalog, never on product detail, cart, or checkout
+      if (pathname !== '/' && pathname !== '' && pathname !== '/products') {
+        return;
+      }
+
+      let seen = false;
+      try {
+        if (typeof window !== 'undefined' && window.sessionStorage) {
+          seen = window.sessionStorage.getItem('festive_popup_seen') === 'true';
+        }
+      } catch {}
+
       if (!seen) {
         const timer = setTimeout(() => setIsOpen(true), 600);
         return () => clearTimeout(timer);
@@ -498,7 +556,12 @@ function FestivePopupModal({ settings }) {
   if (!isOpen) return null;
 
   const handleClose = () => {
-    sessionStorage.setItem('festive_popup_seen', 'true');
+    hasSeenFestivePopupInSession = true;
+    try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        window.sessionStorage.setItem('festive_popup_seen', 'true');
+      }
+    } catch {}
     setIsOpen(false);
   };
 
@@ -769,7 +832,7 @@ export function CustomerLayout({ children }) {
 
       {/* Main Content Area */}
       <main className="flex-1 w-full flex flex-col">
-        {children}
+        {children || <Outlet />}
       </main>
 
       {/* Floating Mini-Cart Bar */}

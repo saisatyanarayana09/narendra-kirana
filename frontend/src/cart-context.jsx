@@ -140,12 +140,15 @@ export function CartProvider({ children }) {
     } catch {
       // Ignore network errors on logout
     } finally {
-      localStorage.removeItem('smart-kirana-customer-token');
-      localStorage.removeItem('smart-kirana-customer-refresh');
-      localStorage.removeItem('smart-kirana-customer-user');
-      sessionStorage.removeItem('welcome_screen_shown_in_session');
-      sessionStorage.removeItem('welcome_shown_time');
-      sessionStorage.removeItem('hasShownWelcome');
+      try {
+        localStorage.removeItem('smart-kirana-customer-token');
+        localStorage.removeItem('smart-kirana-customer-refresh');
+        localStorage.removeItem('smart-kirana-customer-user');
+        sessionStorage.removeItem('welcome_shown_time');
+        sessionStorage.removeItem('hasShownWelcome');
+      } catch {
+        // Storage restricted or unavailable
+      }
       setUser(null);
       setCart(null);
       setFavorites([]);
