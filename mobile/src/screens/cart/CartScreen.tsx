@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -87,24 +87,52 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
   const isStoreClosed = storeSettings?.is_open === false;
   const isEmergencyPaused = Boolean(storeSettings?.is_emergency_paused);
   const emergencyPauseMessage = storeSettings?.emergency_pause_message || "We are currently experiencing high order volume and will resume shortly. Thank you for your patience!";
-  const mrpTotal = parseFloat(cart?.subtotal || '0') || 0;
-  const discount = parseFloat(cart?.discount || '0') || 0;
-  const itemsTotal = parseFloat(cart?.items_total || '0') || Math.max(0, mrpTotal - discount);
-  const cartSubtotal = itemsTotal;
-  const minOrderAmount = parseFloat(storeSettings?.min_order_amount || '0') || 0;
-  const isBelowMinOrder = minOrderAmount > 0 && itemsTotal < minOrderAmount;
-  const minOrderShortfall = Math.max(0, minOrderAmount - itemsTotal);
+  const {
+    mrpTotal,
+    discount,
+    itemsTotal,
+    cartSubtotal,
+    minOrderAmount,
+    isBelowMinOrder,
+    minOrderShortfall,
+    outOfStockItems,
+    hasOutOfStock,
+    freeDeliveryThreshold,
+    freeDeliveryGap,
+    freeDeliveryProgress,
+  } = useMemo(() => {
+    const mrp = parseFloat(cart?.subtotal || '0') || 0;
+    const disc = parseFloat(cart?.discount || '0') || 0;
+    const itmTotal = parseFloat(cart?.items_total || '0') || Math.max(0, mrp - disc);
+    const minOrder = parseFloat(storeSettings?.min_order_amount || '0') || 0;
+    const belowMin = minOrder > 0 && itmTotal < minOrder;
+    const shortfall = Math.max(0, minOrder - itmTotal);
 
-  const outOfStockItems = items.filter((item) => {
-    const stockQty = item.stock_quantity ?? item.product?.stock_quantity ?? 999;
-    const inStock = item.is_in_stock !== false && item.product?.is_in_stock !== false;
-    return !inStock || stockQty <= 0;
-  });
-  const hasOutOfStock = outOfStockItems.length > 0;
+    const oos = items.filter((item) => {
+      const stockQty = item.stock_quantity ?? item.product?.stock_quantity ?? 999;
+      const inStock = item.is_in_stock !== false && item.product?.is_in_stock !== false;
+      return !inStock || stockQty <= 0;
+    });
 
-  const freeDeliveryThreshold = parseFloat(storeSettings?.free_delivery_threshold || '0') || 0;
-  const freeDeliveryGap = Math.max(0, freeDeliveryThreshold - itemsTotal);
-  const freeDeliveryProgress = freeDeliveryThreshold > 0 ? Math.min(100, Math.round((itemsTotal / freeDeliveryThreshold) * 100)) : 100;
+    const freeThresh = parseFloat(storeSettings?.free_delivery_threshold || '0') || 0;
+    const gap = Math.max(0, freeThresh - itmTotal);
+    const progress = freeThresh > 0 ? Math.min(100, Math.round((itmTotal / freeThresh) * 100)) : 100;
+
+    return {
+      mrpTotal: mrp,
+      discount: disc,
+      itemsTotal: itmTotal,
+      cartSubtotal: itmTotal,
+      minOrderAmount: minOrder,
+      isBelowMinOrder: belowMin,
+      minOrderShortfall: shortfall,
+      outOfStockItems: oos,
+      hasOutOfStock: oos.length > 0,
+      freeDeliveryThreshold: freeThresh,
+      freeDeliveryGap: gap,
+      freeDeliveryProgress: progress,
+    };
+  }, [cart?.subtotal, cart?.discount, cart?.items_total, storeSettings?.min_order_amount, storeSettings?.free_delivery_threshold, items]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>

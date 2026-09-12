@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Dimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Dimensions, Platform, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
@@ -9,16 +9,34 @@ import { useLanguage } from '../../context/LanguageContext';
 import { ProductCard } from '../../components/ProductCard';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
+import { favoritesService } from '../../services/favoritesService';
 
 const { width } = Dimensions.get('window');
 
 export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp }) {
   const { user } = useAuth();
-  const [favorites, setFavorites] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [favorites, setFavorites] = useState<any[]>(favoritesService.getItems());
+  const [loading, setLoading] = useState(!favoritesService.hasCachedData());
+  const [refreshing, setRefreshing] = useState(false);
   const { addToCart, cartQuantityMap } = useCart();
   const { colors, isDark } = useTheme();
   const { t } = useLanguage();
+
+  const fetchFavorites = useCallback(async (force = false) => {
+    if (!user) {
+      setFavorites([]);
+      setLoading(false);
+      return;
+    }
+    try {
+      const snap = await favoritesService.getFavorites(force);
+      setFavorites(snap.items);
+    } catch (error) {
+      console.error('Error fetching favorites:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!user) {
@@ -26,45 +44,22 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
       setLoading(false);
       return;
     }
-    const unsubscribe = navigation.addListener('focus', () => {
-      fetchFavorites();
-    });
     fetchFavorites();
+    const unsubscribe = favoritesService.subscribe(() => {
+      setFavorites(favoritesService.getItems());
+    });
     return unsubscribe;
-  }, [navigation, user]);
-
-  const fetchFavorites = async () => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-    try {
-      const res = await apiClient.get('/favorites/');
-      setFavorites(Array.isArray(res.data) ? res.data : (res.data?.results || []));
-    } catch (error) {
-      console.error('Error fetching favorites:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [navigation, user, fetchFavorites]);
 
   const handleToggleFavorite = useCallback(async (product: any) => {
     const pId = product?.id ?? product;
-    const favItem = favorites.find(f => f.product === pId || f.product?.id === pId || f.product_details?.id === pId);
-    setFavorites(prev => prev.filter(f => f.id !== favItem?.id && (f.product?.id ?? f.product ?? f.product_details?.id) !== pId));
     try {
-      if (favItem?.id) {
-        await apiClient.delete(`/favorites/${favItem.id}/`).catch(() =>
-          apiClient.post('/favorites/toggle/', { product: pId })
-        );
-      } else {
-        await apiClient.post('/favorites/toggle/', { product: pId });
-      }
+      await favoritesService.toggleFavorite(pId);
+      setFavorites(favoritesService.getItems());
     } catch (error) {
       console.error('Error removing favorite:', error);
-      fetchFavorites();
     }
-  }, [favorites]);
+  }, []);
 
   const handleAddToCart = useCallback((p: any) => {
     addToCart(p.id, 1, p);
@@ -243,6 +238,17 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
         numColumns={2}
         contentContainerStyle={styles.listContainer}
         columnWrapperStyle={styles.row}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              fetchFavorites(true).finally(() => setRefreshing(false));
+            }}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
         initialNumToRender={6}
         maxToRenderPerBatch={6}
         windowSize={5}

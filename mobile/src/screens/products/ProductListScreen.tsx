@@ -22,6 +22,7 @@ import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { favoritesService } from '../../services/favoritesService';
 
 const { width } = Dimensions.get('window');
 
@@ -73,9 +74,9 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  // Favorites state
-  const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
-  const [favoriteMap, setFavoriteMap] = useState<Record<number, number>>({});
+  // Favorites state synced via favoritesService
+  const [favoriteIds, setFavoriteIds] = useState<Set<number>>(favoritesService.getFavoriteIds());
+  const [favoriteMap, setFavoriteMap] = useState<Record<number, number>>(favoritesService.getFavoriteMap());
 
   const getOrderingParam = (sort: SortOption): string | undefined => {
     switch (sort) {
@@ -91,31 +92,22 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
     }
   };
 
-  const fetchFavorites = async () => {
+  const fetchFavorites = useCallback(async (force = false) => {
     if (!user) {
+      setFavoriteIds(new Set());
+      setFavoriteMap({});
       return;
     }
     try {
-      const res = await apiClient.get('/favorites/').catch(() => ({ data: [] }));
-      const items = Array.isArray(res.data) ? res.data : (res.data?.results || []);
-      const ids = new Set<number>();
-      const map: Record<number, number> = {};
-      items.forEach((item: any) => {
-        const pId = item.product?.id ?? item.product ?? item.product_details?.id;
-        if (pId) {
-          const numId = Number(pId);
-          ids.add(numId);
-          map[numId] = item.id;
-        }
-      });
-      setFavoriteIds(ids);
-      setFavoriteMap(map);
+      const snap = await favoritesService.getFavorites(force);
+      setFavoriteIds(new Set(snap.ids));
+      setFavoriteMap({ ...snap.map });
     } catch (err) {
       console.log('Error fetching favorites:', err);
     }
-  };
+  }, [user]);
 
-  const toggleFavorite = async (param: any) => {
+  const toggleFavorite = useCallback(async (param: any) => {
     const productId = typeof param === 'object' && param !== null ? param.id : Number(param);
     if (!productId) return;
 
@@ -131,55 +123,23 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
       return;
     }
 
-    const isFav = favoriteIds.has(productId);
-    const favId = favoriteMap[productId];
-
-    setFavoriteIds(prev => {
-      const next = new Set(prev);
-      if (isFav) next.delete(productId);
-      else next.add(productId);
-      return next;
-    });
-
     try {
-      if (isFav) {
-        if (favId) {
-          await apiClient.delete(`/favorites/${favId}/`).catch(() => 
-            apiClient.post('/favorites/toggle/', { product: productId })
-          );
-        } else {
-          await apiClient.post('/favorites/toggle/', { product: productId });
-        }
-        setFavoriteMap(prev => {
-          const next = { ...prev };
-          delete next[productId];
-          return next;
-        });
-      } else {
-        const res = await apiClient.post('/favorites/', { product: productId });
-        const newId = res.data?.id || res.data?.favorite?.id;
-        if (newId) {
-          setFavoriteMap(prev => ({ ...prev, [productId]: newId }));
-        }
-      }
+      await favoritesService.toggleFavorite(productId);
     } catch (error) {
       console.error('Error toggling favorite:', error);
-      setFavoriteIds(prev => {
-        const next = new Set(prev);
-        if (isFav) next.add(productId);
-        else next.delete(productId);
-        return next;
-      });
     }
-  };
+  }, [user, navigation]);
 
   useEffect(() => {
-    fetchFavorites();
-    const unsubscribe = navigation.addListener('focus', () => {
+    if (user) {
       fetchFavorites();
-    });
-    return unsubscribe;
-  }, [user, navigation]);
+      const unsubscribe = favoritesService.subscribe(() => {
+        setFavoriteIds(new Set(favoritesService.getFavoriteIds()));
+        setFavoriteMap({ ...favoritesService.getFavoriteMap() });
+      });
+      return unsubscribe;
+    }
+  }, [user, fetchFavorites]);
 
   useEffect(() => {
     fetchCategories();
@@ -498,7 +458,7 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
             const key = getSectionCacheKey(selectedCategory, searchQuery, sortOption);
             productSectionCache.delete(key);
             fetchProducts(1, true, false);
-            fetchFavorites();
+            fetchFavorites(true);
           }}
           renderItem={renderProductItem}
           initialNumToRender={6}

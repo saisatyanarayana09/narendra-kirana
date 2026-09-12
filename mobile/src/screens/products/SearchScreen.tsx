@@ -33,6 +33,9 @@ type Props = {
   route?: { params?: { autoStartVoice?: boolean } };
 };
 
+const SEARCH_CACHE_LIMIT = 50;
+const searchCache = new Map<string, any[]>();
+
 export function SearchScreen({ navigation, route }: Props) {
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebounce(query, 300);
@@ -41,6 +44,7 @@ export function SearchScreen({ navigation, route }: Props) {
   const { addToCart, cartQuantityMap } = useCart();
   const { colors, isDark } = useTheme();
   const activeQueryRef = useRef('');
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Looping pulsing animation references
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -72,6 +76,15 @@ export function SearchScreen({ navigation, route }: Props) {
       return () => clearTimeout(timer);
     }
   }, [route?.params?.autoStartVoice, startListening]);
+
+  // Clean up any pending search request on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   // Pulsing animation effect when listening
   useEffect(() => {
@@ -125,24 +138,59 @@ export function SearchScreen({ navigation, route }: Props) {
     if (debouncedQuery.trim()) {
       performSearch(debouncedQuery);
     } else {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
       setResults([]);
     }
   }, [debouncedQuery]);
 
   const performSearch = async (text: string) => {
-    activeQueryRef.current = text;
+    const trimmed = text.trim();
+    if (!trimmed) {
+      setResults([]);
+      return;
+    }
+
+    activeQueryRef.current = trimmed;
+    const cacheKey = trimmed.toLowerCase();
+
+    // 0ms instant display from memory cache if previously fetched!
+    if (searchCache.has(cacheKey)) {
+      setResults(searchCache.get(cacheKey)!);
+      setLoading(false);
+      return;
+    }
+
+    // Cancel in-flight network request from older keystrokes
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setLoading(true);
     try {
       const response = await apiClient.get('/products/', {
-        params: { search: text },
+        params: { search: trimmed },
+        signal: controller.signal,
       });
-      if (activeQueryRef.current === text) {
-        setResults(response.data.results || response.data || []);
+      if (activeQueryRef.current === trimmed) {
+        const data = response.data.results || response.data || [];
+        if (searchCache.size >= SEARCH_CACHE_LIMIT) {
+          const firstKey = searchCache.keys().next().value;
+          if (firstKey) searchCache.delete(firstKey);
+        }
+        searchCache.set(cacheKey, data);
+        setResults(data);
       }
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.name === 'CanceledError' || error?.code === 'ERR_CANCELED' || error?.name === 'AbortError') {
+        return; // Request was cleanly cancelled by newer keystroke
+      }
       console.error('Search error:', error);
     } finally {
-      if (activeQueryRef.current === text) {
+      if (activeQueryRef.current === trimmed) {
         setLoading(false);
       }
     }
@@ -172,6 +220,14 @@ export function SearchScreen({ navigation, route }: Props) {
       />
     </View>
   ), [cartQuantityMap, handleProductPress, handleAddToCart]);
+
+  const renderListHeader = useCallback(() => (
+    <View style={styles.resultsHeader}>
+      <Text style={[styles.resultsCountText, { color: colors.textSecondary }]}>
+        Found {results.length} {results.length === 1 ? 'product' : 'products'}
+      </Text>
+    </View>
+  ), [results.length, colors.textSecondary]);
 
   const displaySearchValue = isListening && interimText ? interimText : query;
 
@@ -358,13 +414,7 @@ export function SearchScreen({ navigation, route }: Props) {
             removeClippedSubviews={Platform.OS === 'android'}
             updateCellsBatchingPeriod={50}
             getItemLayout={getItemLayout}
-            ListHeaderComponent={() => (
-              <View style={styles.resultsHeader}>
-                <Text style={[styles.resultsCountText, { color: colors.textSecondary }]}>
-                  Found {results.length} {results.length === 1 ? 'product' : 'products'}
-                </Text>
-              </View>
-            )}
+            ListHeaderComponent={renderListHeader}
             renderItem={renderProductItem}
           />
         )}

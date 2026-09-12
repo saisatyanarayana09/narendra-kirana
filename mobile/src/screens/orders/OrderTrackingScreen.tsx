@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -22,6 +22,8 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
   const { user } = useAuth();
   const { orderId } = route?.params || {};
   const [order, setOrder] = useState<any>(null);
+  const orderRef = useRef(order);
+  orderRef.current = order;
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -63,14 +65,14 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
       setError('');
     } catch (err) {
       console.error('Error fetching order details:', err);
-      if (!order) {
+      if (!orderRef.current) {
         setError('Could not load this order.');
       }
     } finally {
       setLoading(false);
       if (isPullRefresh) setRefreshing(false);
     }
-  }, [orderId, order, user]);
+  }, [orderId, user]);
 
   useEffect(() => {
     if (!user) {

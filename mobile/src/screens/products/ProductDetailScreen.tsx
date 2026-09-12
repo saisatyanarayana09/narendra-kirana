@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -22,6 +22,7 @@ import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { fixImageUrl, getOptimizedImageUrl } from '../../utils/image';
+import { favoritesService } from '../../services/favoritesService';
 
 const { width } = Dimensions.get('window');
 
@@ -35,19 +36,43 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
   
   const [product, setProduct] = useState<any>(initialProduct || null);
   const [loading, setLoading] = useState(!initialProduct);
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [favoriteId, setFavoriteId] = useState<number | null>(null);
+  const [isFavorite, setIsFavorite] = useState(favoritesService.isFavorite(productId));
+  const [favoriteId, setFavoriteId] = useState<number | null>(favoritesService.getFavoriteId(productId) || null);
   const [toggling, setToggling] = useState(false);
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
+  const checkFavorite = useCallback(async () => {
+    if (!user) return;
+    if (favoritesService.isFavorite(productId)) {
+      setIsFavorite(true);
+      setFavoriteId(favoritesService.getFavoriteId(productId) || null);
+      return;
+    }
+    if (!favoritesService.hasCachedData()) {
+      try {
+        await favoritesService.getFavorites();
+        if (favoritesService.isFavorite(productId)) {
+          setIsFavorite(true);
+          setFavoriteId(favoritesService.getFavoriteId(productId) || null);
+        }
+      } catch (error) {}
+    }
+  }, [user, productId]);
+
   useEffect(() => {
     fetchProduct();
     if (user) {
       checkFavorite();
+      const unsub = favoritesService.subscribe(() => {
+        const isFav = favoritesService.isFavorite(productId);
+        setIsFavorite(isFav);
+        setFavoriteId(favoritesService.getFavoriteId(productId) || null);
+      });
+      return unsub;
     }
-  }, [productId, user]);
+  }, [productId, user, checkFavorite]);
 
   const fetchProduct = async () => {
     try {
@@ -60,19 +85,6 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
     } finally {
       setLoading(false);
     }
-  };
-
-  const checkFavorite = async () => {
-    if (!user) return;
-    try {
-      const res = await apiClient.get('/favorites/');
-      const favList = Array.isArray(res.data) ? res.data : (res.data?.results || []);
-      const fav = favList.find((f: any) => f.product === productId || f.product_details?.id === productId);
-      if (fav) {
-        setIsFavorite(true);
-        setFavoriteId(fav.id);
-      }
-    } catch (error) {}
   };
 
   if (loading) return <LoadingSpinner fullScreen />;
@@ -136,21 +148,7 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
     
     setToggling(true);
     try {
-      if (isFavorite) {
-        if (favoriteId) {
-          await apiClient.delete(`/favorites/${favoriteId}/`).catch(() =>
-            apiClient.post('/favorites/toggle/', { product: productId })
-          );
-        } else {
-          await apiClient.post('/favorites/toggle/', { product: productId });
-        }
-        setIsFavorite(false);
-        setFavoriteId(null);
-      } else {
-        const res = await apiClient.post('/favorites/', { product: productId });
-        setIsFavorite(true);
-        setFavoriteId(res.data?.id || res.data?.favorite?.id || null);
-      }
+      await favoritesService.toggleFavorite(productId, product);
     } catch (error) {
       Alert.alert('Error', 'Could not update favorites');
     } finally {

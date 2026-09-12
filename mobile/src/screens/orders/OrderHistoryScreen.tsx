@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, RefreshControl } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, RefreshControl, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
@@ -176,6 +176,84 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
     );
   }
 
+  const renderOrderItem = useCallback(({ item }: { item: any }) => {
+    const statusStyle = getStatusStyle(item.status);
+    const totalFormatted = (parseFloat(String(item?.total_amount || 0)) || 0).toFixed(2);
+    const itemCount = item.items?.length || 0;
+
+    return (
+      <View style={[styles.orderCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <TouchableOpacity 
+          activeOpacity={0.7}
+          onPress={() => navigation.navigate('OrderTrackingScreen', { orderId: item.id })}
+        >
+          <View style={styles.cardHeader}>
+            <View>
+              <Text style={[styles.orderId, { color: colors.text }]}>#{item.id}</Text>
+              <Text style={[styles.orderDate, { color: colors.textSecondary }]}>{formatDate(item.created_at)}</Text>
+            </View>
+            <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg, borderColor: statusStyle.border }]}>
+              <Text style={[styles.statusText, { color: statusStyle.text }]}>
+                {item.status}
+              </Text>
+            </View>
+          </View>
+          
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+          
+          <View style={styles.cardFooterRow}>
+            <Text style={[styles.itemCountText, { color: colors.textSecondary }]}>
+              {itemCount} {itemCount === 1 ? 'item' : 'items'}
+            </Text>
+            <View style={styles.totalBlock}>
+              <Text style={[styles.totalLabel, { color: colors.textSecondary }]}>TOTAL</Text>
+              <Text style={[styles.totalAmount, { color: colors.text }]}>₹{totalFormatted}</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        <View style={[styles.cardActionFooter, { borderTopColor: colors.border }]}>
+          {item.status === 'COMPLETED' ? (
+            <View style={styles.completedActionsRow}>
+              <TouchableOpacity 
+                style={[styles.detailsBtn, { backgroundColor: isDark ? colors.background : '#F8FAFC', borderColor: colors.border }]}
+                onPress={() => navigation.navigate('OrderTrackingScreen', { orderId: item.id })}
+                activeOpacity={0.7}
+              >
+                <Feather name="package" size={14} color={colors.text} />
+                <Text style={[styles.detailsBtnText, { color: colors.text }]}>Track Order</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.invoiceCardBtn, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.2)' : '#ECFDF5', borderColor: isDark ? 'rgba(5, 150, 105, 0.4)' : '#A7F3D0' }]}
+                onPress={() => navigation.navigate('InvoiceScreen', { orderId: item.id })}
+                activeOpacity={0.7}
+              >
+                <Feather name="file-text" size={14} color={colors.primary} />
+                <Text style={[styles.invoiceCardBtnText, { color: colors.primary }]}>View Invoice</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity 
+              style={styles.trackOrderBtn}
+              onPress={() => navigation.navigate('OrderTrackingScreen', { orderId: item.id })}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.trackOrderBtnText, { color: colors.primary }]}>Track Order</Text>
+              <Feather name="arrow-right" size={14} color={colors.primary} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    );
+  }, [colors, isDark, navigation]);
+
+  const renderListFooter = useCallback(() => (
+    loadingMore ? (
+      <ActivityIndicator style={{ margin: 20 }} color={colors.primary} />
+    ) : null
+  ), [loadingMore, colors.primary]);
+
   if (loading && page === 1 && !refreshing) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
@@ -222,6 +300,11 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
           data={orders}
           keyExtractor={(item, index) => String(item?.id ?? index)}
           contentContainerStyle={styles.listContainer}
+          initialNumToRender={6}
+          maxToRenderPerBatch={6}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === 'android'}
+          updateCellsBatchingPeriod={50}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -230,84 +313,10 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
               tintColor={colors.primary}
             />
           }
-          renderItem={({ item }) => {
-            const statusStyle = getStatusStyle(item.status);
-            const totalFormatted = (parseFloat(String(item?.total_amount || 0)) || 0).toFixed(2);
-            const itemCount = item.items?.length || 0;
-
-            return (
-              <View style={[styles.orderCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <TouchableOpacity 
-                  activeOpacity={0.7}
-                  onPress={() => navigation.navigate('OrderTrackingScreen', { orderId: item.id })}
-                >
-                  <View style={styles.cardHeader}>
-                    <View>
-                      <Text style={[styles.orderId, { color: colors.text }]}>#{item.id}</Text>
-                      <Text style={[styles.orderDate, { color: colors.textSecondary }]}>{formatDate(item.created_at)}</Text>
-                    </View>
-                    <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg, borderColor: statusStyle.border }]}>
-                      <Text style={[styles.statusText, { color: statusStyle.text }]}>
-                        {item.status}
-                      </Text>
-                    </View>
-                  </View>
-                  
-                  <View style={[styles.divider, { backgroundColor: colors.border }]} />
-                  
-                  <View style={styles.cardFooterRow}>
-                    <Text style={[styles.itemCountText, { color: colors.textSecondary }]}>
-                      {itemCount} {itemCount === 1 ? 'item' : 'items'}
-                    </Text>
-                    <View style={styles.totalBlock}>
-                      <Text style={[styles.totalLabel, { color: colors.textSecondary }]}>TOTAL</Text>
-                      <Text style={[styles.totalAmount, { color: colors.text }]}>₹{totalFormatted}</Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-
-                <View style={[styles.cardActionFooter, { borderTopColor: colors.border }]}>
-                  {item.status === 'COMPLETED' ? (
-                    <View style={styles.completedActionsRow}>
-                      <TouchableOpacity 
-                        style={[styles.detailsBtn, { backgroundColor: isDark ? colors.background : '#F8FAFC', borderColor: colors.border }]}
-                        onPress={() => navigation.navigate('OrderTrackingScreen', { orderId: item.id })}
-                        activeOpacity={0.7}
-                      >
-                        <Feather name="package" size={14} color={colors.text} />
-                        <Text style={[styles.detailsBtnText, { color: colors.text }]}>Track Order</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity 
-                        style={[styles.invoiceCardBtn, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.2)' : '#ECFDF5', borderColor: isDark ? 'rgba(5, 150, 105, 0.4)' : '#A7F3D0' }]}
-                        onPress={() => navigation.navigate('InvoiceScreen', { orderId: item.id })}
-                        activeOpacity={0.7}
-                      >
-                        <Feather name="file-text" size={14} color={colors.primary} />
-                        <Text style={[styles.invoiceCardBtnText, { color: colors.primary }]}>View Invoice</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <TouchableOpacity 
-                      style={styles.trackOrderBtn}
-                      onPress={() => navigation.navigate('OrderTrackingScreen', { orderId: item.id })}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={[styles.trackOrderBtnText, { color: colors.primary }]}>Track Order</Text>
-                      <Feather name="arrow-right" size={14} color={colors.primary} />
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
-            );
-          }}
+          renderItem={renderOrderItem}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.4}
-          ListFooterComponent={() => 
-            loadingMore ? (
-              <ActivityIndicator style={{ margin: 20 }} color="#059669" />
-            ) : null
-          }
+          ListFooterComponent={renderListFooter}
         />
       )}
     </SafeAreaView>
