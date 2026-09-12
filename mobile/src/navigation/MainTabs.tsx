@@ -38,6 +38,8 @@ import { useLanguage } from '../context/LanguageContext';
 import { getHasShownWelcomeSession } from '../utils/welcomeSession';
 import { FloatingCartBar } from '../components/FloatingCartBar';
 import { triggerHaptic } from '../utils/haptics';
+import { loadHomeData } from '../services/homeDataCache';
+import { loadCachedOrders } from '../services/ordersCache';
 
 export type MainTabParamList = {
   HomeTab: undefined;
@@ -167,6 +169,12 @@ export function MainTabs() {
     }
     prevCountRef.current = cartItemCount;
   }, [cartItemCount, isWelcomeActive]);
+
+  // Pre-warm both homeDataCache and ordersCache when user is present or on component mount
+  useEffect(() => {
+    loadHomeData().catch(() => {});
+    loadCachedOrders().catch(() => {});
+  }, [user]);
 
   // Optimize Android bottom padding
   const bottomPadding = Math.max(

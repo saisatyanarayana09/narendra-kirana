@@ -6,6 +6,7 @@ import { getItem, getItemSync, saveItem, deleteItem } from '../utils/storage';
 import { resetWelcomeSession } from '../utils/welcomeSession';
 import { registerForPushNotificationsAsync, unregisterPushNotificationsAsync } from '../services/notificationService';
 import { favoritesService } from '../services/favoritesService';
+import { clearCachedOrders } from '../services/ordersCache';
 
 export type User = {
   id: number;
@@ -121,6 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await deleteItem(STORAGE_KEYS.USER);
       resetWelcomeSession();
       favoritesService.clear();
+      clearCachedOrders().catch(() => {});
       setUser(null);
     } catch (error) {
       console.error('Error during logout:', error);

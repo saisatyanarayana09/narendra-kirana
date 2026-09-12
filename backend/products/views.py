@@ -3,10 +3,13 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.throttling import AnonRateThrottle
+from django.core.cache import cache
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Category, Product, ProductImage, Favorite
 from .serializers import CategorySerializer, ProductSerializer, FavoriteSerializer
 from accounts.permissions import IsOwnerOrReadOnly, IsOwnerUser
+
+CATEGORY_CACHE_KEY = 'active_categories_serialized'
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all().order_by('display_order', 'name')
@@ -20,6 +23,29 @@ class CategoryViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(is_active=True)
         return queryset
 
+    def list(self, request, *args, **kwargs):
+        is_owner = bool(request.user and request.user.is_authenticated and getattr(request.user, 'is_owner', False))
+        if not is_owner:
+            cached_data = cache.get(CATEGORY_CACHE_KEY)
+            if cached_data is not None:
+                return Response(cached_data)
+
+        response = super().list(request, *args, **kwargs)
+        if not is_owner and response.status_code == status.HTTP_200_OK:
+            cache.set(CATEGORY_CACHE_KEY, response.data, 600)
+        return response
+
+    def perform_create(self, serializer):
+        super().perform_create(serializer)
+        cache.delete(CATEGORY_CACHE_KEY)
+
+    def perform_update(self, serializer):
+        super().perform_update(serializer)
+        cache.delete(CATEGORY_CACHE_KEY)
+
+    def perform_destroy(self, instance):
+        super().perform_destroy(instance)
+        cache.delete(CATEGORY_CACHE_KEY)
 
     @action(detail=False, methods=['post'], permission_classes=[IsOwnerOrReadOnly])
     def reorder(self, request):
@@ -40,6 +66,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
                 
         if categories:
             Category.objects.bulk_update(categories, ['display_order'])
+            cache.delete(CATEGORY_CACHE_KEY)
         return Response({'status': 'reordered'})
 
 class ProductViewSet(viewsets.ModelViewSet):

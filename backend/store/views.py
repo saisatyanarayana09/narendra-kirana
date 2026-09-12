@@ -78,15 +78,22 @@ class StoreSettingsView(views.APIView):
         return [IsOwnerUser()]
 
     def get(self, request):
+        from django.core.cache import cache
+        cached_data = cache.get('store_settings_serialized')
+        if cached_data is not None:
+            return response.Response(cached_data)
         settings = StoreSettings.load()
         serializer = StoreSettingsSerializer(settings, context={'request': request})
+        cache.set('store_settings_serialized', serializer.data, 300)
         return response.Response(serializer.data)
 
     def patch(self, request):
+        from django.core.cache import cache
         settings = StoreSettings.load()
         serializer = StoreSettingsSerializer(settings, data=request.data, partial=True, context={'request': request})
         if serializer.is_valid():
             serializer.save()
+            cache.delete('store_settings_serialized')
             return response.Response(serializer.data)
         return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

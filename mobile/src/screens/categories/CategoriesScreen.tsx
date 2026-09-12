@@ -17,6 +17,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { CategoryCard } from '../../components/CategoryCard';
 import { CategoryCardSkeleton } from '../../components/SkeletonLoader';
+import { getHomeDataSync, loadHomeData, saveHomeData } from '../../services/homeDataCache';
 
 const { width } = Dimensions.get('window');
 const HORIZONTAL_PADDING = 14;
@@ -29,26 +30,51 @@ let cachedGlobalCategories: any[] | null = null;
 export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp }) {
   const { colors } = useTheme();
   const { t } = useLanguage();
-  const [categories, setCategories] = useState<any[]>(cachedGlobalCategories || []);
-  const [loading, setLoading] = useState(!cachedGlobalCategories);
+
+  // Instant cache-first resolution (<50ms / 0ms)
+  const initialCategories = cachedGlobalCategories || getHomeDataSync()?.categories || [];
+  const [categories, setCategories] = useState<any[]>(initialCategories);
+  const [loading, setLoading] = useState(initialCategories.length === 0);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
+    // If no synchronous cache was present, try hydrating from disk cache immediately
+    if (categories.length === 0) {
+      loadHomeData().then((homeData) => {
+        if (homeData?.categories && homeData.categories.length > 0) {
+          setCategories((prev) => (prev.length === 0 ? homeData.categories : prev));
+          cachedGlobalCategories = homeData.categories;
+          setLoading(false);
+        }
+      });
+    }
+    // Silent SWR background fetch
     fetchCategories();
   }, []);
 
   const fetchCategories = async (isRefresh = false) => {
     if (isRefresh) {
       setRefreshing(true);
-    } else if (!cachedGlobalCategories) {
+    } else if (categories.length === 0 && !cachedGlobalCategories && !getHomeDataSync()?.categories?.length) {
       setLoading(true);
     }
 
     try {
       const res = await apiClient.get('/categories/');
       const cats = Array.isArray(res.data) ? res.data : (res.data?.results || []);
-      cachedGlobalCategories = cats;
-      setCategories(cats);
+      if (cats.length > 0) {
+        cachedGlobalCategories = cats;
+        setCategories(cats);
+
+        // Keep homeDataCache updated
+        const currentHome = getHomeDataSync();
+        if (currentHome) {
+          saveHomeData({
+            ...currentHome,
+            categories: cats,
+          }).catch(() => {});
+        }
+      }
     } catch (error) {
       console.error('Error fetching categories:', error);
     } finally {
@@ -81,7 +107,7 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
     </View>
   ), [handleCategoryPress]);
 
-  if (loading && !refreshing) {
+  if (loading && !refreshing && categories.length === 0) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>

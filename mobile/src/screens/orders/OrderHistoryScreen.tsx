@@ -6,12 +6,16 @@ import { AppNavigationProp } from '../../navigation/types';
 import { apiClient } from '../../api/client';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { getCachedOrdersSync, loadCachedOrders, saveCachedOrders } from '../../services/ordersCache';
 
 export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationProp }) {
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
-  const [orders, setOrders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  // Instant cache-first retrieval (<50ms)
+  const cachedOrders = getCachedOrdersSync();
+  const [orders, setOrders] = useState<any[]>(cachedOrders || []);
+  const [loading, setLoading] = useState(!cachedOrders || cachedOrders.length === 0);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
@@ -19,12 +23,25 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
 
   // Request counter to completely prevent race conditions
   const requestIdRef = useRef(0);
+  const hasRenderedOrdersRef = useRef(Boolean(cachedOrders && cachedOrders.length > 0));
 
   useEffect(() => {
     if (user) {
+      // If memory cache didn't have orders yet, try loading from disk cache immediately
+      if (orders.length === 0) {
+        loadCachedOrders().then((cached) => {
+          if (cached && cached.length > 0) {
+            setOrders((prev) => (prev.length === 0 ? cached : prev));
+            hasRenderedOrdersRef.current = true;
+            setLoading(false);
+          }
+        });
+      }
+      // Silent SWR background fetch
       fetchOrders(1);
     } else {
       setOrders([]);
+      hasRenderedOrdersRef.current = false;
       setLoading(false);
     }
   }, [user]);
@@ -40,7 +57,10 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
     } else if (isRefresh) {
       setRefreshing(true);
     } else {
-      setLoading(true);
+      // Never show blocking spinner if cached orders exist or were already rendered
+      if (!hasRenderedOrdersRef.current && orders.length === 0) {
+        setLoading(true);
+      }
     }
 
     const currentReqId = ++requestIdRef.current;
@@ -57,6 +77,8 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
 
       if (pageNum === 1) {
         setOrders(newOrders);
+        hasRenderedOrdersRef.current = newOrders.length > 0;
+        saveCachedOrders(newOrders).catch(() => {});
       } else {
         setOrders(prev => {
           const existingIds = new Set(prev.map(o => String(o.id)));
@@ -254,7 +276,7 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
     ) : null
   ), [loadingMore, colors.primary]);
 
-  if (loading && page === 1 && !refreshing) {
+  if (loading && page === 1 && !refreshing && orders.length === 0) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />

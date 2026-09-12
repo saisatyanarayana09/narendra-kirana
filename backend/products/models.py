@@ -18,6 +18,13 @@ class Category(models.Model):
         if not self.slug:
             self.slug = slugify(self.name)
         super().save(*args, **kwargs)
+        from django.core.cache import cache
+        cache.delete('active_categories_serialized')
+
+    def delete(self, *args, **kwargs):
+        from django.core.cache import cache
+        cache.delete('active_categories_serialized')
+        return super().delete(*args, **kwargs)
 
     def __str__(self):
         return self.name

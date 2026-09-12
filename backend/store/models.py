@@ -147,6 +147,7 @@ class StoreSettings(models.Model):
         super().save(*args, **kwargs)
         from django.core.cache import cache
         cache.delete('store_settings')
+        cache.delete('store_settings_serialized')
 
     @classmethod
     def load(cls):
