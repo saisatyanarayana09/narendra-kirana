@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useRef, useMemo, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -60,6 +60,31 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
     return { itemCount: count, totalAmount: tot, isFreeDelivery: free, shortfall: short };
   }, [cart, storeSettings]);
 
+  const handleOpenCart = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    triggerHaptic('selection');
+    onPress();
+  }, [onPress]);
+
+  const handleDismiss = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    triggerHaptic('light');
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 80,
+        duration: 250,
+        useNativeDriver: USE_NATIVE_DRIVER,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: USE_NATIVE_DRIVER,
+      }),
+    ]).start(() => {
+      onClose();
+    });
+  }, [onClose, slideAnim, opacityAnim]);
+
   useEffect(() => {
     if (itemCount > 0) {
       // Reset slide and opacity
@@ -114,36 +139,11 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [itemCount]);
+  }, [itemCount, handleDismiss]);
 
   if (itemCount === 0 || (currentRouteName && HIDE_ON_SCREENS.includes(currentRouteName))) {
     return null;
   }
-
-  const handleOpenCart = () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    triggerHaptic('selection');
-    onPress();
-  };
-
-  const handleDismiss = () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    triggerHaptic('light');
-    Animated.parallel([
-      Animated.timing(slideAnim, {
-        toValue: 80,
-        duration: 250,
-        useNativeDriver: USE_NATIVE_DRIVER,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: USE_NATIVE_DRIVER,
-      }),
-    ]).start(() => {
-      onClose();
-    });
-  };
 
   return (
     <Animated.View
