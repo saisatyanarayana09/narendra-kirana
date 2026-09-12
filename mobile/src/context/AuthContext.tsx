@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useCall
 import { DeviceEventEmitter } from 'react-native';
 import { apiClient } from '../api/client';
 import { STORAGE_KEYS } from '../constants/config';
-import { getItem, saveItem, deleteItem } from '../utils/storage';
+import { getItem, getItemSync, saveItem, deleteItem } from '../utils/storage';
 import { resetWelcomeSession } from '../utils/welcomeSession';
 import { registerForPushNotificationsAsync, unregisterPushNotificationsAsync } from '../services/notificationService';
 import { favoritesService } from '../services/favoritesService';
@@ -43,9 +43,21 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Try to read user from memoryStore synchronously (populated by preloadKeys)
+function tryGetSyncUser(): User | null {
+  try {
+    const raw = getItemSync(STORAGE_KEYS.USER);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return null;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // If preloadKeys has already populated memoryStore, we get user instantly
+  // and skip the isLoading=true state entirely
+  const syncUser = tryGetSyncUser();
+  const [user, setUser] = useState<User | null>(syncUser);
+  const [isLoading, setIsLoading] = useState(!syncUser); // Only show loading if sync init failed
   const [pendingRedirect, setPendingRedirect] = useState<PendingRedirect | null>(null);
 
   const clearPendingRedirect = useCallback(() => setPendingRedirect(null), []);
@@ -54,7 +66,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const storedUser = await getItem(STORAGE_KEYS.USER);
       if (storedUser) {
-        setUser(JSON.parse(storedUser));
+        const parsed = JSON.parse(storedUser);
+        setUser(parsed);
         registerForPushNotificationsAsync().catch(() => {});
       }
     } catch (error) {
@@ -65,6 +78,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // If we already initialized user synchronously, still run the async path
+    // to ensure push notifications are registered and storage is confirmed
+    if (syncUser) {
+      registerForPushNotificationsAsync().catch(() => {});
+    }
     loadStoredUser();
 
     const sub = DeviceEventEmitter.addListener('AUTH_FAILED', () => {

@@ -34,6 +34,7 @@ import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { BannerSkeleton, ProductCardSkeleton, SkeletonItem } from '../../components/SkeletonLoader';
 import { fixImageUrl, getOptimizedImageUrl } from '../../utils/image';
 import { favoritesService } from '../../services/favoritesService';
+import { loadHomeData, saveHomeData, getHomeDataSync } from '../../services/homeDataCache';
 
 type Props = {
   navigation: AppNavigationProp;
@@ -233,12 +234,15 @@ export function HomeScreen({ navigation }: Props) {
   const { colors, isDark } = useTheme();
   const { t } = useLanguage();
   
+  // Try to get cached home data synchronously for instant render
+  const cachedHome = getHomeDataSync();
+  
   const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [banners, setBanners] = useState<any[]>([]);
-  const [sections, setSections] = useState<any[]>([]);
-  const [settings, setSettings] = useState<any>(null);
+  const [loading, setLoading] = useState(!cachedHome); // Skip loading if cache exists
+  const [categories, setCategories] = useState<any[]>(cachedHome?.categories || []);
+  const [banners, setBanners] = useState<any[]>(cachedHome?.banners || []);
+  const [sections, setSections] = useState<any[]>(cachedHome?.sections || []);
+  const [settings, setSettings] = useState<any>(cachedHome?.settings || null);
   const [festiveModalVisible, setFestiveModalVisible] = useState(false);
 
   useEffect(() => {
@@ -341,8 +345,12 @@ export function HomeScreen({ navigation }: Props) {
       const catsList = Array.isArray(catsRes.data) ? catsRes.data : (catsRes.data?.results || []);
       const bannersList = Array.isArray(bannersRes.data) ? bannersRes.data : (bannersRes.data?.results || []);
 
-      setCategories(catsList);
-      setBanners(bannersList);
+      if (catsList.length > 0) {
+        setCategories(catsList);
+      }
+      if (bannersList.length > 0) {
+        setBanners(bannersList);
+      }
 
       // Prefetch top 3 promotional banners into disk/memory cache
       bannersList.slice(0, 3).forEach((b: any) => {
@@ -364,8 +372,22 @@ export function HomeScreen({ navigation }: Props) {
         .filter((s: any) => s.is_active !== false)
         .sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0));
 
-      setSections(mappedSections);
-      setSettings(settingsData || {});
+      if (mappedSections.length > 0) {
+        setSections(mappedSections);
+      }
+      if (settingsData && Object.keys(settingsData).length > 0) {
+        setSettings(settingsData);
+      }
+
+      // Persist to local cache for instant zero-lag launch next time
+      if (catsList.length > 0 || mappedSections.length > 0 || bannersList.length > 0) {
+        saveHomeData({
+          categories: catsList.length > 0 ? catsList : categories,
+          banners: bannersList.length > 0 ? bannersList : banners,
+          sections: mappedSections.length > 0 ? mappedSections : sections,
+          settings: settingsData && Object.keys(settingsData).length > 0 ? settingsData : settings,
+        }).catch(() => {});
+      }
     } catch (error) {
       console.error('Error fetching home data:', error);
     } finally {
@@ -375,7 +397,22 @@ export function HomeScreen({ navigation }: Props) {
   };
 
   useEffect(() => {
+    // 1. If we didn't have synchronous cache on the very first tick, hydrate from disk immediately
+    if (!cachedHome) {
+      loadHomeData().then((cached) => {
+        if (cached) {
+          setCategories((prev: any[]) => (prev.length === 0 ? cached.categories : prev));
+          setBanners((prev: any[]) => (prev.length === 0 ? cached.banners : prev));
+          setSections((prev: any[]) => (prev.length === 0 ? cached.sections : prev));
+          setSettings((prev: any) => (!prev ? cached.settings : prev));
+          setLoading(false);
+        }
+      });
+    }
+
+    // 2. Fetch fresh data in background (SWR - stale while revalidate)
     fetchHomeData();
+
     if (user) {
       fetchFavorites();
       const unsubscribe = favoritesService.subscribe(() => {

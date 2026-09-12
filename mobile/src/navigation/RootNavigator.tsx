@@ -473,9 +473,8 @@ export function RootNavigator() {
     }
   }, [isLoading, storeSettings, isOutdated, isForceUpdateRequired, targetVersion, customerName]);
 
-  if (isLoading) {
-    return <LoadingSpinner fullScreen />;
-  }
+  // We do NOT block the entire app with a full-screen spinner on auth loading!
+  // NavigationContainer & MainTabs mount immediately so cached home content displays in <50ms.
 
   if (isForceUpdateRequired) {
     return (

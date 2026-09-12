@@ -1,4 +1,5 @@
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../constants/config';
 import { apiClient } from './client';
 
@@ -79,51 +80,106 @@ export interface StoreSettings {
   maintenance_estimated_end?: string;
 }
 
+const SETTINGS_CACHE_KEY = 'sk_store_settings_cache';
 let cachedSettings: StoreSettings | null = null;
 let cacheExpiry = 0;
 let inFlightSettingsPromise: Promise<StoreSettings> | null = null;
+let diskCacheLoaded = false;
+
+// Load persisted settings from AsyncStorage at module init (non-blocking)
+let diskLoadPromise: Promise<void> | null = null;
+
+function loadDiskCache(): Promise<void> {
+  if (diskCacheLoaded) return Promise.resolve();
+  if (diskLoadPromise) return diskLoadPromise;
+
+  diskLoadPromise = (async () => {
+    try {
+      const raw = await AsyncStorage.getItem(SETTINGS_CACHE_KEY);
+      if (raw && !cachedSettings) {
+        cachedSettings = JSON.parse(raw);
+        // Give disk cache a 5-minute expiry so we don't serve very stale data
+        cacheExpiry = Date.now() + 300000;
+      }
+    } catch {}
+    diskCacheLoaded = true;
+  })();
+  return diskLoadPromise;
+}
+
+// Start loading disk cache immediately at module init
+loadDiskCache();
 
 export const storeApi = {
   getSettings: async (forceRefresh = false): Promise<StoreSettings> => {
     const now = Date.now();
+
+    // Return memory cache if fresh
     if (!forceRefresh && cachedSettings && now < cacheExpiry) {
       return cachedSettings;
     }
 
+    // Return in-flight promise to deduplicate concurrent calls
     if (!forceRefresh && inFlightSettingsPromise) {
       return inFlightSettingsPromise;
     }
 
-    inFlightSettingsPromise = (async () => {
-      try {
-        const res = await apiClient.get('/store/settings/');
-        const data = Array.isArray(res.data) ? res.data[0] : res.data;
-        cachedSettings = data;
-        cacheExpiry = Date.now() + 15000; // 15s cache
-        return data;
-      } catch (err: any) {
-        // If apiClient failed with 401 (e.g. stale/expired auth token in mobile storage),
-        // fallback to clean unauthenticated request since store settings are public.
-        if (err?.response?.status === 401) {
-          try {
-            const fallbackRes = await axios.get(`${API_BASE_URL}/store/settings/`, {
-              timeout: 30000,
-              headers: { 'Content-Type': 'application/json' },
-            });
-            const data = Array.isArray(fallbackRes.data) ? fallbackRes.data[0] : fallbackRes.data;
-            cachedSettings = data;
-            cacheExpiry = Date.now() + 15000;
-            return data;
-          } catch {
-            // Bubble original error if unauthenticated fallback also fails
-          }
-        }
-        throw err;
-      } finally {
-        inFlightSettingsPromise = null;
+    // If no memory cache yet, try disk cache first
+    if (!cachedSettings && !diskCacheLoaded) {
+      await loadDiskCache();
+      if (cachedSettings && !forceRefresh && Date.now() < cacheExpiry) {
+        // Trigger background refresh but return disk cache immediately
+        fetchAndCacheSettings().catch(() => {});
+        return cachedSettings;
       }
-    })();
+    }
 
-    return inFlightSettingsPromise;
+    return fetchAndCacheSettings();
   },
 };
+
+function fetchAndCacheSettings(): Promise<StoreSettings> {
+  // Deduplicate: if already fetching, return that promise
+  if (inFlightSettingsPromise) return inFlightSettingsPromise;
+
+  inFlightSettingsPromise = (async () => {
+    try {
+      const res = await apiClient.get('/store/settings/');
+      const data = Array.isArray(res.data) ? res.data[0] : res.data;
+      cachedSettings = data;
+      cacheExpiry = Date.now() + 15000; // 15s fresh cache
+
+      // Persist to disk for next cold start (non-blocking)
+      AsyncStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(data)).catch(() => {});
+
+      return data;
+    } catch (err: any) {
+      // If apiClient failed with 401, fallback to unauthenticated request
+      if (err?.response?.status === 401) {
+        try {
+          const fallbackRes = await axios.get(`${API_BASE_URL}/store/settings/`, {
+            timeout: 30000,
+            headers: { 'Content-Type': 'application/json' },
+          });
+          const data = Array.isArray(fallbackRes.data) ? fallbackRes.data[0] : fallbackRes.data;
+          cachedSettings = data;
+          cacheExpiry = Date.now() + 15000;
+          AsyncStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(data)).catch(() => {});
+          return data;
+        } catch {
+          // Bubble original error if unauthenticated fallback also fails
+        }
+      }
+      // If we have stale cache, return it rather than throwing
+      if (cachedSettings) {
+        return cachedSettings;
+      }
+      throw err;
+    } finally {
+      inFlightSettingsPromise = null;
+    }
+  })();
+
+  return inFlightSettingsPromise;
+}
+

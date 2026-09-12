@@ -111,8 +111,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Load store settings lazily via storeApi (which now has disk-cache + dedup)
+  // instead of making a separate duplicate network call
+  const ensureStoreSettings = useCallback(async () => {
+    if (storeSettings) return storeSettings;
+    try {
+      const data = await storeApi.getSettings();
+      if (data) {
+        setStoreSettings(data);
+        return data;
+      }
+    } catch (err) {
+      console.error('Failed to fetch store settings', err);
+    }
+    return storeSettings;
+  }, [storeSettings]);
+
   useEffect(() => {
-    fetchStoreSettings();
+    // Trigger a non-blocking load of settings (will resolve from cache on repeat visits)
+    ensureStoreSettings();
   }, []);
 
   // Sync / Merge Cart when user changes (login / logout)
@@ -159,17 +176,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     syncUserCart();
   }, [user?.id, isAuthLoading]);
-
-  const fetchStoreSettings = async () => {
-    try {
-      const data = await storeApi.getSettings();
-      if (data) {
-        setStoreSettings(data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch store settings', err);
-    }
-  };
 
   const refreshCart = useCallback(async (isSilent = false) => {
     if (!user) {

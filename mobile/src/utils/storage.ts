@@ -90,3 +90,50 @@ export async function deleteItem(key: string): Promise<void> {
   }
 }
 
+/**
+ * Batch-preload multiple keys from SecureStore/AsyncStorage into memoryStore
+ * in parallel. After this resolves, getItemSync() returns values instantly.
+ */
+let preloadPromise: Promise<void> | null = null;
+
+export function preloadKeys(keys: string[]): Promise<void> {
+  if (preloadPromise) return preloadPromise;
+
+  preloadPromise = (async () => {
+    if (Platform.OS === 'web') return;
+
+    await Promise.allSettled(
+      keys.map(async (key) => {
+        // Skip if already in memory
+        if (memoryStore.has(key)) return;
+        try {
+          const val = await SecureStore.getItemAsync(sanitizeKey(key));
+          if (val !== null && val !== undefined) {
+            memoryStore.set(key, val);
+            return;
+          }
+        } catch {}
+        try {
+          const asyncVal = await AsyncStorage.getItem(key);
+          if (asyncVal !== null && asyncVal !== undefined) {
+            memoryStore.set(key, asyncVal);
+          }
+        } catch {}
+      })
+    );
+  })();
+
+  return preloadPromise;
+}
+
+// Auto-preload critical keys at module init time so context providers
+// can access them synchronously as early as possible
+preloadKeys([
+  'smart-kirana-mobile-token',
+  'smart-kirana-mobile-refresh',
+  'smart-kirana-mobile-user',
+  'sk_theme_mode',
+  'sk_language',
+]);
+
+
