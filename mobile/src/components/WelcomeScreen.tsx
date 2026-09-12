@@ -61,24 +61,24 @@ export function WelcomeScreen({ forceShow = false, onStart, onFinish }: WelcomeS
       // Fade in background immediately
       Animated.timing(mainFadeAnim, {
         toValue: 1,
-        duration: 200,
+        duration: 300,
         useNativeDriver: USE_NATIVE_DRIVER,
       }).start();
 
-      // Staggered entrance (snappy 80ms step)
-      Animated.stagger(80, [
+      // Staggered entrance
+      Animated.stagger(150, [
         Animated.parallel([
-          Animated.spring(logoScaleAnim, { toValue: 1, tension: 70, friction: 7, useNativeDriver: USE_NATIVE_DRIVER }),
-          Animated.spring(logoTranslateYAnim, { toValue: 0, tension: 70, friction: 7, useNativeDriver: USE_NATIVE_DRIVER }),
-          Animated.timing(logoFadeAnim, { toValue: 1, duration: 250, useNativeDriver: USE_NATIVE_DRIVER }),
+          Animated.spring(logoScaleAnim, { toValue: 1, tension: 50, friction: 7, useNativeDriver: USE_NATIVE_DRIVER }),
+          Animated.spring(logoTranslateYAnim, { toValue: 0, tension: 50, friction: 7, useNativeDriver: USE_NATIVE_DRIVER }),
+          Animated.timing(logoFadeAnim, { toValue: 1, duration: 400, useNativeDriver: USE_NATIVE_DRIVER }),
         ]),
-        Animated.timing(brandFadeAnim, { toValue: 1, duration: 250, useNativeDriver: USE_NATIVE_DRIVER }),
-        Animated.timing(greetingFadeAnim, { toValue: 1, duration: 250, useNativeDriver: USE_NATIVE_DRIVER }),
+        Animated.timing(brandFadeAnim, { toValue: 1, duration: 400, useNativeDriver: USE_NATIVE_DRIVER }),
+        Animated.timing(greetingFadeAnim, { toValue: 1, duration: 400, useNativeDriver: USE_NATIVE_DRIVER }),
       ]).start();
 
       const timer = setTimeout(() => {
         dismiss();
-      }, 400);
+      }, 2500);
 
       return () => clearTimeout(timer);
     }
@@ -87,7 +87,7 @@ export function WelcomeScreen({ forceShow = false, onStart, onFinish }: WelcomeS
   const dismiss = () => {
     Animated.timing(mainFadeAnim, {
       toValue: 0,
-      duration: 150,
+      duration: 500,
       useNativeDriver: USE_NATIVE_DRIVER,
     }).start(() => {
       setVisible(false);
