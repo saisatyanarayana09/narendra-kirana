@@ -121,8 +121,12 @@ const AdvancedSettings = () => {
         announcement_start_date: data.announcement_start_date ? data.announcement_start_date.slice(0, 16) : '',
         announcement_end_date: data.announcement_end_date ? data.announcement_end_date.slice(0, 16) : '',
         maintenance_estimated_end: data.maintenance_estimated_end ? data.maintenance_estimated_end.slice(0, 16) : '',
-        store_timings_json: data.store_timings_json || {},
-        time_slots_json: Array.isArray(data.time_slots_json) ? data.time_slots_json : [],
+        store_timings_json: typeof data.store_timings_json === 'string'
+          ? (() => { try { return JSON.parse(data.store_timings_json); } catch(e) { return {}; } })()
+          : (data.store_timings_json || {}),
+        time_slots_json: typeof data.time_slots_json === 'string'
+          ? (() => { try { return JSON.parse(data.time_slots_json); } catch(e) { return []; } })()
+          : (Array.isArray(data.time_slots_json) ? data.time_slots_json : []),
       }));
       if (data.upi_qr_image) setUpiQrPreview(data.upi_qr_image);
       if (data.festive_popup_image) setFestiveImagePreview(data.festive_popup_image);
@@ -216,12 +220,16 @@ const AdvancedSettings = () => {
         is_emergency_paused: Boolean(settings.is_emergency_paused),
         emergency_pause_message: settings.emergency_pause_message?.trim() || '',
         auto_cutoff_orders: Boolean(settings.auto_cutoff_orders),
-        store_timings_json: settings.store_timings_json || {},
+        store_timings_json: typeof settings.store_timings_json === 'string'
+          ? (() => { try { return JSON.parse(settings.store_timings_json); } catch(e) { return {}; } })()
+          : (settings.store_timings_json || {}),
         // Slots
         enable_time_slots: Boolean(settings.enable_time_slots),
         preparation_buffer_minutes: parseInt(settings.preparation_buffer_minutes, 10) || 30,
         max_orders_per_slot: parseInt(settings.max_orders_per_slot, 10) || 15,
-        time_slots_json: settings.time_slots_json || [],
+        time_slots_json: typeof settings.time_slots_json === 'string'
+          ? (() => { try { return JSON.parse(settings.time_slots_json); } catch(e) { return []; } })()
+          : (Array.isArray(settings.time_slots_json) ? settings.time_slots_json : []),
         // WhatsApp
         enable_whatsapp_support: Boolean(settings.enable_whatsapp_support),
         whatsapp_number: settings.whatsapp_number?.trim() || '',

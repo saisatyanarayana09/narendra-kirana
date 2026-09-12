@@ -70,43 +70,90 @@ class StoreSettingsSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def to_internal_value(self, data):
-        if hasattr(data, 'copy'):
-            data = data.copy()
+        # Ensure we work with a standard mutable Python dict (not QueryDict)
+        if hasattr(data, 'dict'):
+            clean_data = data.dict()
+        elif hasattr(data, 'copy'):
+            clean_data = dict(data.copy())
         elif isinstance(data, dict):
-            data = dict(data)
+            clean_data = dict(data)
+        else:
+            clean_data = {}
 
         import json
+        import ast
+
         for img_field in ['invoice_signature', 'upi_qr_image', 'festive_popup_image', 'app_icon']:
-            if img_field in data:
-                sig = data.get(img_field)
+            if img_field in clean_data:
+                sig = clean_data.get(img_field)
                 if isinstance(sig, str) or sig is None:
-                    data.pop(img_field, None)
+                    clean_data.pop(img_field, None)
 
-        for json_field in ['store_timings_json', 'time_slots_json']:
-            if json_field in data and isinstance(data[json_field], str):
-                try:
-                    data[json_field] = json.loads(data[json_field])
-                except Exception:
-                    pass
+        for json_field, default_factory in [('store_timings_json', dict), ('time_slots_json', list)]:
+            if json_field in clean_data:
+                val = clean_data.get(json_field)
+                if isinstance(val, str):
+                    val = val.strip()
+                    if not val or val in ('null', 'undefined', '[object Object]', "''", '""'):
+                        clean_data[json_field] = default_factory()
+                    else:
+                        try:
+                            clean_data[json_field] = json.loads(val)
+                        except Exception:
+                            try:
+                                parsed = ast.literal_eval(val)
+                                clean_data[json_field] = parsed if isinstance(parsed, (dict, list)) else default_factory()
+                            except Exception:
+                                clean_data[json_field] = default_factory()
+                elif val is None:
+                    clean_data[json_field] = default_factory()
 
-        if 'allowed_pincodes' in data and data.get('allowed_pincodes') is None:
-            data['allowed_pincodes'] = ''
+        if 'allowed_pincodes' in clean_data and clean_data.get('allowed_pincodes') is None:
+            clean_data['allowed_pincodes'] = ''
 
-        if 'low_stock_threshold' in data and (data.get('low_stock_threshold') is None or data.get('low_stock_threshold') == ''):
-            data['low_stock_threshold'] = 5
+        if 'low_stock_threshold' in clean_data and (clean_data.get('low_stock_threshold') is None or clean_data.get('low_stock_threshold') == ''):
+            clean_data['low_stock_threshold'] = 5
 
         for dec_field in ['min_order_amount', 'packaging_fee', 'delivery_fee', 'free_delivery_threshold', 'min_delivery_order_amount']:
-            if dec_field in data and (data.get(dec_field) is None or data.get(dec_field) == ''):
-                data[dec_field] = '0.00'
+            if dec_field in clean_data and (clean_data.get(dec_field) is None or clean_data.get(dec_field) == ''):
+                clean_data[dec_field] = '0.00'
 
         for str_field in ['store_name', 'store_phone', 'store_email']:
-            if str_field in data and isinstance(data.get(str_field), str):
-                data[str_field] = data[str_field].strip()
+            if str_field in clean_data and isinstance(clean_data.get(str_field), str):
+                clean_data[str_field] = clean_data[str_field].strip()
 
-        if 'store_phone' in data and isinstance(data.get('store_phone'), str):
-            data['store_phone'] = data['store_phone'][:20]
+        if 'store_phone' in clean_data and isinstance(clean_data.get('store_phone'), str):
+            clean_data['store_phone'] = clean_data['store_phone'][:20]
 
-        return super().to_internal_value(data)
+        return super().to_internal_value(clean_data)
+
+    def validate_store_timings_json(self, value):
+        if isinstance(value, str):
+            import json, ast
+            try:
+                value = json.loads(value)
+            except Exception:
+                try:
+                    value = ast.literal_eval(value)
+                except Exception:
+                    value = {}
+        if not isinstance(value, dict):
+            return {}
+        return value
+
+    def validate_time_slots_json(self, value):
+        if isinstance(value, str):
+            import json, ast
+            try:
+                value = json.loads(value)
+            except Exception:
+                try:
+                    value = ast.literal_eval(value)
+                except Exception:
+                    value = []
+        if not isinstance(value, list):
+            return []
+        return value
 
 
 class HomepageSectionProductSerializer(serializers.ModelSerializer):
