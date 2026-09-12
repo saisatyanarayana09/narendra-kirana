@@ -2,12 +2,22 @@
   "expo": {
     "name": "Narendra Kirana",
     "slug": "narendra-kirana",
+    "owner": "narendra-kirana",
     "version": "1.3.8",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "jsEngine": "hermes",
     "scheme": "smartkirana",
+    "updates": {
+      "url": "https://u.expo.dev/f9d70244-0cb5-46bb-afee-248399d310de",
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "ios": {
       "supportsTablet": true
     },
@@ -95,6 +105,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "expo-updates",
       "expo-secure-store",
       "expo-font",
       "expo-sharing",

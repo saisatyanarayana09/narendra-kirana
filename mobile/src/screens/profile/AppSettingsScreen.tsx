@@ -26,6 +26,10 @@ import {
   DownloadProgressInfo,
   DEFAULT_APK_URL,
 } from '../../services/updateService';
+import {
+  checkAndDownloadOtaUpdateSilently,
+  applyOtaUpdate,
+} from '../../services/otaService';
 
 export function AppSettingsScreen({ navigation }: { navigation: AppNavigationProp }) {
   const { colors, themeMode, toggleThemeMode, isDark } = useTheme();
@@ -52,6 +56,23 @@ export function AppSettingsScreen({ navigation }: { navigation: AppNavigationPro
     setUpdateError(null);
 
     try {
+      try {
+        const otaResult = await checkAndDownloadOtaUpdateSilently();
+        if (otaResult.isDownloaded) {
+          triggerHaptic('success');
+          Alert.alert(
+            'Update Ready',
+            'A silent update was downloaded! Would you like to restart the app now to apply it?',
+            [
+              { text: 'Later', style: 'cancel' },
+              { text: 'Restart Now', onPress: () => applyOtaUpdate() },
+            ]
+          );
+          setCheckingUpdates(false);
+          return;
+        }
+      } catch {}
+
       const settings = await storeApi.getSettings();
       const result = checkAppVersion(settings);
 

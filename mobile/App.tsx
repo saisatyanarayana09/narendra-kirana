@@ -10,6 +10,7 @@ import { ErrorBoundary } from './src/components/ErrorBoundary';
 
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { LanguageProvider } from './src/context/LanguageContext';
+import { checkAndDownloadOtaUpdateSilently } from './src/services/otaService';
 
 class TopLevelErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: any }> {
   state: { hasError: boolean; error: any } = { hasError: false, error: null };
@@ -37,6 +38,15 @@ class TopLevelErrorBoundary extends Component<{ children: ReactNode }, { hasErro
 
 function ThemedAppContent() {
   const { colors, isDark } = useTheme();
+
+  React.useEffect(() => {
+    // Non-blocking silent background OTA check
+    const timer = setTimeout(() => {
+      checkAndDownloadOtaUpdateSilently().catch(() => {});
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <>
       <OfflineBanner />
