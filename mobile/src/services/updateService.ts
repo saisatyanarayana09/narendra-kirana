@@ -84,7 +84,7 @@ export async function installDownloadedApk(fileUri: string): Promise<void> {
   await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
     data: contentUri,
     type: 'application/vnd.android.package-archive',
-    flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
+    flags: 1 | 268435456, // FLAG_GRANT_READ_URI_PERMISSION | FLAG_ACTIVITY_NEW_TASK
   });
 }
 
@@ -135,8 +135,12 @@ export async function downloadAndInstallApk(
     // Cancel any in-flight download
     await cancelApkDownload();
 
+    const downloadUrl = cleanUrl.includes('?')
+      ? `${cleanUrl}&_t=${Date.now()}`
+      : `${cleanUrl}?_t=${Date.now()}`;
+
     activeDownload = FileSystem.createDownloadResumable(
-      cleanUrl,
+      downloadUrl,
       localApkPath,
       {},
       (progress) => {

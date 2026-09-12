@@ -9,6 +9,7 @@ import {
   Platform,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import { navigationRef } from '../navigation/navigationRef';
 import { triggerHaptic } from '../utils/haptics';
 
@@ -24,6 +25,7 @@ interface State {
   error: Error | null;
   errorInfo: ErrorInfo | null;
   showDevDetails: boolean;
+  copied: boolean;
 }
 
 export class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
@@ -32,6 +34,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
     error: null,
     errorInfo: null,
     showDevDetails: false,
+    copied: false,
   };
 
   public static getDerivedStateFromError(error: Error): Partial<State> {
@@ -77,6 +80,25 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
 
   public toggleDevDetails = () => {
     this.setState((prev) => ({ showDevDetails: !prev.showDevDetails }));
+  };
+
+  public handleCopyError = async () => {
+    try {
+      const parts = [
+        `Error: ${this.state.error?.name || 'Error'}: ${this.state.error?.message || 'Unknown error'}`,
+        this.state.error?.stack ? `Call Stack:\n${this.state.error.stack}` : null,
+        this.state.errorInfo?.componentStack ? `Component Stack:\n${this.state.errorInfo.componentStack}` : null,
+      ].filter(Boolean);
+
+      await Clipboard.setStringAsync(parts.join('\n\n'));
+      triggerHaptic('success');
+      this.setState({ copied: true });
+      setTimeout(() => {
+        this.setState({ copied: false });
+      }, 2500);
+    } catch (err) {
+      console.warn('Failed to copy error to clipboard:', err);
+    }
   };
 
   public render() {
@@ -134,8 +156,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
               </TouchableOpacity>
             </View>
 
-            {/* Developer Error Details (Collapsible in DEV) */}
-            {isDev && this.state.error && (
+            {/* Error Details / Diagnostics (Collapsible) */}
+            {Boolean(this.state.error) && (
               <View style={styles.devSection}>
                 <TouchableOpacity
                   style={styles.devToggle}
@@ -143,31 +165,51 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
                   activeOpacity={0.7}
                 >
                   <Text style={styles.devToggleText}>
-                    {this.state.showDevDetails ? 'Hide Diagnostics ▲' : 'Show Diagnostics (DEV) ▼'}
+                    {this.state.showDevDetails ? 'Hide Error Details ▲' : 'Show Error Details ▼'}
                   </Text>
                 </TouchableOpacity>
 
                 {this.state.showDevDetails && (
-                  <ScrollView style={styles.devScrollView} nestedScrollEnabled>
-                    <Text style={styles.devErrorTitle}>Error Details:</Text>
-                    <Text style={styles.devErrorText}>
-                      {this.state.error.name}: {this.state.error.message}
-                    </Text>
-                    {this.state.error.stack && (
-                      <>
-                        <Text style={styles.devStackTitle}>Call Stack:</Text>
-                        <Text style={styles.devStackText}>{this.state.error.stack}</Text>
-                      </>
-                    )}
-                    {this.state.errorInfo?.componentStack && (
-                      <>
-                        <Text style={styles.devStackTitle}>Component Stack:</Text>
-                        <Text style={styles.devStackText}>
-                          {this.state.errorInfo.componentStack}
-                        </Text>
-                      </>
-                    )}
-                  </ScrollView>
+                  <View style={styles.diagnosticsContainer}>
+                    <ScrollView style={styles.devScrollView} nestedScrollEnabled>
+                      <Text style={styles.devErrorTitle}>Error Details:</Text>
+                      <Text style={styles.devErrorText} selectable={true}>
+                        {this.state.error?.name}: {this.state.error?.message}
+                      </Text>
+                      {this.state.error?.stack && (
+                        <>
+                          <Text style={styles.devStackTitle}>Call Stack:</Text>
+                          <Text style={styles.devStackText} selectable={true}>
+                            {this.state.error.stack}
+                          </Text>
+                        </>
+                      )}
+                      {this.state.errorInfo?.componentStack && (
+                        <>
+                          <Text style={styles.devStackTitle}>Component Stack:</Text>
+                          <Text style={styles.devStackText} selectable={true}>
+                            {this.state.errorInfo.componentStack}
+                          </Text>
+                        </>
+                      )}
+                    </ScrollView>
+
+                    <TouchableOpacity
+                      style={styles.copyErrorBtn}
+                      onPress={this.handleCopyError}
+                      activeOpacity={0.8}
+                    >
+                      <Feather
+                        name={this.state.copied ? 'check' : 'copy'}
+                        size={13}
+                        color="#059669"
+                        style={{ marginRight: 6 }}
+                      />
+                      <Text style={styles.copyErrorBtnText}>
+                        {this.state.copied ? 'Copied to Clipboard!' : 'Copy Error Details'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 )}
               </View>
             )}
@@ -339,5 +381,26 @@ const styles = StyleSheet.create({
     color: '#CBD5E1',
     fontFamily: Platform.select({ ios: 'Courier', default: 'monospace' }),
     lineHeight: 14,
+  },
+  diagnosticsContainer: {
+    width: '100%',
+    marginTop: 8,
+  },
+  copyErrorBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ECFDF5',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  copyErrorBtnText: {
+    color: '#059669',
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

@@ -205,7 +205,7 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
                 <>
                   <Text style={styles.ribbonEmoji}>🚚</Text>
                   <Text style={styles.ribbonText} numberOfLines={1} ellipsizeMode="tail">
-                    Add <Text style={styles.ribbonBold}>₹{shortfall.toFixed(0)}</Text> more for <Text style={styles.ribbonBold}>FREE Delivery</Text>
+                    Add <Text style={styles.ribbonBold}>₹{(Number(shortfall) || 0).toFixed(0)}</Text> more for <Text style={styles.ribbonBold}>FREE Delivery</Text>
                   </Text>
                 </>
               ) : (
@@ -243,7 +243,7 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
               <View style={styles.priceContainer}>
                 <View style={styles.priceRow}>
                   <Text style={styles.priceValue}>
-                    {`₹${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                    {`₹${(Number(totalAmount) || 0).toFixed(2)}`}
                   </Text>
                 </View>
                 <Text style={styles.itemsSubtext}>
