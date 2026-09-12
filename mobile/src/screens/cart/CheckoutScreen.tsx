@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -265,57 +265,72 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
     return hours * 60 + minutes;
   };
 
-  const rawSlots = storeSettings?.time_slots_json;
-  let parsedSlotsList: Array<{ start?: string; end?: string; label: string }> = [];
+  const parsedSlotsList = useMemo(() => {
+    const rawSlots = storeSettings?.time_slots_json;
+    let list: Array<{ start?: string; end?: string; label: string }> = [];
 
-  if (Array.isArray(rawSlots)) {
-    parsedSlotsList = rawSlots.map((s: any) => {
-      if (typeof s === 'string') return { label: s };
-      return { start: s.start || s.start_time, end: s.end || s.end_time, label: s.label || `${s.start} - ${s.end}` };
-    });
-  } else if (typeof rawSlots === 'string' && rawSlots.trim().length > 0) {
-    try {
-      const parsed = JSON.parse(rawSlots);
-      if (Array.isArray(parsed)) {
-        parsedSlotsList = parsed.map((s: any) => {
-          if (typeof s === 'string') return { label: s };
-          return { start: s.start || s.start_time, end: s.end || s.end_time, label: s.label || `${s.start} - ${s.end}` };
-        });
-      }
-    } catch (e) {}
-  }
+    if (Array.isArray(rawSlots)) {
+      list = rawSlots.map((s: any) => {
+        if (typeof s === 'string') return { label: s };
+        return { start: s.start || s.start_time, end: s.end || s.end_time, label: s.label || `${s.start} - ${s.end}` };
+      });
+    } else if (typeof rawSlots === 'string' && rawSlots.trim().length > 0) {
+      try {
+        const parsed = JSON.parse(rawSlots);
+        if (Array.isArray(parsed)) {
+          list = parsed.map((s: any) => {
+            if (typeof s === 'string') return { label: s };
+            return { start: s.start || s.start_time, end: s.end || s.end_time, label: s.label || `${s.start} - ${s.end}` };
+          });
+        }
+      } catch (e) {}
+    }
 
-  if (parsedSlotsList.length === 0) {
-    parsedSlotsList = [
-      { label: '08:00 AM - 10:00 AM', start: '08:00', end: '10:00' },
-      { label: '10:00 AM - 12:00 PM', start: '10:00', end: '12:00' },
-      { label: '12:00 PM - 02:00 PM', start: '12:00', end: '14:00' },
-      { label: '02:00 PM - 04:00 PM', start: '14:00', end: '16:00' },
-      { label: '04:00 PM - 06:00 PM', start: '16:00', end: '18:00' },
-      { label: '06:00 PM - 08:00 PM', start: '18:00', end: '20:00' },
-      { label: '08:00 PM - 10:00 PM', start: '20:00', end: '22:00' },
-    ];
-  }
+    if (list.length === 0) {
+      list = [
+        { label: '08:00 AM - 10:00 AM', start: '08:00', end: '10:00' },
+        { label: '10:00 AM - 12:00 PM', start: '10:00', end: '12:00' },
+        { label: '12:00 PM - 02:00 PM', start: '12:00', end: '14:00' },
+        { label: '02:00 PM - 04:00 PM', start: '14:00', end: '16:00' },
+        { label: '04:00 PM - 06:00 PM', start: '16:00', end: '18:00' },
+        { label: '06:00 PM - 08:00 PM', start: '18:00', end: '20:00' },
+        { label: '08:00 PM - 10:00 PM', start: '20:00', end: '22:00' },
+      ];
+    }
+    return list;
+  }, [storeSettings?.time_slots_json]);
 
-  const now = new Date();
-  const todayDateStr = now.toISOString().split('T')[0];
-  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-  const tomorrowDateStr = tomorrow.toISOString().split('T')[0];
+  const { todayDateStr, tomorrowDateStr, todayFormatted, tomorrowFormatted } = useMemo(() => {
+    const now = new Date();
+    const tDateStr = now.toISOString().split('T')[0];
+    const tmrw = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const tmrwDateStr = tmrw.toISOString().split('T')[0];
 
-  const todayFormatted = now.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
-  const tomorrowFormatted = tomorrow.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+    const tFormatted = now.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+    const tmrwFormatted = tmrw.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+
+    return {
+      todayDateStr: tDateStr,
+      tomorrowDateStr: tmrwDateStr,
+      todayFormatted: tFormatted,
+      tomorrowFormatted: tmrwFormatted,
+    };
+  }, []);
 
   const bufferMins = storeSettings?.preparation_buffer_minutes ?? 30;
-  const currentMinutesFromMidnight = now.getHours() * 60 + now.getMinutes() + bufferMins;
 
-  const isSlotPassedToday = (slot: { start?: string; end?: string; label: string }): boolean => {
+  const isSlotPassedToday = useCallback((slot: { start?: string; end?: string; label: string }): boolean => {
+    const now = new Date();
+    const currentMinutesFromMidnight = now.getHours() * 60 + now.getMinutes() + bufferMins;
     const timeToCompare = slot.start || slot.label.split('-')[0].trim();
     const endMeridiem = slot.label.match(/([APap][Mm])\s*$/)?.[1];
     const slotMinutes = parseMinutes(timeToCompare, endMeridiem);
     return slotMinutes <= currentMinutesFromMidnight;
-  };
+  }, [bufferMins]);
 
-  const availableSlotsToday = parsedSlotsList.filter((s) => !isSlotPassedToday(s));
+  const availableSlotsToday = useMemo(() => {
+    return parsedSlotsList.filter((s) => !isSlotPassedToday(s));
+  }, [parsedSlotsList, isSlotPassedToday]);
 
   // Initialize selected slot
   useEffect(() => {

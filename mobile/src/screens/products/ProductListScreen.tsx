@@ -56,7 +56,7 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
   const initialSearch = route.params?.search || '';
 
   const { user } = useAuth();
-  const { addToCart } = useCart();
+  const { addToCart, cartQuantityMap } = useCart();
   const { colors, isDark } = useTheme();
   const { t } = useLanguage();
   
@@ -384,11 +384,11 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
   );
 
   const handleProductPress = useCallback((item: any) => {
-    navigation.navigate('ProductDetailScreen', { productId: item.id });
+    navigation.navigate('ProductDetailScreen', { productId: item.id, initialProduct: item });
   }, [navigation]);
 
   const handleAddToCart = useCallback((p: any) => {
-    addToCart(p.id, 1);
+    addToCart(p.id, 1, p);
   }, [addToCart]);
 
   const handleToggleFavorite = useCallback((p: any) => {
@@ -401,11 +401,12 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
         product={item} 
         onPress={handleProductPress} 
         onAddToCart={handleAddToCart}
+        cartQty={cartQuantityMap[item.id] || 0}
         isFavorite={favoriteIds.has(item.id)}
         onToggleFavorite={handleToggleFavorite}
       />
     </View>
-  ), [handleProductPress, handleAddToCart, favoriteIds, handleToggleFavorite]);
+  ), [handleProductPress, handleAddToCart, cartQuantityMap, favoriteIds, handleToggleFavorite]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>

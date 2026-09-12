@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -10,7 +10,7 @@ interface Props {
   isLoading?: boolean;
 }
 
-export function QuantitySelector({ quantity, onIncrease, onDecrease, isLoading = false }: Props) {
+export const QuantitySelector = memo(function QuantitySelector({ quantity, onIncrease, onDecrease, isLoading = false }: Props) {
   const { colors, isDark } = useTheme();
 
   if (quantity === 0) return null;
@@ -38,7 +38,7 @@ export function QuantitySelector({ quantity, onIncrease, onDecrease, isLoading =
       </TouchableOpacity>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

@@ -18,19 +18,21 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useIsFocused } from '@react-navigation/native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { AppNavigationProp } from '../../navigation/types';
 import { theme } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { apiClient } from '../../api/client';
+import { storeApi } from '../../api/store';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { ProductCard } from '../../components/ProductCard';
 import { CategoryCard } from '../../components/CategoryCard';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { BannerSkeleton, ProductCardSkeleton, SkeletonItem } from '../../components/SkeletonLoader';
-import { fixImageUrl } from '../../utils/image';
+import { fixImageUrl, getOptimizedImageUrl } from '../../utils/image';
 
 type Props = {
   navigation: AppNavigationProp;
@@ -50,6 +52,7 @@ interface BannerCarouselSectionProps {
 }
 
 const BannerCarouselSection = React.memo(function BannerCarouselSection({ banners, onBannerPress }: BannerCarouselSectionProps) {
+  const isFocused = useIsFocused();
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
   const bannerRef = useRef<FlatList>(null);
   const carouselTimerRef = useRef<any>(null);
@@ -72,13 +75,19 @@ const BannerCarouselSection = React.memo(function BannerCarouselSection({ banner
   }, [banners.length]);
 
   useEffect(() => {
-    startCarouselTimer();
+    if (isFocused) {
+      startCarouselTimer();
+    } else {
+      if (carouselTimerRef.current) {
+        clearInterval(carouselTimerRef.current);
+      }
+    }
     return () => {
       if (carouselTimerRef.current) {
         clearInterval(carouselTimerRef.current);
       }
     };
-  }, [startCarouselTimer]);
+  }, [isFocused, startCarouselTimer]);
 
   if (banners.length === 0) return null;
 
@@ -97,7 +106,7 @@ const BannerCarouselSection = React.memo(function BannerCarouselSection({ banner
         contentContainerStyle={styles.bannersList}
         keyExtractor={(item: any, index) => String(item?.id ?? index)}
         onScrollBeginDrag={() => clearInterval(carouselTimerRef.current)}
-        onScrollEndDrag={() => startCarouselTimer()}
+        onScrollEndDrag={() => isFocused && startCarouselTimer()}
         onScrollToIndexFailed={(info) => {
           setTimeout(() => bannerRef.current?.scrollToIndex({ index: info.index, animated: false }), 200);
         }}
@@ -105,21 +114,24 @@ const BannerCarouselSection = React.memo(function BannerCarouselSection({ banner
           const index = Math.round(e.nativeEvent.contentOffset.x / width);
           setActiveBannerIndex(index);
         }}
-        renderItem={({ item }) => (
-          <TouchableOpacity 
-            activeOpacity={0.95}
-            style={styles.bannerSlide}
-            onPress={onBannerPress}
-          >
-            <Image 
-              source={{ uri: fixImageUrl(item.image) || '' }} 
-              style={styles.bannerImage} 
-              contentFit="cover"
-              recyclingKey={fixImageUrl(item.image) || String(item?.id)}
-              cachePolicy="memory-disk"
-            />
-          </TouchableOpacity>
-        )}
+        renderItem={({ item }) => {
+          const bannerUri = getOptimizedImageUrl(item.image, Math.round(width * 2), Math.round(BANNER_HEIGHT * 2)) || fixImageUrl(item.image) || '';
+          return (
+            <TouchableOpacity 
+              activeOpacity={0.95}
+              style={styles.bannerSlide}
+              onPress={onBannerPress}
+            >
+              <Image 
+                source={{ uri: bannerUri }} 
+                style={styles.bannerImage} 
+                contentFit="cover"
+                recyclingKey={bannerUri || String(item?.id)}
+                cachePolicy="memory-disk"
+              />
+            </TouchableOpacity>
+          );
+        }}
       />
 
       {/* Carousel Dots matching web app */}
@@ -216,7 +228,7 @@ const AnnouncementMarqueeBar = React.memo(function AnnouncementMarqueeBar({
 
 export function HomeScreen({ navigation }: Props) {
   const { user } = useAuth();
-  const { addToCart } = useCart();
+  const { addToCart, cartQuantityMap } = useCart();
   const { colors, isDark } = useTheme();
   const { t } = useLanguage();
   
@@ -364,15 +376,26 @@ export function HomeScreen({ navigation }: Props) {
 
   const fetchHomeData = async () => {
     try {
-      const [catsRes, bannersRes, sectionsRes, settingsRes] = await Promise.all([
+      const [catsRes, bannersRes, sectionsRes, settingsData] = await Promise.all([
         apiClient.get('/categories/').catch(() => ({ data: [] })),
         apiClient.get('/offers/banners/').catch(() => ({ data: [] })),
         apiClient.get('/store/homepage-sections/').catch(() => ({ data: [] })),
-        apiClient.get('/store/settings/').catch(() => ({ data: {} })),
+        storeApi.getSettings().catch(() => ({})),
       ]);
       
-      setCategories(Array.isArray(catsRes.data) ? catsRes.data : (catsRes.data?.results || []));
-      setBanners(Array.isArray(bannersRes.data) ? bannersRes.data : (bannersRes.data?.results || []));
+      const catsList = Array.isArray(catsRes.data) ? catsRes.data : (catsRes.data?.results || []);
+      const bannersList = Array.isArray(bannersRes.data) ? bannersRes.data : (bannersRes.data?.results || []);
+
+      setCategories(catsList);
+      setBanners(bannersList);
+
+      // Prefetch top 3 promotional banners into disk/memory cache
+      bannersList.slice(0, 3).forEach((b: any) => {
+        const uri = getOptimizedImageUrl(b.image, Math.round(width * 2), Math.round(BANNER_HEIGHT * 2)) || fixImageUrl(b.image);
+        if (uri) {
+          Image.prefetch(uri).catch(() => {});
+        }
+      });
       
       const rawSections = Array.isArray(sectionsRes.data) ? sectionsRes.data : (sectionsRes.data?.results || []);
       const mappedSections = rawSections
@@ -387,7 +410,7 @@ export function HomeScreen({ navigation }: Props) {
         .sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0));
 
       setSections(mappedSections);
-      setSettings(settingsRes.data || {});
+      setSettings(settingsData || {});
     } catch (error) {
       console.error('Error fetching home data:', error);
     } finally {
@@ -406,11 +429,11 @@ export function HomeScreen({ navigation }: Props) {
   }, [user, navigation]);
 
   const handleProductPress = useCallback((p: any) => {
-    navigation.navigate('ProductDetailScreen', { productId: p.id });
+    navigation.navigate('ProductDetailScreen', { productId: p.id, initialProduct: p });
   }, [navigation]);
 
   const handleAddToCart = useCallback((p: any) => {
-    addToCart(p.id, 1);
+    addToCart(p.id, 1, p);
   }, [addToCart]);
 
   const handleToggleFavorite = useCallback((p: any) => {
@@ -664,6 +687,7 @@ export function HomeScreen({ navigation }: Props) {
                       product={item} 
                       onPress={handleProductPress}
                       onAddToCart={handleAddToCart}
+                      cartQty={cartQuantityMap[item.id] || 0}
                       isFavorite={favoriteIds.has(item.id)}
                       onToggleFavorite={handleToggleFavorite}
                     />

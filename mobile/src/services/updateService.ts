@@ -44,7 +44,10 @@ export function checkAppVersion(settings: StoreSettings | null): UpdateCheckResu
   const hasUpdate = isForced || isLatestOlder;
 
   const targetVersion = isForced ? minVersion : (latestVersion || minVersion || currentVersion);
-  const updateUrl = settings?.app_update_url?.trim() || DEFAULT_APK_URL;
+  const rawUrl = settings?.app_update_url?.trim() || '';
+  // Ensure we use a direct APK URL for in-app downloads, not a Play Store redirect
+  const isPlayStore = rawUrl.includes('play.google.com') || rawUrl.startsWith('market://');
+  const updateUrl = (rawUrl && !isPlayStore) ? rawUrl : DEFAULT_APK_URL;
   const updateMessage = settings?.app_update_message ||
     'A new and improved version of Narendra Kirana is available. Please update to continue shopping.';
 
@@ -96,10 +99,15 @@ export async function downloadAndInstallApk(
   apkUrl: string,
   onProgress?: (info: DownloadProgressInfo) => void
 ): Promise<{ success: boolean; uri?: string; error?: string }> {
-  const cleanUrl = apkUrl?.trim() || DEFAULT_APK_URL;
+  let cleanUrl = apkUrl?.trim() || DEFAULT_APK_URL;
 
-  // On non-Android or Play Store URL, redirect to browser
-  if (Platform.OS !== 'android' || cleanUrl.includes('play.google.com') || cleanUrl.startsWith('market://')) {
+  // If a Play Store URL was passed, fall back to the direct APK URL so Android downloads within the app
+  if (cleanUrl.includes('play.google.com') || cleanUrl.startsWith('market://')) {
+    cleanUrl = DEFAULT_APK_URL;
+  }
+
+  // On non-Android (iOS/Web), redirect to external browser/store
+  if (Platform.OS !== 'android') {
     await Linking.openURL(cleanUrl);
     return { success: true };
   }
@@ -163,6 +171,10 @@ export async function downloadAndInstallApk(
 
     if (!result || !result.uri) {
       throw new Error('Download did not return a valid file URI.');
+    }
+
+    if (result.status && result.status >= 400) {
+      throw new Error(`Server returned HTTP ${result.status}. APK update file not found.`);
     }
 
     // Trigger installation

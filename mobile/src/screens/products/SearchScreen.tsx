@@ -38,7 +38,7 @@ export function SearchScreen({ navigation, route }: Props) {
   const debouncedQuery = useDebounce(query, 300);
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const { addToCart } = useCart();
+  const { addToCart, cartQuantityMap } = useCart();
   const { colors, isDark } = useTheme();
   const activeQueryRef = useRef('');
 
@@ -147,6 +147,31 @@ export function SearchScreen({ navigation, route }: Props) {
       }
     }
   };
+
+  const handleProductPress = useCallback((p: any) => {
+    navigation.navigate('ProductDetailScreen', { productId: p.id, initialProduct: p });
+  }, [navigation]);
+
+  const handleAddToCart = useCallback((p: any) => {
+    addToCart(p.id, 1, p);
+  }, [addToCart]);
+
+  const getItemLayout = useCallback((_: any, index: number) => ({
+    length: 296,
+    offset: 296 * Math.floor(index / 2),
+    index,
+  }), []);
+
+  const renderProductItem = useCallback(({ item }: { item: any }) => (
+    <View style={styles.cardWrapper}>
+      <ProductCard 
+        product={item} 
+        cartQty={cartQuantityMap[item.id] || 0}
+        onPress={handleProductPress} 
+        onAddToCart={handleAddToCart}
+      />
+    </View>
+  ), [cartQuantityMap, handleProductPress, handleAddToCart]);
 
   const displaySearchValue = isListening && interimText ? interimText : query;
 
@@ -332,6 +357,7 @@ export function SearchScreen({ navigation, route }: Props) {
             windowSize={5}
             removeClippedSubviews={Platform.OS === 'android'}
             updateCellsBatchingPeriod={50}
+            getItemLayout={getItemLayout}
             ListHeaderComponent={() => (
               <View style={styles.resultsHeader}>
                 <Text style={[styles.resultsCountText, { color: colors.textSecondary }]}>
@@ -339,15 +365,7 @@ export function SearchScreen({ navigation, route }: Props) {
                 </Text>
               </View>
             )}
-            renderItem={({ item }) => (
-              <View style={styles.cardWrapper}>
-                <ProductCard 
-                  product={item} 
-                  onPress={(p) => navigation.navigate('ProductDetailScreen', { productId: p.id })} 
-                  onAddToCart={(p) => addToCart(p.id, 1)}
-                />
-              </View>
-            )}
+            renderItem={renderProductItem}
           />
         )}
       </View>

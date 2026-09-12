@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
 import { DeviceEventEmitter } from 'react-native';
 import { apiClient } from '../api/client';
 import { STORAGE_KEYS } from '../constants/config';
@@ -47,19 +47,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [pendingRedirect, setPendingRedirect] = useState<PendingRedirect | null>(null);
 
-  const clearPendingRedirect = () => setPendingRedirect(null);
+  const clearPendingRedirect = useCallback(() => setPendingRedirect(null), []);
 
-  useEffect(() => {
-    loadStoredUser();
-
-    const sub = DeviceEventEmitter.addListener('AUTH_FAILED', () => {
-      setUser(null);
-    });
-
-    return () => sub.remove();
-  }, []);
-
-  const loadStoredUser = async () => {
+  const loadStoredUser = useCallback(async () => {
     try {
       const storedUser = await getItem(STORAGE_KEYS.USER);
       if (storedUser) {
@@ -71,9 +61,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const login = async (data: any) => {
+  useEffect(() => {
+    loadStoredUser();
+
+    const sub = DeviceEventEmitter.addListener('AUTH_FAILED', () => {
+      setUser(null);
+    });
+
+    return () => sub.remove();
+  }, [loadStoredUser]);
+
+  const login = useCallback(async (data: any) => {
     try {
       const response = await apiClient.post('/auth/login/', data);
       const { access, refresh, user: loggedUser } = response.data;
@@ -88,9 +88,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       throw error;
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await unregisterPushNotificationsAsync().catch(() => {});
       const refreshToken = await getItem(STORAGE_KEYS.REFRESH);
@@ -105,18 +105,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Error during logout:', error);
     }
-  };
+  }, []);
 
-  const updateUser = async (updatedUser: User) => {
+  const updateUser = useCallback(async (updatedUser: User) => {
     try {
       await saveItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
       setUser(updatedUser);
     } catch (error) {
       console.error('Failed to update user locally:', error);
     }
-  };
+  }, []);
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     try {
       const response = await apiClient.get('/auth/profile/');
       if (response.data) {
@@ -128,22 +128,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error('Failed to refresh user profile:', error);
       }
     }
-  };
+  }, []);
+
+  const contextValue = useMemo(() => ({
+    user,
+    isLoading,
+    pendingRedirect,
+    setPendingRedirect,
+    clearPendingRedirect,
+    login,
+    logout,
+    updateUser,
+    refreshUser,
+  }), [
+    user,
+    isLoading,
+    pendingRedirect,
+    clearPendingRedirect,
+    login,
+    logout,
+    updateUser,
+    refreshUser,
+  ]);
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        pendingRedirect,
-        setPendingRedirect,
-        clearPendingRedirect,
-        login,
-        logout,
-        updateUser,
-        refreshUser,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

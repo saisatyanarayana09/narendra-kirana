@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Image } from 'expo-image';
 import { Feather } from '@expo/vector-icons';
-import { fixImageUrl } from '../utils/image';
+import { fixImageUrl, getOptimizedImageUrl } from '../utils/image';
 import { CartItem } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 import { triggerHaptic } from '../utils/haptics';
@@ -14,7 +14,7 @@ interface Props {
   isLoading?: boolean;
 }
 
-export function CartItemCard({ item, onUpdateQuantity, onRemove, isLoading }: Props) {
+export const CartItemCard = memo(function CartItemCard({ item, onUpdateQuantity, onRemove, isLoading }: Props) {
   const { colors, isDark } = useTheme();
   const maxOrderQty = item.max_order_quantity ?? item.product?.max_order_quantity ?? 0;
   const stockQty = item.stock_quantity ?? item.product?.stock_quantity ?? 999;
@@ -23,7 +23,7 @@ export function CartItemCard({ item, onUpdateQuantity, onRemove, isLoading }: Pr
   const isMaxReached = isOutOfStock || item.quantity >= maxAllowed;
 
   const rawImage = item.product_image || item.product?.image;
-  const primaryImage = fixImageUrl(rawImage);
+  const primaryImage = getOptimizedImageUrl(rawImage, 160, 160) || fixImageUrl(rawImage);
   const productName = item.product_name || item.product?.name || 'Product';
   const unitPrice = item.unit_price || item.product?.price || '0.00';
   const unitName = item.product_unit || item.product?.unit || 'Unit';
@@ -129,7 +129,7 @@ export function CartItemCard({ item, onUpdateQuantity, onRemove, isLoading }: Pr
       </TouchableOpacity>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { getItem, saveItem } from '../utils/storage';
 
 export type Language = 'en' | 'te';
@@ -225,12 +225,12 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     loadLanguage();
   }, []);
 
-  const setLanguage = (lang: Language) => {
+  const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang);
     saveItem(STORAGE_LANG_KEY, lang);
-  };
+  }, []);
 
-  const t = (key: string): string => {
+  const t = useCallback((key: string): string => {
     if (translations[language] && translations[language][key]) {
       return translations[language][key];
     }
@@ -238,10 +238,16 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
       return translations.en[key];
     }
     return key;
-  };
+  }, [language]);
+
+  const value = useMemo(() => ({
+    language,
+    setLanguage,
+    t,
+  }), [language, setLanguage, t]);
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={value}>
       {children}
     </LanguageContext.Provider>
   );

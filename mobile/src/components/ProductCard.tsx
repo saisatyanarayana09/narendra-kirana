@@ -9,10 +9,9 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Feather, Ionicons } from '@expo/vector-icons';
-import { fixImageUrl } from '../utils/image';
+import { fixImageUrl, getOptimizedImageUrl } from '../utils/image';
 import { theme } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
-import { useCart } from '../context/CartContext';
 import { triggerHaptic } from '../utils/haptics';
 
 export interface Product {
@@ -53,7 +52,6 @@ function ProductCardComponent({
   cartQty: propCartQty,
 }: ProductCardProps) {
   const { colors, isDark } = useTheme();
-  const { addToCart, getItemQuantity } = useCart();
   const [updating, setUpdating] = useState(false);
   const [added, setAdded] = useState(false);
 
@@ -74,8 +72,8 @@ function ProductCardComponent({
 
   const isInStock = product.is_in_stock !== false && (product.stock_quantity === undefined || product.stock_quantity > 0);
 
-  // In-cart quantity check via instant O(1) map or prop
-  const currentCartQty = propCartQty !== undefined ? propCartQty : (getItemQuantity ? getItemQuantity(product.id) : 0);
+  // In-cart quantity check via prop (decoupled from CartContext for maximum React.memo performance)
+  const currentCartQty = propCartQty ?? 0;
   const inCart = currentCartQty > 0;
 
   const stockQty = product.stock_quantity ?? 999;
@@ -83,7 +81,7 @@ function ProductCardComponent({
   const maxAllowed = maxOrderQty > 0 ? Math.min(stockQty, maxOrderQty) : stockQty;
   const isMaxReached = inCart && currentCartQty >= maxAllowed;
 
-  let primaryImage = fixImageUrl(product.image);
+  let primaryImage = getOptimizedImageUrl(product.image, 320, 320);
   if (product.name?.toLowerCase().includes('pumpkin') && (!primaryImage || primaryImage.includes('dummyimage.com') || primaryImage.endsWith('/media/'))) {
     primaryImage = 'https://raw.githubusercontent.com/saisatyanarayana09/narendra-kirana/main/frontend/public/products/pumpkin_seeds.jpg';
   }
@@ -95,8 +93,6 @@ function ProductCardComponent({
     try {
       if (onAddToCart) {
         await Promise.resolve(onAddToCart(product));
-      } else {
-        await addToCart(product.id, 1);
       }
       setAdded(true);
       setTimeout(() => setAdded(false), 2500);

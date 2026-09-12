@@ -1,7 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { DeviceEventEmitter } from 'react-native';
 import { API_BASE_URL, STORAGE_KEYS } from '../constants/config';
-import { getItem, saveItem, deleteItem } from '../utils/storage';
+import { getItem, getItemSync, saveItem, deleteItem } from '../utils/storage';
 
 export interface CustomRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
@@ -44,7 +44,7 @@ const isAuthEndpoint = (url?: string): boolean => {
 apiClient.interceptors.request.use(
   async (config) => {
     try {
-      const token = await getItem(STORAGE_KEYS.TOKEN);
+      const token = getItemSync(STORAGE_KEYS.TOKEN) || await getItem(STORAGE_KEYS.TOKEN);
       if (token) {
         config.headers = config.headers || {};
         config.headers.Authorization = `Bearer ${token}`;

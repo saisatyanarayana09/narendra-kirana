@@ -22,6 +22,7 @@ const { width } = Dimensions.get('window');
 const HORIZONTAL_PADDING = 14;
 const GAP = 10;
 const CARD_WIDTH = Math.floor((width - (HORIZONTAL_PADDING * 2) - (GAP * 2)) / 3);
+const CARD_ROW_HEIGHT = CARD_WIDTH + GAP;
 
 let cachedGlobalCategories: any[] | null = null;
 
@@ -55,6 +56,30 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
       setRefreshing(false);
     }
   };
+
+  const handleCategoryPress = useCallback((c: any) => {
+    navigation.navigate('ProductListScreen', { 
+      categoryId: c.id, 
+      categoryName: c.name 
+    });
+  }, [navigation]);
+
+  const getItemLayout = useCallback((_: any, index: number) => ({
+    length: CARD_ROW_HEIGHT,
+    offset: CARD_ROW_HEIGHT * Math.floor(index / 3),
+    index,
+  }), []);
+
+  const renderCategoryItem = useCallback(({ item, index }: { item: any; index: number }) => (
+    <View style={{ width: CARD_WIDTH }}>
+      <CategoryCard 
+        category={item} 
+        index={index}
+        style={styles.categoryCardStyle}
+        onPress={handleCategoryPress} 
+      />
+    </View>
+  ), [handleCategoryPress]);
 
   if (loading && !refreshing) {
     return (
@@ -119,19 +144,8 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
         maxToRenderPerBatch={9}
         windowSize={5}
         removeClippedSubviews={Platform.OS === 'android'}
-        renderItem={({ item, index }) => (
-          <View style={{ width: CARD_WIDTH }}>
-            <CategoryCard 
-              category={item} 
-              index={index}
-              style={styles.categoryCardStyle}
-              onPress={(c) => navigation.navigate('ProductListScreen', { 
-                categoryId: c.id, 
-                categoryName: c.name 
-              })} 
-            />
-          </View>
-        )}
+        getItemLayout={getItemLayout}
+        renderItem={renderCategoryItem}
       />
     </SafeAreaView>
   );

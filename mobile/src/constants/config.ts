@@ -7,4 +7,4 @@ export const STORAGE_KEYS = {
   REFRESH: 'smart-kirana-mobile-refresh',
   USER: 'smart-kirana-mobile-user',
 };
-export const APP_VERSION = '1.3.1';
+export const APP_VERSION = '1.3.2';

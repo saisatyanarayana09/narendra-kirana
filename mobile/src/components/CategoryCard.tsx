@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, StyleProp, ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { fixImageUrl } from '../utils/image';
+import { fixImageUrl, getOptimizedImageUrl } from '../utils/image';
 
 interface Category {
   id: number;
@@ -29,8 +29,8 @@ const CATEGORY_GRADIENTS: readonly [string, string][] = [
 const { width } = Dimensions.get('window');
 const CARD_SIZE = width > 400 ? 120 : 96;
 
-export function CategoryCard({ category, onPress, index = 0, style }: Props) {
-  const finalImage = fixImageUrl(category.image);
+export const CategoryCard = memo(function CategoryCard({ category, onPress, index = 0, style }: Props) {
+  const finalImage = getOptimizedImageUrl(category.image, 200, 200) || fixImageUrl(category.image);
   const colors = CATEGORY_GRADIENTS[index % CATEGORY_GRADIENTS.length];
 
   return (
@@ -63,7 +63,7 @@ export function CategoryCard({ category, onPress, index = 0, style }: Props) {
       </Text>
     </TouchableOpacity>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

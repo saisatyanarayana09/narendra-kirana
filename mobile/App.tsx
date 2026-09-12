@@ -1,16 +1,7 @@
 import React, { Component, ReactNode } from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
+import { View, Text } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { 
-  useFonts,
-  Nunito_400Regular,
-  Nunito_500Medium,
-  Nunito_600SemiBold,
-  Nunito_700Bold,
-  Nunito_800ExtraBold,
-  Nunito_900Black
-} from '@expo-google-fonts/nunito';
 import { AuthProvider } from './src/context/AuthContext';
 import { CartProvider } from './src/context/CartContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
@@ -56,32 +47,6 @@ function ThemedAppContent() {
 }
 
 function MainApp() {
-  const [fontsLoaded, fontError] = useFonts({
-    Nunito_400Regular,
-    Nunito_500Medium,
-    Nunito_600SemiBold,
-    Nunito_700Bold,
-    Nunito_800ExtraBold,
-    Nunito_900Black,
-  });
-
-  const [fontTimeout, setFontTimeout] = React.useState(false);
-
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setFontTimeout(true);
-    }, 2500);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (!fontsLoaded && !fontError && !fontTimeout) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#059669', justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#ffffff" />
-      </View>
-    );
-  }
-
   return (
     <ErrorBoundary>
       <ThemeProvider>

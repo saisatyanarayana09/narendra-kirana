@@ -1,11 +1,13 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   TouchableOpacity, 
   Animated,
-  Platform
+  Platform,
+  Dimensions,
+  Easing
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
@@ -13,6 +15,7 @@ import { useCart } from '../context/CartContext';
 import { triggerHaptic } from '../utils/haptics';
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface FloatingCartBarProps {
   bottomOffset: number;
@@ -32,7 +35,7 @@ const HIDE_ON_SCREENS = [
   'CartTab',
 ];
 
-export function FloatingCartBar({ bottomOffset, onPress, onClose, currentRouteName }: FloatingCartBarProps) {
+function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRouteName }: FloatingCartBarProps) {
   const { cart, storeSettings } = useCart();
   const slideAnim = useRef(new Animated.Value(80)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -40,22 +43,22 @@ export function FloatingCartBar({ bottomOffset, onPress, onClose, currentRouteNa
   const countdownAnim = useRef(new Animated.Value(1)).current;
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const items = cart?.items || [];
-  const itemCount = items.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
-  
-  // Calculate total price accurately
-  const rawSubtotal = items.reduce((sum: number, item: any) => {
-    const itemSub = parseFloat(item.subtotal || 0);
-    if (itemSub > 0) return sum + itemSub;
-    const p = typeof item.product === 'object' && item.product !== null ? item.product : {};
-    const price = parseFloat(item.unit_price || p.offer_price || p.price || p.regular_price || 0);
-    return sum + (price * (item.quantity || 1));
-  }, 0);
-
-  const totalAmount = parseFloat(cart?.items_total || cart?.total || String(rawSubtotal)) || rawSubtotal;
-  const freeThreshold = parseFloat(storeSettings?.free_delivery_threshold || '0');
-  const isFreeDelivery = freeThreshold > 0 && totalAmount >= freeThreshold;
-  const shortfall = freeThreshold > 0 && !isFreeDelivery ? freeThreshold - totalAmount : 0;
+  const { itemCount, totalAmount, isFreeDelivery, shortfall } = useMemo(() => {
+    const items = cart?.items || [];
+    const count = items.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
+    const rawSub = items.reduce((sum: number, item: any) => {
+      const itemSub = parseFloat(item.subtotal || 0);
+      if (itemSub > 0) return sum + itemSub;
+      const p = typeof item.product === 'object' && item.product !== null ? item.product : {};
+      const price = parseFloat(item.unit_price || p.offer_price || p.price || p.regular_price || 0);
+      return sum + (price * (item.quantity || 1));
+    }, 0);
+    const tot = parseFloat(cart?.items_total || cart?.total || String(rawSub)) || rawSub;
+    const threshold = parseFloat(storeSettings?.free_delivery_threshold || '0');
+    const free = threshold > 0 && tot >= threshold;
+    const short = threshold > 0 && !free ? threshold - tot : 0;
+    return { itemCount: count, totalAmount: tot, isFreeDelivery: free, shortfall: short };
+  }, [cart, storeSettings]);
 
   useEffect(() => {
     if (itemCount > 0) {
@@ -92,12 +95,13 @@ export function FloatingCartBar({ bottomOffset, onPress, onClose, currentRouteNa
         }),
       ]).start();
 
-      // Subtle 10-second countdown indicator
+      // GPU-accelerated 10-second countdown indicator (transform scaleX instead of width layout recalculation)
       countdownAnim.setValue(1);
       Animated.timing(countdownAnim, {
         toValue: 0,
         duration: 10000,
-        useNativeDriver: false,
+        easing: Easing.linear,
+        useNativeDriver: USE_NATIVE_DRIVER,
       }).start();
 
       // Automatically auto-close after 10 seconds of no action
@@ -166,16 +170,22 @@ export function FloatingCartBar({ bottomOffset, onPress, onClose, currentRouteNa
           end={{ x: 1, y: 1 }}
           style={styles.container}
         >
-          {/* Subtle 10s Auto-Close Progress Bar */}
+          {/* Subtle 10s Auto-Close Progress Bar (GPU Native Driver) */}
           <View style={styles.progressBarBackground}>
             <Animated.View 
               style={[
                 styles.progressBarFill, 
                 { 
-                  width: countdownAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['0%', '100%'],
-                  }) 
+                  width: '100%',
+                  transform: [
+                    { scaleX: countdownAnim },
+                    {
+                      translateX: countdownAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [-SCREEN_WIDTH / 2, 0],
+                      }),
+                    },
+                  ],
                 }
               ]} 
             />
@@ -422,3 +432,5 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
 });
+
+export const FloatingCartBar = React.memo(FloatingCartBarComponent);

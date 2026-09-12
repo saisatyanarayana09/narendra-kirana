@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
 import { getGuestStorageItem, setGuestStorageItem, removeGuestStorageItem } from '../utils/guestStorage';
 import { apiClient } from '../api/client';
+import { storeApi } from '../api/store';
 import { useAuth } from './AuthContext';
 
 export const GUEST_CART_KEY = 'smart_kirana_guest_cart';
@@ -42,7 +43,7 @@ export interface CartContextType {
   clearCart: () => Promise<void>;
   applyPromo: (code: string) => Promise<void>;
   removePromo: () => Promise<void>;
-  refreshCart: () => Promise<void>;
+  refreshCart: (isSilent?: boolean) => Promise<void>;
   cartQuantityMap: Record<number, number>;
   getItemQuantity: (productId: number) => number;
 }
@@ -60,7 +61,7 @@ export const getItemProductId = (item: CartItem): number => {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const [cart, setCart] = useState<CartData | null>(null);
   const [storeSettings, setStoreSettings] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -116,6 +117,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Sync / Merge Cart when user changes (login / logout)
   useEffect(() => {
+    if (isAuthLoading) return; // Prevent double hydration while AuthContext loads stored user
     const syncUserCart = async () => {
       if (user) {
         try {
@@ -156,20 +158,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
     };
 
     syncUserCart();
-  }, [user?.id]);
+  }, [user?.id, isAuthLoading]);
 
   const fetchStoreSettings = async () => {
     try {
-      const res = await apiClient.get('/store/settings/').catch(() => null);
-      if (res?.data) {
-        setStoreSettings(Array.isArray(res.data) ? res.data[0] : res.data);
+      const data = await storeApi.getSettings();
+      if (data) {
+        setStoreSettings(data);
       }
     } catch (err) {
       console.error('Failed to fetch store settings', err);
     }
   };
 
-  const refreshCart = useCallback(async () => {
+  const refreshCart = useCallback(async (isSilent = false) => {
     if (!user) {
       const guestCart = await loadGuestCart();
       if (guestCart) {
@@ -189,7 +191,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      setIsLoading(true);
+      if (!isSilent) setIsLoading(true);
       const res = await apiClient.get('/cart/');
       if (res?.data) {
         setCart(res.data);
@@ -212,14 +214,159 @@ export function CartProvider({ children }: { children: ReactNode }) {
         total: '0.00',
       });
     } finally {
-      setIsLoading(false);
+      if (!isSilent) setIsLoading(false);
     }
   }, [user?.id]);
 
-  const addToCart = async (productId: number, quantity: number = 1, productDetails?: any) => {
+  const removeFromCart = useCallback(async (itemId: number) => {
     if (!user) {
       try {
-        setIsLoading(true);
+        const currentCart = (await loadGuestCart()) || cart;
+        if (!currentCart) return;
+
+        const updatedItems = currentCart.items.filter(
+          (item) => item.id !== itemId && getItemProductId(item) !== itemId
+        );
+
+        const packagingFee = storeSettings?.packaging_fee || '0';
+        const newCartData = calculateGuestTotals(updatedItems, packagingFee);
+        await setGuestStorageItem(GUEST_CART_KEY, JSON.stringify(newCartData));
+        setCart(newCartData);
+      } catch (error) {
+        console.error('Failed to remove from guest cart:', error);
+        throw error;
+      }
+      return;
+    }
+
+    // Optimistic removal
+    const prevCart = cart;
+    if (cart?.items) {
+      const updatedItems = cart.items.filter((item) => item.id !== itemId);
+      let newOfferSubtotal = 0;
+      let newRegularSubtotal = 0;
+      updatedItems.forEach((i) => {
+        const pObj = typeof i.product === 'object' && i.product !== null ? i.product : null;
+        const offerP = parseFloat(i.unit_price || pObj?.price || '0');
+        const regP = parseFloat(i.regular_price || pObj?.mrp || pObj?.regular_price || i.unit_price || pObj?.price || '0');
+        newOfferSubtotal += offerP * i.quantity;
+        newRegularSubtotal += regP * i.quantity;
+      });
+      const packaging = updatedItems.length > 0 ? parseFloat(cart.packaging_fee || '0') : 0;
+      const promo = parseFloat(cart.promo_discount || '0');
+      const newTotal = Math.max(0, newOfferSubtotal - promo) + packaging;
+
+      setCart({
+        ...cart,
+        items: updatedItems,
+        subtotal: newRegularSubtotal > 0 ? newRegularSubtotal.toFixed(2) : newOfferSubtotal.toFixed(2),
+        items_total: newOfferSubtotal.toFixed(2),
+        discount: Math.max(0, newRegularSubtotal - newOfferSubtotal).toFixed(2),
+        total: newTotal.toFixed(2),
+      });
+    }
+
+    try {
+      await apiClient.delete(`/cart/items/${itemId}/`);
+      await refreshCart(true);
+    } catch (error) {
+      if (prevCart) setCart(prevCart);
+      console.error('Failed to remove from cart:', error);
+      throw error;
+    }
+  }, [user, cart, storeSettings, refreshCart]);
+
+  const updateQuantity = useCallback(async (itemId: number, quantity: number) => {
+    if (quantity <= 0) {
+      return removeFromCart(itemId);
+    }
+
+    if (!user) {
+      try {
+        const currentCart = (await loadGuestCart()) || cart;
+        if (!currentCart) return;
+
+        const updatedItems = currentCart.items.map((item) => {
+          if (item.id === itemId || getItemProductId(item) === itemId) {
+            const stockLimit = item.stock_quantity ?? item.product?.stock_quantity ?? 999;
+            const maxOrderLimit = item.max_order_quantity ?? item.product?.max_order_quantity ?? 0;
+            const cap = maxOrderLimit > 0 ? Math.min(stockLimit, maxOrderLimit) : stockLimit;
+            const safeQty = Math.min(quantity, cap);
+            return {
+              ...item,
+              quantity: safeQty,
+            };
+          }
+          return item;
+        });
+
+        const packagingFee = storeSettings?.packaging_fee || '0';
+        const newCartData = calculateGuestTotals(updatedItems, packagingFee);
+        await setGuestStorageItem(GUEST_CART_KEY, JSON.stringify(newCartData));
+        setCart(newCartData);
+      } catch (error) {
+        console.error('Failed to update guest cart quantity:', error);
+        throw error;
+      }
+      return;
+    }
+
+    // Optimistic update for instant responsiveness
+    const prevCart = cart;
+    if (cart?.items) {
+      const updatedItems = cart.items.map((item) => {
+        if (item.id === itemId) {
+          const unitPriceNum = parseFloat(item.unit_price || item.product?.price || '0');
+          return {
+            ...item,
+            quantity,
+            subtotal: (unitPriceNum * quantity).toFixed(2),
+          };
+        }
+        return item;
+      });
+
+      let newOfferSubtotal = 0;
+      let newRegularSubtotal = 0;
+      updatedItems.forEach((i) => {
+        const pObj = typeof i.product === 'object' && i.product !== null ? i.product : null;
+        const offerP = parseFloat(i.unit_price || pObj?.price || '0');
+        const regP = parseFloat(i.regular_price || pObj?.mrp || pObj?.regular_price || i.unit_price || pObj?.price || '0');
+        newOfferSubtotal += offerP * i.quantity;
+        newRegularSubtotal += regP * i.quantity;
+      });
+      const packaging = parseFloat(cart.packaging_fee || '0');
+      const promo = parseFloat(cart.promo_discount || '0');
+      const newTotal = Math.max(0, newOfferSubtotal - promo) + (newOfferSubtotal > 0 ? packaging : 0);
+
+      setCart({
+        ...cart,
+        items: updatedItems,
+        subtotal: newRegularSubtotal > 0 ? newRegularSubtotal.toFixed(2) : newOfferSubtotal.toFixed(2),
+        items_total: newOfferSubtotal.toFixed(2),
+        discount: Math.max(0, newRegularSubtotal - newOfferSubtotal).toFixed(2),
+        total: newTotal.toFixed(2),
+      });
+    }
+
+    try {
+      const res = await apiClient.patch(`/cart/items/${itemId}/`, { quantity });
+      if (res?.data && res.data.items) {
+        setCart(res.data);
+      } else {
+        await refreshCart(true);
+      }
+    } catch (error: any) {
+      // Rollback on failure
+      if (prevCart) setCart(prevCart);
+      console.error('Failed to update quantity:', error);
+      throw error;
+    }
+  }, [user, cart, storeSettings, removeFromCart, refreshCart]);
+
+  const addToCart = useCallback(async (productId: number, quantity: number = 1, productDetails?: any) => {
+    if (!user) {
+      try {
         const currentCart = (await loadGuestCart()) || {
           items: [],
           subtotal: '0.00',
@@ -302,15 +449,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error('Failed to add to guest cart:', error);
         throw error;
-      } finally {
-        setIsLoading(false);
       }
       return;
     }
 
     try {
-      setIsLoading(true);
-
       if (cart?.items) {
         const existingItem = cart.items.find((item) => getItemProductId(item) === productId);
         if (existingItem) {
@@ -320,158 +463,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
 
       await apiClient.post('/cart/items/', { product: productId, quantity });
-      await refreshCart();
+      await refreshCart(true);
     } catch (error) {
       console.error('Failed to add to cart:', error);
       throw error;
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [user, cart, storeSettings, updateQuantity, refreshCart]);
 
-  const updateQuantity = async (itemId: number, quantity: number) => {
-    if (quantity <= 0) {
-      return removeFromCart(itemId);
-    }
-
-    if (!user) {
-      try {
-        const currentCart = (await loadGuestCart()) || cart;
-        if (!currentCart) return;
-
-        const updatedItems = currentCart.items.map((item) => {
-          if (item.id === itemId || getItemProductId(item) === itemId) {
-            const stockLimit = item.stock_quantity ?? item.product?.stock_quantity ?? 999;
-            const maxOrderLimit = item.max_order_quantity ?? item.product?.max_order_quantity ?? 0;
-            const cap = maxOrderLimit > 0 ? Math.min(stockLimit, maxOrderLimit) : stockLimit;
-            const safeQty = Math.min(quantity, cap);
-            return {
-              ...item,
-              quantity: safeQty,
-            };
-          }
-          return item;
-        });
-
-        const packagingFee = storeSettings?.packaging_fee || '0';
-        const newCartData = calculateGuestTotals(updatedItems, packagingFee);
-        await setGuestStorageItem(GUEST_CART_KEY, JSON.stringify(newCartData));
-        setCart(newCartData);
-      } catch (error) {
-        console.error('Failed to update guest cart quantity:', error);
-        throw error;
-      }
-      return;
-    }
-
-    // Optimistic update for instant responsiveness
-    const prevCart = cart;
-    if (cart?.items) {
-      const updatedItems = cart.items.map((item) => {
-        if (item.id === itemId) {
-          const unitPriceNum = parseFloat(item.unit_price || item.product?.price || '0');
-          return {
-            ...item,
-            quantity,
-            subtotal: (unitPriceNum * quantity).toFixed(2),
-          };
-        }
-        return item;
-      });
-
-      let newOfferSubtotal = 0;
-      let newRegularSubtotal = 0;
-      updatedItems.forEach((i) => {
-        const pObj = typeof i.product === 'object' && i.product !== null ? i.product : null;
-        const offerP = parseFloat(i.unit_price || pObj?.price || '0');
-        const regP = parseFloat(i.regular_price || pObj?.mrp || pObj?.regular_price || i.unit_price || pObj?.price || '0');
-        newOfferSubtotal += offerP * i.quantity;
-        newRegularSubtotal += regP * i.quantity;
-      });
-      const packaging = parseFloat(cart.packaging_fee || '0');
-      const promo = parseFloat(cart.promo_discount || '0');
-      const newTotal = Math.max(0, newOfferSubtotal - promo) + (newOfferSubtotal > 0 ? packaging : 0);
-
-      setCart({
-        ...cart,
-        items: updatedItems,
-        subtotal: newRegularSubtotal > 0 ? newRegularSubtotal.toFixed(2) : newOfferSubtotal.toFixed(2),
-        items_total: newOfferSubtotal.toFixed(2),
-        discount: Math.max(0, newRegularSubtotal - newOfferSubtotal).toFixed(2),
-        total: newTotal.toFixed(2),
-      });
-    }
-
-    try {
-      await apiClient.patch(`/cart/items/${itemId}/`, { quantity });
-      await refreshCart();
-    } catch (error: any) {
-      // Rollback on failure
-      if (prevCart) setCart(prevCart);
-      console.error('Failed to update quantity:', error);
-      throw error;
-    }
-  };
-
-  const removeFromCart = async (itemId: number) => {
-    if (!user) {
-      try {
-        const currentCart = (await loadGuestCart()) || cart;
-        if (!currentCart) return;
-
-        const updatedItems = currentCart.items.filter(
-          (item) => item.id !== itemId && getItemProductId(item) !== itemId
-        );
-
-        const packagingFee = storeSettings?.packaging_fee || '0';
-        const newCartData = calculateGuestTotals(updatedItems, packagingFee);
-        await setGuestStorageItem(GUEST_CART_KEY, JSON.stringify(newCartData));
-        setCart(newCartData);
-      } catch (error) {
-        console.error('Failed to remove from guest cart:', error);
-        throw error;
-      }
-      return;
-    }
-
-    // Optimistic removal
-    const prevCart = cart;
-    if (cart?.items) {
-      const updatedItems = cart.items.filter((item) => item.id !== itemId);
-      let newOfferSubtotal = 0;
-      let newRegularSubtotal = 0;
-      updatedItems.forEach((i) => {
-        const pObj = typeof i.product === 'object' && i.product !== null ? i.product : null;
-        const offerP = parseFloat(i.unit_price || pObj?.price || '0');
-        const regP = parseFloat(i.regular_price || pObj?.mrp || pObj?.regular_price || i.unit_price || pObj?.price || '0');
-        newOfferSubtotal += offerP * i.quantity;
-        newRegularSubtotal += regP * i.quantity;
-      });
-      const packaging = updatedItems.length > 0 ? parseFloat(cart.packaging_fee || '0') : 0;
-      const promo = parseFloat(cart.promo_discount || '0');
-      const newTotal = Math.max(0, newOfferSubtotal - promo) + packaging;
-
-      setCart({
-        ...cart,
-        items: updatedItems,
-        subtotal: newRegularSubtotal > 0 ? newRegularSubtotal.toFixed(2) : newOfferSubtotal.toFixed(2),
-        items_total: newOfferSubtotal.toFixed(2),
-        discount: Math.max(0, newRegularSubtotal - newOfferSubtotal).toFixed(2),
-        total: newTotal.toFixed(2),
-      });
-    }
-
-    try {
-      await apiClient.delete(`/cart/items/${itemId}/`);
-      await refreshCart();
-    } catch (error) {
-      if (prevCart) setCart(prevCart);
-      console.error('Failed to remove from cart:', error);
-      throw error;
-    }
-  };
-
-  const clearCart = async () => {
+  const clearCart = useCallback(async () => {
     if (!user) {
       await removeGuestStorageItem(GUEST_CART_KEY);
       setCart({
@@ -496,9 +495,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, refreshCart]);
 
-  const applyPromo = async (code: string) => {
+  const applyPromo = useCallback(async (code: string) => {
     if (!user) {
       throw new Error('Please sign in to apply promo codes');
     }
@@ -511,9 +510,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, refreshCart]);
 
-  const removePromo = async () => {
+  const removePromo = useCallback(async () => {
     try {
       setIsLoading(true);
       await apiClient.post('/cart/apply-promo/', { code: '' });
@@ -523,7 +522,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [refreshCart]);
 
   const cartQuantityMap = useMemo(() => {
     const map: Record<number, number> = {};

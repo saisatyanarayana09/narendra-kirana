@@ -194,6 +194,7 @@ export function MainTabs() {
       />
 
       <Tab.Navigator
+        detachInactiveScreens={true}
         screenListeners={{
           state: (e: any) => {
             const route = e.data?.state?.routes?.[e.data?.state?.index];
@@ -203,12 +204,13 @@ export function MainTabs() {
             }
             if (route) {
               const deepName = getFocusedRouteNameFromRoute(route) ?? route.name;
-              setCurrentRouteName(deepName);
+              setCurrentRouteName((prev) => (prev !== deepName ? deepName : prev));
             }
           },
         }}
         screenOptions={{
           headerShown: false,
+          freezeOnBlur: true,
           tabBarActiveTintColor: colors.primary,
           tabBarInactiveTintColor: colors.textSecondary,
           tabBarItemStyle: {
@@ -219,7 +221,6 @@ export function MainTabs() {
           tabBarLabelStyle: {
             fontSize: 11,
             fontWeight: '700',
-            fontFamily: 'Nunito_700Bold',
             marginTop: 2,
           },
         }}

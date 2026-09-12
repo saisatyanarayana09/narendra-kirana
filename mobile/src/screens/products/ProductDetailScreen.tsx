@@ -21,20 +21,20 @@ import { apiClient } from '../../api/client';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
-import { fixImageUrl } from '../../utils/image';
+import { fixImageUrl, getOptimizedImageUrl } from '../../utils/image';
 
 const { width } = Dimensions.get('window');
 
 export function ProductDetailScreen({ navigation, route }: { navigation: AppNavigationProp, route: any }) {
   const insets = useSafeAreaInsets();
-  const { productId } = route.params || {};
+  const { productId, initialProduct } = route.params || {};
   const { addToCart, cart } = useCart();
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
   const { t } = useLanguage();
   
-  const [product, setProduct] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [product, setProduct] = useState<any>(initialProduct || null);
+  const [loading, setLoading] = useState(!initialProduct);
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteId, setFavoriteId] = useState<number | null>(null);
   const [toggling, setToggling] = useState(false);
@@ -52,7 +52,9 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
   const fetchProduct = async () => {
     try {
       const res = await apiClient.get(`/products/${productId}/`);
-      setProduct(res.data);
+      if (res?.data) {
+        setProduct((prev: any) => ({ ...(prev || {}), ...res.data }));
+      }
     } catch (error) {
       console.error('Error fetching product:', error);
     } finally {
@@ -78,7 +80,7 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
 
   const images: string[] = [];
   if (product.image) {
-    const fixed = fixImageUrl(product.image);
+    const fixed = getOptimizedImageUrl(product.image, 800, 800) || fixImageUrl(product.image);
     if (fixed) images.push(fixed);
   }
   if (product.name?.toLowerCase().includes('pumpkin') && (images.length === 0 || images[0]?.includes('dummyimage.com') || images[0]?.endsWith('/media/'))) {
@@ -86,7 +88,8 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
   }
   if (product.gallery_images && Array.isArray(product.gallery_images)) {
     product.gallery_images.forEach((g: any) => {
-      const fixed = fixImageUrl(g.image || g);
+      const raw = g.image || g;
+      const fixed = getOptimizedImageUrl(raw, 800, 800) || fixImageUrl(raw);
       if (fixed && !images.includes(fixed)) {
         images.push(fixed);
       }
@@ -158,7 +161,7 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
   const handleAddToCart = async () => {
     setAdding(true);
     try {
-      await addToCart(product.id, 1);
+      await addToCart(product.id, 1, product);
       setAdded(true);
       setTimeout(() => setAdded(false), 3000);
     } catch (err: any) {

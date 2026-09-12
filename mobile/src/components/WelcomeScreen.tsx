@@ -78,7 +78,7 @@ export function WelcomeScreen({ forceShow = false, onStart, onFinish }: WelcomeS
 
       const timer = setTimeout(() => {
         dismiss();
-      }, 2500);
+      }, 700);
 
       return () => clearTimeout(timer);
     }
@@ -87,7 +87,7 @@ export function WelcomeScreen({ forceShow = false, onStart, onFinish }: WelcomeS
   const dismiss = () => {
     Animated.timing(mainFadeAnim, {
       toValue: 0,
-      duration: 500,
+      duration: 250,
       useNativeDriver: USE_NATIVE_DRIVER,
     }).start(() => {
       setVisible(false);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Dimensions, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -16,7 +16,7 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
   const { user } = useAuth();
   const [favorites, setFavorites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { addToCart } = useCart();
+  const { addToCart, cartQuantityMap } = useCart();
   const { colors, isDark } = useTheme();
   const { t } = useLanguage();
 
@@ -48,7 +48,7 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
     }
   };
 
-  const handleToggleFavorite = async (product: any) => {
+  const handleToggleFavorite = useCallback(async (product: any) => {
     const pId = product?.id ?? product;
     const favItem = favorites.find(f => f.product === pId || f.product?.id === pId || f.product_details?.id === pId);
     setFavorites(prev => prev.filter(f => f.id !== favItem?.id && (f.product?.id ?? f.product ?? f.product_details?.id) !== pId));
@@ -64,7 +64,39 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
       console.error('Error removing favorite:', error);
       fetchFavorites();
     }
-  };
+  }, [favorites]);
+
+  const handleAddToCart = useCallback((p: any) => {
+    addToCart(p.id, 1, p);
+  }, [addToCart]);
+
+  const handleProductPress = useCallback((p: any) => {
+    navigation.navigate('ProductDetailScreen', { productId: p.id, initialProduct: p });
+  }, [navigation]);
+
+  const getItemLayout = useCallback((_: any, index: number) => ({
+    length: 296,
+    offset: 296 * Math.floor(index / 2),
+    index,
+  }), []);
+
+  const renderProductItem = useCallback(({ item }: { item: any }) => {
+    const product = item.product_details || item.product;
+    if (!product) return null;
+
+    return (
+      <View style={styles.cardWrapper}>
+        <ProductCard 
+          product={product} 
+          cartQty={cartQuantityMap[product.id] || 0}
+          isFavorite={true}
+          onToggleFavorite={handleToggleFavorite}
+          onPress={handleProductPress} 
+          onAddToCart={handleAddToCart}
+        />
+      </View>
+    );
+  }, [cartQuantityMap, handleToggleFavorite, handleProductPress, handleAddToCart]);
 
   if (!user) {
     return (
@@ -216,22 +248,8 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
         windowSize={5}
         removeClippedSubviews={Platform.OS === 'android'}
         updateCellsBatchingPeriod={50}
-        renderItem={({ item }) => {
-          const product = item.product_details || item.product;
-          if (!product) return null;
-
-          return (
-            <View style={styles.cardWrapper}>
-              <ProductCard 
-                product={product} 
-                isFavorite={true}
-                onToggleFavorite={handleToggleFavorite}
-                onPress={() => navigation.navigate('ProductDetailScreen', { productId: product.id })} 
-                onAddToCart={(p) => addToCart(p.id, 1)}
-              />
-            </View>
-          );
-        }}
+        getItemLayout={getItemLayout}
+        renderItem={renderProductItem}
       />
     </SafeAreaView>
   );

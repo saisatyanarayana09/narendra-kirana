@@ -26,28 +26,45 @@ export async function saveItem(key: string, value: string): Promise<void> {
   }
 }
 
+export function getItemSync(key: string): string | null {
+  return memoryStore.get(key) || null;
+}
+
 export async function getItem(key: string): Promise<string | null> {
+  const inMem = memoryStore.get(key);
+  if (inMem !== undefined) {
+    return inMem;
+  }
+
   try {
     if (Platform.OS === 'web') {
-      return localStorage.getItem(key) || memoryStore.get(key) || null;
+      const val = localStorage.getItem(key);
+      if (val !== null) memoryStore.set(key, val);
+      return val;
     } else {
       try {
         const val = await SecureStore.getItemAsync(sanitizeKey(key));
-        if (val !== null && val !== undefined) return val;
+        if (val !== null && val !== undefined) {
+          memoryStore.set(key, val);
+          return val;
+        }
       } catch {
         // Fallback to AsyncStorage if SecureStore fails
       }
       try {
         const asyncVal = await AsyncStorage.getItem(key);
-        if (asyncVal !== null && asyncVal !== undefined) return asyncVal;
+        if (asyncVal !== null && asyncVal !== undefined) {
+          memoryStore.set(key, asyncVal);
+          return asyncVal;
+        }
       } catch {
         // Fallback to memory
       }
-      return memoryStore.get(key) || null;
+      return null;
     }
   } catch (error) {
     console.warn('[Storage] Error getting item:', key, error);
-    return memoryStore.get(key) || null;
+    return null;
   }
 }
 

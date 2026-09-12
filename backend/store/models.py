@@ -123,7 +123,7 @@ class StoreSettings(models.Model):
     force_app_update = models.BooleanField(default=False)
     app_update_url = models.URLField(
         blank=True,
-        default="https://play.google.com/store/apps/details?id=com.narendrakirana.app"
+        default="https://github.com/saisatyanarayana09/narendra-kirana/releases/latest/download/narendra-kirana.apk"
     )
     app_update_message = models.CharField(
         max_length=255,

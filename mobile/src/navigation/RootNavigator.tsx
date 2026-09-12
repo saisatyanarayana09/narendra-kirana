@@ -435,10 +435,6 @@ export function RootNavigator() {
     },
   };
 
-  if (isLoading) {
-    return <LoadingSpinner fullScreen />;
-  }
-
   // 1. Mobile Version Gate: Check if current installed version < latest_mobile_version (or min_mobile_version)
   const targetVersion = storeSettings?.latest_mobile_version || storeSettings?.min_mobile_version;
   const isOutdated = targetVersion
@@ -450,7 +446,7 @@ export function RootNavigator() {
   const customerName = user?.first_name || user?.name || user?.username || '';
 
   useEffect(() => {
-    if (storeSettings && isOutdated && !isForceUpdateRequired && !hasPromptedOptionalUpdateRef.current) {
+    if (!isLoading && storeSettings && isOutdated && !isForceUpdateRequired && !hasPromptedOptionalUpdateRef.current) {
       hasPromptedOptionalUpdateRef.current = true;
       const updateUrl = storeSettings.app_update_url || DEFAULT_APK_URL;
       const greeting = customerName ? `Hi, ${customerName}! ` : '';
@@ -462,13 +458,24 @@ export function RootNavigator() {
           {
             text: 'Update Now',
             onPress: () => {
-              RNLinking.openURL(updateUrl).catch(() => {});
+              if (navigationRef.isReady()) {
+                (navigationRef as any).navigate('Main', {
+                  screen: 'ProfileTab',
+                  params: { screen: 'AppSettingsScreen' },
+                });
+              } else {
+                RNLinking.openURL(updateUrl).catch(() => {});
+              }
             },
           },
         ]
       );
     }
-  }, [storeSettings, isOutdated, isForceUpdateRequired, targetVersion, customerName]);
+  }, [isLoading, storeSettings, isOutdated, isForceUpdateRequired, targetVersion, customerName]);
+
+  if (isLoading) {
+    return <LoadingSpinner fullScreen />;
+  }
 
   if (isForceUpdateRequired) {
     return (
@@ -658,10 +665,11 @@ function ForceUpdateView({
   const rawUrl = settings?.app_update_url?.trim() || DEFAULT_APK_URL;
   const isAndroid = Platform.OS === 'android';
   const isPlayStore = rawUrl.includes('play.google.com') || rawUrl.startsWith('market://');
-  const canInAppUpdate = isAndroid && !isPlayStore;
+  const effectiveApkUrl = (!rawUrl || isPlayStore) ? DEFAULT_APK_URL : rawUrl;
+  const canInAppUpdate = isAndroid;
 
   const handleOpenBrowser = () => {
-    RNLinking.openURL(rawUrl).catch(() => {
+    RNLinking.openURL(effectiveApkUrl).catch(() => {
       RNLinking.openURL(DEFAULT_APK_URL);
     });
   };
@@ -696,7 +704,7 @@ function ForceUpdateView({
     setProgressText('Connecting to server...');
     setDownloadError(null);
 
-    const res = await downloadAndInstallApk(rawUrl, (info: DownloadProgressInfo) => {
+    const res = await downloadAndInstallApk(effectiveApkUrl, (info: DownloadProgressInfo) => {
       setDownloadProgress(info.percent);
       setProgressText(info.progressText);
     });
