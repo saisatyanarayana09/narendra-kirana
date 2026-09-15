@@ -3,6 +3,8 @@ from .models import Category, Product, ProductImage, Favorite
 
 import re
 
+EXTERNAL_URL_RE = re.compile(r'https?://(?:(?!res\.cloudinary\.com).)+$')
+
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
@@ -11,10 +13,10 @@ class CategorySerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         raw_name = str(instance.image) if instance.image else ''
-        if raw_name.startswith('http://') or raw_name.startswith('https://'):
+        if raw_name.startswith(('http://', 'https://')):
             data['image'] = raw_name
         elif data.get('image') and isinstance(data['image'], str):
-            match = re.search(r'https?://(?:(?!res\.cloudinary\.com).)+$', data['image'])
+            match = EXTERNAL_URL_RE.search(data['image'])
             if match:
                 data['image'] = match.group(0)
         return data
@@ -27,11 +29,11 @@ class ProductImageSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         raw_name = str(instance.image) if instance.image else ''
-        if raw_name.startswith('http://') or raw_name.startswith('https://'):
+        if raw_name.startswith(('http://', 'https://')):
             data['image'] = raw_name
         elif data.get('image') and isinstance(data['image'], str):
             # Check if an external http/https was prefixed by Cloudinary or local storage
-            match = re.search(r'https?://(?:(?!res\.cloudinary\.com).)+$', data['image'])
+            match = EXTERNAL_URL_RE.search(data['image'])
             if match:
                 data['image'] = match.group(0)
         return data
@@ -47,11 +49,11 @@ class ProductSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         raw_name = str(instance.image) if instance.image else ''
-        if raw_name.startswith('http://') or raw_name.startswith('https://'):
+        if raw_name.startswith(('http://', 'https://')):
             data['image'] = raw_name
         elif data.get('image') and isinstance(data['image'], str):
             # Check if an external http/https was prefixed by Cloudinary or local storage
-            match = re.search(r'https?://(?:(?!res\.cloudinary\.com).)+$', data['image'])
+            match = EXTERNAL_URL_RE.search(data['image'])
             if match:
                 data['image'] = match.group(0)
         return data

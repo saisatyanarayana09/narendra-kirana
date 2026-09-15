@@ -5,11 +5,11 @@ import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { Toaster } from 'react-hot-toast';
 import { WifiOff } from 'lucide-react';
-
-import { VerifyEmail } from './VerifyEmail';
-import { ForgotPassword } from './ForgotPassword';
-import { ResetPassword } from './ResetPassword';
 import { lazyWithRetry } from './utils/lazyWithRetry';
+
+const VerifyEmail = lazyWithRetry(() => import('./VerifyEmail').then(m => ({ default: m.VerifyEmail })));
+const ForgotPassword = lazyWithRetry(() => import('./ForgotPassword').then(m => ({ default: m.ForgotPassword })));
+const ResetPassword = lazyWithRetry(() => import('./ResetPassword').then(m => ({ default: m.ResetPassword })));
 
 const HomePage = lazyWithRetry(() => import('./customer').then(m => ({ default: m?.HomePage || (() => null) })));
 const ProductDetailPage = lazyWithRetry(() => import('./customer').then(m => ({ default: m?.ProductDetailPage || (() => null) })));

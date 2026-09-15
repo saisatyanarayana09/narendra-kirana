@@ -76,26 +76,57 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/') || id.includes('node_modules/react-router')) {
+          const normalized = id.replace(/\\/g, '/');
+          if (!normalized.includes('node_modules')) return;
+
+          if (
+            normalized.includes('/node_modules/react/') ||
+            normalized.includes('/node_modules/react-dom/') ||
+            normalized.includes('/node_modules/scheduler/') ||
+            normalized.includes('/node_modules/react-router/') ||
+            normalized.includes('/node_modules/react-router-dom/') ||
+            normalized.includes('/node_modules/@remix-run/router/')
+          ) {
             return 'vendor-react';
           }
-          if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) {
+          if (normalized.includes('/node_modules/recharts/') || normalized.includes('/node_modules/d3-')) {
             return 'vendor-charts';
           }
-          if (id.includes('node_modules/lucide-react')) {
+          if (normalized.includes('/node_modules/lucide-react/')) {
             return 'vendor-icons';
           }
-          if (id.includes('node_modules/axios')) {
+          if (normalized.includes('/node_modules/axios/')) {
             return 'vendor-http';
           }
-          if (id.includes('node_modules/gsap') || id.includes('node_modules/@gsap')) {
+          if (normalized.includes('/node_modules/gsap/') || normalized.includes('/node_modules/@gsap/')) {
             return 'vendor-gsap';
           }
-          if (id.includes('node_modules/html5-qrcode')) {
+          if (normalized.includes('/node_modules/framer-motion/')) {
+            return 'vendor-framer';
+          }
+          if (
+            normalized.includes('/node_modules/html5-qrcode/') ||
+            normalized.includes('/node_modules/@zxing/')
+          ) {
             return 'vendor-scanner';
           }
-          if (id.includes('node_modules/@hello-pangea')) {
+          if (
+            normalized.includes('/node_modules/jsqr/') ||
+            normalized.includes('/node_modules/qrcode.react/')
+          ) {
+            return 'vendor-qrcode';
+          }
+          if (normalized.includes('/node_modules/@hello-pangea/')) {
             return 'vendor-dnd';
+          }
+          if (
+            normalized.includes('/node_modules/browser-image-compression/') ||
+            normalized.includes('/node_modules/react-image-crop/')
+          ) {
+            return 'vendor-image';
+          }
+          if (normalized.includes('/node_modules/react-hot-toast/')) {
+            return 'vendor-ui';
           }
         },
       },

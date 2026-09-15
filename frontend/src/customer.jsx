@@ -64,6 +64,8 @@ function ProductImage({ product, large = false, priority = false }) {
           <div className="flex flex-col h-full w-full items-center justify-center">
             <div className="w-full flex items-center justify-center relative overflow-hidden bg-white/60 dark:bg-slate-800/40 rounded-2xl h-64 sm:h-72 md:h-80">
               <img 
+                loading="lazy"
+                decoding="async"
                 src={optimizeImage(images[activeImage], 600)} 
                 onError={(e) => {
                   if (product.name?.toLowerCase().includes('pumpkin') && !e.currentTarget.src.includes('pumpkin_seeds.jpg')) {
@@ -78,6 +80,8 @@ function ProductImage({ product, large = false, priority = false }) {
                {images.map((img, i) => (
                   <button key={i} onClick={() => setActiveImage(i)} className={`flex-shrink-0 w-12 h-12 rounded-xl overflow-hidden shadow-xs transition-all border ${activeImage === i ? 'ring-2 ring-emerald-600 border-emerald-500 opacity-100' : 'border-slate-200 dark:border-slate-700 opacity-60 hover:opacity-100'}`}>
                      <img 
+                       loading="lazy"
+                       decoding="async"
                        src={optimizeImage(img, 100)} 
                        onError={(e) => {
                          if (product.name?.toLowerCase().includes('pumpkin') && !e.currentTarget.src.includes('pumpkin_seeds.jpg')) {

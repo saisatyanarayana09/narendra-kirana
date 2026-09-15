@@ -20,32 +20,54 @@ class APIDashboardDataView(View):
         now = timezone.now()
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         
-        # --- Orders ---
-        total_orders = Order.objects.count()
-        today_orders = Order.objects.filter(created_at__gte=today_start).count()
-        pending_orders = Order.objects.filter(status=Order.Status.NEW).count()
-        active_orders = Order.objects.filter(status__in=[Order.Status.ACCEPTED, Order.Status.PREPARING, Order.Status.READY]).count()
-        completed_orders = Order.objects.filter(status=Order.Status.COMPLETED).count()
-        rejected_orders = Order.objects.filter(status=Order.Status.REJECTED).count()
+        # --- Orders (Single Aggregated Query instead of 8 separate queries) ---
+        order_stats = Order.objects.aggregate(
+            total=Count('id'),
+            today=Count('id', filter=Q(created_at__gte=today_start)),
+            pending=Count('id', filter=Q(status=Order.Status.NEW)),
+            active=Count('id', filter=Q(status__in=[Order.Status.ACCEPTED, Order.Status.PREPARING, Order.Status.READY])),
+            completed=Count('id', filter=Q(status=Order.Status.COMPLETED)),
+            rejected=Count('id', filter=Q(status=Order.Status.REJECTED)),
+            total_revenue=Sum('total_amount', filter=Q(status=Order.Status.COMPLETED)),
+            today_revenue=Sum('total_amount', filter=Q(status=Order.Status.COMPLETED, created_at__gte=today_start)),
+        )
+        total_orders = order_stats['total']
+        today_orders = order_stats['today']
+        pending_orders = order_stats['pending']
+        active_orders = order_stats['active']
+        completed_orders = order_stats['completed']
+        rejected_orders = order_stats['rejected']
+        total_revenue = order_stats['total_revenue'] or 0
+        today_revenue = order_stats['today_revenue'] or 0
         
-        # Revenue
-        total_revenue = Order.objects.filter(status=Order.Status.COMPLETED).aggregate(total=Sum('total_amount'))['total'] or 0
-        today_revenue = Order.objects.filter(status=Order.Status.COMPLETED, created_at__gte=today_start).aggregate(total=Sum('total_amount'))['total'] or 0
-        
-        # --- Products ---
-        total_products = Product.objects.count()
-        active_products = Product.objects.filter(is_active=True).count()
-        out_of_stock = Product.objects.filter(is_in_stock=False).count()
+        # --- Products (Single Aggregated Query instead of 3 separate queries) ---
+        product_stats = Product.objects.aggregate(
+            total=Count('id'),
+            active=Count('id', filter=Q(is_active=True)),
+            out_of_stock=Count('id', filter=Q(is_in_stock=False)),
+        )
+        total_products = product_stats['total']
+        active_products = product_stats['active']
+        out_of_stock = product_stats['out_of_stock']
         total_categories = Category.objects.count()
         
-        # --- Users ---
-        total_users = User.objects.count()
-        total_customers = User.objects.filter(is_customer=True).count()
-        today_signups = User.objects.filter(date_joined__gte=today_start).count()
+        # --- Users (Single Aggregated Query instead of 3 separate queries) ---
+        user_stats = User.objects.aggregate(
+            total=Count('id'),
+            customers=Count('id', filter=Q(is_customer=True)),
+            today_signups=Count('id', filter=Q(date_joined__gte=today_start)),
+        )
+        total_users = user_stats['total']
+        total_customers = user_stats['customers']
+        today_signups = user_stats['today_signups']
         
-        # --- Notifications ---
-        total_notifications = Notification.objects.count()
-        unread_notifications = Notification.objects.filter(is_read=False).count()
+        # --- Notifications (Single Aggregated Query instead of 2 separate queries) ---
+        notification_stats = Notification.objects.aggregate(
+            total=Count('id'),
+            unread=Count('id', filter=Q(is_read=False)),
+        )
+        total_notifications = notification_stats['total']
+        unread_notifications = notification_stats['unread']
         
         # --- Recent Orders (last 10) ---
         recent_orders = list(

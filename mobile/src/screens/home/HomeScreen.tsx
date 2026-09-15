@@ -91,6 +91,31 @@ const BannerCarouselSection = React.memo(function BannerCarouselSection({ banner
     };
   }, [isFocused, startCarouselTimer]);
 
+  const getBannerItemLayout = useCallback((_: any, index: number) => ({
+    length: width,
+    offset: width * index,
+    index,
+  }), []);
+
+  const renderBannerItem = useCallback(({ item }: { item: any }) => {
+    const bannerUri = getOptimizedImageUrl(item.image, Math.round(width * 2), Math.round(BANNER_HEIGHT * 2)) || fixImageUrl(item.image) || '';
+    return (
+      <TouchableOpacity 
+        activeOpacity={0.95}
+        style={styles.bannerSlide}
+        onPress={onBannerPress}
+      >
+        <Image 
+          source={{ uri: bannerUri }} 
+          style={styles.bannerImage} 
+          contentFit="cover"
+          recyclingKey={bannerUri || String(item?.id)}
+          cachePolicy="memory-disk"
+        />
+      </TouchableOpacity>
+    );
+  }, [onBannerPress]);
+
   if (banners.length === 0) return null;
 
   return (
@@ -104,7 +129,7 @@ const BannerCarouselSection = React.memo(function BannerCarouselSection({ banner
         snapToInterval={width}
         snapToAlignment="start"
         decelerationRate="fast"
-        getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
+        getItemLayout={getBannerItemLayout}
         contentContainerStyle={styles.bannersList}
         keyExtractor={(item: any, index) => String(item?.id ?? index)}
         onScrollBeginDrag={() => clearInterval(carouselTimerRef.current)}
@@ -116,24 +141,11 @@ const BannerCarouselSection = React.memo(function BannerCarouselSection({ banner
           const index = Math.round(e.nativeEvent.contentOffset.x / width);
           setActiveBannerIndex(index);
         }}
-        renderItem={({ item }) => {
-          const bannerUri = getOptimizedImageUrl(item.image, Math.round(width * 2), Math.round(BANNER_HEIGHT * 2)) || fixImageUrl(item.image) || '';
-          return (
-            <TouchableOpacity 
-              activeOpacity={0.95}
-              style={styles.bannerSlide}
-              onPress={onBannerPress}
-            >
-              <Image 
-                source={{ uri: bannerUri }} 
-                style={styles.bannerImage} 
-                contentFit="cover"
-                recyclingKey={bannerUri || String(item?.id)}
-                cachePolicy="memory-disk"
-              />
-            </TouchableOpacity>
-          );
-        }}
+        initialNumToRender={6}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={Platform.OS === 'android'}
+        renderItem={renderBannerItem}
       />
 
       {/* Carousel Dots matching web app */}
@@ -446,6 +458,41 @@ export function HomeScreen({ navigation }: Props) {
     navigation.navigate('CategoriesTab', { screen: 'ProductListScreen', params: {} });
   }, [navigation]);
 
+  const categoryCardSize = width > 400 ? 120 : 96;
+  const getCategoryItemLayout = useCallback((_: any, index: number) => ({
+    length: categoryCardSize + 12,
+    offset: 16 + (categoryCardSize + 12) * index,
+    index,
+  }), [categoryCardSize]);
+
+  const renderCategoryItem = useCallback(({ item, index }: { item: any; index: number }) => (
+    <CategoryCard 
+      category={item} 
+      index={index}
+      style={styles.categoryCardHorizontal}
+      onPress={handleCategoryPress} 
+    />
+  ), [handleCategoryPress]);
+
+  const getProductItemLayout = useCallback((_: any, index: number) => ({
+    length: 160 + 12,
+    offset: 16 + (160 + 12) * index,
+    index,
+  }), []);
+
+  const renderProductItem = useCallback(({ item }: { item: any }) => (
+    <View style={styles.horizontalProductItem}>
+      <ProductCard 
+        product={item} 
+        onPress={handleProductPress}
+        onAddToCart={handleAddToCart}
+        cartQty={cartQuantityMap[item.id] || 0}
+        isFavorite={favoriteIds.has(item.id)}
+        onToggleFavorite={handleToggleFavorite}
+      />
+    </View>
+  ), [handleProductPress, handleAddToCart, cartQuantityMap, favoriteIds, handleToggleFavorite]);
+
   const onRefresh = () => {
     setRefreshing(true);
     fetchHomeData();
@@ -609,17 +656,12 @@ export function HomeScreen({ navigation }: Props) {
               keyExtractor={(cat) => String(cat.id)}
               showsHorizontalScrollIndicator={false} 
               contentContainerStyle={styles.categoriesScrollList}
-              initialNumToRender={5}
-              maxToRenderPerBatch={5}
-              windowSize={3}
-              renderItem={({ item, index }) => (
-                <CategoryCard 
-                  category={item} 
-                  index={index}
-                  style={styles.categoryCardHorizontal}
-                  onPress={handleCategoryPress} 
-                />
-              )}
+              initialNumToRender={6}
+              maxToRenderPerBatch={10}
+              windowSize={5}
+              removeClippedSubviews={Platform.OS === 'android'}
+              getItemLayout={getCategoryItemLayout}
+              renderItem={renderCategoryItem}
             />
           </View>
         )}
@@ -667,27 +709,12 @@ export function HomeScreen({ navigation }: Props) {
                 keyExtractor={(product) => String(product.id)}
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.horizontalProductsList}
-                initialNumToRender={3}
-                maxToRenderPerBatch={3}
-                windowSize={3}
+                initialNumToRender={6}
+                maxToRenderPerBatch={10}
+                windowSize={5}
                 removeClippedSubviews={Platform.OS === 'android'}
-                getItemLayout={(_, index) => ({
-                  length: 160 + 12,
-                  offset: 16 + (160 + 12) * index,
-                  index,
-                })}
-                renderItem={({ item }) => (
-                  <View style={styles.horizontalProductItem}>
-                    <ProductCard 
-                      product={item} 
-                      onPress={handleProductPress}
-                      onAddToCart={handleAddToCart}
-                      cartQty={cartQuantityMap[item.id] || 0}
-                      isFavorite={favoriteIds.has(item.id)}
-                      onToggleFavorite={handleToggleFavorite}
-                    />
-                  </View>
-                )}
+                getItemLayout={getProductItemLayout}
+                renderItem={renderProductItem}
               />
             </View>
           );

@@ -183,6 +183,16 @@ class HomepageSection(models.Model):
     class Meta:
         ordering = ['display_order']
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        from django.core.cache import cache
+        cache.delete('active_homepage_sections_serialized')
+
+    def delete(self, *args, **kwargs):
+        from django.core.cache import cache
+        cache.delete('active_homepage_sections_serialized')
+        return super().delete(*args, **kwargs)
+
     def __str__(self):
         return self.title
 
@@ -195,6 +205,16 @@ class HomepageSectionProduct(models.Model):
     class Meta:
         ordering = ['position']
         unique_together = [['section', 'product']]
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        from django.core.cache import cache
+        cache.delete('active_homepage_sections_serialized')
+
+    def delete(self, *args, **kwargs):
+        from django.core.cache import cache
+        cache.delete('active_homepage_sections_serialized')
+        return super().delete(*args, **kwargs)
 
     def __str__(self):
         return f"{getattr(self.section, 'title', '')} - {self.product.name} (pos {self.position})"

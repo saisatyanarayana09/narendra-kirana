@@ -25,13 +25,13 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         is_owner = bool(request.user and request.user.is_authenticated and getattr(request.user, 'is_owner', False))
-        if not is_owner:
+        if not is_owner and not request.query_params:
             cached_data = cache.get(CATEGORY_CACHE_KEY)
             if cached_data is not None:
                 return Response(cached_data)
 
         response = super().list(request, *args, **kwargs)
-        if not is_owner and response.status_code == status.HTTP_200_OK:
+        if not is_owner and not request.query_params and response.status_code == status.HTTP_200_OK:
             cache.set(CATEGORY_CACHE_KEY, response.data, 600)
         return response
 
@@ -107,16 +107,20 @@ class ProductViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
         if response.status_code == 201 and 'id' in response.data:
-            product = Product.objects.get(id=response.data['id'])
+            product = Product.objects.select_related('category').prefetch_related('gallery_images').get(id=response.data['id'])
             self._handle_gallery_images(product, request)
             response.data = self.get_serializer(product).data
+            cache.delete('active_homepage_sections_serialized')
         return response
 
     def update(self, request, *args, **kwargs):
         response = super().update(request, *args, **kwargs)
         product = self.get_object()
         self._handle_gallery_images(product, request)
+        # Re-fetch with prefetch_related to include newly uploaded gallery images
+        product = Product.objects.select_related('category').prefetch_related('gallery_images').get(id=product.id)
         response.data = self.get_serializer(product).data
+        cache.delete('active_homepage_sections_serialized')
         return response
 
     @action(detail=True, methods=['delete'], permission_classes=[IsOwnerUser])
@@ -159,7 +163,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Barcode is required'}, status=400)
             
         # 1. Check local DB
-        local_product = Product.objects.filter(sku=barcode).first()
+        local_product = Product.objects.select_related('category').prefetch_related('gallery_images').filter(sku=barcode).first()
         if local_product:
             return Response({
                 'source': 'local',
@@ -240,7 +244,12 @@ class FavoriteViewSet(viewsets.ModelViewSet):
     pagination_class = None
 
     def get_queryset(self):
-        return Favorite.objects.select_related('product', 'product__category').filter(user=self.request.user)
+        return Favorite.objects.select_related(
+            'product',
+            'product__category'
+        ).prefetch_related(
+            'product__gallery_images'
+        ).filter(user=self.request.user)
 
     def create(self, request, *args, **kwargs):
         product_id = request.data.get('product') or request.data.get('product_id')
@@ -252,6 +261,7 @@ class FavoriteViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
 
         favorite, created = Favorite.objects.get_or_create(user=request.user, product=product)
+        favorite = Favorite.objects.select_related('product', 'product__category').prefetch_related('product__gallery_images').get(id=favorite.id)
         serializer = self.get_serializer(favorite)
         return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
@@ -281,6 +291,7 @@ class FavoriteViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_200_OK)
         else:
             fav, _ = Favorite.objects.get_or_create(user=request.user, product=product)
+            fav = Favorite.objects.select_related('product', 'product__category').prefetch_related('product__gallery_images').get(id=fav.id)
             serializer = self.get_serializer(fav)
             return Response({
                 'status': 'added',

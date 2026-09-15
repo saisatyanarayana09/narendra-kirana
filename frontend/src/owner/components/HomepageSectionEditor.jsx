@@ -138,6 +138,8 @@ export default function HomepageSectionEditor({
                         <div className="aspect-square bg-gray-50 border-b border-gray-100 p-2 pointer-events-none">
                           {(item.image || item.name?.toLowerCase().includes('pumpkin'))
                             ? <img 
+                                loading="lazy"
+                                decoding="async"
                                 src={item.name?.toLowerCase().includes('pumpkin') && (!item.image || item.image.includes('dummyimage.com')) ? '/media/products/pumpkin_seeds.jpg' : item.image} 
                                 alt={item.name} 
                                 onError={(e) => { if (item.name?.toLowerCase().includes('pumpkin')) e.currentTarget.src = '/media/products/pumpkin_seeds.jpg'; }}
@@ -226,6 +228,8 @@ export default function HomepageSectionEditor({
                         <div className="aspect-square bg-slate-50 rounded-xl mb-3 p-2 border border-slate-100">
                           {(p.image || p.name?.toLowerCase().includes('pumpkin'))
                             ? <img 
+                                loading="lazy"
+                                decoding="async"
                                 src={p.name?.toLowerCase().includes('pumpkin') && (!p.image || p.image.includes('dummyimage.com')) ? '/media/products/pumpkin_seeds.jpg' : p.image} 
                                 alt={p.name} 
                                 onError={(e) => { if (p.name?.toLowerCase().includes('pumpkin')) e.currentTarget.src = '/media/products/pumpkin_seeds.jpg'; }}

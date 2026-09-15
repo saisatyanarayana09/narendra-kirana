@@ -55,6 +55,16 @@ class Product(models.Model):
             models.Index(fields=['is_active', 'display_order'], name='product_active_order_idx'),
         ]
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        from django.core.cache import cache
+        cache.delete('active_homepage_sections_serialized')
+
+    def delete(self, *args, **kwargs):
+        from django.core.cache import cache
+        cache.delete('active_homepage_sections_serialized')
+        return super().delete(*args, **kwargs)
+
     def __str__(self):
         return f"{self.name} - {self.unit}"
 

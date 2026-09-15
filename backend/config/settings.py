@@ -110,22 +110,32 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # ─── Database ───
 # Development: SQLite | Production: Neon PostgreSQL
 DATABASE_URL = os.environ.get('DATABASE_URL')
+DB_CONN_MAX_AGE = int(os.environ.get('DB_CONN_MAX_AGE', 300))
+
 if IS_PRODUCTION and not DATABASE_URL:
-        raise RuntimeError('DATABASE_URL must be set when DJANGO_ENV=production.')
+    raise RuntimeError('DATABASE_URL must be set when DJANGO_ENV=production.')
+
 if DATABASE_URL:
     DATABASES = {
         'default': dj_database_url.config(
             default=DATABASE_URL,
-            conn_max_age=600,
+            conn_max_age=DB_CONN_MAX_AGE,
+            conn_health_checks=True,
         )
     }
 else:
     DATABASES = {
         'default': dj_database_url.config(
             default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-            conn_max_age=600,
+            conn_max_age=DB_CONN_MAX_AGE,
         )
     }
+
+# Explicitly ensure CONN_MAX_AGE is set for connection pooling reuse
+DATABASES['default']['CONN_MAX_AGE'] = DB_CONN_MAX_AGE
+if 'postgres' in DATABASES['default'].get('ENGINE', ''):
+    DATABASES['default']['CONN_HEALTH_CHECKS'] = True
+
 
 # ─── Authentication Backends (Email or Username Login) ───
 AUTHENTICATION_BACKENDS = [
@@ -175,6 +185,11 @@ CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
         'LOCATION': 'smart-kirana-cache',
+        'TIMEOUT': 300,
+        'OPTIONS': {
+            'MAX_ENTRIES': 2000,
+            'CULL_FREQUENCY': 3,
+        }
     }
 }
 

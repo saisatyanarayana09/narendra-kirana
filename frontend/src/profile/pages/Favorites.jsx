@@ -36,7 +36,7 @@ export default function Favorites() {
             <div key={fav.id} className="group flex items-center gap-4 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-sm border border-slate-200 dark:border-slate-800 hover:border-primary-300 dark:hover:border-primary-500 hover:shadow-md transition-all">
               <div className="w-20 h-20 shrink-0 bg-slate-50 dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-100 dark:border-slate-800 flex items-center justify-center">
                 {fav.product_details?.image ? (
-                  <img src={fav.product_details.image} alt="Product" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>
+                  <img loading="lazy" decoding="async" src={fav.product_details.image} alt="Product" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>
                 ) : (
                   <Package className="text-slate-300 dark:text-slate-600" size={24}/>
                 )}

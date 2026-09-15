@@ -219,7 +219,7 @@ function GlobalSearchBar() {
                   className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-800 border-b border-slate-50 dark:border-slate-800/60 last:border-0 transition"
                 >
                   <div className="w-10 h-10 rounded bg-slate-100 dark:bg-slate-800 overflow-hidden shrink-0 flex items-center justify-center font-bold text-slate-400 text-xs">
-                    {product.image ? <img src={optimizeImage(product.image, 100)} className="w-full h-full object-cover" alt=""/> : 'IMG'}
+                    {product.image ? <img loading="lazy" decoding="async" src={optimizeImage(product.image, 100)} className="w-full h-full object-cover" alt=""/> : 'IMG'}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{product.name}</p>
@@ -592,7 +592,7 @@ function FestivePopupModal({ settings }) {
 
         {image ? (
           <div className="mb-4 rounded-2xl overflow-hidden max-h-48 border border-slate-100 dark:border-slate-800 shadow-sm">
-            <img src={image} alt={title} className="w-full h-full max-h-48 object-cover" />
+            <img loading="lazy" decoding="async" src={image} alt={title} className="w-full h-full max-h-48 object-cover" />
           </div>
         ) : (
           <div className="mx-auto w-16 h-16 bg-gradient-to-tr from-amber-400 to-rose-500 text-white rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-amber-500/25">
@@ -679,6 +679,8 @@ function MaintenanceModeOverlay({ settings }) {
         <div className="relative mb-6">
           <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-2xl animate-pulse" />
           <img
+            loading="lazy"
+            decoding="async"
             src={settings?.store_logo || "/logo-transparent.png"}
             alt={settings?.store_name || "Store Logo"}
             className="w-24 h-24 sm:w-28 sm:h-28 object-contain drop-shadow-2xl relative z-10"

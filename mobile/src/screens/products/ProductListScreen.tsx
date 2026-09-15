@@ -462,7 +462,7 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
           }}
           renderItem={renderProductItem}
           initialNumToRender={6}
-          maxToRenderPerBatch={6}
+          maxToRenderPerBatch={10}
           windowSize={5}
           removeClippedSubviews={Platform.OS === 'android'}
           updateCellsBatchingPeriod={50}

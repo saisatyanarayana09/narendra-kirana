@@ -160,7 +160,7 @@ const Offers = () => {
                             </div>
                             
                             <div className="w-32 h-12 sm:w-48 sm:h-16 flex-shrink-0 bg-slate-50 rounded-lg overflow-hidden flex items-center justify-center border border-slate-200">
-                              <img src={banner.image} alt={banner.title} className="w-full h-full object-cover" />
+                              <img loading="lazy" decoding="async" src={banner.image} alt={banner.title} className="w-full h-full object-cover" />
                             </div>
                             
                             <div className="min-w-0 flex-1 ml-2">

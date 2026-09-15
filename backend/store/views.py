@@ -163,14 +163,16 @@ def strip_emojis(text):
     cleaned = p.sub('', text)
     return re.sub(r'\s+', ' ', cleaned).strip()
 
+HOMEPAGE_SECTIONS_CACHE_KEY = 'active_homepage_sections_serialized'
+
 class HomepageSectionViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for dynamic homepage sections.
+    ViewSet for dynamic homepage sections with fast serialization & memory caching.
     """
     queryset = HomepageSection.objects.prefetch_related(
         'section_products__product__gallery_images',
         'section_products__product__category'
-    ).all()
+    ).all().order_by('display_order')
     serializer_class = HomepageSectionSerializer
     pagination_class = None
 
@@ -179,14 +181,37 @@ class HomepageSectionViewSet(viewsets.ModelViewSet):
             return [AllowAny()]
         return [IsOwnerUser()]
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Non-owners only see active sections
+        if not (self.request.user and self.request.user.is_authenticated and getattr(self.request.user, 'is_owner', False)):
+            queryset = queryset.filter(is_active=True)
+        return queryset
+
+    def list(self, request, *args, **kwargs):
+        from django.core.cache import cache
+        is_owner = bool(request.user and request.user.is_authenticated and getattr(request.user, 'is_owner', False))
+        if not is_owner and not request.query_params:
+            cached_data = cache.get(HOMEPAGE_SECTIONS_CACHE_KEY)
+            if cached_data is not None:
+                return response.Response(cached_data)
+
+        res = super().list(request, *args, **kwargs)
+        if not is_owner and not request.query_params and res.status_code == status.HTTP_200_OK:
+            cache.set(HOMEPAGE_SECTIONS_CACHE_KEY, res.data, 600)
+        return res
+
     def perform_create(self, serializer):
+        from django.core.cache import cache
         title = serializer.validated_data.get('title', '')
         if title:
             title = strip_emojis(title)
         section = serializer.save(title=title)
         self._sync_products(section)
+        cache.delete(HOMEPAGE_SECTIONS_CACHE_KEY)
 
     def perform_update(self, serializer):
+        from django.core.cache import cache
         title = serializer.validated_data.get('title', '')
         if title:
             title = strip_emojis(title)
@@ -194,8 +219,15 @@ class HomepageSectionViewSet(viewsets.ModelViewSet):
         else:
             section = serializer.save()
         self._sync_products(section)
+        cache.delete(HOMEPAGE_SECTIONS_CACHE_KEY)
+
+    def perform_destroy(self, instance):
+        from django.core.cache import cache
+        super().perform_destroy(instance)
+        cache.delete(HOMEPAGE_SECTIONS_CACHE_KEY)
 
     def _sync_products(self, section):
+        from django.core.cache import cache
         if 'product_ids' in self.request.data:
             product_ids = self.request.data.get('product_ids', [])
             if isinstance(product_ids, list):
@@ -213,12 +245,14 @@ class HomepageSectionViewSet(viewsets.ModelViewSet):
                         )
                     except (Product.DoesNotExist, ValueError, TypeError):
                         continue
+                cache.delete(HOMEPAGE_SECTIONS_CACHE_KEY)
 
     @action(detail=False, methods=['post'])
     def reorder(self, request):
         """
         Expects a list of dicts: [{'id': 1, 'display_order': 0}, ...]
         """
+        from django.core.cache import cache
         updates = request.data
         if not isinstance(updates, list):
             return response.Response({'error': 'Expected a list of updates'}, status=400)
@@ -230,6 +264,7 @@ class HomepageSectionViewSet(viewsets.ModelViewSet):
                 HomepageSection.objects.filter(id=section_id).update(display_order=display_order)
             except (ValueError, TypeError):
                 continue
+        cache.delete(HOMEPAGE_SECTIONS_CACHE_KEY)
         return response.Response({'status': 'order updated'})
 
 

@@ -80,7 +80,7 @@ export default function MidPageBannerEditor({ section, onUpdateSection, onSave }
         <label className="relative flex flex-col items-center justify-center w-full aspect-[4/1] bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl hover:bg-slate-100 hover:border-emerald-300 transition-colors cursor-pointer overflow-hidden group">
           {image ? (
             <>
-              <img src={image} alt="Banner" className="w-full h-full object-cover" />
+              <img loading="lazy" decoding="async" src={image} alt="Banner" className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold gap-2">
                 <Edit2 size={18} /> Change Image
               </div>
