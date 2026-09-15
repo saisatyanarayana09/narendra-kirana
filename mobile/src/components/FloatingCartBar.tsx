@@ -120,20 +120,20 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
         }),
       ]).start();
 
-      // GPU-accelerated 10-second countdown indicator (transform scaleX instead of width layout recalculation)
+      // GPU-accelerated 6-second countdown indicator (transform scaleX instead of width layout recalculation)
       countdownAnim.setValue(1);
       Animated.timing(countdownAnim, {
         toValue: 0,
-        duration: 10000,
+        duration: 6000,
         easing: Easing.linear,
         useNativeDriver: USE_NATIVE_DRIVER,
       }).start();
 
-      // Automatically auto-close after 10 seconds of no action
+      // Automatically auto-close after 6 seconds of no action
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
         handleDismiss();
-      }, 10000);
+      }, 6000);
     }
 
     return () => {

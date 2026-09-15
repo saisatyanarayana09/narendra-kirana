@@ -136,39 +136,41 @@ const shouldHideTabBar = (route: any) => {
   return hideOnScreens.includes(routeName);
 };
 
+// Global flag ensuring initial cart reminder shows at most ONCE per app launch session
+let hasShownInitialCartPopupSession = false;
+
 export function MainTabs() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
-  const { cart } = useCart();
+  const { cart, lastItemAddedTimestamp } = useCart();
   const { user } = useAuth();
   const { t } = useLanguage();
   const [currentTab, setCurrentTab] = useState('HomeTab');
   const [currentRouteName, setCurrentRouteName] = useState('');
-  const [isDismissed, setIsDismissed] = useState(false);
+  const [showCartBar, setShowCartBar] = useState(false);
+  const lastAddRef = useRef(lastItemAddedTimestamp);
 
   // Cart popup bar should only come after welcome screen is completed
   const willShowWelcome = !getHasShownWelcomeSession();
   const [isWelcomeActive, setIsWelcomeActive] = useState(willShowWelcome);
 
   const cartItemCount = cart?.items?.length || 0;
-  const prevCountRef = useRef(cartItemCount);
-  const hasShownInitialOnAppOpenRef = useRef(false);
 
-  // 1. Show once on app open if user has items in cart, ONLY AFTER welcome screen completes!
+  // 1. Show ONE time on fresh app open if user has items already in cart (only after welcome screen)
   useEffect(() => {
-    if (!isWelcomeActive && cartItemCount > 0 && !hasShownInitialOnAppOpenRef.current) {
-      hasShownInitialOnAppOpenRef.current = true;
-      setIsDismissed(false);
+    if (!isWelcomeActive && cartItemCount > 0 && !hasShownInitialCartPopupSession) {
+      hasShownInitialCartPopupSession = true;
+      setShowCartBar(true);
     }
   }, [cartItemCount, isWelcomeActive]);
 
-  // 2. Re-show only when user actively adds an item while shopping
+  // 2. ONLY re-show when user ACTIVELY adds an item or increments quantity while shopping
   useEffect(() => {
-    if (!isWelcomeActive && cartItemCount > prevCountRef.current) {
-      setIsDismissed(false);
+    if (lastItemAddedTimestamp > 0 && lastItemAddedTimestamp !== lastAddRef.current) {
+      lastAddRef.current = lastItemAddedTimestamp;
+      setShowCartBar(true);
     }
-    prevCountRef.current = cartItemCount;
-  }, [cartItemCount, isWelcomeActive]);
+  }, [lastItemAddedTimestamp]);
 
   // Pre-warm both homeDataCache and ordersCache when user is present or on component mount
   useEffect(() => {
@@ -304,17 +306,18 @@ export function MainTabs() {
         />
       </Tab.Navigator>
 
-      {/* Floating Mini-Cart Bar rendered after Tab.Navigator only after welcome screen has completed */}
-      {!isWelcomeActive && currentTab !== 'CartTab' && cartItemCount > 0 && !isDismissed && (
+      {/* Floating Mini-Cart Bar: only renders when showCartBar is true, and NEVER on CartTab */}
+      {showCartBar && !isWelcomeActive && currentTab !== 'CartTab' && cartItemCount > 0 && (
         <FloatingCartBar 
           bottomOffset={totalBarHeight + 10}
           onPress={() => {
+            setShowCartBar(false);
             navigation.navigate('Main', {
               screen: 'CartTab',
               params: { screen: 'CartScreen' },
             });
           }}
-          onClose={() => setIsDismissed(true)}
+          onClose={() => setShowCartBar(false)}
           currentRouteName={currentRouteName}
         />
       )}

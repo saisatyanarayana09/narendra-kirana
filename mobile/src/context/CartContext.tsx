@@ -46,6 +46,7 @@ export interface CartContextType {
   refreshCart: (isSilent?: boolean) => Promise<void>;
   cartQuantityMap: Record<number, number>;
   getItemQuantity: (productId: number) => number;
+  lastItemAddedTimestamp: number;
 }
 
 export const getItemProductId = (item: CartItem): number => {
@@ -65,6 +66,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartData | null>(null);
   const [storeSettings, setStoreSettings] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [lastItemAddedTimestamp, setLastItemAddedTimestamp] = useState<number>(0);
 
   const calculateGuestTotals = (items: CartItem[], packagingFeeStr: string = '0'): CartData => {
     let regularTotalNum = 0;
@@ -287,6 +289,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return removeFromCart(itemId);
     }
 
+    const currentQty = cart?.items?.find((item) => item.id === itemId || getItemProductId(item) === itemId)?.quantity || 0;
+    if (quantity > currentQty) {
+      setLastItemAddedTimestamp(Date.now());
+    }
+
     if (!user) {
       try {
         const currentCart = (await loadGuestCart()) || cart;
@@ -452,6 +459,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const newCartData = calculateGuestTotals(updatedItems, packagingFee);
         await setGuestStorageItem(GUEST_CART_KEY, JSON.stringify(newCartData));
         setCart(newCartData);
+        setLastItemAddedTimestamp(Date.now());
       } catch (error) {
         console.error('Failed to add to guest cart:', error);
         throw error;
@@ -469,6 +477,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
 
       await apiClient.post('/cart/items/', { product: productId, quantity });
+      setLastItemAddedTimestamp(Date.now());
       await refreshCart(true);
     } catch (error) {
       console.error('Failed to add to cart:', error);
@@ -560,6 +569,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     refreshCart,
     cartQuantityMap,
     getItemQuantity,
+    lastItemAddedTimestamp,
   }), [
     cart,
     isLoading,
@@ -573,6 +583,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     refreshCart,
     cartQuantityMap,
     getItemQuantity,
+    lastItemAddedTimestamp,
   ]);
 
   return (
