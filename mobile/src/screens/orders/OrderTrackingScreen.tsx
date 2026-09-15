@@ -16,15 +16,17 @@ import { apiClient } from '../../api/client';
 import { storeApi, StoreSettings } from '../../api/store';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { getCachedOrderByIdSync, saveCachedSingleOrder } from '../../services/ordersCache';
 
 export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavigationProp; route: any }) {
   const { colors, isDark } = useTheme();
   const { user } = useAuth();
-  const { orderId } = route?.params || {};
-  const [order, setOrder] = useState<any>(null);
+  const { orderId, initialOrder } = route?.params || {};
+  const cachedOrder = initialOrder || (orderId ? getCachedOrderByIdSync(orderId) : null);
+  const [order, setOrder] = useState<any>(cachedOrder);
   const orderRef = useRef(order);
   orderRef.current = order;
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedOrder);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
@@ -62,6 +64,7 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
     try {
       const res = await apiClient.get(`/orders/${orderId}/`, { params: { t: Date.now() } });
       setOrder(res.data);
+      saveCachedSingleOrder(res.data);
       setError('');
     } catch (err) {
       console.error('Error fetching order details:', err);

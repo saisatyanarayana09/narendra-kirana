@@ -127,7 +127,15 @@ class OrderViewSet(ModelViewSet):
         return [IsAuthenticated()]
 
     def get_queryset(self):
-        queryset = Order.objects.select_related('customer', 'delivery_partner').prefetch_related('items').order_by('-created_at')
+        queryset = Order.objects.select_related(
+            'customer',
+            'customer__customer_profile',
+            'delivery_partner',
+            'delivery_partner__delivery_profile'
+        ).prefetch_related(
+            'items',
+            'items__product'
+        ).order_by('-created_at')
         if self.request.user.is_owner:
             return queryset
         return queryset.filter(customer=self.request.user)

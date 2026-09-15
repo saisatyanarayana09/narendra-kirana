@@ -24,19 +24,27 @@ import { apiClient } from '../../api/client';
 import { fixImageUrl } from '../../utils/image';
 import { getItem, saveItem, deleteItem } from '../../utils/storage';
 import { useAuth } from '../../context/AuthContext';
+import { storeApi } from '../../api/store';
+import { getCachedOrderByIdSync, saveCachedSingleOrder } from '../../services/ordersCache';
 
 const SAVED_DOWNLOAD_DIR_KEY = 'SAVED_SAF_INVOICE_DOWNLOAD_DIR';
 
 export function InvoiceScreen({ navigation, route }: { navigation: AppNavigationProp, route: any }) {
   const { user } = useAuth();
-  const { orderId } = route.params || {};
-  const [order, setOrder] = useState<any>(null);
+  const { orderId, initialOrder } = route.params || {};
+  const cachedOrder = initialOrder || (orderId ? getCachedOrderByIdSync(orderId) : null);
+  const [order, setOrder] = useState<any>(cachedOrder);
   const [settings, setSettings] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedOrder);
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Pre-populate settings from memory cache
+    storeApi.getSettings().then((s) => {
+      if (s) setSettings(s);
+    }).catch(() => null);
+
     if (user) {
       fetchInvoiceData();
     } else {
@@ -50,16 +58,23 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
       return;
     }
     try {
-      setLoading(true);
+      if (!cachedOrder) {
+        setLoading(true);
+      }
       const [orderRes, settingsRes] = await Promise.all([
         apiClient.get(`/orders/${orderId}/`),
-        apiClient.get('/store/settings/').catch(() => ({ data: {} }))
+        storeApi.getSettings().catch(() => null)
       ]);
       setOrder(orderRes.data);
-      setSettings(settingsRes.data || {});
+      saveCachedSingleOrder(orderRes.data);
+      if (settingsRes) {
+        setSettings(settingsRes);
+      }
     } catch (err) {
       console.error('Failed to load invoice details:', err);
-      setError('Failed to load invoice details.');
+      if (!cachedOrder) {
+        setError('Failed to load invoice details.');
+      }
     } finally {
       setLoading(false);
     }

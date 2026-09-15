@@ -207,7 +207,7 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
       <View style={[styles.orderCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <TouchableOpacity 
           activeOpacity={0.7}
-          onPress={() => navigation.navigate('OrderTrackingScreen', { orderId: item.id })}
+          onPress={() => navigation.navigate('OrderTrackingScreen', { orderId: item.id, initialOrder: item })}
         >
           <View style={styles.cardHeader}>
             <View>
@@ -239,7 +239,7 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
             <View style={styles.completedActionsRow}>
               <TouchableOpacity 
                 style={[styles.detailsBtn, { backgroundColor: isDark ? colors.background : '#F8FAFC', borderColor: colors.border }]}
-                onPress={() => navigation.navigate('OrderTrackingScreen', { orderId: item.id })}
+                onPress={() => navigation.navigate('OrderTrackingScreen', { orderId: item.id, initialOrder: item })}
                 activeOpacity={0.7}
               >
                 <Feather name="package" size={14} color={colors.text} />
@@ -248,7 +248,7 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
 
               <TouchableOpacity 
                 style={[styles.invoiceCardBtn, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.2)' : '#ECFDF5', borderColor: isDark ? 'rgba(5, 150, 105, 0.4)' : '#A7F3D0' }]}
-                onPress={() => navigation.navigate('InvoiceScreen', { orderId: item.id })}
+                onPress={() => navigation.navigate('InvoiceScreen', { orderId: item.id, initialOrder: item })}
                 activeOpacity={0.7}
               >
                 <Feather name="file-text" size={14} color={colors.primary} />
@@ -258,7 +258,7 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
           ) : (
             <TouchableOpacity 
               style={styles.trackOrderBtn}
-              onPress={() => navigation.navigate('OrderTrackingScreen', { orderId: item.id })}
+              onPress={() => navigation.navigate('OrderTrackingScreen', { orderId: item.id, initialOrder: item })}
               activeOpacity={0.7}
             >
               <Text style={[styles.trackOrderBtnText, { color: colors.primary }]}>Track Order</Text>

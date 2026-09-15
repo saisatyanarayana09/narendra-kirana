@@ -45,6 +45,29 @@ export function getCachedOrdersSync(): any[] | null {
 }
 
 /**
+ * Find a single order from in-memory cache synchronously (<1ms).
+ */
+export function getCachedOrderByIdSync(orderId: number | string): any | null {
+  if (!memoryCache || !orderId) return null;
+  return memoryCache.find((o) => String(o.id) === String(orderId)) || null;
+}
+
+/**
+ * Update or insert a single order into cache.
+ */
+export function saveCachedSingleOrder(order: any): void {
+  if (!order || !order.id) return;
+  if (!memoryCache) memoryCache = [];
+  const idx = memoryCache.findIndex((o) => String(o.id) === String(order.id));
+  if (idx >= 0) {
+    memoryCache[idx] = { ...memoryCache[idx], ...order };
+  } else {
+    memoryCache.unshift(order);
+  }
+  AsyncStorage.setItem(CACHE_KEY, JSON.stringify(memoryCache)).catch(() => {});
+}
+
+/**
  * Persist orders to AsyncStorage and update in-memory cache.
  * Called after a successful network fetch.
  */
