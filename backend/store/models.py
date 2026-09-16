@@ -27,6 +27,9 @@ class StoreSettings(models.Model):
     free_delivery_threshold = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     min_delivery_order_amount = models.DecimalField(max_digits=10, decimal_places=2, default=150.00)
     allowed_pincodes = models.TextField(blank=True, default="", help_text="Comma-separated list of allowed pincodes")
+    store_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, default=17.385044, help_text="Store latitude for GPS & maps")
+    store_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, default=78.486671, help_text="Store longitude for GPS & maps")
+    delivery_radius_km = models.DecimalField(max_digits=5, decimal_places=2, default=5.00, help_text="Maximum home delivery radius in kilometers")
     
     # Automation
     auto_accept_orders = models.BooleanField(default=False, help_text="Automatically accept new orders")

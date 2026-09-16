@@ -23,6 +23,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { apiClient } from '../../api/client';
 import { useLocation } from '../../hooks/useLocation';
 import { fixImageUrl } from '../../utils/image';
+import { MapLocationPicker } from '../../components/MapLocationPicker';
 
 export function extractErrorMessage(err: any, fallback: string = 'Could not place your order.'): string {
   const data = err?.response?.data;
@@ -68,6 +69,7 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
     longitude: null as number | null,
   });
   const [savingAddress, setSavingAddress] = useState(false);
+  const [showMapPicker, setShowMapPicker] = useState(false);
 
   const [pickupTime, setPickupTime] = useState('As soon as possible');
   const [customerNote, setCustomerNote] = useState('');
@@ -682,40 +684,73 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
                   </TouchableOpacity>
                 </View>
 
-                {/* GPS Location Capture Button */}
-                {!addressForm.latitude ? (
-                  <TouchableOpacity 
-                    style={styles.gpsCaptureBtn}
-                    onPress={handleCaptureGps}
-                    disabled={gpsLoading}
-                    activeOpacity={0.85}
-                  >
-                    {gpsLoading ? (
-                      <ActivityIndicator color="#4F46E5" size="small" />
-                    ) : (
-                      <>
-                        <Feather name="map-pin" size={16} color="#4F46E5" />
-                        <Text style={styles.gpsCaptureBtnText}>📍 Capture My Exact Location</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                ) : (
-                  <View style={styles.gpsSecuredBanner}>
-                    <View style={styles.gpsSecuredLeft}>
-                      <Feather name="check-circle" size={16} color="#059669" />
-                      <Text style={styles.gpsSecuredText}>GPS Secured</Text>
+                {/* Doorstep Map Pin & GPS Location Row */}
+                <View style={styles.locationActionSection}>
+                  {!addressForm.latitude ? (
+                    <View style={styles.locationButtonGrid}>
+                      <TouchableOpacity 
+                        style={styles.osmPinMapBtn}
+                        onPress={() => setShowMapPicker(true)}
+                        activeOpacity={0.85}
+                      >
+                        <Feather name="map-pin" size={15} color="#059669" />
+                        <Text style={styles.osmPinMapBtnText}>Pin on Map (OSM)</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity 
+                        style={styles.gpsCaptureBtnSmall}
+                        onPress={handleCaptureGps}
+                        disabled={gpsLoading}
+                        activeOpacity={0.85}
+                      >
+                        {gpsLoading ? (
+                          <ActivityIndicator color="#475569" size="small" />
+                        ) : (
+                          <>
+                            <Feather name="navigation" size={14} color="#475569" />
+                            <Text style={styles.gpsCaptureSmallText}>Auto GPS</Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
                     </View>
-                    <TouchableOpacity 
-                      style={styles.relocateBtn}
-                      onPress={handleCaptureGps}
-                      disabled={gpsLoading}
-                      activeOpacity={0.8}
-                    >
-                      <Feather name="refresh-cw" size={12} color="#059669" />
-                      <Text style={styles.relocateBtnText}>Relocate</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
+                  ) : (
+                    <View style={styles.gpsSecuredBanner}>
+                      <View style={styles.gpsSecuredLeft}>
+                        <Feather name="check-circle" size={16} color="#059669" />
+                        <Text style={styles.gpsSecuredText}>
+                          📍 Pinned ({Number(addressForm.latitude).toFixed(4)}, {Number(addressForm.longitude).toFixed(4)})
+                        </Text>
+                      </View>
+                      <TouchableOpacity 
+                        style={styles.relocateBtn}
+                        onPress={() => setShowMapPicker(true)}
+                        activeOpacity={0.8}
+                      >
+                        <Feather name="edit-2" size={12} color="#059669" />
+                        <Text style={styles.relocateBtnText}>Edit Pin</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+
+                {/* OpenStreetMap Interactive Modal */}
+                <MapLocationPicker
+                  visible={showMapPicker}
+                  onClose={() => setShowMapPicker(false)}
+                  initialLat={addressForm.latitude ? Number(addressForm.latitude) : 17.385044}
+                  initialLng={addressForm.longitude ? Number(addressForm.longitude) : 78.486671}
+                  onConfirm={(pin) => {
+                    setAddressForm(prev => ({
+                      ...prev,
+                      latitude: pin.latitude,
+                      longitude: pin.longitude,
+                      street: pin.street ? (prev.street ? prev.street : pin.street) : prev.street,
+                      city: pin.city || prev.city,
+                      state: pin.state || prev.state,
+                      zip_code: pin.zip_code || prev.zip_code
+                    }));
+                  }}
+                />
 
                 {/* Address Form Inputs */}
                 <View style={styles.formGrid}>
@@ -1543,6 +1578,47 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#64748B',
+  },
+  locationActionSection: {
+    marginBottom: 12,
+  },
+  locationButtonGrid: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  osmPinMapBtn: {
+    flex: 1.3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1.5,
+    borderColor: '#6EE7B7',
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  osmPinMapBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#047857',
+  },
+  gpsCaptureBtnSmall: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  gpsCaptureSmallText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
   },
   gpsCaptureBtn: {
     flexDirection: 'row',

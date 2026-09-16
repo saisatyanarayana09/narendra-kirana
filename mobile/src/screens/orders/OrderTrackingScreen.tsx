@@ -17,6 +17,7 @@ import { storeApi, StoreSettings } from '../../api/store';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { getCachedOrderByIdSync, saveCachedSingleOrder } from '../../services/ordersCache';
+import { OrderTrackingMap } from '../../components/OrderTrackingMap';
 
 export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavigationProp; route: any }) {
   const { colors, isDark } = useTheme();
@@ -325,6 +326,24 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
             </TouchableOpacity>
           )}
         </View>
+
+        {/* Live OpenStreetMap Route & Delivery Tracking */}
+        {order.order_type === 'DELIVERY' && Boolean(order.delivery_latitude && order.delivery_longitude) && (
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border, padding: 12 }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Feather name="map-pin" size={15} color={colors.primary} />
+                  <Text style={[styles.cardTitle, { color: colors.text, marginBottom: 0 }]}>Live Route Tracking</Text>
+                </View>
+                <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>
+                  OpenStreetMap road navigation to your doorstep
+                </Text>
+              </View>
+            </View>
+            <OrderTrackingMap order={order} storeSettings={storeSettings} height={200} />
+          </View>
+        )}
 
         {/* 5-Stage Tracking Timeline Card */}
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>

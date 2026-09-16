@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ChevronRight, MapPin, Trash2, Plus, X, Edit2, RefreshCw, CheckCircle2 } from 'lucide-react';
 import api, { getUserCacheSync, setUserCache } from '../../services/api';
 import toast from 'react-hot-toast';
+import MapLocationPicker from '../../components/MapLocationPicker';
 
 export default function SavedAddresses() {
   const cachedAddresses = getUserCacheSync('/auth/addresses/');
@@ -11,6 +12,7 @@ export default function SavedAddresses() {
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(!cachedAddresses);
   const [form, setForm] = useState({ title: 'Home', street: '', landmark: '', city: '', district: '', state: '', country: 'India', zip_code: '', latitude: null, longitude: null });
+  const [showMapPicker, setShowMapPicker] = useState(false);
 
   const fetchAddresses = () => api.get('/auth/addresses/').then(res => { 
     const addrList = res.data.results || res.data || [];
@@ -89,22 +91,61 @@ export default function SavedAddresses() {
         <form onSubmit={submit} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-6 md:p-8 mb-8 border border-slate-200 dark:border-slate-800 animate-in fade-in slide-in-from-top-2">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 pb-4 border-b border-slate-100 dark:border-slate-800 gap-3">
              <h3 className="text-base font-bold text-slate-900 dark:text-white">{editingId ? 'Edit Address' : 'Address Details'}</h3>
-             {!form.latitude ? (
-                <button type="button" onClick={captureLocation} className="w-full sm:w-auto font-extrabold text-sm py-3 px-5 rounded-xl flex items-center justify-center gap-2 transition-all border-2 active:scale-[0.98] bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/50">
-                  <MapPin size={18} className="text-indigo-600 dark:text-indigo-400" />
-                  📍 Capture My Exact Location
-                </button>
-              ) : (
-                <div className="w-full sm:w-auto flex items-center justify-between gap-4 bg-emerald-50 dark:bg-emerald-950/50 border-2 border-emerald-200 dark:border-emerald-800 rounded-xl p-2.5 animate-in zoom-in-95 duration-300">
-                  <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 font-extrabold text-sm pl-2">
-                    <CheckCircle2 size={18} className="text-emerald-500" />
-                    <span>GPS Secured</span>
-                  </div>
-                  <button type="button" onClick={captureLocation} className="flex items-center gap-1.5 text-xs font-bold bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700 px-3 py-1.5 rounded-lg hover:bg-emerald-100 dark:hover:bg-slate-700 transition-colors shadow-sm active:scale-95">
-                    <RefreshCw size={14} /> Relocate
-                  </button>
-                </div>
-              )}
+             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+               {!form.latitude ? (
+                 <>
+                   <button 
+                     type="button" 
+                     onClick={() => setShowMapPicker(true)} 
+                     className="flex-1 sm:flex-none font-extrabold text-xs sm:text-sm py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all border-2 active:scale-[0.98] bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-100 cursor-pointer shadow-xs"
+                   >
+                     <MapPin size={16} className="text-emerald-600" />
+                     Pin on Map (OSM)
+                   </button>
+                   <button 
+                     type="button" 
+                     onClick={captureLocation} 
+                     className="flex-1 sm:flex-none font-extrabold text-xs sm:text-sm py-2.5 px-3.5 rounded-xl flex items-center justify-center gap-2 transition-all border-2 active:scale-[0.98] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200 cursor-pointer"
+                   >
+                     <RefreshCw size={14} className="text-slate-500" />
+                     Auto GPS
+                   </button>
+                 </>
+               ) : (
+                 <div className="w-full sm:w-auto flex items-center justify-between gap-3 bg-emerald-50 dark:bg-emerald-950/50 border-2 border-emerald-200 dark:border-emerald-800 rounded-xl p-2.5 animate-in zoom-in-95 duration-300">
+                   <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 font-extrabold text-xs sm:text-sm pl-2">
+                     <CheckCircle2 size={16} className="text-emerald-500" />
+                     <span>📍 Pinned ({Number(form.latitude).toFixed(4)}, {Number(form.longitude).toFixed(4)})</span>
+                   </div>
+                   <button 
+                     type="button" 
+                     onClick={() => setShowMapPicker(true)} 
+                     className="flex items-center gap-1.5 text-xs font-bold bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700 px-3 py-1.5 rounded-lg hover:bg-emerald-100 dark:hover:bg-slate-700 transition-colors shadow-xs active:scale-95 cursor-pointer"
+                   >
+                     <Edit2 size={12} /> Edit Pin
+                   </button>
+                 </div>
+               )}
+             </div>
+
+             <MapLocationPicker
+               isOpen={showMapPicker}
+               onClose={() => setShowMapPicker(false)}
+               initialLat={form.latitude ? Number(form.latitude) : 17.385044}
+               initialLng={form.longitude ? Number(form.longitude) : 78.486671}
+               onConfirm={(pin) => {
+                 setForm(prev => ({
+                   ...prev,
+                   latitude: pin.latitude,
+                   longitude: pin.longitude,
+                   street: pin.street ? (prev.street ? prev.street : pin.street) : prev.street,
+                   city: pin.city || prev.city,
+                   state: pin.state || prev.state,
+                   zip_code: pin.zip_code || prev.zip_code
+                 }));
+                 toast.success('Doorstep location pinned on map!');
+               }}
+             />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div className="sm:col-span-2">

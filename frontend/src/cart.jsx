@@ -6,6 +6,8 @@ import api from './services/api'
 import { CustomerLayout } from './customer-layout'
 import { useCart } from './cart-context'
 import { QRCodeSVG } from 'qrcode.react'
+import MapLocationPicker from './components/MapLocationPicker'
+import OrderTrackingMap from './components/OrderTrackingMap'
 
 export function CustomerLoginPage() {
   const navigate = useNavigate();
@@ -1248,6 +1250,7 @@ export function CheckoutPage() {
    const [showAddressForm, setShowAddressForm] = useState(false);
    const [editingAddressId, setEditingAddressId] = useState(null);
    const [addressForm, setAddressForm] = useState({ title: 'Home', street: '', landmark: '', city: '', district: '', state: '', country: 'India', zip_code: '', latitude: null, longitude: null });
+   const [showMapPicker, setShowMapPicker] = useState(false);
    
    const captureLocation = () => {
      const loadingToast = toast.loading("Getting your exact location...");
@@ -1615,22 +1618,61 @@ export function CheckoutPage() {
                     <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">{editingAddressId ? 'Edit Address' : 'New Address'}</h4>
                     <button type="button" onClick={() => setShowAddressForm(false)} className="text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer">Cancel</button>
                   </div>
-                  {!addressForm.latitude ? (
-                    <button type="button" onClick={captureLocation} className="w-full font-extrabold text-xs sm:text-sm py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all border-2 active:scale-[0.98] bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 cursor-pointer">
-                      <MapPin size={16} className="text-indigo-600" />
-                      Capture My Exact Location (GPS)
-                    </button>
-                  ) : (
-                    <div className="flex items-center justify-between bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3 animate-in zoom-in-95 duration-200">
-                      <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 font-extrabold text-xs sm:text-sm">
-                        <CheckCircle2 size={16} className="text-emerald-500" />
-                        <span>GPS Location Secured</span>
+                  <div className="space-y-2">
+                    {!addressForm.latitude ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <button 
+                          type="button" 
+                          onClick={() => setShowMapPicker(true)} 
+                          className="font-extrabold text-xs sm:text-sm py-2.5 px-3.5 rounded-xl flex items-center justify-center gap-2 transition-all border-2 active:scale-[0.98] bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-100 cursor-pointer shadow-xs"
+                        >
+                          <MapPin size={16} className="text-emerald-600" />
+                          Pin on Map (OSM)
+                        </button>
+                        <button 
+                          type="button" 
+                          onClick={captureLocation} 
+                          className="font-extrabold text-xs sm:text-sm py-2.5 px-3.5 rounded-xl flex items-center justify-center gap-2 transition-all border-2 active:scale-[0.98] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200 cursor-pointer"
+                        >
+                          <RefreshCw size={14} className="text-slate-500" />
+                          Auto GPS
+                        </button>
                       </div>
-                      <button type="button" onClick={captureLocation} className="flex items-center gap-1.5 text-xs font-bold bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700 px-3 py-1.5 rounded-lg hover:bg-emerald-50 transition-colors shadow-xs active:scale-95 cursor-pointer">
-                        <RefreshCw size={13} /> Relocate
-                      </button>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="flex items-center justify-between bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3 animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 font-extrabold text-xs sm:text-sm">
+                          <CheckCircle2 size={16} className="text-emerald-500" />
+                          <span>📍 Pinned ({Number(addressForm.latitude).toFixed(4)}, {Number(addressForm.longitude).toFixed(4)})</span>
+                        </div>
+                        <button 
+                          type="button" 
+                          onClick={() => setShowMapPicker(true)} 
+                          className="flex items-center gap-1 text-xs font-bold bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700 px-2.5 py-1.5 rounded-lg hover:bg-emerald-50 transition-colors shadow-xs active:scale-95 cursor-pointer"
+                        >
+                          <Edit2 size={12} /> Edit Pin
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <MapLocationPicker
+                    isOpen={showMapPicker}
+                    onClose={() => setShowMapPicker(false)}
+                    initialLat={addressForm.latitude ? Number(addressForm.latitude) : 17.385044}
+                    initialLng={addressForm.longitude ? Number(addressForm.longitude) : 78.486671}
+                    onConfirm={(pin) => {
+                      setAddressForm(prev => ({
+                        ...prev,
+                        latitude: pin.latitude,
+                        longitude: pin.longitude,
+                        street: pin.street ? (prev.street ? prev.street : pin.street) : prev.street,
+                        city: pin.city || prev.city,
+                        state: pin.state || prev.state,
+                        zip_code: pin.zip_code || prev.zip_code
+                      }));
+                      toast.success('Doorstep location pinned on map!');
+                    }}
+                  />
                   <div className="grid grid-cols-2 gap-2.5">
                     <div className="col-span-2">
                       <input placeholder="Title (e.g. Home, Office)" value={addressForm.title} onChange={e => setAddressForm({...addressForm, title: e.target.value})} required className="w-full text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 p-2.5 sm:p-3 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-indigo-500"/>
@@ -1994,6 +2036,7 @@ export function CheckoutPage() {
 export function OrderDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { storeSettings } = useCart();
   const [order, setOrder] = useState(null);
   const [error, setError] = useState('');
 
@@ -2077,6 +2120,23 @@ export function OrderDetailPage() {
                     {order.delivery_otp}
                   </span>
                 </div>
+              </div>
+            )}
+
+            {/* Live OpenStreetMap Route & Delivery Tracking */}
+            {order.order_type === 'DELIVERY' && (
+              <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-100 dark:border-slate-800 mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                      <MapPin size={18} className="text-emerald-600" /> Live Delivery Route & Tracking
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      OpenStreetMap road navigation between Narendra Kirana and your doorstep
+                    </p>
+                  </div>
+                </div>
+                <OrderTrackingMap order={order} storeSettings={storeSettings} />
               </div>
             )}
 
