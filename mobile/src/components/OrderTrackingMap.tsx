@@ -68,8 +68,7 @@ export function OrderTrackingMap({
           <script>
             var map = L.map('map', { zoomControl: false, attributionControl: false });
 
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-              subdomains: 'abcd',
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
               maxZoom: 19
             }).addTo(map);
 

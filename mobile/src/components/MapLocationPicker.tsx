@@ -233,8 +233,7 @@ export function MapLocationPicker({
           var lng = ${coords.lng};
           var map = L.map('map', { zoomControl: false, attributionControl: false }).setView([lat, lng], 16);
 
-          L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            subdomains: 'abcd',
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19
           }).addTo(map);
 

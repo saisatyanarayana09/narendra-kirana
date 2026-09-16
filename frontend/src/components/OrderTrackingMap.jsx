@@ -91,10 +91,10 @@ export default function OrderTrackingMap({
       attributionControl: false
     });
 
-    // CartoDB Voyager Clean Tiles
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd',
-      maxZoom: 19
+    // Official OpenStreetMap Tiles (100% Free, Zero API Keys Required)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
