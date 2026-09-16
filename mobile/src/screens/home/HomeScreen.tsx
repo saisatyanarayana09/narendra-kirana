@@ -667,9 +667,21 @@ export function HomeScreen({ navigation }: Props) {
         )}
 
         {/* Dynamic Homepage Product Sections (Horizontal Scrolling Carousel - Scroll Left / Right) */}
-        {sections.map((section: any, secIdx: number) => {
-          const sectionProducts = (section.items || []).filter((item: any) => item && item.is_in_stock !== false);
-          if (sectionProducts.length === 0) return null;
+        {sections.length === 0 ? (
+          <View style={styles.sectionContainer}>
+            <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
+              <SkeletonItem width={140} height={18} borderRadius={6} />
+            </View>
+            <View style={styles.horizontalProductsList}>
+              <View style={styles.horizontalProductItem}><ProductCardSkeleton /></View>
+              <View style={styles.horizontalProductItem}><ProductCardSkeleton /></View>
+              <View style={styles.horizontalProductItem}><ProductCardSkeleton /></View>
+            </View>
+          </View>
+        ) : (
+          sections.map((section: any, secIdx: number) => {
+            const sectionProducts = (section.items || []).filter((item: any) => item && item.is_in_stock !== false);
+            if (sectionProducts.length === 0) return null;
 
           return (
             <View key={section.id || secIdx} style={styles.sectionContainer}>
@@ -718,7 +730,7 @@ export function HomeScreen({ navigation }: Props) {
               />
             </View>
           );
-        })}
+        }))}
 
       </ScrollView>
 

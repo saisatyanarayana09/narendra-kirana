@@ -607,10 +607,29 @@ export function HomePage() {
   
 
   {/* Dynamic Homepage Sections (Horizontal Scrollable Carousel) */}
-  {sections.map((section, sectionIndex) => {
-    const sectionProducts = (section.items || []).filter(item => item && item.is_in_stock);
+  {sections.length === 0 && loading ? (
+    <div className="space-y-6 mt-4">
+      {[1, 2].map((placeholderKey) => (
+        <div key={placeholderKey} className={placeholderKey === 1 ? "relative" : "pt-4 sm:pt-6 border-t border-slate-100 relative"}>
+          <div className="flex justify-between items-center py-2">
+            <div className="h-5 w-36 bg-slate-200 dark:bg-slate-800 rounded-md animate-pulse" />
+            <div className="h-4 w-16 bg-slate-200 dark:bg-slate-800 rounded-md animate-pulse" />
+          </div>
+          <div className="mt-3 flex gap-3 sm:gap-4 overflow-x-auto pb-4 pt-1 px-0.5 hide-scrollbar">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="w-[160px] sm:w-[190px] md:w-[210px] shrink-0">
+                <ProductSkeleton />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  ) : (
+    sections.map((section, sectionIndex) => {
+      const sectionProducts = (section.items || []).filter(item => item && item.is_in_stock);
 
-    if (sectionProducts.length === 0 && !loading) return null;
+      if (sectionProducts.length === 0 && !loading) return null;
 
     return (
       <section key={section.id} className={sectionIndex === 0 ? "mt-4 relative" : "mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-slate-100 relative"}>
@@ -685,7 +704,7 @@ export function HomePage() {
           )}
       </section>
     );
-  })}
+  }))}
 
   
 

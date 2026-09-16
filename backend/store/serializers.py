@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import StoreSettings, HomepageSection, HomepageSectionProduct, Feedback, StoreEmailSettings
+from products.models import Product
 from products.serializers import ProductSerializer
 
 
@@ -156,8 +157,26 @@ class StoreSettingsSerializer(serializers.ModelSerializer):
         return value
 
 
+class HomepageProductSummarySerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(source='category.name', read_only=True)
+
+    class Meta:
+        model = Product
+        fields = [
+            'id', 'name', 'brand', 'unit', 'regular_price', 'offer_price',
+            'image', 'is_active', 'is_in_stock', 'stock_quantity',
+            'max_order_quantity', 'category_name'
+        ]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        raw_name = str(instance.image) if instance.image else ''
+        if raw_name.startswith(('http://', 'https://')):
+            data['image'] = raw_name
+        return data
+
 class HomepageSectionProductSerializer(serializers.ModelSerializer):
-    product_details = ProductSerializer(source='product', read_only=True)
+    product_details = HomepageProductSummarySerializer(source='product', read_only=True)
     product_id = serializers.IntegerField(source='product.id', write_only=True)
 
     class Meta:

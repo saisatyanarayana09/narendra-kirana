@@ -3,6 +3,7 @@ import io
 import wave
 
 from django.db import connection
+from django.db.models import Prefetch
 from django.http import JsonResponse
 from django.utils import timezone
 from django.views import View
@@ -12,7 +13,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.decorators import action
 from accounts.permissions import IsOwnerUser, IsOwnerOrReadOnly
-from .models import StoreSettings, Feedback, HomepageSection, StoreEmailSettings
+from .models import StoreSettings, Feedback, HomepageSection, StoreEmailSettings, HomepageSectionProduct
 from .serializers import (
     StoreSettingsSerializer, 
     FeedbackSerializer, 
@@ -173,10 +174,6 @@ class HomepageSectionViewSet(viewsets.ModelViewSet):
     """
     ViewSet for dynamic homepage sections with fast serialization & memory caching.
     """
-    queryset = HomepageSection.objects.prefetch_related(
-        'section_products__product__gallery_images',
-        'section_products__product__category'
-    ).all().order_by('display_order')
     serializer_class = HomepageSectionSerializer
     pagination_class = None
 
@@ -186,9 +183,18 @@ class HomepageSectionViewSet(viewsets.ModelViewSet):
         return [IsOwnerUser()]
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        # Non-owners only see active sections
-        if not (self.request.user and self.request.user.is_authenticated and getattr(self.request.user, 'is_owner', False)):
+        is_owner = bool(self.request.user and self.request.user.is_authenticated and getattr(self.request.user, 'is_owner', False))
+        
+        sp_qs = HomepageSectionProduct.objects.select_related('product', 'product__category')
+        if not is_owner:
+            sp_qs = sp_qs.filter(product__is_active=True)
+        sp_qs = sp_qs.order_by('position')
+
+        queryset = HomepageSection.objects.prefetch_related(
+            Prefetch('section_products', queryset=sp_qs)
+        ).all().order_by('display_order')
+
+        if not is_owner:
             queryset = queryset.filter(is_active=True)
         return queryset
 
