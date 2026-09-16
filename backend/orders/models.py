@@ -75,6 +75,12 @@ class Order(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['-created_at'], name='order_created_at_idx'),
+            models.Index(fields=['customer', '-created_at'], name='order_cust_created_idx'),
+            models.Index(fields=['delivery_slot_date', 'delivery_slot_label'], name='order_slot_booking_idx'),
+            models.Index(fields=['delivery_partner', 'status', '-assigned_at'], name='order_partner_act_idx'),
+        ]
 
 
 class OrderItem(models.Model):

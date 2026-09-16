@@ -28,14 +28,26 @@ class DeliveryDashboardView(APIView):
 
         today_start = timezone.localtime(timezone.now()).replace(hour=0, minute=0, second=0, microsecond=0)
 
+        # Eager load customer, delivery_partner and line items to eliminate N+1 queries
+        base_order_qs = (
+            Order.objects
+            .select_related(
+                'customer',
+                'customer__customer_profile',
+                'delivery_partner',
+                'delivery_partner__delivery_profile'
+            )
+            .prefetch_related('items', 'items__product')
+        )
+
         # Active assigned orders (Ready for pickup or currently Out for delivery)
-        active_orders = Order.objects.filter(
+        active_orders = base_order_qs.filter(
             delivery_partner=user,
             status__in=[Order.Status.READY, Order.Status.OUT_FOR_DELIVERY]
         ).order_by('-assigned_at', '-created_at')
 
         # Orders completed today by this partner
-        completed_today_qs = Order.objects.filter(
+        completed_today_qs = base_order_qs.filter(
             delivery_partner=user,
             status=Order.Status.COMPLETED,
             delivered_at__gte=today_start

@@ -150,26 +150,8 @@ class OrderViewSet(ModelViewSet):
             
         checkout = CheckoutSerializer(data=request.data)
         checkout.is_valid(raise_exception=True)
-        try:
-            cart = Cart.objects.select_for_update().get(customer=request.user)
-        except Cart.DoesNotExist:
-            return Response({'detail': 'Your cart is empty.'}, status=status.HTTP_400_BAD_REQUEST)
-        items = list(cart.items.select_for_update().select_related('product'))
-        if not items:
-            return Response({'detail': 'Your cart is empty.'}, status=status.HTTP_400_BAD_REQUEST)
-            
-        product_ids = [item.product_id for item in items]
-        locked_products = {p.id: p for p in Product.objects.select_for_update().filter(id__in=product_ids)}
-        for item in items:
-            product = locked_products.get(item.product_id)
-            if not product or not product.is_in_stock or (product.stock_quantity is not None and item.quantity > product.stock_quantity):
-                return Response({'detail': f'Insufficient stock for {item.product_name_snapshot or getattr(product, "name", "product")}.'}, status=400)
-            if product.max_order_quantity and product.max_order_quantity > 0 and item.quantity > product.max_order_quantity:
-                return Response({'detail': f'Order exceeds maximum order limit of {product.max_order_quantity} for {item.product_name_snapshot or getattr(product, "name", "product")}.'}, status=400)
 
-        from cart.serializers import CartSerializer
-        cart_data = CartSerializer(cart).data
-        
+        # 1. Pre-lock validations (Store status, timings, and slot limits)
         settings = StoreSettings.load()
         if not settings.is_open:
             return Response({'detail': 'Sorry, the store is currently closed and not accepting new orders.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -198,6 +180,27 @@ class OrderViewSet(ModelViewSet):
                 return Response({
                     'detail': f'The selected time slot "{chosen_slot_label}" on {chosen_slot_date} is fully booked ({active_slot_orders}/{max_slot_cap} orders). Please choose another slot.'
                 }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 2. Acquire locks deterministically
+        try:
+            cart = Cart.objects.select_for_update().get(customer=request.user)
+        except Cart.DoesNotExist:
+            return Response({'detail': 'Your cart is empty.'}, status=status.HTTP_400_BAD_REQUEST)
+        items = list(cart.items.select_for_update().select_related('product'))
+        if not items:
+            return Response({'detail': 'Your cart is empty.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        product_ids = sorted([item.product_id for item in items if item.product_id])
+        locked_products = {p.id: p for p in Product.objects.select_for_update().filter(id__in=product_ids).order_by('id')}
+        for item in items:
+            product = locked_products.get(item.product_id)
+            if not product or not product.is_in_stock or (product.stock_quantity is not None and item.quantity > product.stock_quantity):
+                return Response({'detail': f'Insufficient stock for {item.product_name_snapshot or getattr(product, "name", "product")}.'}, status=400)
+            if product.max_order_quantity and product.max_order_quantity > 0 and item.quantity > product.max_order_quantity:
+                return Response({'detail': f'Order exceeds maximum order limit of {product.max_order_quantity} for {item.product_name_snapshot or getattr(product, "name", "product")}.'}, status=400)
+
+        from cart.serializers import CartSerializer
+        cart_data = CartSerializer(cart).data
             
         items_total = Decimal(str(cart_data.get('items_total', cart_data['subtotal'])))
         subtotal = items_total
@@ -338,39 +341,36 @@ class OrderViewSet(ModelViewSet):
         cart.promo_code = None
         cart.save(update_fields=['promo_code'])
         
+        # Dispatch notifications and email asynchronously post-commit to minimize lock hold time
+        def on_commit_tasks():
+            try:
+                Notification.objects.create(
+                    user=request.user,
+                    title=created_title,
+                    message=created_msg
+                )
+                send_push_notification(
+                    user=request.user,
+                    title=created_title,
+                    body=created_msg,
+                    data={'order_id': str(order.id), 'status': order.status, 'type': 'ORDER_PLACED'}
+                )
+                from accounts.models import User
+                for owner in User.objects.filter(is_owner=True, is_active=True):
+                    send_push_notification(
+                        user=owner,
+                        title=f"New Order #{order.id} Received! 🛒",
+                        body=f"New order for ₹{order.total_amount} placed by {request.user.get_full_name() or request.user.username}.",
+                        data={'order_id': str(order.id), 'type': 'NEW_ORDER'}
+                    )
+            except Exception as e:
+                logger.error("Error dispatching post-order notifications: %s", e)
+
+            threading.Thread(target=send_order_confirmation_email, args=(order,), daemon=True).start()
+
         created_title = f"Order #{order.id} Placed Successfully! 🎉"
         created_msg = f"Hi {request.user.first_name or 'there'}, thank you for your purchase! We've received your order and will start processing it shortly."
-        Notification.objects.create(
-            user=request.user,
-            title=created_title,
-            message=created_msg
-        )
-        send_push_notification(
-            user=request.user,
-            title=created_title,
-            body=created_msg,
-            data={'order_id': str(order.id), 'status': order.status, 'type': 'ORDER_PLACED'}
-        )
-
-        # Notify store owners about incoming order
-        try:
-            from accounts.models import User
-            owners = User.objects.filter(is_owner=True, is_active=True)
-            for owner in owners:
-                send_push_notification(
-                    user=owner,
-                    title=f"New Order #{order.id} Received! 🛒",
-                    body=f"New order for ₹{order.total_amount} placed by {request.user.get_full_name() or request.user.username}.",
-                    data={'order_id': str(order.id), 'type': 'NEW_ORDER'}
-                )
-        except Exception as e:
-            logger.error("Error notifying store owner of new order: %s", e)
-        
-        # Dispatch email asynchronously but ONLY after the transaction commits
-        def send_email_task():
-            threading.Thread(target=send_order_confirmation_email, args=(order,), daemon=True).start()
-        
-        transaction.on_commit(send_email_task)
+        transaction.on_commit(on_commit_tasks)
         
         return Response(OrderSerializer(order, context=self.get_serializer_context()).data, status=status.HTTP_201_CREATED)
 

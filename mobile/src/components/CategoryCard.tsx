@@ -40,7 +40,13 @@ export const CategoryCard = memo(function CategoryCard({ category, onPress, inde
       activeOpacity={0.8}
     >
       {finalImage ? (
-        <Image source={{ uri: finalImage }} style={styles.image} contentFit="cover" />
+        <Image 
+          source={{ uri: finalImage }} 
+          style={styles.image} 
+          contentFit="cover" 
+          cachePolicy="memory-disk"
+          recyclingKey={finalImage}
+        />
       ) : (
         <LinearGradient 
           colors={colors} 

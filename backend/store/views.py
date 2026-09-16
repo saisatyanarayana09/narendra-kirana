@@ -81,11 +81,15 @@ class StoreSettingsView(views.APIView):
         from django.core.cache import cache
         cached_data = cache.get('store_settings_serialized')
         if cached_data is not None:
-            return response.Response(cached_data)
+            resp = response.Response(cached_data)
+            resp['Cache-Control'] = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+            return resp
         settings = StoreSettings.load()
         serializer = StoreSettingsSerializer(settings, context={'request': request})
         cache.set('store_settings_serialized', serializer.data, 300)
-        return response.Response(serializer.data)
+        resp = response.Response(serializer.data)
+        resp['Cache-Control'] = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+        return resp
 
     def patch(self, request):
         from django.core.cache import cache
@@ -194,11 +198,14 @@ class HomepageSectionViewSet(viewsets.ModelViewSet):
         if not is_owner and not request.query_params:
             cached_data = cache.get(HOMEPAGE_SECTIONS_CACHE_KEY)
             if cached_data is not None:
-                return response.Response(cached_data)
+                resp = response.Response(cached_data)
+                resp['Cache-Control'] = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+                return resp
 
         res = super().list(request, *args, **kwargs)
         if not is_owner and not request.query_params and res.status_code == status.HTTP_200_OK:
             cache.set(HOMEPAGE_SECTIONS_CACHE_KEY, res.data, 600)
+            res['Cache-Control'] = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
         return res
 
     def perform_create(self, serializer):

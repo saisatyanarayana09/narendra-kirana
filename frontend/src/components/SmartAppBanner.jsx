@@ -3,23 +3,20 @@ import { useLocation } from 'react-router-dom';
 import { Smartphone, X, ExternalLink } from 'lucide-react';
 
 export function SmartAppBanner() {
-  const [isMobileDevice, setIsMobileDevice] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-  const location = useLocation();
-
-  useEffect(() => {
-    // Detect mobile user agent
+  const [isMobileDevice] = useState(() => {
+    if (typeof window === 'undefined') return false;
     const ua = navigator.userAgent || navigator.vendor || window.opera || '';
-    const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
-    const isMobile = mobileRegex.test(ua);
-    setIsMobileDevice(isMobile);
-
-    // Check if previously dismissed in this session
-    const isDismissed = sessionStorage.getItem('smart_kirana_app_banner_dismissed');
-    if (isDismissed) {
-      setDismissed(true);
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+  });
+  const [dismissed, setDismissed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return Boolean(sessionStorage.getItem('smart_kirana_app_banner_dismissed'));
+    } catch {
+      return false;
     }
-  }, []);
+  });
+  const location = useLocation();
 
   if (!isMobileDevice || dismissed) {
     return null;

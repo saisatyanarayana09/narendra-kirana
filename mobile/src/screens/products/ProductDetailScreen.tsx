@@ -224,7 +224,7 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
           )}
 
           {currentImage ? (
-            <Image source={{ uri: currentImage }} style={styles.image} contentFit="contain" />
+            <Image source={{ uri: currentImage }} style={styles.image} contentFit="contain" cachePolicy="memory-disk" />
           ) : (
             <View style={[styles.placeholderBox, { backgroundColor: colors.inputBg }]}>
               <Text style={[styles.placeholderLetter, { color: colors.textSecondary }]}>{product.name?.charAt(0) || 'P'}</Text>
@@ -258,7 +258,12 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
                 ]}
                 activeOpacity={0.8}
               >
-                <Image source={{ uri: img }} style={styles.galleryThumbnailImage} contentFit="cover" />
+                <Image 
+                  source={{ uri: getOptimizedImageUrl(img, 120, 120) }} 
+                  style={styles.galleryThumbnailImage} 
+                  contentFit="cover" 
+                  cachePolicy="memory-disk" 
+                />
               </TouchableOpacity>
             ))}
           </ScrollView>

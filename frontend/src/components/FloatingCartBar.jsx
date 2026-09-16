@@ -9,9 +9,8 @@ export function FloatingCartBar() {
   const location = useLocation();
 
   const [visible, setVisible] = useState(false);
-  const [progress, setProgress] = useState(100);
+  const [timerKey, setTimerKey] = useState(0);
   const timerRef = useRef(null);
-  const progressIntervalRef = useRef(null);
   const prevCountRef = useRef(0);
 
   const items = cart?.items || [];
@@ -38,25 +37,14 @@ export function FloatingCartBar() {
     if (itemCount > 0 && !isHiddenRoute) {
       // If item was added or changed, pop up the bar
       setVisible(true);
-      setProgress(100);
+      setTimerKey(k => k + 1);
 
       // Reset auto-dismiss timer
       if (timerRef.current) clearTimeout(timerRef.current);
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-
-      const startTime = Date.now();
-      const duration = 10000; // 10 seconds
-
-      progressIntervalRef.current = setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        const remaining = Math.max(0, 100 - (elapsed / duration) * 100);
-        setProgress(remaining);
-      }, 50);
 
       timerRef.current = setTimeout(() => {
         setVisible(false);
-        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-      }, duration);
+      }, 10000);
     } else {
       setVisible(false);
     }
@@ -65,7 +53,6 @@ export function FloatingCartBar() {
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     };
   }, [itemCount, location.pathname, isHiddenRoute]);
 
@@ -76,27 +63,35 @@ export function FloatingCartBar() {
   const handleDismiss = (e) => {
     e.stopPropagation();
     if (timerRef.current) clearTimeout(timerRef.current);
-    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     setVisible(false);
   };
 
   const handleOpenCart = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     navigate('/cart');
   };
 
   return (
     <div className="fixed bottom-18 sm:bottom-20 md:bottom-6 md:right-6 md:left-auto md:translate-x-0 inset-x-3 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 w-auto sm:w-[460px] md:w-[420px] max-w-[calc(100vw-1.5rem)] z-50 animate-in fade-in slide-in-from-bottom-6 duration-300">
+      <style>{`
+        @keyframes cartBarShrink {
+          from { transform: scaleX(1); }
+          to { transform: scaleX(0); }
+        }
+      `}</style>
       <div 
         onClick={handleOpenCart}
         className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 border-2 border-emerald-400/90 shadow-2xl shadow-emerald-950/40 text-white cursor-pointer group hover:scale-[1.01] transition-transform active:scale-[0.99]"
       >
-        {/* Auto-close Progress Bar */}
+        {/* Auto-close Progress Bar with GPU-accelerated CSS keyframe */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-black/25 overflow-hidden">
           <div 
-            className="h-full bg-emerald-400 transition-all ease-linear"
-            style={{ width: `${progress}%` }}
+            key={timerKey}
+            className="h-full w-full bg-emerald-400"
+            style={{
+              animation: 'cartBarShrink 10s linear forwards',
+              transformOrigin: 'left',
+            }}
           />
         </div>
 

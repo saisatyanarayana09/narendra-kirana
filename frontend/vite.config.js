@@ -41,13 +41,42 @@ export default defineConfig({
           /^\/forgot-password/,
           /^\/verify-email/,
         ],
-        // Cache API responses and assets
+        // Cache API responses, fonts, and assets
         runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts',
+              expiration: {
+                maxEntries: 30,
+                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            urlPattern: /^https:\/\/narendra-kirana\.onrender\.com\/api\/v1\/(?:products|categories|store\/(?:settings|homepage-sections)|offers\/banners).*/i,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'catalog-api-cache',
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24 // 24 hours
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
           {
             urlPattern: /^https:\/\/narendra-kirana\.onrender\.com\/api\/.*/i,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
+              networkTimeoutSeconds: 5,
               expiration: {
                 maxEntries: 100,
                 maxAgeSeconds: 60 * 60 * 24 // 24 hours

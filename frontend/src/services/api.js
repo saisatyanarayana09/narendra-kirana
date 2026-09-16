@@ -199,6 +199,8 @@ function evictOldestCache() {
   }
 }
 
+const inFlightMap = new Map();
+
 const originalGet = api.get;
 api.get = async (url, config = {}) => {
   const safeUrl = url || '';
@@ -206,14 +208,21 @@ api.get = async (url, config = {}) => {
   const hasSearchParams = config?.params?.search || config?.params?.t; // Don't cache search queries or cache-busted requests
   const isCacheable = !isOwnerRoute && !hasSearchParams && CACHEABLE_URLS.some(u => safeUrl.startsWith(u));
 
-  if (!isCacheable) {
-    return originalGet.call(api, url, config);
-  }
-
   let queryString = '';
   if (config && config.params && Object.keys(config.params).length > 0) {
     queryString = '?' + new URLSearchParams(config.params).toString();
   }
+  const flightKey = safeUrl + queryString;
+
+  if (!isCacheable) {
+    if (inFlightMap.has(flightKey)) {
+      return inFlightMap.get(flightKey);
+    }
+    const p = originalGet.call(api, url, config).finally(() => inFlightMap.delete(flightKey));
+    inFlightMap.set(flightKey, p);
+    return p;
+  }
+
   const cacheKey = 'sk_cache_' + safeUrl + queryString;
   let cachedData = memoryCache.get(cacheKey);
 
@@ -232,9 +241,9 @@ api.get = async (url, config = {}) => {
   if (cachedData) {
     const isStale = Date.now() - cachedData.timestamp > CACHE_TTL;
     
-    // 3. If the data is old (stale), silently fetch fresh data in the background
-    if (isStale) {
-      originalGet.call(api, url, config)
+    // 3. If the data is old (stale), silently fetch fresh data in the background (deduplicated)
+    if (isStale && !inFlightMap.has(flightKey)) {
+      const bgPromise = originalGet.call(api, url, config)
         .then(response => {
           if (response && response.status === 200) {
             const newData = { data: response.data, timestamp: Date.now() };
@@ -242,7 +251,11 @@ api.get = async (url, config = {}) => {
             try { evictOldestCache(); localStorage.setItem(cacheKey, JSON.stringify(newData)); } catch(e) {}
           }
         })
-        .catch(() => { /* Ignore background errors, user still sees cached data */ });
+        .catch(() => { /* Ignore background errors, user still sees cached data */ })
+        .finally(() => {
+          inFlightMap.delete(flightKey);
+        });
+      inFlightMap.set(flightKey, bgPromise);
     }
     
     // Return cached data instantly (0-second wait)
@@ -256,14 +269,27 @@ api.get = async (url, config = {}) => {
     });
   }
 
-  // 4. If absolutely no cache exists (very first time visiting the site ever)
-  const response = await originalGet.call(api, url, config);
-  if (response && response.status === 200) {
-    const newData = { data: response.data, timestamp: Date.now() };
-    memoryCache.set(cacheKey, newData);
-    try { evictOldestCache(); localStorage.setItem(cacheKey, JSON.stringify(newData)); } catch(e) {}
+  // 4. If absolutely no cache exists (very first time visiting the site ever), deduplicate in-flight
+  if (inFlightMap.has(flightKey)) {
+    return inFlightMap.get(flightKey);
   }
-  return response;
+
+  const fetchPromise = (async () => {
+    try {
+      const response = await originalGet.call(api, url, config);
+      if (response && response.status === 200) {
+        const newData = { data: response.data, timestamp: Date.now() };
+        memoryCache.set(cacheKey, newData);
+        try { evictOldestCache(); localStorage.setItem(cacheKey, JSON.stringify(newData)); } catch(e) {}
+      }
+      return response;
+    } finally {
+      inFlightMap.delete(flightKey);
+    }
+  })();
+
+  inFlightMap.set(flightKey, fetchPromise);
+  return fetchPromise;
 };
 
 export const readCacheSync = (url, config = {}) => {

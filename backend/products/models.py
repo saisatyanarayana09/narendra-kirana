@@ -53,6 +53,8 @@ class Product(models.Model):
     class Meta:
         indexes = [
             models.Index(fields=['is_active', 'display_order'], name='product_active_order_idx'),
+            models.Index(fields=['category', 'is_active', 'display_order'], name='prod_cat_act_ord_idx'),
+            models.Index(fields=['-created_at'], name='prod_created_at_idx'),
         ]
 
     def save(self, *args, **kwargs):

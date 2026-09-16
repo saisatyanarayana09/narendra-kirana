@@ -37,7 +37,13 @@ export const CartItemCard = memo(function CartItemCard({ item, onUpdateQuantity,
       {/* Product Image / Initial Placeholder */}
       <View style={[styles.imageContainer, { backgroundColor: isDark ? colors.background : '#F8FAFC' }]}>
         {primaryImage ? (
-          <Image source={{ uri: primaryImage }} style={[styles.image, isOutOfStock && { opacity: 0.5 }]} contentFit="contain" />
+          <Image 
+            source={{ uri: primaryImage }} 
+            style={[styles.image, isOutOfStock && { opacity: 0.5 }]} 
+            contentFit="contain" 
+            cachePolicy="memory-disk"
+            recyclingKey={primaryImage}
+          />
         ) : (
           <View style={[styles.placeholderBox, { backgroundColor: colors.inputBg }]}>
             <Text style={styles.placeholderLetter}>

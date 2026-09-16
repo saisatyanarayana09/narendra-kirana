@@ -28,11 +28,14 @@ class CategoryViewSet(viewsets.ModelViewSet):
         if not is_owner and not request.query_params:
             cached_data = cache.get(CATEGORY_CACHE_KEY)
             if cached_data is not None:
-                return Response(cached_data)
+                resp = Response(cached_data)
+                resp['Cache-Control'] = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+                return resp
 
         response = super().list(request, *args, **kwargs)
         if not is_owner and not request.query_params and response.status_code == status.HTTP_200_OK:
             cache.set(CATEGORY_CACHE_KEY, response.data, 600)
+            response['Cache-Control'] = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
         return response
 
     def perform_create(self, serializer):
@@ -98,6 +101,12 @@ class ProductViewSet(viewsets.ModelViewSet):
                 pass
 
         return queryset
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        if response.status_code == status.HTTP_200_OK:
+            response['Cache-Control'] = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+        return response
 
     def _handle_gallery_images(self, product, request):
         images = request.FILES.getlist('gallery_images')

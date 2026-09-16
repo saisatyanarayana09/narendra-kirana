@@ -4,6 +4,12 @@ import { Platform } from 'react-native';
 
 const memoryStore = new Map<string, string>();
 
+const SECURE_KEYS = new Set(['access_token', 'refresh_token', 'auth_token', 'user_token']);
+
+function isSecureKey(key: string): boolean {
+  return SECURE_KEYS.has(key) || key.toLowerCase().includes('token') || key.toLowerCase().includes('refresh');
+}
+
 function sanitizeKey(key: string): string {
   return (key || 'key').replace(/[^a-zA-Z0-9._-]/g, '_');
 }
@@ -13,13 +19,15 @@ export async function saveItem(key: string, value: string): Promise<void> {
   try {
     if (Platform.OS === 'web') {
       localStorage.setItem(key, value);
-    } else {
+    } else if (isSecureKey(key)) {
       try {
         await SecureStore.setItemAsync(sanitizeKey(key), value);
       } catch (secErr) {
         // Fallback to AsyncStorage if SecureStore/Keystore fails
         await AsyncStorage.setItem(key, value);
       }
+    } else {
+      await AsyncStorage.setItem(key, value);
     }
   } catch (error) {
     console.warn('[Storage] Error saving item:', key, error);
@@ -41,7 +49,7 @@ export async function getItem(key: string): Promise<string | null> {
       const val = localStorage.getItem(key);
       if (val !== null) memoryStore.set(key, val);
       return val;
-    } else {
+    } else if (isSecureKey(key)) {
       try {
         const val = await SecureStore.getItemAsync(sanitizeKey(key));
         if (val !== null && val !== undefined) {
@@ -61,6 +69,23 @@ export async function getItem(key: string): Promise<string | null> {
         // Fallback to memory
       }
       return null;
+    } else {
+      try {
+        const asyncVal = await AsyncStorage.getItem(key);
+        if (asyncVal !== null && asyncVal !== undefined) {
+          memoryStore.set(key, asyncVal);
+          return asyncVal;
+        }
+      } catch {}
+      // Fallback check legacy SecureStore in case key was saved there before
+      try {
+        const val = await SecureStore.getItemAsync(sanitizeKey(key));
+        if (val !== null && val !== undefined) {
+          memoryStore.set(key, val);
+          return val;
+        }
+      } catch {}
+      return null;
     }
   } catch (error) {
     console.warn('[Storage] Error getting item:', key, error);
@@ -74,10 +99,12 @@ export async function deleteItem(key: string): Promise<void> {
     if (Platform.OS === 'web') {
       localStorage.removeItem(key);
     } else {
-      try {
-        await SecureStore.deleteItemAsync(sanitizeKey(key));
-      } catch {
-        // Ignore secure store delete failure
+      if (isSecureKey(key)) {
+        try {
+          await SecureStore.deleteItemAsync(sanitizeKey(key));
+        } catch {
+          // Ignore secure store delete failure
+        }
       }
       try {
         await AsyncStorage.removeItem(key);
@@ -106,13 +133,15 @@ export function preloadKeys(keys: string[]): Promise<void> {
       keys.map(async (key) => {
         // Skip if already in memory
         if (memoryStore.has(key)) return;
-        try {
-          const val = await SecureStore.getItemAsync(sanitizeKey(key));
-          if (val !== null && val !== undefined) {
-            memoryStore.set(key, val);
-            return;
-          }
-        } catch {}
+        if (isSecureKey(key)) {
+          try {
+            const val = await SecureStore.getItemAsync(sanitizeKey(key));
+            if (val !== null && val !== undefined) {
+              memoryStore.set(key, val);
+              return;
+            }
+          } catch {}
+        }
         try {
           const asyncVal = await AsyncStorage.getItem(key);
           if (asyncVal !== null && asyncVal !== undefined) {

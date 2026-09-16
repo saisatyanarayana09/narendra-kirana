@@ -67,6 +67,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [storeSettings, setStoreSettings] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [lastItemAddedTimestamp, setLastItemAddedTimestamp] = useState<number>(0);
+  const cartRef = React.useRef<CartData | null>(cart);
+  const storeSettingsRef = React.useRef<any>(storeSettings);
+
+  useEffect(() => {
+    cartRef.current = cart;
+  }, [cart]);
+
+  useEffect(() => {
+    storeSettingsRef.current = storeSettings;
+  }, [storeSettings]);
 
   const calculateGuestTotals = (items: CartItem[], packagingFeeStr: string = '0'): CartData => {
     let regularTotalNum = 0;
@@ -227,16 +237,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [user?.id]);
 
   const removeFromCart = useCallback(async (itemId: number) => {
+    const prevCart = cartRef.current;
     if (!user) {
       try {
-        const currentCart = (await loadGuestCart()) || cart;
+        const currentCart = (await loadGuestCart()) || cartRef.current;
         if (!currentCart) return;
 
         const updatedItems = currentCart.items.filter(
           (item) => item.id !== itemId && getItemProductId(item) !== itemId
         );
 
-        const packagingFee = storeSettings?.packaging_fee || '0';
+        const packagingFee = storeSettingsRef.current?.packaging_fee || '0';
         const newCartData = calculateGuestTotals(updatedItems, packagingFee);
         await setGuestStorageItem(GUEST_CART_KEY, JSON.stringify(newCartData));
         setCart(newCartData);
@@ -248,9 +259,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
 
     // Optimistic removal
-    const prevCart = cart;
-    if (cart?.items) {
-      const updatedItems = cart.items.filter((item) => item.id !== itemId);
+    setCart((current) => {
+      if (!current?.items) return current;
+      const updatedItems = current.items.filter((item) => item.id !== itemId);
       let newOfferSubtotal = 0;
       let newRegularSubtotal = 0;
       updatedItems.forEach((i) => {
@@ -260,19 +271,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
         newOfferSubtotal += offerP * i.quantity;
         newRegularSubtotal += regP * i.quantity;
       });
-      const packaging = updatedItems.length > 0 ? parseFloat(cart.packaging_fee || '0') : 0;
-      const promo = parseFloat(cart.promo_discount || '0');
+      const packaging = updatedItems.length > 0 ? parseFloat(current.packaging_fee || '0') : 0;
+      const promo = parseFloat(current.promo_discount || '0');
       const newTotal = Math.max(0, newOfferSubtotal - promo) + packaging;
 
-      setCart({
-        ...cart,
+      return {
+        ...current,
         items: updatedItems,
         subtotal: newRegularSubtotal > 0 ? newRegularSubtotal.toFixed(2) : newOfferSubtotal.toFixed(2),
         items_total: newOfferSubtotal.toFixed(2),
         discount: Math.max(0, newRegularSubtotal - newOfferSubtotal).toFixed(2),
         total: newTotal.toFixed(2),
-      });
-    }
+      };
+    });
 
     try {
       await apiClient.delete(`/cart/items/${itemId}/`);
@@ -282,24 +293,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
       console.error('Failed to remove from cart:', error);
       throw error;
     }
-  }, [user, cart, storeSettings, refreshCart]);
+  }, [user, refreshCart]);
 
   const updateQuantity = useCallback(async (itemId: number, quantity: number) => {
     if (quantity <= 0) {
       return removeFromCart(itemId);
     }
 
-    const currentQty = cart?.items?.find((item) => item.id === itemId || getItemProductId(item) === itemId)?.quantity || 0;
+    const currentCart = cartRef.current;
+    const currentQty = currentCart?.items?.find((item) => item.id === itemId || getItemProductId(item) === itemId)?.quantity || 0;
     if (quantity > currentQty) {
       setLastItemAddedTimestamp(Date.now());
     }
 
     if (!user) {
       try {
-        const currentCart = (await loadGuestCart()) || cart;
-        if (!currentCart) return;
+        const activeGuestCart = (await loadGuestCart()) || cartRef.current;
+        if (!activeGuestCart) return;
 
-        const updatedItems = currentCart.items.map((item) => {
+        const updatedItems = activeGuestCart.items.map((item) => {
           if (item.id === itemId || getItemProductId(item) === itemId) {
             const stockLimit = item.stock_quantity ?? item.product?.stock_quantity ?? 999;
             const maxOrderLimit = item.max_order_quantity ?? item.product?.max_order_quantity ?? 0;
@@ -313,7 +325,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           return item;
         });
 
-        const packagingFee = storeSettings?.packaging_fee || '0';
+        const packagingFee = storeSettingsRef.current?.packaging_fee || '0';
         const newCartData = calculateGuestTotals(updatedItems, packagingFee);
         await setGuestStorageItem(GUEST_CART_KEY, JSON.stringify(newCartData));
         setCart(newCartData);
@@ -325,9 +337,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
 
     // Optimistic update for instant responsiveness
-    const prevCart = cart;
-    if (cart?.items) {
-      const updatedItems = cart.items.map((item) => {
+    const prevCart = cartRef.current;
+    setCart((current) => {
+      if (!current?.items) return current;
+      const updatedItems = current.items.map((item) => {
         if (item.id === itemId) {
           const unitPriceNum = parseFloat(item.unit_price || item.product?.price || '0');
           return {
@@ -348,19 +361,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
         newOfferSubtotal += offerP * i.quantity;
         newRegularSubtotal += regP * i.quantity;
       });
-      const packaging = parseFloat(cart.packaging_fee || '0');
-      const promo = parseFloat(cart.promo_discount || '0');
+      const packaging = parseFloat(current.packaging_fee || '0');
+      const promo = parseFloat(current.promo_discount || '0');
       const newTotal = Math.max(0, newOfferSubtotal - promo) + (newOfferSubtotal > 0 ? packaging : 0);
 
-      setCart({
-        ...cart,
+      return {
+        ...current,
         items: updatedItems,
         subtotal: newRegularSubtotal > 0 ? newRegularSubtotal.toFixed(2) : newOfferSubtotal.toFixed(2),
         items_total: newOfferSubtotal.toFixed(2),
         discount: Math.max(0, newRegularSubtotal - newOfferSubtotal).toFixed(2),
         total: newTotal.toFixed(2),
-      });
-    }
+      };
+    });
 
     try {
       const res = await apiClient.patch(`/cart/items/${itemId}/`, { quantity });
@@ -370,17 +383,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
         await refreshCart(true);
       }
     } catch (error: any) {
-      // Rollback on failure
       if (prevCart) setCart(prevCart);
       console.error('Failed to update quantity:', error);
       throw error;
     }
-  }, [user, cart, storeSettings, removeFromCart, refreshCart]);
+  }, [user, removeFromCart, refreshCart]);
 
   const addToCart = useCallback(async (productId: number, quantity: number = 1, productDetails?: any) => {
     if (!user) {
       try {
-        const currentCart = (await loadGuestCart()) || {
+        const currentCart = (await loadGuestCart()) || cartRef.current || {
           items: [],
           subtotal: '0.00',
           discount: '0.00',
@@ -455,7 +467,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           updatedItems.push(newItem);
         }
 
-        const packagingFee = storeSettings?.packaging_fee || '0';
+        const packagingFee = storeSettingsRef.current?.packaging_fee || '0';
         const newCartData = calculateGuestTotals(updatedItems, packagingFee);
         await setGuestStorageItem(GUEST_CART_KEY, JSON.stringify(newCartData));
         setCart(newCartData);
@@ -468,8 +480,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      if (cart?.items) {
-        const existingItem = cart.items.find((item) => getItemProductId(item) === productId);
+      const currentCart = cartRef.current;
+      if (currentCart?.items) {
+        const existingItem = currentCart.items.find((item) => getItemProductId(item) === productId);
         if (existingItem) {
           await updateQuantity(existingItem.id, existingItem.quantity + quantity);
           return;
@@ -483,7 +496,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       console.error('Failed to add to cart:', error);
       throw error;
     }
-  }, [user, cart, storeSettings, updateQuantity, refreshCart]);
+  }, [user, updateQuantity, refreshCart]);
 
   const clearCart = useCallback(async () => {
     if (!user) {

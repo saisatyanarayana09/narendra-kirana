@@ -266,7 +266,7 @@ class CustomerListView(generics.ListAPIView):
     pagination_class = None
 
     def get_queryset(self):
-        qs = User.objects.filter(is_customer=True).select_related('customer_profile').order_by('-date_joined')
+        qs = User.objects.filter(is_customer=True).select_related('customer_profile', 'delivery_profile').order_by('-date_joined')
         status_param = self.request.query_params.get('status')
         if status_param == 'locked':
             qs = qs.filter(is_locked=True)
@@ -282,14 +282,14 @@ class CustomerListView(generics.ListAPIView):
         queryset = self.filter_queryset(self.get_queryset())
         serializer = self.get_serializer(queryset, many=True)
         
-        all_customers = User.objects.filter(is_customer=True)
-        counts = {
-            'total': all_customers.count(),
-            'active': all_customers.filter(is_active=True, is_locked=False).count(),
-            'inactive': all_customers.filter(is_active=False).count(),
-            'locked': all_customers.filter(is_locked=True).count(),
-            'delete_requested': all_customers.filter(customer_profile__delete_requested=True).count()
-        }
+        from django.db.models import Count, Q
+        counts = User.objects.filter(is_customer=True).aggregate(
+            total=Count('id'),
+            active=Count('id', filter=Q(is_active=True, is_locked=False)),
+            inactive=Count('id', filter=Q(is_active=False)),
+            locked=Count('id', filter=Q(is_locked=True)),
+            delete_requested=Count('id', filter=Q(customer_profile__delete_requested=True))
+        )
         
         return Response({
             'customers': serializer.data,

@@ -247,7 +247,13 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
     ? (activeCategoryObj?.name || initialCategoryName) 
     : (searchQuery ? `Search: "${searchQuery}"` : 'All Products');
 
-  const renderListHeader = () => (
+  const getItemLayout = useCallback((_: any, index: number) => ({
+    length: 310,
+    offset: 310 * Math.floor(index / 2),
+    index,
+  }), []);
+
+  const listHeaderElement = useMemo(() => (
     <View style={[styles.scrollableHeaderContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
       {/* Horizontal Category Filter Pills matching web app */}
       <ScrollView 
@@ -313,7 +319,7 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
       {/* Sorting Pills: Relevance, Price: Low to High, Price: High to Low, Newest */}
       <ScrollView 
         horizontal 
-        showsHorizontalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false} 
         contentContainerStyle={styles.categoryPillsContainer}
       >
         {SORT_OPTIONS.map((opt) => (
@@ -341,7 +347,7 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
         ))}
       </ScrollView>
     </View>
-  );
+  ), [colors, isDark, selectedCategory, categories, activeCategoryName, sortedProducts.length, sortOption]);
 
   const handleProductPress = useCallback((item: any) => {
     navigation.navigate('ProductDetailScreen', { productId: item.id, initialProduct: item });
@@ -402,7 +408,7 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
 
       {loading ? (
         <ScrollView contentContainerStyle={styles.listContainer} showsVerticalScrollIndicator={false}>
-          {renderListHeader()}
+          {listHeaderElement}
           <View style={styles.row}>
             <View style={styles.cardWrapper}><ProductCardSkeleton /></View>
             <View style={styles.cardWrapper}><ProductCardSkeleton /></View>
@@ -418,7 +424,7 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
         </ScrollView>
       ) : sortedProducts.length === 0 ? (
         <ScrollView contentContainerStyle={styles.listContainer} showsVerticalScrollIndicator={false}>
-          {renderListHeader()}
+          {listHeaderElement}
           <View style={styles.emptyContainer}>
             <View style={[styles.emptyIconCircle, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#F1F5F9' }]}>
               <Feather name="package" size={40} color={colors.textSecondary} />
@@ -449,7 +455,8 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
           data={sortedProducts}
           keyExtractor={(item, index) => String(item?.id ?? index)}
           numColumns={2}
-          ListHeaderComponent={renderListHeader}
+          ListHeaderComponent={listHeaderElement}
+          getItemLayout={getItemLayout}
           contentContainerStyle={styles.listContainer}
           columnWrapperStyle={styles.row}
           refreshing={refreshing}
