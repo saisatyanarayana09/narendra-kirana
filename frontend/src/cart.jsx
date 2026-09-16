@@ -1164,6 +1164,23 @@ export function CartPage() {
   );
 }
 
+export function extractErrorMessage(err, fallback = 'Could not place your order.') {
+  const data = err?.response?.data;
+  if (!data) return err?.message || fallback;
+  if (typeof data === 'string') return data;
+  if (data.detail && typeof data.detail === 'string') return data.detail;
+  if (data.error && typeof data.error === 'string') return data.error;
+  if (data.message && typeof data.message === 'string') return data.message;
+  if (typeof data === 'object') {
+    const values = Object.values(data);
+    for (const val of values) {
+      if (Array.isArray(val) && val.length > 0) return String(val[0]);
+      if (typeof val === 'string' && val.trim().length > 0) return val;
+    }
+  }
+  return fallback;
+}
+
 export function CheckoutPage() {
    const navigate = useNavigate(); 
    const { cart, isCustomer, storeSettings, refresh, clearCart } = useCart(); 
@@ -1377,10 +1394,16 @@ export function CheckoutPage() {
       order_type: orderType,
       delivery_address: isPickup ? '' : deliveryAddress,
       delivery_pincode: isPickup ? '' : deliveryPincode,
-      delivery_latitude: isPickup ? null : (selectedAddressId ? addresses.find(a => a.id === selectedAddressId)?.latitude : null),
-      delivery_longitude: isPickup ? null : (selectedAddressId ? addresses.find(a => a.id === selectedAddressId)?.longitude : null),
-      delivery_slot_date: chosenSlotDate,
-      delivery_slot_label: chosenSlotLabel,
+      delivery_latitude: isPickup ? null : (() => {
+        const lat = selectedAddressId ? addresses.find(a => a.id === selectedAddressId)?.latitude : null;
+        return (lat != null && lat !== '' && !isNaN(Number(lat))) ? Number(lat) : null;
+      })(),
+      delivery_longitude: isPickup ? null : (() => {
+        const lng = selectedAddressId ? addresses.find(a => a.id === selectedAddressId)?.longitude : null;
+        return (lng != null && lng !== '' && !isNaN(Number(lng))) ? Number(lng) : null;
+      })(),
+      delivery_slot_date: chosenSlotDate || null,
+      delivery_slot_label: chosenSlotLabel || '',
       payment_method: effectivePaymentMethod,
       upi_transaction_id: effectivePaymentMethod === 'UPI' ? upiTransactionId : ''
     };
@@ -1390,7 +1413,7 @@ export function CheckoutPage() {
     await refresh(); 
     navigate(`/orders/${response.data.id}`);
   } catch (requestError) { 
-    setError(requestError.response?.data?.detail || 'Could not place your order.');
+    setError(extractErrorMessage(requestError, 'Could not place your order.'));
   } finally { 
     setLoading(false);
   } 

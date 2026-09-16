@@ -149,7 +149,11 @@ class OrderViewSet(ModelViewSet):
             return Response({'detail': 'You are creating orders too quickly. Please wait a minute.'}, status=429)
             
         checkout = CheckoutSerializer(data=request.data)
-        checkout.is_valid(raise_exception=True)
+        if not checkout.is_valid():
+            errors = checkout.errors
+            first_val = next(iter(errors.values())) if errors else 'Invalid checkout data.'
+            first_err = first_val[0] if isinstance(first_val, list) and first_val else str(first_val)
+            return Response({'detail': first_err, 'errors': errors}, status=status.HTTP_400_BAD_REQUEST)
 
         # 1. Pre-lock validations (Store status, timings, and slot limits)
         settings = StoreSettings.load()

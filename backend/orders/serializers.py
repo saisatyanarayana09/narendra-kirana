@@ -75,6 +75,20 @@ class OrderSerializer(serializers.ModelSerializer):
         ]
 
 
+class OptionalDateField(serializers.DateField):
+    def to_internal_value(self, value):
+        if value in (None, '', 'null', 'undefined'):
+            return None
+        return super().to_internal_value(value)
+
+
+class OptionalDecimalField(serializers.DecimalField):
+    def to_internal_value(self, value):
+        if value in (None, '', 'null', 'undefined'):
+            return None
+        return super().to_internal_value(value)
+
+
 class CheckoutSerializer(serializers.Serializer):
     pickup_time = serializers.CharField(max_length=80, required=False, allow_blank=True)
     customer_note = serializers.CharField(required=False, allow_blank=True)
@@ -82,9 +96,9 @@ class CheckoutSerializer(serializers.Serializer):
     order_type = serializers.CharField(max_length=20, required=False, allow_blank=True)
     delivery_address = serializers.CharField(required=False, allow_blank=True)
     delivery_pincode = serializers.CharField(max_length=20, required=False, allow_blank=True)
-    delivery_latitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
-    delivery_longitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
-    delivery_slot_date = serializers.DateField(required=False, allow_null=True)
+    delivery_latitude = OptionalDecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
+    delivery_longitude = OptionalDecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
+    delivery_slot_date = OptionalDateField(required=False, allow_null=True)
     delivery_slot_label = serializers.CharField(max_length=100, required=False, allow_blank=True)
     payment_method = serializers.CharField(max_length=20, required=False, default="COD")
     upi_transaction_id = serializers.CharField(max_length=100, required=False, allow_blank=True)

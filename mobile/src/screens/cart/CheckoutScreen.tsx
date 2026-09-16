@@ -24,6 +24,23 @@ import { apiClient } from '../../api/client';
 import { useLocation } from '../../hooks/useLocation';
 import { fixImageUrl } from '../../utils/image';
 
+export function extractErrorMessage(err: any, fallback: string = 'Could not place your order.'): string {
+  const data = err?.response?.data;
+  if (!data) return err?.message || fallback;
+  if (typeof data === 'string') return data;
+  if (data.detail && typeof data.detail === 'string') return data.detail;
+  if (data.error && typeof data.error === 'string') return data.error;
+  if (data.message && typeof data.message === 'string') return data.message;
+  if (typeof data === 'object') {
+    const values = Object.values(data);
+    for (const val of values) {
+      if (Array.isArray(val) && val.length > 0) return String(val[0]);
+      if (typeof val === 'string' && val.trim().length > 0) return val;
+    }
+  }
+  return fallback;
+}
+
 export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
@@ -173,7 +190,7 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
       setShowAddressForm(false);
       setEditingAddressId(null);
     } catch (err: any) {
-      const msg = err.response?.data?.latitude?.[0] || err.response?.data?.detail || err.response?.data?.error || 'Failed to save address.';
+      const msg = extractErrorMessage(err, 'Failed to save address.');
       setError(msg);
       Alert.alert('Error', msg);
     } finally {
@@ -474,7 +491,7 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
     const formattedAddress = selectedAddress ? formatAddressString(selectedAddress) : '';
     const formattedPincode = selectedAddress ? (selectedAddress.zip_code || selectedAddress.pincode || '') : '';
     const chosenSlotDate = storeSettings?.enable_time_slots 
-      ? (slotDay === 'TODAY' ? todayDateStr : tomorrowDateStr) 
+      ? ((slotDay === 'TODAY' ? todayDateStr : tomorrowDateStr) || null)
       : null;
     const chosenSlotLabel = storeSettings?.enable_time_slots 
       ? selectedSlotLabel 
@@ -487,9 +504,13 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
       pickup_time: chosenSlotLabel || pickupTime || 'As soon as possible',
       delivery_address: orderType === 'DELIVERY' ? formattedAddress : '',
       delivery_pincode: orderType === 'DELIVERY' ? formattedPincode : '',
-      delivery_latitude: orderType === 'DELIVERY' ? (selectedAddress?.latitude || null) : null,
-      delivery_longitude: orderType === 'DELIVERY' ? (selectedAddress?.longitude || null) : null,
-      delivery_slot_date: chosenSlotDate,
+      delivery_latitude: orderType === 'DELIVERY' && selectedAddress?.latitude != null && selectedAddress.latitude !== ''
+        ? Number(selectedAddress.latitude)
+        : null,
+      delivery_longitude: orderType === 'DELIVERY' && selectedAddress?.longitude != null && selectedAddress.longitude !== ''
+        ? Number(selectedAddress.longitude)
+        : null,
+      delivery_slot_date: chosenSlotDate || null,
       delivery_slot_label: chosenSlotLabel,
       payment_method: finalTotalToPay === 0 ? 'WALLET' : paymentMethod,
       upi_transaction_id: paymentMethod === 'UPI' ? upiTransactionId.trim() : '',
@@ -502,7 +523,7 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
       refreshCart().catch(() => {});
       navigation.navigate('OrderSuccessScreen', { orderId: response.data.id });
     } catch (err: any) {
-      const msg = err.response?.data?.detail || err.response?.data?.error || 'Could not place your order.';
+      const msg = extractErrorMessage(err, 'Could not place your order.');
       setError(msg);
       Alert.alert('Order Failed', msg);
     } finally {
