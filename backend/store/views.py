@@ -83,13 +83,13 @@ class StoreSettingsView(views.APIView):
         cached_data = cache.get('store_settings_serialized')
         if cached_data is not None:
             resp = response.Response(cached_data)
-            resp['Cache-Control'] = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+            resp['Cache-Control'] = 'no-cache, must-revalidate, max-age=0'
             return resp
         settings = StoreSettings.load()
         serializer = StoreSettingsSerializer(settings, context={'request': request})
         cache.set('store_settings_serialized', serializer.data, 300)
         resp = response.Response(serializer.data)
-        resp['Cache-Control'] = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+        resp['Cache-Control'] = 'no-cache, must-revalidate, max-age=0'
         return resp
 
     def patch(self, request):
@@ -99,6 +99,7 @@ class StoreSettingsView(views.APIView):
         if serializer.is_valid():
             serializer.save()
             cache.delete('store_settings_serialized')
+            cache.delete('store_settings')
             return response.Response(serializer.data)
         return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

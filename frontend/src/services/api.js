@@ -57,9 +57,25 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
-// Add a response interceptor to handle 401 Unauthorized globally with automatic token refresh
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const method = response.config?.method?.toLowerCase();
+    const url = response.config?.url || '';
+    if (['post', 'put', 'patch', 'delete'].includes(method)) {
+      if (url.includes('store/settings')) {
+        invalidateCache('/store/settings/');
+      } else if (url.includes('products')) {
+        invalidateCache('/products/');
+      } else if (url.includes('categories')) {
+        invalidateCache('/categories/');
+      } else if (url.includes('offers')) {
+        invalidateCache('/offers/');
+      } else if (url.includes('homepage-sections')) {
+        invalidateCache('/store/homepage-sections/');
+      }
+    }
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
     if (!originalRequest || !error.response) {
@@ -197,6 +213,28 @@ function evictOldestCache() {
     cacheKeys.sort((a, b) => a.timestamp - b.timestamp);
     const toRemove = cacheKeys.slice(0, cacheKeys.length - MAX_CACHE_ENTRIES);
     toRemove.forEach(entry => localStorage.removeItem(entry.key));
+  }
+}
+
+export function invalidateCache(urlPrefix = '') {
+  for (const key of memoryCache.keys()) {
+    if (!urlPrefix || key.includes(urlPrefix)) {
+      memoryCache.delete(key);
+    }
+  }
+  if (typeof window !== 'undefined') {
+    try {
+      const toRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('sk_cache_')) {
+          if (!urlPrefix || key.includes(urlPrefix)) {
+            toRemove.push(key);
+          }
+        }
+      }
+      toRemove.forEach((k) => localStorage.removeItem(k));
+    } catch (e) {}
   }
 }
 

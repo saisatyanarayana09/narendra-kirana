@@ -448,7 +448,9 @@ export function RootNavigator() {
   useEffect(() => {
     if (!isLoading && storeSettings && isOutdated && !isForceUpdateRequired && !hasPromptedOptionalUpdateRef.current) {
       hasPromptedOptionalUpdateRef.current = true;
-      const updateUrl = storeSettings.app_update_url || DEFAULT_APK_URL;
+      const rawUpdateUrl = storeSettings.app_update_url?.trim() || '';
+      const isPlayStore = rawUpdateUrl.includes('play.google.com') || rawUpdateUrl.startsWith('market://');
+      const updateUrl = (!rawUpdateUrl || isPlayStore) ? DEFAULT_APK_URL : rawUpdateUrl;
       const greeting = customerName ? `Hi, ${customerName}! ` : '';
       Alert.alert(
         'Update Available',
@@ -875,7 +877,7 @@ function ForceUpdateView({
             ) : (
               <>
                 <Feather name="external-link" size={18} color="#FFFFFF" />
-                <Text style={styles.gatePrimaryBtnText}>Update on Google Play</Text>
+                <Text style={styles.gatePrimaryBtnText}>Download App Update</Text>
               </>
             )}
           </TouchableOpacity>

@@ -7,7 +7,7 @@ export default function DownloadPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/store/settings/')
+    api.get('/store/settings/', { params: { t: Date.now() } })
       .then((res) => setStoreSettings(res.data))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -15,9 +15,15 @@ export default function DownloadPage() {
 
   const appName = storeSettings?.app_name || storeSettings?.store_name || 'Narendra Kirana';
   const directApkUrl = 'https://github.com/saisatyanarayana09/narendra-kirana/releases/latest/download/narendra-kirana.apk';
-  const downloadUrl = (storeSettings?.app_update_url && storeSettings.app_update_url.toLowerCase().includes('.apk'))
-    ? storeSettings.app_update_url
+  
+  const rawUpdateUrl = (storeSettings?.app_update_url || '').trim();
+  const isPlayStoreUrl = rawUpdateUrl.includes('play.google.com') || rawUpdateUrl.startsWith('market://');
+
+  // Use custom URL if provided and not a Play Store redirect, otherwise fallback to GitHub release APK
+  const downloadUrl = (rawUpdateUrl && !isPlayStoreUrl)
+    ? rawUpdateUrl
     : directApkUrl;
+
   const buttonText = storeSettings?.app_download_btn_text || 'Download APK';
   const appIconUrl = storeSettings?.app_icon || null;
 
@@ -62,7 +68,9 @@ export default function DownloadPage() {
         ) : (
           <a
             href={downloadUrl}
-            download
+            download="narendra-kirana.apk"
+            target="_blank"
+            rel="noopener noreferrer"
             className="w-full py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-base flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-600/30 transition-all duration-200 cursor-pointer ring-1 ring-emerald-400/25"
           >
             <Download size={20} className="stroke-[2.5]" />
