@@ -4,8 +4,10 @@ import { ChevronRight, MapPin, Trash2, Plus, X, Edit2, RefreshCw, CheckCircle2 }
 import api, { getUserCacheSync, setUserCache } from '../../services/api';
 import toast from 'react-hot-toast';
 import MapLocationPicker from '../../components/MapLocationPicker';
+import { useCart } from '../../cart-context';
 
 export default function SavedAddresses() {
+  const { storeSettings } = useCart() || {};
   const cachedAddresses = getUserCacheSync('/auth/addresses/');
   const [addresses, setAddresses] = useState(cachedAddresses || []);
   const [showAdd, setShowAdd] = useState(false);
@@ -128,12 +130,13 @@ export default function SavedAddresses() {
                )}
              </div>
 
-             <MapLocationPicker
-               isOpen={showMapPicker}
-               onClose={() => setShowMapPicker(false)}
-               initialLat={form.latitude ? Number(form.latitude) : 17.385044}
-               initialLng={form.longitude ? Number(form.longitude) : 78.486671}
-               onConfirm={(pin) => {
+              <MapLocationPicker
+                isOpen={showMapPicker}
+                onClose={() => setShowMapPicker(false)}
+                storeSettings={storeSettings}
+                initialLat={form.latitude ? Number(form.latitude) : (storeSettings?.store_latitude ? Number(storeSettings.store_latitude) : 17.385044)}
+                initialLng={form.longitude ? Number(form.longitude) : (storeSettings?.store_longitude ? Number(storeSettings.store_longitude) : 78.486671)}
+                onConfirm={(pin) => {
                  setForm(prev => ({
                    ...prev,
                    latitude: pin.latitude,

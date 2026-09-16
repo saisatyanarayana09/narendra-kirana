@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Search, MapPin, Navigation, X, Check, Loader2 } from 'lucide-react';
+import { Search, MapPin, Navigation, X, Check, Loader2, AlertTriangle, Store } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 // Custom SVG marker icon for high-DPI screens without asset path issues
@@ -26,7 +26,8 @@ export default function MapLocationPicker({
   onConfirm,
   initialLat = 17.385044,
   initialLng = 78.486671,
-  title = "Pin Your Delivery Location"
+  title = "Pin Your Delivery Location",
+  storeSettings = null
 }) {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -36,6 +37,28 @@ export default function MapLocationPicker({
     lat: initialLat || 17.385044,
     lng: initialLng || 78.486671
   });
+
+  const storeLat = parseFloat(storeSettings?.store_latitude || '17.385044');
+  const storeLng = parseFloat(storeSettings?.store_longitude || '78.486671');
+  const maxRadiusKm = parseFloat(storeSettings?.delivery_radius_km || '5.0');
+  const enforceRadius = Boolean(storeSettings?.enforce_delivery_radius);
+
+  const distanceKm = useMemo(() => {
+    if (!coords.lat || !coords.lng) return null;
+    const R = 6371;
+    const dLat = ((coords.lat - storeLat) * Math.PI) / 180;
+    const dLon = ((coords.lng - storeLng) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((storeLat * Math.PI) / 180) *
+        Math.cos((coords.lat * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return parseFloat((R * c).toFixed(1));
+  }, [coords.lat, coords.lng, storeLat, storeLng]);
+
+  const isOutsideRadius = distanceKm !== null && distanceKm > maxRadiusKm;
 
   const [addressDetails, setAddressDetails] = useState({
     street: '',
@@ -196,6 +219,35 @@ export default function MapLocationPicker({
     // Zoom controls at bottom right
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
+    // Render store origin and delivery boundary if store coordinates available
+    if (storeSettings && storeLat && storeLng) {
+      const storeMarker = L.marker([storeLat, storeLng], {
+        icon: L.divIcon({
+          className: 'store-hub-pin',
+          html: `
+            <div style="position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+              <div style="width: 28px; height: 28px; background: #064E3B; border: 2.5px solid #ffffff; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
+                <span style="transform: rotate(45deg); font-size: 13px;">🏪</span>
+              </div>
+            </div>
+          `,
+          iconSize: [32, 32],
+          iconAnchor: [16, 28],
+          popupAnchor: [0, -28]
+        })
+      }).addTo(map);
+      storeMarker.bindPopup(`<b>${storeSettings.store_name || 'Narendra Kirana Store'}</b><br/>Store Pickup & Dispatch Hub`);
+
+      L.circle([storeLat, storeLng], {
+        radius: maxRadiusKm * 1000,
+        color: '#059669',
+        fillColor: '#10b981',
+        fillOpacity: 0.12,
+        weight: 2,
+        dashArray: '5, 5'
+      }).addTo(map);
+    }
+
     // Draggable pinpoint marker
     const marker = L.marker(initialCenter, {
       draggable: true,
@@ -243,6 +295,10 @@ export default function MapLocationPicker({
   if (!isOpen) return null;
 
   const handleConfirm = () => {
+    if (isOutsideRadius && enforceRadius) {
+      toast.error(`Selected address is ${distanceKm} km away, which exceeds our ${maxRadiusKm} km delivery limit.`);
+      return;
+    }
     onConfirm({
       latitude: coords.lat,
       longitude: coords.lng,
@@ -250,7 +306,9 @@ export default function MapLocationPicker({
       city: addressDetails.city,
       state: addressDetails.state,
       zip_code: addressDetails.zip_code,
-      display_name: addressDetails.display_name
+      display_name: addressDetails.display_name,
+      distance_km: distanceKm,
+      is_outside_radius: isOutsideRadius
     });
     onClose();
   };
@@ -349,10 +407,19 @@ export default function MapLocationPicker({
               <MapPin size={18} />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/80 px-2 py-0.5 rounded-full">
                   Selected Pin
                 </span>
+                {distanceKm !== null && (
+                  <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ${
+                    isOutsideRadius
+                      ? 'bg-rose-50 dark:bg-rose-950/80 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
+                      : 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                  }`}>
+                    {isOutsideRadius ? `⚠️ ${distanceKm} km (Limit: ${maxRadiusKm} km)` : `✓ ${distanceKm} km from store`}
+                  </span>
+                )}
                 {isGeocoding && (
                   <span className="flex items-center gap-1 text-[11px] text-slate-400">
                     <Loader2 size={11} className="animate-spin" /> Fetching address...
@@ -378,9 +445,21 @@ export default function MapLocationPicker({
             </button>
             <button
               onClick={handleConfirm}
-              className="flex-[2] flex items-center justify-center gap-2 py-2.5 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] font-bold text-xs sm:text-sm text-white shadow-md shadow-emerald-600/20 transition cursor-pointer"
+              className={`flex-[2] flex items-center justify-center gap-2 py-2.5 px-5 rounded-xl font-bold text-xs sm:text-sm text-white shadow-md transition cursor-pointer ${
+                isOutsideRadius && enforceRadius
+                  ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/20'
+                  : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20 active:scale-[0.98]'
+              }`}
             >
-              <Check size={16} /> Confirm Doorstep Pin
+              {isOutsideRadius && enforceRadius ? (
+                <>
+                  <AlertTriangle size={16} /> Outside Delivery Zone
+                </>
+              ) : (
+                <>
+                  <Check size={16} /> Confirm Doorstep Pin
+                </>
+              )}
             </button>
           </div>
         </div>

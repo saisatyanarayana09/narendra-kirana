@@ -379,3 +379,28 @@ class OwnerDeliveryPartnersView(APIView):
             'vehicle_number': profile.vehicle_number,
             'message': 'Delivery partner created successfully.'
         }, status=status.HTTP_201_CREATED)
+
+
+class DeliveryUpdateLocationView(APIView):
+    permission_classes = [IsDeliveryPartnerUser]
+
+    def post(self, request):
+        user = request.user
+        profile, _ = DeliveryPartnerProfile.objects.get_or_create(user=user)
+        lat = request.data.get('latitude')
+        lng = request.data.get('longitude')
+        if lat is None or lng is None:
+            return Response({'detail': 'latitude and longitude are required.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            profile.current_lat = Decimal(str(lat))
+            profile.current_lng = Decimal(str(lng))
+            profile.last_active_at = timezone.now()
+            profile.save(update_fields=['current_lat', 'current_lng', 'last_active_at', 'updated_at'])
+            return Response({
+                'status': 'ok',
+                'current_lat': str(profile.current_lat),
+                'current_lng': str(profile.current_lng),
+                'last_active_at': profile.last_active_at.isoformat()
+            })
+        except Exception as e:
+            return Response({'detail': f'Invalid coordinates: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)

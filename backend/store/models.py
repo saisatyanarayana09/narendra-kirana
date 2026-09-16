@@ -30,6 +30,7 @@ class StoreSettings(models.Model):
     store_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, default=17.385044, help_text="Store latitude for GPS & maps")
     store_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, default=78.486671, help_text="Store longitude for GPS & maps")
     delivery_radius_km = models.DecimalField(max_digits=5, decimal_places=2, default=5.00, help_text="Maximum home delivery radius in kilometers")
+    enforce_delivery_radius = models.BooleanField(default=False, help_text="Block checkout if customer address is beyond delivery radius")
     
     # Automation
     auto_accept_orders = models.BooleanField(default=False, help_text="Automatically accept new orders")

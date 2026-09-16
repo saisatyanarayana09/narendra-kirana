@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Kothamasu Sai Satyanarayana - Resume</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+      color: #1e293b;
+      background: #ffffff;
+      line-height: 1.38;
+      font-size: 9.9pt;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .page {
+      width: 210mm;
+      height: 297mm;
+      max-height: 297mm;
+      padding: 10mm 13mm 8mm 13mm;
+      margin: 0 auto;
+      background: #ffffff;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+    
+    /* Header Section */
+    .header {
+      border-bottom: 2.5px solid #0f3b68;
+      padding-bottom: 7px;
+      margin-bottom: 10px;
+    }
+    .name-banner {
+      background: linear-gradient(135deg, #0b2545 0%, #134074 100%);
+      color: #ffffff;
+      padding: 13px 18px;
+      border-radius: 4px;
+      margin-bottom: 7px;
+    }
+    .name-banner h1 {
+      font-size: 22pt;
+      font-weight: 800;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      margin: 0;
+    }
+    .contact-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      font-size: 9.4pt;
+      color: #334155;
+      padding: 1px 4px;
+    }
+    .contact-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .contact-bar a {
+      color: #0f4c81;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    /* Section Styles */
+    .section {
+      margin-bottom: 10px;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 5px;
+      border-bottom: 1.5px solid #cbd5e1;
+      padding-bottom: 3px;
+    }
+    .section-bar {
+      width: 4.5px;
+      height: 16px;
+      background: #0f3b68;
+      border-radius: 1px;
+    }
+    .section-title {
+      font-size: 11pt;
+      font-weight: 750;
+      color: #0f3b68;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    /* Summary */
+    .summary-text {
+      font-size: 9.6pt;
+      color: #334155;
+      text-align: justify;
+      line-height: 1.4;
+    }
+
+    /* Skills Grid */
+    .skills-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9.4pt;
+    }
+    .skills-table tr {
+      margin-bottom: 2px;
+    }
+    .skills-category {
+      font-weight: 700;
+      color: #0f3b68;
+      width: 22%;
+      vertical-align: top;
+      padding: 2px 0;
+      white-space: nowrap;
+    }
+    .skills-list {
+      color: #334155;
+      width: 78%;
+      vertical-align: top;
+      padding: 2px 0;
+    }
+
+    /* Projects */
+    .project-item {
+      margin-bottom: 8px;
+    }
+    .project-header {
+      margin-bottom: 2px;
+    }
+    .project-title {
+      font-size: 9.9pt;
+      font-weight: 750;
+      color: #0b2545;
+    }
+    .project-tech {
+      font-size: 8.7pt;
+      font-weight: 600;
+      color: #0f4c81;
+      margin-top: 1px;
+      margin-bottom: 2px;
+    }
+    ul.project-bullets {
+      list-style-type: disc;
+      margin-left: 16px;
+    }
+    ul.project-bullets li {
+      font-size: 9.3pt;
+      color: #334155;
+      margin-bottom: 2px;
+      line-height: 1.36;
+    }
+
+    /* Education */
+    .edu-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    .edu-degree {
+      font-size: 9.8pt;
+      font-weight: 700;
+      color: #0f2b48;
+    }
+    .edu-school {
+      font-size: 9.3pt;
+      color: #475569;
+    }
+    .edu-date {
+      font-size: 9.3pt;
+      font-weight: 600;
+      color: #0f3b68;
+      text-align: right;
+    }
+
+    /* Certifications */
+    .cert-list {
+      font-size: 9.3pt;
+      color: #334155;
+      line-height: 1.45;
+    }
+    .cert-dot {
+      color: #0f3b68;
+      font-weight: bold;
+      margin: 0 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <!-- Header -->
+    <div class="header">
+      <div class="name-banner">
+        <h1>KOTHAMASU SAI SATYANARAYANA</h1>
+      </div>
+      <div class="contact-bar">
+        <span class="contact-item">Bapatla, Andhra Pradesh, India</span>
+        <span class="contact-item">|</span>
+        <span class="contact-item">+91 9397325140</span>
+        <span class="contact-item">|</span>
+        <span class="contact-item"><a href="mailto:saisatyanarayana2004@gmail.com">saisatyanarayana2004@gmail.com</a></span>
+        <span class="contact-item">|</span>
+        <span class="contact-item"><a href="https://linkedin.com/in/kothamasu-sai-satyanarayana-014561338" target="_blank">LinkedIn</a></span>
+        <span class="contact-item">|</span>
+        <span class="contact-item"><a href="https://github.com/saisatyanarayana09" target="_blank">GitHub</a></span>
+      </div>
+    </div>
+
+    <!-- Professional Summary -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-bar"></div>
+        <div class="section-title">Professional Summary</div>
+      </div>
+      <p class="summary-text">
+        Motivated MCA graduate (June 2026) with strong practical knowledge of Python, Java, SQL, and modern application development. Hands-on experience developing, deploying, and maintaining web, mobile, and AI solutions with secure authentication, relational database management, and cloud hosting. Solid foundation in Object-Oriented Programming (OOP), DBMS, and troubleshooting, seeking an entry-level technical role across software engineering, systems, or IT technology domains.
+      </p>
+    </div>
+
+    <!-- Core Skills -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-bar"></div>
+        <div class="section-title">Core Skills</div>
+      </div>
+      <table class="skills-table">
+        <tr>
+          <td class="skills-category">Programming:</td>
+          <td class="skills-list">Python, Java, SQL, JavaScript, HTML5, CSS3</td>
+        </tr>
+        <tr>
+          <td class="skills-category">Frameworks & Libs:</td>
+          <td class="skills-list">Django, Django REST Framework (DRF), React, React Native, Tailwind CSS</td>
+        </tr>
+        <tr>
+          <td class="skills-category">Databases & Caching:</td>
+          <td class="skills-list">PostgreSQL, Supabase, MySQL, SQLite, In-Memory Caching</td>
+        </tr>
+        <tr>
+          <td class="skills-category">Platforms & Tools:</td>
+          <td class="skills-list">Git, GitHub, Render, Linux, Windows, Hugging Face API, LangChain, Tesseract OCR, pgvector</td>
+        </tr>
+        <tr>
+          <td class="skills-category">Core Concepts:</td>
+          <td class="skills-list">Object-Oriented Programming (OOP), Relational DBMS, REST APIs, System Deployment, Debugging</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Project Experience -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-bar"></div>
+        <div class="section-title">Project Experience</div>
+      </div>
+
+      <!-- Narendra Kirana -->
+      <div class="project-item">
+        <div class="project-header">
+          <div class="project-title">Narendra Kirana — Cross-Platform Retail & Delivery Platform</div>
+          <div class="project-tech">Tech Stack: Python, Django, Django REST Framework, PostgreSQL, React Native, React, Tailwind CSS</div>
+        </div>
+        <ul class="project-bullets">
+          <li>Developed a cross-platform commerce system to digitize operations for a local grocery business and startup venture, connecting customers, store management, and delivery partners.</li>
+          <li>Built a customer mobile app in React Native alongside an owner dashboard and delivery portal powered by Django REST APIs.</li>
+          <li>Used Django ORM to write efficient database queries for product inventories and order histories, utilizing caching to ensure fast loading times.</li>
+          <li>Engineered an end-to-end local delivery dispatch workflow with real-time status updates and secure transaction handling.</li>
+        </ul>
+      </div>
+
+      <!-- Parikshon AI -->
+      <div class="project-item">
+        <div class="project-header">
+          <div class="project-title">Parikshon AI — AI Document Learning & Quiz Platform</div>
+          <div class="project-tech">Tech Stack: Python, Django, PostgreSQL, pgvector, Hugging Face, LangChain, Tesseract OCR</div>
+        </div>
+        <ul class="project-bullets">
+          <li>Developed a web application that allows students to upload study notes and get instant answers and AI-generated quizzes from their documents.</li>
+          <li>Integrated Tesseract OCR to extract text from images and scanned PDFs, splitting content using LangChain.</li>
+          <li>Implemented semantic search using pgvector embeddings to retrieve relevant answers based on user questions.</li>
+          <li>Built user login, guest usage limits, and chat history management; deployed live application on Render.</li>
+        </ul>
+      </div>
+
+      <!-- Personal Portfolio Website -->
+      <div class="project-item">
+        <div class="project-header">
+          <div class="project-title">Personal Portfolio Website</div>
+          <div class="project-tech">Tech Stack: HTML5, CSS3, JavaScript</div>
+        </div>
+        <ul class="project-bullets">
+          <li>Created a responsive personal website to display projects, technical skills, and contact links.</li>
+          <li>Ensured smooth layout compatibility across mobile, tablet, and desktop screens.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Education -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-bar"></div>
+        <div class="section-title">Education</div>
+      </div>
+      <div class="edu-item">
+        <div>
+          <div class="edu-degree">Master of Computer Applications (MCA)</div>
+          <div class="edu-school">RV Institute of Technology, India</div>
+        </div>
+        <div class="edu-date">June 2026</div>
+      </div>
+      <div class="edu-item">
+        <div>
+          <div class="edu-degree">Bachelor of Computer Applications (BCA)</div>
+          <div class="edu-school">Bapatla College of Arts and Sciences, Bapatla, India</div>
+        </div>
+        <div class="edu-date">April 2024</div>
+      </div>
+    </div>
+
+    <!-- Certifications -->
+    <div class="section" style="margin-bottom: 0;">
+      <div class="section-header">
+        <div class="section-bar"></div>
+        <div class="section-title">Certifications & Learning</div>
+      </div>
+      <div class="cert-list">
+        Google Prompting Essentials <span class="cert-dot">•</span>
+        Google AI Essentials <span class="cert-dot">•</span>
+        Introduction to Generative AI — Google Cloud <span class="cert-dot">•</span>
+        AI Upskilling: Technical Foundations — Qualcomm Academy (In Progress)
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1411,6 +1411,21 @@ export function CheckoutPage() {
       upi_transaction_id: effectivePaymentMethod === 'UPI' ? upiTransactionId : ''
     };
 
+    if (payload.order_type === 'DELIVERY' && storeSettings?.enforce_delivery_radius && payload.delivery_latitude && payload.delivery_longitude) {
+      const sLat = parseFloat(storeSettings.store_latitude || '17.385044');
+      const sLng = parseFloat(storeSettings.store_longitude || '78.486671');
+      const maxR = parseFloat(storeSettings.delivery_radius_km || '5.0');
+      const dLat = ((payload.delivery_latitude - sLat) * Math.PI) / 180;
+      const dLon = ((payload.delivery_longitude - sLng) * Math.PI) / 180;
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos((sLat * Math.PI) / 180) * Math.cos((payload.delivery_latitude * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const dist = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      if (dist > maxR) {
+        setError(`Selected delivery address is ${dist.toFixed(1)} km away, which exceeds our maximum delivery radius of ${maxR.toFixed(1)} km.`);
+        setLoading(false);
+        return;
+      }
+    }
+
     const response = await api.post('/orders/', payload); 
     if (clearCart) await clearCart().catch(() => {});
     await refresh(); 
@@ -1658,8 +1673,9 @@ export function CheckoutPage() {
                   <MapLocationPicker
                     isOpen={showMapPicker}
                     onClose={() => setShowMapPicker(false)}
-                    initialLat={addressForm.latitude ? Number(addressForm.latitude) : 17.385044}
-                    initialLng={addressForm.longitude ? Number(addressForm.longitude) : 78.486671}
+                    storeSettings={storeSettings}
+                    initialLat={addressForm.latitude ? Number(addressForm.latitude) : (storeSettings?.store_latitude ? Number(storeSettings.store_latitude) : 17.385044)}
+                    initialLng={addressForm.longitude ? Number(addressForm.longitude) : (storeSettings?.store_longitude ? Number(storeSettings.store_longitude) : 78.486671)}
                     onConfirm={(pin) => {
                       setAddressForm(prev => ({
                         ...prev,

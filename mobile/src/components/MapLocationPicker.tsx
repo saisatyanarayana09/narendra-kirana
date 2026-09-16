@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -25,10 +25,13 @@ interface MapLocationPickerProps {
     state: string;
     zip_code: string;
     display_name: string;
+    distance_km?: number | null;
+    is_outside_radius?: boolean;
   }) => void;
   initialLat?: number;
   initialLng?: number;
   title?: string;
+  storeSettings?: any;
 }
 
 export function MapLocationPicker({
@@ -37,7 +40,8 @@ export function MapLocationPicker({
   onConfirm,
   initialLat = 17.385044,
   initialLng = 78.486671,
-  title = "Pin Your Delivery Location"
+  title = "Pin Your Delivery Location",
+  storeSettings = null
 }: MapLocationPickerProps) {
   const insets = useSafeAreaInsets();
   const webViewRef = useRef<WebView>(null);
@@ -46,6 +50,28 @@ export function MapLocationPicker({
     lat: initialLat || 17.385044,
     lng: initialLng || 78.486671
   });
+
+  const storeLat = parseFloat(storeSettings?.store_latitude || '17.385044');
+  const storeLng = parseFloat(storeSettings?.store_longitude || '78.486671');
+  const maxRadiusKm = parseFloat(storeSettings?.delivery_radius_km || '5.0');
+  const enforceRadius = Boolean(storeSettings?.enforce_delivery_radius);
+
+  const distanceKm = useMemo(() => {
+    if (!coords.lat || !coords.lng) return null;
+    const R = 6371;
+    const dLat = ((coords.lat - storeLat) * Math.PI) / 180;
+    const dLon = ((coords.lng - storeLng) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((storeLat * Math.PI) / 180) *
+        Math.cos((coords.lat * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return parseFloat((R * c).toFixed(1));
+  }, [coords.lat, coords.lng, storeLat, storeLng]);
+
+  const isOutsideRadius = distanceKm !== null && distanceKm > maxRadiusKm;
 
   const [addressDetails, setAddressDetails] = useState({
     street: '',
@@ -150,6 +176,13 @@ export function MapLocationPicker({
   };
 
   const handleConfirm = () => {
+    if (isOutsideRadius && enforceRadius) {
+      Alert.alert(
+        'Outside Delivery Radius',
+        `Selected doorstep is ${distanceKm} km away, which exceeds our maximum delivery radius of ${maxRadiusKm} km.`
+      );
+      return;
+    }
     onConfirm({
       latitude: coords.lat,
       longitude: coords.lng,
@@ -157,7 +190,9 @@ export function MapLocationPicker({
       city: addressDetails.city,
       state: addressDetails.state,
       zip_code: addressDetails.zip_code,
-      display_name: addressDetails.display_name
+      display_name: addressDetails.display_name,
+      distance_km: distanceKm,
+      is_outside_radius: isOutsideRadius
     });
     onClose();
   };
@@ -202,6 +237,26 @@ export function MapLocationPicker({
             subdomains: 'abcd',
             maxZoom: 19
           }).addTo(map);
+
+          ${storeSettings ? `
+          L.marker([${storeLat}, ${storeLng}], {
+            icon: L.divIcon({
+              className: 'store-pin',
+              html: '<div style="width:28px;height:28px;background:#064E3B;border:2px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 3px 6px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);font-size:12px;">🏪</span></div>',
+              iconSize: [28, 28],
+              iconAnchor: [14, 26]
+            })
+          }).addTo(map);
+
+          L.circle([${storeLat}, ${storeLng}], {
+            radius: ${maxRadiusKm * 1000},
+            color: '#059669',
+            fillColor: '#10b981',
+            fillOpacity: 0.12,
+            weight: 2,
+            dashArray: '5, 5'
+          }).addTo(map);
+          ` : ''}
 
           var customIcon = L.divIcon({
             className: 'pin-marker',

@@ -122,6 +122,10 @@ class StoreSettingsSerializer(serializers.ModelSerializer):
         if 'delivery_radius_km' in clean_data and (clean_data.get('delivery_radius_km') is None or clean_data.get('delivery_radius_km') == ''):
             clean_data['delivery_radius_km'] = '5.00'
 
+        if 'enforce_delivery_radius' in clean_data:
+            val = clean_data.get('enforce_delivery_radius')
+            clean_data['enforce_delivery_radius'] = str(val).lower() in ('true', '1', 'yes') if val is not None else False
+
         for coord_field, default_val in [('store_latitude', '17.385044'), ('store_longitude', '78.486671')]:
             if coord_field in clean_data and (clean_data.get(coord_field) is None or clean_data.get(coord_field) == ''):
                 clean_data[coord_field] = default_val

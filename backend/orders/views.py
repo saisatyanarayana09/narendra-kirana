@@ -235,6 +235,29 @@ class OrderViewSet(ModelViewSet):
                 allowed_pincodes = [p.strip() for p in allowed_pincodes_str.split(',') if p.strip()]
                 if allowed_pincodes and delivery_pincode not in allowed_pincodes:
                     return Response({'detail': f'Sorry, we do not deliver to pincode {delivery_pincode}.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Geofence Delivery Radius Enforcement
+            if getattr(settings, 'enforce_delivery_radius', False):
+                if delivery_latitude is not None and delivery_longitude is not None:
+                    store_lat = getattr(settings, 'store_latitude', None)
+                    store_lng = getattr(settings, 'store_longitude', None)
+                    max_radius = getattr(settings, 'delivery_radius_km', None)
+                    if store_lat and store_lng and max_radius:
+                        from math import radians, cos, sin, asin, sqrt
+                        try:
+                            lat1, lon1 = radians(float(store_lat)), radians(float(store_lng))
+                            lat2, lon2 = radians(float(delivery_latitude)), radians(float(delivery_longitude))
+                            dlon = lon2 - lon1
+                            dlat = lat2 - lat1
+                            a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
+                            c = 2 * asin(sqrt(a))
+                            distance_km = 6371 * c
+                            if distance_km > float(max_radius):
+                                return Response({
+                                    'detail': f'Selected address is {distance_km:.1f} km away, which exceeds our maximum delivery radius of {float(max_radius):.1f} km.'
+                                }, status=status.HTTP_400_BAD_REQUEST)
+                        except Exception as e:
+                            logger.warning(f"Error calculating delivery distance: {e}")
                     
             free_threshold = getattr(settings, 'free_delivery_threshold', 0)
             if free_threshold > 0 and subtotal >= free_threshold:

@@ -18,6 +18,10 @@ export interface StoreSettings {
   free_delivery_threshold?: string | number;
   min_delivery_order_amount?: string | number;
   allowed_pincodes?: string;
+  store_latitude?: string | number;
+  store_longitude?: string | number;
+  delivery_radius_km?: string | number;
+  enforce_delivery_radius?: boolean;
   invoice_signature?: string;
 
   // UPI

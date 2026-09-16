@@ -28,6 +28,7 @@ import {
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import ImageCropper from '../components/ImageCropper';
+import StoreRadiusMapPicker from '../components/StoreRadiusMapPicker';
 
 const Settings = () => {
   const [settings, setSettings] = useState({
@@ -45,6 +46,10 @@ const Settings = () => {
     free_delivery_threshold: '0.00',
     min_delivery_order_amount: '150.00',
     allowed_pincodes: '',
+    store_latitude: 17.385044,
+    store_longitude: 78.486671,
+    delivery_radius_km: 5.00,
+    enforce_delivery_radius: false,
     auto_accept_orders: false,
     invoice_signature: null,
     // Homepage section visibility + titles
@@ -287,6 +292,10 @@ const Settings = () => {
         free_delivery_threshold: (parseFloat(settings.free_delivery_threshold) || 0).toFixed(2),
         min_delivery_order_amount: (parseFloat(settings.min_delivery_order_amount) || 0).toFixed(2),
         allowed_pincodes: settings.allowed_pincodes ? settings.allowed_pincodes.trim() : '',
+        store_latitude: settings.store_latitude ? parseFloat(settings.store_latitude).toFixed(6) : '17.385044',
+        store_longitude: settings.store_longitude ? parseFloat(settings.store_longitude).toFixed(6) : '78.486671',
+        delivery_radius_km: settings.delivery_radius_km ? parseFloat(settings.delivery_radius_km).toFixed(2) : '5.00',
+        enforce_delivery_radius: Boolean(settings.enforce_delivery_radius),
         auto_accept_orders: Boolean(settings.auto_accept_orders),
         show_popular_picks: Boolean(settings.show_popular_picks),
         popular_picks_title: settings.popular_picks_title?.trim() || 'Popular picks',
@@ -520,6 +529,25 @@ const Settings = () => {
                     className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 min-h-[80px]"
                   ></textarea>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Comma-separated list. Leave blank to allow delivery anywhere.</p>
+                </div>
+
+                {/* Store Geofence & OpenStreetMap Radius Picker */}
+                <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
+                  <StoreRadiusMapPicker
+                    storeLat={settings.store_latitude}
+                    storeLng={settings.store_longitude}
+                    deliveryRadiusKm={settings.delivery_radius_km}
+                    enforceDeliveryRadius={settings.enforce_delivery_radius}
+                    onLocationChange={({ lat, lng }) => {
+                      setSettings(prev => ({ ...prev, store_latitude: lat, store_longitude: lng }));
+                    }}
+                    onRadiusChange={(radius) => {
+                      setSettings(prev => ({ ...prev, delivery_radius_km: radius }));
+                    }}
+                    onEnforceChange={(enforce) => {
+                      setSettings(prev => ({ ...prev, enforce_delivery_radius: enforce }));
+                    }}
+                  />
                 </div>
               </div>
             )}

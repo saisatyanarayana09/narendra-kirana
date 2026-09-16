@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { 
   Truck, Phone, MapPin, Navigation, CheckCircle2, 
   Package, Clock, ChevronDown, ChevronUp, 
   ShieldCheck, AlertCircle, RefreshCw, X, ArrowUpRight,
-  Banknote, Bell, Check, Sparkles
+  Banknote, Bell, Check, Sparkles, Satellite
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
@@ -26,6 +26,47 @@ export default function DeliveryDashboard() {
   const [submittingOtp, setSubmittingOtp] = useState(false);
   const inputRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
 
+  // Live GPS Broadcasting State
+  const [gpsStatus, setGpsStatus] = useState('idle'); // 'idle' | 'active' | 'error' | 'denied'
+  const [lastGpsTime, setLastGpsTime] = useState(null);
+  const gpsActiveRef = useRef(false);
+
+  // Broadcast rider GPS to backend — called inside the 12s poll cycle
+  const broadcastGps = useCallback(async (orders) => {
+    const hasOutForDelivery = orders?.some(o => o.status === 'OUT_FOR_DELIVERY');
+    if (!hasOutForDelivery) {
+      gpsActiveRef.current = false;
+      setGpsStatus('idle');
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      setGpsStatus('error');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          await api.post('/delivery/location/update/', {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          });
+          gpsActiveRef.current = true;
+          setGpsStatus('active');
+          setLastGpsTime(new Date());
+        } catch {
+          setGpsStatus('error');
+        }
+      },
+      (err) => {
+        console.warn('GPS broadcast error:', err.message);
+        setGpsStatus(err.code === 1 ? 'denied' : 'error');
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 5000 }
+    );
+  }, []);
+
   const fetchDashboard = async (silent = false) => {
     if (!silent) setRefreshing(true);
     try {
@@ -42,13 +83,20 @@ export default function DeliveryDashboard() {
 
   useEffect(() => {
     fetchDashboard();
-    // Auto-poll active orders every 12 seconds
-    const interval = setInterval(() => {
-      fetchDashboard(true);
-      fetchStatus?.();
+    // Auto-poll active orders every 12 seconds + broadcast GPS
+    const interval = setInterval(async () => {
+      try {
+        const res = await api.get('/delivery/dashboard/');
+        setDashboardData(res.data);
+        fetchStatus?.();
+        // Broadcast rider GPS alongside each poll if out-for-delivery orders exist
+        broadcastGps(res.data?.active_orders);
+      } catch (err) {
+        console.error('Silent poll error:', err);
+      }
     }, 12000);
     return () => clearInterval(interval);
-  }, []);
+  }, [broadcastGps]);
 
   const toggleExpand = (id) => {
     setExpandedOrders(prev => ({ ...prev, [id]: !prev[id] }));
@@ -191,14 +239,36 @@ export default function DeliveryDashboard() {
           </div>
         </div>
 
-        <button
-          onClick={() => fetchDashboard(false)}
-          disabled={refreshing}
-          className="self-start sm:self-auto flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-xs font-bold text-slate-300 transition active:scale-95 cursor-pointer border border-slate-700/60"
-        >
-          <RefreshCw size={13} className={refreshing ? 'animate-spin text-emerald-400' : ''} />
-          <span>{refreshing ? 'Syncing...' : 'Sync Deliveries'}</span>
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          {/* GPS Status Badge */}
+          {gpsStatus === 'active' && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-bold">
+              <Satellite size={13} className="animate-pulse" />
+              <span>GPS Live</span>
+            </div>
+          )}
+          {gpsStatus === 'error' && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[11px] font-bold">
+              <Satellite size={13} />
+              <span>GPS Error</span>
+            </div>
+          )}
+          {gpsStatus === 'denied' && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-[11px] font-bold">
+              <Satellite size={13} />
+              <span>GPS Denied</span>
+            </div>
+          )}
+
+          <button
+            onClick={() => fetchDashboard(false)}
+            disabled={refreshing}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-xs font-bold text-slate-300 transition active:scale-95 cursor-pointer border border-slate-700/60"
+          >
+            <RefreshCw size={13} className={refreshing ? 'animate-spin text-emerald-400' : ''} />
+            <span>{refreshing ? 'Syncing...' : 'Sync Deliveries'}</span>
+          </button>
+        </div>
       </div>
 
       {/* KPI Chips Grid */}
@@ -374,6 +444,20 @@ export default function DeliveryDashboard() {
                     <span>Open Maps Navigation</span>
                     <ArrowUpRight size={13} className="opacity-70" />
                   </a>
+
+                  {/* View Route on OpenStreetMap — only for OUT_FOR_DELIVERY orders with GPS coords */}
+                  {isOutForDelivery && order.delivery_latitude && order.delivery_longitude && (
+                    <a
+                      href={`https://www.openstreetmap.org/directions?engine=osrm_car&route=17.385044,78.486671;${order.delivery_latitude},${order.delivery_longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full py-2 px-3 rounded-xl bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 text-xs font-bold flex items-center justify-center gap-1.5 border border-sky-500/30 transition active:scale-98 cursor-pointer"
+                    >
+                      <MapPin size={13} />
+                      <span>View Route on OpenStreetMap</span>
+                      <ArrowUpRight size={12} className="opacity-60" />
+                    </a>
+                  )}
                 </div>
 
                 {/* Package Items Accordion */}

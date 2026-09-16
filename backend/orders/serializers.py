@@ -38,6 +38,19 @@ class OrderSerializer(serializers.ModelSerializer):
                 return obj.delivery_partner.username
         return ""
 
+    delivery_partner_lat = serializers.SerializerMethodField()
+    delivery_partner_lng = serializers.SerializerMethodField()
+
+    def get_delivery_partner_lat(self, obj):
+        if obj.delivery_partner and hasattr(obj.delivery_partner, 'delivery_profile'):
+            return obj.delivery_partner.delivery_profile.current_lat
+        return None
+
+    def get_delivery_partner_lng(self, obj):
+        if obj.delivery_partner and hasattr(obj.delivery_partner, 'delivery_profile'):
+            return obj.delivery_partner.delivery_profile.current_lng
+        return None
+
     def get_delivery_otp(self, obj):
         request = self.context.get('request')
         if not request or not request.user.is_authenticated:
@@ -60,6 +73,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'delivery_slot_date', 'delivery_slot_label', 'payment_method', 'upi_transaction_id',
             'cashback_credited',
             'delivery_partner', 'delivery_partner_name', 'delivery_partner_phone',
+            'delivery_partner_lat', 'delivery_partner_lng',
             'delivery_otp', 'assigned_at', 'dispatched_at', 'delivered_at'
         ]
         read_only_fields = [
@@ -71,6 +85,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'delivery_slot_date', 'delivery_slot_label', 'payment_method', 'upi_transaction_id',
             'cashback_credited',
             'delivery_partner', 'delivery_partner_name', 'delivery_partner_phone',
+            'delivery_partner_lat', 'delivery_partner_lng',
             'delivery_otp', 'assigned_at', 'dispatched_at', 'delivered_at'
         ]
 
