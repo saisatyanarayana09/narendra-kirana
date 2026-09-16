@@ -170,34 +170,6 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
     }
   };
 
-  if (!user) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Order History</Text>
-          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>Track and review your past purchases.</Text>
-        </View>
-        <View style={styles.guestStateContainer}>
-          <View style={[styles.guestIconBox, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.15)' : '#ECFDF5' }]}>
-            <Feather name="shopping-bag" size={44} color={colors.primary} />
-          </View>
-          <Text style={[styles.guestTitle, { color: colors.text }]}>Sign in to view orders</Text>
-          <Text style={[styles.guestSubtitle, { color: colors.textSecondary }]}>
-            Keep track of your live order status, view bills, and reorder items easily.
-          </Text>
-          <TouchableOpacity
-            style={[styles.guestSignInBtn, { backgroundColor: colors.primary }]}
-            onPress={() => navigation.navigate('Login' as any)}
-            activeOpacity={0.85}
-          >
-            <Feather name="log-in" size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
-            <Text style={styles.guestSignInBtnText}>Sign In / Register</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   const renderOrderItem = useCallback(({ item }: { item: any }) => {
     const statusStyle = getStatusStyle(item.status);
     const totalFormatted = (parseFloat(String(item?.total_amount || 0)) || 0).toFixed(2);
@@ -275,6 +247,34 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
       <ActivityIndicator style={{ margin: 20 }} color={colors.primary} />
     ) : null
   ), [loadingMore, colors.primary]);
+
+  if (!user) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Order History</Text>
+          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>Track and review your past purchases.</Text>
+        </View>
+        <View style={styles.guestStateContainer}>
+          <View style={[styles.guestIconBox, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.15)' : '#ECFDF5' }]}>
+            <Feather name="shopping-bag" size={44} color={colors.primary} />
+          </View>
+          <Text style={[styles.guestTitle, { color: colors.text }]}>Sign in to view orders</Text>
+          <Text style={[styles.guestSubtitle, { color: colors.textSecondary }]}>
+            Keep track of your live order status, view bills, and reorder items easily.
+          </Text>
+          <TouchableOpacity
+            style={[styles.guestSignInBtn, { backgroundColor: colors.primary }]}
+            onPress={() => navigation.navigate('Login' as any)}
+            activeOpacity={0.85}
+          >
+            <Feather name="log-in" size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
+            <Text style={styles.guestSignInBtnText}>Sign In / Register</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (loading && page === 1 && !refreshing && orders.length === 0) {
     return (
