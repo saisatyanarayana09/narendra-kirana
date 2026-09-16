@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import api from './services/api'
+import api, { clearUserCache } from './services/api'
 
 const CartContext = createContext(null)
 const getUser = () => JSON.parse(localStorage.getItem('smart-kirana-customer-user') || 'null')
@@ -146,6 +146,7 @@ export function CartProvider({ children }) {
         localStorage.removeItem('smart-kirana-customer-user');
         sessionStorage.removeItem('welcome_shown_time');
         sessionStorage.removeItem('hasShownWelcome');
+        clearUserCache();
       } catch {
         // Storage restricted or unavailable
       }

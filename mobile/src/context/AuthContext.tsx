@@ -7,6 +7,7 @@ import { resetWelcomeSession } from '../utils/welcomeSession';
 import { registerForPushNotificationsAsync, unregisterPushNotificationsAsync } from '../services/notificationService';
 import { favoritesService } from '../services/favoritesService';
 import { clearCachedOrders } from '../services/ordersCache';
+import { clearUserProfileCache } from '../services/profileCache';
 
 export type User = {
   id: number;
@@ -123,6 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       resetWelcomeSession();
       favoritesService.clear();
       clearCachedOrders().catch(() => {});
+      clearUserProfileCache().catch(() => {});
       setUser(null);
     } catch (error) {
       console.error('Error during logout:', error);

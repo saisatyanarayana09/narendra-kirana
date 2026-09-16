@@ -1,18 +1,21 @@
 import { useState, useEffect } from 'react';
-import api from '../../services/api';
+import api, { getUserCacheSync, setUserCache } from '../../services/api';
 
 export default function Wallet() {
-  const [wallet, setWallet] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const cachedWallet = getUserCacheSync('/auth/wallet/');
+  const [wallet, setWallet] = useState(cachedWallet);
+  const [loading, setLoading] = useState(!cachedWallet);
 
   useEffect(() => {
     api.get('/auth/wallet/')
       .then(res => {
         setWallet(res.data);
-        setLoading(false);
+        setUserCache('/auth/wallet/', res.data);
       })
       .catch(err => {
         console.error("Failed to load wallet", err);
+      })
+      .finally(() => {
         setLoading(false);
       });
   }, []);

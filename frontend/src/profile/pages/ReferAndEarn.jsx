@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import api from '../../services/api';
+import api, { getUserCacheSync, setUserCache } from '../../services/api';
 import { useCart } from '../../cart-context';
 import { Users, Clock, XCircle, Wallet, Gift, Copy, Check, Share2, ArrowRight, Star, Target, Sparkles, ChevronRight, Award } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -7,12 +7,18 @@ import toast from 'react-hot-toast';
 
 export default function ReferAndEarn() {
   const { user } = useCart();
-  const [settings, setSettings] = useState(null);
-  const [history, setHistory] = useState([]);
-  const [wallet, setWallet] = useState(null);
-  const [milestones, setMilestones] = useState([]);
+  const cachedSettings = getUserCacheSync('/offers/referral-settings/');
+  const cachedHistory = getUserCacheSync('/offers/referrals/');
+  const cachedWallet = getUserCacheSync('/auth/wallet/');
+  const cachedMilestones = getUserCacheSync('/offers/referral-milestones/');
+  const hasCache = Boolean(cachedSettings);
+
+  const [settings, setSettings] = useState(cachedSettings);
+  const [history, setHistory] = useState(cachedHistory || []);
+  const [wallet, setWallet] = useState(cachedWallet);
+  const [milestones, setMilestones] = useState(cachedMilestones || []);
   const [copied, setCopied] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!hasCache);
   const [activeTab, setActiveTab] = useState('network');
   const [qrModal, setQrModal] = useState({ isOpen: false, referralId: null, base64: null, qrData: null });
 
@@ -23,10 +29,18 @@ export default function ReferAndEarn() {
       api.get('/auth/wallet/'),
       api.get('/offers/referral-milestones/')
     ]).then(([settingsRes, historyRes, walletRes, milestonesRes]) => {
-      setSettings(settingsRes.data);
-      setHistory(historyRes.data.results || historyRes.data);
-      setWallet(walletRes.data);
-      setMilestones(milestonesRes.data.results || milestonesRes.data);
+      const sData = settingsRes.data;
+      const hData = historyRes.data.results || historyRes.data || [];
+      const wData = walletRes.data;
+      const mData = milestonesRes.data.results || milestonesRes.data || [];
+      setSettings(sData);
+      setHistory(hData);
+      setWallet(wData);
+      setMilestones(mData);
+      setUserCache('/offers/referral-settings/', sData);
+      setUserCache('/offers/referrals/', hData);
+      setUserCache('/auth/wallet/', wData);
+      setUserCache('/offers/referral-milestones/', mData);
       setLoading(false);
     }).catch(err => {
       console.error(err);

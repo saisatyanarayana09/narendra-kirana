@@ -1,17 +1,23 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, MapPin, Trash2, Plus, X, Edit2, RefreshCw, CheckCircle2 } from 'lucide-react';
-import api from '../../services/api';
+import api, { getUserCacheSync, setUserCache } from '../../services/api';
 import toast from 'react-hot-toast';
 
 export default function SavedAddresses() {
-  const [addresses, setAddresses] = useState([]);
+  const cachedAddresses = getUserCacheSync('/auth/addresses/');
+  const [addresses, setAddresses] = useState(cachedAddresses || []);
   const [showAdd, setShowAdd] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedAddresses);
   const [form, setForm] = useState({ title: 'Home', street: '', landmark: '', city: '', district: '', state: '', country: 'India', zip_code: '', latitude: null, longitude: null });
 
-  const fetchAddresses = () => api.get('/auth/addresses/').then(res => { setAddresses(res.data.results || res.data); setLoading(false); }).catch(() => setLoading(false));
+  const fetchAddresses = () => api.get('/auth/addresses/').then(res => { 
+    const addrList = res.data.results || res.data || [];
+    setAddresses(addrList); 
+    setUserCache('/auth/addresses/', addrList);
+    setLoading(false); 
+  }).catch(() => setLoading(false));
   useEffect(() => { fetchAddresses(); }, []);
 
   const captureLocation = () => {

@@ -1,21 +1,32 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, Trash2, ChevronRight } from 'lucide-react';
-import api from '../../services/api';
+import api, { getUserCacheSync, setUserCache } from '../../services/api';
 import { useCart } from '../../cart-context';
 
 export default function Notifications() {
-  const [notifications, setNotifications] = useState([]);
+  const cachedNotifs = getUserCacheSync('/notifications/');
+  const [notifications, setNotifications] = useState(cachedNotifs || []);
+  const [loading, setLoading] = useState(!cachedNotifs);
   const { refresh } = useCart();
   
   useEffect(() => {
-    api.get('/notifications/').then(res => setNotifications(res.data.results || res.data || [])).catch(() => {});
+    api.get('/notifications/')
+      .then(res => {
+        const list = res.data.results || res.data || [];
+        setNotifications(list);
+        setUserCache('/notifications/', list);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
   const deleteNotification = async (id) => {
     try {
       await api.delete(`/notifications/${id}/`);
-      setNotifications(prev => prev.filter(n => n.id !== id));
+      const updated = notifications.filter(n => n.id !== id);
+      setNotifications(updated);
+      setUserCache('/notifications/', updated);
       refresh();
     } catch (err) {
       console.error(err);
@@ -36,7 +47,13 @@ export default function Notifications() {
         </div>
       </div>
       
-      {notifications.length === 0 ? (
+      {loading && notifications.length === 0 ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-24 bg-slate-50 dark:bg-slate-800/60 animate-pulse rounded-xl border border-gray-100 dark:border-slate-800"></div>
+          ))}
+        </div>
+      ) : notifications.length === 0 ? (
         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 flex flex-col items-center justify-center p-12 text-center h-[50vh]">
           <div className="w-20 h-20 bg-primary-50 dark:bg-primary-950/50 rounded-full flex items-center justify-center text-primary-400 dark:text-primary-300 mb-5">
             <Bell size={40} />

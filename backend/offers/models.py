@@ -87,6 +87,10 @@ class Referral(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['referrer', '-created_at'], name='referral_ref_created_idx'),
+            models.Index(fields=['referred_user', '-created_at'], name='referral_refu_created_idx'),
+        ]
 
     def __str__(self):
         return f"{self.referrer.username} referred {self.referred_user.username} ({self.status})"

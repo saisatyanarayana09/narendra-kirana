@@ -20,16 +20,18 @@ import { AppNavigationProp } from '../../navigation/types';
 import { useAuth } from '../../context/AuthContext';
 import { apiClient } from '../../api/client';
 import { useTheme } from '../../context/ThemeContext';
+import { getCachedReferralsSync, loadCachedReferrals, saveCachedReferrals } from '../../services/profileCache';
 
 export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationProp }) {
   const { colors, isDark } = useTheme();
   const { user } = useAuth();
   
-  const [settings, setSettings] = useState<any>(null);
-  const [history, setHistory] = useState<any[]>([]);
-  const [wallet, setWallet] = useState<any>(null);
-  const [milestones, setMilestones] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedData = getCachedReferralsSync(user?.id);
+  const [settings, setSettings] = useState<any>(cachedData?.settings || null);
+  const [history, setHistory] = useState<any[]>(cachedData?.history || []);
+  const [wallet, setWallet] = useState<any>(cachedData?.wallet || null);
+  const [milestones, setMilestones] = useState<any[]>(cachedData?.milestones || []);
+  const [loading, setLoading] = useState(!cachedData);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'network' | 'rewards'>('network');
   
@@ -41,6 +43,17 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
 
   useEffect(() => {
     if (user) {
+      if (!settings) {
+        loadCachedReferrals(user.id).then((cached) => {
+          if (cached) {
+            if (cached.settings) setSettings(cached.settings);
+            if (cached.history) setHistory(cached.history);
+            if (cached.wallet) setWallet(cached.wallet);
+            if (cached.milestones) setMilestones(cached.milestones);
+            setLoading(false);
+          }
+        });
+      }
       fetchData();
     } else {
       setLoading(false);
@@ -85,10 +98,22 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
         apiClient.get('/offers/referral-milestones/').catch(() => ({ data: [] })),
       ]);
 
-      setSettings(settingsRes.data || {});
-      setHistory(Array.isArray(historyRes.data) ? historyRes.data : (historyRes.data?.results || []));
-      setWallet(walletRes.data || {});
-      setMilestones(Array.isArray(milestonesRes.data) ? milestonesRes.data : (milestonesRes.data?.results || []));
+      const newSettings = settingsRes.data || {};
+      const newHistory = Array.isArray(historyRes.data) ? historyRes.data : (historyRes.data?.results || []);
+      const newWallet = walletRes.data || {};
+      const newMilestones = Array.isArray(milestonesRes.data) ? milestonesRes.data : (milestonesRes.data?.results || []);
+
+      setSettings(newSettings);
+      setHistory(newHistory);
+      setWallet(newWallet);
+      setMilestones(newMilestones);
+
+      saveCachedReferrals(user.id, {
+        settings: newSettings,
+        history: newHistory,
+        wallet: newWallet,
+        milestones: newMilestones,
+      });
     } catch (err) {
       console.error('Error loading referral data', err);
     } finally {
@@ -211,7 +236,7 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
     );
   }
 
-  if (loading) {
+  if (loading && !settings) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>

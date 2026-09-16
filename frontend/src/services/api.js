@@ -150,6 +150,7 @@ api.interceptors.response.use(
         localStorage.removeItem(`${prefix}-token`);
         localStorage.removeItem(`${prefix}-refresh`);
         localStorage.removeItem(`${prefix}-user`);
+        clearUserCache();
         if (prefix === 'smart-kirana-owner') {
           window.location.href = '/owner/login';
         } else if (prefix === 'smart-kirana-delivery') {
@@ -309,4 +310,74 @@ export const readCacheSync = (url, config = {}) => {
   return cachedData ? cachedData.data : null;
 };
 
+// User-Scoped Cache for Customer Profile Sections (Wallet, Orders, Addresses, Notifications, Referrals)
+const userMemoryCache = new Map();
+
+function getActiveUserId() {
+  try {
+    const userStr = localStorage.getItem('smart-kirana-customer-user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      if (user?.id) return String(user.id);
+    }
+  } catch {}
+  return null;
+}
+
+export const getUserCacheSync = (url, config = {}) => {
+  const userId = getActiveUserId();
+  if (!userId) return null;
+  const safeUrl = url || '';
+  let queryString = '';
+  if (config && config.params && Object.keys(config.params).length > 0) {
+    queryString = '?' + new URLSearchParams(config.params).toString();
+  }
+  const cacheKey = `sk_ucache_${userId}_${safeUrl}${queryString}`;
+  let cachedData = userMemoryCache.get(cacheKey);
+  if (!cachedData) {
+    try {
+      const stored = localStorage.getItem(cacheKey);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Date.now() - (parsed.timestamp || 0) < 15 * 60 * 1000) {
+          cachedData = parsed;
+          userMemoryCache.set(cacheKey, parsed);
+        }
+      }
+    } catch (e) {}
+  }
+  return cachedData ? cachedData.data : null;
+};
+
+export const setUserCache = (url, data, config = {}) => {
+  const userId = getActiveUserId();
+  if (!userId || data === undefined) return;
+  const safeUrl = url || '';
+  let queryString = '';
+  if (config && config.params && Object.keys(config.params).length > 0) {
+    queryString = '?' + new URLSearchParams(config.params).toString();
+  }
+  const cacheKey = `sk_ucache_${userId}_${safeUrl}${queryString}`;
+  const payload = { data, timestamp: Date.now() };
+  userMemoryCache.set(cacheKey, payload);
+  try {
+    localStorage.setItem(cacheKey, JSON.stringify(payload));
+  } catch (e) {}
+};
+
+export const clearUserCache = () => {
+  userMemoryCache.clear();
+  try {
+    const toRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('sk_ucache_')) {
+        toRemove.push(k);
+      }
+    }
+    toRemove.forEach(k => localStorage.removeItem(k));
+  } catch (e) {}
+};
+
 export default api;
+

@@ -75,9 +75,10 @@ class ReferralHistoryViewSet(viewsets.ReadOnlyModelViewSet):
         user = self.request.user
         if not user or not user.is_authenticated:
             return Referral.objects.none()
+        qs = Referral.objects.select_related('referrer', 'referred_user')
         if getattr(user, 'is_owner', False) or user.is_staff or user.is_superuser:
-            return Referral.objects.all()
-        return Referral.objects.filter(models.Q(referrer=user) | models.Q(referred_user=user))
+            return qs.all()
+        return qs.filter(models.Q(referrer=user) | models.Q(referred_user=user))
 
     @action(detail=True, methods=['get'])
     def qr_code(self, request, pk=None):

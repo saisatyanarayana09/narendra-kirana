@@ -314,16 +314,21 @@ class AddressViewSet(viewsets.ModelViewSet):
             Address.objects.filter(user=self.request.user).exclude(pk=serializer.instance.pk).update(is_default=False)
         serializer.save()
 
+from django.db.models import Prefetch
 from .serializers import WalletSerializer
-from .models import Wallet
+from .models import Wallet, WalletTransaction
 
 class WalletView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = WalletSerializer
 
     def get_object(self):
-        wallet, created = Wallet.objects.get_or_create(user=self.request.user)
-        return wallet
+        try:
+            return Wallet.objects.prefetch_related(
+                Prefetch('transactions', queryset=WalletTransaction.objects.order_by('-created_at')[:50])
+            ).get(user=self.request.user)
+        except Wallet.DoesNotExist:
+            return Wallet.objects.create(user=self.request.user)
 
 
 from rest_framework.views import APIView

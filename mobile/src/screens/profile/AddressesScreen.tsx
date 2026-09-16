@@ -6,12 +6,14 @@ import { AppNavigationProp } from '../../navigation/types';
 import { apiClient } from '../../api/client';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { getCachedAddressesSync, loadCachedAddresses, saveCachedAddresses } from '../../services/profileCache';
 
 export function AddressesScreen({ navigation }: { navigation: AppNavigationProp }) {
   const { colors, isDark } = useTheme();
   const { user } = useAuth();
-  const [addresses, setAddresses] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedAddresses = getCachedAddressesSync(user?.id);
+  const [addresses, setAddresses] = useState<any[]>(cachedAddresses || []);
+  const [loading, setLoading] = useState(!cachedAddresses || cachedAddresses.length === 0);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
@@ -19,6 +21,14 @@ export function AddressesScreen({ navigation }: { navigation: AppNavigationProp 
       setAddresses([]);
       setLoading(false);
       return;
+    }
+    if (addresses.length === 0) {
+      loadCachedAddresses(user.id).then((cached) => {
+        if (cached && cached.length > 0) {
+          setAddresses(cached);
+          setLoading(false);
+        }
+      });
     }
     const unsubscribe = navigation.addListener('focus', () => {
       fetchAddresses();
@@ -35,7 +45,9 @@ export function AddressesScreen({ navigation }: { navigation: AppNavigationProp 
     }
     try {
       const res = await apiClient.get('/auth/addresses/');
-      setAddresses(Array.isArray(res.data) ? res.data : (res.data?.results || []));
+      const list = Array.isArray(res.data) ? res.data : (res.data?.results || []);
+      setAddresses(list);
+      saveCachedAddresses(user.id, list);
     } catch (error) {
       console.error('Error fetching addresses:', error);
     } finally {
@@ -119,7 +131,7 @@ export function AddressesScreen({ navigation }: { navigation: AppNavigationProp 
     );
   }
 
-  if (loading) {
+  if (loading && addresses.length === 0) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>

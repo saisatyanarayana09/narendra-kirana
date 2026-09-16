@@ -6,17 +6,27 @@ import { AppNavigationProp } from '../../navigation/types';
 import { apiClient } from '../../api/client';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { getCachedNotificationsSync, loadCachedNotifications, saveCachedNotifications } from '../../services/profileCache';
 
 export function NotificationsScreen({ navigation }: { navigation: AppNavigationProp }) {
   const { colors, isDark } = useTheme();
   const { user } = useAuth();
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedNotifs = getCachedNotificationsSync(user?.id);
+  const [notifications, setNotifications] = useState<any[]>(cachedNotifs || []);
+  const [loading, setLoading] = useState(!cachedNotifs || cachedNotifs.length === 0);
   const [refreshing, setRefreshing] = useState(false);
   const [markingAll, setMarkingAll] = useState(false);
 
   useEffect(() => {
     if (user) {
+      if (notifications.length === 0) {
+        loadCachedNotifications(user.id).then((cached) => {
+          if (cached && cached.length > 0) {
+            setNotifications(cached);
+            setLoading(false);
+          }
+        });
+      }
       fetchNotifications();
     } else {
       setNotifications([]);
@@ -32,7 +42,9 @@ export function NotificationsScreen({ navigation }: { navigation: AppNavigationP
     }
     try {
       const res = await apiClient.get('/notifications/');
-      setNotifications(Array.isArray(res.data) ? res.data : (res.data?.results || []));
+      const list = Array.isArray(res.data) ? res.data : (res.data?.results || []);
+      setNotifications(list);
+      saveCachedNotifications(user.id, list);
     } catch (error) {
       console.error('Failed to load notifications', error);
     } finally {
@@ -137,7 +149,7 @@ export function NotificationsScreen({ navigation }: { navigation: AppNavigationP
     );
   }
 
-  if (loading) {
+  if (loading && notifications.length === 0) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>

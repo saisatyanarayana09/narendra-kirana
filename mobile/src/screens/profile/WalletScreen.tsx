@@ -8,16 +8,26 @@ import { theme } from '../../constants/theme';
 import { apiClient } from '../../api/client';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { getCachedWalletSync, loadCachedWallet, saveCachedWallet } from '../../services/profileCache';
 
 export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) {
   const { colors, isDark } = useTheme();
   const { user } = useAuth();
-  const [wallet, setWallet] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const cachedWallet = getCachedWalletSync(user?.id);
+  const [wallet, setWallet] = useState<any>(cachedWallet);
+  const [loading, setLoading] = useState(!cachedWallet);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (user) {
+      if (!wallet) {
+        loadCachedWallet(user.id).then((cached) => {
+          if (cached) {
+            setWallet(cached);
+            setLoading(false);
+          }
+        });
+      }
       fetchWallet();
     } else {
       setLoading(false);
@@ -33,6 +43,7 @@ export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) 
     try {
       const res = await apiClient.get('/auth/wallet/');
       setWallet(res.data);
+      saveCachedWallet(user.id, res.data);
     } catch (error) {
       console.error('Failed to load wallet', error);
     } finally {
@@ -88,7 +99,7 @@ export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) 
     );
   }
 
-  if (loading) {
+  if (loading && !wallet) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>

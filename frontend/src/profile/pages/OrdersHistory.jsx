@@ -1,14 +1,24 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Package, ChevronRight } from 'lucide-react';
-import api from '../../services/api';
+import api, { getUserCacheSync, setUserCache } from '../../services/api';
 
 export default function OrdersHistory() {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const cachedOrders = getUserCacheSync('/orders/');
+  const [orders, setOrders] = useState(cachedOrders || []);
+  const [loading, setLoading] = useState(!cachedOrders);
 
   useEffect(() => {
-    api.get('/orders/').then(res => setOrders(res.data.results || res.data)).catch(() => setOrders([])).finally(() => setLoading(false));
+    api.get('/orders/')
+      .then(res => {
+        const orderList = res.data.results || res.data || [];
+        setOrders(orderList);
+        setUserCache('/orders/', orderList);
+      })
+      .catch(() => {
+        if (!cachedOrders) setOrders([]);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const getStatusColor = (status) => {
