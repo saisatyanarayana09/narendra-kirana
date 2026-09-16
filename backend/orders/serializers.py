@@ -32,8 +32,12 @@ class OrderSerializer(serializers.ModelSerializer):
 
     def get_delivery_partner_phone(self, obj):
         if obj.delivery_partner:
-            if hasattr(obj.delivery_partner, 'delivery_profile') and obj.delivery_partner.delivery_profile.phone_number:
-                return obj.delivery_partner.delivery_profile.phone_number
+            try:
+                profile = obj.delivery_partner.delivery_profile
+                if profile and profile.phone_number:
+                    return profile.phone_number
+            except Exception:
+                pass
             if obj.delivery_partner.username and obj.delivery_partner.username.isdigit():
                 return obj.delivery_partner.username
         return ""
@@ -42,13 +46,21 @@ class OrderSerializer(serializers.ModelSerializer):
     delivery_partner_lng = serializers.SerializerMethodField()
 
     def get_delivery_partner_lat(self, obj):
-        if obj.delivery_partner and hasattr(obj.delivery_partner, 'delivery_profile'):
-            return obj.delivery_partner.delivery_profile.current_lat
+        try:
+            if obj.delivery_partner and hasattr(obj.delivery_partner, 'delivery_profile'):
+                profile = obj.delivery_partner.delivery_profile
+                return profile.current_lat if profile else None
+        except Exception:
+            pass
         return None
 
     def get_delivery_partner_lng(self, obj):
-        if obj.delivery_partner and hasattr(obj.delivery_partner, 'delivery_profile'):
-            return obj.delivery_partner.delivery_profile.current_lng
+        try:
+            if obj.delivery_partner and hasattr(obj.delivery_partner, 'delivery_profile'):
+                profile = obj.delivery_partner.delivery_profile
+                return profile.current_lng if profile else None
+        except Exception:
+            pass
         return None
 
     def get_delivery_otp(self, obj):
