@@ -8,6 +8,7 @@ from .views import (
     AdminUnlockUserView, AdminLockUserView, AdminActivateUserView,
     VerifyEmailView, ResendActivationEmailView, CustomerSignupView, CustomTokenObtainPairView, ProfileView,
     CustomerListView, AddressViewSet, WalletView, GoogleOwnerLoginView, admin_google_login,
+    GoogleCustomerAuthView, GoogleDeliveryLoginView,
     ReferralLookupView, LogoutView
 )
 
@@ -37,6 +38,8 @@ urlpatterns = [
     path('login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('logout/', LogoutView.as_view(), name='auth_logout'),
     path('google-login/', GoogleOwnerLoginView.as_view(), name='google-login'),
+    path('google/customer/', GoogleCustomerAuthView.as_view(), name='google-customer-auth'),
+    path('google/delivery/', GoogleDeliveryLoginView.as_view(), name='google-delivery-login'),
     path('admin-google-login/', admin_google_login, name='admin-google-login'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('profile/', ProfileView.as_view(), name='profile'),

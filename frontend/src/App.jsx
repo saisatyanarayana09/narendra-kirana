@@ -4,7 +4,11 @@ import { CartProvider } from './cart-context';
 import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { Toaster } from 'react-hot-toast';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { lazyWithRetry } from './utils/lazyWithRetry';
+
+const DEFAULT_GOOGLE_CLIENT_ID = '729937153109-6e8fivp20b3ri2qsah1d6u2a7oi0uls6.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID;
 
 const VerifyEmail = lazyWithRetry(() => import('./VerifyEmail').then(m => ({ default: m.VerifyEmail })));
 const ForgotPassword = lazyWithRetry(() => import('./ForgotPassword').then(m => ({ default: m.ForgotPassword })));
@@ -350,8 +354,9 @@ function App() {
   );
 
   return (
-    <ErrorBoundary>
-      <ThemeProvider>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <ErrorBoundary>
+        <ThemeProvider>
         <LanguageProvider>
           <BrowserRouter>
             <Toaster position="top-center" toastOptions={{ style: { borderRadius: '12px', background: '#333', color: '#fff' } }} />
@@ -526,6 +531,7 @@ function App() {
         </LanguageProvider>
       </ThemeProvider>
     </ErrorBoundary>
+  </GoogleOAuthProvider>
   );
 }
 

@@ -178,12 +178,229 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
     throttle_classes = [AnonRateThrottle]
 
+from django.db import models, transaction
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 import os
+import secrets
+
+def _verify_google_credential(token, token_type='id_token'):
+    """
+    Verifies a Google access_token or id_token.
+    Returns a dictionary with email, first_name, last_name, picture.
+    """
+    if not token:
+        raise ValueError("No credential provided.")
+
+    if token_type == 'access_token':
+        import requests
+        response = requests.get(
+            'https://www.googleapis.com/oauth2/v3/userinfo',
+            headers={'Authorization': f'Bearer {token}'},
+            timeout=8
+        )
+        if not response.ok:
+            raise ValueError('Invalid Google access token.')
+        info = response.json()
+        email = info.get('email')
+        if not email:
+            raise ValueError('Google account has no email address.')
+        return {
+            'email': email.strip().lower(),
+            'first_name': info.get('given_name') or info.get('name') or '',
+            'last_name': info.get('family_name') or '',
+            'picture': info.get('picture') or '',
+        }
+    else:
+        client_id = os.getenv('GOOGLE_CLIENT_ID')
+        if client_id:
+            idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), client_id)
+        else:
+            idinfo = id_token.verify_oauth2_token(token, google_requests.Request())
+        email = idinfo.get('email')
+        if not email:
+            raise ValueError('Google account has no email address.')
+        return {
+            'email': email.strip().lower(),
+            'first_name': idinfo.get('given_name') or idinfo.get('name') or '',
+            'last_name': idinfo.get('family_name') or '',
+            'picture': idinfo.get('picture') or '',
+        }
+
+class GoogleCustomerAuthView(APIView):
+    """
+    Google authentication for customers.
+    - If user exists: logs in, syncs customer flags, profiles, and wallet.
+    - If user is new: auto-registers customer with verified email, creates wallet & profile, and applies referral if present.
+    """
+    permission_classes = (AllowAny,)
+    throttle_classes = [AnonRateThrottle]
+
+    def post(self, request):
+        token = request.data.get('credential')
+        token_type = request.data.get('token_type', 'id_token')
+        referral_code = (request.data.get('referral_code') or '').strip().upper()
+
+        if not token:
+            return Response({'detail': 'No credential provided.'}, status=400)
+
+        try:
+            google_user = _verify_google_credential(token, token_type)
+        except ValueError as val_err:
+            return Response({'detail': str(val_err)}, status=400)
+        except Exception as err:
+            logger.error(f"Google customer verify error: {err}")
+            return Response({'detail': 'Could not verify Google account.'}, status=400)
+
+        email = google_user['email']
+        first_name = google_user['first_name']
+        last_name = google_user['last_name']
+
+        user = User.objects.filter(email__iexact=email).first()
+        if not user:
+            user = User.objects.filter(username__iexact=email).first()
+
+        is_new = False
+        with transaction.atomic():
+            if not user:
+                is_new = True
+                base_username = email.split('@')[0]
+                username = email
+                if User.objects.filter(username__iexact=username).exists():
+                    username = f"{base_username}_{secrets.token_hex(4)}"
+
+                user = User.objects.create(
+                    username=username,
+                    email=email,
+                    first_name=first_name,
+                    last_name=last_name,
+                    is_customer=True,
+                    is_active=True
+                )
+                user.set_unusable_password()
+                user.save()
+
+            if user.is_locked:
+                return Response({
+                    'detail': 'Your account has been locked. Please contact store support.'
+                }, status=403)
+
+            fields_to_save = []
+            if not user.is_customer:
+                user.is_customer = True
+                fields_to_save.append('is_customer')
+            if not user.is_active:
+                user.is_active = True
+                fields_to_save.append('is_active')
+            if not user.first_name and first_name:
+                user.first_name = first_name
+                fields_to_save.append('first_name')
+            if not user.last_name and last_name:
+                user.last_name = last_name
+                fields_to_save.append('last_name')
+            if fields_to_save:
+                user.save(update_fields=fields_to_save)
+
+            # Ensure CustomerProfile exists
+            from .models import CustomerProfile, Wallet
+            profile, _ = CustomerProfile.objects.get_or_create(user=user)
+
+            # Ensure Wallet exists
+            wallet, _ = Wallet.objects.get_or_create(user=user)
+
+            # Referral processing for new customers
+            if is_new and referral_code:
+                try:
+                    referrer_profile = CustomerProfile.objects.filter(referral_code=referral_code).first()
+                    if referrer_profile and referrer_profile.user != user:
+                        from offers.models import ReferralSettings, Referral
+                        settings = ReferralSettings.load()
+                        if settings.is_active:
+                            Referral.objects.create(
+                                referrer=referrer_profile.user,
+                                referred_user=user,
+                                status=Referral.Status.PENDING
+                            )
+                            if settings.referee_reward > 0:
+                                wallet.balance += settings.referee_reward
+                                wallet.save(update_fields=['balance'])
+                except Exception as ref_err:
+                    logger.warning(f"Google auth referral bonus error: {ref_err}")
+
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+            'user': UserSerializer(user).data,
+            'is_new': is_new
+        })
+
+class GoogleDeliveryLoginView(APIView):
+    """
+    Google authentication for delivery partners.
+    Requires the Google email to match an existing registered delivery partner account.
+    """
+    permission_classes = (AllowAny,)
+    throttle_classes = [AnonRateThrottle]
+
+    def post(self, request):
+        token = request.data.get('credential')
+        token_type = request.data.get('token_type', 'id_token')
+
+        if not token:
+            return Response({'detail': 'No credential provided.'}, status=400)
+
+        try:
+            google_user = _verify_google_credential(token, token_type)
+        except ValueError as val_err:
+            return Response({'detail': str(val_err)}, status=400)
+        except Exception as err:
+            logger.error(f"Google delivery verify error: {err}")
+            return Response({'detail': 'Could not verify Google account.'}, status=400)
+
+        email = google_user['email']
+
+        user = User.objects.filter(
+            models.Q(email__iexact=email) | models.Q(username__iexact=email)
+        ).first()
+
+        is_partner = bool(
+            user and (
+                user.is_delivery_partner or
+                getattr(user, 'is_owner', False) or
+                user.is_staff or
+                user.is_superuser
+            )
+        )
+
+        if not user or not is_partner:
+            return Response({
+                'detail': f'Access denied. No Delivery Partner account is registered with this Google account ({email}). Please contact the store owner to register your account.'
+            }, status=403)
+
+        if not user.is_active:
+            return Response({
+                'detail': 'Your delivery partner account has been deactivated. Contact the store owner.'
+            }, status=403)
+
+        if hasattr(user, 'delivery_profile') and user.delivery_profile and not user.delivery_profile.is_active:
+            return Response({
+                'detail': 'Your delivery partner profile is currently inactive. Contact the store owner.'
+            }, status=403)
+
+        if not user.email:
+            user.email = email
+            user.save(update_fields=['email'])
+
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+            'user': UserSerializer(user).data
+        })
 
 class GoogleOwnerLoginView(APIView):
     permission_classes = (AllowAny,)
@@ -197,27 +414,9 @@ class GoogleOwnerLoginView(APIView):
             return Response({'detail': 'No credential provided'}, status=400)
             
         try:
-            email = None
-            if token_type == 'access_token':
-                import requests
-                response = requests.get(
-                    'https://www.googleapis.com/oauth2/v3/userinfo',
-                    headers={'Authorization': f'Bearer {token}'}
-                )
-                if not response.ok:
-                    return Response({'detail': 'Invalid Google access token.'}, status=400)
-                email = response.json().get('email')
-            else:
-                client_id = os.getenv('GOOGLE_CLIENT_ID')
-                if client_id:
-                    idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), client_id)
-                else:
-                    idinfo = id_token.verify_oauth2_token(token, google_requests.Request())
-                email = idinfo.get('email')
+            google_user = _verify_google_credential(token, token_type)
+            email = google_user['email']
 
-            if not email:
-                return Response({'detail': 'Google account has no email.'}, status=400)
-                
             # Check if user exists and has owner or staff permissions
             user = User.objects.filter(email__iexact=email).first()
             if not user or not (getattr(user, 'is_owner', False) or user.is_staff or user.is_superuser):
@@ -245,8 +444,8 @@ class GoogleOwnerLoginView(APIView):
                 'user': UserSerializer(user).data
             })
             
-        except ValueError:
-            return Response({'detail': 'Invalid Google token.'}, status=400)
+        except ValueError as val_err:
+            return Response({'detail': str(val_err)}, status=400)
         except Exception as e:
             return Response({'detail': str(e)}, status=500)
 
