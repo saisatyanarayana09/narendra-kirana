@@ -5,6 +5,7 @@ import {
   Navigation, MapPin, Phone, Crosshair, 
   ArrowUpRight, AlertCircle, RefreshCw, X, Maximize2, Minimize2
 } from 'lucide-react';
+import api from '../services/api';
 
 // Customer Delivery Pin (Destination)
 const customerDoorstepIcon = L.divIcon({
@@ -64,6 +65,8 @@ export default function DeliveryLiveMap({
   const custLng = parseFloat(order?.delivery_longitude);
   const hasCustCoords = !isNaN(custLat) && !isNaN(custLng) && custLat !== 0 && custLng !== 0;
 
+  const lastBroadcastRef = useRef(0);
+
   // Track Rider's Live GPS using watchPosition
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -78,6 +81,13 @@ export default function DeliveryLiveMap({
         setRiderCoords({ lat: latitude, lng: longitude });
         setGpsAccuracy(Math.round(accuracy));
         setGpsError('');
+
+        // Broadcast to backend every 10 seconds so customer app tracks in real-time
+        const now = Date.now();
+        if (now - lastBroadcastRef.current > 10000) {
+          lastBroadcastRef.current = now;
+          api.post('/delivery/location/update/', { latitude, longitude }).catch(() => {});
+        }
       },
       (err) => {
         console.warn('Live map GPS error:', err.message);

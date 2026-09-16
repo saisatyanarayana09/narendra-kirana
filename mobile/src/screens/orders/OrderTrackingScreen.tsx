@@ -7,7 +7,8 @@ import {
   TouchableOpacity, 
   ActivityIndicator,
   RefreshControl,
-  Linking 
+  Linking,
+  Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
@@ -327,21 +328,116 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
           )}
         </View>
 
+        {/* Delivery OTP Card */}
+        {order.order_type === 'DELIVERY' && order.delivery_otp && order.status !== 'COMPLETED' && (
+          <View style={[styles.otpCard, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.12)' : '#ECFDF5', borderColor: isDark ? 'rgba(16, 185, 129, 0.3)' : '#A7F3D0' }]}>
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <Feather name="shield" size={15} color={colors.primary} />
+                <Text style={[styles.otpCardLabel, { color: colors.primary }]}>DELIVERY VERIFICATION OTP</Text>
+              </View>
+              <Text style={[styles.otpCardSubtitle, { color: colors.textSecondary }]}>
+                Share this 4-digit OTP with your delivery partner upon arrival:
+              </Text>
+              {order.delivery_partner_name ? (
+                <Text style={[styles.otpCardRiderText, { color: colors.text }]}>
+                  🛵 Rider: {order.delivery_partner_name}
+                </Text>
+              ) : null}
+            </View>
+            <View style={[styles.otpBox, { backgroundColor: colors.surface, borderColor: colors.primary }]}>
+              <Text style={[styles.otpCodeText, { color: colors.primary }]}>{order.delivery_otp}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Delivery Partner Live Address & Contact Card */}
+        {order.order_type === 'DELIVERY' && (order.delivery_partner_name || order.delivery_partner_lat || order.status === 'READY' || order.status === 'OUT_FOR_DELIVERY') && (
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.riderHeaderRow}>
+              <View style={[styles.riderAvatar, { backgroundColor: isDark ? 'rgba(99, 102, 241, 0.2)' : '#EEF2FF' }]}>
+                <Text style={styles.riderAvatarEmoji}>🛵</Text>
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={[styles.riderName, { color: colors.text }]}>
+                  {order.delivery_partner_name || 'Delivery Partner Assigned'}
+                </Text>
+                {order.delivery_partner_vehicle ? (
+                  <Text style={[styles.riderVehicleText, { color: colors.textSecondary }]}>
+                    {order.delivery_partner_vehicle}
+                  </Text>
+                ) : (
+                  <Text style={[styles.riderVehicleText, { color: colors.textSecondary }]}>
+                    Delivery Partner
+                  </Text>
+                )}
+              </View>
+
+              {/* Call Rider Button */}
+              {order.delivery_partner_phone ? (
+                <TouchableOpacity
+                  style={[styles.callRiderBtn, { backgroundColor: colors.primary }]}
+                  onPress={() => Linking.openURL(`tel:${order.delivery_partner_phone}`)}
+                  activeOpacity={0.8}
+                >
+                  <Feather name="phone-call" size={14} color="#FFFFFF" />
+                  <Text style={styles.callRiderBtnText}>Call</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+
+            {/* Live Status Row */}
+            <View style={[styles.riderStatusBanner, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.1)' : '#F0FDF4', borderColor: isDark ? 'rgba(16, 185, 129, 0.25)' : '#BBF7D0' }]}>
+              <View style={styles.livePulseDot} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.liveStatusTitle, { color: colors.primary }]}>
+                  {order.delivery_partner_lat ? 'Live GPS Active' : (order.status === 'OUT_FOR_DELIVERY' ? 'Rider On The Way' : 'Order Assigned to Rider')}
+                </Text>
+                <Text style={[styles.liveStatusSubtitle, { color: colors.textSecondary }]}>
+                  {order.delivery_partner_lat 
+                    ? 'Real-time GPS coordinates synced from rider' 
+                    : (order.status === 'OUT_FOR_DELIVERY' ? 'En route to your delivery address' : 'Getting order ready for dispatch')}
+                </Text>
+              </View>
+            </View>
+
+            {/* Live Address Details (Destination Doorstep) */}
+            <View style={[styles.doorstepAddressBox, { borderTopColor: colors.border }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+                <Feather name="map-pin" size={16} color="#E11D48" style={{ marginTop: 2 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.doorstepLabel, { color: colors.textSecondary }]}>
+                    DELIVERING TO YOUR DOORSTEP
+                  </Text>
+                  <Text style={[styles.doorstepAddressText, { color: colors.text }]}>
+                    {order.delivery_address || 'Address not specified'}
+                  </Text>
+                  {order.delivery_pincode ? (
+                    <Text style={[styles.doorstepPincodeText, { color: colors.primary }]}>
+                      Pincode: {order.delivery_pincode}
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* Live OpenStreetMap Route & Delivery Tracking */}
-        {order.order_type === 'DELIVERY' && Boolean(order.delivery_latitude && order.delivery_longitude) && (
+        {order.order_type === 'DELIVERY' && (
           <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border, padding: 12 }]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Feather name="map-pin" size={15} color={colors.primary} />
+                  <Feather name="navigation" size={15} color={colors.primary} />
                   <Text style={[styles.cardTitle, { color: colors.text, marginBottom: 0 }]}>Live Route Tracking</Text>
                 </View>
                 <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>
-                  OpenStreetMap road navigation to your doorstep
+                  Interactive live road navigation to your doorstep
                 </Text>
               </View>
             </View>
-            <OrderTrackingMap order={order} storeSettings={storeSettings} height={200} />
+            <OrderTrackingMap order={order} storeSettings={storeSettings} height={230} />
           </View>
         )}
 
@@ -1099,6 +1195,127 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '800',
+  },
+  otpCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    marginBottom: 16,
+    gap: 12,
+  },
+  otpCardLabel: {
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  otpCardSubtitle: {
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 2,
+  },
+  otpCardRiderText: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  otpBox: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 80,
+  },
+  otpCodeText: {
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: 3,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  riderHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  riderAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  riderAvatarEmoji: {
+    fontSize: 22,
+  },
+  riderName: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  riderVehicleText: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  callRiderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    elevation: 2,
+  },
+  callRiderBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  riderStatusBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  livePulseDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#10B981',
+  },
+  liveStatusTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  liveStatusSubtitle: {
+    fontSize: 11,
+    marginTop: 1,
+  },
+  doorstepAddressBox: {
+    paddingTop: 12,
+    borderTopWidth: 1,
+  },
+  doorstepLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  doorstepAddressText: {
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18,
+  },
+  doorstepPincodeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 2,
   },
 });
 

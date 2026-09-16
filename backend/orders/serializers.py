@@ -44,12 +44,14 @@ class OrderSerializer(serializers.ModelSerializer):
 
     delivery_partner_lat = serializers.SerializerMethodField()
     delivery_partner_lng = serializers.SerializerMethodField()
+    delivery_partner_vehicle = serializers.SerializerMethodField()
 
     def get_delivery_partner_lat(self, obj):
         try:
             if obj.delivery_partner and hasattr(obj.delivery_partner, 'delivery_profile'):
                 profile = obj.delivery_partner.delivery_profile
-                return profile.current_lat if profile else None
+                if profile and profile.current_lat is not None:
+                    return float(profile.current_lat)
         except Exception:
             pass
         return None
@@ -58,10 +60,22 @@ class OrderSerializer(serializers.ModelSerializer):
         try:
             if obj.delivery_partner and hasattr(obj.delivery_partner, 'delivery_profile'):
                 profile = obj.delivery_partner.delivery_profile
-                return profile.current_lng if profile else None
+                if profile and profile.current_lng is not None:
+                    return float(profile.current_lng)
         except Exception:
             pass
         return None
+
+    def get_delivery_partner_vehicle(self, obj):
+        if obj.delivery_partner:
+            try:
+                profile = obj.delivery_partner.delivery_profile
+                if profile:
+                    parts = [p for p in [profile.vehicle_type, profile.vehicle_number] if p]
+                    return " • ".join(parts) if parts else ""
+            except Exception:
+                pass
+        return ""
 
     def get_delivery_otp(self, obj):
         request = self.context.get('request')
@@ -85,6 +99,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'delivery_slot_date', 'delivery_slot_label', 'payment_method', 'upi_transaction_id',
             'cashback_credited',
             'delivery_partner', 'delivery_partner_name', 'delivery_partner_phone',
+            'delivery_partner_vehicle',
             'delivery_partner_lat', 'delivery_partner_lng',
             'delivery_otp', 'assigned_at', 'dispatched_at', 'delivered_at'
         ]
@@ -97,6 +112,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'delivery_slot_date', 'delivery_slot_label', 'payment_method', 'upi_transaction_id',
             'cashback_credited',
             'delivery_partner', 'delivery_partner_name', 'delivery_partner_phone',
+            'delivery_partner_vehicle',
             'delivery_partner_lat', 'delivery_partner_lng',
             'delivery_otp', 'assigned_at', 'dispatched_at', 'delivered_at'
         ]
