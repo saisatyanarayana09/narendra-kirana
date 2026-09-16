@@ -423,23 +423,25 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
           </View>
         )}
 
-        {/* Live OpenStreetMap Route & Delivery Tracking */}
-        {order.order_type === 'DELIVERY' && (
-          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border, padding: 12 }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Feather name="navigation" size={15} color={colors.primary} />
-                  <Text style={[styles.cardTitle, { color: colors.text, marginBottom: 0 }]}>Live Route Tracking</Text>
-                </View>
-                <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>
-                  Interactive live road navigation to your doorstep
+        {/* Live Route / Store Location Map */}
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border, padding: 12 }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Feather name={isDelivery ? "navigation" : "map-pin"} size={15} color={colors.primary} />
+                <Text style={[styles.cardTitle, { color: colors.text, marginBottom: 0 }]}>
+                  {isDelivery ? "Live Route Tracking" : "Store Pickup Location"}
                 </Text>
               </View>
+              <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>
+                {isDelivery 
+                  ? "Interactive live road navigation to your doorstep" 
+                  : "Narendra Kirana Store location & pickup directions"}
+              </Text>
             </View>
-            <OrderTrackingMap order={order} storeSettings={storeSettings} height={230} />
           </View>
-        )}
+          <OrderTrackingMap order={order} storeSettings={storeSettings} height={230} />
+        </View>
 
         {/* 5-Stage Tracking Timeline Card */}
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
