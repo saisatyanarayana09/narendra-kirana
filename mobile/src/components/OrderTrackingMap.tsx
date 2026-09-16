@@ -34,6 +34,9 @@ export function OrderTrackingMap({
   const riderLat = isOutForDelivery ? (parseFloat(order?.delivery_partner_lat) || (storeLat * 0.35 + custLat * 0.65)) : null;
   const riderLng = isOutForDelivery ? (parseFloat(order?.delivery_partner_lng) || (storeLng * 0.35 + custLng * 0.65)) : null;
 
+  const originLat = (isOutForDelivery && riderLat) ? riderLat : storeLat;
+  const originLng = (isOutForDelivery && riderLng) ? riderLng : storeLng;
+
   const trackingHtml = useMemo(() => {
     if (!hasCustomerCoords) return '';
 
@@ -56,7 +59,7 @@ export function OrderTrackingMap({
               display: flex; align-items: center; justify-content: center; font-size: 13px;
             }
             .rider-pin {
-              width: 32px; height: 32px; background: #4F46E5; border: 2px solid #ffffff;
+              width: 34px; height: 34px; background: #4F46E5; border: 2.5px solid #ffffff;
               border-radius: 50%; box-shadow: 0 4px 10px rgba(79,70,229,0.5);
               display: flex; align-items: center; justify-content: center; font-size: 15px;
             }
@@ -72,22 +75,23 @@ export function OrderTrackingMap({
               maxZoom: 19
             }).addTo(map);
 
-            var storeIcon = L.divIcon({
-              className: '',
-              html: '<div class="store-pin"><span style="transform: rotate(45deg);">🏪</span></div>',
-              iconSize: [30, 30],
-              iconAnchor: [15, 27]
-            });
-
             var custIcon = L.divIcon({
               className: '',
               html: '<div class="cust-pin"><span style="transform: rotate(45deg);">🏠</span></div>',
               iconSize: [30, 30],
               iconAnchor: [15, 27]
             });
-
-            var storeMarker = L.marker([${storeLat}, ${storeLng}], { icon: storeIcon }).addTo(map);
             var custMarker = L.marker([${custLat}, ${custLng}], { icon: custIcon }).addTo(map);
+
+            ${!isOutForDelivery ? `
+              var storeIcon = L.divIcon({
+                className: '',
+                html: '<div class="store-pin"><span style="transform: rotate(45deg);">🏪</span></div>',
+                iconSize: [30, 30],
+                iconAnchor: [15, 27]
+              });
+              var storeMarker = L.marker([${storeLat}, ${storeLng}], { icon: storeIcon }).addTo(map);
+            ` : ''}
 
             ${riderLat && riderLng ? `
               var riderIcon = L.divIcon({
@@ -99,8 +103,8 @@ export function OrderTrackingMap({
               var riderMarker = L.marker([${riderLat}, ${riderLng}], { icon: riderIcon }).addTo(map);
             ` : ''}
 
-            // Fetch OSRM Road Route
-            var osrmUrl = 'https://router.project-osrm.org/route/v1/driving/${storeLng},${storeLat};${custLng},${custLat}?overview=full&geometries=geojson';
+            // Fetch OSRM Road Route from live origin to customer
+            var osrmUrl = 'https://router.project-osrm.org/route/v1/driving/${originLng},${originLat};${custLng},${custLat}?overview=full&geometries=geojson';
             fetch(osrmUrl)
               .then(function(res) { return res.json(); })
               .then(function(data) {
@@ -114,20 +118,19 @@ export function OrderTrackingMap({
                   var poly = L.polyline(coords, { color: '#10B981', weight: 4, opacity: 0.95 }).addTo(map);
 
                   var bounds = L.latLngBounds([
-                    [${storeLat}, ${storeLng}],
+                    [${originLat}, ${originLng}],
                     [${custLat}, ${custLng}]
-                    ${riderLat && riderLng ? `,[${riderLat}, ${riderLng}]` : ''}
                   ]);
                   map.fitBounds(bounds, { padding: [35, 35] });
                 } else {
-                  var line = L.polyline([[${storeLat}, ${storeLng}], [${custLat}, ${custLng}]], {
+                  var line = L.polyline([[${originLat}, ${originLng}], [${custLat}, ${custLng}]], {
                     color: '#10B981', weight: 3, dashArray: '5, 8'
                   }).addTo(map);
                   map.fitBounds(line.getBounds(), { padding: [30, 30] });
                 }
               })
               .catch(function() {
-                var line = L.polyline([[${storeLat}, ${storeLng}], [${custLat}, ${custLng}]], {
+                var line = L.polyline([[${originLat}, ${originLng}], [${custLat}, ${custLng}]], {
                   color: '#10B981', weight: 3, dashArray: '5, 8'
                 }).addTo(map);
                 map.fitBounds(line.getBounds(), { padding: [30, 30] });
@@ -136,7 +139,7 @@ export function OrderTrackingMap({
         </body>
       </html>
     `;
-  }, [hasCustomerCoords, storeLat, storeLng, custLat, custLng, riderLat, riderLng]);
+  }, [hasCustomerCoords, storeLat, storeLng, custLat, custLng, riderLat, riderLng, isOutForDelivery, originLat, originLng]);
 
   if (!hasCustomerCoords) {
     return null;
@@ -146,10 +149,10 @@ export function OrderTrackingMap({
     const url = Platform.select({
       ios: `maps:0,0?q=${custLat},${custLng}`,
       android: `geo:${custLat},${custLng}?q=${custLat},${custLng}`,
-      default: `https://www.google.com/maps/dir/?api=1&origin=${storeLat},${storeLng}&destination=${custLat},${custLng}`
+      default: `https://www.google.com/maps/dir/?api=1&destination=${custLat},${custLng}`
     });
-    Linking.openURL(url).catch(() => {
-      Linking.openURL(`https://www.google.com/maps/dir/?api=1&origin=${storeLat},${storeLng}&destination=${custLat},${custLng}`);
+    Linking.openURL(url!).catch(() => {
+      Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${custLat},${custLng}`);
     });
   };
 
