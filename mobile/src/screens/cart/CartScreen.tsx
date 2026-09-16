@@ -29,60 +29,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
   const [promoError, setPromoError] = useState('');
   const [promoApplying, setPromoApplying] = useState(false);
 
-  if (!cart) {
-    return <LoadingSpinner fullScreen />;
-  }
-
-  const items = cart.items || [];
-
-  if (items.length === 0) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.7}
-          >
-            <Feather name="arrow-left" size={18} color={colors.primary} />
-            <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.emptyContainer}>
-          <View style={[styles.emptyIconBox, { backgroundColor: colors.inputBg }]}>
-            <Feather name="shopping-bag" size={44} color={colors.textSecondary} />
-          </View>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>Your cart is empty</Text>
-          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-            Looks like you haven't added anything to your cart yet. Browse our products and discover great deals.
-          </Text>
-          <TouchableOpacity 
-            style={styles.startShoppingBtn}
-            onPress={() => navigation.navigate('HomeTab')}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.startShoppingText}>Start shopping</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  const handleApplyPromo = async () => {
-    if (!promoCode.trim()) return;
-    setPromoError('');
-    setPromoApplying(true);
-    try {
-      await applyPromo(promoCode.trim().toUpperCase());
-      setPromoCode('');
-    } catch (error: any) {
-      setPromoError(error.response?.data?.detail || error.response?.data?.error || 'Invalid promo code');
-    } finally {
-      setPromoApplying(false);
-    }
-  };
+  const items = cart?.items || [];
 
   const isStoreClosed = storeSettings?.is_open === false;
   const isEmergencyPaused = Boolean(storeSettings?.is_emergency_paused);
@@ -133,6 +80,59 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
       freeDeliveryProgress: progress,
     };
   }, [cart?.subtotal, cart?.discount, cart?.items_total, storeSettings?.min_order_amount, storeSettings?.free_delivery_threshold, items]);
+
+  const handleApplyPromo = async () => {
+    if (!promoCode.trim()) return;
+    setPromoError('');
+    setPromoApplying(true);
+    try {
+      await applyPromo(promoCode.trim().toUpperCase());
+      setPromoCode('');
+    } catch (error: any) {
+      setPromoError(error.response?.data?.detail || error.response?.data?.error || 'Invalid promo code');
+    } finally {
+      setPromoApplying(false);
+    }
+  };
+
+  if (!cart) {
+    return <LoadingSpinner fullScreen />;
+  }
+
+  if (items.length === 0) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        {/* Header */}
+        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <Feather name="arrow-left" size={18} color={colors.primary} />
+            <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.emptyContainer}>
+          <View style={[styles.emptyIconBox, { backgroundColor: colors.inputBg }]}>
+            <Feather name="shopping-bag" size={44} color={colors.textSecondary} />
+          </View>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>Your cart is empty</Text>
+          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
+            Looks like you haven't added anything to your cart yet. Browse our products and discover great deals.
+          </Text>
+          <TouchableOpacity 
+            style={styles.startShoppingBtn}
+            onPress={() => navigation.navigate('HomeTab')}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.startShoppingText}>Start shopping</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
