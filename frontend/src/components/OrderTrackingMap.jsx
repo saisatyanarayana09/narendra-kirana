@@ -99,28 +99,38 @@ export default function OrderTrackingMap({
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    // Store marker
-    const storeMarker = L.marker([storeLat, storeLng], { icon: storePinIcon }).addTo(map);
-    storeMarker.bindPopup(`<b>${storeSettings?.store_name || 'Narendra Kirana Store'}</b><br/>Store Pickup & Dispatch Hub`);
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    // Customer marker
+    const isOutForDelivery = order?.status === 'OUT_FOR_DELIVERY';
+
+    // Store marker (only show if NOT yet out for delivery, e.g. PREPARING or READY at store)
+    if (!isOutForDelivery) {
+      const storeMarker = L.marker([storeLat, storeLng], { icon: storePinIcon }).addTo(map);
+      storeMarker.bindPopup(`<b>${storeSettings?.store_name || 'Store'}</b><br/>Dispatch Hub`);
+    }
+
+    // Customer marker (Destination)
     const custMarker = L.marker([custLat, custLng], { icon: customerPinIcon }).addTo(map);
     custMarker.bindPopup(`<b>Delivery Address</b><br/>${order?.delivery_address || 'Customer Doorstep'}`);
 
     // Rider marker (if out for delivery)
     let riderPos = null;
-    if (order?.status === 'OUT_FOR_DELIVERY') {
-      // If delivery partner profile has GPS, use it; otherwise place at a 65% progress along the vector
+    if (isOutForDelivery) {
+      // If delivery partner profile has GPS, use it; otherwise place at an estimated 65% progress along the vector
       const rLat = parseFloat(order?.delivery_partner_lat) || (storeLat * 0.35 + custLat * 0.65);
       const rLng = parseFloat(order?.delivery_partner_lng) || (storeLng * 0.35 + custLng * 0.65);
       riderPos = [rLat, rLng];
       const rMarker = L.marker(riderPos, { icon: riderPinIcon }).addTo(map);
-      rMarker.bindPopup(`<b>${order?.delivery_partner_name || 'Delivery Partner'}</b><br/>Rider is on the way!`);
+      rMarker.bindPopup(`<b>${order?.delivery_partner_name || 'Delivery Partner'}</b><br/>🛵 Rider is on the way to you!`);
       riderMarkerRef.current = rMarker;
     }
 
+    // Origin: use Rider's location when out for delivery, or store when dispatching
+    const routeOriginLng = (isOutForDelivery && riderPos) ? riderPos[1] : storeLng;
+    const routeOriginLat = (isOutForDelivery && riderPos) ? riderPos[0] : storeLat;
+
     // Fetch real road route from OSRM
-    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${storeLng},${storeLat};${custLng},${custLat}?overview=full&geometries=geojson`;
+    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${routeOriginLng},${routeOriginLat};${custLng},${custLat}?overview=full&geometries=geojson`;
     fetch(osrmUrl)
       .then(res => res.json())
       .then(data => {
@@ -152,23 +162,23 @@ export default function OrderTrackingMap({
             color: '#10B981',
             weight: 4,
             opacity: 0.95,
-            dashArray: order?.status === 'OUT_FOR_DELIVERY' ? '8, 8' : undefined,
+            dashArray: isOutForDelivery ? '8, 8' : undefined,
             lineCap: 'round',
             lineJoin: 'round'
           }).addTo(map);
 
           polylineRef.current = polyline;
 
-          // Fit all markers comfortably with padding
-          const bounds = L.latLngBounds([
-            [storeLat, storeLng],
-            [custLat, custLng],
-            ...(riderPos ? [riderPos] : [])
-          ]);
-          map.fitBounds(bounds, { padding: [50, 50] });
+          // Fit active trip markers with comfortable padding
+          const boundsPoints = isOutForDelivery && riderPos
+            ? [riderPos, [custLat, custLng]]
+            : [[storeLat, storeLng], [custLat, custLng]];
+          const bounds = L.latLngBounds(boundsPoints);
+          map.fitBounds(bounds, { padding: [45, 45], maxZoom: 16 });
         } else {
-          // Fallback straight line if OSRM route is unavailable
-          const straightLine = L.polyline([[storeLat, storeLng], [custLat, custLng]], {
+          // Fallback straight line
+          const startPt = (isOutForDelivery && riderPos) ? riderPos : [storeLat, storeLng];
+          const straightLine = L.polyline([startPt, [custLat, custLng]], {
             color: '#10B981',
             weight: 3,
             dashArray: '5, 8'
@@ -243,7 +253,7 @@ export default function OrderTrackingMap({
 
       {/* 1-Tap Navigation Link Bottom Left */}
       <a
-        href={`https://www.google.com/maps/dir/?api=1&origin=${storeLat},${storeLng}&destination=${custLat},${custLng}`}
+        href={`https://www.google.com/maps/dir/?api=1&destination=${custLat},${custLng}`}
         target="_blank"
         rel="noopener noreferrer"
         className="absolute bottom-3 left-3 z-[1000] flex items-center gap-1.5 px-3 py-1.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md text-slate-700 dark:text-slate-200 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 text-xs font-bold hover:text-emerald-600 transition"

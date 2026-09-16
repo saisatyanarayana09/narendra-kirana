@@ -4,10 +4,11 @@ import {
   Truck, Phone, MapPin, Navigation, CheckCircle2, 
   Package, Clock, ChevronDown, ChevronUp, 
   ShieldCheck, AlertCircle, RefreshCw, X, ArrowUpRight,
-  Banknote, Bell, Check, Sparkles, Satellite
+  Banknote, Bell, Check, Sparkles, Satellite, Map
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
+import DeliveryLiveMap from './DeliveryLiveMap';
 
 export default function DeliveryDashboard() {
   const { fetchStatus } = useOutletContext() || {};
@@ -15,9 +16,14 @@ export default function DeliveryDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [dashboardData, setDashboardData] = useState(null);
   const [expandedOrders, setExpandedOrders] = useState({});
+  const [expandedMaps, setExpandedMaps] = useState({});
   const [actionLoading, setActionLoading] = useState({});
   const [notifiedArrival, setNotifiedArrival] = useState({});
   const [notifyingArrival, setNotifyingArrival] = useState({});
+
+  const toggleMap = (orderId) => {
+    setExpandedMaps(prev => ({ ...prev, [orderId]: !prev[orderId] }));
+  };
 
   // 4-Digit Split OTP Modal State
   const [otpModalOrder, setOtpModalOrder] = useState(null);
@@ -326,7 +332,9 @@ export default function DeliveryDashboard() {
 
             const mapsUrl = order.delivery_latitude && order.delivery_longitude
               ? `https://www.google.com/maps/dir/?api=1&destination=${order.delivery_latitude},${order.delivery_longitude}`
-              : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.delivery_address || 'Narendra Kirana Store')}`;
+              : order.delivery_address
+              ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`
+              : null;
 
             return (
               <div 
@@ -434,27 +442,43 @@ export default function DeliveryDashboard() {
                     </div>
                   </div>
 
-                  <a
-                    href={mapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20 transition active:scale-98 cursor-pointer"
+                  {/* Interactive Live Navigation Map Toggle Button */}
+                  <button
+                    type="button"
+                    onClick={() => toggleMap(order.id)}
+                    className={`w-full py-2.5 px-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-md transition active:scale-98 cursor-pointer ${
+                      expandedMaps[order.id]
+                        ? 'bg-slate-800 text-emerald-400 border border-emerald-500/40 shadow-emerald-500/10'
+                        : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/20'
+                    }`}
                   >
-                    <Navigation size={14} />
-                    <span>Open Maps Navigation</span>
-                    <ArrowUpRight size={13} className="opacity-70" />
-                  </a>
+                    <Map size={15} className={expandedMaps[order.id] ? 'text-emerald-400' : ''} />
+                    <span>{expandedMaps[order.id] ? 'Hide Live Map' : 'View Live Interactive Map'}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/20 font-mono">
+                      {expandedMaps[order.id] ? '▲' : '▼'}
+                    </span>
+                  </button>
 
-                  {/* View Route on OpenStreetMap — only for OUT_FOR_DELIVERY orders with GPS coords */}
-                  {isOutForDelivery && order.delivery_latitude && order.delivery_longitude && (
+                  {/* Embedded Interactive Live Map */}
+                  {expandedMaps[order.id] && (
+                    <div className="pt-1">
+                      <DeliveryLiveMap 
+                        order={order} 
+                        onClose={() => toggleMap(order.id)} 
+                      />
+                    </div>
+                  )}
+
+                  {/* External Google Navigation shortcut */}
+                  {mapsUrl && !expandedMaps[order.id] && (
                     <a
-                      href={`https://www.openstreetmap.org/directions?engine=osrm_car&route=17.385044,78.486671;${order.delivery_latitude},${order.delivery_longitude}`}
+                      href={mapsUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full py-2 px-3 rounded-xl bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 text-xs font-bold flex items-center justify-center gap-1.5 border border-sky-500/30 transition active:scale-98 cursor-pointer"
+                      className="w-full py-2 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-700/80 transition active:scale-98 cursor-pointer"
                     >
-                      <MapPin size={13} />
-                      <span>View Route on OpenStreetMap</span>
+                      <Navigation size={13} className="text-indigo-400" />
+                      <span>Open in Google Maps App</span>
                       <ArrowUpRight size={12} className="opacity-60" />
                     </a>
                   )}
