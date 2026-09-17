@@ -32,16 +32,25 @@ export default function DeliveryDashboard() {
   const [submittingOtp, setSubmittingOtp] = useState(false);
   const inputRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
 
-  // Live GPS Broadcasting State
+  // Live GPS Streaming via continuous watchPosition (high accuracy)
   const [gpsStatus, setGpsStatus] = useState('idle'); // 'idle' | 'active' | 'error' | 'denied'
   const [lastGpsTime, setLastGpsTime] = useState(null);
-  const gpsActiveRef = useRef(false);
+  const watchIdRef = useRef(null);
+  const lastBroadcastTimeRef = useRef(0);
+  const lastCoordsRef = useRef({ lat: null, lng: null });
 
-  // Broadcast rider GPS to backend — called inside the 12s poll cycle
-  const broadcastGps = useCallback(async (orders) => {
-    const hasOutForDelivery = orders?.some(o => o.status === 'OUT_FOR_DELIVERY');
-    if (!hasOutForDelivery) {
-      gpsActiveRef.current = false;
+  // Stream rider GPS continuously whenever orders are in progress
+  const deliveryOrders = dashboardData?.active_orders || [];
+  const hasActiveDeliveries = deliveryOrders.some(
+    o => o.status === 'OUT_FOR_DELIVERY' || o.status === 'READY'
+  );
+
+  useEffect(() => {
+    if (!hasActiveDeliveries) {
+      if (watchIdRef.current !== null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
       setGpsStatus('idle');
       return;
     }
@@ -51,27 +60,55 @@ export default function DeliveryDashboard() {
       return;
     }
 
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          await api.post('/delivery/location/update/', {
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-          });
-          gpsActiveRef.current = true;
-          setGpsStatus('active');
-          setLastGpsTime(new Date());
-        } catch {
-          setGpsStatus('error');
-        }
-      },
-      (err) => {
-        console.warn('GPS broadcast error:', err.message);
-        setGpsStatus(err.code === 1 ? 'denied' : 'error');
-      },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 5000 }
-    );
-  }, []);
+    const handlePosition = async (pos) => {
+      const now = Date.now();
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const heading = pos.coords.heading;
+      const speed = pos.coords.speed;
+
+      // Throttle: broadcast at most once every 3.5 seconds
+      const timeSinceLast = now - lastBroadcastTimeRef.current;
+      if (timeSinceLast < 3500 && lastCoordsRef.current.lat !== null) {
+        return;
+      }
+
+      lastBroadcastTimeRef.current = now;
+      lastCoordsRef.current = { lat, lng };
+
+      try {
+        await api.post('/delivery/location/update/', {
+          latitude: lat,
+          longitude: lng,
+          heading: heading != null && !isNaN(heading) ? heading : null,
+          speed: speed != null && !isNaN(speed) ? speed : null,
+        });
+        setGpsStatus('active');
+        setLastGpsTime(new Date());
+      } catch (err) {
+        console.warn('GPS broadcast failed:', err);
+        setGpsStatus('error');
+      }
+    };
+
+    const handleError = (err) => {
+      console.warn('Live GPS watch error:', err.message);
+      setGpsStatus(err.code === 1 ? 'denied' : 'error');
+    };
+
+    watchIdRef.current = navigator.geolocation.watchPosition(handlePosition, handleError, {
+      enableHighAccuracy: true,
+      maximumAge: 2000,
+      timeout: 10000,
+    });
+
+    return () => {
+      if (watchIdRef.current !== null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+    };
+  }, [hasActiveDeliveries]);
 
   const fetchDashboard = async (silent = false) => {
     if (!silent) setRefreshing(true);
@@ -89,20 +126,18 @@ export default function DeliveryDashboard() {
 
   useEffect(() => {
     fetchDashboard();
-    // Auto-poll active orders every 12 seconds + broadcast GPS
+    // Auto-poll active orders every 12 seconds for order status updates
     const interval = setInterval(async () => {
       try {
         const res = await api.get('/delivery/dashboard/');
         setDashboardData(res.data);
         fetchStatus?.();
-        // Broadcast rider GPS alongside each poll if out-for-delivery orders exist
-        broadcastGps(res.data?.active_orders);
       } catch (err) {
         console.error('Silent poll error:', err);
       }
     }, 12000);
     return () => clearInterval(interval);
-  }, [broadcastGps]);
+  }, []);
 
   const toggleExpand = (id) => {
     setExpandedOrders(prev => ({ ...prev, [id]: !prev[id] }));

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -59,6 +59,24 @@ export function OrderTrackingMap({
   const custAddress = (order?.delivery_address || 'Delivery Address').replace(/['"\\<>]/g, ' ');
 
   const [isExpanded, setIsExpanded] = useState(false);
+  const webViewRef = useRef<WebView>(null);
+  const fullscreenWebViewRef = useRef<WebView>(null);
+
+  // Live GPS coordinate injection: smoothly moves the bike marker & recalculates route without WebView reload
+  useEffect(() => {
+    if (hasRiderLiveCoords && riderLat !== null && riderLng !== null) {
+      const heading = order?.delivery_partner?.heading ?? 'null';
+      const speed = order?.delivery_partner?.speed ?? 'null';
+      const script = `
+        if (typeof window.updateRiderPosition === 'function') {
+          window.updateRiderPosition(${riderLat}, ${riderLng}, ${heading}, ${speed});
+        }
+        true;
+      `;
+      webViewRef.current?.injectJavaScript(script);
+      fullscreenWebViewRef.current?.injectJavaScript(script);
+    }
+  }, [riderLat, riderLng, order?.delivery_partner?.heading, order?.delivery_partner?.speed]);
 
   const trackingHtml = useMemo(() => {
     return `
@@ -197,6 +215,14 @@ export function OrderTrackingMap({
             window.zoomIn = function() { map.zoomIn(); };
             window.zoomOut = function() { map.zoomOut(); };
 
+            var storeMarker = null;
+            var custMarker = null;
+            var riderMarker = null;
+            var activePolyline = null;
+            var activePolylineCasing = null;
+            var activeStraightLine = null;
+            var routeBounds = null;
+
             ${isPickup ? `
               // Store Marker for Pickup
               var storeIcon = L.divIcon({
@@ -206,7 +232,7 @@ export function OrderTrackingMap({
                 iconAnchor: [18, 32],
                 popupAnchor: [0, -32]
               });
-              var storeMarker = L.marker([${storeLat}, ${storeLng}], { icon: storeIcon }).addTo(map);
+              storeMarker = L.marker([${storeLat}, ${storeLng}], { icon: storeIcon }).addTo(map);
               storeMarker.bindPopup('<div style="font-size:12px; line-height:1.4;"><b style="color:#064E3B;">🏪 ${storeName}</b><br/><span style="color:#475569;">${storeAddress}</span><br/><span style="color:#059669; font-weight:700;">Store Pickup Hub</span></div>').openPopup();
 
               map.setView([${storeLat}, ${storeLng}], 16);
@@ -216,7 +242,7 @@ export function OrderTrackingMap({
               };
               window.focusDoorstep = function() {
                 map.flyTo([${storeLat}, ${storeLng}], 17, { duration: 0.8 });
-                storeMarker.openPopup();
+                if (storeMarker) storeMarker.openPopup();
               };
             ` : `
               // Customer Doorstep Marker
@@ -227,7 +253,7 @@ export function OrderTrackingMap({
                 iconAnchor: [18, 32],
                 popupAnchor: [0, -32]
               });
-              var custMarker = L.marker([${custLat}, ${custLng}], { icon: custIcon }).addTo(map);
+              custMarker = L.marker([${custLat}, ${custLng}], { icon: custIcon }).addTo(map);
               custMarker.bindPopup('<div style="font-size:12px; line-height:1.4;"><b style="color:#E11D48;">🏠 Delivery Destination</b><br/><span style="color:#334155;">${custAddress}</span></div>');
 
               ${showStorePin ? `
@@ -238,7 +264,7 @@ export function OrderTrackingMap({
                   iconAnchor: [16, 28],
                   popupAnchor: [0, -28]
                 });
-                var storeMarker = L.marker([${storeLat}, ${storeLng}], { icon: storeIcon }).addTo(map);
+                storeMarker = L.marker([${storeLat}, ${storeLng}], { icon: storeIcon }).addTo(map);
                 storeMarker.bindPopup('<div style="font-size:12px;"><b>Store Dispatch Hub</b></div>');
               ` : ''}
 
@@ -251,22 +277,24 @@ export function OrderTrackingMap({
                   iconAnchor: [24, 24],
                   popupAnchor: [0, -24]
                 });
-                var riderMarker = L.marker([${riderLat}, ${riderLng}], { icon: riderIcon }).addTo(map);
+                riderMarker = L.marker([${riderLat}, ${riderLng}], { icon: riderIcon }).addTo(map);
                 riderMarker.bindPopup('<div style="font-size:12px; line-height:1.4;"><b style="color:#4F46E5;">🛵 ${riderName}</b><br/><span style="color:#059669; font-weight:700;">● Live GPS Active</span><br/><span style="color:#475569;">On the way to your doorstep</span></div>');
                 riderMarker.openPopup();
-
-                window.focusRider = function() {
-                  map.flyTo([${riderLat}, ${riderLng}], 17, { duration: 0.8 });
-                  riderMarker.openPopup();
-                };
               ` : ''}
+
+              window.focusRider = function() {
+                if (riderMarker) {
+                  map.flyTo(riderMarker.getLatLng(), 17, { duration: 0.8 });
+                  riderMarker.openPopup();
+                }
+              };
 
               window.focusDoorstep = function() {
                 map.flyTo([${custLat}, ${custLng}], 17, { duration: 0.8 });
-                custMarker.openPopup();
+                if (custMarker) custMarker.openPopup();
               };
 
-              var routeBounds = L.latLngBounds([
+              routeBounds = L.latLngBounds([
                 [${originLat}, ${originLng}],
                 [${custLat}, ${custLng}]
               ]);
@@ -278,53 +306,90 @@ export function OrderTrackingMap({
                 }
               };
 
-              // Fetch Real-time Road Route from OSRM
-              var osrmUrl = 'https://router.project-osrm.org/route/v1/driving/${originLng},${originLat};${custLng},${custLat}?overview=full&geometries=geojson';
-              fetch(osrmUrl)
-                .then(function(res) { return res.json(); })
-                .then(function(data) {
-                  if (data.routes && data.routes.length > 0) {
-                    var route = data.routes[0];
-                    var distKm = (route.distance / 1000).toFixed(1);
-                    var durMins = Math.ceil(route.duration / 60);
+              // Reusable Road Route & Live Distance Fetcher
+              function fetchOSRMRoute(oLng, oLat, dLng, dLat, isRiderOrigin) {
+                var osrmUrl = 'https://router.project-osrm.org/route/v1/driving/' + oLng + ',' + oLat + ';' + dLng + ',' + dLat + '?overview=full&geometries=geojson';
+                fetch(osrmUrl)
+                  .then(function(res) { return res.json(); })
+                  .then(function(data) {
+                    if (data.routes && data.routes.length > 0) {
+                      var route = data.routes[0];
+                      var distKm = (route.distance / 1000).toFixed(1);
+                      var durMins = Math.ceil(route.duration / 60);
 
-                    var etaElem = document.getElementById('eta-text');
-                    if (etaElem) {
-                      var prefix = ${hasRiderPosition} ? '🛵 ' : '📍 Store to Doorstep: ';
-                      var suffix = ${hasRiderPosition} ? ' away (Live GPS)' : ' estimated';
-                      etaElem.innerText = prefix + distKm + ' km • ~' + durMins + ' mins' + suffix;
+                      var etaElem = document.getElementById('eta-text');
+                      if (etaElem) {
+                        var prefix = isRiderOrigin ? '🛵 ' : '📍 Store to Doorstep: ';
+                        var suffix = isRiderOrigin ? ' away (Live GPS)' : ' estimated';
+                        etaElem.innerText = prefix + distKm + ' km • ~' + durMins + ' mins' + suffix;
+                      }
+
+                      var coords = route.geometry.coordinates.map(function(pt) { return [pt[1], pt[0]]; });
+                      
+                      if (activePolylineCasing) map.removeLayer(activePolylineCasing);
+                      if (activePolyline) map.removeLayer(activePolyline);
+                      if (activeStraightLine) map.removeLayer(activeStraightLine);
+
+                      activePolylineCasing = L.polyline(coords, { color: '#047857', weight: 6.5, opacity: 0.3 }).addTo(map);
+                      activePolyline = L.polyline(coords, { color: '#10B981', weight: 4.5, opacity: 0.95 }).addTo(map);
+
+                      routeBounds = activePolyline.getBounds();
+                    } else {
+                      drawFallbackLine(oLat, oLng, dLat, dLng);
                     }
+                  })
+                  .catch(function() {
+                    drawFallbackLine(oLat, oLng, dLat, dLng);
+                  });
+              }
 
-                    var coords = route.geometry.coordinates.map(function(pt) { return [pt[1], pt[0]]; });
-                    
-                    // Road route casing
-                    L.polyline(coords, { color: '#047857', weight: 6.5, opacity: 0.3 }).addTo(map);
-                    // Road route stroke
-                    var poly = L.polyline(coords, { color: '#10B981', weight: 4.5, opacity: 0.95 }).addTo(map);
+              function drawFallbackLine(oLat, oLng, dLat, dLng) {
+                if (activePolylineCasing) map.removeLayer(activePolylineCasing);
+                if (activePolyline) map.removeLayer(activePolyline);
+                if (activeStraightLine) map.removeLayer(activeStraightLine);
 
-                    routeBounds = poly.getBounds();
-                    map.fitBounds(routeBounds, { padding: [40, 40] });
-                  } else {
-                    var line = L.polyline([[${originLat}, ${originLng}], [${custLat}, ${custLng}]], {
-                      color: '#10B981', weight: 3.5, dashArray: '5, 8'
-                    }).addTo(map);
-                    routeBounds = line.getBounds();
-                    map.fitBounds(routeBounds, { padding: [35, 35] });
-                  }
-                })
-                .catch(function() {
-                  var line = L.polyline([[${originLat}, ${originLng}], [${custLat}, ${custLng}]], {
-                    color: '#10B981', weight: 3.5, dashArray: '5, 8'
-                  }).addTo(map);
-                  routeBounds = line.getBounds();
-                  map.fitBounds(routeBounds, { padding: [35, 35] });
-                });
+                activeStraightLine = L.polyline([[oLat, oLng], [dLat, dLng]], {
+                  color: '#10B981', weight: 3.5, dashArray: '5, 8'
+                }).addTo(map);
+                routeBounds = activeStraightLine.getBounds();
+              }
+
+              // Initial Route Fetch
+              fetchOSRMRoute(${originLng}, ${originLat}, ${custLng}, ${custLat}, ${hasRiderPosition ? 'true' : 'false'});
+
+              // Live Real-Time Coordinate Injection Handler (invoked smoothly without map reload!)
+              window.updateRiderPosition = function(newLat, newLng, heading, speed) {
+                var lat = parseFloat(newLat);
+                var lng = parseFloat(newLng);
+                if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) return;
+
+                if (!riderMarker) {
+                  var riderIcon = L.divIcon({
+                    className: '',
+                    html: '<div class="rider-pin-wrap"><div class="rider-pulse"></div><div class="rider-circle">🛵</div></div>',
+                    iconSize: [48, 48],
+                    iconAnchor: [24, 24],
+                    popupAnchor: [0, -24]
+                  });
+                  riderMarker = L.marker([lat, lng], { icon: riderIcon }).addTo(map);
+                  riderMarker.bindPopup('<div style="font-size:12px; line-height:1.4;"><b style="color:#4F46E5;">🛵 ${riderName}</b><br/><span style="color:#059669; font-weight:700;">● Live GPS Active</span><br/><span style="color:#475569;">On the way to your doorstep</span></div>');
+                  riderMarker.openPopup();
+                } else {
+                  riderMarker.setLatLng([lat, lng]);
+                }
+
+                // Smooth pan to rider
+                map.panTo([lat, lng], { animate: true, duration: 0.8 });
+
+                // Recalculate route and ETA countdown live from current position
+                fetchOSRMRoute(lng, lat, ${custLng}, ${custLat}, true);
+              };
             `}
           </script>
         </body>
       </html>
     `;
-  }, [storeLat, storeLng, storeName, storeAddress, isPickup, custLat, custLng, riderLat, riderLng, originLat, originLng, showStorePin, hasRiderPosition, riderName, custAddress]);
+  }, [storeLat, storeLng, storeName, storeAddress, isPickup, custLat, custLng, originLat, originLng, showStorePin, hasRiderPosition, riderName, custAddress]);
 
   const handleOpenMaps = () => {
     const destCoords = isPickup ? `${storeLat},${storeLng}` : `${custLat},${custLng}`;
@@ -342,13 +407,13 @@ export function OrderTrackingMap({
     <>
       <View style={[styles.container, { height }]}>
         <WebView
+          ref={webViewRef}
           source={{ html: trackingHtml }}
           style={{ width: '100%', height }}
           originWhitelist={['*']}
           javaScriptEnabled={true}
           domStorageEnabled={true}
           mixedContentMode="always"
-          androidHardwareAccelerationDisabled={false}
           androidLayerType="hardware"
           scrollEnabled={false}
         />
@@ -409,13 +474,13 @@ export function OrderTrackingMap({
           {/* Full-Screen Map Canvas */}
           <View style={styles.fullscreenMapWrap}>
             <WebView
+              ref={fullscreenWebViewRef}
               source={{ html: trackingHtml }}
               style={{ flex: 1 }}
               originWhitelist={['*']}
               javaScriptEnabled={true}
               domStorageEnabled={true}
               mixedContentMode="always"
-              androidHardwareAccelerationDisabled={false}
               androidLayerType="hardware"
             />
           </View>

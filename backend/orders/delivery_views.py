@@ -416,16 +416,29 @@ class DeliveryUpdateLocationView(APIView):
                 from .ws_broadcast import broadcast_rider_location
                 active_order_ids = list(Order.objects.filter(
                     delivery_partner=user,
-                    status=Order.Status.OUT_FOR_DELIVERY
+                    status__in=[Order.Status.OUT_FOR_DELIVERY, Order.Status.READY]
                 ).values_list('id', flat=True))
+
+                heading_val = None
+                speed_val = None
+                try:
+                    if request.data.get('heading') is not None:
+                        heading_val = float(request.data.get('heading'))
+                except (ValueError, TypeError):
+                    pass
+                try:
+                    if request.data.get('speed') is not None:
+                        speed_val = float(request.data.get('speed'))
+                except (ValueError, TypeError):
+                    pass
 
                 for active_id in active_order_ids:
                     broadcast_rider_location(
                         order_id=active_id,
                         latitude=float(profile.current_lat),
                         longitude=float(profile.current_lng),
-                        heading=request.data.get('heading'),
-                        speed=request.data.get('speed')
+                        heading=heading_val,
+                        speed=speed_val
                     )
             except Exception as ws_err:
                 logger.debug("WS rider location broadcast error: %s", ws_err)

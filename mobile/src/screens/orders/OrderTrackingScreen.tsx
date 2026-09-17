@@ -434,56 +434,64 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
         )}
 
         {/* Delivery Partner Live Address & Contact Card */}
-        {order.order_type === 'DELIVERY' && (order.delivery_partner_name || order.delivery_partner_lat || order.status === 'READY' || order.status === 'OUT_FOR_DELIVERY') && (
-          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <View style={styles.riderHeaderRow}>
-              <View style={[styles.riderAvatar, { backgroundColor: isDark ? 'rgba(99, 102, 241, 0.2)' : '#EEF2FF' }]}>
-                <Text style={styles.riderAvatarEmoji}>🛵</Text>
-              </View>
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={[styles.riderName, { color: colors.text }]}>
-                  {order.delivery_partner_name || 'Delivery Partner Assigned'}
-                </Text>
-                {order.delivery_partner_vehicle ? (
-                  <Text style={[styles.riderVehicleText, { color: colors.textSecondary }]}>
-                    {order.delivery_partner_vehicle}
+        {(() => {
+          const partnerLat = parseFloat(order?.delivery_partner_lat ?? order?.delivery_partner?.current_lat);
+          const partnerLng = parseFloat(order?.delivery_partner_lng ?? order?.delivery_partner?.current_lng);
+          const hasLiveGps = !isNaN(partnerLat) && !isNaN(partnerLng) && partnerLat !== 0 && partnerLng !== 0;
+          const showPartnerCard = order.order_type === 'DELIVERY' && (order.delivery_partner_name || hasLiveGps || order.status === 'READY' || order.status === 'OUT_FOR_DELIVERY');
+
+          if (!showPartnerCard) return null;
+
+          return (
+            <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={styles.riderHeaderRow}>
+                <View style={[styles.riderAvatar, { backgroundColor: isDark ? 'rgba(99, 102, 241, 0.2)' : '#EEF2FF' }]}>
+                  <Text style={styles.riderAvatarEmoji}>🛵</Text>
+                </View>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={[styles.riderName, { color: colors.text }]}>
+                    {order.delivery_partner_name || 'Delivery Partner Assigned'}
                   </Text>
-                ) : (
-                  <Text style={[styles.riderVehicleText, { color: colors.textSecondary }]}>
-                    Delivery Partner
-                  </Text>
-                )}
+                  {order.delivery_partner_vehicle ? (
+                    <Text style={[styles.riderVehicleText, { color: colors.textSecondary }]}>
+                      {order.delivery_partner_vehicle}
+                    </Text>
+                  ) : (
+                    <Text style={[styles.riderVehicleText, { color: colors.textSecondary }]}>
+                      Delivery Partner
+                    </Text>
+                  )}
+                </View>
+
+                {/* Call Rider Button */}
+                {order.delivery_partner_phone ? (
+                  <TouchableOpacity
+                    style={[styles.callRiderBtn, { backgroundColor: colors.primary }]}
+                    onPress={() => Linking.openURL(`tel:${order.delivery_partner_phone}`)}
+                    activeOpacity={0.8}
+                  >
+                    <Feather name="phone-call" size={14} color="#FFFFFF" />
+                    <Text style={styles.callRiderBtnText}>Call</Text>
+                  </TouchableOpacity>
+                ) : null}
               </View>
 
-              {/* Call Rider Button */}
-              {order.delivery_partner_phone ? (
-                <TouchableOpacity
-                  style={[styles.callRiderBtn, { backgroundColor: colors.primary }]}
-                  onPress={() => Linking.openURL(`tel:${order.delivery_partner_phone}`)}
-                  activeOpacity={0.8}
-                >
-                  <Feather name="phone-call" size={14} color="#FFFFFF" />
-                  <Text style={styles.callRiderBtnText}>Call</Text>
-                </TouchableOpacity>
-              ) : null}
-            </View>
-
-            {/* Live Status Row */}
-            <View style={[styles.riderStatusBanner, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.1)' : '#F0FDF4', borderColor: isDark ? 'rgba(16, 185, 129, 0.25)' : '#BBF7D0' }]}>
-              <View style={styles.livePulseDot} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.liveStatusTitle, { color: colors.primary }]}>
-                  {(!isNaN(parseFloat(order.delivery_partner_lat)) || !isNaN(parseFloat(order.delivery_partner?.current_lat)))
-                    ? 'Live GPS Active' 
-                    : (order.status === 'OUT_FOR_DELIVERY' ? 'Rider On The Way' : 'Order Assigned to Rider')}
-                </Text>
-                <Text style={[styles.liveStatusSubtitle, { color: colors.textSecondary }]}>
-                  {(!isNaN(parseFloat(order.delivery_partner_lat)) || !isNaN(parseFloat(order.delivery_partner?.current_lat)))
-                    ? 'Real-time GPS coordinates synced from rider' 
-                    : (order.status === 'OUT_FOR_DELIVERY' ? 'En route to your delivery address' : 'Getting order ready for dispatch')}
-                </Text>
+              {/* Live Status Row */}
+              <View style={[styles.riderStatusBanner, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.1)' : '#F0FDF4', borderColor: isDark ? 'rgba(16, 185, 129, 0.25)' : '#BBF7D0' }]}>
+                <View style={[styles.livePulseDot, !hasLiveGps && { backgroundColor: '#F59E0B' }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.liveStatusTitle, { color: hasLiveGps ? colors.primary : '#D97706' }]}>
+                    {hasLiveGps
+                      ? 'Live GPS Active' 
+                      : (order.status === 'OUT_FOR_DELIVERY' ? 'Rider On The Way • Connecting GPS...' : 'Order Assigned to Rider')}
+                  </Text>
+                  <Text style={[styles.liveStatusSubtitle, { color: colors.textSecondary }]}>
+                    {hasLiveGps
+                      ? 'Real-time GPS coordinates synced from rider' 
+                      : (order.status === 'OUT_FOR_DELIVERY' ? 'En route to your delivery address' : 'Getting order ready for dispatch')}
+                  </Text>
+                </View>
               </View>
-            </View>
 
             {/* Live Address Details (Destination Doorstep) */}
             <View style={[styles.doorstepAddressBox, { borderTopColor: colors.border }]}>
@@ -505,7 +513,7 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
               </View>
             </View>
           </View>
-        )}
+        )})()}
 
         {/* Live Route / Store Location Map */}
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border, padding: 12 }]}>
