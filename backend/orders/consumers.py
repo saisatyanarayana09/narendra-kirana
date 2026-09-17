@@ -39,17 +39,33 @@ def get_order_for_tracking(order_id: str, user):
         return None, False, "Permission denied for this order"
 
     # Build initial payload
+    partner_name = ""
+    partner_phone = ""
+    partner_vehicle = ""
+    partner_lat = None
+    partner_lng = None
     partner_data = None
+
     if order.delivery_partner:
         profile = getattr(order.delivery_partner, 'delivery_profile', None)
+        partner_name = order.delivery_partner.get_full_name() or order.delivery_partner.username
+        if profile:
+            partner_phone = profile.phone_number or (order.delivery_partner.username if order.delivery_partner.username.isdigit() else "")
+            parts = [p for p in [profile.vehicle_type, profile.vehicle_number] if p]
+            partner_vehicle = " • ".join(parts) if parts else (profile.vehicle_type or "Bike")
+            if profile.current_lat is not None:
+                partner_lat = float(profile.current_lat)
+            if profile.current_lng is not None:
+                partner_lng = float(profile.current_lng)
+
         partner_data = {
             'id': order.delivery_partner.id,
-            'name': order.delivery_partner.get_full_name() or order.delivery_partner.username,
-            'phone': profile.phone_number if profile else '',
+            'name': partner_name,
+            'phone': partner_phone,
             'vehicle_type': profile.vehicle_type if profile else 'Bike',
             'vehicle_number': profile.vehicle_number if profile else '',
-            'current_lat': float(profile.current_lat) if profile and profile.current_lat is not None else None,
-            'current_lng': float(profile.current_lng) if profile and profile.current_lng is not None else None,
+            'current_lat': partner_lat,
+            'current_lng': partner_lng,
         }
 
     # Hide OTP from delivery partner until delivered
@@ -62,9 +78,15 @@ def get_order_for_tracking(order_id: str, user):
         'total_amount': str(order.total_amount),
         'delivery_otp': delivery_otp,
         'delivery_address': order.delivery_address,
+        'delivery_pincode': order.delivery_pincode,
         'delivery_latitude': float(order.delivery_latitude) if order.delivery_latitude else None,
         'delivery_longitude': float(order.delivery_longitude) if order.delivery_longitude else None,
         'delivery_partner': partner_data,
+        'delivery_partner_name': partner_name,
+        'delivery_partner_phone': partner_phone,
+        'delivery_partner_vehicle': partner_vehicle,
+        'delivery_partner_lat': partner_lat,
+        'delivery_partner_lng': partner_lng,
         'created_at': order.created_at.isoformat(),
         'updated_at': order.updated_at.isoformat(),
     }

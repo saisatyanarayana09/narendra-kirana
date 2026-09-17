@@ -31,37 +31,31 @@ export function OrderTrackingMap({
 
   const isPickup = order?.order_type === 'PICKUP';
 
-  const rawCustLat = parseFloat(order?.delivery_latitude);
-  const rawCustLng = parseFloat(order?.delivery_longitude);
+  const rawCustLat = parseFloat(order?.delivery_latitude ?? order?.customer_latitude);
+  const rawCustLng = parseFloat(order?.delivery_longitude ?? order?.customer_longitude);
   const hasCustomerCoords = !isNaN(rawCustLat) && !isNaN(rawCustLng) && rawCustLat !== 0 && rawCustLng !== 0;
 
-  // Graceful fallback coordinates if order was placed without pinned lat/lng
-  const custLat = hasCustomerCoords ? rawCustLat : (storeLat + 0.008);
-  const custLng = hasCustomerCoords ? rawCustLng : (storeLng + 0.008);
+  // Real customer coordinates if pinned by user; fallback to store coordinates if missing
+  const custLat = hasCustomerCoords ? rawCustLat : storeLat;
+  const custLng = hasCustomerCoords ? rawCustLng : storeLng;
 
-  const rawRiderLat = parseFloat(order?.delivery_partner_lat);
-  const rawRiderLng = parseFloat(order?.delivery_partner_lng);
+  const rawRiderLat = parseFloat(order?.delivery_partner_lat ?? order?.delivery_partner?.current_lat);
+  const rawRiderLng = parseFloat(order?.delivery_partner_lng ?? order?.delivery_partner?.current_lng);
   const hasRiderLiveCoords = !isNaN(rawRiderLat) && !isNaN(rawRiderLng) && rawRiderLat !== 0 && rawRiderLng !== 0;
 
-  const isRiderAssigned = Boolean(order?.delivery_partner_name) || Boolean(order?.delivery_partner);
-  const isOutForDelivery = order?.status === 'OUT_FOR_DELIVERY' || (isRiderAssigned && order?.status === 'READY') || hasRiderLiveCoords;
-
-  const riderLat = hasRiderLiveCoords
-    ? rawRiderLat
-    : (isOutForDelivery ? (storeLat * 0.35 + custLat * 0.65) : null);
-  const riderLng = hasRiderLiveCoords
-    ? rawRiderLng
-    : (isOutForDelivery ? (storeLng * 0.35 + custLng * 0.65) : null);
+  // NO FAKE 35%/65% INTERPOLATION: Only use authentic coordinates
+  const riderLat = hasRiderLiveCoords ? rawRiderLat : null;
+  const riderLng = hasRiderLiveCoords ? rawRiderLng : null;
 
   // When delivery partner is active, origin is the Rider; otherwise it's the store
   const hasRiderPosition = !isPickup && riderLat !== null && riderLng !== null;
   const originLat = hasRiderPosition ? riderLat : storeLat;
   const originLng = hasRiderPosition ? riderLng : storeLng;
 
-  // Do NOT show store pin if rider is on the road to customer in delivery mode
-  const showStorePin = isPickup || (!hasRiderPosition && !isOutForDelivery);
+  // Show store pin if pickup OR if rider has not started moving yet
+  const showStorePin = isPickup || !hasRiderPosition;
 
-  const riderName = (order?.delivery_partner_name || 'Delivery Partner').replace(/['"\\<>]/g, '');
+  const riderName = (order?.delivery_partner_name || order?.delivery_partner?.name || 'Delivery Partner').replace(/['"\\<>]/g, '');
   const custAddress = (order?.delivery_address || 'Delivery Address').replace(/['"\\<>]/g, ' ');
 
   const [isExpanded, setIsExpanded] = useState(false);
@@ -154,7 +148,17 @@ export function OrderTrackingMap({
           <!-- Top Status ETA Badge -->
           <div class="eta-pill" id="eta-pill" onclick="recenterMap()">
             <span class="eta-dot" style="background: ${isPickup ? '#064E3B' : (hasRiderPosition ? '#4F46E5' : '#10B981')};"></span>
-            <span id="eta-text">${isPickup ? 'Store Pickup Location' : (hasRiderPosition ? 'Connecting live rider route...' : 'Delivery Route')}</span>
+            <span id="eta-text">${
+              isPickup
+                ? 'Store Pickup Location'
+                : (hasRiderPosition
+                    ? 'Connecting live rider route...'
+                    : (order?.status === 'OUT_FOR_DELIVERY'
+                        ? '🛵 Rider En Route • Connecting GPS...'
+                        : (order?.status === 'READY'
+                            ? '📦 Order Packed • Ready for Dispatch'
+                            : '📍 Delivery Route from Store')))
+            }</span>
           </div>
 
           <!-- Floating Interactive Control Buttons -->
@@ -286,7 +290,9 @@ export function OrderTrackingMap({
 
                     var etaElem = document.getElementById('eta-text');
                     if (etaElem) {
-                      etaElem.innerText = '🛵 ' + distKm + ' km • ~' + durMins + ' mins away';
+                      var prefix = ${hasRiderPosition} ? '🛵 ' : '📍 Store to Doorstep: ';
+                      var suffix = ${hasRiderPosition} ? ' away (Live GPS)' : ' estimated';
+                      etaElem.innerText = prefix + distKm + ' km • ~' + durMins + ' mins' + suffix;
                     }
 
                     var coords = route.geometry.coordinates.map(function(pt) { return [pt[1], pt[0]]; });

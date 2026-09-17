@@ -115,20 +115,26 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
         return updated;
       });
     } else if (data.type === 'RIDER_LOCATION_UPDATE') {
-      setOrder((prev: any) => {
-        if (!prev) return prev;
-        const currentPartner = prev.delivery_partner || {};
-        return {
-          ...prev,
-          delivery_partner: {
-            ...currentPartner,
-            current_lat: data.latitude,
-            current_lng: data.longitude,
-            heading: data.heading,
-            speed: data.speed,
-          },
-        };
-      });
+      const latNum = parseFloat(data.latitude);
+      const lngNum = parseFloat(data.longitude);
+      if (!isNaN(latNum) && !isNaN(lngNum) && latNum !== 0 && lngNum !== 0) {
+        setOrder((prev: any) => {
+          if (!prev) return prev;
+          const currentPartner = prev.delivery_partner || {};
+          return {
+            ...prev,
+            delivery_partner_lat: latNum,
+            delivery_partner_lng: lngNum,
+            delivery_partner: {
+              ...currentPartner,
+              current_lat: latNum,
+              current_lng: lngNum,
+              heading: data.heading,
+              speed: data.speed,
+            },
+          };
+        });
+      }
     }
   }, []);
 
@@ -467,10 +473,12 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
               <View style={styles.livePulseDot} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.liveStatusTitle, { color: colors.primary }]}>
-                  {order.delivery_partner_lat ? 'Live GPS Active' : (order.status === 'OUT_FOR_DELIVERY' ? 'Rider On The Way' : 'Order Assigned to Rider')}
+                  {(!isNaN(parseFloat(order.delivery_partner_lat)) || !isNaN(parseFloat(order.delivery_partner?.current_lat)))
+                    ? 'Live GPS Active' 
+                    : (order.status === 'OUT_FOR_DELIVERY' ? 'Rider On The Way' : 'Order Assigned to Rider')}
                 </Text>
                 <Text style={[styles.liveStatusSubtitle, { color: colors.textSecondary }]}>
-                  {order.delivery_partner_lat 
+                  {(!isNaN(parseFloat(order.delivery_partner_lat)) || !isNaN(parseFloat(order.delivery_partner?.current_lat)))
                     ? 'Real-time GPS coordinates synced from rider' 
                     : (order.status === 'OUT_FOR_DELIVERY' ? 'En route to your delivery address' : 'Getting order ready for dispatch')}
                 </Text>
