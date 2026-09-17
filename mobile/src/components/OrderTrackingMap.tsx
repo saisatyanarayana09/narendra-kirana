@@ -1,14 +1,17 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Linking,
-  Platform
+  Platform,
+  Modal,
+  SafeAreaView,
+  StatusBar
 } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, Feather } from '@expo/vector-icons';
 
 interface OrderTrackingMapProps {
   order: any;
@@ -61,6 +64,8 @@ export function OrderTrackingMap({
   const riderName = (order?.delivery_partner_name || 'Delivery Partner').replace(/['"\\<>]/g, '');
   const custAddress = (order?.delivery_address || 'Delivery Address').replace(/['"\\<>]/g, ' ');
 
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const trackingHtml = useMemo(() => {
     return `
       <!DOCTYPE html>
@@ -69,10 +74,10 @@ export function OrderTrackingMap({
           <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
           <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
           <style>
-            * { box-sizing: border-box; }
+            * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
             html, body {
               margin: 0; padding: 0; width: 100%; height: 100%;
-              overflow: hidden; background: #f8fafc;
+              overflow: hidden; background: #0f172a;
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             }
             #map {
@@ -82,81 +87,120 @@ export function OrderTrackingMap({
             
             /* Pin Styles */
             .store-pin {
-              width: 34px; height: 34px; background: #064E3B; border: 2.5px solid #ffffff;
-              border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 4px 10px rgba(0,0,0,0.35);
-              display: flex; align-items: center; justify-content: center; font-size: 15px;
+              width: 36px; height: 36px; background: #064E3B; border: 2.5px solid #ffffff;
+              border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+              display: flex; align-items: center; justify-content: center; font-size: 16px;
             }
             .cust-pin {
-              width: 34px; height: 34px; background: #E11D48; border: 2.5px solid #ffffff;
-              border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 4px 12px rgba(225,29,72,0.45);
-              display: flex; align-items: center; justify-content: center; font-size: 15px;
+              width: 36px; height: 36px; background: #E11D48; border: 2.5px solid #ffffff;
+              border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 4px 14px rgba(225,29,72,0.5);
+              display: flex; align-items: center; justify-content: center; font-size: 16px;
             }
             .rider-pin-wrap {
-              position: relative; width: 44px; height: 44px;
+              position: relative; width: 48px; height: 48px;
               display: flex; align-items: center; justify-content: center;
             }
             .rider-pulse {
-              position: absolute; width: 40px; height: 40px; border-radius: 50%;
-              background: rgba(79, 70, 229, 0.35);
-              animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+              position: absolute; width: 44px; height: 44px; border-radius: 50%;
+              background: rgba(79, 70, 229, 0.4);
+              animation: pulse-ring 1.4s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
             }
             @keyframes pulse-ring {
               0% { transform: scale(0.6); opacity: 1; }
               100% { transform: scale(1.6); opacity: 0; }
             }
             .rider-circle {
-              width: 34px; height: 34px; background: #4F46E5; border: 2.5px solid #ffffff;
-              border-radius: 50%; box-shadow: 0 4px 12px rgba(79,70,229,0.5);
-              display: flex; align-items: center; justify-content: center; font-size: 16px; z-index: 2;
+              width: 36px; height: 36px; background: #4F46E5; border: 2.5px solid #ffffff;
+              border-radius: 50%; box-shadow: 0 4px 14px rgba(79,70,229,0.6);
+              display: flex; align-items: center; justify-content: center; font-size: 18px; z-index: 2;
             }
 
-            /* On-Map Floating ETA Pill */
+            /* Floating HUD Elements */
             .eta-pill {
               position: absolute; top: 10px; left: 10px; z-index: 1000;
-              background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(4px);
+              background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(8px);
               padding: 6px 12px; border-radius: 20px;
-              box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+              box-shadow: 0 4px 12px rgba(0,0,0,0.15);
               font-size: 11px; font-weight: 800; color: #0F172A;
               display: flex; align-items: center; gap: 6px; border: 1px solid #E2E8F0;
+              cursor: pointer;
             }
             .eta-dot {
-              width: 7px; height: 7px; border-radius: 50%; background: #10B981;
+              width: 8px; height: 8px; border-radius: 50%; background: #10B981;
             }
-            .recenter-btn {
-              position: absolute; bottom: 10px; right: 10px; z-index: 1000;
-              background: #ffffff; border: 1px solid #E2E8F0;
-              width: 32px; height: 32px; border-radius: 8px;
-              box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+
+            /* Controls Container */
+            .map-controls-col {
+              position: absolute; top: 10px; right: 10px; z-index: 1000;
+              display: flex; flex-direction: column; gap: 6px;
+            }
+            .ctrl-btn {
+              background: rgba(255, 255, 255, 0.96); border: 1px solid #E2E8F0;
+              width: 34px; height: 34px; border-radius: 10px;
+              box-shadow: 0 3px 8px rgba(0,0,0,0.15);
               display: flex; align-items: center; justify-content: center;
-              font-size: 15px; cursor: pointer;
+              font-size: 15px; cursor: pointer; user-select: none;
+              transition: transform 0.15s ease, background 0.15s ease;
+            }
+            .ctrl-btn:active {
+              transform: scale(0.92);
+              background: #F1F5F9;
             }
           </style>
         </head>
         <body>
           <div id="map"></div>
-          <div class="eta-pill" id="eta-pill">
+
+          <!-- Top Status ETA Badge -->
+          <div class="eta-pill" id="eta-pill" onclick="recenterMap()">
             <span class="eta-dot" style="background: ${isPickup ? '#064E3B' : (hasRiderPosition ? '#4F46E5' : '#10B981')};"></span>
             <span id="eta-text">${isPickup ? 'Store Pickup Location' : (hasRiderPosition ? 'Connecting live rider route...' : 'Delivery Route')}</span>
           </div>
-          <button class="recenter-btn" onclick="recenterMap()" title="Recenter">🎯</button>
+
+          <!-- Floating Interactive Control Buttons -->
+          <div class="map-controls-col">
+            <button class="ctrl-btn" id="layer-btn" onclick="toggleLayer()" title="Toggle Satellite / Street">🛰️</button>
+            <button class="ctrl-btn" onclick="recenterMap()" title="Fit Full Route">🎯</button>
+            ${hasRiderPosition ? `<button class="ctrl-btn" onclick="focusRider()" title="Focus on Rider">🛵</button>` : ''}
+            <button class="ctrl-btn" onclick="focusDoorstep()" title="Focus on Doorstep">🏠</button>
+            <button class="ctrl-btn" onclick="zoomIn()" title="Zoom In" style="font-weight: 800; font-size: 16px;">+</button>
+            <button class="ctrl-btn" onclick="zoomOut()" title="Zoom Out" style="font-weight: 800; font-size: 16px;">−</button>
+          </div>
 
           <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
           <script>
             var map = L.map('map', { zoomControl: false, attributionControl: false });
 
-            // Free official OpenStreetMap tiles (Zero API Keys)
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-              maxZoom: 19
-            }).addTo(map);
+            // Layer Management: OpenStreetMap (Standard) & Esri World Imagery (Satellite)
+            var isSatellite = false;
+            var streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+            var satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+
+            window.toggleLayer = function() {
+              isSatellite = !isSatellite;
+              var btn = document.getElementById('layer-btn');
+              if (isSatellite) {
+                map.removeLayer(streetLayer);
+                satLayer.addTo(map);
+                if (btn) btn.innerText = '🗺️';
+              } else {
+                map.removeLayer(satLayer);
+                streetLayer.addTo(map);
+                if (btn) btn.innerText = '🛰️';
+              }
+            };
+
+            window.zoomIn = function() { map.zoomIn(); };
+            window.zoomOut = function() { map.zoomOut(); };
 
             ${isPickup ? `
               // Store Marker for Pickup
               var storeIcon = L.divIcon({
                 className: '',
                 html: '<div class="store-pin"><span style="transform: rotate(45deg);">🏪</span></div>',
-                iconSize: [34, 34],
-                iconAnchor: [17, 30],
-                popupAnchor: [0, -30]
+                iconSize: [36, 36],
+                iconAnchor: [18, 32],
+                popupAnchor: [0, -32]
               });
               var storeMarker = L.marker([${storeLat}, ${storeLng}], { icon: storeIcon }).addTo(map);
               storeMarker.bindPopup('<div style="font-size:12px; line-height:1.4;"><b style="color:#064E3B;">🏪 ${storeName}</b><br/><span style="color:#475569;">${storeAddress}</span><br/><span style="color:#059669; font-weight:700;">Store Pickup Hub</span></div>').openPopup();
@@ -164,22 +208,25 @@ export function OrderTrackingMap({
               map.setView([${storeLat}, ${storeLng}], 16);
 
               window.recenterMap = function() {
-                map.setView([${storeLat}, ${storeLng}], 16);
+                map.flyTo([${storeLat}, ${storeLng}], 16, { duration: 0.8 });
+              };
+              window.focusDoorstep = function() {
+                map.flyTo([${storeLat}, ${storeLng}], 17, { duration: 0.8 });
+                storeMarker.openPopup();
               };
             ` : `
               // Customer Doorstep Marker
               var custIcon = L.divIcon({
                 className: '',
                 html: '<div class="cust-pin"><span style="transform: rotate(45deg);">🏠</span></div>',
-                iconSize: [34, 34],
-                iconAnchor: [17, 30],
-                popupAnchor: [0, -30]
+                iconSize: [36, 36],
+                iconAnchor: [18, 32],
+                popupAnchor: [0, -32]
               });
               var custMarker = L.marker([${custLat}, ${custLng}], { icon: custIcon }).addTo(map);
               custMarker.bindPopup('<div style="font-size:12px; line-height:1.4;"><b style="color:#E11D48;">🏠 Delivery Destination</b><br/><span style="color:#334155;">${custAddress}</span></div>');
 
               ${showStorePin ? `
-                // Store Pin (Only when order is being prepared before rider dispatch)
                 var storeIcon = L.divIcon({
                   className: '',
                   html: '<div class="store-pin"><span style="transform: rotate(45deg);">🏪</span></div>',
@@ -196,14 +243,24 @@ export function OrderTrackingMap({
                 var riderIcon = L.divIcon({
                   className: '',
                   html: '<div class="rider-pin-wrap"><div class="rider-pulse"></div><div class="rider-circle">🛵</div></div>',
-                  iconSize: [44, 44],
-                  iconAnchor: [22, 22],
-                  popupAnchor: [0, -22]
+                  iconSize: [48, 48],
+                  iconAnchor: [24, 24],
+                  popupAnchor: [0, -24]
                 });
                 var riderMarker = L.marker([${riderLat}, ${riderLng}], { icon: riderIcon }).addTo(map);
                 riderMarker.bindPopup('<div style="font-size:12px; line-height:1.4;"><b style="color:#4F46E5;">🛵 ${riderName}</b><br/><span style="color:#059669; font-weight:700;">● Live GPS Active</span><br/><span style="color:#475569;">On the way to your doorstep</span></div>');
                 riderMarker.openPopup();
+
+                window.focusRider = function() {
+                  map.flyTo([${riderLat}, ${riderLng}], 17, { duration: 0.8 });
+                  riderMarker.openPopup();
+                };
               ` : ''}
+
+              window.focusDoorstep = function() {
+                map.flyTo([${custLat}, ${custLng}], 17, { duration: 0.8 });
+                custMarker.openPopup();
+              };
 
               var routeBounds = L.latLngBounds([
                 [${originLat}, ${originLng}],
@@ -213,7 +270,7 @@ export function OrderTrackingMap({
 
               window.recenterMap = function() {
                 if (routeBounds) {
-                  map.fitBounds(routeBounds, { padding: [40, 40] });
+                  map.flyToBounds(routeBounds, { padding: [40, 40], duration: 0.8 });
                 }
               };
 
@@ -235,15 +292,15 @@ export function OrderTrackingMap({
                     var coords = route.geometry.coordinates.map(function(pt) { return [pt[1], pt[0]]; });
                     
                     // Road route casing
-                    L.polyline(coords, { color: '#047857', weight: 6, opacity: 0.25 }).addTo(map);
+                    L.polyline(coords, { color: '#047857', weight: 6.5, opacity: 0.3 }).addTo(map);
                     // Road route stroke
-                    var poly = L.polyline(coords, { color: '#10B981', weight: 4, opacity: 0.95 }).addTo(map);
+                    var poly = L.polyline(coords, { color: '#10B981', weight: 4.5, opacity: 0.95 }).addTo(map);
 
                     routeBounds = poly.getBounds();
                     map.fitBounds(routeBounds, { padding: [40, 40] });
                   } else {
                     var line = L.polyline([[${originLat}, ${originLng}], [${custLat}, ${custLng}]], {
-                      color: '#10B981', weight: 3, dashArray: '5, 8'
+                      color: '#10B981', weight: 3.5, dashArray: '5, 8'
                     }).addTo(map);
                     routeBounds = line.getBounds();
                     map.fitBounds(routeBounds, { padding: [35, 35] });
@@ -251,7 +308,7 @@ export function OrderTrackingMap({
                 })
                 .catch(function() {
                   var line = L.polyline([[${originLat}, ${originLng}], [${custLat}, ${custLng}]], {
-                    color: '#10B981', weight: 3, dashArray: '5, 8'
+                    color: '#10B981', weight: 3.5, dashArray: '5, 8'
                   }).addTo(map);
                   routeBounds = line.getBounds();
                   map.fitBounds(routeBounds, { padding: [35, 35] });
@@ -276,31 +333,103 @@ export function OrderTrackingMap({
   };
 
   return (
-    <View style={[styles.container, { height }]}>
-      <WebView
-        source={{ html: trackingHtml }}
-        style={{ width: '100%', height }}
-        originWhitelist={['*']}
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
-        mixedContentMode="always"
-        androidHardwareAccelerationDisabled={false}
-        androidLayerType="hardware"
-        scrollEnabled={false}
-      />
+    <>
+      <View style={[styles.container, { height }]}>
+        <WebView
+          source={{ html: trackingHtml }}
+          style={{ width: '100%', height }}
+          originWhitelist={['*']}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          mixedContentMode="always"
+          androidHardwareAccelerationDisabled={false}
+          androidLayerType="hardware"
+          scrollEnabled={false}
+        />
 
-      {/* 1-Tap Maps Launcher Bottom Left */}
-      <TouchableOpacity
-        style={styles.navButton}
-        onPress={handleOpenMaps}
-        activeOpacity={0.85}
+        {/* Expand / Fullscreen Map Button Top Right */}
+        <TouchableOpacity
+          style={styles.expandButton}
+          onPress={() => setIsExpanded(true)}
+          activeOpacity={0.8}
+          accessibilityLabel="Fullscreen Map"
+        >
+          <Ionicons name="expand" size={15} color="#0F172A" />
+        </TouchableOpacity>
+
+        {/* 1-Tap Maps Launcher Bottom Left */}
+        <TouchableOpacity
+          style={styles.navButton}
+          onPress={handleOpenMaps}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="compass" size={14} color="#059669" />
+          <Text style={styles.navButtonText}>
+            {isPickup ? 'Directions to Store' : 'Open in Google Maps'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Fullscreen Interactive Tracking Modal */}
+      <Modal
+        visible={isExpanded}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setIsExpanded(false)}
       >
-        <Ionicons name="compass" size={14} color="#059669" />
-        <Text style={styles.navButtonText}>
-          {isPickup ? 'Directions to Store' : 'Open in Google Maps'}
-        </Text>
-      </TouchableOpacity>
-    </View>
+        <SafeAreaView style={styles.modalContainer}>
+          <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
+          
+          {/* Modal Header */}
+          <View style={styles.modalHeader}>
+            <View style={styles.modalHeaderLeft}>
+              <View style={styles.headerDot} />
+              <View>
+                <Text style={styles.modalTitle}>Live Delivery Route</Text>
+                <Text style={styles.modalSubtitle} numberOfLines={1}>
+                  {custAddress}
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.closeBtn}
+              onPress={() => setIsExpanded(false)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="close" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Full-Screen Map Canvas */}
+          <View style={styles.fullscreenMapWrap}>
+            <WebView
+              source={{ html: trackingHtml }}
+              style={{ flex: 1 }}
+              originWhitelist={['*']}
+              javaScriptEnabled={true}
+              domStorageEnabled={true}
+              mixedContentMode="always"
+              androidHardwareAccelerationDisabled={false}
+              androidLayerType="hardware"
+            />
+          </View>
+
+          {/* Bottom Bar in Fullscreen */}
+          <View style={styles.modalBottomBar}>
+            <TouchableOpacity
+              style={styles.modalNavButton}
+              onPress={handleOpenMaps}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="navigate" size={16} color="#FFFFFF" />
+              <Text style={styles.modalNavButtonText}>
+                {isPickup ? 'Launch Directions in Google Maps' : 'Turn-by-Turn in Google Maps'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
+    </>
   );
 }
 
@@ -311,6 +440,24 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
     backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  expandButton: {
+    position: 'absolute',
+    top: 10,
+    right: 50,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
@@ -337,5 +484,79 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: '#0F172A',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#0F172A',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1E293B',
+    backgroundColor: '#0F172A',
+  },
+  modalHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+    marginRight: 10,
+  },
+  headerDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#10B981',
+  },
+  modalTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  modalSubtitle: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 1,
+  },
+  closeBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#1E293B',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fullscreenMapWrap: {
+    flex: 1,
+    position: 'relative',
+  },
+  modalBottomBar: {
+    padding: 14,
+    backgroundColor: '#0F172A',
+    borderTopWidth: 1,
+    borderTopColor: '#1E293B',
+  },
+  modalNavButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#059669',
+    paddingVertical: 14,
+    borderRadius: 14,
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  modalNavButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
   },
 });

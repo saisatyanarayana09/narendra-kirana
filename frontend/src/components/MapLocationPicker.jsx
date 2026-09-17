@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Search, MapPin, Navigation, X, Check, Loader2, AlertTriangle, Store } from 'lucide-react';
+import { Search, MapPin, Navigation, X, Check, Loader2, AlertTriangle, Store, Layers, Crosshair, Plus, Minus } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 // Custom SVG marker icon for high-DPI screens without asset path issues
@@ -32,7 +32,9 @@ export default function MapLocationPicker({
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
+  const tileLayerRef = useRef(null);
 
+  const [mapLayer, setMapLayer] = useState('street'); // 'street' | 'satellite'
   const [coords, setCoords] = useState({
     lat: initialLat || 17.385044,
     lng: initialLng || 78.486671
@@ -191,6 +193,57 @@ export default function MapLocationPicker({
     );
   };
 
+  // Change Map Tile Layer (Street vs Satellite)
+  const setTileMode = useCallback((mode) => {
+    if (!mapInstanceRef.current) return;
+    setMapLayer(mode);
+
+    if (tileLayerRef.current) {
+      mapInstanceRef.current.removeLayer(tileLayerRef.current);
+    }
+
+    if (mode === 'satellite') {
+      // Free Esri World Imagery (High-Resolution Aerial Satellite)
+      tileLayerRef.current = L.tileLayer(
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        {
+          maxZoom: 19,
+          attribution: 'Tiles &copy; Esri &mdash; Aerial Imagery'
+        }
+      ).addTo(mapInstanceRef.current);
+    } else {
+      // Free OpenStreetMap Standard
+      tileLayerRef.current = L.tileLayer(
+        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        {
+          maxZoom: 19,
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }
+      ).addTo(mapInstanceRef.current);
+    }
+  }, []);
+
+  // Quick camera actions
+  const handleFocusPin = () => {
+    if (mapInstanceRef.current && coords.lat && coords.lng) {
+      mapInstanceRef.current.flyTo([coords.lat, coords.lng], 18, { duration: 0.8 });
+    }
+  };
+
+  const handleFocusStore = () => {
+    if (mapInstanceRef.current && storeLat && storeLng) {
+      mapInstanceRef.current.flyTo([storeLat, storeLng], 16, { duration: 0.8 });
+    }
+  };
+
+  const handleZoomIn = () => {
+    if (mapInstanceRef.current) mapInstanceRef.current.zoomIn();
+  };
+
+  const handleZoomOut = () => {
+    if (mapInstanceRef.current) mapInstanceRef.current.zoomOut();
+  };
+
   // Initialize Leaflet map
   useEffect(() => {
     if (!isOpen || !mapContainerRef.current) return;
@@ -206,17 +259,22 @@ export default function MapLocationPicker({
       center: initialCenter,
       zoom: 16,
       zoomControl: false,
-      attributionControl: true
+      attributionControl: false
     });
 
-    // Official OpenStreetMap Tile Layer (100% Free, Zero API Keys Required)
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      maxZoom: 19
-    }).addTo(map);
+    // Tile Layer: Esri Satellite or OpenStreetMap Standard
+    const initialLayer = mapLayer === 'satellite'
+      ? L.tileLayer(
+          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+          { maxZoom: 19, attribution: 'Tiles &copy; Esri' }
+        )
+      : L.tileLayer(
+          'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+          { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }
+        );
 
-    // Zoom controls at bottom right
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
+    initialLayer.addTo(map);
+    tileLayerRef.current = initialLayer;
 
     // Render store origin and delivery boundary if store coordinates available
     if (storeSettings && storeLat && storeLng) {
@@ -383,6 +441,71 @@ export default function MapLocationPicker({
         {/* Leaflet Map Canvas Container */}
         <div className="relative flex-1 w-full bg-slate-100 dark:bg-slate-800">
           <div ref={mapContainerRef} className="w-full h-full" />
+
+          {/* Interactive Control HUD (Top Right) */}
+          <div className="absolute right-3 top-20 z-[999] flex flex-col gap-2 items-end">
+            {/* Satellite / Street Switcher */}
+            <button
+              type="button"
+              onClick={() => setTileMode(mapLayer === 'street' ? 'satellite' : 'street')}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl shadow-lg border text-xs font-bold transition cursor-pointer backdrop-blur-md ${
+                mapLayer === 'satellite'
+                  ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-600/30'
+                  : 'bg-white/95 dark:bg-slate-800/95 text-slate-800 dark:text-slate-100 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
+              }`}
+              title={mapLayer === 'street' ? 'Switch to Aerial Satellite View' : 'Switch to Street Map'}
+            >
+              <Layers size={15} />
+              <span>{mapLayer === 'street' ? 'Satellite 🛰️' : 'Street 🗺️'}</span>
+            </button>
+
+            {/* Focus Doorstep Pin */}
+            <button
+              type="button"
+              onClick={handleFocusPin}
+              className="flex items-center justify-center w-9 h-9 bg-white/95 dark:bg-slate-800/95 text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer backdrop-blur-md"
+              title="Focus on My Pin 🎯"
+            >
+              <Crosshair size={18} />
+            </button>
+
+            {/* Focus Store Hub */}
+            {storeSettings && storeLat && storeLng && (
+              <button
+                type="button"
+                onClick={handleFocusStore}
+                className="flex items-center justify-center w-9 h-9 bg-white/95 dark:bg-slate-800/95 text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer backdrop-blur-md"
+                title="Focus Store Hub 🏪"
+              >
+                <Store size={18} />
+              </button>
+            )}
+
+            {/* Zoom Controls */}
+            <div className="flex flex-col bg-white/95 dark:bg-slate-800/95 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden backdrop-blur-md">
+              <button
+                type="button"
+                onClick={handleZoomIn}
+                className="flex items-center justify-center w-9 h-8 text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer border-b border-slate-200 dark:border-slate-700"
+                title="Zoom In"
+              >
+                <Plus size={15} />
+              </button>
+              <button
+                type="button"
+                onClick={handleZoomOut}
+                className="flex items-center justify-center w-9 h-8 text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer"
+                title="Zoom Out"
+              >
+                <Minus size={15} />
+              </button>
+            </div>
+          </div>
+
+          {/* Satellite Rooftop Hint (Bottom Left) */}
+          <div className="absolute left-3 bottom-3 z-[999] hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-900/80 text-white backdrop-blur-md rounded-xl text-[11px] font-medium pointer-events-none">
+            <span>🛰️ Switch to Satellite to view rooftop & gates</span>
+          </div>
 
           {/* Quick "Locate Me" Button */}
           <button

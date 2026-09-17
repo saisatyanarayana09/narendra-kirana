@@ -197,7 +197,7 @@ export function MapLocationPicker({
     onClose();
   };
 
-  // High-performance Leaflet HTML with CartoDB Voyager tiles and custom draggable pin
+  // High-performance Leaflet HTML with CartoDB/OSM tiles and custom draggable pin
   const leafletHtml = `
     <!DOCTYPE html>
     <html>
@@ -205,7 +205,7 @@ export function MapLocationPicker({
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
         <style>
-          html, body, #map { margin: 0; padding: 0; width: 100%; height: 100%; background: #f8fafc; font-family: sans-serif; }
+          html, body, #map { margin: 0; padding: 0; width: 100%; height: 100%; background: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
           .pin-marker {
             position: relative; width: 38px; height: 38px;
             display: flex; align-items: center; justify-content: center;
@@ -223,19 +223,102 @@ export function MapLocationPicker({
             width: 10px; height: 10px; background: #ffffff; border-radius: 50%;
             transform: rotate(45deg);
           }
+          .map-controls-col {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+          }
+          .ctrl-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.96);
+            border: 1px solid rgba(0,0,0,0.12);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.16);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+          }
+          .ctrl-btn:active {
+            transform: scale(0.92);
+          }
+          .sat-hint {
+            position: absolute;
+            left: 12px;
+            bottom: 12px;
+            z-index: 1000;
+            background: rgba(15, 23, 42, 0.85);
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            backdrop-filter: blur(6px);
+            pointer-events: none;
+          }
         </style>
       </head>
       <body>
         <div id="map"></div>
+
+        <!-- Floating Interactive Controls -->
+        <div class="map-controls-col">
+          <button class="ctrl-btn" id="layer-btn" onclick="toggleLayer()" title="Toggle Satellite / Street">🛰️</button>
+          <button class="ctrl-btn" onclick="focusPin()" title="Focus on Pin">🎯</button>
+          ${storeSettings ? `<button class="ctrl-btn" onclick="focusStore()" title="Focus Store">🏪</button>` : ''}
+          <button class="ctrl-btn" onclick="zoomIn()" style="font-weight:800; font-size:16px;">+</button>
+          <button class="ctrl-btn" onclick="zoomOut()" style="font-weight:800; font-size:16px;">−</button>
+        </div>
+
+        <div class="sat-hint">🛰️ Tap satellite to see rooftop & gate</div>
+
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
         <script>
           var lat = ${coords.lat};
           var lng = ${coords.lng};
           var map = L.map('map', { zoomControl: false, attributionControl: false }).setView([lat, lng], 16);
 
-          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19
-          }).addTo(map);
+          // Standard OSM and Esri Satellite layer
+          var isSatellite = false;
+          var streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+          var satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+
+          window.toggleLayer = function() {
+            isSatellite = !isSatellite;
+            var btn = document.getElementById('layer-btn');
+            if (isSatellite) {
+              map.removeLayer(streetLayer);
+              satLayer.addTo(map);
+              if (btn) btn.innerText = '🗺️';
+            } else {
+              map.removeLayer(satLayer);
+              streetLayer.addTo(map);
+              if (btn) btn.innerText = '🛰️';
+            }
+          };
+
+          window.focusPin = function() {
+            var pt = marker.getLatLng();
+            map.flyTo(pt, 18, { duration: 0.8 });
+          };
+
+          ${storeSettings ? `
+          window.focusStore = function() {
+            map.flyTo([${storeLat}, ${storeLng}], 16, { duration: 0.8 });
+          };
+          ` : ''}
+
+          window.zoomIn = function() { map.zoomIn(); };
+          window.zoomOut = function() { map.zoomOut(); };
 
           ${storeSettings ? `
           L.marker([${storeLat}, ${storeLng}], {

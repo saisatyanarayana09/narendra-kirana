@@ -3,7 +3,8 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { 
   Navigation, MapPin, Phone, Crosshair, 
-  ArrowUpRight, AlertCircle, RefreshCw, X, Maximize2, Minimize2
+  ArrowUpRight, AlertCircle, RefreshCw, X, Maximize2, Minimize2,
+  Layers, Compass
 } from 'lucide-react';
 import api from '../services/api';
 
@@ -49,8 +50,12 @@ export default function DeliveryLiveMap({
   const riderMarkerRef = useRef(null);
   const customerMarkerRef = useRef(null);
   const polylineRef = useRef(null);
+  const tileLayerRef = useRef(null);
+  const accuracyCircleRef = useRef(null);
   const watchIdRef = useRef(null);
 
+  const [mapLayer, setMapLayer] = useState('street'); // 'street' | 'satellite'
+  const [autoFollow, setAutoFollow] = useState(true);
   const [riderCoords, setRiderCoords] = useState(null);
   const [gpsAccuracy, setGpsAccuracy] = useState(null);
   const [gpsError, setGpsError] = useState('');
@@ -107,6 +112,28 @@ export default function DeliveryLiveMap({
     };
   }, []);
 
+  // Change Map Tile Layer (Street vs Satellite)
+  const setTileMode = useCallback((mode) => {
+    if (!mapInstanceRef.current) return;
+    setMapLayer(mode);
+
+    if (tileLayerRef.current) {
+      mapInstanceRef.current.removeLayer(tileLayerRef.current);
+    }
+
+    if (mode === 'satellite') {
+      tileLayerRef.current = L.tileLayer(
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        { maxZoom: 19, attribution: 'Tiles &copy; Esri &mdash; Aerial Imagery' }
+      ).addTo(mapInstanceRef.current);
+    } else {
+      tileLayerRef.current = L.tileLayer(
+        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }
+      ).addTo(mapInstanceRef.current);
+    }
+  }, []);
+
   // Initialize Leaflet Map
   useEffect(() => {
     if (!mapContainerRef.current) return;
@@ -127,8 +154,12 @@ export default function DeliveryLiveMap({
       attributionControl: false
     });
 
-    // Clean OpenStreetMap standard tiles (Zero API key, zero watermarks)
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // Default tile layer
+    const initialTileUrl = mapLayer === 'satellite'
+      ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+      : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+    tileLayerRef.current = L.tileLayer(initialTileUrl, {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
@@ -158,6 +189,16 @@ export default function DeliveryLiveMap({
     };
   }, [hasCustCoords, custLat, custLng]);
 
+  // Invalidate map size on expand/minimize
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [isExpanded]);
+
   // Update Rider Marker & Fetch OSRM Road Route
   const updateRoute = useCallback(() => {
     const map = mapInstanceRef.current;
@@ -178,6 +219,27 @@ export default function DeliveryLiveMap({
         riderMarkerRef.current = rMarker;
       } else {
         riderMarkerRef.current.setLatLng(riderLatLng);
+      }
+
+      // Update or create GPS accuracy circle
+      if (gpsAccuracy && gpsAccuracy > 0) {
+        if (!accuracyCircleRef.current) {
+          accuracyCircleRef.current = L.circle(riderLatLng, {
+            radius: gpsAccuracy,
+            color: '#10B981',
+            fillColor: '#10B981',
+            fillOpacity: 0.12,
+            weight: 1.5
+          }).addTo(map);
+        } else {
+          accuracyCircleRef.current.setLatLng(riderLatLng);
+          accuracyCircleRef.current.setRadius(gpsAccuracy);
+        }
+      }
+
+      // Auto-follow rider movement if enabled
+      if (autoFollow) {
+        map.panTo(riderLatLng, { animate: true, duration: 0.5 });
       }
 
       // If both rider and customer locations are available, compute real road route
@@ -282,6 +344,41 @@ export default function DeliveryLiveMap({
 
         {/* Action Controls Header */}
         <div className="pointer-events-auto flex items-center gap-1.5 bg-slate-950/90 backdrop-blur-md border border-slate-800 rounded-2xl p-1 shadow-lg">
+          {/* Layer Switcher: Street vs Satellite */}
+          <button
+            type="button"
+            onClick={() => setTileMode(mapLayer === 'street' ? 'satellite' : 'street')}
+            className={`h-8 px-2 rounded-xl text-xs font-bold flex items-center gap-1 transition cursor-pointer ${
+              mapLayer === 'satellite'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'bg-slate-800/80 hover:bg-slate-700 text-slate-300'
+            }`}
+            title={mapLayer === 'street' ? 'Switch to Satellite View' : 'Switch to Street Map'}
+          >
+            <Layers size={14} />
+            <span className="text-[11px] hidden sm:inline">{mapLayer === 'street' ? 'Sat' : 'Map'}</span>
+          </button>
+
+          {/* Auto-Follow Toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              const next = !autoFollow;
+              setAutoFollow(next);
+              if (next && riderCoords && mapInstanceRef.current) {
+                mapInstanceRef.current.panTo([riderCoords.lat, riderCoords.lng]);
+              }
+            }}
+            className={`size-8 rounded-xl flex items-center justify-center transition cursor-pointer ${
+              autoFollow 
+                ? 'bg-emerald-600 text-white shadow-sm' 
+                : 'bg-slate-800/80 hover:bg-slate-700 text-slate-400'
+            }`}
+            title={autoFollow ? 'Auto-Follow Enabled (Camera tracks you)' : 'Enable Auto-Follow'}
+          >
+            <Compass size={16} className={autoFollow ? 'animate-spin-slow' : ''} />
+          </button>
+
           <button
             type="button"
             onClick={centerOnRider}
