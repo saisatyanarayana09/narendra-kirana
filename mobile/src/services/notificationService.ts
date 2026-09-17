@@ -307,3 +307,19 @@ export function addNotificationResponseReceivedListener(
     return { remove: () => {} };
   }
 }
+
+/**
+ * Retrieve notification response on cold start (when app is launched from a tapped notification while closed/killed)
+ */
+export async function getLastNotificationResponseAsync(): Promise<any | null> {
+  const Notifications = getNotifications();
+  if (!Notifications || !Notifications.getLastNotificationResponseAsync) {
+    return null;
+  }
+  try {
+    return await Notifications.getLastNotificationResponseAsync();
+  } catch (err) {
+    return null;
+  }
+}
+

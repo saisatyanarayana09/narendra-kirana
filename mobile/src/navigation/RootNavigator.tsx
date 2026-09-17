@@ -23,7 +23,10 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { navigationRef } from './navigationRef';
 import { storeApi, StoreSettings } from '../api/store';
 import { APP_VERSION } from '../constants/config';
-import { addNotificationResponseReceivedListener } from '../services/notificationService';
+import { 
+  addNotificationResponseReceivedListener,
+  getLastNotificationResponseAsync 
+} from '../services/notificationService';
 import { 
   downloadAndInstallApk, 
   installDownloadedApk, 
@@ -361,11 +364,11 @@ export function RootNavigator() {
       handleIncomingUrl(event.url);
     });
 
-    // 3. Listen for push notification click / tap events and interactive action buttons
-    const notifSub = addNotificationResponseReceivedListener((response) => {
+    // 3. Helper to route notification taps / action buttons to order screen
+    const handleNotificationResponse = (response: any) => {
       try {
-        const data = response.notification?.request?.content?.data;
-        const actionId = response.actionIdentifier;
+        const data = response?.notification?.request?.content?.data;
+        const actionId = response?.actionIdentifier;
         const targetOrderId = data?.order_id || data?.orderId;
 
         if (targetOrderId && navigationRef.isReady()) {
@@ -382,6 +385,16 @@ export function RootNavigator() {
         }
       } catch (e) {
         console.warn('[RootNavigator] Notification tap navigation error:', e);
+      }
+    };
+
+    // Listen for push notification click / tap events while app is open or backgrounded
+    const notifSub = addNotificationResponseReceivedListener(handleNotificationResponse);
+
+    // Check if app was opened directly from a notification tap while completely killed/closed
+    getLastNotificationResponseAsync().then((response) => {
+      if (response) {
+        handleNotificationResponse(response);
       }
     });
 
