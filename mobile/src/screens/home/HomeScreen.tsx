@@ -1255,6 +1255,7 @@ const styles = StyleSheet.create({
   },
   horizontalProductItem: {
     width: 160, // Exact w-[160px] matching web customer.jsx carousel items
+    height: 296,
   },
   countBadge: {
     backgroundColor: '#F1F5F9',

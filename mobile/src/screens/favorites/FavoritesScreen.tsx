@@ -375,6 +375,7 @@ const styles = StyleSheet.create({
   },
   cardWrapper: {
     width: (width - 44) / 2,
+    height: 296,
   },
   guestStateContainer: {
     flex: 1,

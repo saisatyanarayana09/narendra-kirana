@@ -680,5 +680,6 @@ const styles = StyleSheet.create({
   },
   cardWrapper: {
     width: Math.floor((width - 36) / 2),
+    height: 296,
   },
 });

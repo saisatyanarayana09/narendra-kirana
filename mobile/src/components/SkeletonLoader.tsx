@@ -55,15 +55,13 @@ export function ProductCardSkeleton() {
   const { colors } = useTheme();
   return (
     <View style={[styles.productCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <SkeletonItem width="100%" height={128} borderRadius={14} />
-      <View style={{ padding: 10, gap: 6, flex: 1 }}>
-        <SkeletonItem width="40%" height={10} borderRadius={4} />
-        <SkeletonItem width="90%" height={14} borderRadius={4} />
-        <SkeletonItem width="60%" height={12} borderRadius={4} />
-        <View style={{ marginTop: 'auto', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <SkeletonItem width="35%" height={16} borderRadius={4} />
-          <SkeletonItem width="50%" height={34} borderRadius={10} />
-        </View>
+      <SkeletonItem width="100%" height={132} borderRadius={14} />
+      <View style={{ paddingHorizontal: 10, paddingTop: 8, paddingBottom: 10, flex: 1, justifyContent: 'space-between' }}>
+        <SkeletonItem width="45%" height={12} borderRadius={4} />
+        <SkeletonItem width="92%" height={30} borderRadius={4} />
+        <SkeletonItem width="50%" height={14} borderRadius={4} />
+        <SkeletonItem width="40%" height={18} borderRadius={4} />
+        <SkeletonItem width="100%" height={38} borderRadius={10} />
       </View>
     </View>
   );
@@ -92,7 +90,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    height: 284,
+    height: 296,
     width: '100%',
     overflow: 'hidden',
   },

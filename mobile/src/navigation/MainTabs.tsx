@@ -222,9 +222,10 @@ export function MainTabs() {
             alignItems: 'center',
           },
           tabBarLabelStyle: {
-            fontSize: 11,
-            fontWeight: '800',
+            fontSize: 10,
+            fontWeight: '700',
             marginTop: 1,
+            letterSpacing: -0.2,
           },
         }}
       >

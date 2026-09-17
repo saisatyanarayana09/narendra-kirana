@@ -195,7 +195,7 @@ function ProductCardComponent({
           <Image 
             source={{ uri: primaryImage }} 
             style={styles.image} 
-            contentFit="contain"
+            contentFit="cover"
             recyclingKey={primaryImage || String(product.id)}
             cachePolicy="memory-disk"
             transition={150}
@@ -218,29 +218,40 @@ function ProductCardComponent({
 
       {/* Content */}
       <View style={styles.content}>
-        {product.brand && (
-          <Text style={[styles.brand, { color: colors.textSecondary }]} numberOfLines={1}>{product.brand}</Text>
-        )}
-        <Text style={[styles.name, { color: colors.text }]} numberOfLines={2}>{product.name}</Text>
-        <Text style={[styles.unit, { color: colors.textSecondary }]}>{product.unit || '1 unit'}</Text>
-        
-        {/* Optional Tag Chips */}
-        {product.tags && (
-          <View style={styles.tagsContainer}>
-            {product.tags.split(',').slice(0, 1).map((tag: string, i: number) => (
-              <View key={i} style={[styles.tagBadge, isDark && { backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.3)' }]}>
-                <Text style={styles.tagText} numberOfLines={1}>{tag.trim()}</Text>
-              </View>
-            ))}
-          </View>
-        )}
+        {/* Brand Slot (reserved height ensures product names align across all cards) */}
+        <View style={styles.brandRow}>
+          {product.brand ? (
+            <Text style={[styles.brand, { color: colors.textSecondary }]} numberOfLines={1}>
+              {product.brand}
+            </Text>
+          ) : null}
+        </View>
+
+        {/* Title Slot (2-line clamped with fixed container height) */}
+        <Text style={[styles.name, { color: colors.text }]} numberOfLines={2} ellipsizeMode="tail">
+          {product.name}
+        </Text>
+
+        {/* Unit & Optional Tag Badge Row */}
+        <View style={styles.unitRow}>
+          <Text style={[styles.unit, { color: colors.textSecondary }]} numberOfLines={1}>
+            {product.unit || '1 unit'}
+          </Text>
+          {product.tags ? (
+            <View style={[styles.tagBadge, isDark && { backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.3)' }]}>
+              <Text style={styles.tagText} numberOfLines={1}>
+                {product.tags.split(',')[0].trim()}
+              </Text>
+            </View>
+          ) : null}
+        </View>
 
         {/* Price Row: ₹{price} and strikethrough ₹{mrp} */}
         <View style={styles.priceRow}>
           <Text style={[styles.price, { color: colors.text }]}>₹{parsedPrice}</Text>
-          {discount > 0 && (
+          {discount > 0 ? (
             <Text style={styles.mrp}>₹{parsedMrp}</Text>
-          )}
+          ) : null}
         </View>
 
         {/* Add to Cart / Stepper (only if showQuantityStepper is explicitly true) */}
@@ -346,7 +357,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     width: '100%',
-    minHeight: 284, // Uniform minimum card height so titles with tags/price never get squeezed
+    height: 296, // Strictly locked uniform height so every card in a row or grid has the exact same dimensions
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
@@ -356,14 +367,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   imageContainer: {
-    height: 128, // Exact h-32 (128px) matching web customer.jsx:72
+    height: 132,
     backgroundColor: '#F8FAFC',
     position: 'relative',
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderTopLeftRadius: 15,
+    borderTopRightRadius: 15,
   },
   imageOutOfStock: {
     opacity: 0.6,
@@ -393,7 +404,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderBottomRightRadius: 12,
-    borderTopLeftRadius: 16,
+    borderTopLeftRadius: 15,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
@@ -443,33 +454,44 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   content: {
-    padding: 10,
+    paddingHorizontal: 10,
+    paddingTop: 8,
+    paddingBottom: 10,
     flex: 1,
     flexDirection: 'column',
     justifyContent: 'space-between',
+  },
+  brandRow: {
+    height: 14,
+    justifyContent: 'center',
+    marginBottom: 2,
   },
   brand: {
     fontSize: 10,
     color: '#64748B',
     textTransform: 'uppercase',
-    marginBottom: 1,
     fontWeight: '700',
+    lineHeight: 14,
   },
   name: {
     fontSize: 13,
     fontWeight: '700',
     color: '#1E293B',
     lineHeight: 17,
+    height: 34,
+  },
+  unitRow: {
+    height: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 2,
   },
   unit: {
     fontSize: 11,
     color: '#64748B',
     fontWeight: '500',
-    marginTop: 1,
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    marginTop: 3,
+    flex: 1,
   },
   tagBadge: {
     backgroundColor: '#FEF2F2',
@@ -478,6 +500,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
     paddingVertical: 1,
     borderRadius: 4,
+    marginLeft: 4,
   },
   tagText: {
     fontSize: 9,
@@ -486,14 +509,15 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   priceRow: {
+    height: 22,
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: 6,
-    marginTop: 4,
-    marginBottom: 6,
+    marginTop: 3,
+    marginBottom: 4,
   },
   price: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '900',
     color: '#0F172A',
     fontVariant: ['tabular-nums'],
@@ -507,10 +531,11 @@ const styles = StyleSheet.create({
   },
   actionContainer: {
     marginTop: 'auto',
+    height: 38,
   },
   addToCartButton: {
-    height: 40,
-    borderRadius: 12,
+    height: 38,
+    borderRadius: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
