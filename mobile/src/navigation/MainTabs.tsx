@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Platform, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -140,27 +140,18 @@ const shouldHideTabBar = (route: any) => {
 export function MainTabs() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
-  const { cart, lastItemAddedTimestamp } = useCart();
+  const { cart } = useCart();
   const { user } = useAuth();
   const { t } = useLanguage();
   const [currentTab, setCurrentTab] = useState('HomeTab');
   const [currentRouteName, setCurrentRouteName] = useState('');
   const [isMinimizedForSession, setIsMinimizedForSession] = useState(false);
-  const lastAddRef = useRef(lastItemAddedTimestamp);
 
   // Cart popup bar should only come after welcome screen is completed
   const willShowWelcome = !getHasShownWelcomeSession();
   const [isWelcomeActive, setIsWelcomeActive] = useState(willShowWelcome);
 
   const cartItemCount = cart?.items?.length || 0;
-
-  // Re-open/un-minimize cart bar when user adds an item
-  useEffect(() => {
-    if (lastItemAddedTimestamp > 0 && lastItemAddedTimestamp !== lastAddRef.current) {
-      lastAddRef.current = lastItemAddedTimestamp;
-      setIsMinimizedForSession(false);
-    }
-  }, [lastItemAddedTimestamp]);
 
   // Pre-warm both homeDataCache and ordersCache when user is present or on component mount
   useEffect(() => {
