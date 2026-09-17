@@ -19,6 +19,8 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { getCachedOrderByIdSync, saveCachedSingleOrder } from '../../services/ordersCache';
 import { OrderTrackingMap } from '../../components/OrderTrackingMap';
+import * as Clipboard from 'expo-clipboard';
+import { triggerHaptic } from '../../utils/haptics';
 
 export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavigationProp; route: any }) {
   const { colors, isDark } = useTheme();
@@ -32,6 +34,17 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
+  const [copiedOtp, setCopiedOtp] = useState(false);
+
+  const handleCopyOtp = async () => {
+    if (!order?.delivery_otp) return;
+    try {
+      await Clipboard.setStringAsync(String(order.delivery_otp));
+      triggerHaptic('selection');
+      setCopiedOtp(true);
+      setTimeout(() => setCopiedOtp(false), 2000);
+    } catch (e) {}
+  };
 
   useEffect(() => {
     storeApi.getSettings().then(setStoreSettings).catch(() => null);
@@ -345,9 +358,19 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
                 </Text>
               ) : null}
             </View>
-            <View style={[styles.otpBox, { backgroundColor: colors.surface, borderColor: colors.primary }]}>
+            <TouchableOpacity 
+              style={[styles.otpBox, { backgroundColor: colors.surface, borderColor: colors.primary }]}
+              onPress={handleCopyOtp}
+              activeOpacity={0.75}
+            >
               <Text style={[styles.otpCodeText, { color: colors.primary }]}>{order.delivery_otp}</Text>
-            </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 }}>
+                <Feather name={copiedOtp ? "check" : "copy"} size={10} color={colors.primary} />
+                <Text style={{ fontSize: 9, fontWeight: '800', color: colors.primary, letterSpacing: 0.5 }}>
+                  {copiedOtp ? 'COPIED' : 'TAP TO COPY'}
+                </Text>
+              </View>
+            </TouchableOpacity>
           </View>
         )}
 

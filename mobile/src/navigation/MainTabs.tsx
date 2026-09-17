@@ -147,7 +147,7 @@ export function MainTabs() {
   const { t } = useLanguage();
   const [currentTab, setCurrentTab] = useState('HomeTab');
   const [currentRouteName, setCurrentRouteName] = useState('');
-  const [showCartBar, setShowCartBar] = useState(false);
+  const [isMinimizedForSession, setIsMinimizedForSession] = useState(false);
   const lastAddRef = useRef(lastItemAddedTimestamp);
 
   // Cart popup bar should only come after welcome screen is completed
@@ -156,19 +156,11 @@ export function MainTabs() {
 
   const cartItemCount = cart?.items?.length || 0;
 
-  // 1. Show ONE time on fresh app open if user has items already in cart (only after welcome screen)
-  useEffect(() => {
-    if (!isWelcomeActive && cartItemCount > 0 && !hasShownInitialCartPopupSession) {
-      hasShownInitialCartPopupSession = true;
-      setShowCartBar(true);
-    }
-  }, [cartItemCount, isWelcomeActive]);
-
-  // 2. ONLY re-show when user ACTIVELY adds an item or increments quantity while shopping
+  // Re-open/un-minimize cart bar when user adds an item
   useEffect(() => {
     if (lastItemAddedTimestamp > 0 && lastItemAddedTimestamp !== lastAddRef.current) {
       lastAddRef.current = lastItemAddedTimestamp;
-      setShowCartBar(true);
+      setIsMinimizedForSession(false);
     }
   }, [lastItemAddedTimestamp]);
 
@@ -306,18 +298,17 @@ export function MainTabs() {
         />
       </Tab.Navigator>
 
-      {/* Floating Mini-Cart Bar: only renders when showCartBar is true, and NEVER on CartTab */}
-      {showCartBar && !isWelcomeActive && currentTab !== 'CartTab' && cartItemCount > 0 && (
+      {/* Floating Mini-Cart Bar: persistently visible unless user explicitly closes it, and NEVER on CartTab */}
+      {!isMinimizedForSession && !isWelcomeActive && currentTab !== 'CartTab' && cartItemCount > 0 && (
         <FloatingCartBar 
           bottomOffset={totalBarHeight + 10}
           onPress={() => {
-            setShowCartBar(false);
             navigation.navigate('Main', {
               screen: 'CartTab',
               params: { screen: 'CartScreen' },
             });
           }}
-          onClose={() => setShowCartBar(false)}
+          onClose={() => setIsMinimizedForSession(true)}
           currentRouteName={currentRouteName}
         />
       )}

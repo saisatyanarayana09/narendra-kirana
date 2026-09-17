@@ -13,6 +13,7 @@ import { fixImageUrl, getOptimizedImageUrl } from '../utils/image';
 import { theme } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
 import { triggerHaptic } from '../utils/haptics';
+import { BouncyTouchable } from './BouncyTouchable';
 
 export interface Product {
   id: number;
@@ -36,6 +37,7 @@ export interface ProductCardProps {
   product: Product;
   onPress: (product: Product) => void;
   onAddToCart?: (product: Product) => void | Promise<void>;
+  onUpdateQuantity?: (productId: number, newQty: number) => void | Promise<void>;
   style?: StyleProp<ViewStyle>;
   isFavorite?: boolean | ((productId: number) => boolean);
   onToggleFavorite?: (product: any) => void;
@@ -46,6 +48,7 @@ function ProductCardComponent({
   product, 
   onPress, 
   onAddToCart, 
+  onUpdateQuantity,
   style,
   isFavorite,
   onToggleFavorite,
@@ -53,7 +56,6 @@ function ProductCardComponent({
 }: ProductCardProps) {
   const { colors, isDark } = useTheme();
   const [updating, setUpdating] = useState(false);
-  const [added, setAdded] = useState(false);
 
   const isFav = typeof isFavorite === 'function' ? Boolean(isFavorite(product.id)) : Boolean(isFavorite);
 
@@ -88,16 +90,49 @@ function ProductCardComponent({
 
   const handleAdd = async () => {
     if (updating || !isInStock || isMaxReached) return;
-    triggerHaptic('medium');
     setUpdating(true);
     try {
-      if (onAddToCart) {
+      if (onUpdateQuantity) {
+        await Promise.resolve(onUpdateQuantity(product.id, 1));
+      } else if (onAddToCart) {
         await Promise.resolve(onAddToCart(product));
       }
-      setAdded(true);
-      setTimeout(() => setAdded(false), 2500);
     } catch (err) {
       console.error('Add to cart failed:', err);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleDecrease = async () => {
+    if (updating) return;
+    setUpdating(true);
+    try {
+      const nextQty = currentCartQty - 1;
+      if (onUpdateQuantity) {
+        await Promise.resolve(onUpdateQuantity(product.id, nextQty));
+      } else if (onAddToCart) {
+        await Promise.resolve(onAddToCart(product));
+      }
+    } catch (err) {
+      console.error('Decrease quantity failed:', err);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleIncrease = async () => {
+    if (updating || isMaxReached) return;
+    setUpdating(true);
+    try {
+      const nextQty = currentCartQty + 1;
+      if (onUpdateQuantity) {
+        await Promise.resolve(onUpdateQuantity(product.id, nextQty));
+      } else if (onAddToCart) {
+        await Promise.resolve(onAddToCart(product));
+      }
+    } catch (err) {
+      console.error('Increase quantity failed:', err);
     } finally {
       setUpdating(false);
     }
@@ -129,17 +164,17 @@ function ProductCardComponent({
 
         {/* Favorite button at top right */}
         {onToggleFavorite && (
-          <TouchableOpacity 
+          <BouncyTouchable 
             style={[
               styles.favoriteButton,
               isDark && { backgroundColor: 'rgba(30, 41, 59, 0.92)' }
             ]} 
             onPress={(e) => {
-              e.stopPropagation?.();
-              triggerHaptic('selection');
+              e?.stopPropagation?.();
               onToggleFavorite(product);
             }}
-            activeOpacity={0.8}
+            scaleTo={0.82}
+            hapticType="selection"
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons 
@@ -147,7 +182,7 @@ function ProductCardComponent({
               size={16} 
               color={isFav ? "#E11D48" : (isDark ? "#64748B" : "#94A3B8")} 
             />
-          </TouchableOpacity>
+          </BouncyTouchable>
         )}
 
         {/* Product image or initial letter fallback */}
@@ -203,36 +238,74 @@ function ProductCardComponent({
           )}
         </View>
 
-        {/* Add to Cart Button matching web app customer.jsx:250-264 */}
+        {/* Add to Cart / Inline Stepper */}
         <View style={styles.actionContainer}>
           {!isInStock ? (
             <View style={[styles.outOfStockButton, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
               <Text style={styles.outOfStockButtonText}>Out of stock</Text>
             </View>
+          ) : currentCartQty > 0 ? (
+            <View style={[styles.stepperContainer, { backgroundColor: colors.primary }]}>
+              <BouncyTouchable
+                style={styles.stepperBtn}
+                onPress={handleDecrease}
+                hapticType="light"
+                scaleTo={0.88}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                disabled={updating}
+              >
+                {currentCartQty === 1 ? (
+                  <Feather name="trash-2" size={14} color="#FFFFFF" />
+                ) : (
+                  <Feather name="minus" size={16} color="#FFFFFF" />
+                )}
+              </BouncyTouchable>
+
+              <Text style={styles.stepperQtyText}>
+                {currentCartQty}
+              </Text>
+
+              <BouncyTouchable
+                style={[styles.stepperBtn, isMaxReached && styles.stepperBtnDisabled]}
+                onPress={handleIncrease}
+                hapticType="light"
+                scaleTo={0.88}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                disabled={updating || isMaxReached}
+              >
+                <Feather 
+                  name="plus" 
+                  size={16} 
+                  color={isMaxReached ? 'rgba(255, 255, 255, 0.4)' : '#FFFFFF'} 
+                />
+              </BouncyTouchable>
+            </View>
           ) : (
-            <TouchableOpacity 
+            <BouncyTouchable 
               style={[
-                styles.addToCartButton, 
-                added && [styles.addedButton, isDark && { backgroundColor: colors.inputBg, borderColor: colors.border }],
+                styles.addButton, 
+                { 
+                  borderColor: colors.primary,
+                  backgroundColor: isDark ? 'rgba(5, 150, 105, 0.12)' : '#F0FDF4',
+                },
                 isMaxReached && [styles.maxReachedButton, isDark && { backgroundColor: colors.inputBg, borderColor: colors.border }]
               ]}
               onPress={handleAdd}
-              disabled={updating || added || isMaxReached}
-              activeOpacity={0.85}
+              disabled={updating || isMaxReached}
+              hapticType="medium"
+              scaleTo={0.95}
             >
               {isMaxReached ? (
                 <Text style={styles.maxReachedText}>Max in cart</Text>
-              ) : added ? (
-                <Text style={[styles.addedText, isDark && { color: colors.text }]}>✓ Added!</Text>
               ) : updating ? (
-                <Text style={styles.addToCartText}>Adding...</Text>
+                <Text style={[styles.addButtonText, { color: colors.primary }]}>Adding...</Text>
               ) : (
-                <>
-                  <Feather name="shopping-cart" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
-                  <Text style={styles.addToCartText}>Add to Cart</Text>
-                </>
+                <View style={styles.addButtonContent}>
+                  <Text style={[styles.addButtonText, { color: colors.primary }]}>ADD</Text>
+                  <Feather name="plus" size={14} color={colors.primary} style={styles.addButtonPlus} />
+                </View>
               )}
-            </TouchableOpacity>
+            </BouncyTouchable>
           )}
         </View>
       </View>
@@ -254,7 +327,9 @@ export const ProductCard = React.memo(ProductCardComponent, (prevProps, nextProp
     prevProps.product.image === nextProps.product.image &&
     prevFav === nextFav &&
     prevProps.cartQty === nextProps.cartQty &&
-    prevProps.style === nextProps.style
+    prevProps.style === nextProps.style &&
+    prevProps.onUpdateQuantity === nextProps.onUpdateQuantity &&
+    prevProps.onAddToCart === nextProps.onAddToCart
   );
 });
 
@@ -414,7 +489,7 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 17,
     fontWeight: '900',
-    color: '#0F172A', // Slate-900 standardized
+    color: '#0F172A',
   },
   mrp: {
     fontSize: 11,
@@ -425,36 +500,63 @@ const styles = StyleSheet.create({
   actionContainer: {
     marginTop: 'auto',
   },
-  addToCartButton: {
-    backgroundColor: '#DC2626', // Red-600 matching web app
-    borderRadius: 12, // rounded-xl matching web customer.jsx:258
-    height: 44,
+  addButton: {
+    height: 38,
+    borderRadius: 10,
+    borderWidth: 1.5,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
-    shadowColor: '#DC2626',
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  addButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addButtonText: {
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  addButtonPlus: {
+    marginLeft: 3,
+  },
+  stepperContainer: {
+    height: 38,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 6,
+    shadowColor: '#059669',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.25,
     shadowRadius: 3,
     elevation: 2,
   },
-  addedButton: {
-    backgroundColor: '#F1F5F9',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    shadowOpacity: 0,
-    elevation: 0,
+  stepperBtn: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 6,
   },
-  addToCartText: {
+  stepperBtnDisabled: {
+    opacity: 0.45,
+  },
+  stepperQtyText: {
     color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  addedText: {
-    color: '#0F172A',
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: 14,
+    fontWeight: '900',
+    textAlign: 'center',
+    minWidth: 24,
   },
   maxReachedButton: {
     backgroundColor: '#F8FAFC',
@@ -473,7 +575,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     borderRadius: 10,
-    height: 44,
+    height: 38,
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',

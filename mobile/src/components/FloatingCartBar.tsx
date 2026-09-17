@@ -37,11 +37,12 @@ const HIDE_ON_SCREENS = [
 
 function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRouteName }: FloatingCartBarProps) {
   const { cart, storeSettings } = useCart();
-  const slideAnim = useRef(new Animated.Value(80)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const opacityAnim = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const countdownAnim = useRef(new Animated.Value(1)).current;
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bounceAnim = useRef(new Animated.Value(0)).current;
+  const badgeScaleAnim = useRef(new Animated.Value(1)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
 
   const { itemCount, totalAmount, isFreeDelivery, shortfall } = useMemo(() => {
     const items = cart?.items || [];
@@ -60,14 +61,14 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
     return { itemCount: count, totalAmount: tot, isFreeDelivery: free, shortfall: short };
   }, [cart, storeSettings]);
 
+  const prevItemCountRef = useRef(itemCount);
+
   const handleOpenCart = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
     triggerHaptic('selection');
     onPress();
   }, [onPress]);
 
   const handleDismiss = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
     triggerHaptic('light');
     Animated.parallel([
       Animated.timing(slideAnim, {
@@ -85,61 +86,75 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
     });
   }, [onClose, slideAnim, opacityAnim]);
 
+  // Smooth bounce animation and haptic feedback when itemCount increments (without dismissing)
   useEffect(() => {
     if (itemCount > 0) {
-      // Reset slide and opacity
-      slideAnim.setValue(80);
-      opacityAnim.setValue(0);
-
-      // Smooth spring entrance
-      Animated.parallel([
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          useNativeDriver: USE_NATIVE_DRIVER,
-          tension: 70,
-          friction: 9,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 1,
-          duration: 250,
-          useNativeDriver: USE_NATIVE_DRIVER,
-        }),
-      ]).start();
-
-      // Gentle pulse to draw eye to the cart update
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.04,
-          duration: 150,
-          useNativeDriver: USE_NATIVE_DRIVER,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 150,
-          useNativeDriver: USE_NATIVE_DRIVER,
-        }),
-      ]).start();
-
-      // GPU-accelerated 6-second countdown indicator (transform scaleX instead of width layout recalculation)
-      countdownAnim.setValue(1);
-      Animated.timing(countdownAnim, {
-        toValue: 0,
-        duration: 6000,
-        easing: Easing.linear,
-        useNativeDriver: USE_NATIVE_DRIVER,
-      }).start();
-
-      // Automatically auto-close after 6 seconds of no action
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => {
-        handleDismiss();
-      }, 6000);
+      if (prevItemCountRef.current === 0) {
+        // Initial entrance from bottom
+        slideAnim.setValue(80);
+        opacityAnim.setValue(0);
+        Animated.parallel([
+          Animated.spring(slideAnim, {
+            toValue: 0,
+            useNativeDriver: USE_NATIVE_DRIVER,
+            tension: 70,
+            friction: 9,
+          }),
+          Animated.timing(opacityAnim, {
+            toValue: 1,
+            duration: 250,
+            useNativeDriver: USE_NATIVE_DRIVER,
+          }),
+        ]).start();
+      } else if (itemCount > prevItemCountRef.current) {
+        // Item count increased: trigger smooth upward bounce on bar/badge and haptic feedback
+        triggerHaptic('medium');
+        Animated.parallel([
+          Animated.sequence([
+            Animated.timing(bounceAnim, {
+              toValue: -8,
+              duration: 130,
+              easing: Easing.out(Easing.quad),
+              useNativeDriver: USE_NATIVE_DRIVER,
+            }),
+            Animated.spring(bounceAnim, {
+              toValue: 0,
+              tension: 120,
+              friction: 6,
+              useNativeDriver: USE_NATIVE_DRIVER,
+            }),
+          ]),
+          Animated.sequence([
+            Animated.timing(badgeScaleAnim, {
+              toValue: 1.35,
+              duration: 130,
+              easing: Easing.out(Easing.quad),
+              useNativeDriver: USE_NATIVE_DRIVER,
+            }),
+            Animated.spring(badgeScaleAnim, {
+              toValue: 1,
+              tension: 140,
+              friction: 5,
+              useNativeDriver: USE_NATIVE_DRIVER,
+            }),
+          ]),
+        ]).start();
+      }
     }
+    prevItemCountRef.current = itemCount;
+  }, [itemCount, slideAnim, opacityAnim, bounceAnim, badgeScaleAnim]);
 
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [itemCount, handleDismiss]);
+  // Animate slim Free Delivery progress line indicator
+  useEffect(() => {
+    const threshold = parseFloat(storeSettings?.free_delivery_threshold || '0');
+    const targetRatio = threshold > 0 ? Math.min(1, Math.max(0, totalAmount / threshold)) : (threshold === 0 && totalAmount > 0 ? 1 : 0);
+    Animated.timing(progressAnim, {
+      toValue: targetRatio,
+      duration: 350,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: false,
+    }).start();
+  }, [totalAmount, storeSettings?.free_delivery_threshold, progressAnim]);
 
   if (itemCount === 0 || (currentRouteName && HIDE_ON_SCREENS.includes(currentRouteName))) {
     return null;
@@ -153,7 +168,7 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
           bottom: bottomOffset,
           opacity: opacityAnim,
           transform: [
-            { translateY: slideAnim },
+            { translateY: Animated.add(slideAnim, bounceAnim) },
             { scale: pulseAnim }
           ],
         },
@@ -170,22 +185,17 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
           end={{ x: 1, y: 1 }}
           style={styles.container}
         >
-          {/* Subtle 10s Auto-Close Progress Bar (GPU Native Driver) */}
+          {/* Slim 2.5px Progress Indicator Line for Free Delivery */}
           <View style={styles.progressBarBackground}>
             <Animated.View 
               style={[
                 styles.progressBarFill, 
                 { 
-                  width: '100%',
-                  transform: [
-                    { scaleX: countdownAnim },
-                    {
-                      translateX: countdownAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [-SCREEN_WIDTH / 2, 0],
-                      }),
-                    },
-                  ],
+                  width: progressAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0%', '100%'],
+                  }),
+                  backgroundColor: isFreeDelivery ? '#10B981' : '#34D399',
                 }
               ]} 
             />
@@ -235,9 +245,9 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
             <View style={styles.leftGroup}>
               <View style={styles.cartIconCircle}>
                 <Feather name="shopping-bag" size={18} color="#064E3B" />
-                <View style={styles.badgeCount}>
+                <Animated.View style={[styles.badgeCount, { transform: [{ scale: badgeScaleAnim }] }]}>
                   <Text style={styles.badgeText}>{itemCount}</Text>
-                </View>
+                </Animated.View>
               </View>
 
               <View style={styles.priceContainer}>

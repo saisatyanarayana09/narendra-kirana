@@ -28,6 +28,14 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
   const [promoCode, setPromoCode] = useState('');
   const [promoError, setPromoError] = useState('');
   const [promoApplying, setPromoApplying] = useState(false);
+  const [selectedInstructions, setSelectedInstructions] = useState<string[]>([]);
+
+  const toggleInstruction = (id: string) => {
+    triggerHaptic('selection');
+    setSelectedInstructions(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
 
   const items = cart?.items || [];
 
@@ -288,6 +296,60 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
               </TouchableOpacity>
             </View>
           ) : null}
+        </View>
+
+        {/* Delivery Instructions Preferences */}
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <Feather name="bell" size={15} color={colors.primary} />
+            <Text style={[styles.cardTitle, { color: colors.text, marginBottom: 0 }]}>Delivery Instructions</Text>
+          </View>
+          <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 10 }}>
+            Select preferences for the delivery partner:
+          </Text>
+          <View style={styles.instructionsGrid}>
+            {[
+              { id: 'no_bell', label: "Don't ring bell", icon: 'bell-off' as const },
+              { id: 'doorstep', label: 'Leave at door / gate', icon: 'home' as const },
+              { id: 'call_first', label: 'Call on arrival', icon: 'phone-call' as const },
+              { id: 'security', label: 'Leave with security', icon: 'shield' as const },
+            ].map((instruction) => {
+              const isSelected = selectedInstructions.includes(instruction.id);
+              return (
+                <TouchableOpacity
+                  key={instruction.id}
+                  style={[
+                    styles.instructionChip,
+                    { backgroundColor: colors.inputBg, borderColor: colors.border },
+                    isSelected && [
+                      styles.instructionChipSelected,
+                      { borderColor: colors.primary, backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5' }
+                    ]
+                  ]}
+                  onPress={() => toggleInstruction(instruction.id)}
+                  activeOpacity={0.8}
+                >
+                  <Feather
+                    name={instruction.icon}
+                    size={14}
+                    color={isSelected ? colors.primary : colors.textSecondary}
+                  />
+                  <Text
+                    style={[
+                      styles.instructionText,
+                      { color: isSelected ? colors.primary : colors.text },
+                      isSelected && { fontWeight: '700' }
+                    ]}
+                  >
+                    {instruction.label}
+                  </Text>
+                  {isSelected && (
+                    <Feather name="check" size={12} color={colors.primary} style={{ marginLeft: 2 }} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
 
         {/* Order Summary Card */}
@@ -937,6 +999,27 @@ const styles: any = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '800',
+  },
+  instructionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  instructionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  instructionChipSelected: {
+    borderWidth: 1.5,
+  },
+  instructionText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
 

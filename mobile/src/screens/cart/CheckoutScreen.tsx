@@ -24,6 +24,8 @@ import { apiClient } from '../../api/client';
 import { useLocation } from '../../hooks/useLocation';
 import { fixImageUrl } from '../../utils/image';
 import { MapLocationPicker } from '../../components/MapLocationPicker';
+import { SlideToConfirm } from '../../components/SlideToConfirm';
+import { triggerHaptic } from '../../utils/haptics';
 
 export function extractErrorMessage(err: any, fallback: string = 'Could not place your order.'): string {
   const data = err?.response?.data;
@@ -384,6 +386,44 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
     } catch {
       setShowQrModal(true);
     }
+  };
+
+  const handleOpenSpecificUpiApp = async (appType: 'gpay' | 'phonepe' | 'paytm' | 'other') => {
+    triggerHaptic('selection');
+    let targetScheme = '';
+    switch (appType) {
+      case 'gpay':
+        targetScheme = `tez://upi/pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${finalTotalToPay.toFixed(2)}&cu=INR&tn=${encodeURIComponent('Narendra Kirana Order')}`;
+        break;
+      case 'phonepe':
+        targetScheme = `phonepe://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${finalTotalToPay.toFixed(2)}&cu=INR&tn=${encodeURIComponent('Narendra Kirana Order')}`;
+        break;
+      case 'paytm':
+        targetScheme = `paytmmp://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${finalTotalToPay.toFixed(2)}&cu=INR&tn=${encodeURIComponent('Narendra Kirana Order')}`;
+        break;
+      case 'other':
+      default:
+        targetScheme = upiUrl;
+        break;
+    }
+
+    try {
+      const canOpen = await RNLinking.canOpenURL(targetScheme);
+      if (canOpen) {
+        await RNLinking.openURL(targetScheme);
+        return;
+      }
+    } catch {}
+
+    try {
+      const canOpenGeneric = await RNLinking.canOpenURL(upiUrl);
+      if (canOpenGeneric) {
+        await RNLinking.openURL(upiUrl);
+        return;
+      }
+    } catch {}
+
+    setShowQrModal(true);
   };
 
   const handleCopyUpiId = async () => {
@@ -1318,27 +1358,21 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
       </ScrollView>
 
       {/* Sticky Bottom Place Order Bar */}
-      <View style={[styles.bottomBar, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 12) }]}>
-        <View>
-          <Text style={[styles.bottomTotalLabel, { color: colors.textSecondary }]}>TOTAL AMOUNT</Text>
+      <View style={[styles.bottomBar, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingTop: 10, paddingBottom: Math.max(insets.bottom, 10) }]}>
+        <View style={{ marginRight: 12, minWidth: 80 }}>
+          <Text style={[styles.bottomTotalLabel, { color: colors.textSecondary }]}>TOTAL DUE</Text>
           <Text style={[styles.bottomTotalValue, { color: colors.text }]}>₹{(finalTotalToPay || 0).toFixed(2)}</Text>
         </View>
 
-        <TouchableOpacity 
-          style={[
-            styles.placeOrderBtn,
-            (isSubmitting || isStoreClosed || isEmergencyPaused || isBelowMinOrder || (orderType === 'DELIVERY' && (!selectedAddress || isBelowMinDelivery))) && styles.disabledPlaceOrderBtn
-          ]}
-          onPress={handlePlaceOrder}
-          disabled={isSubmitting || isStoreClosed || isEmergencyPaused || isBelowMinOrder || (orderType === 'DELIVERY' && (!selectedAddress || isBelowMinDelivery))}
-          activeOpacity={0.9}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
-          ) : (
-            <Text style={styles.placeOrderBtnText}>{placeOrderBtnLabel}</Text>
-          )}
-        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          <SlideToConfirm
+            onConfirm={handlePlaceOrder}
+            disabled={isSubmitting || isStoreClosed || isEmergencyPaused || isBelowMinOrder || (orderType === 'DELIVERY' && (!selectedAddress || isBelowMinDelivery))}
+            isSubmitting={isSubmitting}
+            amount={finalTotalToPay}
+            label={placeOrderBtnLabel || "Slide to Place Order"}
+          />
+        </View>
       </View>
 
       {/* UPI QR Code Standee Modal */}

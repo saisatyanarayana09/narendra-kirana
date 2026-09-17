@@ -88,7 +88,7 @@ export const CartItemCard = memo(function CartItemCard({ item, onUpdateQuantity,
           style={styles.stepperButton}
           hitSlop={{ top: 12, bottom: 12, left: 10, right: 10 }}
           onPress={() => {
-            triggerHaptic('light');
+            triggerHaptic('medium');
             onUpdateQuantity(item.id, item.quantity - 1);
           }}
           disabled={isLoading || isOutOfStock}
@@ -103,7 +103,7 @@ export const CartItemCard = memo(function CartItemCard({ item, onUpdateQuantity,
           style={[styles.stepperButton, isMaxReached && styles.disabledStepperBtn]}
           hitSlop={{ top: 12, bottom: 12, left: 10, right: 10 }}
           onPress={() => {
-            triggerHaptic('light');
+            triggerHaptic('medium');
             onUpdateQuantity(item.id, item.quantity + 1);
           }}
           disabled={isMaxReached || isLoading || isOutOfStock}
@@ -212,6 +212,8 @@ const styles = StyleSheet.create({
   stepperButton: {
     paddingVertical: 6,
     paddingHorizontal: 8,
+    minWidth: 32,
+    minHeight: 32,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -227,6 +229,8 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     padding: 8,
+    minWidth: 36,
+    minHeight: 36,
     marginLeft: 8,
     justifyContent: 'center',
     alignItems: 'center',

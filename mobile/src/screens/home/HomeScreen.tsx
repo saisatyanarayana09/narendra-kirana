@@ -27,7 +27,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { apiClient } from '../../api/client';
 import { storeApi } from '../../api/store';
 import { useAuth } from '../../context/AuthContext';
-import { useCart } from '../../context/CartContext';
+import { useCart, getItemProductId } from '../../context/CartContext';
 import { ProductCard } from '../../components/ProductCard';
 import { CategoryCard } from '../../components/CategoryCard';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
@@ -240,11 +240,93 @@ const AnnouncementMarqueeBar = React.memo(function AnnouncementMarqueeBar({
   );
 });
 
+const SEARCH_TICKER_PLACEHOLDERS = [
+  "Search 'Aashirvaad Shudh Chakki Atta'...",
+  "Search 'Fresh Paneer & Milk'...",
+  "Search 'Fortune Sunflower Oil'...",
+  "Search 'Basmati Rice & Dals'...",
+  "Search 'Tata Salt & Spices'...",
+];
+
+const SearchTicker = React.memo(function SearchTicker({ textColor }: { textColor: string }) {
+  const isFocused = useIsFocused();
+  const [index, setIndex] = useState(0);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const slideAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!isFocused) return;
+
+    const interval = setInterval(() => {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 250,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+        Animated.timing(slideAnim, {
+          toValue: -8,
+          duration: 250,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+      ]).start(() => {
+        setIndex((prev) => (prev + 1) % SEARCH_TICKER_PLACEHOLDERS.length);
+        slideAnim.setValue(8);
+        Animated.parallel([
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 250,
+            easing: Easing.out(Easing.ease),
+            useNativeDriver: Platform.OS !== 'web',
+          }),
+          Animated.timing(slideAnim, {
+            toValue: 0,
+            duration: 250,
+            easing: Easing.out(Easing.ease),
+            useNativeDriver: Platform.OS !== 'web',
+          }),
+        ]).start();
+      });
+    }, 3500);
+
+    return () => clearInterval(interval);
+  }, [isFocused, fadeAnim, slideAnim]);
+
+  return (
+    <View style={styles.tickerContainer}>
+      <Animated.Text
+        numberOfLines={1}
+        style={[
+          styles.searchPlaceholder,
+          {
+            color: textColor,
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          },
+        ]}
+      >
+        {SEARCH_TICKER_PLACEHOLDERS[index]}
+      </Animated.Text>
+    </View>
+  );
+});
+
 export function HomeScreen({ navigation }: Props) {
   const { user } = useAuth();
-  const { addToCart, cartQuantityMap } = useCart();
+  const { cart, addToCart, updateQuantity, cartQuantityMap } = useCart();
   const { colors, isDark } = useTheme();
   const { t } = useLanguage();
+
+  const handleUpdateQuantity = useCallback(async (productId: number, newQty: number) => {
+    const existingItem = cart?.items?.find((item) => getItemProductId(item) === productId);
+    if (existingItem) {
+      await updateQuantity(existingItem.id, newQty);
+    } else if (newQty > 0) {
+      await addToCart(productId, newQty);
+    }
+  }, [cart, updateQuantity, addToCart]);
   
   // Try to get cached home data synchronously for instant render
   const cachedHome = getHomeDataSync();
@@ -486,12 +568,13 @@ export function HomeScreen({ navigation }: Props) {
         product={item} 
         onPress={handleProductPress}
         onAddToCart={handleAddToCart}
+        onUpdateQuantity={handleUpdateQuantity}
         cartQty={cartQuantityMap[item.id] || 0}
         isFavorite={favoriteIds.has(item.id)}
         onToggleFavorite={handleToggleFavorite}
       />
     </View>
-  ), [handleProductPress, handleAddToCart, cartQuantityMap, favoriteIds, handleToggleFavorite]);
+  ), [handleProductPress, handleAddToCart, handleUpdateQuantity, cartQuantityMap, favoriteIds, handleToggleFavorite]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -511,8 +594,10 @@ export function HomeScreen({ navigation }: Props) {
             </Text>
           </View>
           <View style={[styles.searchBar, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
-            <Feather name="search" size={16} color={colors.textSecondary} />
-            <Text style={[styles.searchPlaceholder, { color: colors.textSecondary }]}>Search products...</Text>
+            <View style={styles.searchInnerRow}>
+              <Feather name="search" size={16} color={colors.textSecondary} style={{ marginRight: 6 }} />
+              <SearchTicker textColor={colors.textSecondary} />
+            </View>
           </View>
         </View>
 
@@ -555,15 +640,15 @@ export function HomeScreen({ navigation }: Props) {
           </Text>
         </View>
 
-        {/* Inline Search Bar matching Web App */}
+        {/* Inline Search Bar with rotating quick-commerce ticker */}
         <TouchableOpacity 
           style={[styles.searchBar, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
           activeOpacity={0.85}
           onPress={() => navigation.navigate('SearchScreen')}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-            <Feather name="search" size={16} color={colors.textSecondary} />
-            <Text style={[styles.searchPlaceholder, { color: colors.textSecondary }]} numberOfLines={1}>{t('searchPlaceholder')}</Text>
+          <View style={styles.searchInnerRow}>
+            <Feather name="search" size={16} color={colors.textSecondary} style={{ marginRight: 6 }} />
+            <SearchTicker textColor={colors.textSecondary} />
           </View>
           <TouchableOpacity 
             style={{ padding: 6 }}
@@ -845,6 +930,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     gap: 6,
+  },
+  searchInnerRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  tickerContainer: {
+    flex: 1,
+    overflow: 'hidden',
+    justifyContent: 'center',
   },
   searchPlaceholder: {
     fontSize: 13,
