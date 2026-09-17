@@ -479,20 +479,81 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    try {
-      const currentCart = cartRef.current;
-      if (currentCart?.items) {
-        const existingItem = currentCart.items.find((item) => getItemProductId(item) === productId);
-        if (existingItem) {
-          await updateQuantity(existingItem.id, existingItem.quantity + quantity);
-          return;
-        }
+    // If item already exists in cart, delegate to updateQuantity (which has its own optimistic update)
+    const currentCart = cartRef.current;
+    if (currentCart?.items) {
+      const existingItem = currentCart.items.find((item) => getItemProductId(item) === productId);
+      if (existingItem) {
+        await updateQuantity(existingItem.id, existingItem.quantity + quantity);
+        return;
       }
+    }
 
-      await apiClient.post('/cart/items/', { product: productId, quantity });
-      setLastItemAddedTimestamp(Date.now());
-      await refreshCart(true);
+    // Optimistic update: immediately add NEW item to local cart state
+    const prevCart = cartRef.current;
+    const details = productDetails || {};
+    const unitPrice = parseFloat(details.offer_price || details.price || '0');
+    const optimisticItem: CartItem = {
+      id: -(Date.now()), // temporary negative ID, server will replace
+      product: {
+        id: productId,
+        name: details.name || 'Product',
+        price: String(details.offer_price || details.price || '0'),
+        mrp: details.regular_price || details.mrp ? String(details.regular_price || details.mrp) : null,
+        is_in_stock: details.is_in_stock !== false,
+        image: details.image || details.primary_image || null,
+        unit: details.unit || 'pack',
+        stock_quantity: details.stock_quantity,
+        max_order_quantity: details.max_order_quantity,
+      },
+      quantity,
+      subtotal: (unitPrice * quantity).toFixed(2),
+      product_name: details.name,
+      product_unit: details.unit,
+      product_image: details.image || details.primary_image || null,
+      stock_quantity: details.stock_quantity,
+      max_order_quantity: details.max_order_quantity,
+      unit_price: String(details.offer_price || details.price || '0'),
+      regular_price: String(details.regular_price || details.mrp || details.offer_price || details.price || '0'),
+    };
+
+    setCart((current) => {
+      const items = [...(current?.items || []), optimisticItem];
+      let newOfferSubtotal = 0;
+      let newRegularSubtotal = 0;
+      items.forEach((i) => {
+        const pObj = typeof i.product === 'object' && i.product !== null ? i.product : null;
+        const offerP = parseFloat(i.unit_price || pObj?.price || '0');
+        const regP = parseFloat(i.regular_price || pObj?.mrp || pObj?.regular_price || i.unit_price || pObj?.price || '0');
+        newOfferSubtotal += offerP * i.quantity;
+        newRegularSubtotal += regP * i.quantity;
+      });
+      const packaging = parseFloat(current?.packaging_fee || '0');
+      const promo = parseFloat(current?.promo_discount || '0');
+      const newTotal = Math.max(0, newOfferSubtotal - promo) + (newOfferSubtotal > 0 ? packaging : 0);
+
+      return {
+        ...current!,
+        items,
+        subtotal: newRegularSubtotal > 0 ? newRegularSubtotal.toFixed(2) : newOfferSubtotal.toFixed(2),
+        items_total: newOfferSubtotal.toFixed(2),
+        discount: Math.max(0, newRegularSubtotal - newOfferSubtotal).toFixed(2),
+        total: newTotal.toFixed(2),
+      };
+    });
+    setLastItemAddedTimestamp(Date.now());
+
+    try {
+      const res = await apiClient.post('/cart/items/', { product: productId, quantity });
+      // Sync with server response to get real IDs and accurate totals
+      if (res?.data && res.data.items) {
+        setCart(res.data);
+      } else {
+        await refreshCart(true);
+      }
     } catch (error) {
+      // Rollback on failure
+      if (prevCart) setCart(prevCart);
       console.error('Failed to add to cart:', error);
       throw error;
     }
