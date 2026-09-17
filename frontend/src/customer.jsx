@@ -2,7 +2,7 @@ import { optimizeImage } from './utils/image';
 
 import { useEffect, useState, useMemo } from 'react'
 
-import { GSAPFadeUp, GSAPZoomIn } from './components/GSAPScroll'
+import { GSAPFadeUp, GSAPZoomIn, GSAPSlideIn, GSAPStagger } from './components/GSAPScroll'
 
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
@@ -632,7 +632,8 @@ export function HomePage() {
       if (sectionProducts.length === 0 && !loading) return null;
 
     return (
-      <section key={section.id} className={sectionIndex === 0 ? "mt-4 relative" : "mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-slate-100 relative"}>
+      <GSAPFadeUp key={section.id} delay={0.05} className="w-full">
+      <section className={sectionIndex === 0 ? "mt-4 relative" : "mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-slate-100 relative"}>
           <div className="sticky top-[56px] sm:top-[68px] z-20 bg-slate-50/95 dark:bg-[#090d16]/95 backdrop-blur-sm py-2 flex justify-between items-center transition-colors">
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-bold text-slate-900 dark:text-white">{stripEmojis(section.title)}</h2>
@@ -703,6 +704,7 @@ export function HomePage() {
             </div>
           )}
       </section>
+      </GSAPFadeUp>
     );
   }))}
 

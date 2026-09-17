@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -7,7 +7,10 @@ import {
   TouchableOpacity, 
   TextInput, 
   ActivityIndicator, 
-  Alert 
+  Alert,
+  LayoutAnimation,
+  Platform,
+  UIManager
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -19,6 +22,11 @@ import { useCart } from '../../context/CartContext';
 import { CartItemCard } from '../../components/CartItemCard';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { triggerHaptic } from '../../utils/haptics';
+import { AnimatedFadeIn } from '../../components/AnimatedFadeIn';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
   const insets = useSafeAreaInsets();
@@ -102,6 +110,18 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
       setPromoApplying(false);
     }
   };
+
+  const handleRemoveItem = useCallback((itemId: number) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    removeFromCart(itemId);
+  }, [removeFromCart]);
+
+  const handleUpdateQuantity = useCallback((itemId: number, qty: number) => {
+    if (qty <= 0) {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    }
+    updateQuantity(itemId, qty);
+  }, [updateQuantity]);
 
   if (!cart) {
     return <LoadingSpinner fullScreen />;
@@ -231,14 +251,15 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
 
         {/* Cart Items List */}
         <View style={styles.section}>
-          {items.map(item => (
-            <CartItemCard 
-              key={item.id} 
-              item={item} 
-              onUpdateQuantity={updateQuantity}
-              onRemove={removeFromCart}
-              isLoading={isLoading}
-            />
+          {items.map((item, index) => (
+            <AnimatedFadeIn key={item.id} index={index} direction="right" distance={16} duration={250}>
+              <CartItemCard 
+                item={item} 
+                onUpdateQuantity={handleUpdateQuantity}
+                onRemove={handleRemoveItem}
+                isLoading={isLoading}
+              />
+            </AnimatedFadeIn>
           ))}
         </View>
 

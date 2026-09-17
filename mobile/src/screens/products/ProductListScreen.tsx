@@ -23,6 +23,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { favoritesService } from '../../services/favoritesService';
+import { AnimatedFadeIn } from '../../components/AnimatedFadeIn';
 
 const { width } = Dimensions.get('window');
 
@@ -361,7 +362,8 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
     toggleFavorite(p?.id ?? p);
   }, [toggleFavorite]);
 
-  const renderProductItem = useCallback(({ item }: { item: any }) => (
+  const renderProductItem = useCallback(({ item, index }: { item: any; index: number }) => (
+    <AnimatedFadeIn index={index} delay={50} duration={350}>
     <View style={styles.cardWrapper}>
       <ProductCard 
         product={item} 
@@ -372,6 +374,7 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
         onToggleFavorite={handleToggleFavorite}
       />
     </View>
+    </AnimatedFadeIn>
   ), [handleProductPress, handleAddToCart, cartQuantityMap, favoriteIds, handleToggleFavorite]);
 
   return (

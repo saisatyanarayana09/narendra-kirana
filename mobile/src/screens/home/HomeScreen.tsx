@@ -36,6 +36,7 @@ import { fixImageUrl, getOptimizedImageUrl } from '../../utils/image';
 import { favoritesService } from '../../services/favoritesService';
 import { loadHomeData, saveHomeData, getHomeDataSync } from '../../services/homeDataCache';
 import { triggerHaptic } from '../../utils/haptics';
+import { AnimatedFadeIn } from '../../components/AnimatedFadeIn';
 
 type Props = {
   navigation: AppNavigationProp;
@@ -330,6 +331,19 @@ export function HomeScreen({ navigation }: Props) {
   const [sections, setSections] = useState<any[]>(cachedHome?.sections || []);
   const [settings, setSettings] = useState<any>(cachedHome?.settings || null);
   const [festiveModalVisible, setFestiveModalVisible] = useState(false);
+
+  // Scroll-driven header collapse animation
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const headerSearchHeight = scrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: [48, 0],
+    extrapolate: 'clamp',
+  });
+  const headerSearchOpacity = scrollY.interpolate({
+    inputRange: [0, 60],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
 
   useEffect(() => {
     if (settings?.enable_festive_popup) {
@@ -680,7 +694,8 @@ export function HomeScreen({ navigation }: Props) {
           </View>
         </View>
 
-        {/* Tier 2: Spacious Full-Width Search & Voice Capsule */}
+        {/* Tier 2: Spacious Full-Width Search & Voice Capsule — collapses on scroll */}
+        <Animated.View style={{ height: headerSearchHeight, opacity: headerSearchOpacity, overflow: 'hidden' }}>
         <TouchableOpacity 
           style={[styles.fullWidthSearchBar, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
           activeOpacity={0.88}
@@ -702,6 +717,7 @@ export function HomeScreen({ navigation }: Props) {
             <Feather name="mic" size={16} color={colors.primary} />
           </TouchableOpacity>
         </TouchableOpacity>
+        </Animated.View>
       </View>
 
       {/* Top Announcement Marquee Bar */}
@@ -713,9 +729,14 @@ export function HomeScreen({ navigation }: Props) {
         />
       )}
 
-      <ScrollView 
+      <Animated.ScrollView 
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
         refreshControl={
           <RefreshControl 
             refreshing={refreshing} 
@@ -765,6 +786,7 @@ export function HomeScreen({ navigation }: Props) {
 
         {/* Categories / Shop by category Section */}
         {categories.length > 0 && (
+          <AnimatedFadeIn delay={100}>
           <View style={styles.sectionContainer}>
             <View style={styles.sectionHeaderRow}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('shopByCategory')}</Text>
@@ -790,6 +812,7 @@ export function HomeScreen({ navigation }: Props) {
               renderItem={renderCategoryItem}
             />
           </View>
+          </AnimatedFadeIn>
         )}
 
         {/* Dynamic Homepage Product Sections (Horizontal Scrolling Carousel - Scroll Left / Right) */}
@@ -810,7 +833,8 @@ export function HomeScreen({ navigation }: Props) {
             if (sectionProducts.length === 0) return null;
 
           return (
-            <View key={section.id || secIdx} style={styles.sectionContainer}>
+            <AnimatedFadeIn key={section.id || secIdx} index={secIdx} delay={200}>
+            <View style={styles.sectionContainer}>
               <View style={styles.sectionHeaderRow}>
                 <View style={styles.sectionTitleGroup}>
                   <Text style={[styles.sectionTitle, { color: colors.text }]}>{stripEmojis(section.title)}</Text>
@@ -855,10 +879,11 @@ export function HomeScreen({ navigation }: Props) {
                 renderItem={renderProductItem}
               />
             </View>
+            </AnimatedFadeIn>
           );
         }))}
 
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* Floating WhatsApp Support Action Button */}
       {Boolean(settings?.enable_whatsapp_support) && (

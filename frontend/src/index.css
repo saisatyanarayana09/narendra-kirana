@@ -15,10 +15,20 @@
 @layer base {
   html {
     @apply bg-slate-50;
+    scroll-behavior: smooth;
   }
   body {
     @apply bg-slate-50 text-slate-900 font-sans antialiased;
   }
+}
+
+/* Smooth hover lift for interactive cards */
+.hover-lift {
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px -8px rgba(0, 0, 0, 0.12);
 }
 
 /* Hide Vercel Toolbar which can render as a broken white iframe if blocked by adblockers */

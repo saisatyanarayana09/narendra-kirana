@@ -1,6 +1,7 @@
 import { optimizeImage } from './utils/image';
 import React, { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { Home, Search, ShoppingBasket, ShoppingCart, User, X, Heart, Bell, LayoutGrid, Trash2, ShoppingBag, Leaf, Coffee, Package, Mic, Volume2, Megaphone, Sparkles, Clock, Wrench, AlertTriangle } from 'lucide-react'
 import { useCart } from './cart-context'
 import { useLanguage } from './context/LanguageContext'
@@ -832,9 +833,17 @@ export function CustomerLayout({ children }) {
         </div>
       </header>
 
-      {/* Main Content Area */}
+      {/* Main Content Area with Smooth Page Transition */}
       <main className="flex-1 w-full flex flex-col">
-        {children || <Outlet />}
+        <motion.div
+          key={location.pathname}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.22, ease: 'easeOut' }}
+          className="flex-1 w-full flex flex-col"
+        >
+          {children || <Outlet />}
+        </motion.div>
       </main>
 
       {/* Floating Mini-Cart Bar */}
