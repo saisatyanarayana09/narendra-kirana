@@ -876,6 +876,7 @@ const styles: any = StyleSheet.create({
     fontSize: 18,
     fontWeight: '900',
     color: '#0F172A',
+    fontVariant: ['tabular-nums'],
   },
   summaryWarningClosed: {
     marginTop: 16,
@@ -975,6 +976,7 @@ const styles: any = StyleSheet.create({
     fontWeight: '900',
     color: '#0F172A',
     marginTop: 1,
+    fontVariant: ['tabular-nums'],
   },
   checkoutBtn: {
     backgroundColor: '#059669',

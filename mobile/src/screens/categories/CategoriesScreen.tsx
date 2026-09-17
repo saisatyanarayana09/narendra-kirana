@@ -23,7 +23,7 @@ const { width } = Dimensions.get('window');
 const HORIZONTAL_PADDING = 14;
 const GAP = 10;
 const CARD_WIDTH = Math.floor((width - (HORIZONTAL_PADDING * 2) - (GAP * 2)) / 3);
-const CARD_ROW_HEIGHT = CARD_WIDTH + GAP;
+const CARD_ROW_HEIGHT = CARD_WIDTH + 44;
 
 let cachedGlobalCategories: any[] | null = null;
 
@@ -225,8 +225,8 @@ const styles = StyleSheet.create({
   },
   categoryCardStyle: {
     width: '100%',
-    aspectRatio: 1,
     marginRight: 0,
+    marginBottom: 6,
   },
 });
 

@@ -496,12 +496,14 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '900',
     color: '#0F172A',
+    fontVariant: ['tabular-nums'],
   },
   mrp: {
     fontSize: 11,
     color: '#94A3B8',
     textDecorationLine: 'line-through',
     fontWeight: '600',
+    fontVariant: ['tabular-nums'],
   },
   actionContainer: {
     marginTop: 'auto',

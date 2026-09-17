@@ -35,6 +35,7 @@ import { BannerSkeleton, ProductCardSkeleton, SkeletonItem } from '../../compone
 import { fixImageUrl, getOptimizedImageUrl } from '../../utils/image';
 import { favoritesService } from '../../services/favoritesService';
 import { loadHomeData, saveHomeData, getHomeDataSync } from '../../services/homeDataCache';
+import { triggerHaptic } from '../../utils/haptics';
 
 type Props = {
   navigation: AppNavigationProp;
@@ -317,7 +318,7 @@ export function HomeScreen({ navigation }: Props) {
   const { user } = useAuth();
   const { cart, addToCart, cartQuantityMap } = useCart();
   const { colors, isDark } = useTheme();
-  const { t } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
   
   // Try to get cached home data synchronously for instant render
   const cachedHome = getHomeDataSync();
@@ -531,10 +532,10 @@ export function HomeScreen({ navigation }: Props) {
     navigation.navigate('CategoriesTab', { screen: 'ProductListScreen', params: {} });
   }, [navigation]);
 
-  const categoryCardSize = width > 400 ? 120 : 96;
+  const categoryCardSize = width > 400 ? 92 : 80;
   const getCategoryItemLayout = useCallback((_: any, index: number) => ({
-    length: categoryCardSize + 12,
-    offset: 16 + (categoryCardSize + 12) * index,
+    length: categoryCardSize + 10,
+    offset: 16 + (categoryCardSize + 10) * index,
     index,
   }), [categoryCardSize]);
 
@@ -575,17 +576,27 @@ export function HomeScreen({ navigation }: Props) {
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        {/* Top Header */}
-        <View style={[styles.headerRow, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-          <View style={styles.brandContainer}>
-            <Text style={styles.brandTitle}>
-              <Text style={[styles.brandSlate, { color: colors.text }]}>Narendra </Text>
-              <Text style={styles.brandRed}>Kirana</Text>
-            </Text>
+        {/* 2-Tier Header Skeleton */}
+        <View style={[styles.topHeaderContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <View style={styles.headerTier1}>
+            <View style={styles.brandLocationGroup}>
+              <View style={styles.brandTitleRow}>
+                <Text style={styles.brandTitle}>
+                  <Text style={[styles.brandSlate, { color: colors.text }]}>Narendra </Text>
+                  <Text style={styles.brandRed}>Kirana</Text>
+                </Text>
+                <View style={styles.liveStoreDot} />
+              </View>
+              <View style={[styles.deliverySpeedBadge, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5' }]}>
+                <Feather name="zap" size={10} color="#059669" />
+                <Text style={styles.deliverySpeedText}>15-20 MINS</Text>
+              </View>
+            </View>
           </View>
-          <View style={[styles.searchBar, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+
+          <View style={[styles.fullWidthSearchBar, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
             <View style={styles.searchInnerRow}>
-              <Feather name="search" size={16} color={colors.textSecondary} style={{ marginRight: 6 }} />
+              <Feather name="search" size={17} color={colors.textSecondary} style={{ marginRight: 8 }} />
               <SearchTicker textColor={colors.textSecondary} />
             </View>
           </View>
@@ -621,30 +632,70 @@ export function HomeScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      {/* Top Header matching Web App 1:1 in a single row */}
-      <View style={[styles.headerRow, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <View style={styles.brandContainer}>
-          <Text style={styles.brandTitle}>
-            <Text style={[styles.brandSlate, { color: colors.text }]}>Narendra </Text>
-            <Text style={styles.brandRed}>Kirana</Text>
-          </Text>
+      {/* 2-Tier Quick-Commerce Header */}
+      <View style={[styles.topHeaderContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        {/* Tier 1: Brand Logo, Delivery Speed Pill & Quick Actions */}
+        <View style={styles.headerTier1}>
+          <View style={styles.brandLocationGroup}>
+            <View style={styles.brandTitleRow}>
+              <Text style={styles.brandTitle}>
+                <Text style={[styles.brandSlate, { color: colors.text }]}>Narendra </Text>
+                <Text style={styles.brandRed}>Kirana</Text>
+              </Text>
+              <View style={styles.liveStoreDot} />
+            </View>
+            <View style={[styles.deliverySpeedBadge, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5' }]}>
+              <Feather name="zap" size={10} color="#059669" />
+              <Text style={styles.deliverySpeedText}>15-20 MINS</Text>
+            </View>
+          </View>
+
+          {/* Quick Header Actions: Language Switcher & Favorites */}
+          <View style={styles.headerActionsRow}>
+            <TouchableOpacity 
+              style={[styles.headerActionBtn, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
+              onPress={() => {
+                triggerHaptic('selection');
+                setLanguage(language === 'en' ? 'te' : 'en');
+              }}
+              activeOpacity={0.8}
+              accessibilityLabel="Switch language"
+            >
+              <Text style={[styles.languageToggleText, { color: colors.text }]}>
+                {language === 'en' ? 'తెలుగు' : 'English'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.headerActionBtn, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
+              onPress={() => {
+                triggerHaptic('light');
+                navigation.navigate('ProfileTab', { screen: 'FavoritesScreen' });
+              }}
+              activeOpacity={0.8}
+              accessibilityLabel="Favorites"
+            >
+              <Feather name="heart" size={16} color={favoriteIds.size > 0 ? '#EF4444' : colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Inline Search Bar with rotating quick-commerce ticker */}
+        {/* Tier 2: Spacious Full-Width Search & Voice Capsule */}
         <TouchableOpacity 
-          style={[styles.searchBar, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
-          activeOpacity={0.85}
+          style={[styles.fullWidthSearchBar, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
+          activeOpacity={0.88}
           onPress={() => navigation.navigate('SearchScreen')}
         >
           <View style={styles.searchInnerRow}>
-            <Feather name="search" size={16} color={colors.textSecondary} style={{ marginRight: 6 }} />
+            <Feather name="search" size={17} color={colors.textSecondary} style={{ marginRight: 8 }} />
             <SearchTicker textColor={colors.textSecondary} />
           </View>
           <TouchableOpacity 
-            style={{ padding: 6 }}
+            style={styles.voiceMicBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             onPress={(e) => {
               e.stopPropagation();
+              triggerHaptic('medium');
               navigation.navigate('SearchScreen', { autoStartVoice: true });
             }}
           >
@@ -882,44 +933,93 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8FAFC', // slate-50 matching web
   },
-  headerRow: {
+  topHeaderContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+  },
+  headerTier1: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    marginBottom: 10,
   },
-  brandContainer: {
+  brandLocationGroup: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+  },
+  brandTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexShrink: 0,
+    gap: 6,
   },
   brandTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '900',
     letterSpacing: -0.5,
   },
   brandSlate: {
-    color: '#0F172A', // slate-900
+    color: '#0F172A',
   },
   brandRed: {
-    color: '#DC2626', // red-600
+    color: '#DC2626',
   },
-  searchBar: {
-    flex: 1,
-    marginLeft: 12,
+  liveStoreDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#10B981',
+  },
+  deliverySpeedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
-    borderRadius: 12,
+    gap: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginTop: 2,
+  },
+  deliverySpeedText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#047857',
+    letterSpacing: 0.5,
+  },
+  headerActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerActionBtn: {
+    height: 36,
+    minWidth: 36,
     paddingHorizontal: 10,
-    height: 38,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    gap: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  languageToggleText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  fullWidthSearchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    height: 44,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  voiceMicBtn: {
+    padding: 6,
+    marginLeft: 6,
   },
   searchInnerRow: {
     flex: 1,

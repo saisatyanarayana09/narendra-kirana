@@ -193,6 +193,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#64748B', // slate-500
     fontWeight: '500',
+    fontVariant: ['tabular-nums'],
   },
   limitReachedText: {
     fontSize: 11,
@@ -226,6 +227,7 @@ const styles = StyleSheet.create({
     color: '#0F172A',
     minWidth: 24,
     textAlign: 'center',
+    fontVariant: ['tabular-nums'],
   },
   deleteButton: {
     padding: 8,

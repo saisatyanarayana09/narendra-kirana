@@ -86,7 +86,7 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
     return 'NK';
   };
 
-  const cards = [
+  const orderCards = [
     { 
       key: 'yourOrders',
       name: t('yourOrders'), 
@@ -107,6 +107,7 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
       color: '#059669', // emerald-600
       bg: '#ECFDF5',    // emerald-50
       isProtected: true,
+      badge: walletBalance > 0 ? `₹${walletBalance.toFixed(0)}` : undefined,
       onPress: () => navigation.navigate('WalletScreen') 
     },
     { 
@@ -131,29 +132,9 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
       isProtected: true,
       onPress: () => navigation.navigate('OffersScreen') 
     },
-    { 
-      key: 'language',
-      name: language === 'te' ? 'భాష / Language' : 'Language / భాష', 
-      desc: t('languagesDesc'), 
-      icon: 'globe' as const,
-      isRupee: false,
-      badge: language === 'te' ? 'తెలుగు' : 'English',
-      color: '#0284C7', // sky-600
-      bg: '#F0F9FF',    // sky-50
-      isProtected: false,
-      onPress: () => navigation.navigate('LanguageScreen') 
-    },
-    { 
-      key: 'accountSettings',
-      name: t('accountSettings'), 
-      desc: t('accountSettingsDesc'), 
-      icon: 'user' as const,
-      isRupee: false,
-      color: '#059669', // primary-600
-      bg: '#ECFDF5',    // primary-50
-      isProtected: true,
-      onPress: () => navigation.navigate('AccountSettingsScreen') 
-    },
+  ];
+
+  const preferenceCards = [
     { 
       key: 'savedAddresses',
       name: t('savedAddresses'), 
@@ -177,6 +158,18 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
       onPress: () => navigation.navigate('FavoritesScreen') 
     },
     { 
+      key: 'language',
+      name: language === 'te' ? 'భాష / Language' : 'Language / భాష', 
+      desc: t('languagesDesc'), 
+      icon: 'globe' as const,
+      isRupee: false,
+      badge: language === 'te' ? 'తెలుగు' : 'English',
+      color: '#0284C7', // sky-600
+      bg: '#F0F9FF',    // sky-50
+      isProtected: false,
+      onPress: () => navigation.navigate('LanguageScreen') 
+    },
+    { 
       key: 'notifications',
       name: t('notifications'), 
       desc: t('notificationsDesc'), 
@@ -186,6 +179,17 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
       bg: '#EEF2FF',    // indigo-50
       isProtected: true,
       onPress: () => navigation.navigate('NotificationsScreen') 
+    },
+    { 
+      key: 'accountSettings',
+      name: t('accountSettings'), 
+      desc: t('accountSettingsDesc'), 
+      icon: 'user' as const,
+      isRupee: false,
+      color: '#059669', // primary-600
+      bg: '#ECFDF5',    // primary-50
+      isProtected: true,
+      onPress: () => navigation.navigate('AccountSettingsScreen') 
     },
     { 
       key: 'appSettings',
@@ -202,7 +206,7 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
 
   const displayName = user?.first_name || user?.username || 'Customer';
 
-  const handleCardPress = (card: typeof cards[0]) => {
+  const handleCardPress = (card: { name: string; isProtected?: boolean; onPress: () => void; [key: string]: any }) => {
     triggerHaptic('light');
     if (!user && card.isProtected) {
       Alert.alert(
@@ -356,43 +360,91 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
           </View>
         </LinearGradient>
 
-        {/* Action Cards: Horizontal layout with text on right of symbol and decreased height */}
-        <View style={styles.cardsGrid}>
-          {cards.map((card, idx) => (
-            <TouchableOpacity 
-              key={idx}
-              style={[styles.cardItem, { backgroundColor: colors.surface, borderColor: colors.border }]}
-              onPress={() => handleCardPress(card)}
-              activeOpacity={0.75}
-            >
-              <View style={styles.cardLeftGroup}>
-                <View style={[styles.iconContainer, { backgroundColor: isDark ? colors.inputBg : card.bg }]}>
-                  {card.isRupee ? (
-                    <MaterialIcons name="currency-rupee" size={20} color={card.color} />
-                  ) : (
-                    <Feather name={card.icon as any} size={20} color={card.color} />
-                  )}
-                </View>
-                <View style={styles.cardTextGroup}>
-                  <View style={styles.cardTitleRow}>
-                    <Text style={[styles.cardTitle, { color: colors.text, fontSize: 15 }]}>
-                      {card.name}
-                    </Text>
-                    {Boolean((card as any).badge) && (
-                      <View style={styles.langBadge}>
-                        <Text style={styles.langBadgeText}>{(card as any).badge}</Text>
-                      </View>
+        {/* Section 1: Orders & Rewards */}
+        <View style={styles.sectionWrapper}>
+          <Text style={[styles.sectionHeading, { color: colors.textSecondary }]}>ORDERS & WALLET</Text>
+          <View style={styles.cardsGrid}>
+            {orderCards.map((card, idx) => (
+              <TouchableOpacity 
+                key={card.key || idx}
+                style={[styles.cardItem, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                onPress={() => handleCardPress(card)}
+                activeOpacity={0.75}
+              >
+                <View style={styles.cardLeftGroup}>
+                  <View style={[styles.iconContainer, { backgroundColor: isDark ? colors.inputBg : card.bg }]}>
+                    {card.isRupee ? (
+                      <MaterialIcons name="currency-rupee" size={20} color={card.color} />
+                    ) : (
+                      <Feather name={card.icon as any} size={20} color={card.color} />
                     )}
                   </View>
-                  <Text style={[styles.cardDesc, { color: colors.textSecondary }]} numberOfLines={1}>{card.desc}</Text>
+                  <View style={styles.cardTextGroup}>
+                    <View style={styles.cardTitleRow}>
+                      <Text style={[styles.cardTitle, { color: colors.text, fontSize: 15 }]}>
+                        {card.name}
+                      </Text>
+                      {Boolean((card as any).badge) && (
+                        <View style={styles.langBadge}>
+                          <Text style={styles.langBadgeText}>{(card as any).badge}</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={[styles.cardDesc, { color: colors.textSecondary }]} numberOfLines={1}>{card.desc}</Text>
+                  </View>
                 </View>
-              </View>
 
-              <View style={[styles.chevronCircle, { backgroundColor: colors.background }]}>
-                <Feather name="chevron-right" size={16} color={colors.textSecondary} />
-              </View>
-            </TouchableOpacity>
-          ))}
+                <View style={[styles.chevronCircle, { backgroundColor: colors.background }]}>
+                  <Feather name="chevron-right" size={16} color={colors.textSecondary} />
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Section 2: Preferences & Account Settings */}
+        <View style={styles.sectionWrapper}>
+          <Text style={[styles.sectionHeading, { color: colors.textSecondary }]}>PREFERENCES & ACCOUNT</Text>
+          <View style={styles.cardsGrid}>
+            {preferenceCards.map((card, idx) => (
+              <TouchableOpacity 
+                key={card.key || idx}
+                style={[styles.cardItem, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                onPress={() => handleCardPress(card)}
+                activeOpacity={0.75}
+              >
+                <View style={styles.cardLeftGroup}>
+                  <View style={[styles.iconContainer, { backgroundColor: isDark ? colors.inputBg : card.bg }]}>
+                    {card.isRupee ? (
+                      <MaterialIcons name="currency-rupee" size={20} color={card.color} />
+                    ) : (
+                      <Feather name={card.icon as any} size={20} color={card.color} />
+                    )}
+                  </View>
+                  <View style={styles.cardTextGroup}>
+                    <View style={styles.cardTitleRow}>
+                      <Text style={[styles.cardTitle, { color: colors.text, fontSize: 15 }]}>
+                        {card.name}
+                      </Text>
+                      {Boolean((card as any).badge) && (
+                        <View style={styles.langBadge}>
+                          <Text style={styles.langBadgeText}>{(card as any).badge}</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={[styles.cardDesc, { color: colors.textSecondary }]} numberOfLines={1}>{card.desc}</Text>
+                  </View>
+                </View>
+
+                <View style={[styles.chevronCircle, { backgroundColor: colors.background }]}>
+                  <Feather name="chevron-right" size={16} color={colors.textSecondary} />
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.sectionWrapper}>
 
           {/* Quick Action Logout Tile or Sign In Tile at the Bottom */}
           {user ? (
@@ -606,6 +658,16 @@ const styles = StyleSheet.create({
     width: 1,
     height: 36,
     backgroundColor: '#F1F5F9',
+  },
+  sectionWrapper: {
+    marginBottom: 16,
+  },
+  sectionHeading: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    marginBottom: 8,
+    paddingHorizontal: 4,
   },
   cardsGrid: {
     gap: 10,

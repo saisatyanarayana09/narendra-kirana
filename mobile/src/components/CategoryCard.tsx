@@ -1,8 +1,8 @@
 import React, { memo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, StyleProp, ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { fixImageUrl, getOptimizedImageUrl } from '../utils/image';
+import { useTheme } from '../context/ThemeContext';
 
 interface Category {
   id: number;
@@ -18,53 +18,75 @@ interface Props {
   style?: StyleProp<ViewStyle>;
 }
 
-const CATEGORY_GRADIENTS: readonly [string, string][] = [
-  ['#047857', '#065f46'], // emerald-700 to emerald-800
-  ['#065f46', '#064e3b'], // emerald-800 to emerald-900
-  ['#059669', '#047857'], // emerald-600 to emerald-700
-  ['#06b6d4', '#3b82f6'], // cyan-500 to blue-500
-  ['#d946ef', '#ec4899'], // fuchsia-500 to pink-500
+const PASTEL_BG_COLORS = [
+  '#F0FDF4', // Emerald / Green
+  '#EFF6FF', // Sky / Blue
+  '#FEF3C7', // Amber / Yellow
+  '#FDF2F8', // Pink
+  '#F5F3FF', // Purple
+  '#FFF7ED', // Orange
+  '#F0FDFA', // Teal
+];
+
+const PASTEL_BORDER_COLORS = [
+  '#DCFCE7',
+  '#DBEAFE',
+  '#FDE68A',
+  '#FCE7F3',
+  '#EDE9FE',
+  '#FFEDD5',
+  '#CCFBF1',
 ];
 
 const { width } = Dimensions.get('window');
-const CARD_SIZE = width > 400 ? 120 : 96;
+const CARD_SIZE = width > 400 ? 92 : 80;
 
 export const CategoryCard = memo(function CategoryCard({ category, onPress, index = 0, style }: Props) {
+  const { colors, isDark } = useTheme();
   const finalImage = getOptimizedImageUrl(category.image, 200, 200) || fixImageUrl(category.image);
-  const colors = CATEGORY_GRADIENTS[index % CATEGORY_GRADIENTS.length];
+  
+  const colorIndex = Math.abs(index) % PASTEL_BG_COLORS.length;
+  const bgColor = PASTEL_BG_COLORS[colorIndex];
+  const borderColor = PASTEL_BORDER_COLORS[colorIndex];
 
   return (
     <TouchableOpacity 
       style={[styles.container, style]} 
       onPress={() => onPress(category)}
-      activeOpacity={0.8}
+      activeOpacity={0.82}
     >
-      {finalImage ? (
-        <Image 
-          source={{ uri: finalImage }} 
-          style={styles.image} 
-          contentFit="cover" 
-          cachePolicy="memory-disk"
-          recyclingKey={finalImage}
-        />
-      ) : (
-        <LinearGradient 
-          colors={colors} 
-          style={styles.fallbackGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <Text style={styles.fallbackText}>{category.name.charAt(0)}</Text>
-        </LinearGradient>
-      )}
+      {/* Category Image Bubble */}
+      <View 
+        style={[
+          styles.bubble,
+          { 
+            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : bgColor,
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : borderColor,
+          }
+        ]}
+      >
+        {finalImage ? (
+          <Image 
+            source={{ uri: finalImage }} 
+            style={styles.image} 
+            contentFit="contain" 
+            cachePolicy="memory-disk"
+            recyclingKey={finalImage}
+          />
+        ) : (
+          <View style={styles.fallbackContainer}>
+            <Text style={[styles.fallbackLetter, { color: isDark ? colors.text : '#059669' }]}>
+              {category.name?.charAt(0)?.toUpperCase() || 'C'}
+            </Text>
+          </View>
+        )}
+      </View>
 
-      {/* Dark gradient overlay at the bottom for text readability */}
-      <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.3)', 'rgba(0,0,0,0.85)']}
-        style={styles.overlay}
-      />
-      
-      <Text style={styles.name} numberOfLines={2}>
+      {/* Category Name Label (placed cleanly underneath image) */}
+      <Text 
+        style={[styles.name, { color: colors.text }]} 
+        numberOfLines={2}
+      >
         {category.name}
       </Text>
     </TouchableOpacity>
@@ -74,45 +96,44 @@ export const CategoryCard = memo(function CategoryCard({ category, onPress, inde
 const styles = StyleSheet.create({
   container: {
     width: CARD_SIZE,
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  bubble: {
+    width: '100%',
     aspectRatio: 1,
-    borderRadius: 16,
-    overflow: 'hidden',
-    justifyContent: 'flex-end',
-    backgroundColor: '#F8FAFC',
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
+    overflow: 'hidden',
   },
   image: {
-    ...(StyleSheet.absoluteFill as any),
     width: '100%',
     height: '100%',
   },
-  fallbackGradient: {
-    ...(StyleSheet.absoluteFill as any),
+  fallbackContainer: {
+    width: '100%',
+    height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  fallbackText: {
-    fontSize: 32,
+  fallbackLetter: {
+    fontSize: 28,
     fontWeight: '900',
-    color: 'rgba(255,255,255,0.3)',
-  },
-  overlay: {
-    ...(StyleSheet.absoluteFill as any),
   },
   name: {
-    position: 'relative',
-    zIndex: 10,
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#FFF',
+    fontSize: 11,
+    fontWeight: '700',
     textAlign: 'center',
-    padding: 8,
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    marginTop: 6,
+    lineHeight: 14,
+    paddingHorizontal: 2,
   },
 });

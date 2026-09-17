@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation, getFocusedRouteNameFromRoute } from '@react-navigation/native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { theme } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
 import { WelcomeScreen } from '../components/WelcomeScreen';
@@ -215,13 +215,14 @@ export function MainTabs() {
           tabBarInactiveTintColor: colors.textSecondary,
           tabBarItemStyle: {
             paddingBottom: 4,
+            paddingTop: 4,
             justifyContent: 'center',
             alignItems: 'center',
           },
           tabBarLabelStyle: {
             fontSize: 11,
-            fontWeight: '700',
-            marginTop: 2,
+            fontWeight: '800',
+            marginTop: 1,
           },
         }}
       >
@@ -230,7 +231,9 @@ export function MainTabs() {
           component={HomeStack}
           options={({ route }) => ({
             tabBarLabel: t('home'),
-            tabBarIcon: ({ color, size }) => <Feather name="home" color={color} size={size || 22} />,
+            tabBarIcon: ({ color, size, focused }) => (
+              <Ionicons name={focused ? "home" : "home-outline"} color={color} size={size || 22} />
+            ),
             tabBarStyle: shouldHideTabBar(route) 
               ? { display: 'none' } 
               : dynamicTabBarStyle,
@@ -241,7 +244,9 @@ export function MainTabs() {
           component={CategoriesStack}
           options={({ route }) => ({
             tabBarLabel: t('categories'),
-            tabBarIcon: ({ color, size }) => <Feather name="grid" color={color} size={size || 22} />,
+            tabBarIcon: ({ color, size, focused }) => (
+              <Ionicons name={focused ? "grid" : "grid-outline"} color={color} size={size || 22} />
+            ),
             tabBarStyle: shouldHideTabBar(route) 
               ? { display: 'none' } 
               : dynamicTabBarStyle,
@@ -252,7 +257,9 @@ export function MainTabs() {
           component={OrdersStack}
           options={({ route }) => ({
             tabBarLabel: t('orders'),
-            tabBarIcon: ({ color, size }) => <Feather name="package" color={color} size={size || 22} />,
+            tabBarIcon: ({ color, size, focused }) => (
+              <Ionicons name={focused ? "receipt" : "receipt-outline"} color={color} size={size || 22} />
+            ),
             tabBarStyle: shouldHideTabBar(route) 
               ? { display: 'none' } 
               : dynamicTabBarStyle,
@@ -263,7 +270,9 @@ export function MainTabs() {
           component={ProfileStack}
           options={({ route }) => ({
             tabBarLabel: t('profile'),
-            tabBarIcon: ({ color, size }) => <Feather name="user" color={color} size={size || 22} />,
+            tabBarIcon: ({ color, size, focused }) => (
+              <Ionicons name={focused ? "person" : "person-outline"} color={color} size={size || 22} />
+            ),
             tabBarStyle: shouldHideTabBar(route) 
               ? { display: 'none' } 
               : dynamicTabBarStyle,
@@ -276,8 +285,8 @@ export function MainTabs() {
             tabBarLabel: t('cart'),
             tabBarBadge: cartItemCount > 0 ? cartItemCount : undefined,
             tabBarBadgeStyle: {
-              backgroundColor: isDark ? '#10B981' : '#0F172A',
-              color: isDark ? '#090D16' : '#FFFFFF',
+              backgroundColor: '#059669',
+              color: '#FFFFFF',
               fontSize: 10,
               fontWeight: '900',
               minWidth: 18,
@@ -288,7 +297,9 @@ export function MainTabs() {
               textAlign: 'center',
               textAlignVertical: 'center',
             },
-            tabBarIcon: ({ color, size }) => <Feather name="shopping-cart" color={color} size={size || 22} />,
+            tabBarIcon: ({ color, size, focused }) => (
+              <Ionicons name={focused ? "cart" : "cart-outline"} color={color} size={size || 22} />
+            ),
             tabBarStyle: shouldHideTabBar(route) 
               ? { display: 'none' } 
               : dynamicTabBarStyle,
