@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { ShoppingBag, Search, Clock, CheckCircle, Package, Printer, AlertTriangle, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import InvoiceModal from '../components/InvoiceModal';
+import { useWebSocket } from '../../hooks/useWebSocket';
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
@@ -43,13 +44,33 @@ const Orders = () => {
     }
   };
 
+  const handleWsMessage = useCallback((data) => {
+    if (!data || !data.type) return;
+    if (data.type === 'NEW_ORDER') {
+      try {
+        const audio = new Audio('/sounds/notification.mp3');
+        audio.play().catch(() => {});
+      } catch {}
+      toast.success(`Ding! New Order #${data.order?.id} received! 🛒`, { duration: 6000 });
+      fetchOrders(true);
+    } else if (data.type === 'ORDER_STATUS_CHANGED') {
+      fetchOrders(true);
+    }
+  }, []);
+
+  const { isConnected: isWsConnected } = useWebSocket({
+    path: '/ws/owner/orders/',
+    onMessage: handleWsMessage,
+  });
+
   useEffect(() => {
     fetchOrders();
+    const pollTime = isWsConnected ? 30000 : 8000;
     const interval = setInterval(() => {
       if (!document.hidden) fetchOrders(true);
-    }, 5000); // Poll every 5s for new orders when tab is visible
+    }, pollTime);
     return () => clearInterval(interval);
-  }, []);
+  }, [isWsConnected]);
 
   const filteredOrders = orders.filter(order => {
     const matchesStatus = filter === 'ALL' || order.status === filter;
@@ -104,7 +125,15 @@ const Orders = () => {
     <div className="max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Orders Management</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Orders Management</h1>
+            {isWsConnected && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                Live Sync
+              </span>
+            )}
+          </div>
           <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Manage, fulfill and pack customer orders</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 sm:items-center">

@@ -21,6 +21,7 @@ import { getCachedOrderByIdSync, saveCachedSingleOrder } from '../../services/or
 import { OrderTrackingMap } from '../../components/OrderTrackingMap';
 import * as Clipboard from 'expo-clipboard';
 import { triggerHaptic } from '../../utils/haptics';
+import { useWebSocket } from '../../hooks/useWebSocket';
 
 export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavigationProp; route: any }) {
   const { colors, isDark } = useTheme();
@@ -92,6 +93,51 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
     }
   }, [orderId, user]);
 
+  // Real-time WebSocket event handler for instant updates
+  const handleWebSocketMessage = useCallback((data: any) => {
+    if (!data || !data.type) return;
+
+    if (data.type === 'INITIAL_STATE' && data.order) {
+      setOrder((prev: any) => ({ ...(prev || {}), ...data.order }));
+      saveCachedSingleOrder(data.order);
+      setLoading(false);
+    } else if (data.type === 'ORDER_STATUS_UPDATE') {
+      triggerHaptic('success');
+      setOrder((prev: any) => {
+        if (!prev) return prev;
+        const updated = {
+          ...prev,
+          status: data.status,
+          delivery_otp: data.delivery_otp || prev.delivery_otp,
+          updated_at: data.updated_at || new Date().toISOString(),
+        };
+        saveCachedSingleOrder(updated);
+        return updated;
+      });
+    } else if (data.type === 'RIDER_LOCATION_UPDATE') {
+      setOrder((prev: any) => {
+        if (!prev) return prev;
+        const currentPartner = prev.delivery_partner || {};
+        return {
+          ...prev,
+          delivery_partner: {
+            ...currentPartner,
+            current_lat: data.latitude,
+            current_lng: data.longitude,
+            heading: data.heading,
+            speed: data.speed,
+          },
+        };
+      });
+    }
+  }, []);
+
+  const { isConnected: isWsConnected } = useWebSocket({
+    path: `/ws/orders/${orderId}/tracking/`,
+    enabled: Boolean(user && orderId),
+    onMessage: handleWebSocketMessage,
+  });
+
   useEffect(() => {
     if (!user) {
       setLoading(false);
@@ -103,7 +149,8 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
 
     fetchOrderDetails();
 
-    // Live polling every 5 seconds until completed or rejected
+    // Passive fallback polling (30s when WebSocket is active, 8s if offline)
+    const pollInterval = isWsConnected ? 30000 : 8000;
     interval = setInterval(() => {
       if (isMounted) {
         apiClient.get(`/orders/${orderId}/`, { params: { t: Date.now() } })
@@ -120,13 +167,13 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
           })
           .catch(() => {});
       }
-    }, 5000);
+    }, pollInterval);
 
     return () => {
       isMounted = false;
       if (interval) clearInterval(interval);
     };
-  }, [orderId, user, fetchOrderDetails]);
+  }, [orderId, user, fetchOrderDetails, isWsConnected]);
 
   if (!user) {
     return (
@@ -305,6 +352,12 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
           <Feather name="arrow-left" size={18} color={colors.primary} />
           <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
         </TouchableOpacity>
+        {isWsConnected && (
+          <View style={[styles.liveBadge, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5', borderColor: isDark ? 'rgba(52, 211, 153, 0.3)' : '#A7F3D0' }]}>
+            <View style={styles.livePulseDot} />
+            <Text style={[styles.liveBadgeText, { color: isDark ? '#34D399' : '#047857' }]}>LIVE SYNC</Text>
+          </View>
+        )}
       </View>
 
       <ScrollView 
@@ -733,11 +786,31 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC', // slate-50
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
+  },
+  liveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 9999,
+  },
+  liveBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#047857',
+    letterSpacing: 0.5,
   },
   backButton: {
     flexDirection: 'row',

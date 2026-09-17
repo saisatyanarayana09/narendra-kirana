@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 from datetime import timedelta
 import dj_database_url
@@ -47,6 +48,7 @@ ALLOWED_HOSTS = [clean_host(host) for host in os.environ.get(
 
 # ─── Apps ───
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -55,6 +57,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # Third-party apps
+    'channels',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
@@ -107,16 +110,43 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
+
+# ─── Channels Real-Time Layer ───
+REDIS_URL = os.environ.get('REDIS_URL') or os.environ.get('REDIS_TLS_URL')
+if REDIS_URL:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                'hosts': [REDIS_URL],
+            },
+        },
+    }
+else:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        },
+    }
 
 # ─── Database ───
-# Development: SQLite | Production: Neon PostgreSQL
+# Testing: Fast SQLite in-memory | Development: SQLite | Production: Neon PostgreSQL
+IS_TESTING = 'test' in sys.argv
 DATABASE_URL = os.environ.get('DATABASE_URL')
 DB_CONN_MAX_AGE = int(os.environ.get('DB_CONN_MAX_AGE', 300))
 
-if IS_PRODUCTION and not DATABASE_URL:
+if IS_TESTING:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': ':memory:',
+        }
+    }
+elif IS_PRODUCTION and not DATABASE_URL:
     raise RuntimeError('DATABASE_URL must be set when DJANGO_ENV=production.')
 
-if DATABASE_URL:
+elif DATABASE_URL:
     DATABASES = {
         'default': dj_database_url.config(
             default=DATABASE_URL,

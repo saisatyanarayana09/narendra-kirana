@@ -395,6 +395,15 @@ class OrderViewSet(ModelViewSet):
 
             threading.Thread(target=send_order_confirmation_email, args=(order,), daemon=True).start()
 
+            # Real-time WebSocket push alert to store owner live feed
+            try:
+                from .ws_broadcast import broadcast_order_created
+                cust_name = request.user.get_full_name() or request.user.username
+                cust_phone = getattr(getattr(request.user, 'customer_profile', None), 'phone_number', '')
+                broadcast_order_created(order, cust_name, cust_phone, order.items.count())
+            except Exception as ws_err:
+                logger.debug("WS order creation broadcast error: %s", ws_err)
+
         created_title = f"Order #{order.id} Placed Successfully! 🎉"
         created_msg = f"Hi {request.user.first_name or 'there'}, thank you for your purchase! We've received your order and will start processing it shortly."
         transaction.on_commit(on_commit_tasks)
@@ -598,6 +607,15 @@ class OrderViewSet(ModelViewSet):
                     body=rej_body,
                     data={'order_id': str(order.id), 'status': 'REJECTED'}
                 )
+
+        # Real-time WebSocket status broadcast to customer and store owner
+        try:
+            from .ws_broadcast import broadcast_order_status, broadcast_order_ready_dispatch
+            broadcast_order_status(order.id, next_status, order.delivery_otp)
+            if next_status == Order.Status.READY:
+                broadcast_order_ready_dispatch(order)
+        except Exception as ws_err:
+            logger.debug("WS status broadcast error: %s", ws_err)
                 
         return Response(OrderSerializer(order, context=self.get_serializer_context()).data)
 

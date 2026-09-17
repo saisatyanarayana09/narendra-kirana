@@ -146,6 +146,13 @@ class DeliveryPickupOrderView(APIView):
         except Exception as e:
             logger.error("Error notifying customer on pickup: %s", e)
 
+        # Real-time WebSocket status broadcast
+        try:
+            from .ws_broadcast import broadcast_order_status
+            broadcast_order_status(order.id, Order.Status.OUT_FOR_DELIVERY, order.delivery_otp)
+        except Exception as ws_err:
+            logger.debug("WS pickup broadcast error: %s", ws_err)
+
         return Response(OrderSerializer(order, context={'request': request}).data)
 
 
@@ -289,6 +296,13 @@ class DeliveryVerifyAndCompleteView(APIView):
             # Send final PDF invoice asynchronously
             threading.Thread(target=send_final_invoice_email, args=(order,), daemon=True).start()
 
+        # Real-time WebSocket status broadcast
+        try:
+            from .ws_broadcast import broadcast_order_status
+            broadcast_order_status(order.id, Order.Status.COMPLETED)
+        except Exception as ws_err:
+            logger.debug("WS complete broadcast error: %s", ws_err)
+
         return Response(OrderSerializer(order, context={'request': request}).data)
 
 
@@ -396,6 +410,26 @@ class DeliveryUpdateLocationView(APIView):
             profile.current_lng = Decimal(str(lng))
             profile.last_active_at = timezone.now()
             profile.save(update_fields=['current_lat', 'current_lng', 'last_active_at', 'updated_at'])
+
+            # Real-time WebSocket broadcast to all active orders assigned to this rider
+            try:
+                from .ws_broadcast import broadcast_rider_location
+                active_order_ids = list(Order.objects.filter(
+                    delivery_partner=user,
+                    status=Order.Status.OUT_FOR_DELIVERY
+                ).values_list('id', flat=True))
+
+                for active_id in active_order_ids:
+                    broadcast_rider_location(
+                        order_id=active_id,
+                        latitude=float(profile.current_lat),
+                        longitude=float(profile.current_lng),
+                        heading=request.data.get('heading'),
+                        speed=request.data.get('speed')
+                    )
+            except Exception as ws_err:
+                logger.debug("WS rider location broadcast error: %s", ws_err)
+
             return Response({
                 'status': 'ok',
                 'current_lat': str(profile.current_lat),
