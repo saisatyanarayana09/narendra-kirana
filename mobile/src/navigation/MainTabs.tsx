@@ -40,6 +40,7 @@ import { FloatingCartBar } from '../components/FloatingCartBar';
 import { triggerHaptic } from '../utils/haptics';
 import { loadHomeData } from '../services/homeDataCache';
 import { loadCachedOrders } from '../services/ordersCache';
+import { navigationRef } from './navigationRef';
 
 export type MainTabParamList = {
   HomeTab: undefined;
@@ -300,7 +301,17 @@ export function MainTabs() {
         <FloatingCartBar 
           bottomOffset={totalBarHeight + 10}
           onPress={() => {
-            navigation.navigate('CartTab', { screen: 'CartScreen' });
+            if (navigationRef.isReady()) {
+              navigationRef.navigate('Main', {
+                screen: 'CartTab',
+                params: { screen: 'CartScreen' },
+              });
+            } else {
+              navigation.navigate('Main', {
+                screen: 'CartTab',
+                params: { screen: 'CartScreen' },
+              });
+            }
           }}
           onClose={() => setIsMinimizedForSession(true)}
           currentRouteName={currentRouteName}
