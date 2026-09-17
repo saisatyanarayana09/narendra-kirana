@@ -1,9 +1,8 @@
 import React, { memo } from 'react';
-import { View, Text, StyleSheet, Dimensions, StyleProp, ViewStyle } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, StyleProp, ViewStyle, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { fixImageUrl, getOptimizedImageUrl } from '../utils/image';
 import { useTheme } from '../context/ThemeContext';
-import { BouncyTouchable } from './BouncyTouchable';
 
 interface Category {
   id: number;
@@ -51,11 +50,10 @@ export const CategoryCard = memo(function CategoryCard({ category, onPress, inde
   const borderColor = PASTEL_BORDER_COLORS[colorIndex];
 
   return (
-    <BouncyTouchable 
+    <TouchableOpacity 
       style={[styles.container, style]} 
       onPress={() => onPress(category)}
-      scaleTo={0.92}
-      hapticType="light"
+      activeOpacity={0.82}
     >
       {/* Category Image Bubble */}
       <View 
@@ -91,7 +89,7 @@ export const CategoryCard = memo(function CategoryCard({ category, onPress, inde
       >
         {category.name}
       </Text>
-    </BouncyTouchable>
+    </TouchableOpacity>
   );
 });
 

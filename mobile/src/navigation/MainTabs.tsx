@@ -8,6 +8,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { theme } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
 import { WelcomeScreen } from '../components/WelcomeScreen';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 import { HomeScreen } from '../screens/home/HomeScreen';
 import { CategoriesScreen } from '../screens/categories/CategoriesScreen';
@@ -59,68 +60,78 @@ const CartStackNav = createNativeStackNavigator<any>();
 
 function HomeStack() {
   return (
-    <HomeStackNav.Navigator screenOptions={{ headerShown: false }}>
-      <HomeStackNav.Screen name="HomeScreen" component={HomeScreen} />
-      <HomeStackNav.Screen name="ProductDetailScreen" component={ProductDetailScreen} />
-      <HomeStackNav.Screen name="SearchScreen" component={SearchScreen} />
-      <HomeStackNav.Screen name="ProductListScreen" component={ProductListScreen} />
-      <HomeStackNav.Screen name="OrderTrackingScreen" component={OrderTrackingScreen} />
-      <HomeStackNav.Screen name="InvoiceScreen" component={InvoiceScreen} />
-    </HomeStackNav.Navigator>
+    <ErrorBoundary>
+      <HomeStackNav.Navigator screenOptions={{ headerShown: false }}>
+        <HomeStackNav.Screen name="HomeScreen" component={HomeScreen} />
+        <HomeStackNav.Screen name="ProductDetailScreen" component={ProductDetailScreen} />
+        <HomeStackNav.Screen name="SearchScreen" component={SearchScreen} />
+        <HomeStackNav.Screen name="ProductListScreen" component={ProductListScreen} />
+        <HomeStackNav.Screen name="OrderTrackingScreen" component={OrderTrackingScreen} />
+        <HomeStackNav.Screen name="InvoiceScreen" component={InvoiceScreen} />
+      </HomeStackNav.Navigator>
+    </ErrorBoundary>
   );
 }
 
 function CategoriesStack() {
   return (
-    <CategoriesStackNav.Navigator screenOptions={{ headerShown: false }}>
-      <CategoriesStackNav.Screen name="CategoriesScreen" component={CategoriesScreen} />
-      <CategoriesStackNav.Screen name="ProductListScreen" component={ProductListScreen} />
-      <CategoriesStackNav.Screen name="ProductDetailScreen" component={ProductDetailScreen} />
-    </CategoriesStackNav.Navigator>
+    <ErrorBoundary>
+      <CategoriesStackNav.Navigator screenOptions={{ headerShown: false }}>
+        <CategoriesStackNav.Screen name="CategoriesScreen" component={CategoriesScreen} />
+        <CategoriesStackNav.Screen name="ProductListScreen" component={ProductListScreen} />
+        <CategoriesStackNav.Screen name="ProductDetailScreen" component={ProductDetailScreen} />
+      </CategoriesStackNav.Navigator>
+    </ErrorBoundary>
   );
 }
 
 function OrdersStack() {
   return (
-    <OrdersStackNav.Navigator screenOptions={{ headerShown: false }}>
-      <OrdersStackNav.Screen name="OrderHistoryScreen" component={OrderHistoryScreen} />
-      <OrdersStackNav.Screen name="OrderTrackingScreen" component={OrderTrackingScreen} />
-      <OrdersStackNav.Screen name="InvoiceScreen" component={InvoiceScreen} />
-    </OrdersStackNav.Navigator>
+    <ErrorBoundary>
+      <OrdersStackNav.Navigator screenOptions={{ headerShown: false }}>
+        <OrdersStackNav.Screen name="OrderHistoryScreen" component={OrderHistoryScreen} />
+        <OrdersStackNav.Screen name="OrderTrackingScreen" component={OrderTrackingScreen} />
+        <OrdersStackNav.Screen name="InvoiceScreen" component={InvoiceScreen} />
+      </OrdersStackNav.Navigator>
+    </ErrorBoundary>
   );
 }
 
 function ProfileStack() {
   return (
-    <ProfileStackNav.Navigator screenOptions={{ headerShown: false }}>
-      <ProfileStackNav.Screen name="ProfileScreen" component={ProfileScreen} />
-      <ProfileStackNav.Screen name="OrderHistoryScreen" component={OrderHistoryScreen} />
-      <ProfileStackNav.Screen name="OrderTrackingScreen" component={OrderTrackingScreen} />
-      <ProfileStackNav.Screen name="InvoiceScreen" component={InvoiceScreen} />
-      <ProfileStackNav.Screen name="AddressesScreen" component={AddressesScreen} />
-      <ProfileStackNav.Screen name="AddAddressScreen" component={AddAddressScreen} />
-      <ProfileStackNav.Screen name="WalletScreen" component={WalletScreen} />
-      <ProfileStackNav.Screen name="ReferAndEarnScreen" component={ReferAndEarnScreen} />
-      <ProfileStackNav.Screen name="AccountSettingsScreen" component={AccountSettingsScreen} />
-      <ProfileStackNav.Screen name="NotificationsScreen" component={NotificationsScreen} />
-      <ProfileStackNav.Screen name="FavoritesScreen" component={FavoritesScreen} />
-      <ProfileStackNav.Screen name="AppSettingsScreen" component={AppSettingsScreen} />
-      <ProfileStackNav.Screen name="OffersScreen" component={OffersScreen} />
-      <ProfileStackNav.Screen name="LanguageScreen" component={LanguageScreen} />
-    </ProfileStackNav.Navigator>
+    <ErrorBoundary>
+      <ProfileStackNav.Navigator screenOptions={{ headerShown: false }}>
+        <ProfileStackNav.Screen name="ProfileScreen" component={ProfileScreen} />
+        <ProfileStackNav.Screen name="OrderHistoryScreen" component={OrderHistoryScreen} />
+        <ProfileStackNav.Screen name="OrderTrackingScreen" component={OrderTrackingScreen} />
+        <ProfileStackNav.Screen name="InvoiceScreen" component={InvoiceScreen} />
+        <ProfileStackNav.Screen name="AddressesScreen" component={AddressesScreen} />
+        <ProfileStackNav.Screen name="AddAddressScreen" component={AddAddressScreen} />
+        <ProfileStackNav.Screen name="WalletScreen" component={WalletScreen} />
+        <ProfileStackNav.Screen name="ReferAndEarnScreen" component={ReferAndEarnScreen} />
+        <ProfileStackNav.Screen name="AccountSettingsScreen" component={AccountSettingsScreen} />
+        <ProfileStackNav.Screen name="NotificationsScreen" component={NotificationsScreen} />
+        <ProfileStackNav.Screen name="FavoritesScreen" component={FavoritesScreen} />
+        <ProfileStackNav.Screen name="AppSettingsScreen" component={AppSettingsScreen} />
+        <ProfileStackNav.Screen name="OffersScreen" component={OffersScreen} />
+        <ProfileStackNav.Screen name="LanguageScreen" component={LanguageScreen} />
+      </ProfileStackNav.Navigator>
+    </ErrorBoundary>
   );
 }
 
 function CartStack() {
   return (
-    <CartStackNav.Navigator screenOptions={{ headerShown: false }}>
-      <CartStackNav.Screen name="CartScreen" component={CartScreen} />
-      <CartStackNav.Screen name="CheckoutScreen" component={CheckoutScreen} />
-      <CartStackNav.Screen name="OrderSuccessScreen" component={OrderSuccessScreen} />
-      <CartStackNav.Screen name="OrderTrackingScreen" component={OrderTrackingScreen} />
-      <CartStackNav.Screen name="InvoiceScreen" component={InvoiceScreen} />
-      <CartStackNav.Screen name="AddAddressScreen" component={AddAddressScreen} />
-    </CartStackNav.Navigator>
+    <ErrorBoundary>
+      <CartStackNav.Navigator screenOptions={{ headerShown: false }}>
+        <CartStackNav.Screen name="CartScreen" component={CartScreen} />
+        <CartStackNav.Screen name="CheckoutScreen" component={CheckoutScreen} />
+        <CartStackNav.Screen name="OrderSuccessScreen" component={OrderSuccessScreen} />
+        <CartStackNav.Screen name="OrderTrackingScreen" component={OrderTrackingScreen} />
+        <CartStackNav.Screen name="InvoiceScreen" component={InvoiceScreen} />
+        <CartStackNav.Screen name="AddAddressScreen" component={AddAddressScreen} />
+      </CartStackNav.Navigator>
+    </ErrorBoundary>
   );
 }
 

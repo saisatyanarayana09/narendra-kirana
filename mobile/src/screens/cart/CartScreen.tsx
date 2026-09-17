@@ -24,8 +24,10 @@ import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { triggerHaptic } from '../../utils/haptics';
 import { AnimatedFadeIn } from '../../components/AnimatedFadeIn';
 
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
+if (Platform.OS === 'android' && typeof UIManager?.setLayoutAnimationEnabledExperimental === 'function') {
+  try {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  } catch {}
 }
 
 export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {

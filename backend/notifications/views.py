@@ -65,3 +65,27 @@ class UnregisterPushTokenView(APIView):
 
         return Response({'status': 'unregistered'}, status=status.HTTP_200_OK)
 
+
+import logging
+client_logger = logging.getLogger('client_errors')
+
+class ClientErrorLogView(APIView):
+    permission_classes = []
+
+    def post(self, request):
+        error_name = str(request.data.get('error_name', 'Unknown'))
+        error_message = str(request.data.get('error_message', ''))
+        stack = str(request.data.get('stack', ''))
+        component_stack = str(request.data.get('component_stack', ''))
+        app_version = str(request.data.get('app_version', ''))
+        platform = str(request.data.get('platform', ''))
+        user = request.user if request.user and request.user.is_authenticated else None
+        user_info = f"User #{user.id} ({user.username})" if user else "Anonymous"
+
+        client_logger.error(
+            "🚨 [CLIENT CRASH REPORT] %s: %s | Platform: %s | App Version: %s | %s\nStack:\n%s\nComponent Stack:\n%s",
+            error_name, error_message, platform, app_version, user_info, stack, component_stack
+        )
+        return Response({'status': 'logged'}, status=status.HTTP_200_OK)
+
+

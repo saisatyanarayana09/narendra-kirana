@@ -10,6 +10,9 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '../api/client';
+import { APP_VERSION } from '../constants/config';
 import { navigationRef } from '../navigation/navigationRef';
 import { triggerHaptic } from '../utils/haptics';
 
@@ -33,7 +36,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
     hasError: false,
     error: null,
     errorInfo: null,
-    showDevDetails: false,
+    showDevDetails: true,
     copied: false,
   };
 
@@ -49,6 +52,18 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
 
     console.error('ErrorBoundary caught an unhandled error:', error, errorInfo);
     this.props.onError?.(error, errorInfo);
+
+    // Automatically report crash to backend for immediate resolution
+    try {
+      apiClient.post('/notifications/client-error/', {
+        error_name: error?.name || 'Error',
+        error_message: error?.message || String(error),
+        stack: error?.stack || '',
+        component_stack: errorInfo?.componentStack || '',
+        platform: Platform.OS,
+        app_version: APP_VERSION,
+      }).catch(() => {});
+    } catch {}
   }
 
   public resetError = () => {
@@ -64,6 +79,35 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
 
   public handleRestart = () => {
     triggerHaptic('medium');
+    try {
+      if (navigationRef.isReady()) {
+        navigationRef.reset({
+          index: 0,
+          routes: [{ name: 'Main' }],
+        });
+      }
+    } catch (err) {
+      console.warn('ErrorBoundary failed to reset navigation route:', err);
+    }
+
+    this.resetError();
+  };
+
+  public handleClearCacheAndRestart = async () => {
+    triggerHaptic('medium');
+    try {
+      const keys = [
+        'home_data_cache',
+        'home_sections_cache',
+        'cached_orders_list',
+        'offline_cached_orders',
+        'welcome_screen_shown',
+      ];
+      await AsyncStorage.multiRemove(keys);
+    } catch (err) {
+      console.warn('ErrorBoundary failed to clear cache:', err);
+    }
+
     try {
       if (navigationRef.isReady()) {
         navigationRef.reset({
@@ -135,6 +179,19 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
               We ran into an unexpected hiccup while displaying this screen. Let's get you back on track.
             </Text>
 
+            {/* Real-time Error Summary Box */}
+            {Boolean(this.state.error) && (
+              <View style={styles.errorAlertBox}>
+                <Feather name="alert-circle" size={16} color="#DC2626" style={{ marginTop: 2 }} />
+                <View style={{ flex: 1, marginLeft: 8 }}>
+                  <Text style={styles.errorAlertTitle}>Reason for interruption:</Text>
+                  <Text style={styles.errorAlertText} selectable={true}>
+                    {this.state.error?.name || 'Error'}: {this.state.error?.message || 'Unexpected condition'}
+                  </Text>
+                </View>
+              </View>
+            )}
+
             {/* Action Buttons */}
             <View style={styles.actionsContainer}>
               <TouchableOpacity
@@ -153,6 +210,15 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
               >
                 <Feather name="refresh-cw" size={18} color="#059669" style={styles.buttonIcon} />
                 <Text style={styles.secondaryButtonText}>Try Again</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.tertiaryButton}
+                activeOpacity={0.8}
+                onPress={this.handleClearCacheAndRestart}
+              >
+                <Feather name="trash-2" size={16} color="#DC2626" style={styles.buttonIcon} />
+                <Text style={styles.tertiaryButtonText}>Clear Local Cache & Return Home</Text>
               </TouchableOpacity>
             </View>
 
@@ -401,6 +467,48 @@ const styles = StyleSheet.create({
   copyErrorBtnText: {
     color: '#059669',
     fontSize: 12,
+    fontWeight: '700',
+  },
+  errorAlertBox: {
+    width: '100%',
+    maxWidth: 340,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 20,
+  },
+  errorAlertTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#991B1B',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  errorAlertText: {
+    fontSize: 12,
+    color: '#B91C1C',
+    fontWeight: '600',
+    lineHeight: 16,
+  },
+  tertiaryButton: {
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 14,
+  },
+  tertiaryButtonText: {
+    color: '#DC2626',
+    fontSize: 14,
     fontWeight: '700',
   },
 });
