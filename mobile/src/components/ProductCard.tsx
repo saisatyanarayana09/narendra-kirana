@@ -42,6 +42,7 @@ export interface ProductCardProps {
   isFavorite?: boolean | ((productId: number) => boolean);
   onToggleFavorite?: (product: any) => void;
   cartQty?: number;
+  showQuantityStepper?: boolean;
 }
 
 function ProductCardComponent({ 
@@ -53,9 +54,11 @@ function ProductCardComponent({
   isFavorite,
   onToggleFavorite,
   cartQty: propCartQty,
+  showQuantityStepper = false,
 }: ProductCardProps) {
   const { colors, isDark } = useTheme();
   const [updating, setUpdating] = useState(false);
+  const [added, setAdded] = useState(false);
 
   const isFav = typeof isFavorite === 'function' ? Boolean(isFavorite(product.id)) : Boolean(isFavorite);
 
@@ -92,11 +95,13 @@ function ProductCardComponent({
     if (updating || !isInStock || isMaxReached) return;
     setUpdating(true);
     try {
-      if (onUpdateQuantity) {
-        await Promise.resolve(onUpdateQuantity(product.id, 1));
-      } else if (onAddToCart) {
+      if (onAddToCart) {
         await Promise.resolve(onAddToCart(product));
+      } else if (onUpdateQuantity) {
+        await Promise.resolve(onUpdateQuantity(product.id, currentCartQty + 1));
       }
+      setAdded(true);
+      setTimeout(() => setAdded(false), 2000);
     } catch (err) {
       console.error('Add to cart failed:', err);
     } finally {
@@ -238,13 +243,13 @@ function ProductCardComponent({
           )}
         </View>
 
-        {/* Add to Cart / Inline Stepper */}
+        {/* Add to Cart / Stepper (only if showQuantityStepper is explicitly true) */}
         <View style={styles.actionContainer}>
           {!isInStock ? (
             <View style={[styles.outOfStockButton, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
               <Text style={styles.outOfStockButtonText}>Out of stock</Text>
             </View>
-          ) : currentCartQty > 0 ? (
+          ) : showQuantityStepper && currentCartQty > 0 ? (
             <View style={[styles.stepperContainer, { backgroundColor: colors.primary }]}>
               <BouncyTouchable
                 style={styles.stepperBtn}
@@ -283,26 +288,26 @@ function ProductCardComponent({
           ) : (
             <BouncyTouchable 
               style={[
-                styles.addButton, 
-                { 
-                  borderColor: colors.primary,
-                  backgroundColor: isDark ? 'rgba(5, 150, 105, 0.12)' : '#F0FDF4',
-                },
+                styles.addToCartButton, 
+                { backgroundColor: colors.primary },
+                added && [styles.addedButton, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5', borderColor: '#A7F3D0' }],
                 isMaxReached && [styles.maxReachedButton, isDark && { backgroundColor: colors.inputBg, borderColor: colors.border }]
               ]}
               onPress={handleAdd}
-              disabled={updating || isMaxReached}
+              disabled={updating || added || isMaxReached}
               hapticType="medium"
-              scaleTo={0.95}
+              scaleTo={0.96}
             >
               {isMaxReached ? (
                 <Text style={styles.maxReachedText}>Max in cart</Text>
+              ) : added ? (
+                <Text style={[styles.addedText, { color: '#059669' }]}>✓ Added!</Text>
               ) : updating ? (
-                <Text style={[styles.addButtonText, { color: colors.primary }]}>Adding...</Text>
+                <Text style={styles.addToCartText}>Adding...</Text>
               ) : (
-                <View style={styles.addButtonContent}>
-                  <Text style={[styles.addButtonText, { color: colors.primary }]}>ADD</Text>
-                  <Feather name="plus" size={14} color={colors.primary} style={styles.addButtonPlus} />
+                <View style={styles.buttonInner}>
+                  <Feather name="shopping-cart" size={13} color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Text style={styles.addToCartText}>Add to Cart</Text>
                 </View>
               )}
             </BouncyTouchable>
@@ -327,6 +332,7 @@ export const ProductCard = React.memo(ProductCardComponent, (prevProps, nextProp
     prevProps.product.image === nextProps.product.image &&
     prevFav === nextFav &&
     prevProps.cartQty === nextProps.cartQty &&
+    prevProps.showQuantityStepper === nextProps.showQuantityStepper &&
     prevProps.style === nextProps.style &&
     prevProps.onUpdateQuantity === nextProps.onUpdateQuantity &&
     prevProps.onAddToCart === nextProps.onAddToCart
@@ -499,6 +505,41 @@ const styles = StyleSheet.create({
   },
   actionContainer: {
     marginTop: 'auto',
+  },
+  addToCartButton: {
+    height: 40,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  buttonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addedButton: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  addToCartText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  addedText: {
+    color: '#059669',
+    fontSize: 13,
+    fontWeight: '800',
   },
   addButton: {
     height: 38,

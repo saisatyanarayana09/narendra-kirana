@@ -27,7 +27,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { apiClient } from '../../api/client';
 import { storeApi } from '../../api/store';
 import { useAuth } from '../../context/AuthContext';
-import { useCart, getItemProductId } from '../../context/CartContext';
+import { useCart } from '../../context/CartContext';
 import { ProductCard } from '../../components/ProductCard';
 import { CategoryCard } from '../../components/CategoryCard';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
@@ -315,18 +315,9 @@ const SearchTicker = React.memo(function SearchTicker({ textColor }: { textColor
 
 export function HomeScreen({ navigation }: Props) {
   const { user } = useAuth();
-  const { cart, addToCart, updateQuantity, cartQuantityMap } = useCart();
+  const { cart, addToCart, cartQuantityMap } = useCart();
   const { colors, isDark } = useTheme();
   const { t } = useLanguage();
-
-  const handleUpdateQuantity = useCallback(async (productId: number, newQty: number) => {
-    const existingItem = cart?.items?.find((item) => getItemProductId(item) === productId);
-    if (existingItem) {
-      await updateQuantity(existingItem.id, newQty);
-    } else if (newQty > 0) {
-      await addToCart(productId, newQty);
-    }
-  }, [cart, updateQuantity, addToCart]);
   
   // Try to get cached home data synchronously for instant render
   const cachedHome = getHomeDataSync();
@@ -568,13 +559,12 @@ export function HomeScreen({ navigation }: Props) {
         product={item} 
         onPress={handleProductPress}
         onAddToCart={handleAddToCart}
-        onUpdateQuantity={handleUpdateQuantity}
         cartQty={cartQuantityMap[item.id] || 0}
         isFavorite={favoriteIds.has(item.id)}
         onToggleFavorite={handleToggleFavorite}
       />
     </View>
-  ), [handleProductPress, handleAddToCart, handleUpdateQuantity, cartQuantityMap, favoriteIds, handleToggleFavorite]);
+  ), [handleProductPress, handleAddToCart, cartQuantityMap, favoriteIds, handleToggleFavorite]);
 
   const onRefresh = () => {
     setRefreshing(true);

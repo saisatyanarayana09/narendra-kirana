@@ -18,7 +18,7 @@ import { apiClient } from '../../api/client';
 import { ProductCard } from '../../components/ProductCard';
 import { ProductCardSkeleton } from '../../components/SkeletonLoader';
 import { triggerHaptic } from '../../utils/haptics';
-import { useCart, getItemProductId } from '../../context/CartContext';
+import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -57,7 +57,7 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
   const initialSearch = route.params?.search || '';
 
   const { user } = useAuth();
-  const { cart, addToCart, updateQuantity, cartQuantityMap } = useCart();
+  const { cart, addToCart, cartQuantityMap } = useCart();
   const { colors, isDark } = useTheme();
   const { t } = useLanguage();
   
@@ -357,15 +357,6 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
     addToCart(p.id, 1, p);
   }, [addToCart]);
 
-  const handleUpdateQuantity = useCallback((productId: number, newQty: number) => {
-    const item = cart?.items?.find((i: any) => getItemProductId(i) === productId);
-    if (item) {
-      updateQuantity(item.id, newQty);
-    } else if (newQty > 0) {
-      addToCart(productId, newQty);
-    }
-  }, [cart, updateQuantity, addToCart]);
-
   const handleToggleFavorite = useCallback((p: any) => {
     toggleFavorite(p?.id ?? p);
   }, [toggleFavorite]);
@@ -376,13 +367,12 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
         product={item} 
         onPress={handleProductPress} 
         onAddToCart={handleAddToCart}
-        onUpdateQuantity={handleUpdateQuantity}
         cartQty={cartQuantityMap[item.id] || 0}
         isFavorite={favoriteIds.has(item.id)}
         onToggleFavorite={handleToggleFavorite}
       />
     </View>
-  ), [handleProductPress, handleAddToCart, handleUpdateQuantity, cartQuantityMap, favoriteIds, handleToggleFavorite]);
+  ), [handleProductPress, handleAddToCart, cartQuantityMap, favoriteIds, handleToggleFavorite]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
