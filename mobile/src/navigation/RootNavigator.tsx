@@ -361,20 +361,24 @@ export function RootNavigator() {
       handleIncomingUrl(event.url);
     });
 
-    // 3. Listen for push notification click / tap events
+    // 3. Listen for push notification click / tap events and interactive action buttons
     const notifSub = addNotificationResponseReceivedListener((response) => {
       try {
         const data = response.notification?.request?.content?.data;
-        if (data?.order_id) {
-          if (navigationRef.isReady()) {
-            (navigationRef as any).navigate('Main', {
-              screen: 'OrdersTab',
-              params: {
-                screen: 'OrderTrackingScreen',
-                params: { orderId: String(data.order_id) },
+        const actionId = response.actionIdentifier;
+        const targetOrderId = data?.order_id || data?.orderId;
+
+        if (targetOrderId && navigationRef.isReady()) {
+          (navigationRef as any).navigate('Main', {
+            screen: 'OrdersTab',
+            params: {
+              screen: 'OrderTrackingScreen',
+              params: { 
+                orderId: String(targetOrderId),
+                action: actionId,
               },
-            });
-          }
+            },
+          });
         }
       } catch (e) {
         console.warn('[RootNavigator] Notification tap navigation error:', e);

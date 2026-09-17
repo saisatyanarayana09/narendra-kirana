@@ -22,6 +22,7 @@ import { OrderTrackingMap } from '../../components/OrderTrackingMap';
 import * as Clipboard from 'expo-clipboard';
 import { triggerHaptic } from '../../utils/haptics';
 import { useWebSocket } from '../../hooks/useWebSocket';
+import { showSystemNotification } from '../../services/notificationService';
 
 export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavigationProp; route: any }) {
   const { colors, isDark } = useTheme();
@@ -103,6 +104,14 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
       setLoading(false);
     } else if (data.type === 'ORDER_STATUS_UPDATE') {
       triggerHaptic('success');
+      showSystemNotification({
+        title: `Order #${orderId} ${String(data.status || '').replace(/_/g, ' ')}! 📦`,
+        body: data.status === 'OUT_FOR_DELIVERY' 
+          ? 'Your order is out for delivery with our rider.' 
+          : `Order status updated to ${String(data.status || '').toLowerCase().replace(/_/g, ' ')}.`,
+        data: { order_id: orderId, status: data.status },
+        categoryId: data.status === 'OUT_FOR_DELIVERY' ? 'ORDER_DELIVERY' : 'ORDER_READY',
+      });
       setOrder((prev: any) => {
         if (!prev) return prev;
         const updated = {

@@ -68,6 +68,8 @@ export async function setupNotificationChannels(): Promise<void> {
         sound: 'default',
         enableVibrate: true,
         showBadge: true,
+        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+        bypassDnd: false,
       });
 
       await Notifications.setNotificationChannelAsync('general', {
@@ -78,6 +80,94 @@ export async function setupNotificationChannels(): Promise<void> {
     } catch (error) {
       console.log('[NotificationService] Notice: Android notification channels skipped:', error);
     }
+  }
+}
+
+/**
+ * Configure interactive action buttons for notifications in notification drawer
+ */
+export async function setupNotificationCategories(): Promise<void> {
+  const Notifications = getNotifications();
+  if (!Notifications) return;
+
+  try {
+    // Delivery in progress category
+    await Notifications.setNotificationCategoryAsync('ORDER_DELIVERY', [
+      {
+        identifier: 'TRACK_ORDER',
+        buttonTitle: '🗺️ Track Live',
+        options: { opensAppToForeground: true },
+      },
+      {
+        identifier: 'VIEW_ORDER',
+        buttonTitle: '📦 View Order',
+        options: { opensAppToForeground: true },
+      },
+    ]);
+
+    // Rider arriving category (with OTP quick action)
+    await Notifications.setNotificationCategoryAsync('RIDER_ARRIVING', [
+      {
+        identifier: 'VIEW_OTP',
+        buttonTitle: '🔑 View OTP',
+        options: { opensAppToForeground: true },
+      },
+      {
+        identifier: 'TRACK_ORDER',
+        buttonTitle: '🗺️ Live Map',
+        options: { opensAppToForeground: true },
+      },
+    ]);
+
+    // Order ready category
+    await Notifications.setNotificationCategoryAsync('ORDER_READY', [
+      {
+        identifier: 'VIEW_ORDER',
+        buttonTitle: '🛍️ Pickup Info',
+        options: { opensAppToForeground: true },
+      },
+    ]);
+  } catch (error) {
+    console.log('[NotificationService] Notification categories skipped:', error);
+  }
+}
+
+/**
+ * Display a heads-up banner directly in the mobile device's top system notification bar with sound and action buttons
+ */
+export async function showSystemNotification({
+  title,
+  body,
+  data = {},
+  categoryId = 'ORDER_DELIVERY',
+  channelId = 'orders',
+}: {
+  title: string;
+  body: string;
+  data?: Record<string, any>;
+  categoryId?: string;
+  channelId?: string;
+}): Promise<void> {
+  const Notifications = getNotifications();
+  if (!Notifications) return;
+
+  try {
+    await setupNotificationChannels();
+    await setupNotificationCategories();
+
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title,
+        body,
+        data,
+        categoryIdentifier: categoryId,
+        sound: 'default',
+        channelId,
+      },
+      trigger: null, // Display immediately in system bar
+    });
+  } catch (err) {
+    console.warn('[NotificationService] showSystemNotification failed:', err);
   }
 }
 
@@ -104,8 +194,9 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
   let token: string | null = null;
 
   try {
-    // Setup Android channels first
+    // Setup Android channels and interactive action categories first
     await setupNotificationChannels();
+    await setupNotificationCategories();
 
     // Check if running on a physical device (push tokens require physical device)
     if (!Device.isDevice) {

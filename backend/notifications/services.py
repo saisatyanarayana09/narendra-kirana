@@ -20,6 +20,17 @@ def _dispatch_expo_push(tokens_with_ids, title, body, data=None, channel_id='ord
             continue
 
         token_map[token_clean] = token_id
+        
+        category_id = (data or {}).get('category_id')
+        if not category_id:
+            notif_status = (data or {}).get('status')
+            if notif_status == 'RIDER_ARRIVING':
+                category_id = 'RIDER_ARRIVING'
+            elif notif_status == 'READY':
+                category_id = 'ORDER_READY'
+            else:
+                category_id = 'ORDER_DELIVERY'
+
         messages.append({
             'to': token_clean,
             'sound': 'default',
@@ -28,6 +39,7 @@ def _dispatch_expo_push(tokens_with_ids, title, body, data=None, channel_id='ord
             'data': data or {},
             'channelId': channel_id,
             'priority': 'high',
+            'categoryId': category_id,
             '_displayInForeground': True
         })
 
