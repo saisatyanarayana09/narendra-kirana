@@ -53,25 +53,36 @@ function ThemedAppContent() {
 
 function MainApp() {
   const [isUpdatingOnStartup, setIsUpdatingOnStartup] = React.useState(false);
+  const [otaStatusText, setOtaStatusText] = React.useState('Checking for updates...');
 
   React.useEffect(() => {
-    // 1. Listen for startup downloading state
+    // 1. Listen for startup OTA downloading and pending reload states
     const unsubscribe = subscribeOtaState((state) => {
-      if (state.isDownloading && state.isUpdateAvailable) {
+      if (state.isUpdateAvailable && (state.isDownloading || state.isUpdatePending)) {
         setIsUpdatingOnStartup(true);
-      } else if (!state.isDownloading) {
+        if (state.isUpdatePending) {
+          setOtaStatusText('Update installed! Restarting app...');
+        } else if (state.isDownloading) {
+          setOtaStatusText('Downloading latest improvements & offers...');
+        }
+      } else if (!state.isDownloading && !state.isUpdatePending) {
         setIsUpdatingOnStartup(false);
       }
     });
 
-    // 2. Run quick startup check (max 2000ms race)
-    runStartupOtaFlow(2000).catch(() => {});
+    // 2. Run startup OTA check (max 3500ms race)
+    runStartupOtaFlow(3500).catch(() => {});
 
     return () => unsubscribe();
   }, []);
 
   if (isUpdatingOnStartup) {
-    return <OtaLaunchScreen onSkip={() => setIsUpdatingOnStartup(false)} />;
+    return (
+      <OtaLaunchScreen 
+        statusMessage={otaStatusText}
+        onSkip={() => setIsUpdatingOnStartup(false)} 
+      />
+    );
   }
 
   return (

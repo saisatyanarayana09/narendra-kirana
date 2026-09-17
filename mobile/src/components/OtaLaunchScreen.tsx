@@ -13,9 +13,17 @@ import { Feather } from '@expo/vector-icons';
 
 interface OtaLaunchScreenProps {
   onSkip?: () => void;
+  statusMessage?: string;
+  title?: string;
+  subtitle?: string;
 }
 
-export function OtaLaunchScreen({ onSkip }: OtaLaunchScreenProps) {
+export function OtaLaunchScreen({ 
+  onSkip,
+  statusMessage = 'Installing updates seamlessly...',
+  title = 'Updating Narendra Kirana',
+  subtitle = 'Downloading the latest improvements & offers...',
+}: OtaLaunchScreenProps) {
   const [showSkip, setShowSkip] = useState(false);
 
   useEffect(() => {
@@ -41,15 +49,13 @@ export function OtaLaunchScreen({ onSkip }: OtaLaunchScreenProps) {
         </View>
 
         {/* Title */}
-        <Text style={styles.title}>Updating Narendra Kirana</Text>
-        <Text style={styles.subtitle}>
-          Downloading the latest improvements & offers...
-        </Text>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.subtitle}>{subtitle}</Text>
 
         {/* Loading Indicator */}
         <View style={styles.indicatorRow}>
           <ActivityIndicator size="small" color="#FDE047" />
-          <Text style={styles.statusText}>Installing updates seamlessly...</Text>
+          <Text style={styles.statusText}>{statusMessage}</Text>
         </View>
 
         {/* Skip button if slow network */}

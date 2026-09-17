@@ -46,7 +46,7 @@ export function subscribeOtaState(listener: (state: OtaState) => void): () => vo
  * - If check takes > maxWaitMs (slow network): immediately returns false so user can shop,
  *   then continues downloading silently in background and notifies listeners when ready.
  */
-export async function runStartupOtaFlow(maxWaitMs = 2000): Promise<{ shouldBlockAndReload: boolean }> {
+export async function runStartupOtaFlow(maxWaitMs = 3500): Promise<{ shouldBlockAndReload: boolean }> {
   if (__DEV__ || !Updates.isEnabled) {
     return { shouldBlockAndReload: false };
   }
