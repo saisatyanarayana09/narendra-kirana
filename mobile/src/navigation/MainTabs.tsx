@@ -136,9 +136,6 @@ const shouldHideTabBar = (route: any) => {
   return hideOnScreens.includes(routeName);
 };
 
-// Global flag ensuring initial cart reminder shows at most ONCE per app launch session
-let hasShownInitialCartPopupSession = false;
-
 export function MainTabs() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
@@ -303,10 +300,7 @@ export function MainTabs() {
         <FloatingCartBar 
           bottomOffset={totalBarHeight + 10}
           onPress={() => {
-            navigation.navigate('Main', {
-              screen: 'CartTab',
-              params: { screen: 'CartScreen' },
-            });
+            navigation.navigate('CartTab', { screen: 'CartScreen' });
           }}
           onClose={() => setIsMinimizedForSession(true)}
           currentRouteName={currentRouteName}
