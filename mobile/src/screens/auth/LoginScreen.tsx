@@ -80,6 +80,7 @@ export function LoginScreen({ navigation }: Props) {
         {/* Back Button */}
         <TouchableOpacity 
           style={styles.backButton} 
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           onPress={() => navigation.canGoBack() ? navigation.goBack() : null}
           activeOpacity={0.7}
         >
@@ -100,22 +101,25 @@ export function LoginScreen({ navigation }: Props) {
                 ? `Sign in to view Order #${pendingRedirect.params?.orderId || ''} invoice`
                 : pendingRedirect.screen === 'OrderTrackingScreen'
                 ? `Sign in to track Order #${pendingRedirect.params?.orderId || ''}`
-                : 'Sign in to access your requested page'}
+                : pendingRedirect.screen === 'OrderHistoryScreen'
+                ? 'Sign in to view your full order history'
+                : 'Sign in to complete your checkout'}
             </Text>
           </View>
         )}
 
+        {/* Card */}
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.inputContainer}>
-            <Text style={[styles.label, { color: colors.text }]}>Email Address</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Email or Username</Text>
             <TextInput
               style={[styles.input, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border, color: colors.text }]}
-              placeholder="name@example.com"
+              placeholder="Enter your email or username"
               placeholderTextColor={colors.textSecondary}
-              keyboardType="email-address"
-              autoCapitalize="none"
               value={email}
               onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
             />
           </View>
 
@@ -123,6 +127,7 @@ export function LoginScreen({ navigation }: Props) {
             <View style={styles.passwordHeader}>
               <Text style={[styles.label, { color: colors.text }]}>Password</Text>
               <TouchableOpacity 
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 onPress={() => navigation.navigate('ForgotPasswordScreen' as any)}
               >
                 <Text style={[styles.forgotPasswordText, { color: colors.primary }]}>Forgot Password?</Text>
@@ -139,6 +144,7 @@ export function LoginScreen({ navigation }: Props) {
               />
               <TouchableOpacity 
                 style={styles.eyeIcon} 
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 onPress={() => setShowPassword(!showPassword)}
               >
                 <Feather name={showPassword ? "eye-off" : "eye"} color={colors.textSecondary} size={18} />
@@ -197,6 +203,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
+    lineHeight: 32,
     fontWeight: '900',
     color: '#0F172A',
     letterSpacing: -0.5,

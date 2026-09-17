@@ -200,12 +200,14 @@ const styles = StyleSheet.create({
   title: {
     color: '#FFFFFF',
     fontSize: 13,
+    lineHeight: 16,
     fontWeight: '800',
     letterSpacing: 0.1,
   },
   subtitle: {
     color: '#A7F3D0',
     fontSize: 11,
+    lineHeight: 14,
     fontWeight: '600',
   },
   rightGroup: {
@@ -224,6 +226,7 @@ const styles = StyleSheet.create({
   restartBtnText: {
     color: '#064E3B',
     fontSize: 12,
+    lineHeight: 15,
     fontWeight: '800',
   },
   closeBtn: {

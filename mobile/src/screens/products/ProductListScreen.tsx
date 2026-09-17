@@ -383,6 +383,7 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
       <View style={[styles.topBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity 
           style={styles.backButton} 
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           onPress={() => {
             if (navigation.canGoBack()) {
               navigation.goBack();
@@ -517,6 +518,7 @@ const styles = StyleSheet.create({
   },
   topBarTitle: {
     fontSize: 15,
+    lineHeight: 20,
     fontWeight: '800',
     color: '#0F172A',
     flex: 1,
@@ -581,6 +583,7 @@ const styles = StyleSheet.create({
   },
   categoryTitle: {
     fontSize: 18,
+    lineHeight: 22,
     fontWeight: '900',
     color: '#0F172A',
   },
@@ -622,40 +625,58 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  errorText: {
+    fontSize: 16,
+    color: '#EF4444',
+    marginBottom: 16,
+  },
+  retryButton: {
+    backgroundColor: '#059669',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  footer: {
+    paddingVertical: 20,
     alignItems: 'center',
+  },
+  emptyContainer: {
     padding: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 40,
   },
   emptyIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: '#F1F5F9',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 16,
   },
   emptyTitle: {
     fontSize: 18,
     fontWeight: '800',
-    marginBottom: 6,
+    color: '#0F172A',
+    marginBottom: 8,
+    textAlign: 'center',
   },
   emptySubtitle: {
-    fontSize: 13,
+    fontSize: 14,
+    color: '#64748B',
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: 20,
+    marginBottom: 20,
   },
   clearFiltersBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: '#059669',
     paddingHorizontal: 18,
     paddingVertical: 10,
-    borderRadius: 12,
-    marginTop: 18,
+    borderRadius: 20,
     shadowColor: '#059669',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
@@ -670,7 +691,7 @@ const styles = StyleSheet.create({
   listContainer: {
     paddingHorizontal: 12,
     paddingTop: 8,
-    paddingBottom: 100,
+    paddingBottom: 130,
   },
   row: {
     flexDirection: 'row',

@@ -361,6 +361,7 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity 
           style={styles.backButton} 
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
@@ -881,7 +882,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 120,
+    paddingBottom: 130,
     maxWidth: 600,
     alignSelf: 'center',
     width: '100%',

@@ -320,6 +320,7 @@ const styles = StyleSheet.create({
   },
   labelText: {
     fontSize: 14,
+    lineHeight: 18,
     fontWeight: '800',
     letterSpacing: 0.3,
     textAlign: 'center',

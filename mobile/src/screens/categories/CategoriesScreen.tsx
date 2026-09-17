@@ -20,7 +20,7 @@ import { CategoryCardSkeleton } from '../../components/SkeletonLoader';
 import { getHomeDataSync, loadHomeData, saveHomeData } from '../../services/homeDataCache';
 
 const { width } = Dimensions.get('window');
-const HORIZONTAL_PADDING = 14;
+const HORIZONTAL_PADDING = 16;
 const GAP = 10;
 const CARD_WIDTH = Math.floor((width - (HORIZONTAL_PADDING * 2) - (GAP * 2)) / 3);
 const CARD_ROW_HEIGHT = CARD_WIDTH + 44;
@@ -113,6 +113,7 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
         <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
           <TouchableOpacity 
             style={styles.backButton}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             onPress={() => {
               if (navigation.canGoBack()) {
                 navigation.goBack();
@@ -143,6 +144,7 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity 
           style={styles.backButton}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           onPress={() => {
             if (navigation.canGoBack()) {
               navigation.goBack();
@@ -204,6 +206,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 24,
+    lineHeight: 28,
     fontWeight: '800',
     color: '#0F172A',
     letterSpacing: -0.5,

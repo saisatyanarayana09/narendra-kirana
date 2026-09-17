@@ -103,6 +103,7 @@ export function ForgotPasswordScreen({ navigation }: Props) {
         {/* Back Button */}
         <TouchableOpacity 
           style={styles.backButton} 
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Login')}
           activeOpacity={0.7}
         >
@@ -322,6 +323,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
+    lineHeight: 32,
     fontWeight: '900',
     letterSpacing: -0.5,
   },

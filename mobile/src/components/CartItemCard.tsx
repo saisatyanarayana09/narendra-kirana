@@ -40,7 +40,7 @@ export const CartItemCard = memo(function CartItemCard({ item, onUpdateQuantity,
           <Image 
             source={{ uri: primaryImage }} 
             style={[styles.image, isOutOfStock && { opacity: 0.5 }]} 
-            contentFit="contain" 
+            contentFit="cover" 
             cachePolicy="memory-disk"
             recyclingKey={primaryImage}
           />
@@ -70,7 +70,7 @@ export const CartItemCard = memo(function CartItemCard({ item, onUpdateQuantity,
             ⚠️ Out of stock · Remove to checkout
           </Text>
         ) : isMaxReached ? (
-          <Text style={styles.limitReachedText} numberOfLines={1}>
+          <Text style={[styles.limitReachedText, { color: isDark ? '#FBBF24' : '#D97706' }]} numberOfLines={1}>
             {maxOrderQty > 0 && maxOrderQty <= stockQty 
               ? `Max limit of ${maxAllowed} reached`
               : `Only ${maxAllowed} in stock`}
@@ -185,6 +185,7 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 15,
+    lineHeight: 19,
     fontWeight: '700',
     color: '#0F172A', // slate-900
     marginBottom: 2,

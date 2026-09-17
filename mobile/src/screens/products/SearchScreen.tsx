@@ -237,6 +237,7 @@ export function SearchScreen({ navigation, route }: Props) {
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity 
           style={styles.backButton} 
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           onPress={() => {
             if (navigation.canGoBack()) {
               navigation.goBack();
@@ -600,7 +601,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     padding: 16,
-    paddingBottom: 100,
+    paddingBottom: 130,
   },
   resultsHeader: {
     marginBottom: 12,

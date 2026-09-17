@@ -48,6 +48,7 @@ export function LanguageScreen({ navigation }: { navigation: AppNavigationProp }
       <View style={[styles.header, { borderBottomColor: colors.border, backgroundColor: colors.surface }]}>
         <TouchableOpacity
           style={styles.backButton}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           onPress={() => {
             triggerHaptic('light');
             navigation.goBack();
@@ -183,6 +184,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontWeight: '900',
+    lineHeight: 24,
     letterSpacing: -0.5,
   },
   headerSubtitle: {
@@ -192,7 +194,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 130,
     gap: 16,
   },
   sectionHeader: {

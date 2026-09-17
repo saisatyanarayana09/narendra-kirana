@@ -523,6 +523,7 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
         <View style={[styles.webActionBar, { backgroundColor: '#FFFFFF', borderBottomColor: '#E2E8F0' }]}>
           <TouchableOpacity 
             style={[styles.backToOrderBtn, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]} 
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
           >
@@ -558,6 +559,7 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
         <View style={[styles.webActionBar, { backgroundColor: '#FFFFFF', borderBottomColor: '#E2E8F0' }]}>
           <TouchableOpacity 
             style={[styles.backToOrderBtn, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]} 
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
           >
@@ -590,6 +592,7 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
         <View style={[styles.webActionBar, { backgroundColor: '#FFFFFF', borderBottomColor: '#E2E8F0' }]}>
           <TouchableOpacity 
             style={[styles.backToOrderBtn, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]} 
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
           >
@@ -612,6 +615,7 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
       <View style={[styles.webActionBar, { backgroundColor: '#FFFFFF', borderBottomColor: '#E2E8F0' }]}>
         <TouchableOpacity 
           style={[styles.backToOrderBtn, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]} 
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
@@ -638,6 +642,7 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
 
           <TouchableOpacity 
             style={styles.shareIconButton} 
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             onPress={handleShare}
             disabled={downloading}
             activeOpacity={0.75}
@@ -939,6 +944,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
+    lineHeight: 22,
     fontWeight: 'bold',
     color: '#0F172A',
   },
@@ -966,7 +972,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 110,
+    paddingBottom: 130,
   },
   webActionBar: {
     flexDirection: 'row',

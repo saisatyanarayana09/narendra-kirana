@@ -518,6 +518,7 @@ const styles = StyleSheet.create({
   },
   price: {
     fontSize: 16,
+    lineHeight: 20,
     fontWeight: '900',
     color: '#0F172A',
     fontVariant: ['tabular-nums'],
@@ -561,11 +562,13 @@ const styles = StyleSheet.create({
   addToCartText: {
     color: '#FFFFFF',
     fontSize: 13,
+    lineHeight: 16,
     fontWeight: '800',
   },
   addedText: {
     color: '#059669',
     fontSize: 13,
+    lineHeight: 16,
     fontWeight: '800',
   },
   addButton: {
@@ -589,6 +592,7 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     fontSize: 13,
+    lineHeight: 16,
     fontWeight: '800',
     letterSpacing: 0.5,
   },

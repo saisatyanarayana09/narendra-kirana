@@ -175,6 +175,7 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
       <View style={[styles.header, { top: insets.top + 10 }]}>
         <TouchableOpacity 
           style={[styles.headerButton, styles.backButton, isDark && { backgroundColor: 'rgba(30, 41, 59, 0.92)' }]} 
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           onPress={() => {
             if (navigation.canGoBack()) {
               navigation.goBack();
@@ -190,6 +191,7 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
         <View style={styles.headerRight}>
           <TouchableOpacity 
             style={[styles.headerButton, styles.shareButton, isDark && { backgroundColor: 'rgba(30, 41, 59, 0.92)' }]} 
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             onPress={handleShare}
             activeOpacity={0.8}
           >
@@ -197,6 +199,7 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.headerButton, styles.heartButton, isDark && { backgroundColor: 'rgba(30, 41, 59, 0.92)' }]} 
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             onPress={handleFavorite} 
             disabled={toggling}
             activeOpacity={0.8}
@@ -315,6 +318,7 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
         <TouchableOpacity 
           style={[
             styles.addToCartButton, 
+            { backgroundColor: colors.primary, shadowColor: colors.primary },
             !product.is_in_stock && [styles.disabledButton, isDark && { backgroundColor: colors.inputBg }],
             added && [styles.addedButton, isDark && { backgroundColor: colors.inputBg, borderColor: colors.border }],
             isMaxReached && [styles.maxReachedButton, isDark && { backgroundColor: colors.inputBg, borderColor: colors.border }]
@@ -388,7 +392,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   scrollContent: {
-    paddingBottom: 110,
+    paddingBottom: 130,
   },
   imageContainer: {
     width: width,
@@ -433,7 +437,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   galleryThumbnailActive: {
-    borderColor: '#DC2626',
+    borderColor: '#059669',
   },
   galleryThumbnailImage: {
     width: '100%',
@@ -553,6 +557,7 @@ const styles = StyleSheet.create({
   },
   price: {
     fontSize: 28,
+    lineHeight: 32,
     fontWeight: '900',
     color: '#0F172A',
   },
@@ -592,14 +597,14 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   addToCartButton: {
-    backgroundColor: '#DC2626', // Red-600 matching web app
+    backgroundColor: '#059669',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
     borderRadius: 14,
     gap: 8,
-    shadowColor: '#DC2626',
+    shadowColor: '#059669',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,

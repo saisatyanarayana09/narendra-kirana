@@ -183,6 +183,7 @@ const styles = StyleSheet.create({
   },
   brandTitle: {
     fontSize: 28,
+    lineHeight: 34,
     fontWeight: '900',
     letterSpacing: 1,
     marginBottom: 10,

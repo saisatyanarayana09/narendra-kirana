@@ -400,6 +400,7 @@ const styles = StyleSheet.create({
   badgeText: {
     color: '#FFFFFF',
     fontSize: 10,
+    lineHeight: 12,
     fontWeight: '900',
   },
   priceContainer: {
@@ -412,6 +413,7 @@ const styles = StyleSheet.create({
   priceValue: {
     color: '#FFFFFF',
     fontSize: 18,
+    lineHeight: 22,
     fontWeight: '900',
     letterSpacing: -0.5,
   },
@@ -438,6 +440,7 @@ const styles = StyleSheet.create({
   viewCartText: {
     color: '#064E3B', // Bold emerald matching brand
     fontSize: 13,
+    lineHeight: 16,
     fontWeight: '900',
     letterSpacing: 0.2,
   },

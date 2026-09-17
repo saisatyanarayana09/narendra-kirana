@@ -421,6 +421,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 22,
+    lineHeight: 26,
     fontWeight: '900',
     letterSpacing: -0.3,
   },

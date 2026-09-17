@@ -607,7 +607,7 @@ export function HomeScreen({ navigation }: Props) {
               </View>
               <View style={[styles.deliverySpeedBadge, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5' }]}>
                 <Feather name="zap" size={10} color="#059669" />
-                <Text style={styles.deliverySpeedText}>15-20 MINS</Text>
+                <Text style={[styles.deliverySpeedText, { color: isDark ? '#34D399' : '#047857' }]}>15-20 MINS</Text>
               </View>
             </View>
           </View>
@@ -664,7 +664,7 @@ export function HomeScreen({ navigation }: Props) {
             </View>
             <View style={[styles.deliverySpeedBadge, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5' }]}>
               <Feather name="zap" size={10} color="#059669" />
-              <Text style={styles.deliverySpeedText}>15-20 MINS</Text>
+              <Text style={[styles.deliverySpeedText, { color: isDark ? '#34D399' : '#047857' }]}>15-20 MINS</Text>
             </View>
           </View>
 
@@ -986,6 +986,7 @@ const styles = StyleSheet.create({
   },
   brandTitle: {
     fontSize: 20,
+    lineHeight: 24,
     fontWeight: '900',
     letterSpacing: -0.5,
   },
@@ -1229,6 +1230,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
+    lineHeight: 22,
     fontWeight: '800',
     color: '#0F172A',
     letterSpacing: -0.3,

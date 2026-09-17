@@ -103,7 +103,11 @@ export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) 
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <TouchableOpacity 
+            style={styles.backButton} 
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            onPress={() => navigation.goBack()}
+          >
             <Feather name="arrow-left" size={18} color={colors.primary} />
             <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
           </TouchableOpacity>
@@ -122,6 +126,7 @@ export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) 
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity 
           style={styles.backButton} 
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
@@ -238,6 +243,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 24,
+    lineHeight: 28,
     fontWeight: '900',
     color: '#0F172A',
     letterSpacing: -0.5,
@@ -249,7 +255,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 100,
+    paddingBottom: 130,
   },
   headerComponent: {
     marginBottom: 16,
@@ -272,6 +278,7 @@ const styles = StyleSheet.create({
   },
   heroBalanceAmount: {
     fontSize: 34,
+    lineHeight: 40,
     fontWeight: '900',
     color: '#FFFFFF',
     letterSpacing: -0.5,
@@ -308,6 +315,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
+    lineHeight: 22,
     fontWeight: '800',
     color: '#0F172A',
   },

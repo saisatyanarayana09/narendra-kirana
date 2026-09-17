@@ -142,6 +142,7 @@ export function AccountSettingsScreen({ navigation }: { navigation: AppNavigatio
         <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
           <TouchableOpacity 
             style={styles.backButton} 
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
           >
@@ -177,6 +178,7 @@ export function AccountSettingsScreen({ navigation }: { navigation: AppNavigatio
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity 
           style={styles.backButton} 
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
@@ -423,6 +425,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 24,
+    lineHeight: 28,
     fontWeight: '900',
     color: '#0F172A',
     letterSpacing: -0.5,
@@ -435,7 +438,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 100,
+    paddingBottom: 130,
   },
   card: {
     backgroundColor: '#FFFFFF',

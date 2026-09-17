@@ -290,6 +290,7 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity 
           style={styles.backButton} 
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           onPress={handleBack}
           activeOpacity={0.7}
         >
@@ -372,6 +373,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 24,
+    lineHeight: 28,
     fontWeight: '900',
     color: '#0F172A',
     letterSpacing: -0.5,
@@ -437,7 +439,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     padding: 16,
-    paddingBottom: 120,
+    paddingBottom: 130,
   },
   orderCard: {
     backgroundColor: '#FFFFFF',

@@ -267,6 +267,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
+    lineHeight: 32,
     fontWeight: '900',
     color: '#0F172A',
     marginBottom: 8,

@@ -252,6 +252,7 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
           {/* Back Button at Top Left (Replaces 'Verified Smart Customer') */}
           <TouchableOpacity 
             style={styles.heroBackButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             onPress={() => {
               triggerHaptic('light');
               if (navigation.canGoBack()) {
@@ -385,8 +386,8 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
                         {card.name}
                       </Text>
                       {Boolean((card as any).badge) && (
-                        <View style={styles.langBadge}>
-                          <Text style={styles.langBadgeText}>{(card as any).badge}</Text>
+                        <View style={[styles.langBadge, isDark && { backgroundColor: 'rgba(56, 189, 248, 0.15)' }]}>
+                          <Text style={[styles.langBadgeText, isDark && { color: '#38BDF8' }]}>{(card as any).badge}</Text>
                         </View>
                       )}
                     </View>
@@ -512,7 +513,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 110,
+    paddingBottom: 130,
   },
   customerHeroCard: {
     borderRadius: 24,
@@ -584,6 +585,7 @@ const styles = StyleSheet.create({
   },
   greetingTitle: {
     fontSize: 22,
+    lineHeight: 26,
     fontWeight: '900',
     color: '#FFFFFF',
     letterSpacing: -0.5,
