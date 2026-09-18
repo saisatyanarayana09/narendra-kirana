@@ -25,7 +25,7 @@ type NotificationsModuleType = any;
 let NotificationsModule: NotificationsModuleType | null = null;
 let hasAttemptedLoad = false;
 
-function getNotifications(): NotificationsModuleType | null {
+export function getNotifications(): NotificationsModuleType | null {
   if (isExpoGoAndroid || Platform.OS === 'web') {
     return null;
   }

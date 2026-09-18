@@ -13,6 +13,11 @@ import { LanguageProvider } from './src/context/LanguageContext';
 import { OtaLaunchScreen } from './src/components/OtaLaunchScreen';
 import { OtaUpdateBanner } from './src/components/OtaUpdateBanner';
 import { runStartupOtaFlow, subscribeOtaState } from './src/services/otaService';
+import { getNotifications } from './src/services/notificationService';
+
+// Initialize global notification handler outside of React component lifecycle
+// This ensures notifications are processed even when app is in background/killed state
+getNotifications();
 
 class TopLevelErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: any }> {
   state: { hasError: boolean; error: any } = { hasError: false, error: null };
