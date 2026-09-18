@@ -603,11 +603,6 @@ export function HomeScreen({ navigation }: Props) {
                   <Text style={[styles.brandSlate, { color: colors.text }]}>Narendra </Text>
                   <Text style={styles.brandRed}>Kirana</Text>
                 </Text>
-                <View style={styles.liveStoreDot} />
-              </View>
-              <View style={[styles.deliverySpeedBadge, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5' }]}>
-                <Feather name="zap" size={10} color="#059669" />
-                <Text style={[styles.deliverySpeedText, { color: isDark ? '#34D399' : '#047857' }]}>15-20 MINS</Text>
               </View>
             </View>
           </View>
@@ -652,7 +647,7 @@ export function HomeScreen({ navigation }: Props) {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* 2-Tier Quick-Commerce Header */}
       <View style={[styles.topHeaderContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        {/* Tier 1: Brand Logo, Delivery Speed Pill & Quick Actions */}
+        {/* Tier 1: Brand Logo */}
         <View style={styles.headerTier1}>
           <View style={styles.brandLocationGroup}>
             <View style={styles.brandTitleRow}>
@@ -660,41 +655,7 @@ export function HomeScreen({ navigation }: Props) {
                 <Text style={[styles.brandSlate, { color: colors.text }]}>Narendra </Text>
                 <Text style={styles.brandRed}>Kirana</Text>
               </Text>
-              <View style={styles.liveStoreDot} />
             </View>
-            <View style={[styles.deliverySpeedBadge, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5' }]}>
-              <Feather name="zap" size={10} color="#059669" />
-              <Text style={[styles.deliverySpeedText, { color: isDark ? '#34D399' : '#047857' }]}>15-20 MINS</Text>
-            </View>
-          </View>
-
-          {/* Quick Header Actions: Language Switcher & Favorites */}
-          <View style={styles.headerActionsRow}>
-            <TouchableOpacity 
-              style={[styles.headerActionBtn, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
-              onPress={() => {
-                triggerHaptic('selection');
-                setLanguage(language === 'en' ? 'te' : 'en');
-              }}
-              activeOpacity={0.8}
-              accessibilityLabel="Switch language"
-            >
-              <Text style={[styles.languageToggleText, { color: colors.text }]}>
-                {language === 'en' ? 'తెలుగు' : 'English'}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.headerActionBtn, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
-              onPress={() => {
-                triggerHaptic('light');
-                navigation.navigate('ProfileTab', { screen: 'FavoritesScreen' });
-              }}
-              activeOpacity={0.8}
-              accessibilityLabel="Favorites"
-            >
-              <Feather name="heart" size={16} color={favoriteIds.size > 0 ? '#EF4444' : colors.textSecondary} />
-            </TouchableOpacity>
           </View>
         </View>
 
