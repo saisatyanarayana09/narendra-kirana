@@ -186,6 +186,9 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 14,
+    fontWeight: '700',
+    color: '#475569',
+  },
   headerTitle: {
     fontSize: 24,
     fontWeight: '800',
