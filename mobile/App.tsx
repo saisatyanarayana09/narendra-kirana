@@ -60,23 +60,30 @@ function MainApp() {
   const [isUpdatingOnStartup, setIsUpdatingOnStartup] = React.useState(false);
   const [otaStatusText, setOtaStatusText] = React.useState('Checking for updates...');
 
+  const isInitialMountRef = React.useRef(true);
+
   React.useEffect(() => {
-    // 1. Listen for startup OTA downloading and pending reload states
+    // 1. Listen for startup OTA checking, downloading and pending reload states
     const unsubscribe = subscribeOtaState((state) => {
-      if (state.isUpdateAvailable && (state.isDownloading || state.isUpdatePending)) {
+      if (isInitialMountRef.current && state.isChecking) {
+        setIsUpdatingOnStartup(true);
+        setOtaStatusText('Checking for updates...');
+      } else if (state.isUpdateAvailable && (state.isDownloading || state.isUpdatePending)) {
         setIsUpdatingOnStartup(true);
         if (state.isUpdatePending) {
           setOtaStatusText('Update installed! Restarting app...');
         } else if (state.isDownloading) {
           setOtaStatusText('Downloading latest improvements & offers...');
         }
-      } else if (!state.isDownloading && !state.isUpdatePending) {
+      } else if (!state.isChecking && !state.isDownloading && !state.isUpdatePending) {
         setIsUpdatingOnStartup(false);
       }
     });
 
-    // 2. Run startup OTA check (max 3500ms race)
-    runStartupOtaFlow(3500).catch(() => {});
+    // 2. Run startup OTA check
+    runStartupOtaFlow().catch(() => {}).finally(() => {
+      isInitialMountRef.current = false;
+    });
 
     return () => unsubscribe();
   }, []);

@@ -46,72 +46,41 @@ export function subscribeOtaState(listener: (state: OtaState) => void): () => vo
  * - If check takes > maxWaitMs (slow network): immediately returns false so user can shop,
  *   then continues downloading silently in background and notifies listeners when ready.
  */
-export async function runStartupOtaFlow(maxWaitMs = 3500): Promise<{ shouldBlockAndReload: boolean }> {
+export async function runStartupOtaFlow(): Promise<{ shouldBlockAndReload: boolean }> {
   if (__DEV__ || !Updates.isEnabled) {
     return { shouldBlockAndReload: false };
   }
 
-  updateState({ isChecking: true });
-
-  let checkTimedOut = false;
-  const timeoutPromise = new Promise<{ isAvailable: false; timedOut: true }>((resolve) => {
-    setTimeout(() => {
-      checkTimedOut = true;
-      resolve({ isAvailable: false, timedOut: true });
-    }, maxWaitMs);
-  });
-
-  const checkPromise = Updates.checkForUpdateAsync()
-    .then((res) => ({ ...res, timedOut: false }))
-    .catch((err) => {
-      updateState({ error: err?.message });
-      return { isAvailable: false, timedOut: false };
-    });
-
-  const result = await Promise.race([checkPromise, timeoutPromise]);
-
-  if (result.timedOut) {
-    // Took too long: do NOT block startup! Let app open immediately.
+  try {
+    updateState({ isChecking: true });
+    
+    // Set a hard 10-second timeout just in case network hangs
+    const checkPromise = Updates.checkForUpdateAsync();
+    const timeoutPromise = new Promise<never>((_, reject) => 
+      setTimeout(() => reject(new Error('Check timeout')), 10000)
+    );
+    
+    const result = await Promise.race([checkPromise, timeoutPromise]) as Updates.UpdateCheckResult;
     updateState({ isChecking: false });
 
-    // Continue checking in background without blocking
-    checkPromise.then(async (bgResult) => {
-      if (bgResult.isAvailable) {
-        updateState({ isUpdateAvailable: true, isDownloading: true });
-        try {
-          await Updates.fetchUpdateAsync();
-          updateState({ isDownloading: false, isUpdatePending: true });
-        } catch {
-          updateState({ isDownloading: false });
-        }
-      }
-    });
-
-    return { shouldBlockAndReload: false };
-  }
-
-  updateState({ isChecking: false });
-
-  if (result.isAvailable) {
-    updateState({ isUpdateAvailable: true, isDownloading: true });
-    try {
-      // Download update with a safety timeout of 10s
+    if (result.isAvailable) {
+      updateState({ isUpdateAvailable: true, isDownloading: true });
+      
       const fetchPromise = Updates.fetchUpdateAsync();
       const fetchTimeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Download timeout')), 10000)
+        setTimeout(() => reject(new Error('Download timeout')), 30000)
       );
 
       await Promise.race([fetchPromise, fetchTimeout]);
       updateState({ isDownloading: false, isUpdatePending: true });
 
-      // Automatically reload straight into the newly downloaded version!
+      // Automatically reload straight into the newly downloaded version
       await Updates.reloadAsync();
       return { shouldBlockAndReload: true };
-    } catch (err: any) {
-      console.warn('[OTA] Startup fetch failed or timed out:', err);
-      updateState({ isDownloading: false, error: err?.message });
-      return { shouldBlockAndReload: false };
     }
+  } catch (err: any) {
+    console.warn('[OTA] Startup check/fetch failed or timed out:', err);
+    updateState({ isChecking: false, isDownloading: false, error: err?.message });
   }
 
   return { shouldBlockAndReload: false };
