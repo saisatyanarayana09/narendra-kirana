@@ -286,17 +286,8 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      {/* Header matching web OrdersHistory 1:1 */}
+      {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity 
-          style={styles.backButton} 
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          onPress={handleBack}
-          activeOpacity={0.7}
-        >
-          <Feather name="chevron-left" size={18} color={colors.textSecondary} />
-          <Text style={[styles.backButtonText, { color: colors.textSecondary }]}>Back to Dashboard</Text>
-        </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Order History</Text>
         <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>Track and review your past purchases.</Text>
       </View>

@@ -1258,6 +1258,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.2,
   },
+  brandTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+    lineHeight: 24,
+  },
   floatingWhatsAppBtn: {
     position: 'absolute',
     bottom: 24,

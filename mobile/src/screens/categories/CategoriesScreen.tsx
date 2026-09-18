@@ -112,20 +112,6 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
           <TouchableOpacity 
-            style={styles.backButton}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            onPress={() => {
-              if (navigation.canGoBack()) {
-                navigation.goBack();
-              } else {
-                navigation.navigate('HomeTab');
-              }
-            }}
-            activeOpacity={0.7}
-          >
-            <Feather name="arrow-left" size={16} color={colors.primary} />
-            <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
-          </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('categories')}</Text>
         </View>
 
@@ -201,15 +187,12 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#475569',
-  },
   headerTitle: {
     fontSize: 24,
-    lineHeight: 28,
     fontWeight: '800',
     color: '#0F172A',
     letterSpacing: -0.5,
+    lineHeight: 28,
   },
   center: {
     flex: 1,
