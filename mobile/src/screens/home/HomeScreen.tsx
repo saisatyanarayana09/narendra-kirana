@@ -645,29 +645,37 @@ export function HomeScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      {/* 2-Tier Quick-Commerce Header */}
-      <View style={[styles.topHeaderContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        {/* Tier 1: Brand Logo */}
-        <View style={styles.headerTier1}>
-          <View style={styles.brandLocationGroup}>
-            <View style={styles.brandTitleRow}>
-              <Text style={styles.brandTitle}>
-                <Text style={[styles.brandSlate, { color: colors.text }]}>Narendra </Text>
-                <Text style={styles.brandRed}>Kirana</Text>
-              </Text>
-            </View>
-          </View>
+      {/* Unified 1-Tier Header */}
+      <View style={[styles.topHeaderContainer, { 
+        backgroundColor: colors.surface, 
+        borderBottomColor: colors.border,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 10,
+        gap: 12
+      }]}>
+        {/* Brand Logo */}
+        <View style={{ flexShrink: 0 }}>
+          <Text style={[styles.brandTitle, { fontSize: 18, lineHeight: 22 }]}>
+            <Text style={[styles.brandSlate, { color: colors.text }]}>Narendra </Text>
+            <Text style={styles.brandRed}>Kirana</Text>
+          </Text>
         </View>
 
-        {/* Tier 2: Spacious Full-Width Search & Voice Capsule — collapses on scroll */}
-        <Animated.View style={{ height: headerSearchHeight, opacity: headerSearchOpacity, overflow: 'hidden' }}>
+        {/* Search Bar */}
         <TouchableOpacity 
-          style={[styles.fullWidthSearchBar, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
+          style={[styles.fullWidthSearchBar, { 
+            backgroundColor: colors.inputBg, 
+            borderColor: colors.border,
+            flex: 1,
+            height: 42,
+            paddingHorizontal: 12
+          }]}
           activeOpacity={0.88}
           onPress={() => navigation.navigate('SearchScreen')}
         >
-          <View style={styles.searchInnerRow}>
-            <Feather name="search" size={17} color={colors.textSecondary} style={{ marginRight: 8 }} />
+          <View style={[styles.searchInnerRow, { flex: 1 }]}>
+            <Feather name="search" size={16} color={colors.textSecondary} style={{ marginRight: 6 }} />
             <SearchTicker textColor={colors.textSecondary} />
           </View>
           <TouchableOpacity 
@@ -682,7 +690,6 @@ export function HomeScreen({ navigation }: Props) {
             <Feather name="mic" size={16} color={colors.primary} />
           </TouchableOpacity>
         </TouchableOpacity>
-        </Animated.View>
       </View>
 
       {/* Top Announcement Marquee Bar */}
