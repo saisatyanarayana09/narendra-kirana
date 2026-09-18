@@ -163,6 +163,15 @@ export function MainTabs() {
   const [isWelcomeActive, setIsWelcomeActive] = useState(willShowWelcome);
 
   const cartItemCount = cart?.items?.length || 0;
+  const prevCartItemCountRef = useRef(cartItemCount);
+
+  useEffect(() => {
+    // If the user adds a new item to the cart, un-minimize the floating cart bar so they see the feedback!
+    if (cartItemCount > prevCartItemCountRef.current) {
+      setIsMinimizedForSession(false);
+    }
+    prevCartItemCountRef.current = cartItemCount;
+  }, [cartItemCount]);
 
   // Pre-warm both homeDataCache and ordersCache when user is present or on component mount
   useEffect(() => {
@@ -315,17 +324,7 @@ export function MainTabs() {
         <FloatingCartBar 
           bottomOffset={totalBarHeight + 10}
           onPress={() => {
-            if (navigationRef.isReady()) {
-              navigationRef.navigate('Main', {
-                screen: 'CartTab',
-                params: { screen: 'CartScreen' },
-              });
-            } else {
-              navigation.navigate('Main', {
-                screen: 'CartTab',
-                params: { screen: 'CartScreen' },
-              });
-            }
+            navigation.navigate('CartTab', { screen: 'CartScreen' });
           }}
           onClose={() => setIsMinimizedForSession(true)}
           currentRouteName={currentRouteName}

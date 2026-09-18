@@ -162,6 +162,7 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
 
   return (
     <Animated.View
+      pointerEvents="box-none"
       style={[
         styles.wrapper,
         {
