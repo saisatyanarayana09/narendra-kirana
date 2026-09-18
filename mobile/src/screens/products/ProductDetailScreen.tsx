@@ -227,7 +227,7 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
           )}
 
           {currentImage ? (
-            <Image source={{ uri: currentImage }} style={styles.image} contentFit="contain" cachePolicy="memory-disk" />
+            <Image source={{ uri: currentImage }} style={styles.image} contentFit="cover" cachePolicy="memory-disk" />
           ) : (
             <View style={[styles.placeholderBox, { backgroundColor: colors.inputBg }]}>
               <Text style={[styles.placeholderLetter, { color: colors.textSecondary }]}>{product.name?.charAt(0) || 'P'}</Text>

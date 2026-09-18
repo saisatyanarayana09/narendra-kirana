@@ -69,7 +69,7 @@ export const CategoryCard = memo(function CategoryCard({ category, onPress, inde
           <Image 
             source={{ uri: finalImage }} 
             style={styles.image} 
-            contentFit="contain" 
+            contentFit="cover" 
             cachePolicy="memory-disk"
             recyclingKey={finalImage}
           />
