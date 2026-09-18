@@ -78,7 +78,7 @@ export const CategoryCard = memo(function CategoryCard({ category, onPress, inde
             <LinearGradient
               colors={['transparent', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.85)']}
               locations={[0.3, 0.7, 1]}
-              style={StyleSheet.absoluteFillObject}
+              style={StyleSheet.absoluteFill}
             />
           </>
         ) : (
@@ -89,7 +89,7 @@ export const CategoryCard = memo(function CategoryCard({ category, onPress, inde
             <LinearGradient
               colors={['transparent', 'rgba(0,0,0,0.1)', 'rgba(0,0,0,0.7)']}
               locations={[0.4, 0.7, 1]}
-              style={StyleSheet.absoluteFillObject}
+              style={StyleSheet.absoluteFill}
             />
           </View>
         )}
@@ -127,12 +127,12 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   image: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     width: '100%',
     height: '100%',
   },
   fallbackContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
   },
