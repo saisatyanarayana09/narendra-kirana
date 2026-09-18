@@ -524,7 +524,7 @@ class WalletView(generics.RetrieveAPIView):
     def get_object(self):
         try:
             return Wallet.objects.prefetch_related(
-                Prefetch('transactions', queryset=WalletTransaction.objects.order_by('-created_at')[:50])
+                Prefetch('transactions', queryset=WalletTransaction.objects.order_by('-created_at'))
             ).get(user=self.request.user)
         except Wallet.DoesNotExist:
             return Wallet.objects.create(user=self.request.user)

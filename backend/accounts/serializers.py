@@ -238,8 +238,13 @@ class WalletTransactionSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class WalletSerializer(serializers.ModelSerializer):
-    transactions = WalletTransactionSerializer(many=True, read_only=True)
+    transactions = serializers.SerializerMethodField()
     
     class Meta:
         model = Wallet
         fields = ['balance', 'transactions', 'updated_at']
+
+    def get_transactions(self, obj):
+        # We slice it here because slicing inside Django's Prefetch raises an error.
+        # list() forces use of the prefetched cache rather than triggering a new DB query.
+        return WalletTransactionSerializer(list(obj.transactions.all())[:50], many=True).data
