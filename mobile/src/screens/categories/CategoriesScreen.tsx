@@ -23,7 +23,7 @@ const { width } = Dimensions.get('window');
 const HORIZONTAL_PADDING = 16;
 const GAP = 10;
 const CARD_WIDTH = Math.floor((width - (HORIZONTAL_PADDING * 2) - (GAP * 2)) / 3);
-const CARD_ROW_HEIGHT = CARD_WIDTH + 44;
+const CARD_ROW_HEIGHT = CARD_WIDTH + 6;
 
 let cachedGlobalCategories: any[] | null = null;
 

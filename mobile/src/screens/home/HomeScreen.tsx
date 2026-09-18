@@ -550,7 +550,7 @@ export function HomeScreen({ navigation }: Props) {
     navigation.navigate('CategoriesTab', { screen: 'ProductListScreen', params: {} });
   }, [navigation]);
 
-  const categoryCardSize = width > 400 ? 92 : 80;
+  const categoryCardSize = width > 400 ? 104 : 96;
   const getCategoryItemLayout = useCallback((_: any, index: number) => ({
     length: categoryCardSize + 10,
     offset: 16 + (categoryCardSize + 10) * index,
