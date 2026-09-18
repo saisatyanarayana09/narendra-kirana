@@ -644,56 +644,46 @@ export function HomeScreen({ navigation }: Props) {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <SafeAreaView style={{ backgroundColor: '#059669' }} edges={['top']}>
-        {/* Premium Compact "Green Splash" Header */}
-        <View style={{ 
-          backgroundColor: '#059669', 
-          paddingHorizontal: 16,
-          paddingTop: 4,
-          paddingBottom: 14,
-        }}>
-          {/* Brand Logo - Compact and left-aligned */}
-          <View style={{ marginBottom: 12 }}>
-            <Text style={[styles.brandTitle, { fontSize: 20, lineHeight: 24, color: '#FFFFFF', letterSpacing: -0.5 }]}>
-              Narendra <Text style={{ color: '#FDE047' }}>Kirana</Text>
-            </Text>
-          </View>
-
-          {/* Search Bar - White with soft shadow */}
-          <TouchableOpacity 
-            style={[styles.fullWidthSearchBar, { 
-              backgroundColor: '#FFFFFF', 
-              borderWidth: 0,
-              height: 42,
-              paddingHorizontal: 14,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 3 },
-              shadowOpacity: 0.15,
-              shadowRadius: 6,
-              elevation: 4
-            }]}
-            activeOpacity={0.88}
-            onPress={() => navigation.navigate('SearchScreen')}
-          >
-            <View style={[styles.searchInnerRow, { flex: 1 }]}>
-              <Feather name="search" size={17} color="#64748B" style={{ marginRight: 8 }} />
-              <SearchTicker textColor="#64748B" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      {/* 2-Tier Quick-Commerce Header */}
+      <View style={[styles.topHeaderContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        {/* Tier 1: Brand Logo */}
+        <View style={styles.headerTier1}>
+          <View style={styles.brandLocationGroup}>
+            <View style={styles.brandTitleRow}>
+              <Text style={styles.brandTitle}>
+                <Text style={[styles.brandSlate, { color: colors.text }]}>Narendra </Text>
+                <Text style={styles.brandRed}>Kirana</Text>
+              </Text>
             </View>
-            <TouchableOpacity 
-              style={styles.voiceMicBtn}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              onPress={(e) => {
-                e.stopPropagation();
-                triggerHaptic('medium');
-                navigation.navigate('SearchScreen', { autoStartVoice: true });
-              }}
-            >
-              <Feather name="mic" size={17} color="#059669" />
-            </TouchableOpacity>
-          </TouchableOpacity>
+          </View>
         </View>
-      </SafeAreaView>
+
+        {/* Tier 2: Spacious Full-Width Search & Voice Capsule — collapses on scroll */}
+        <Animated.View style={{ height: headerSearchHeight, opacity: headerSearchOpacity, overflow: 'hidden' }}>
+        <TouchableOpacity 
+          style={[styles.fullWidthSearchBar, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
+          activeOpacity={0.88}
+          onPress={() => navigation.navigate('SearchScreen')}
+        >
+          <View style={styles.searchInnerRow}>
+            <Feather name="search" size={17} color={colors.textSecondary} style={{ marginRight: 8 }} />
+            <SearchTicker textColor={colors.textSecondary} />
+          </View>
+          <TouchableOpacity 
+            style={styles.voiceMicBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            onPress={(e) => {
+              e.stopPropagation();
+              triggerHaptic('medium');
+              navigation.navigate('SearchScreen', { autoStartVoice: true });
+            }}
+          >
+            <Feather name="mic" size={16} color={colors.primary} />
+          </TouchableOpacity>
+        </TouchableOpacity>
+        </Animated.View>
+      </View>
 
       {/* Top Announcement Marquee Bar */}
       {showAnnouncement && (
@@ -925,7 +915,7 @@ export function HomeScreen({ navigation }: Props) {
           </View>
         </Modal>
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
