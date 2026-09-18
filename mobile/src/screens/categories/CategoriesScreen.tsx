@@ -111,7 +111,6 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-          <TouchableOpacity 
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('categories')}</Text>
         </View>
 
