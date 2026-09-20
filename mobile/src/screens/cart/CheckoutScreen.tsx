@@ -444,6 +444,13 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
           : 'Place order (Pay at store)';
 
   const handlePlaceOrder = async () => {
+    if (isSubmitting) return;
+
+    if (showAddressForm) {
+      Alert.alert('Unsaved Address', 'Please save your address before placing the order.');
+      return;
+    }
+
     if (isEmergencyPaused) {
       Alert.alert('Orders Paused', emergencyPauseMessage);
       return;
@@ -555,14 +562,17 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
       delivery_slot_date: chosenSlotDate || null,
       delivery_slot_label: chosenSlotLabel,
       payment_method: finalTotalToPay === 0 ? 'WALLET' : paymentMethod,
-      upi_transaction_id: paymentMethod === 'UPI' ? upiTransactionId.trim() : '',
+      upi_transaction_id: (paymentMethod === 'UPI' && finalTotalToPay > 0) ? upiTransactionId.trim() : '',
     };
 
     try {
       const response = await apiClient.post('/orders/', payload);
-      // Clean up cart state
-      clearCart().catch(() => {});
-      refreshCart().catch(() => {});
+      try {
+        await clearCart();
+        await refreshCart();
+      } catch (err) {
+        console.error("Cart cleanup failed:", err);
+      }
       navigation.navigate('OrderSuccessScreen', { orderId: response.data.id });
     } catch (err: any) {
       const msg = extractErrorMessage(err, 'Could not place your order.');

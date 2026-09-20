@@ -426,15 +426,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
               const res = await apiClient.get(`/products/${productId}/`);
               details = res.data;
               if (!details) throw new Error('Product not found');
-            } catch {
-              details = {
-                id: productId,
-                name: 'Product',
-                price: '0.00',
-                mrp: null,
-                is_in_stock: true,
-                image: null,
-              };
+            } catch (err) {
+              console.error('Failed to fetch product details for guest cart', err);
+              return; // Abort adding to cart if product cannot be resolved
             }
           }
 
