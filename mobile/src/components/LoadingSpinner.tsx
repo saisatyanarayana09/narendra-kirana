@@ -9,13 +9,13 @@ interface Props {
 export function LoadingSpinner({ fullScreen = false }: Props) {
   if (fullScreen) {
     return (
-      <View style={styles.fullScreen}>
+      <View style={styles.fullScreen} testID="loading-spinner">
         <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
   
-  return <ActivityIndicator size="small" color={theme.colors.primary} />;
+  return <ActivityIndicator size="small" color={theme.colors.primary} testID="loading-spinner" />;
 }
 
 const styles = StyleSheet.create({

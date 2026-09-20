@@ -1,0 +1,27 @@
+appId: com.saisatyanarayana09.narendra-kirana
+---
+- launchApp
+
+# Go to a product list (e.g., Search or Categories)
+- tapOn: "Search for groceries..."
+- assertVisible: "Search products..."
+- tapOn: "Search products..."
+- inputText: "Dal"
+- pressKey: Enter
+
+# Favorite a product
+- assertVisible: "HeartIcon" # Assuming the heart icon has an accessibility label or ID
+- tapOn: "HeartIcon" # Taps the first heart icon to add to favorites
+
+# Navigate to Favorites Tab
+- tapOn: "Favorites" # Bottom tab bar
+
+# Verify it was added
+- assertVisible: "Dal" # Assumes 'Dal' is in the product name
+- assertVisible: "Remove" # Or tap on HeartIcon again to remove
+
+# Remove from favorites
+- tapOn: "HeartIcon"
+
+# Verify empty state
+- assertVisible: "No Favorites Yet" # Verify the empty state renders
