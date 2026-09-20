@@ -1,0 +1,27 @@
+appId: com.saisatyanarayana09.narendra-kirana
+---
+- launchApp
+
+# Tap on search bar to navigate to Search Screen
+- tapOn: "Search for groceries..." # Assumes this is the placeholder text on Home
+
+# Perform a search query
+- assertVisible: "Search products..."
+- tapOn: "Search products..."
+- inputText: "Atta"
+- pressKey: Enter
+
+# Verify search results
+- assertVisible: "Aashirvaad Atta" # Assumes dummy/test data returns this
+- assertVisible: "ADD"
+
+# Add to cart from search
+- tapOn: "ADD"
+- assertVisible: "1 Items" # Validates Floating Cart Bar appeared
+
+# Clear search
+- tapOn: "clear-icon" # Assumes a clear 'x' icon exists
+- eraseText
+
+# Empty state verification
+- assertVisible: "Type to search..." # Empty state hint
