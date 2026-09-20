@@ -54,10 +54,10 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
       const price = parseFloat(item.unit_price || p.offer_price || p.price || p.regular_price || 0);
       return sum + (price * (item.quantity || 1));
     }, 0);
-    const tot = parseFloat(cart?.items_total || cart?.total || String(rawSub)) || rawSub;
+    const tot = parseFloat(cart?.items_total || String(rawSub)) || rawSub;
     const threshold = parseFloat(storeSettings?.free_delivery_threshold || '0');
     const free = threshold > 0 && tot >= threshold;
-    const short = threshold > 0 && !free ? threshold - tot : 0;
+    const short = threshold > 0 && !free ? Math.max(0, Number((threshold - tot).toFixed(2))) : 0;
     return { itemCount: count, totalAmount: tot, isFreeDelivery: free, shortfall: short };
   }, [cart, storeSettings]);
 
