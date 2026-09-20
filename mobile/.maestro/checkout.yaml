@@ -1,0 +1,40 @@
+appId: com.saisatyanarayana09.narendra-kirana
+---
+- launchApp
+
+# Add an item to the cart from Home Screen
+- tapOn:
+    id: "category_*" # Taps the first category, assuming IDs or accessibility labels
+    optional: true
+- tapOn: "Add to Cart" # Finds the first visible add to cart button
+
+# Navigate to Cart
+- tapOn: "Cart" # Assuming a bottom tab or floating button exists
+
+# Verify Cart State
+- assertVisible: "Total"
+- assertVisible: "Checkout"
+
+# Proceed to Checkout
+- tapOn: "Checkout"
+
+# Address Selection (Simulating a saved address)
+- assertVisible: "Delivery Address"
+- tapOn: "Deliver Here"
+    optional: true # In case it's already selected
+
+# Payment Selection
+- scroll
+- tapOn: "Cash on Delivery" # Testing COD flow first to bypass UPI constraints
+
+# Place Order
+- tapOn: "Slide to Confirm" # Ideally this uses a swipe action, Maestro supports swipe
+- swipe:
+    direction: RIGHT
+    elementId: "slide_to_confirm_button" # Assuming we add a testID later
+    optional: true
+- tapOn: "Place order (Cash on Delivery)"
+
+# Verify Success Route
+- assertVisible: "Order Successful"
+- assertVisible: "Track Order"
