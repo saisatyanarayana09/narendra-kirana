@@ -425,6 +425,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             try {
               const res = await apiClient.get(`/products/${productId}/`);
               details = res.data;
+              if (!details) throw new Error('Product not found');
             } catch {
               details = {
                 id: productId,

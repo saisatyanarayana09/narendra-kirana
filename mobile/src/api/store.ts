@@ -149,12 +149,14 @@ function fetchAndCacheSettings(): Promise<StoreSettings> {
   inFlightSettingsPromise = (async () => {
     try {
       const res = await apiClient.get('/store/settings/');
-      const data = Array.isArray(res.data) ? res.data[0] : res.data;
-      cachedSettings = data;
-      cacheExpiry = Date.now() + 15000; // 15s fresh cache
+      const data = res.data ? (Array.isArray(res.data) ? res.data[0] : res.data) : null;
+      if (data) {
+        cachedSettings = data;
+        cacheExpiry = Date.now() + 15000; // 15s fresh cache
 
-      // Persist to disk for next cold start (non-blocking)
-      AsyncStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(data)).catch(() => {});
+        // Persist to disk for next cold start (non-blocking)
+        AsyncStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(data)).catch(() => {});
+      }
 
       return data;
     } catch (err: any) {
@@ -165,9 +167,11 @@ function fetchAndCacheSettings(): Promise<StoreSettings> {
             timeout: 30000,
             headers: { 'Content-Type': 'application/json' },
           });
-          const data = Array.isArray(fallbackRes.data) ? fallbackRes.data[0] : fallbackRes.data;
-          cachedSettings = data;
-          cacheExpiry = Date.now() + 15000;
+          const data = fallbackRes.data ? (Array.isArray(fallbackRes.data) ? fallbackRes.data[0] : fallbackRes.data) : null;
+          if (data) {
+            cachedSettings = data;
+            cacheExpiry = Date.now() + 15000;
+          }
           AsyncStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(data)).catch(() => {});
           return data;
         } catch {

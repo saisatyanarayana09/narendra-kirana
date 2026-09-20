@@ -97,6 +97,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (data: any) => {
     try {
       const response = await apiClient.post('/auth/login/', data);
+      
+      if (!response.data) throw new Error('Invalid response from server');
+      
       const { access, refresh, user: loggedUser } = response.data;
       
       await saveItem(STORAGE_KEYS.TOKEN, access);

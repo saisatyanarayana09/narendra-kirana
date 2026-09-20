@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   ScrollView 
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import type { AuthStackParamList } from '../../navigation/AuthStack';
@@ -67,10 +68,11 @@ export function LoginScreen({ navigation }: Props) {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={[styles.container, { backgroundColor: colors.background }]} 
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top', 'bottom']}>
+      <KeyboardAvoidingView 
+        style={[styles.container, { backgroundColor: colors.background }]} 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
       <ScrollView 
         showsVerticalScrollIndicator={false} 
         keyboardShouldPersistTaps="handled"
@@ -174,6 +176,7 @@ export function LoginScreen({ navigation }: Props) {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
