@@ -62,6 +62,7 @@
     "web": "expo start --web",
     "ota": "eas update --branch production",
     "ota:preview": "eas update --branch preview",
+    "postinstall": "mkdir -p node_modules/react-native/src && echo 'module.exports = {};' > node_modules/react-native/src/setup-env.js || true",
     "lint": "eslint src --ext .js,.jsx,.ts,.tsx --quiet",
     "typecheck": "tsc --noEmit",
     "test": "jest",
