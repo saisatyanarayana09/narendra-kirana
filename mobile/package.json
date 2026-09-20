@@ -40,7 +40,7 @@
   },
   "devDependencies": {
     "@expo/ngrok": "^4.1.3",
-    "@react-native/jest-preset": "^0.87.1",
+    "@react-native/jest-preset": "^0.86.3",
     "@testing-library/jest-native": "^5.4.3",
     "@testing-library/react-native": "^14.0.1",
     "@types/jest": "^30.0.0",
@@ -62,7 +62,7 @@
     "web": "expo start --web",
     "ota": "eas update --branch production",
     "ota:preview": "eas update --branch preview",
-    "postinstall": "mkdir -p node_modules/react-native/src && echo 'module.exports = {};' > node_modules/react-native/src/setup-env.js || true",
+    "postinstall": "node -e \"const fs=require('fs');const p='node_modules/react-native/src';if(!fs.existsSync(p)){fs.mkdirSync(p,{recursive:true});fs.writeFileSync(p+'/setup-env.js','module.exports={};')}\"",
     "lint": "eslint src --ext .js,.jsx,.ts,.tsx --quiet",
     "typecheck": "tsc --noEmit",
     "test": "jest",
