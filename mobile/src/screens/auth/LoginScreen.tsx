@@ -9,7 +9,8 @@ import {
   Platform, 
   Alert,
   ActivityIndicator,
-  ScrollView 
+  ScrollView,
+  Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -125,6 +126,11 @@ export function LoginScreen({ navigation }: Props) {
         </TouchableOpacity>
 
         <View style={styles.header}>
+          <Image 
+            source={require('../../../assets/narendra-logo.jpg')} 
+            style={styles.logoImage} 
+            resizeMode="contain" 
+          />
           <Text style={[styles.title, { color: colors.text }]}>Welcome back</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Sign in to access your orders, wallet & favorites</Text>
         </View>
@@ -146,6 +152,28 @@ export function LoginScreen({ navigation }: Props) {
 
         {/* Card */}
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <TouchableOpacity 
+            style={[styles.googleButton, { borderColor: colors.border, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF' }]}
+            onPress={handleGoogleLogin}
+            disabled={isLoading || isGoogleLoading}
+            activeOpacity={0.85}
+          >
+            {isGoogleLoading ? (
+              <ActivityIndicator color={colors.primary} size="small" />
+            ) : (
+              <>
+                <AntDesign name="google" color={colors.text} size={20} style={{ marginRight: 8 }} />
+                <Text style={[styles.googleButtonText, { color: colors.text }]}>Continue with Google</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          <View style={styles.dividerContainer}>
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            <Text style={[styles.dividerText, { color: colors.textSecondary, backgroundColor: colors.background }]}>OR</Text>
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+          </View>
+
           <View style={styles.inputContainer}>
             <Text style={[styles.label, { color: colors.text }]}>Email or Username</Text>
             <TextInput
@@ -201,28 +229,6 @@ export function LoginScreen({ navigation }: Props) {
             )}
           </TouchableOpacity>
 
-          <View style={styles.dividerContainer}>
-            <View style={[styles.divider, { backgroundColor: colors.border }]} />
-            <Text style={[styles.dividerText, { color: colors.textSecondary, backgroundColor: colors.background }]}>OR</Text>
-            <View style={[styles.divider, { backgroundColor: colors.border }]} />
-          </View>
-
-          <TouchableOpacity 
-            style={[styles.googleButton, { borderColor: colors.border, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF' }]}
-            onPress={handleGoogleLogin}
-            disabled={isLoading || isGoogleLoading}
-            activeOpacity={0.85}
-          >
-            {isGoogleLoading ? (
-              <ActivityIndicator color={colors.primary} size="small" />
-            ) : (
-              <>
-                <AntDesign name="google" color={colors.text} size={20} style={{ marginRight: 8 }} />
-                <Text style={[styles.googleButtonText, { color: colors.text }]}>Continue with Google</Text>
-              </>
-            )}
-          </TouchableOpacity>
-
           <View style={styles.footer}>
             <Text style={[styles.footerText, { color: colors.textSecondary }]}>Don't have an account? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
@@ -259,6 +265,13 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 24,
+    alignItems: 'center',
+  },
+  logoImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 16,
+    marginBottom: 16,
   },
   title: {
     fontSize: 28,
@@ -266,12 +279,14 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#0F172A',
     letterSpacing: -0.5,
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 14,
     color: '#64748B',
     marginTop: 4,
     lineHeight: 20,
+    textAlign: 'center',
   },
   card: {
     backgroundColor: '#FFFFFF',

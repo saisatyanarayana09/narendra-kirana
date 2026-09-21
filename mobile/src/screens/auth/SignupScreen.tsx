@@ -9,7 +9,8 @@ import {
   Platform, 
   Alert, 
   ScrollView,
-  ActivityIndicator
+  ActivityIndicator,
+  Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -211,6 +212,11 @@ export function SignupScreen({ navigation }: Props) {
             </TouchableOpacity>
             
             <View style={styles.titleRow}>
+              <Image 
+                source={require('../../../assets/narendra-logo.jpg')} 
+                style={styles.logoImage} 
+                resizeMode="contain" 
+              />
               <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
               <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
                 Quick registration for fresh daily grocery delivery
@@ -461,16 +467,25 @@ const styles = StyleSheet.create({
   },
   titleRow: {
     gap: 2,
+    alignItems: 'center',
+  },
+  logoImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 16,
+    marginBottom: 10,
   },
   title: {
     fontSize: 22,
     lineHeight: 26,
     fontWeight: '900',
     letterSpacing: -0.3,
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 12,
     fontWeight: '500',
+    textAlign: 'center',
   },
   card: {
     borderRadius: 16,
