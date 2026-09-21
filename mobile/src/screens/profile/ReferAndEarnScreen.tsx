@@ -40,6 +40,7 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
     referralId: null,
     base64: null,
   });
+  const [loadingQrFor, setLoadingQrFor] = useState<number | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -160,10 +161,13 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
 
   const handleShowQR = async (referralId: number) => {
     try {
+      setLoadingQrFor(referralId);
       const res = await apiClient.get(`/offers/referrals/${referralId}/qr_code/`);
       setQrModal({ isOpen: true, referralId, base64: res.data?.qr_code_base64 || null });
     } catch (err: any) {
       Alert.alert('Error', err.response?.data?.detail || 'Failed to load QR code.');
+    } finally {
+      setLoadingQrFor(null);
     }
   };
 
@@ -538,9 +542,16 @@ export function ReferAndEarnScreen({ navigation }: { navigation: AppNavigationPr
                               style={styles.showQrBtn}
                               onPress={() => handleShowQR(item.id)}
                               activeOpacity={0.85}
+                              disabled={loadingQrFor === item.id}
                             >
-                              <Feather name="maximize" size={13} color="#2563EB" />
-                              <Text style={styles.showQrBtnText}>Show QR</Text>
+                              {loadingQrFor === item.id ? (
+                                <ActivityIndicator size="small" color="#2563EB" style={{ width: 13, height: 13 }} />
+                              ) : (
+                                <Feather name="maximize" size={13} color="#2563EB" />
+                              )}
+                              <Text style={styles.showQrBtnText}>
+                                {loadingQrFor === item.id ? 'Loading...' : 'Show QR'}
+                              </Text>
                             </TouchableOpacity>
                           )}
 
