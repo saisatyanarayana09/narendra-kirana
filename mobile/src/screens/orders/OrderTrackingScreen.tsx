@@ -265,6 +265,19 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
   const isDelivery = order.order_type === 'DELIVERY';
   const isRejected = order.status === 'REJECTED';
 
+  const handleStoreDirections = () => {
+    const lat = storeSettings?.store_latitude || 17.385044;
+    const lng = storeSettings?.store_longitude || 78.486671;
+    const destCoords = `${lat},${lng}`;
+    const url = Platform.select({
+      ios: `maps:0,0?q=${destCoords}`,
+      default: `https://www.google.com/maps/dir/?api=1&destination=${destCoords}`
+    });
+    Linking.openURL(url!).catch(() => {
+      Alert.alert('Error', 'Unable to open Maps application.');
+    });
+  };
+
   // 5-Stage Timeline: Order Placed, Accepted, Preparing, Out for Delivery / Ready for Pickup, Delivered / Completed
   const stages = [
     { 
@@ -527,22 +540,34 @@ export function OrderTrackingScreen({ navigation, route }: { navigation: AppNavi
 
         {/* Live Route / Store Location Map */}
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border, padding: 12 }]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: isDelivery ? 10 : 0 }}>
+            <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Feather name={isDelivery ? "navigation" : "map-pin"} size={15} color={colors.primary} />
                 <Text style={[styles.cardTitle, { color: colors.text, marginBottom: 0 }]}>
                   {isDelivery ? "Live Route Tracking" : "Store Pickup Location"}
                 </Text>
               </View>
-              <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>
+              <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 4 }}>
                 {isDelivery 
                   ? "Interactive live road navigation to your doorstep" 
-                  : "Narendra Kirana Store location & pickup directions"}
+                  : storeSettings?.store_address || "Narendra Kirana Store location & pickup directions"}
               </Text>
             </View>
           </View>
-          <OrderTrackingMap order={order} storeSettings={storeSettings} height={230} />
+          
+          {isDelivery ? (
+            <OrderTrackingMap order={order} storeSettings={storeSettings} height={230} />
+          ) : (
+            <TouchableOpacity 
+              style={[styles.primaryBtn, { backgroundColor: colors.primary, marginTop: 12 }]}
+              onPress={handleStoreDirections}
+              activeOpacity={0.8}
+            >
+              <Feather name="map" size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
+              <Text style={styles.primaryBtnText}>Get Directions to Store</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* 5-Stage Tracking Timeline Card */}
@@ -1423,6 +1448,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginTop: 2,
   },
+  primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  primaryBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  }
 });
 
 export default OrderTrackingScreen;
