@@ -388,7 +388,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
 
     // Debounce the network request to prevent race conditions and handle ghost IDs
-    updateQuantityLocks.current[itemId] = setTimeout(async () => {
+    const timerId = setTimeout(async () => {
+      if (updateQuantityLocks.current[itemId] === timerId) {
+        delete updateQuantityLocks.current[itemId];
+      }
+
       let targetId = itemId;
 
       // Resolve Ghost ID (from optimistic addToCart) to Real ID
@@ -398,8 +402,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
         if (realItem) {
           targetId = realItem.id;
         } else {
-          // If still not resolved, the initial POST might have failed or is very slow. 
-          // We abort this patch and rely on a full refresh.
           console.warn('[CartContext] Aborted patch: Ghost item never resolved to real ID.');
           return;
         }
@@ -407,16 +409,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       try {
         const res = await apiClient.patch(`/cart/items/${targetId}/`, { quantity });
-        if (res?.data && res.data.items) {
-          setCart(res.data);
-        } else {
-          await refreshCart(true);
+        
+        // Skip syncing if there are still pending optimistic updates for ANY item
+        if (Object.keys(updateQuantityLocks.current).length === 0) {
+          if (res?.data && res.data.items) {
+            setCart(res.data);
+          } else {
+            await refreshCart(true);
+          }
         }
       } catch (error: any) {
-        if (prevCart) setCart(prevCart);
+        if (prevCart && Object.keys(updateQuantityLocks.current).length === 0) {
+          setCart(prevCart);
+        }
         console.error('Failed to update quantity:', error);
       }
     }, 400);
+    
+    updateQuantityLocks.current[itemId] = timerId;
   }, [user, removeFromCart, refreshCart]);
 
   const addToCart = useCallback(async (productId: number, quantity: number = 1, productDetails?: any) => {

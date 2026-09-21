@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Image } from 'expo-image';
 import { Feather } from '@expo/vector-icons';
@@ -16,11 +16,31 @@ interface Props {
 
 export const CartItemCard = memo(function CartItemCard({ item, onUpdateQuantity, onRemove, isLoading }: Props) {
   const { colors, isDark } = useTheme();
+  
+  const [localQty, setLocalQty] = useState(item.quantity);
+  useEffect(() => {
+    setLocalQty(item.quantity);
+  }, [item.quantity]);
+
+  const handleIncrement = () => {
+    triggerHaptic('medium');
+    const nextQty = localQty + 1;
+    setLocalQty(nextQty);
+    onUpdateQuantity(item.id, nextQty);
+  };
+
+  const handleDecrement = () => {
+    triggerHaptic('medium');
+    const nextQty = localQty - 1;
+    setLocalQty(nextQty);
+    onUpdateQuantity(item.id, nextQty);
+  };
+
   const maxOrderQty = item.max_order_quantity ?? item.product?.max_order_quantity ?? 0;
   const stockQty = item.stock_quantity ?? item.product?.stock_quantity ?? 999;
   const isOutOfStock = item.is_in_stock === false || item.product?.is_in_stock === false || (stockQty !== undefined && stockQty <= 0);
   const maxAllowed = maxOrderQty > 0 ? Math.min(stockQty, maxOrderQty) : stockQty;
-  const isMaxReached = isOutOfStock || item.quantity >= maxAllowed;
+  const isMaxReached = isOutOfStock || localQty >= maxAllowed;
 
   const rawImage = item.product_image || item.product?.image;
   const primaryImage = getOptimizedImageUrl(rawImage, 160, 160) || fixImageUrl(rawImage);
@@ -63,7 +83,7 @@ export const CartItemCard = memo(function CartItemCard({ item, onUpdateQuantity,
         <Text style={[styles.name, { color: colors.text }]} numberOfLines={2}>{productName}</Text>
         <Text style={[styles.unitText, { color: colors.textSecondary }]} numberOfLines={1}>
           ₹{unitPrice} · {unitName}
-          {item.quantity > 1 ? ` · Subtotal: ₹${(parseFloat(unitPrice) * item.quantity).toFixed(2)}` : ''}
+          {localQty > 1 ? ` · Subtotal: ₹${(parseFloat(unitPrice) * localQty).toFixed(2)}` : ''}
         </Text>
         {isOutOfStock ? (
           <Text style={styles.outOfStockNoticeText} numberOfLines={1}>
@@ -87,25 +107,19 @@ export const CartItemCard = memo(function CartItemCard({ item, onUpdateQuantity,
         <TouchableOpacity 
           style={styles.stepperButton}
           hitSlop={{ top: 12, bottom: 12, left: 10, right: 10 }}
-          onPress={() => {
-            triggerHaptic('medium');
-            onUpdateQuantity(item.id, item.quantity - 1);
-          }}
+          onPress={handleDecrement}
           disabled={isLoading || isOutOfStock}
           activeOpacity={0.7}
         >
           <Feather name="minus" size={16} color={isDark ? colors.text : "#334155"} />
         </TouchableOpacity>
 
-        <Text style={[styles.quantityText, { color: colors.text }]}>{item.quantity}</Text>
+        <Text style={[styles.quantityText, { color: colors.text }]}>{localQty}</Text>
 
         <TouchableOpacity 
           style={[styles.stepperButton, isMaxReached && styles.disabledStepperBtn]}
           hitSlop={{ top: 12, bottom: 12, left: 10, right: 10 }}
-          onPress={() => {
-            triggerHaptic('medium');
-            onUpdateQuantity(item.id, item.quantity + 1);
-          }}
+          onPress={handleIncrement}
           disabled={isMaxReached || isLoading || isOutOfStock}
           activeOpacity={0.7}
         >
