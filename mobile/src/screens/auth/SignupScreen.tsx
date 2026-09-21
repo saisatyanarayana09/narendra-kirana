@@ -402,10 +402,10 @@ export function SignupScreen({ navigation }: Props) {
               style={[
                 styles.primaryButton, 
                 { backgroundColor: colors.primary }, 
-                (isLoading || isGoogleLoading) && styles.primaryButtonDisabled
+                isLoading && styles.primaryButtonDisabled
               ]}
               onPress={handleSignup}
-              disabled={isLoading || isGoogleLoading}
+              disabled={isLoading}
               activeOpacity={0.85}
             >
               {isLoading ? (
@@ -415,28 +415,6 @@ export function SignupScreen({ navigation }: Props) {
                   <Text style={styles.primaryButtonText}>Create Account</Text>
                   <Feather name="arrow-right" size={16} color="#FFFFFF" />
                 </View>
-              )}
-            </TouchableOpacity>
-
-            <View style={styles.dividerContainer}>
-              <View style={[styles.divider, { backgroundColor: colors.border }]} />
-              <Text style={[styles.dividerText, { color: colors.textSecondary, backgroundColor: colors.background }]}>OR</Text>
-              <View style={[styles.divider, { backgroundColor: colors.border }]} />
-            </View>
-
-            <TouchableOpacity 
-              style={[styles.googleButton, { borderColor: colors.border, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF' }]}
-              onPress={handleGoogleSignup}
-              disabled={isLoading || isGoogleLoading}
-              activeOpacity={0.85}
-            >
-              {isGoogleLoading ? (
-                <ActivityIndicator color={colors.primary} size="small" />
-              ) : (
-                <>
-                  <AntDesign name="google" color={colors.text} size={20} style={{ marginRight: 8 }} />
-                  <Text style={[styles.googleButtonText, { color: colors.text }]}>Sign up with Google</Text>
-                </>
               )}
             </TouchableOpacity>
 
