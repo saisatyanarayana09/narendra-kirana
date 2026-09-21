@@ -336,31 +336,38 @@ export function HomeScreen({ navigation }: Props) {
   // Scroll-driven header collapse & search translation animation
   const scrollY = useRef(new Animated.Value(0)).current;
   
-  // Tier 2 container height collapses
+  // Tier 2 container height collapses (from 48 down to 0)
   const headerSearchHeight = scrollY.interpolate({
     inputRange: [0, 80],
     outputRange: [48, 0],
     extrapolate: 'clamp',
   });
   
-  // Search Bar scales down its width
+  // Search Bar scales down its width to 130px to prevent overlap with brand
   const searchBarWidth = scrollY.interpolate({
     inputRange: [0, 80],
-    outputRange: [width - 32, width * 0.45], // Scales down to 45% of width
+    outputRange: [width - 32, 130], 
     extrapolate: 'clamp',
   });
 
-  // Search Bar translates UP to dock next to the brand
+  // Search Bar translates UP to vertically center in the collapsed header
   const searchBarTranslateY = scrollY.interpolate({
     inputRange: [0, 80],
-    outputRange: [0, -48],
+    outputRange: [0, -44], 
     extrapolate: 'clamp',
   });
 
-  // Search Bar translates RIGHT to dock next to the brand
+  // Search Bar translates RIGHT to dock on the right edge
   const searchBarTranslateX = scrollY.interpolate({
     inputRange: [0, 80],
-    outputRange: [0, width - 32 - (width * 0.45)],
+    outputRange: [0, width - 32 - 130],
+    extrapolate: 'clamp',
+  });
+
+  // Search Bar scales down visually to fit nicely next to the brand text
+  const searchBarScale = scrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: [1, 0.85],
     extrapolate: 'clamp',
   });
 
@@ -705,7 +712,8 @@ export function HomeScreen({ navigation }: Props) {
             width: searchBarWidth,
             transform: [
               { translateY: searchBarTranslateY },
-              { translateX: searchBarTranslateX }
+              { translateX: searchBarTranslateX },
+              { scale: searchBarScale }
             ],
             zIndex: 60,
           }}
