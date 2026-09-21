@@ -126,15 +126,17 @@ export function LoginScreen({ navigation }: Props) {
         </TouchableOpacity>
 
         <View style={styles.header}>
-          <Image 
-            source={require('../../../assets/narendra-logo.jpg')} 
-            style={styles.logoImage} 
-            resizeMode="contain" 
-          />
-          <Text style={styles.brandTitle}>
-            <Text style={[styles.brandSlate, { color: colors.text }]}>Narendra </Text>
-            <Text style={styles.brandRed}>Kirana</Text>
-          </Text>
+          <View style={styles.brandRow}>
+            <Image 
+              source={require('../../../assets/narendra-logo.jpg')} 
+              style={styles.logoImage} 
+              resizeMode="contain" 
+            />
+            <Text style={styles.brandTitle}>
+              <Text style={[styles.brandSlate, { color: colors.text }]}>Narendra </Text>
+              <Text style={styles.brandRed}>Kirana</Text>
+            </Text>
+          </View>
           <Text style={[styles.title, { color: colors.text }]}>Welcome back</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Sign in to access your orders, wallet & favorites</Text>
         </View>
@@ -271,19 +273,22 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     alignItems: 'center',
   },
-  logoImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 16,
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 8,
+    gap: 12,
+  },
+  logoImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
   },
   brandTitle: {
-    fontSize: 22,
-    lineHeight: 26,
+    fontSize: 24,
+    lineHeight: 28,
     fontWeight: '900',
     letterSpacing: -0.5,
-    marginBottom: 8,
-    textAlign: 'center',
   },
   brandSlate: {
     color: '#0F172A',

@@ -212,15 +212,17 @@ export function SignupScreen({ navigation }: Props) {
             </TouchableOpacity>
             
             <View style={styles.titleRow}>
-              <Image 
-                source={require('../../../assets/narendra-logo.jpg')} 
-                style={styles.logoImage} 
-                resizeMode="contain" 
-              />
-              <Text style={styles.brandTitle}>
-                <Text style={[styles.brandSlate, { color: colors.text }]}>Narendra </Text>
-                <Text style={styles.brandRed}>Kirana</Text>
-              </Text>
+              <View style={styles.brandRow}>
+                <Image 
+                  source={require('../../../assets/narendra-logo.jpg')} 
+                  style={styles.logoImage} 
+                  resizeMode="contain" 
+                />
+                <Text style={styles.brandTitle}>
+                  <Text style={[styles.brandSlate, { color: colors.text }]}>Narendra </Text>
+                  <Text style={styles.brandRed}>Kirana</Text>
+                </Text>
+              </View>
               <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
               <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
                 Quick registration for fresh daily grocery delivery
@@ -473,19 +475,22 @@ const styles = StyleSheet.create({
     gap: 2,
     alignItems: 'center',
   },
-  logoImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 16,
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 8,
+    gap: 12,
+  },
+  logoImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
   },
   brandTitle: {
-    fontSize: 22,
-    lineHeight: 26,
+    fontSize: 24,
+    lineHeight: 28,
     fontWeight: '900',
     letterSpacing: -0.5,
-    marginBottom: 4,
-    textAlign: 'center',
   },
   brandSlate: {
     color: '#0F172A',
