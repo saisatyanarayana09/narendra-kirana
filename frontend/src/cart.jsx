@@ -1372,6 +1372,7 @@ export function CheckoutPage() {
    const [editingAddressId, setEditingAddressId] = useState(null);
    const [addressForm, setAddressForm] = useState({ title: 'Home', street: '', landmark: '', city: '', district: '', state: '', country: 'India', zip_code: '', latitude: null, longitude: null });
    const [showMapPicker, setShowMapPicker] = useState(false);
+   const [successOrderId, setSuccessOrderId] = useState(null);
    
    const captureLocation = () => {
      const loadingToast = toast.loading("Getting your exact location...");
@@ -1550,7 +1551,10 @@ export function CheckoutPage() {
     const response = await api.post('/orders/', payload); 
     if (clearCart) await clearCart().catch(() => {});
     await refresh(); 
-    navigate(`/orders/${response.data.id}`);
+    setSuccessOrderId(response.data.id);
+    setTimeout(() => {
+      navigate(`/orders/${response.data.id}`);
+    }, 4000);
   } catch (requestError) { 
     setError(extractErrorMessage(requestError, 'Could not place your order.'));
   } finally { 
@@ -1562,6 +1566,31 @@ export function CheckoutPage() {
 
   return (
     <CustomerLayout>
+      {successOrderId && (
+        <div className="fixed inset-0 z-[100] bg-white dark:bg-slate-900 flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
+          <div className="relative mb-6">
+            <div className="w-24 h-24 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center animate-in zoom-in duration-500 delay-150">
+              <Check size={48} className="text-emerald-500" />
+            </div>
+            <div className="absolute inset-0 rounded-full border-4 border-emerald-500 animate-ping opacity-20"></div>
+          </div>
+          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight text-center px-4 animate-in slide-in-from-bottom-4 duration-500 delay-200">
+            Order Placed Successfully!
+          </h1>
+          <p className="mt-3 text-slate-500 dark:text-slate-400 text-center px-6 animate-in slide-in-from-bottom-4 duration-500 delay-300">
+            Thank you for shopping with Narendra Kirana.<br/>We've received your order.
+          </p>
+          <div className="mt-8 animate-in slide-in-from-bottom-4 duration-500 delay-500">
+            <button 
+              onClick={() => navigate(`/orders/${successOrderId}`)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
+            >
+              View Order Details
+            </button>
+          </div>
+        </div>
+      )}
+
       <main className="mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-5 sm:py-8 pb-36 sm:pb-16">
         <button
           onClick={() => navigate(-1)}

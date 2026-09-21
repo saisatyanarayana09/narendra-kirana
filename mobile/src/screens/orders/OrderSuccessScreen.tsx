@@ -106,21 +106,29 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
       ])
     ).start();
 
-    // 3. Card Fade & Slide In
+    // 3. Text Slide & Fade In
     Animated.parallel([
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 500,
-        delay: 200,
-        useNativeDriver: USE_NATIVE_DRIVER,
-      }),
       Animated.timing(opacityAnim, {
         toValue: 1,
-        duration: 500,
-        delay: 200,
+        duration: 800,
+        delay: 300,
         useNativeDriver: USE_NATIVE_DRIVER,
       }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 40,
+        friction: 8,
+        delay: 300,
+        useNativeDriver: USE_NATIVE_DRIVER,
+      })
     ]).start();
+
+    // 4. Auto-redirect to order page after 4 seconds
+    const timer = setTimeout(() => {
+      handleTrackOrder();
+    }, 4000);
+
+    return () => clearTimeout(timer);
   }, []);
 
   // Hardware Back Button intercepts and redirects cleanly to Home
