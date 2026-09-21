@@ -133,31 +133,29 @@ export function CartProvider({ children }) {
 
   const logout = useCallback(async () => {
     const refresh = localStorage.getItem('smart-kirana-customer-refresh');
-    try {
-      if (refresh) {
-        await api.post('/auth/logout/', { refresh });
-      }
-    } catch {
-      // Ignore network errors on logout
-    } finally {
-      try {
-        localStorage.removeItem('smart-kirana-customer-token');
-        localStorage.removeItem('smart-kirana-customer-refresh');
-        localStorage.removeItem('smart-kirana-customer-user');
-        sessionStorage.removeItem('welcome_shown_time');
-        sessionStorage.removeItem('hasShownWelcome');
-        clearUserCache();
-      } catch {
-        // Storage restricted or unavailable
-      }
-      setUser(null);
-      setCart(null);
-      setFavorites([]);
-      setNotifications([]);
-      seenNotificationIds.clear();
-      hasLoadedInitialNotifications = false;
-      window.location.href = '/';
+    
+    // Fire and forget backend logout
+    if (refresh) {
+      api.post('/auth/logout/', { refresh }).catch(() => {});
     }
+    
+    try {
+      localStorage.removeItem('smart-kirana-customer-token');
+      localStorage.removeItem('smart-kirana-customer-refresh');
+      localStorage.removeItem('smart-kirana-customer-user');
+      sessionStorage.removeItem('welcome_shown_time');
+      sessionStorage.removeItem('hasShownWelcome');
+      clearUserCache();
+    } catch {
+      // Storage restricted or unavailable
+    }
+    setUser(null);
+    setCart(null);
+    setFavorites([]);
+    setNotifications([]);
+    seenNotificationIds.clear();
+    hasLoadedInitialNotifications = false;
+    window.location.href = '/';
   }, []);
 
  const add = useCallback(async (product) => {

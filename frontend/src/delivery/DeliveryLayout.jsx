@@ -34,9 +34,9 @@ export default function DeliveryLayout() {
 
   const handleLogout = async () => {
     const refresh = localStorage.getItem('smart-kirana-delivery-refresh');
-    try {
-      if (refresh) await api.post('/auth/logout/', { refresh });
-    } catch {}
+    if (refresh) {
+      api.post('/auth/logout/', { refresh }).catch(() => {});
+    }
     localStorage.removeItem('smart-kirana-delivery-token');
     localStorage.removeItem('smart-kirana-delivery-refresh');
     localStorage.removeItem('smart-kirana-delivery-user');

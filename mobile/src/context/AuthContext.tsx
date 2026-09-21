@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
-import { DeviceEventEmitter } from 'react-native';
+import { DeviceEventEmitter, Platform } from 'react-native';
 import { apiClient } from '../api/client';
 import { STORAGE_KEYS } from '../constants/config';
 import { getItem, getItemSync, saveItem, deleteItem } from '../utils/storage';
@@ -147,11 +147,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         apiClient.post('/auth/logout/', { refresh: refreshToken }).catch(() => {});
       }
 
-      // 2. Sign out of Google silently
-      try {
-        await GoogleSignin.signOut();
-      } catch (e) {
-        // Ignore Google sign out error if not signed in via Google
+      // 2. Sign out of Google silently (only on Native platforms)
+      if (Platform.OS !== 'web') {
+        try {
+          await GoogleSignin.signOut();
+        } catch (e) {
+          // Ignore Google sign out error if not signed in via Google
+        }
       }
 
       // 3. Immediately clear local storage and state
