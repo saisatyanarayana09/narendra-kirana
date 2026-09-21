@@ -526,7 +526,7 @@ export function RootNavigator() {
       <NavigationContainer
         ref={navigationRef}
         theme={navTheme}
-        linking={linking as any}
+        linking={Platform.OS === 'web' ? (linking as any) : undefined}
         onReady={() => {
           isNavReadyRef.current = true;
           // If a pending redirect was queued before onReady, execute it
