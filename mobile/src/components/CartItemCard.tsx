@@ -119,14 +119,7 @@ export const CartItemCard = memo(function CartItemCard({ item, onUpdateQuantity,
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         onPress={() => {
           triggerHaptic('warning');
-          Alert.alert(
-            'Remove Item',
-            `Remove ${productName} from your cart?`,
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Remove', style: 'destructive', onPress: () => onRemove(item.id) },
-            ]
-          );
+          onRemove(item.id);
         }}
         disabled={isLoading}
         activeOpacity={0.7}
