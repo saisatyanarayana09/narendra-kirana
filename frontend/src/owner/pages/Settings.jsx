@@ -449,6 +449,26 @@ const Settings = () => {
           </div>
         </div>
 
+        {/* Search Ticker & UI */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/50 flex items-center gap-2">
+            <SettingsIcon className="w-5 h-5 text-gray-400"/>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">App Search Ticker</h2>
+          </div>
+          <div className="p-6">
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Popular Searches (Animated Search Bar)</label>
+            <textarea 
+              name="popular_searches" 
+              value={settings.popular_searches || ''} 
+              onChange={handleChange} 
+              rows="5"
+              className="w-full rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="Aashirvaad Atta&#10;Fresh Milk&#10;Fortune Oil"
+            />
+            <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">Enter one search term per line. These will animate in the top search bar placeholder in the mobile app.</p>
+          </div>
+        </div>
+
         {/* Order Constraints & Fees */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/50 flex items-center gap-2">

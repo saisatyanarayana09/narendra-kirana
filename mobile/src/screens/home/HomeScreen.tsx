@@ -251,7 +251,7 @@ const SEARCH_TICKER_PLACEHOLDERS = [
   "Search 'Tata Salt & Spices'...",
 ];
 
-const SearchTicker = React.memo(function SearchTicker({ textColor }: { textColor: string }) {
+const SearchTicker = React.memo(function SearchTicker({ textColor, placeholders }: { textColor: string, placeholders: string[] }) {
   const isFocused = useIsFocused();
   const [index, setIndex] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -275,7 +275,7 @@ const SearchTicker = React.memo(function SearchTicker({ textColor }: { textColor
           useNativeDriver: Platform.OS !== 'web',
         }),
       ]).start(() => {
-        setIndex((prev) => (prev + 1) % SEARCH_TICKER_PLACEHOLDERS.length);
+        setIndex((prev) => (prev + 1) % placeholders.length);
         slideAnim.setValue(8);
         Animated.parallel([
           Animated.timing(fadeAnim, {
@@ -295,22 +295,18 @@ const SearchTicker = React.memo(function SearchTicker({ textColor }: { textColor
     }, 3500);
 
     return () => clearInterval(interval);
-  }, [isFocused, fadeAnim, slideAnim]);
+  }, [isFocused, fadeAnim, slideAnim, placeholders.length]);
 
   return (
     <View style={styles.tickerContainer}>
       <Animated.Text
-        numberOfLines={1}
         style={[
           styles.searchPlaceholder,
-          {
-            color: textColor,
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          },
+          { color: textColor, opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
         ]}
+        numberOfLines={1}
       >
-        {SEARCH_TICKER_PLACEHOLDERS[index]}
+        {placeholders[index]}
       </Animated.Text>
     </View>
   );
@@ -684,15 +680,26 @@ export function HomeScreen({ navigation }: Props) {
     );
   }
 
+  const customSearches = React.useMemo(() => {
+    if (settings?.popular_searches) {
+      const parsed = settings.popular_searches.split('\n').map((s: string) => s.trim()).filter(Boolean);
+      if (parsed.length > 0) {
+        return parsed.map((s: string) => `Search '${s}'...`);
+      }
+    }
+    return SEARCH_TICKER_PLACEHOLDERS;
+  }, [settings?.popular_searches]);
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      {/* 2-Tier Quick-Commerce Header */}
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
+      {/* Top Collapsing Header Section */}
       <View style={[styles.topHeaderContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border, zIndex: 50 }]}>
-        {/* Tier 1: Brand Logo */}
+        
+        {/* Tier 1: Brand & User Icon */}
         <View style={styles.headerTier1}>
           <View style={styles.brandLocationGroup}>
-            <View style={styles.brandTitleRow}>
-              <Text style={styles.brandTitle}>
+            <View style={styles.brandTextWrap}>
+              <Text style={{ fontSize: 20, fontWeight: '900', letterSpacing: -0.5 }}>
                 <Text style={[styles.brandSlate, { color: colors.text }]}>Narendra </Text>
                 <Text style={styles.brandRed}>Kirana</Text>
               </Text>
@@ -728,7 +735,7 @@ export function HomeScreen({ navigation }: Props) {
               
               <View style={{ flex: 1, justifyContent: 'center' }}>
                 <Animated.View style={{ opacity: headerSearchOpacity, position: 'absolute', width: '100%' }}>
-                  <SearchTicker textColor={colors.textSecondary} />
+                  <SearchTicker textColor={colors.textSecondary} placeholders={customSearches} />
                 </Animated.View>
                 
                 <Animated.View style={{ opacity: headerSearchInverseOpacity, position: 'absolute', width: '100%' }}>

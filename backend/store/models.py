@@ -98,6 +98,13 @@ class StoreSettings(models.Model):
         default="Hi Narendra Kirana, I need help with Order #{order_id}"
     )
 
+    # Search Ticker
+    popular_searches = models.TextField(
+        blank=True,
+        default="Aashirvaad Shudh Chakki Atta\nFresh Paneer & Milk\nFortune Sunflower Oil\nBasmati Rice & Dals\nTata Salt & Spices",
+        help_text="One search term per line to show in the search bar ticker."
+    )
+
     # Loyalty Wallet & Referral Rules
     referral_bonus_referrer = models.DecimalField(max_digits=10, decimal_places=2, default=50.00)
     referral_bonus_referee = models.DecimalField(max_digits=10, decimal_places=2, default=50.00)
