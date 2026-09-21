@@ -38,4 +38,4 @@ jobs:
 
       - name: Publish OTA Update to Preview/Production
         working-directory: mobile
-        run: eas update --auto --branch main --message "Auto OTA Update from GitHub"
+        run: eas update --branch main --message "Auto OTA Update from GitHub" --non-interactive
