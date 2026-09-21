@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Feather } from '@expo/vector-icons';
+import { Feather, AntDesign } from '@expo/vector-icons';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import type { AuthStackParamList } from '../../navigation/AuthStack';
 import { apiClient } from '../../api/client';
@@ -434,7 +434,7 @@ export function SignupScreen({ navigation }: Props) {
                 <ActivityIndicator color={colors.primary} size="small" />
               ) : (
                 <>
-                  <Feather name="globe" color={colors.text} size={20} style={{ marginRight: 8 }} />
+                  <AntDesign name="google" color={colors.text} size={20} style={{ marginRight: 8 }} />
                   <Text style={[styles.googleButtonText, { color: colors.text }]}>Sign up with Google</Text>
                 </>
               )}
