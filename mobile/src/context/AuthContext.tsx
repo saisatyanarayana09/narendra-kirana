@@ -8,6 +8,7 @@ import { registerForPushNotificationsAsync, unregisterPushNotificationsAsync } f
 import { favoritesService } from '../services/favoritesService';
 import { clearCachedOrders } from '../services/ordersCache';
 import { clearUserProfileCache } from '../services/profileCache';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 export type User = {
   id: number;
@@ -138,11 +139,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      await unregisterPushNotificationsAsync().catch(() => {});
+      // 1. Fire and forget backend unregister
+      unregisterPushNotificationsAsync().catch(() => {});
+      
       const refreshToken = await getItem(STORAGE_KEYS.REFRESH);
       if (refreshToken) {
-        await apiClient.post('/auth/logout/', { refresh: refreshToken }).catch(() => {});
+        apiClient.post('/auth/logout/', { refresh: refreshToken }).catch(() => {});
       }
+
+      // 2. Sign out of Google silently
+      try {
+        await GoogleSignin.signOut();
+      } catch (e) {
+        // Ignore Google sign out error if not signed in via Google
+      }
+
+      // 3. Immediately clear local storage and state
       await deleteItem(STORAGE_KEYS.TOKEN);
       await deleteItem(STORAGE_KEYS.REFRESH);
       await deleteItem(STORAGE_KEYS.USER);
@@ -153,6 +165,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
     } catch (error) {
       console.error('Error during logout:', error);
+      // Fallback: still nullify user so they don't get stuck
+      setUser(null);
     }
   }, []);
 
