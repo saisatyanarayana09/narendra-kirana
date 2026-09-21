@@ -111,6 +111,10 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
       } else if (itemCount > prevItemCountRef.current) {
         // Item count increased: trigger smooth upward bounce on bar/badge and haptic feedback
         triggerHaptic('medium');
+        // Ensure the bar is visible and in place in case it had auto-dismissed
+        opacityAnim.setValue(1);
+        slideAnim.setValue(0);
+        
         Animated.parallel([
           Animated.sequence([
             Animated.timing(bounceAnim, {
