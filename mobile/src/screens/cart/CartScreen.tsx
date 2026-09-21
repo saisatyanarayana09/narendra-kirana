@@ -81,7 +81,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
 
     const freeThresh = parseFloat(storeSettings?.free_delivery_threshold || '0') || 0;
     const gap = Math.max(0, freeThresh - itmTotal);
-    const progress = freeThresh > 0 ? Math.min(100, Math.round((itmTotal / freeThresh) * 100)) : 100;
+    const progress = freeThresh > 0 ? Math.min(100, Math.floor((itmTotal / freeThresh) * 100)) : 100;
 
     return {
       mrpTotal: mrp,

@@ -1019,6 +1019,10 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'flex-start',
   },
+  brandTextWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   brandTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',

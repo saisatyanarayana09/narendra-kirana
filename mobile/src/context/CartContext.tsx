@@ -69,6 +69,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [lastItemAddedTimestamp, setLastItemAddedTimestamp] = useState<number>(0);
   const cartRef = React.useRef<CartData | null>(cart);
   const storeSettingsRef = React.useRef<any>(storeSettings);
+  const addToCartLocks = React.useRef<Record<number, Promise<void>>>({});
+  const updateQuantityLocks = React.useRef<Record<number, ReturnType<typeof setTimeout>>>({});
 
   useEffect(() => {
     cartRef.current = cart;
@@ -273,7 +275,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       });
       const packaging = updatedItems.length > 0 ? parseFloat(current.packaging_fee || '0') : 0;
       const promo = parseFloat(current.promo_discount || '0');
-      const newTotal = Math.max(0, newOfferSubtotal - promo) + packaging;
+      const safePromo = newOfferSubtotal >= promo ? promo : 0;
+      const newTotal = Math.max(0, newOfferSubtotal - safePromo) + packaging;
 
       return {
         ...current,
@@ -338,10 +341,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     // Optimistic update for instant responsiveness
     const prevCart = cartRef.current;
+    const ghostItem = prevCart?.items?.find((i) => i.id === itemId);
+    const ghostItemProductId = (itemId < 0 && ghostItem) ? getItemProductId(ghostItem) : null;
+
     setCart((current) => {
       if (!current?.items) return current;
       const updatedItems = current.items.map((item) => {
-        if (item.id === itemId) {
+        if (item.id === itemId || (itemId < 0 && getItemProductId(item) === ghostItemProductId)) {
           const unitPriceNum = parseFloat(item.unit_price || item.product?.price || '0');
           return {
             ...item,
@@ -363,7 +369,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       });
       const packaging = parseFloat(current.packaging_fee || '0');
       const promo = parseFloat(current.promo_discount || '0');
-      const newTotal = Math.max(0, newOfferSubtotal - promo) + (newOfferSubtotal > 0 ? packaging : 0);
+      const safePromo = newOfferSubtotal >= promo ? promo : 0;
+      const newTotal = Math.max(0, newOfferSubtotal - safePromo) + (newOfferSubtotal > 0 ? packaging : 0);
 
       return {
         ...current,
@@ -375,22 +382,55 @@ export function CartProvider({ children }: { children: ReactNode }) {
       };
     });
 
-    try {
-      const res = await apiClient.patch(`/cart/items/${itemId}/`, { quantity });
-      if (res?.data && res.data.items) {
-        setCart(res.data);
-      } else {
-        await refreshCart(true);
-      }
-    } catch (error: any) {
-      if (prevCart) setCart(prevCart);
-      console.error('Failed to update quantity:', error);
-      throw error;
+    // Clear existing debounce timer
+    if (updateQuantityLocks.current[itemId]) {
+      clearTimeout(updateQuantityLocks.current[itemId]);
     }
+
+    // Debounce the network request to prevent race conditions and handle ghost IDs
+    updateQuantityLocks.current[itemId] = setTimeout(async () => {
+      let targetId = itemId;
+
+      // Resolve Ghost ID (from optimistic addToCart) to Real ID
+      if (targetId < 0 && ghostItemProductId) {
+        const latestCart = cartRef.current;
+        const realItem = latestCart?.items?.find((i) => getItemProductId(i) === ghostItemProductId && i.id > 0);
+        if (realItem) {
+          targetId = realItem.id;
+        } else {
+          // If still not resolved, the initial POST might have failed or is very slow. 
+          // We abort this patch and rely on a full refresh.
+          console.warn('[CartContext] Aborted patch: Ghost item never resolved to real ID.');
+          return;
+        }
+      }
+
+      try {
+        const res = await apiClient.patch(`/cart/items/${targetId}/`, { quantity });
+        if (res?.data && res.data.items) {
+          setCart(res.data);
+        } else {
+          await refreshCart(true);
+        }
+      } catch (error: any) {
+        if (prevCart) setCart(prevCart);
+        console.error('Failed to update quantity:', error);
+      }
+    }, 400);
   }, [user, removeFromCart, refreshCart]);
 
   const addToCart = useCallback(async (productId: number, quantity: number = 1, productDetails?: any) => {
-    if (!user) {
+    const prevLock = addToCartLocks.current[productId] || Promise.resolve();
+    let resolveLock: () => void;
+    const nextLock = new Promise<void>((resolve) => { resolveLock = resolve; });
+    addToCartLocks.current[productId] = nextLock;
+
+    try {
+      await prevLock;
+    } catch (e) {}
+
+    try {
+      if (!user) {
       try {
         const currentCart = (await loadGuestCart()) || cartRef.current || {
           items: [],
@@ -428,6 +468,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
               if (!details) throw new Error('Product not found');
             } catch (err) {
               console.error('Failed to fetch product details for guest cart', err);
+              import('react-native').then(({ Alert }) => {
+                Alert.alert('Network Error', 'Could not fetch product details. Please check your connection and try again.');
+              });
               return; // Abort adding to cart if product cannot be resolved
             }
           }
@@ -551,6 +594,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (prevCart) setCart(prevCart);
       console.error('Failed to add to cart:', error);
       throw error;
+    }
+    } finally {
+      resolveLock!();
+      if (addToCartLocks.current[productId] === nextLock) {
+        delete addToCartLocks.current[productId];
+      }
     }
   }, [user, updateQuantity, refreshCart]);
 

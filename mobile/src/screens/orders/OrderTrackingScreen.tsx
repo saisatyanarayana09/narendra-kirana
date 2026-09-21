@@ -8,7 +8,8 @@ import {
   ActivityIndicator,
   RefreshControl,
   Linking,
-  Platform
+  Platform,
+  Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
