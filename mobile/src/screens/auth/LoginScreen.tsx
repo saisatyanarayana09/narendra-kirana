@@ -159,17 +159,29 @@ export function LoginScreen({ navigation }: Props) {
         {/* Card */}
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <TouchableOpacity 
-            style={[styles.googleButton, { borderColor: colors.border, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF' }]}
+            style={[
+              styles.googleButton, 
+              isDark 
+                ? { backgroundColor: '#1E293B', borderColor: '#334155' }
+                : { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' },
+              {
+                shadowColor: '#4285F4',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.15,
+                shadowRadius: 8,
+                elevation: 4,
+              }
+            ]}
             onPress={handleGoogleLogin}
             disabled={isLoading || isGoogleLoading}
-            activeOpacity={0.85}
+            activeOpacity={0.8}
           >
             {isGoogleLoading ? (
-              <ActivityIndicator color={colors.primary} size="small" />
+              <ActivityIndicator color="#4285F4" size="small" />
             ) : (
               <>
-                <AntDesign name="google" color={colors.text} size={20} style={{ marginRight: 8 }} />
-                <Text style={[styles.googleButtonText, { color: colors.text }]}>Continue with Google</Text>
+                <AntDesign name="google" color="#4285F4" size={22} style={{ marginRight: 10 }} />
+                <Text style={[styles.googleButtonText, { color: isDark ? '#F8FAFC' : '#1E293B' }]}>Continue with Google</Text>
               </>
             )}
           </TouchableOpacity>
@@ -411,7 +423,8 @@ const styles = StyleSheet.create({
   },
   googleButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
   footer: {
     flexDirection: 'row',
