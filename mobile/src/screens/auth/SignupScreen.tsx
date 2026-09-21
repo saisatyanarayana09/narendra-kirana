@@ -14,9 +14,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import type { AuthStackParamList } from '../../navigation/AuthStack';
 import { apiClient } from '../../api/client';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'Signup'>;
@@ -24,6 +26,7 @@ type Props = {
 
 export function SignupScreen({ navigation }: Props) {
   const { colors, isDark } = useTheme();
+  const { loginWithGoogle, pendingRedirect, clearPendingRedirect } = useAuth();
   const [form, setForm] = useState({
     first_name: '',
     email: '',
@@ -137,6 +140,46 @@ export function SignupScreen({ navigation }: Props) {
       Alert.alert('Registration Failed', errorMessage);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  const processRedirect = () => {
+    if (pendingRedirect) {
+      const { screen, tab, params } = pendingRedirect;
+      clearPendingRedirect();
+      if (tab) {
+        (navigation as any).navigate('Main', {
+          screen: tab,
+          params: { screen, params },
+        });
+      } else {
+        (navigation as any).navigate(screen as any, params);
+      }
+    } else if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      (navigation as any).navigate('Main' as any);
+    }
+  };
+
+  const handleGoogleSignup = async () => {
+    try {
+      setIsGoogleLoading(true);
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      if (userInfo.idToken) {
+        await loginWithGoogle(userInfo.idToken);
+        processRedirect();
+      } else {
+        throw new Error('No ID token present!');
+      }
+    } catch (error: any) {
+      console.error('Google Signin Error:', error);
+      Alert.alert('Google Sign-In Failed', error.message || 'Something went wrong.');
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
 
@@ -359,10 +402,10 @@ export function SignupScreen({ navigation }: Props) {
               style={[
                 styles.primaryButton, 
                 { backgroundColor: colors.primary }, 
-                isLoading && styles.primaryButtonDisabled
+                (isLoading || isGoogleLoading) && styles.primaryButtonDisabled
               ]}
               onPress={handleSignup}
-              disabled={isLoading}
+              disabled={isLoading || isGoogleLoading}
               activeOpacity={0.85}
             >
               {isLoading ? (
@@ -372,6 +415,28 @@ export function SignupScreen({ navigation }: Props) {
                   <Text style={styles.primaryButtonText}>Create Account</Text>
                   <Feather name="arrow-right" size={16} color="#FFFFFF" />
                 </View>
+              )}
+            </TouchableOpacity>
+
+            <View style={styles.dividerContainer}>
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
+              <Text style={[styles.dividerText, { color: colors.textSecondary, backgroundColor: colors.background }]}>OR</Text>
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            </View>
+
+            <TouchableOpacity 
+              style={[styles.googleButton, { borderColor: colors.border, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF' }]}
+              onPress={handleGoogleSignup}
+              disabled={isLoading || isGoogleLoading}
+              activeOpacity={0.85}
+            >
+              {isGoogleLoading ? (
+                <ActivityIndicator color={colors.primary} size="small" />
+              ) : (
+                <>
+                  <Feather name="globe" color={colors.text} size={20} style={{ marginRight: 8 }} />
+                  <Text style={[styles.googleButtonText, { color: colors.text }]}>Sign up with Google</Text>
+                </>
               )}
             </TouchableOpacity>
 
@@ -539,4 +604,31 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontSize: 12,
   },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    paddingHorizontal: 12,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  googleButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  }
 });

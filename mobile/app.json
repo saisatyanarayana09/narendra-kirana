@@ -116,7 +116,8 @@
       "expo-sharing",
       "expo-location",
       "expo-file-system",
-      "expo-image"
+      "expo-image",
+      "@react-native-google-signin/google-signin"
     ],
     "extra": {
       "eas": {

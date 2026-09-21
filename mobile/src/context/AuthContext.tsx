@@ -38,6 +38,7 @@ type AuthContextType = {
   setPendingRedirect: (redirect: PendingRedirect | null) => void;
   clearPendingRedirect: () => void;
   login: (data: any) => Promise<void>;
+  loginWithGoogle: (idToken: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (updatedUser: User) => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -114,6 +115,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const loginWithGoogle = useCallback(async (idToken: string) => {
+    try {
+      const response = await apiClient.post('/auth/google/customer/', {
+        credential: idToken,
+        token_type: 'id_token'
+      });
+      
+      const { access, refresh, user: userData } = response.data;
+      
+      await saveItem(STORAGE_KEYS.TOKEN, access);
+      await saveItem(STORAGE_KEYS.REFRESH, refresh);
+      await saveItem(STORAGE_KEYS.USER, JSON.stringify(userData));
+      
+      setUser(userData);
+      registerForPushNotificationsAsync().catch(() => {});
+    } catch (error: any) {
+      console.error('Google Login error:', error?.response?.data || error.message);
+      throw error;
+    }
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await unregisterPushNotificationsAsync().catch(() => {});
@@ -164,6 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPendingRedirect,
     clearPendingRedirect,
     login,
+    loginWithGoogle,
     logout,
     updateUser,
     refreshUser,
@@ -173,6 +196,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     pendingRedirect,
     clearPendingRedirect,
     login,
+    loginWithGoogle,
     logout,
     updateUser,
     refreshUser,

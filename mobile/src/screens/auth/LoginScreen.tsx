@@ -14,9 +14,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import type { AuthStackParamList } from '../../navigation/AuthStack';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+
+GoogleSignin.configure({
+  webClientId: '729937153109-6e8fivp20b3ri2qsah1d6u2a7oi0uls6.apps.googleusercontent.com',
+  offlineAccess: false,
+});
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'Login'>;
@@ -24,12 +30,51 @@ type Props = {
 
 export function LoginScreen({ navigation }: Props) {
   const { colors, isDark } = useTheme();
-  const { login, pendingRedirect, clearPendingRedirect } = useAuth();
+  const { login, loginWithGoogle, pendingRedirect, clearPendingRedirect } = useAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  const processRedirect = () => {
+    if (pendingRedirect) {
+      const { screen, tab, params } = pendingRedirect;
+      clearPendingRedirect();
+      if (tab) {
+        (navigation as any).navigate('Main', {
+          screen: tab,
+          params: { screen, params },
+        });
+      } else {
+        (navigation as any).navigate(screen as any, params);
+      }
+    } else if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      (navigation as any).navigate('Main' as any);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      setIsGoogleLoading(true);
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      if (userInfo.idToken) {
+        await loginWithGoogle(userInfo.idToken);
+        processRedirect();
+      } else {
+        throw new Error('No ID token present!');
+      }
+    } catch (error: any) {
+      console.error('Google Signin Error:', error);
+      Alert.alert('Google Sign-In Failed', error.message || 'Something went wrong.');
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
 
   const handleLogin = async () => {
     if (!email.trim() || !password) {
@@ -40,23 +85,7 @@ export function LoginScreen({ navigation }: Props) {
     setIsLoading(true);
     try {
       await login({ username: email.trim(), password });
-
-      if (pendingRedirect) {
-        const { screen, tab, params } = pendingRedirect;
-        clearPendingRedirect();
-        if (tab) {
-          (navigation as any).navigate('Main', {
-            screen: tab,
-            params: { screen, params },
-          });
-        } else {
-          (navigation as any).navigate(screen as any, params);
-        }
-      } else if (navigation.canGoBack()) {
-        navigation.goBack();
-      } else {
-        (navigation as any).navigate('Main' as any);
-      }
+      processRedirect();
     } catch (error: any) {
       Alert.alert(
         'Login Failed', 
@@ -157,13 +186,35 @@ export function LoginScreen({ navigation }: Props) {
           <TouchableOpacity 
             style={[styles.primaryButton, { backgroundColor: colors.primary }, isLoading && styles.primaryButtonDisabled]}
             onPress={handleLogin}
-            disabled={isLoading}
+            disabled={isLoading || isGoogleLoading}
             activeOpacity={0.85}
           >
             {isLoading ? (
               <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
               <Text style={styles.primaryButtonText}>Log In</Text>
+            )}
+          </TouchableOpacity>
+
+          <View style={styles.dividerContainer}>
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            <Text style={[styles.dividerText, { color: colors.textSecondary, backgroundColor: colors.background }]}>OR</Text>
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+          </View>
+
+          <TouchableOpacity 
+            style={[styles.googleButton, { borderColor: colors.border, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF' }]}
+            onPress={handleGoogleLogin}
+            disabled={isLoading || isGoogleLoading}
+            activeOpacity={0.85}
+          >
+            {isGoogleLoading ? (
+              <ActivityIndicator color={colors.primary} size="small" />
+            ) : (
+              <>
+                <Feather name="globe" color={colors.text} size={20} style={{ marginRight: 8 }} />
+                <Text style={[styles.googleButtonText, { color: colors.text }]}>Continue with Google</Text>
+              </>
             )}
           </TouchableOpacity>
 
@@ -289,8 +340,35 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    paddingHorizontal: 12,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 24,
+  },
+  googleButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
   footer: {
     flexDirection: 'row',
