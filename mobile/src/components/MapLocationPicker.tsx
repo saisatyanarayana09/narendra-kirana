@@ -398,6 +398,14 @@ export function MapLocationPicker({
           </TouchableOpacity>
         </View>
 
+        {/* Missing Streets Banner */}
+        <View style={styles.villageHintBanner}>
+          <Feather name="info" size={16} color="#0369A1" />
+          <Text style={styles.villageHintText}>
+            Map blank? Just use "Locate Me" or drop the pin at your rough location. You can type your exact address next!
+          </Text>
+        </View>
+
         {/* Map Canvas with Leaflet */}
         <View style={styles.mapWrap}>
           <WebView
@@ -500,6 +508,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748B',
     marginTop: 1,
+  },
+  villageHintBanner: {
+    flexDirection: 'row',
+    backgroundColor: '#E0F2FE', // light blue
+    padding: 12,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#BAE6FD',
+  },
+  villageHintText: {
+    color: '#0369A1',
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 8,
+    flex: 1,
+    lineHeight: 16,
   },
   closeButton: {
     padding: 6,
