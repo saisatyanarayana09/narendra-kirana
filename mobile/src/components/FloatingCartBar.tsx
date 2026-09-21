@@ -43,6 +43,7 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
   const bounceAnim = useRef(new Animated.Value(0)).current;
   const badgeScaleAnim = useRef(new Animated.Value(1)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
+  const arrowAnim = useRef(new Animated.Value(0)).current;
 
   const { itemCount, totalAmount, isFreeDelivery, shortfall } = useMemo(() => {
     const items = cart?.items || [];
@@ -86,8 +87,7 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
     });
   }, [onClose, slideAnim, opacityAnim]);
 
-  // Smooth bounce animation and haptic feedback when itemCount increments (without dismissing)
-  const autoDismissTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Smooth bounce animation and haptic feedback when itemCount increments
 
   useEffect(() => {
     if (itemCount > 0) {
@@ -147,36 +147,9 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
         ]).start();
       }
 
-      // Auto-dismiss after 4 seconds of inactivity
-      if (autoDismissTimerRef.current) {
-        clearTimeout(autoDismissTimerRef.current);
-      }
-      autoDismissTimerRef.current = setTimeout(() => {
-        Animated.parallel([
-          Animated.timing(slideAnim, {
-            toValue: 80,
-            duration: 250,
-            useNativeDriver: USE_NATIVE_DRIVER,
-          }),
-          Animated.timing(opacityAnim, {
-            toValue: 0,
-            duration: 250,
-            useNativeDriver: USE_NATIVE_DRIVER,
-          }),
-        ]).start(() => {
-          onClose();
-        });
-      }, 4000);
-
     }
     prevItemCountRef.current = itemCount;
-
-    return () => {
-      if (autoDismissTimerRef.current) {
-        clearTimeout(autoDismissTimerRef.current);
-      }
-    };
-  }, [itemCount, slideAnim, opacityAnim, bounceAnim, badgeScaleAnim, onClose]);
+  }, [itemCount, slideAnim, opacityAnim, bounceAnim, badgeScaleAnim]);
 
   // Animate slim Free Delivery progress line indicator
   useEffect(() => {
@@ -189,6 +162,23 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
       useNativeDriver: false,
     }).start();
   }, [totalAmount, storeSettings?.free_delivery_threshold, progressAnim]);
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(arrowAnim, {
+          toValue: 4,
+          duration: 600,
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+        Animated.timing(arrowAnim, {
+          toValue: 0,
+          duration: 600,
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+      ])
+    ).start();
+  }, [arrowAnim]);
 
   if (itemCount === 0 || (currentRouteName && HIDE_ON_SCREENS.includes(currentRouteName))) {
     return null;
@@ -300,7 +290,9 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
             {/* Right: Prominent White Action Button */}
             <View style={styles.viewCartButton}>
               <Text style={styles.viewCartText}>View Cart</Text>
-              <Feather name="arrow-right" size={15} color="#064E3B" />
+              <Animated.View style={{ transform: [{ translateX: arrowAnim }] }}>
+                <Feather name="arrow-right" size={16} color="#064E3B" />
+              </Animated.View>
             </View>
           </View>
         </LinearGradient>
@@ -337,7 +329,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 2.5,
+    height: 4,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     overflow: 'hidden',
     zIndex: 10,
@@ -457,7 +449,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     backgroundColor: '#FFFFFF', // High-contrast crisp white button
-    paddingVertical: 9,
+    paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 14,
     boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.12)',
@@ -465,10 +457,10 @@ const styles = StyleSheet.create({
   },
   viewCartText: {
     color: '#064E3B', // Bold emerald matching brand
-    fontSize: 13,
-    lineHeight: 16,
+    fontSize: 14,
+    lineHeight: 18,
     fontWeight: '900',
-    letterSpacing: 0.2,
+    letterSpacing: 0.3,
   },
 });
 
