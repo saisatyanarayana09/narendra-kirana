@@ -336,15 +336,40 @@ export function HomeScreen({ navigation }: Props) {
   const [settings, setSettings] = useState<any>(cachedHome?.settings || null);
   const [festiveModalVisible, setFestiveModalVisible] = useState(false);
 
-  // Scroll-driven header collapse animation
+  // Scroll-driven header collapse & search translation animation
   const scrollY = useRef(new Animated.Value(0)).current;
+  
+  // Tier 2 container height collapses
   const headerSearchHeight = scrollY.interpolate({
     inputRange: [0, 80],
     outputRange: [48, 0],
     extrapolate: 'clamp',
   });
+  
+  // Search Bar scales down its width
+  const searchBarWidth = scrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: [width - 32, width * 0.45], // Scales down to 45% of width
+    extrapolate: 'clamp',
+  });
+
+  // Search Bar translates UP to dock next to the brand
+  const searchBarTranslateY = scrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: [0, -48],
+    extrapolate: 'clamp',
+  });
+
+  // Search Bar translates RIGHT to dock next to the brand
+  const searchBarTranslateX = scrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: [0, width - 32 - (width * 0.45)],
+    extrapolate: 'clamp',
+  });
+
+  // The text ticker inside fades out as it gets smaller
   const headerSearchOpacity = scrollY.interpolate({
-    inputRange: [0, 60],
+    inputRange: [0, 50],
     outputRange: [1, 0],
     extrapolate: 'clamp',
   });
@@ -646,7 +671,7 @@ export function HomeScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* 2-Tier Quick-Commerce Header */}
-      <View style={[styles.topHeaderContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+      <View style={[styles.topHeaderContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border, zIndex: 50 }]}>
         {/* Tier 1: Brand Logo */}
         <View style={styles.headerTier1}>
           <View style={styles.brandLocationGroup}>
@@ -659,29 +684,46 @@ export function HomeScreen({ navigation }: Props) {
           </View>
         </View>
 
-        {/* Tier 2: Spacious Full-Width Search & Voice Capsule — collapses on scroll */}
-        <Animated.View style={{ height: headerSearchHeight, opacity: headerSearchOpacity, overflow: 'hidden' }}>
-        <TouchableOpacity 
-          style={[styles.fullWidthSearchBar, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
-          activeOpacity={0.88}
-          onPress={() => navigation.navigate('SearchScreen')}
+        {/* Tier 2: The placeholder space that collapses */}
+        <Animated.View style={{ height: headerSearchHeight, opacity: 0 }} />
+        
+        {/* The Animated Search Bar */}
+        <Animated.View 
+          style={{
+            position: 'absolute',
+            top: 48,
+            left: 16,
+            width: searchBarWidth,
+            transform: [
+              { translateY: searchBarTranslateY },
+              { translateX: searchBarTranslateX }
+            ],
+            zIndex: 60,
+          }}
         >
-          <View style={styles.searchInnerRow}>
-            <Feather name="search" size={17} color={colors.textSecondary} style={{ marginRight: 8 }} />
-            <SearchTicker textColor={colors.textSecondary} />
-          </View>
           <TouchableOpacity 
-            style={styles.voiceMicBtn}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            onPress={(e) => {
-              e.stopPropagation();
-              triggerHaptic('medium');
-              navigation.navigate('SearchScreen', { autoStartVoice: true });
-            }}
+            style={[styles.fullWidthSearchBar, { backgroundColor: colors.inputBg, borderColor: colors.border, marginHorizontal: 0, width: '100%' }]}
+            activeOpacity={0.88}
+            onPress={() => navigation.navigate('SearchScreen')}
           >
-            <Feather name="mic" size={16} color={colors.primary} />
+            <View style={styles.searchInnerRow}>
+              <Feather name="search" size={17} color={colors.textSecondary} style={{ marginRight: 8 }} />
+              <Animated.View style={{ opacity: headerSearchOpacity, flex: 1, overflow: 'hidden' }}>
+                <SearchTicker textColor={colors.textSecondary} />
+              </Animated.View>
+            </View>
+            <TouchableOpacity 
+              style={styles.voiceMicBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              onPress={(e) => {
+                e.stopPropagation();
+                triggerHaptic('medium');
+                navigation.navigate('SearchScreen', { autoStartVoice: true });
+              }}
+            >
+              <Feather name="mic" size={16} color={colors.primary} />
+            </TouchableOpacity>
           </TouchableOpacity>
-        </TouchableOpacity>
         </Animated.View>
       </View>
 
