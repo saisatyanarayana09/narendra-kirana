@@ -39,3 +39,5 @@ jobs:
       - name: Publish OTA Update to Preview/Production
         working-directory: mobile
         run: eas update --branch main --message "Auto OTA Update from GitHub" --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
