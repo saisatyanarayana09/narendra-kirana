@@ -162,10 +162,10 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
 
   return (
     <Animated.View
-      pointerEvents="box-none"
       style={[
         styles.wrapper,
         {
+          pointerEvents: 'box-none',
           bottom: bottomOffset,
           opacity: opacityAnim,
           transform: [
@@ -286,10 +286,7 @@ const styles = StyleSheet.create({
   },
   touchableCard: {
     borderRadius: 20,
-    shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
+    boxShadow: '0px 8px 12px rgba(5, 150, 105, 0.4)',
     elevation: 16,
   },
   container: {
@@ -378,10 +375,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
+    boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.15)',
     elevation: 3,
   },
   badgeCount: {
@@ -432,10 +426,7 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     paddingHorizontal: 16,
     borderRadius: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.12)',
     elevation: 4,
   },
   viewCartText: {

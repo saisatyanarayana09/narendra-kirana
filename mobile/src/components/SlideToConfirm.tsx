@@ -296,10 +296,7 @@ const styles = StyleSheet.create({
     padding: TRACK_PADDING,
     position: 'relative',
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.12)',
     elevation: 3,
   },
   trackFill: {
@@ -331,10 +328,7 @@ const styles = StyleSheet.create({
     borderRadius: THUMB_SIZE / 2,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.25)',
     elevation: 4,
   },
 });

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "114300161631",
+    "project_id": "narendra-kirana-7994d",
+    "storage_bucket": "narendra-kirana-7994d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:114300161631:android:8207bde6dbfb3462ced5ea",
+        "android_client_info": {
+          "package_name": "com.narendrakirana.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDQcsRy5AxB6PFLVbOvRDRdS-naP54yDJc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

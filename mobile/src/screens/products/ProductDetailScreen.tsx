@@ -318,7 +318,7 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
         <TouchableOpacity 
           style={[
             styles.addToCartButton, 
-            { backgroundColor: colors.primary, shadowColor: colors.primary },
+            { backgroundColor: colors.primary },
             !product.is_in_stock && [styles.disabledButton, isDark && { backgroundColor: colors.inputBg }],
             added && [styles.addedButton, isDark && { backgroundColor: colors.inputBg, borderColor: colors.border }],
             isMaxReached && [styles.maxReachedButton, isDark && { backgroundColor: colors.inputBg, borderColor: colors.border }]
@@ -381,10 +381,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.92)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
     elevation: 3,
   },
   headerRight: {
@@ -590,11 +587,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 6,
+    boxShadow: '0px -4px 8px rgba(0, 0, 0, 0.05)',
   },
   addToCartButton: {
     backgroundColor: '#059669',
@@ -604,29 +597,26 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 14,
     gap: 8,
-    shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    boxShadow: '0px 2px 4px rgba(5, 150, 105, 0.2)',
     elevation: 3,
   },
   disabledButton: {
     backgroundColor: '#F1F5F9',
-    shadowOpacity: 0,
+    boxShadow: 'none',
     elevation: 0,
   },
   addedButton: {
     backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    shadowOpacity: 0,
+    boxShadow: 'none',
     elevation: 0,
   },
   maxReachedButton: {
     backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    shadowOpacity: 0,
+    boxShadow: 'none',
     elevation: 0,
   },
   addToCartText: {

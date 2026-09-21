@@ -10,7 +10,7 @@ export interface CustomRequestConfig extends InternalAxiosRequestConfig {
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 45000, // 45s network timeout to comfortably accommodate free-tier backend cold starts
+  timeout: 60000, // 60s network timeout to comfortably accommodate free-tier backend cold starts
   headers: {
     'Content-Type': 'application/json',
   },

@@ -1,6 +1,23 @@
 import React, { Component, ReactNode } from 'react';
-import { View, Text } from 'react-native';
+import { useFonts } from 'expo-font';
+import { Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import {
+  Nunito_400Regular,
+  Nunito_500Medium,
+  Nunito_600SemiBold,
+  Nunito_700Bold,
+  Nunito_800ExtraBold,
+  Nunito_900Black,
+} from '@expo-google-fonts/nunito';
+import { View, Text, Platform, LogBox } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+
+// Suppress third-party strict deprecation warnings from react-native-web / react-navigation
+LogBox.ignoreLogs([
+  'TouchableOpacity is deprecated',
+  'props.pointerEvents is deprecated',
+]);
+
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/context/AuthContext';
 import { CartProvider } from './src/context/CartContext';
@@ -57,6 +74,19 @@ function ThemedAppContent() {
 }
 
 function MainApp() {
+  // ALL hooks must be called unconditionally before any early return (Rules of Hooks)
+  const [fontsLoaded, fontError] = useFonts({
+    Nunito_400Regular,
+    Nunito_500Medium,
+    Nunito_600SemiBold,
+    Nunito_700Bold,
+    Nunito_800ExtraBold,
+    Nunito_900Black,
+    ...Feather.font,
+    ...Ionicons.font,
+    ...MaterialIcons.font,
+  });
+
   const [isUpdatingOnStartup, setIsUpdatingOnStartup] = React.useState(false);
   const [otaStatusText, setOtaStatusText] = React.useState('Checking for updates...');
 
@@ -87,6 +117,12 @@ function MainApp() {
 
     return () => unsubscribe();
   }, []);
+
+  // Early returns AFTER all hooks have been called
+  // On web, typography.ts handles fonts via direct CSS injection, so we bypass Expo's FontLoader to prevent fontfaceobserver 12000ms timeout crashes
+  if (!fontsLoaded && !fontError && Platform.OS !== 'web') {
+    return <View style={{ flex: 1, backgroundColor: '#090D16' }} />;
+  }
 
   if (isUpdatingOnStartup) {
     return (

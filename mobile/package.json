@@ -46,6 +46,7 @@
     "@types/jest": "^30.0.0",
     "@types/react": "~19.2.4",
     "@types/react-test-renderer": "^19.3.0",
+    "cross-env": "^10.1.0",
     "eslint": "^8.57.1",
     "eslint-config-universe": "^16.0.0",
     "jest": "^29.7.0",
@@ -54,9 +55,9 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "start": "expo start --clear",
-    "lan": "expo start --lan --clear",
-    "tunnel": "expo start --tunnel --clear",
+    "start": "cross-env NODE_OPTIONS=--max-old-space-size=8192 expo start --clear",
+    "lan": "cross-env NODE_OPTIONS=--max-old-space-size=8192 expo start --lan --clear",
+    "tunnel": "cross-env NODE_OPTIONS=--max-old-space-size=8192 expo start --tunnel --clear",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",

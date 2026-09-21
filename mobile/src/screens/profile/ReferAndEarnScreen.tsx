@@ -744,10 +744,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 22,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
+    boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.2)',
     elevation: 5,
   },
   badgePill: {
@@ -839,10 +836,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#25D366', // WhatsApp green
     paddingVertical: 14,
     borderRadius: 16,
-    shadowColor: '#25D366',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    boxShadow: '0px 4px 8px rgba(37, 211, 102, 0.3)',
     elevation: 4,
   },
   shareBtnText: {
@@ -857,10 +851,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 3,
+    boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.03)',
     elevation: 2,
   },
   milestoneHeader: {
@@ -1045,10 +1036,7 @@ const styles = StyleSheet.create({
   },
   tabBtnActive: {
     backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
+    boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.05)',
     elevation: 2,
   },
   tabBtnText: {
@@ -1197,10 +1185,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 10,
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
+    boxShadow: '0px 2px 3px rgba(79, 70, 229, 0.2)',
     elevation: 2,
   },
   claimBtnText: {
@@ -1292,10 +1277,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
     marginBottom: 18,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
+    boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.2)',
     elevation: 4,
   },
   qrImage: {
@@ -1371,10 +1353,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 28,
     borderRadius: 14,
-    shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
+    boxShadow: '0px 4px 8px rgba(5, 150, 105, 0.2)',
     elevation: 4,
   },
   guestSignInBtnText: {

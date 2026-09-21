@@ -1,0 +1,5 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`LoadingSpinner renders correctly as a small spinner by default 1`] = `null`;
+
+exports[`LoadingSpinner renders correctly in fullScreen mode 1`] = `null`;

@@ -435,10 +435,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderWidth: 1,
     gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
+    boxShadow: '0px 1px 4px rgba(0, 0, 0, 0.04)',
     elevation: 2,
   },
   inputGroup: {
@@ -512,10 +509,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 4,
-    shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    boxShadow: '0px 2px 4px rgba(5, 150, 105, 0.25)',
     elevation: 3,
   },
   primaryButtonDisabled: {

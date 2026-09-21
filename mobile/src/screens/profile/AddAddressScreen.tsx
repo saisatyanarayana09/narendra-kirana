@@ -249,29 +249,25 @@ export function AddAddressScreen({ navigation, route }: { navigation: AppNavigat
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.inputLabel, { color: colors.text }]}>House No, Area, or Village Name *</Text>
+            <Text style={[styles.inputLabel, { color: colors.text }]}>Street Address *</Text>
             <TextInput
-              style={[styles.textInput, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border, color: colors.text, height: 60 }]}
+              style={[styles.textInput, { height: 74, textAlignVertical: 'top', paddingTop: 10, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border, color: colors.text }]}
               value={street}
               onChangeText={setStreet}
-              placeholder="e.g., 2-44, Main Bazar, Gram Panchayat"
+              placeholder="Flat/House No., Building Name, Street..."
               placeholderTextColor={colors.textSecondary}
               multiline
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={[styles.inputLabel, { color: colors.text }]}>Nearby Landmark / Instructions</Text>
-              <Text style={{ fontSize: 11, color: '#059669', fontWeight: 'bold', marginBottom: 6 }}>VERY HELPFUL</Text>
-            </View>
+            <Text style={[styles.inputLabel, { color: colors.text }]}>Landmark (Optional)</Text>
             <TextInput
-              style={[styles.textInput, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border, color: colors.text, height: 60 }]}
+              style={[styles.textInput, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC', borderColor: colors.border, color: colors.text }]}
               value={landmark}
               onChangeText={setLandmark}
-              placeholder="e.g., Opposite Hanuman Temple, ring doorbell"
+              placeholder="Near Temple / Opposite Park..."
               placeholderTextColor={colors.textSecondary}
-              multiline
             />
           </View>
 
@@ -518,10 +514,7 @@ const styles = StyleSheet.create({
     height: 48,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
+    boxShadow: '0px 2px 4px rgba(5, 150, 105, 0.15)',
     elevation: 3,
   },
   saveBtnText: {
@@ -563,10 +556,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 28,
     borderRadius: 14,
-    shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
+    boxShadow: '0px 4px 8px rgba(5, 150, 105, 0.2)',
     elevation: 4,
   },
   guestSignInBtnText: {

@@ -315,10 +315,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
-    shadowColor: '#D97706',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
+    boxShadow: '0px 4px 12px rgba(217, 119, 6, 0.15)',
     elevation: 4,
   },
   iconInnerCircle: {
@@ -372,10 +369,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 14,
-    shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
+    boxShadow: '0px 3px 6px rgba(5, 150, 105, 0.25)',
     elevation: 3,
   },
   buttonIcon: {

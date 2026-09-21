@@ -677,10 +677,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 20,
-    shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
+    boxShadow: '0px 2px 3px rgba(5, 150, 105, 0.2)',
     elevation: 2,
   },
   clearFiltersBtnText: {

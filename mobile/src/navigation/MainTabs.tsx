@@ -340,10 +340,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#E2E8F0',
     borderTopWidth: 1,
     elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
+    boxShadow: '0px -2px 6px rgba(0, 0, 0, 0.06)',
     paddingTop: 8,
   },
 });

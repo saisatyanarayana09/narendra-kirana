@@ -1,0 +1,26 @@
+appId: com.saisatyanarayana09.narendra-kirana
+---
+- launchApp
+- tapOn: "Profile"
+- tapOn: "Login / Signup"
+- assertVisible: "Welcome back"
+
+# Invalid Login
+- tapOn: "Email or Username"
+- inputText: "invalid_user"
+- tapOn: "Password"
+- inputText: "wrongpassword"
+- tapOn: "Sign In"
+- assertVisible: "Invalid credentials" 
+
+# Valid Login
+- tapOn: "Email or Username"
+- eraseText
+- inputText: "testuser"
+- tapOn: "Password"
+- eraseText
+- inputText: "password123"
+- tapOn: "Sign In"
+
+# Verify Success
+- assertVisible: "My Orders"

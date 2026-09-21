@@ -3,7 +3,7 @@ import { renderHook, act } from '@testing-library/react-native';
 import { CartProvider, useCart } from './CartContext';
 import { AuthProvider } from './AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import apiClient from '../api/store';
+import { apiClient } from '../api/client';
 
 // Mock dependencies
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -12,7 +12,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   removeItem: jest.fn(),
 }));
 
-jest.mock('../api/store', () => ({
+jest.mock('../api/client', () => ({
   get: jest.fn(),
   post: jest.fn(),
   patch: jest.fn(),

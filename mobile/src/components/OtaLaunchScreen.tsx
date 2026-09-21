@@ -7,8 +7,8 @@ import {
   Image,
   TouchableOpacity,
   StatusBar,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 
 interface OtaLaunchScreenProps {
@@ -100,10 +100,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
+    boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.25)',
     elevation: 8,
     overflow: 'hidden',
   },

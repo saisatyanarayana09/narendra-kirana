@@ -398,14 +398,6 @@ export function MapLocationPicker({
           </TouchableOpacity>
         </View>
 
-        {/* Missing Streets Banner */}
-        <View style={styles.villageHintBanner}>
-          <Feather name="info" size={16} color="#0369A1" />
-          <Text style={styles.villageHintText}>
-            Map blank? Just use "Locate Me" or drop the pin at your rough location. You can type your exact address next!
-          </Text>
-        </View>
-
         {/* Map Canvas with Leaflet */}
         <View style={styles.mapWrap}>
           <WebView
@@ -509,22 +501,6 @@ const styles = StyleSheet.create({
     color: '#64748B',
     marginTop: 1,
   },
-  villageHintBanner: {
-    flexDirection: 'row',
-    backgroundColor: '#E0F2FE', // light blue
-    padding: 12,
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#BAE6FD',
-  },
-  villageHintText: {
-    color: '#0369A1',
-    fontSize: 12,
-    fontWeight: '600',
-    marginLeft: 8,
-    flex: 1,
-    lineHeight: 16,
-  },
   closeButton: {
     padding: 6,
     borderRadius: 8,
@@ -549,10 +525,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 14,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
+    boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.15)',
     elevation: 4,
     borderWidth: 1,
     borderColor: '#E2E8F0',
@@ -628,10 +601,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     backgroundColor: '#059669',
-    shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
+    boxShadow: '0px 3px 6px rgba(5, 150, 105, 0.25)',
     elevation: 3,
   },
   confirmBtnText: {
