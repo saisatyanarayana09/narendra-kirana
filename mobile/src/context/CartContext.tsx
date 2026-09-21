@@ -436,183 +436,161 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [user, removeFromCart, refreshCart]);
 
   const addToCart = useCallback(async (productId: number, quantity: number = 1, productDetails?: any) => {
+    // Queue lock: ensure sequential processing per product to prevent ghost item race conditions
     const prevLock = addToCartLocks.current[productId] || Promise.resolve();
-    let resolveLock: () => void;
+    let resolveLock!: () => void;
     const nextLock = new Promise<void>((resolve) => { resolveLock = resolve; });
     addToCartLocks.current[productId] = nextLock;
 
-    try {
-      await prevLock;
-    } catch (e) {}
+    // Wait for any prior addToCart for this product to finish
+    try { await prevLock; } catch (e) {}
 
     try {
+      // --- GUEST USER PATH ---
       if (!user) {
-      try {
-        const currentCart = (await loadGuestCart()) || cartRef.current || {
-          items: [],
-          subtotal: '0.00',
-          discount: '0.00',
-          promo_code: null,
-          promo_discount: '0.00',
-          packaging_fee: '0.00',
-          total: '0.00',
-        };
-
-        const existingItemIndex = currentCart.items.findIndex(
-          (item) => getItemProductId(item) === productId
-        );
-
-        let updatedItems = [...currentCart.items];
-
-        if (existingItemIndex > -1) {
-          const existingItem = updatedItems[existingItemIndex];
-          const stockLimit = existingItem.stock_quantity ?? existingItem.product?.stock_quantity ?? 999;
-          const maxOrderLimit = existingItem.max_order_quantity ?? existingItem.product?.max_order_quantity ?? 0;
-          const cap = maxOrderLimit > 0 ? Math.min(stockLimit, maxOrderLimit) : stockLimit;
-          const newQty = Math.min(existingItem.quantity + quantity, cap);
-          updatedItems[existingItemIndex] = {
-            ...existingItem,
-            quantity: newQty,
+        try {
+          const currentCart = (await loadGuestCart()) || cartRef.current || {
+            items: [], subtotal: '0.00', discount: '0.00',
+            promo_code: null, promo_discount: '0.00', packaging_fee: '0.00', total: '0.00',
           };
-        } else {
-          // New item: resolve product details
-          let details = productDetails;
-          if (!details || !details.price) {
-            try {
-              const res = await apiClient.get(`/products/${productId}/`);
-              details = res.data;
-              if (!details) throw new Error('Product not found');
-            } catch (err) {
-              console.error('Failed to fetch product details for guest cart', err);
-              import('react-native').then(({ Alert }) => {
-                Alert.alert('Network Error', 'Could not fetch product details. Please check your connection and try again.');
-              });
-              return; // Abort adding to cart if product cannot be resolved
+
+          const existingItemIndex = currentCart.items.findIndex((item) => getItemProductId(item) === productId);
+          let updatedItems = [...currentCart.items];
+
+          if (existingItemIndex > -1) {
+            const existingItem = updatedItems[existingItemIndex];
+            const stockLimit = existingItem.stock_quantity ?? existingItem.product?.stock_quantity ?? 999;
+            const maxOrderLimit = existingItem.max_order_quantity ?? existingItem.product?.max_order_quantity ?? 0;
+            const cap = maxOrderLimit > 0 ? Math.min(stockLimit, maxOrderLimit) : stockLimit;
+            updatedItems[existingItemIndex] = { ...existingItem, quantity: Math.min(existingItem.quantity + quantity, cap) };
+          } else {
+            let details = productDetails;
+            if (!details || !details.price) {
+              try {
+                const res = await apiClient.get(`/products/${productId}/`);
+                details = res.data;
+                if (!details) throw new Error('Product not found');
+              } catch (err) {
+                console.error('Failed to fetch product details for guest cart', err);
+                import('react-native').then(({ Alert }) => {
+                  Alert.alert('Network Error', 'Could not fetch product details. Please check your connection and try again.');
+                });
+                return;
+              }
             }
+            const stockLimit = details.stock_quantity ?? 999;
+            const maxOrderLimit = details.max_order_quantity ?? 0;
+            const cap = maxOrderLimit > 0 ? Math.min(stockLimit, maxOrderLimit) : stockLimit;
+            const safeQty = Math.min(quantity, cap);
+            const newItem: CartItem = {
+              id: productId,
+              product: {
+                id: productId, name: details.name || 'Product',
+                price: String(details.offer_price || details.price || '0'),
+                mrp: details.regular_price || details.mrp ? String(details.regular_price || details.mrp) : null,
+                is_in_stock: details.is_in_stock !== false,
+                image: details.image || details.primary_image || null,
+                unit: details.unit || 'pack',
+                stock_quantity: details.stock_quantity, max_order_quantity: details.max_order_quantity,
+              },
+              quantity: safeQty,
+              subtotal: (parseFloat(details.offer_price || details.price || '0') * safeQty).toFixed(2),
+              product_name: details.name, product_unit: details.unit,
+              product_image: details.image || details.primary_image || null,
+              stock_quantity: details.stock_quantity, max_order_quantity: details.max_order_quantity,
+              unit_price: String(details.offer_price || details.price || '0'),
+            };
+            updatedItems.push(newItem);
           }
 
-          const stockLimit = details.stock_quantity ?? 999;
-          const maxOrderLimit = details.max_order_quantity ?? 0;
-          const cap = maxOrderLimit > 0 ? Math.min(stockLimit, maxOrderLimit) : stockLimit;
-          const safeQty = Math.min(quantity, cap);
-
-          const newItem: CartItem = {
-            id: productId,
-            product: {
-              id: productId,
-              name: details.name || 'Product',
-              price: String(details.offer_price || details.price || '0'),
-              mrp: details.regular_price || details.mrp ? String(details.regular_price || details.mrp) : null,
-              is_in_stock: details.is_in_stock !== false,
-              image: details.image || details.primary_image || null,
-              unit: details.unit || 'pack',
-              stock_quantity: details.stock_quantity,
-              max_order_quantity: details.max_order_quantity,
-            },
-            quantity: safeQty,
-            subtotal: (parseFloat(details.offer_price || details.price || '0') * safeQty).toFixed(2),
-            product_name: details.name,
-            product_unit: details.unit,
-            product_image: details.image || details.primary_image || null,
-            stock_quantity: details.stock_quantity,
-            max_order_quantity: details.max_order_quantity,
-            unit_price: String(details.offer_price || details.price || '0'),
-          };
-          updatedItems.push(newItem);
+          const packagingFee = storeSettingsRef.current?.packaging_fee || '0';
+          const newCartData = calculateGuestTotals(updatedItems, packagingFee);
+          await setGuestStorageItem(GUEST_CART_KEY, JSON.stringify(newCartData));
+          setCart(newCartData);
+          setLastItemAddedTimestamp(Date.now());
+        } catch (error) {
+          console.error('Failed to add to guest cart:', error);
+          throw error;
         }
-
-        const packagingFee = storeSettingsRef.current?.packaging_fee || '0';
-        const newCartData = calculateGuestTotals(updatedItems, packagingFee);
-        await setGuestStorageItem(GUEST_CART_KEY, JSON.stringify(newCartData));
-        setCart(newCartData);
-        setLastItemAddedTimestamp(Date.now());
-      } catch (error) {
-        console.error('Failed to add to guest cart:', error);
-        throw error;
-      }
-      return;
-    }
-
-    // If item already exists in cart, delegate to updateQuantity (which has its own optimistic update)
-    const currentCart = cartRef.current;
-    if (currentCart?.items) {
-      const existingItem = currentCart.items.find((item) => getItemProductId(item) === productId);
-      if (existingItem) {
-        await updateQuantity(existingItem.id, existingItem.quantity + quantity);
         return;
       }
-    }
 
-    // Optimistic update: immediately add NEW item to local cart state
-    const prevCart = cartRef.current;
-    const details = productDetails || {};
-    const unitPrice = parseFloat(details.offer_price || details.price || '0');
-    const optimisticItem: CartItem = {
-      id: -(Date.now()), // temporary negative ID, server will replace
-      product: {
-        id: productId,
-        name: details.name || 'Product',
-        price: String(details.offer_price || details.price || '0'),
-        mrp: details.regular_price || details.mrp ? String(details.regular_price || details.mrp) : null,
-        is_in_stock: details.is_in_stock !== false,
-        image: details.image || details.primary_image || null,
-        unit: details.unit || 'pack',
-        stock_quantity: details.stock_quantity,
-        max_order_quantity: details.max_order_quantity,
-      },
-      quantity,
-      subtotal: (unitPrice * quantity).toFixed(2),
-      product_name: details.name,
-      product_unit: details.unit,
-      product_image: details.image || details.primary_image || null,
-      stock_quantity: details.stock_quantity,
-      max_order_quantity: details.max_order_quantity,
-      unit_price: String(details.offer_price || details.price || '0'),
-      regular_price: String(details.regular_price || details.mrp || details.offer_price || details.price || '0'),
-    };
-
-    setCart((current) => {
-      const items = [...(current?.items || []), optimisticItem];
-      let newOfferSubtotal = 0;
-      let newRegularSubtotal = 0;
-      items.forEach((i) => {
-        const pObj = typeof i.product === 'object' && i.product !== null ? i.product : null;
-        const offerP = parseFloat(i.unit_price || pObj?.price || '0');
-        const regP = parseFloat(i.regular_price || pObj?.mrp || pObj?.regular_price || i.unit_price || pObj?.price || '0');
-        newOfferSubtotal += offerP * i.quantity;
-        newRegularSubtotal += regP * i.quantity;
-      });
-      const packaging = parseFloat(current?.packaging_fee || '0');
-      const promo = parseFloat(current?.promo_discount || '0');
-      const newTotal = Math.max(0, newOfferSubtotal - promo) + (newOfferSubtotal > 0 ? packaging : 0);
-
-      return {
-        ...current!,
-        items,
-        subtotal: newRegularSubtotal > 0 ? newRegularSubtotal.toFixed(2) : newOfferSubtotal.toFixed(2),
-        items_total: newOfferSubtotal.toFixed(2),
-        discount: Math.max(0, newRegularSubtotal - newOfferSubtotal).toFixed(2),
-        total: newTotal.toFixed(2),
-      };
-    });
-    setLastItemAddedTimestamp(Date.now());
-
-    try {
-      const res = await apiClient.post('/cart/items/', { product: productId, quantity });
-      // Sync with server response to get real IDs and accurate totals
-      if (res?.data && res.data.items) {
-        setCart(res.data);
-      } else {
-        await refreshCart(true);
+      // --- AUTHENTICATED USER PATH ---
+      // If item already exists, delegate to updateQuantity
+      const currentCart = cartRef.current;
+      if (currentCart?.items) {
+        const existingItem = currentCart.items.find((item) => getItemProductId(item) === productId);
+        if (existingItem) {
+          await updateQuantity(existingItem.id, existingItem.quantity + quantity);
+          return;
+        }
       }
-    } catch (error) {
-      // Rollback on failure
-      if (prevCart) setCart(prevCart);
-      console.error('Failed to add to cart:', error);
-      throw error;
-    }
+
+      // Optimistic update: immediately add NEW item with temporary negative ID
+      const prevCart = cartRef.current;
+      const details = productDetails || {};
+      const unitPriceNum = parseFloat(details.offer_price || details.price || '0');
+      const optimisticItem: CartItem = {
+        id: -(Date.now()),
+        product: {
+          id: productId, name: details.name || 'Product',
+          price: String(details.offer_price || details.price || '0'),
+          mrp: details.regular_price || details.mrp ? String(details.regular_price || details.mrp) : null,
+          is_in_stock: details.is_in_stock !== false,
+          image: details.image || details.primary_image || null,
+          unit: details.unit || 'pack',
+          stock_quantity: details.stock_quantity, max_order_quantity: details.max_order_quantity,
+        },
+        quantity,
+        subtotal: (unitPriceNum * quantity).toFixed(2),
+        product_name: details.name, product_unit: details.unit,
+        product_image: details.image || details.primary_image || null,
+        stock_quantity: details.stock_quantity, max_order_quantity: details.max_order_quantity,
+        unit_price: String(details.offer_price || details.price || '0'),
+        regular_price: String(details.regular_price || details.mrp || details.offer_price || details.price || '0'),
+      };
+
+      setCart((current) => {
+        const items = [...(current?.items || []), optimisticItem];
+        let newOfferSubtotal = 0;
+        let newRegularSubtotal = 0;
+        items.forEach((i) => {
+          const pObj = typeof i.product === 'object' && i.product !== null ? i.product : null;
+          const offerP = parseFloat(i.unit_price || pObj?.price || '0');
+          const regP = parseFloat(i.regular_price || pObj?.mrp || pObj?.regular_price || i.unit_price || pObj?.price || '0');
+          newOfferSubtotal += offerP * i.quantity;
+          newRegularSubtotal += regP * i.quantity;
+        });
+        const packaging = parseFloat(current?.packaging_fee || '0');
+        const promo = parseFloat(current?.promo_discount || '0');
+        const safePromo = newOfferSubtotal >= promo ? promo : 0;
+        const newTotal = Math.max(0, newOfferSubtotal - safePromo) + (newOfferSubtotal > 0 ? packaging : 0);
+        return {
+          ...current!,
+          items,
+          subtotal: newRegularSubtotal > 0 ? newRegularSubtotal.toFixed(2) : newOfferSubtotal.toFixed(2),
+          items_total: newOfferSubtotal.toFixed(2),
+          discount: Math.max(0, newRegularSubtotal - newOfferSubtotal).toFixed(2),
+          total: newTotal.toFixed(2),
+        };
+      });
+      setLastItemAddedTimestamp(Date.now());
+
+      try {
+        const res = await apiClient.post('/cart/items/', { product: productId, quantity });
+        if (res?.data && res.data.items) {
+          setCart(res.data);
+        } else {
+          await refreshCart(true);
+        }
+      } catch (error) {
+        if (prevCart) setCart(prevCart);
+        console.error('Failed to add to cart:', error);
+        throw error;
+      }
     } finally {
-      resolveLock!();
+      // Always release the lock, even if we throw or return early
+      resolveLock();
       if (addToCartLocks.current[productId] === nextLock) {
         delete addToCartLocks.current[productId];
       }
