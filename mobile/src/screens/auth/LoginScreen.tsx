@@ -131,6 +131,10 @@ export function LoginScreen({ navigation }: Props) {
             style={styles.logoImage} 
             resizeMode="contain" 
           />
+          <Text style={styles.brandTitle}>
+            <Text style={[styles.brandSlate, { color: colors.text }]}>Narendra </Text>
+            <Text style={styles.brandRed}>Kirana</Text>
+          </Text>
           <Text style={[styles.title, { color: colors.text }]}>Welcome back</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Sign in to access your orders, wallet & favorites</Text>
         </View>
@@ -271,7 +275,21 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 16,
-    marginBottom: 16,
+    marginBottom: 8,
+  },
+  brandTitle: {
+    fontSize: 22,
+    lineHeight: 26,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  brandSlate: {
+    color: '#0F172A',
+  },
+  brandRed: {
+    color: '#DC2626',
   },
   title: {
     fontSize: 28,

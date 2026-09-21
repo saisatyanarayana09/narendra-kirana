@@ -217,6 +217,10 @@ export function SignupScreen({ navigation }: Props) {
                 style={styles.logoImage} 
                 resizeMode="contain" 
               />
+              <Text style={styles.brandTitle}>
+                <Text style={[styles.brandSlate, { color: colors.text }]}>Narendra </Text>
+                <Text style={styles.brandRed}>Kirana</Text>
+              </Text>
               <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
               <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
                 Quick registration for fresh daily grocery delivery
@@ -473,7 +477,21 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 16,
-    marginBottom: 10,
+    marginBottom: 8,
+  },
+  brandTitle: {
+    fontSize: 22,
+    lineHeight: 26,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  brandSlate: {
+    color: '#0F172A',
+  },
+  brandRed: {
+    color: '#DC2626',
   },
   title: {
     fontSize: 22,
