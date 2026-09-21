@@ -83,7 +83,7 @@ export function OrderTrackingMap({
       <!DOCTYPE html>
       <html>
         <head>
-          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
           <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
           <style>
             * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -141,23 +141,7 @@ export function OrderTrackingMap({
               width: 8px; height: 8px; border-radius: 50%; background: #10B981;
             }
 
-            /* Controls Container */
-            .map-controls-col {
-              position: absolute; top: 10px; right: 10px; z-index: 1000;
-              display: flex; flex-direction: column; gap: 6px;
-            }
-            .ctrl-btn {
-              background: rgba(255, 255, 255, 0.96); border: 1px solid #E2E8F0;
-              width: 34px; height: 34px; border-radius: 10px;
-              box-shadow: 0 3px 8px rgba(0,0,0,0.15);
-              display: flex; align-items: center; justify-content: center;
-              font-size: 15px; cursor: pointer; user-select: none;
-              transition: transform 0.15s ease, background 0.15s ease;
-            }
-            .ctrl-btn:active {
-              transform: scale(0.92);
-              background: #F1F5F9;
-            }
+            
           </style>
         </head>
         <body>
@@ -165,29 +149,19 @@ export function OrderTrackingMap({
 
           <!-- Top Status ETA Badge -->
           <div class="eta-pill" id="eta-pill" onclick="recenterMap()">
-            <span class="eta-dot" style="background: ${isPickup ? '#064E3B' : (hasRiderPosition ? '#4F46E5' : '#10B981')};"></span>
+            <span class="eta-dot" style="background: ${hasRiderPosition ? '#4F46E5' : '#10B981'};"></span>
             <span id="eta-text">${
-              isPickup
-                ? 'Store Pickup Location'
-                : (hasRiderPosition
-                    ? 'Connecting live rider route...'
-                    : (order?.status === 'OUT_FOR_DELIVERY'
-                        ? '🛵 Rider En Route • Connecting GPS...'
-                        : (order?.status === 'READY'
-                            ? '📦 Order Packed • Ready for Dispatch'
-                            : '📍 Delivery Route from Store')))
+              hasRiderPosition
+                ? 'Connecting live rider route...'
+                : (order?.status === 'OUT_FOR_DELIVERY'
+                    ? '🚚 Rider En Route 📡 Connecting GPS...'
+                    : (order?.status === 'READY'
+                        ? '📦 Order Packed 🚀 Ready for Dispatch'
+                        : '📍 Delivery Route Assigned'))
             }</span>
           </div>
 
-          <!-- Floating Interactive Control Buttons -->
-          <div class="map-controls-col">
-            <button class="ctrl-btn" id="layer-btn" onclick="toggleLayer()" title="Toggle Satellite / Street">🛰️</button>
-            <button class="ctrl-btn" onclick="recenterMap()" title="Fit Full Route">🎯</button>
-            ${hasRiderPosition ? `<button class="ctrl-btn" onclick="focusRider()" title="Focus on Rider">🛵</button>` : ''}
-            <button class="ctrl-btn" onclick="focusDoorstep()" title="Focus on Doorstep">🏠</button>
-            <button class="ctrl-btn" onclick="zoomIn()" title="Zoom In" style="font-weight: 800; font-size: 16px;">+</button>
-            <button class="ctrl-btn" onclick="zoomOut()" title="Zoom Out" style="font-weight: 800; font-size: 16px;">−</button>
-          </div>
+          
 
           <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
           <script>
@@ -215,7 +189,6 @@ export function OrderTrackingMap({
             window.zoomIn = function() { map.zoomIn(); };
             window.zoomOut = function() { map.zoomOut(); };
 
-            var storeMarker = null;
             var custMarker = null;
             var riderMarker = null;
             var activePolyline = null;
@@ -223,28 +196,6 @@ export function OrderTrackingMap({
             var activeStraightLine = null;
             var routeBounds = null;
 
-            ${isPickup ? `
-              // Store Marker for Pickup
-              var storeIcon = L.divIcon({
-                className: '',
-                html: '<div class="store-pin"><span style="transform: rotate(45deg);">🏪</span></div>',
-                iconSize: [36, 36],
-                iconAnchor: [18, 32],
-                popupAnchor: [0, -32]
-              });
-              storeMarker = L.marker([${storeLat}, ${storeLng}], { icon: storeIcon }).addTo(map);
-              storeMarker.bindPopup('<div style="font-size:12px; line-height:1.4;"><b style="color:#064E3B;">🏪 ${storeName}</b><br/><span style="color:#475569;">${storeAddress}</span><br/><span style="color:#059669; font-weight:700;">Store Pickup Hub</span></div>').openPopup();
-
-              map.setView([${storeLat}, ${storeLng}], 16);
-
-              window.recenterMap = function() {
-                map.flyTo([${storeLat}, ${storeLng}], 16, { duration: 0.8 });
-              };
-              window.focusDoorstep = function() {
-                map.flyTo([${storeLat}, ${storeLng}], 17, { duration: 0.8 });
-                if (storeMarker) storeMarker.openPopup();
-              };
-            ` : `
               // Customer Doorstep Marker
               var custIcon = L.divIcon({
                 className: '',
@@ -256,17 +207,7 @@ export function OrderTrackingMap({
               custMarker = L.marker([${custLat}, ${custLng}], { icon: custIcon }).addTo(map);
               custMarker.bindPopup('<div style="font-size:12px; line-height:1.4;"><b style="color:#E11D48;">🏠 Delivery Destination</b><br/><span style="color:#334155;">${custAddress}</span></div>');
 
-              ${showStorePin ? `
-                var storeIcon = L.divIcon({
-                  className: '',
-                  html: '<div class="store-pin"><span style="transform: rotate(45deg);">🏪</span></div>',
-                  iconSize: [32, 32],
-                  iconAnchor: [16, 28],
-                  popupAnchor: [0, -28]
-                });
-                storeMarker = L.marker([${storeLat}, ${storeLng}], { icon: storeIcon }).addTo(map);
-                storeMarker.bindPopup('<div style="font-size:12px;"><b>Store Dispatch Hub</b></div>');
-              ` : ''}
+              
 
               ${hasRiderPosition ? `
                 // Rider Live Pin (Pulse + Emoji)
@@ -384,7 +325,6 @@ export function OrderTrackingMap({
                 // Recalculate route and ETA countdown live from current position
                 fetchOSRMRoute(lng, lat, ${custLng}, ${custLat}, true);
               };
-            `}
           </script>
         </body>
       </html>
@@ -415,7 +355,7 @@ export function OrderTrackingMap({
           domStorageEnabled={true}
           mixedContentMode="always"
           androidLayerType="hardware"
-          scrollEnabled={false}
+          
         />
 
         {/* Expand / Fullscreen Map Button Top Right */}
