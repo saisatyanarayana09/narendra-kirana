@@ -251,7 +251,7 @@ const SEARCH_TICKER_PLACEHOLDERS = [
   "Search 'Tata Salt & Spices'...",
 ];
 
-const SearchTicker = React.memo(function SearchTicker({ textColor, placeholders }: { textColor: string, placeholders: string[] }) {
+const SearchTicker = React.memo(function SearchTicker({ textColor, placeholders = SEARCH_TICKER_PLACEHOLDERS }: { textColor: string, placeholders?: string[] }) {
   const isFocused = useIsFocused();
   const [index, setIndex] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
