@@ -58,6 +58,11 @@ export function LoginScreen({ navigation }: Props) {
   };
 
   const handleGoogleLogin = async () => {
+    if (Platform.OS === 'web') {
+      Alert.alert('Not Supported', 'Google Sign-In is only supported on the Android/iOS mobile app, not on the web browser.');
+      return;
+    }
+
     try {
       setIsGoogleLoading(true);
       await GoogleSignin.hasPlayServices();
