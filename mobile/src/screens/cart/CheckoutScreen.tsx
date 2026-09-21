@@ -10,8 +10,11 @@ import {
   Alert, 
   Switch,
   Modal,
-  Linking as RNLinking
+  Linking as RNLinking,
+  Dimensions,
+  Platform
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { Image } from 'expo-image';
 import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -610,9 +613,12 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
         <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>Review your order and pick a time.</Text>
       </View>
 
-      <ScrollView 
+      <KeyboardAwareScrollView 
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 + insets.bottom }]}
+        enableOnAndroid={true}
+        extraScrollHeight={80}
+        keyboardShouldPersistTaps="handled"
       >
         {/* Error Banner */}
         {Boolean(error) && (
@@ -1223,7 +1229,7 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
             </View>
           ) : null}
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Sticky Bottom Place Order Bar */}
       <View style={[styles.bottomBar, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingTop: 10, paddingBottom: Math.max(insets.bottom, 10) }]}>

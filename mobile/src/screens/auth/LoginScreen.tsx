@@ -4,14 +4,15 @@ import {
   Text, 
   TextInput, 
   StyleSheet, 
-  TouchableOpacity, 
-  KeyboardAvoidingView, 
-  Platform, 
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
   Alert,
   ActivityIndicator,
-  ScrollView,
+  Animated,
   Image
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather, AntDesign } from '@expo/vector-icons';
@@ -104,15 +105,14 @@ export function LoginScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView 
-        style={[styles.container, { backgroundColor: colors.background }]} 
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-      <ScrollView 
+      <KeyboardAwareScrollView 
+        style={[styles.container, { backgroundColor: colors.background }]}
         showsVerticalScrollIndicator={false} 
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         contentContainerStyle={styles.scrollContent}
+        enableOnAndroid={true}
+        extraScrollHeight={20}
       >
         {/* Back Button */}
         <TouchableOpacity 
@@ -254,8 +254,7 @@ export function LoginScreen({ navigation }: Props) {
             </TouchableOpacity>
           </View>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

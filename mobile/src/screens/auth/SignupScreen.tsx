@@ -5,13 +5,13 @@ import {
   TextInput, 
   StyleSheet, 
   TouchableOpacity, 
-  KeyboardAvoidingView, 
   Platform, 
   Alert, 
-  ScrollView,
   ActivityIndicator,
-  Image
+  Image,
+  Animated
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather, AntDesign } from '@expo/vector-icons';
@@ -188,16 +188,14 @@ export function SignupScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
-      <KeyboardAvoidingView 
-        style={styles.container} 
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView 
+        <KeyboardAwareScrollView 
           showsVerticalScrollIndicator={false} 
           contentContainerStyle={styles.scrollContent}
           bounces={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
+          enableOnAndroid={true}
+          extraScrollHeight={20}
         >
           {/* Header Bar */}
           <View style={styles.headerBar}>
@@ -439,8 +437,7 @@ export function SignupScreen({ navigation }: Props) {
             </View>
 
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }
