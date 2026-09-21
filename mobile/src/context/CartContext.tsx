@@ -389,10 +389,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     // Debounce the network request to prevent race conditions and handle ghost IDs
     const timerId = setTimeout(async () => {
-      if (updateQuantityLocks.current[itemId] === timerId) {
-        delete updateQuantityLocks.current[itemId];
-      }
-
+      // Do NOT delete the lock here — keep it alive through the whole network request
       let targetId = itemId;
 
       // Resolve Ghost ID (from optimistic addToCart) to Real ID
@@ -403,15 +400,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
           targetId = realItem.id;
         } else {
           console.warn('[CartContext] Aborted patch: Ghost item never resolved to real ID.');
+          // Clean up the lock since we're returning early
+          if (updateQuantityLocks.current[itemId] === timerId) {
+            delete updateQuantityLocks.current[itemId];
+          }
           return;
         }
       }
 
       try {
         const res = await apiClient.patch(`/cart/items/${targetId}/`, { quantity });
-        
-        // Skip syncing if there are still pending optimistic updates for ANY item
-        if (Object.keys(updateQuantityLocks.current).length === 0) {
+        // Only sync if THIS is still the latest timer for this item (no newer tap came in)
+        if (updateQuantityLocks.current[itemId] === timerId) {
           if (res?.data && res.data.items) {
             setCart(res.data);
           } else {
@@ -419,10 +419,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
           }
         }
       } catch (error: any) {
-        if (prevCart && Object.keys(updateQuantityLocks.current).length === 0) {
+        // Only rollback if this is the latest pending update (don't stomp a newer tap)
+        if (updateQuantityLocks.current[itemId] === timerId && prevCart) {
           setCart(prevCart);
         }
         console.error('Failed to update quantity:', error);
+      } finally {
+        // Clean up lock only after the full network round-trip
+        if (updateQuantityLocks.current[itemId] === timerId) {
+          delete updateQuantityLocks.current[itemId];
+        }
       }
     }, 400);
     

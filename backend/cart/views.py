@@ -53,8 +53,10 @@ class CartItemCreateView(generics.CreateAPIView):
         else:
             item.quantity = new_qty
             item.save(update_fields=['quantity'])
-            
-        return Response(CartItemSerializer(item, context=self.get_serializer_context()).data, status=status.HTTP_201_CREATED)
+
+        # Return the FULL cart so the frontend can update totals in one shot
+        cart = Cart.objects.prefetch_related('items__product').get(id=cart.id)
+        return Response(CartSerializer(cart, context=self.get_serializer_context()).data, status=status.HTTP_201_CREATED)
 
 class CartItemDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = CartItemSerializer
@@ -63,6 +65,7 @@ class CartItemDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         return CartItem.objects.filter(cart__customer=self.request.user).select_related('product')
 
+    @transaction.atomic
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         item = self.get_object()
@@ -80,24 +83,23 @@ class CartItemDetailView(generics.RetrieveUpdateDestroyAPIView):
         if not product.is_in_stock:
             return Response({'detail': 'This product is out of stock.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        self.perform_update(serializer)
-        return Response(serializer.data)
+        serializer.save()
+
+        # Return the FULL cart so the frontend can update all totals in one round-trip
+        cart = Cart.objects.prefetch_related('items__product').get(id=item.cart_id)
+        return Response(CartSerializer(cart, context=self.get_serializer_context()).data)
 
     def perform_update(self, serializer):
-        item = self.get_object()
-        new_qty = serializer.validated_data.get('quantity', item.quantity)
-        product = item.product
-        
-        if product.max_order_quantity and product.max_order_quantity > 0 and new_qty > product.max_order_quantity:
-            raise serializers.ValidationError({'detail': f'You can only order up to {product.max_order_quantity} of this item.'})
-            
-        if product.stock_quantity is not None and new_qty > product.stock_quantity:
-            raise serializers.ValidationError({'detail': f'Only {product.stock_quantity} left in stock.'})
-            
-        if not product.is_in_stock:
-            raise serializers.ValidationError({'detail': 'This product is out of stock.'})
-            
+        # Validation is already done in update(); just save here
         serializer.save()
+
+    def destroy(self, request, *args, **kwargs):
+        item = self.get_object()
+        cart_id = item.cart_id
+        item.delete()
+        # Return the full cart after deletion too
+        cart = Cart.objects.prefetch_related('items__product').get(id=cart_id)
+        return Response(CartSerializer(cart, context=self.get_serializer_context()).data)
 
 
 from rest_framework.views import APIView

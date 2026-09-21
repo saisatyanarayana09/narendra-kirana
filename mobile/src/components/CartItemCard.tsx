@@ -18,20 +18,28 @@ export const CartItemCard = memo(function CartItemCard({ item, onUpdateQuantity,
   const { colors, isDark } = useTheme();
   
   const [localQty, setLocalQty] = useState(item.quantity);
+  // Track latest localQty in a ref so handlers never close over a stale value
+  const localQtyRef = React.useRef(localQty);
+
   useEffect(() => {
+    // Only sync from server if there is no pending user interaction
     setLocalQty(item.quantity);
+    localQtyRef.current = item.quantity;
   }, [item.quantity]);
 
   const handleIncrement = () => {
     triggerHaptic('medium');
-    const nextQty = localQty + 1;
+    // Use ref for always-fresh value, then update both state and ref atomically
+    const nextQty = localQtyRef.current + 1;
+    localQtyRef.current = nextQty;
     setLocalQty(nextQty);
     onUpdateQuantity(item.id, nextQty);
   };
 
   const handleDecrement = () => {
     triggerHaptic('medium');
-    const nextQty = localQty - 1;
+    const nextQty = localQtyRef.current - 1;
+    localQtyRef.current = nextQty;
     setLocalQty(nextQty);
     onUpdateQuantity(item.id, nextQty);
   };
