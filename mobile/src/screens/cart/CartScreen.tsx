@@ -255,16 +255,19 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
 
         {/* Cart Items List */}
         <View style={styles.section}>
-          {items.map((item, index) => (
-            <AnimatedFadeIn key={item.id} index={index} direction="right" distance={16} duration={250}>
-              <CartItemCard 
-                item={item} 
-                onUpdateQuantity={handleUpdateQuantity}
-                onRemove={handleRemoveItem}
-                isLoading={isLoading}
-              />
-            </AnimatedFadeIn>
-          ))}
+          {items.map((item, index) => {
+            const productId = typeof item.product === 'object' ? item.product?.id : item.product;
+            const stableKey = productId ?? item.id;
+            return (
+              <AnimatedFadeIn key={stableKey} index={index} direction="right" distance={16} duration={250}>
+                <CartItemCard 
+                  item={item} 
+                  onUpdateQuantity={handleUpdateQuantity}
+                  onRemove={handleRemoveItem}
+                />
+              </AnimatedFadeIn>
+            );
+          })}
         </View>
 
         {/* Promo Code Card */}

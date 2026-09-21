@@ -20,16 +20,33 @@ export const CartItemCard = memo(function CartItemCard({ item, onUpdateQuantity,
   const [localQty, setLocalQty] = useState(item.quantity);
   // Track latest localQty in a ref so handlers never close over a stale value
   const localQtyRef = React.useRef(localQty);
+  // Track if user is actively tapping (pending interaction not yet sent to server)
+  const interactionPendingRef = React.useRef(false);
+  const interactionTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    // Only sync from server if there is no pending user interaction
-    setLocalQty(item.quantity);
-    localQtyRef.current = item.quantity;
+    // Only sync from server if user is not actively tapping
+    // This prevents the server response from resetting mid-rapid-tap state
+    if (!interactionPendingRef.current) {
+      setLocalQty(item.quantity);
+      localQtyRef.current = item.quantity;
+    }
   }, [item.quantity]);
+
+  const markInteractionPending = () => {
+    interactionPendingRef.current = true;
+    if (interactionTimerRef.current) clearTimeout(interactionTimerRef.current);
+    // Allow server sync again after 800ms (debounce 400ms + network ~400ms buffer)
+    interactionTimerRef.current = setTimeout(() => {
+      interactionPendingRef.current = false;
+      // Sync to server value once interaction window closes
+      setLocalQty(localQtyRef.current);
+    }, 800);
+  };
 
   const handleIncrement = () => {
     triggerHaptic('medium');
-    // Use ref for always-fresh value, then update both state and ref atomically
+    markInteractionPending();
     const nextQty = localQtyRef.current + 1;
     localQtyRef.current = nextQty;
     setLocalQty(nextQty);
@@ -38,6 +55,7 @@ export const CartItemCard = memo(function CartItemCard({ item, onUpdateQuantity,
 
   const handleDecrement = () => {
     triggerHaptic('medium');
+    markInteractionPending();
     const nextQty = localQtyRef.current - 1;
     localQtyRef.current = nextQty;
     setLocalQty(nextQty);
