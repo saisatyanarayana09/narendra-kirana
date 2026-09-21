@@ -128,7 +128,7 @@ export function LoginScreen({ navigation }: Props) {
         <View style={styles.header}>
           <View style={styles.brandRow}>
             <Image 
-              source={require('../../../assets/narendra-logo.jpg')} 
+              source={require('../../../assets/narendra-logo-tight.png')} 
               style={styles.logoImage} 
               resizeMode="contain" 
             />
@@ -291,13 +291,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   logoImage: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+    width: 44,
+    height: 44,
   },
   brandTitle: {
     fontSize: 28,
-    lineHeight: 32,
+    lineHeight: 34,
     fontWeight: '900',
     letterSpacing: -0.5,
   },
