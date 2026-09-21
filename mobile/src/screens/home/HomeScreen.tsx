@@ -339,14 +339,24 @@ export function HomeScreen({ navigation }: Props) {
     extrapolate: 'clamp',
   });
   
-  // Search Bar scales down its width to 130px to prevent overlap with brand
+  // Make collapsed search bar width responsive, taking ~42% of screen up to 160px max
+  const collapsedSearchBarWidth = Math.min(width * 0.42, 160);
+
+  // Search Bar scales down its width to fit next to brand
   const searchBarWidth = scrollY.interpolate({
     inputRange: [0, 80],
-    outputRange: [width - 32, 130], 
+    outputRange: [width - 32, collapsedSearchBarWidth], 
     extrapolate: 'clamp',
   });
 
-  // Search Bar translates UP to vertically center in the collapsed header
+  // Instead of scaling, directly animate height for crisp UI (from 44 down to 36)
+  const searchBarHeight = scrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: [44, 36], 
+    extrapolate: 'clamp',
+  });
+
+  // Search Bar translates UP to perfectly align centers with brand text
   const searchBarTranslateY = scrollY.interpolate({
     inputRange: [0, 80],
     outputRange: [0, -44], 
@@ -356,14 +366,7 @@ export function HomeScreen({ navigation }: Props) {
   // Search Bar translates RIGHT to dock on the right edge
   const searchBarTranslateX = scrollY.interpolate({
     inputRange: [0, 80],
-    outputRange: [0, width - 32 - 130],
-    extrapolate: 'clamp',
-  });
-
-  // Search Bar scales down visually to fit nicely next to the brand text
-  const searchBarScale = scrollY.interpolate({
-    inputRange: [0, 80],
-    outputRange: [1, 0.85],
+    outputRange: [0, width - 32 - collapsedSearchBarWidth],
     extrapolate: 'clamp',
   });
 
@@ -717,16 +720,16 @@ export function HomeScreen({ navigation }: Props) {
             top: 48,
             left: 16,
             width: searchBarWidth,
+            height: searchBarHeight,
             transform: [
               { translateY: searchBarTranslateY },
-              { translateX: searchBarTranslateX },
-              { scale: searchBarScale }
+              { translateX: searchBarTranslateX }
             ],
             zIndex: 60,
           }}
         >
           <TouchableOpacity 
-            style={[styles.fullWidthSearchBar, { backgroundColor: colors.inputBg, borderColor: colors.border, marginHorizontal: 0, width: '100%' }]}
+            style={[styles.fullWidthSearchBar, { backgroundColor: colors.inputBg, borderColor: colors.border, marginHorizontal: 0, width: '100%', height: '100%' }]}
             activeOpacity={0.88}
             onPress={() => navigation.navigate('SearchScreen')}
           >
@@ -1077,7 +1080,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 14,
     paddingHorizontal: 14,
-    height: 44,
     borderWidth: 1,
     boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.04)',
     elevation: 1,
