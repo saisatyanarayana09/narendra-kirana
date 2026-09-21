@@ -68,9 +68,10 @@ export function LoginScreen({ navigation }: Props) {
     try {
       setIsGoogleLoading(true);
       await GoogleSignin.hasPlayServices();
-      const userInfo = await GoogleSignin.signIn();
-      if (userInfo.idToken) {
-        await loginWithGoogle(userInfo.idToken);
+      const response = await GoogleSignin.signIn();
+      const idToken = (response as any).data?.idToken || (response as any).idToken;
+      if (idToken) {
+        await loginWithGoogle(idToken);
         processRedirect();
       } else {
         throw new Error('No ID token present!');
