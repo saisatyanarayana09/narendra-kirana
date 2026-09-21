@@ -631,6 +631,16 @@ export function HomeScreen({ navigation }: Props) {
     fetchFavorites(true);
   };
 
+  const customSearches = React.useMemo(() => {
+    if (settings?.popular_searches) {
+      const parsed = settings.popular_searches.split('\n').map((s: string) => s.trim()).filter(Boolean);
+      if (parsed.length > 0) {
+        return parsed.map((s: string) => `Search '${s}'...`);
+      }
+    }
+    return SEARCH_TICKER_PLACEHOLDERS;
+  }, [settings?.popular_searches]);
+
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -682,16 +692,6 @@ export function HomeScreen({ navigation }: Props) {
       </SafeAreaView>
     );
   }
-
-  const customSearches = React.useMemo(() => {
-    if (settings?.popular_searches) {
-      const parsed = settings.popular_searches.split('\n').map((s: string) => s.trim()).filter(Boolean);
-      if (parsed.length > 0) {
-        return parsed.map((s: string) => `Search '${s}'...`);
-      }
-    }
-    return SEARCH_TICKER_PLACEHOLDERS;
-  }, [settings?.popular_searches]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
