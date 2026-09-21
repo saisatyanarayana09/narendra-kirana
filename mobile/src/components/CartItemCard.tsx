@@ -18,36 +18,53 @@ export const CartItemCard = memo(function CartItemCard({ item, onUpdateQuantity,
   const { colors, isDark } = useTheme();
   
   const [localQty, setLocalQty] = useState(item.quantity);
-  // Track latest localQty in a ref so handlers never close over a stale value
   const localQtyRef = React.useRef(localQty);
-  // Track if user is actively tapping (pending interaction not yet sent to server)
+  // Latest server-confirmed quantity — updated whenever item.quantity changes from outside
+  const serverQtyRef = React.useRef(item.quantity);
+  // Whether user is actively tapping (blocks server sync from overwriting UI)
   const interactionPendingRef = React.useRef(false);
   const interactionTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Keep serverQtyRef up to date and sync to UI when user is idle
   useEffect(() => {
-    // Only sync from server if user is not actively tapping
-    // This prevents the server response from resetting mid-rapid-tap state
+    serverQtyRef.current = item.quantity;
     if (!interactionPendingRef.current) {
-      setLocalQty(item.quantity);
       localQtyRef.current = item.quantity;
+      setLocalQty(item.quantity);
     }
   }, [item.quantity]);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (interactionTimerRef.current) clearTimeout(interactionTimerRef.current);
+    };
+  }, []);
+
+  const maxOrderQty = item.max_order_quantity ?? item.product?.max_order_quantity ?? 0;
+  const stockQty = item.stock_quantity ?? item.product?.stock_quantity ?? 999;
+  const isOutOfStock = item.is_in_stock === false || item.product?.is_in_stock === false || (stockQty !== undefined && stockQty <= 0);
+  const maxAllowed = maxOrderQty > 0 ? Math.min(stockQty, maxOrderQty) : stockQty;
+  const isMaxReached = isOutOfStock || localQty >= maxAllowed;
 
   const markInteractionPending = () => {
     interactionPendingRef.current = true;
     if (interactionTimerRef.current) clearTimeout(interactionTimerRef.current);
-    // Allow server sync again after 800ms (debounce 400ms + network ~400ms buffer)
+    // After debounce + network window, sync to actual server-confirmed value
     interactionTimerRef.current = setTimeout(() => {
       interactionPendingRef.current = false;
-      // Sync to server value once interaction window closes
-      setLocalQty(localQtyRef.current);
-    }, 800);
+      // Sync to ACTUAL server value (not local), in case server corrected qty (e.g. stock cap)
+      localQtyRef.current = serverQtyRef.current;
+      setLocalQty(serverQtyRef.current);
+    }, 900);
   };
 
   const handleIncrement = () => {
+    // Hard cap in JS to prevent web from bypassing the disabled prop on rapid taps
+    if (localQtyRef.current >= maxAllowed || isOutOfStock) return;
     triggerHaptic('medium');
     markInteractionPending();
-    const nextQty = localQtyRef.current + 1;
+    const nextQty = Math.min(localQtyRef.current + 1, maxAllowed);
     localQtyRef.current = nextQty;
     setLocalQty(nextQty);
     onUpdateQuantity(item.id, nextQty);
@@ -57,16 +74,10 @@ export const CartItemCard = memo(function CartItemCard({ item, onUpdateQuantity,
     triggerHaptic('medium');
     markInteractionPending();
     const nextQty = localQtyRef.current - 1;
-    localQtyRef.current = nextQty;
-    setLocalQty(nextQty);
-    onUpdateQuantity(item.id, nextQty);
+    localQtyRef.current = Math.max(0, nextQty);
+    setLocalQty(Math.max(0, nextQty));
+    onUpdateQuantity(item.id, nextQty); // let context handle qty <= 0 → remove
   };
-
-  const maxOrderQty = item.max_order_quantity ?? item.product?.max_order_quantity ?? 0;
-  const stockQty = item.stock_quantity ?? item.product?.stock_quantity ?? 999;
-  const isOutOfStock = item.is_in_stock === false || item.product?.is_in_stock === false || (stockQty !== undefined && stockQty <= 0);
-  const maxAllowed = maxOrderQty > 0 ? Math.min(stockQty, maxOrderQty) : stockQty;
-  const isMaxReached = isOutOfStock || localQty >= maxAllowed;
 
   const rawImage = item.product_image || item.product?.image;
   const primaryImage = getOptimizedImageUrl(rawImage, 160, 160) || fixImageUrl(rawImage);

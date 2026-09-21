@@ -389,18 +389,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     // Debounce the network request to prevent race conditions and handle ghost IDs
     const timerId = setTimeout(async () => {
-      // Do NOT delete the lock here — keep it alive through the whole network request
       let targetId = itemId;
 
       // Resolve Ghost ID (from optimistic addToCart) to Real ID
+      // If the POST /cart/items/ is still in-flight (slow network), poll up to 5x before giving up
       if (targetId < 0 && ghostItemProductId) {
-        const latestCart = cartRef.current;
-        const realItem = latestCart?.items?.find((i) => getItemProductId(i) === ghostItemProductId && i.id > 0);
-        if (realItem) {
-          targetId = realItem.id;
-        } else {
-          console.warn('[CartContext] Aborted patch: Ghost item never resolved to real ID.');
-          // Clean up the lock since we're returning early
+        let resolved = false;
+        for (let attempt = 0; attempt < 5; attempt++) {
+          const latestCart = cartRef.current;
+          const realItem = latestCart?.items?.find((i) => getItemProductId(i) === ghostItemProductId && i.id > 0);
+          if (realItem) {
+            targetId = realItem.id;
+            resolved = true;
+            break;
+          }
+          // Wait 200ms before retrying
+          await new Promise((r) => setTimeout(r, 200));
+        }
+        if (!resolved) {
+          console.warn('[CartContext] Aborted patch: Ghost item never resolved to real ID after retries.');
           if (updateQuantityLocks.current[itemId] === timerId) {
             delete updateQuantityLocks.current[itemId];
           }
