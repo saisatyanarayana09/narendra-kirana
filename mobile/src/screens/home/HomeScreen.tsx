@@ -222,10 +222,7 @@ const AnnouncementMarqueeBar = React.memo(function AnnouncementMarqueeBar({
       onPressOut={() => setIsPaused(false)}
       style={[styles.marqueeBar, { backgroundColor: bgColor }]}
     >
-      <View style={styles.marqueeIconWrap}>
-        <Feather name="volume-2" size={14} color={textColor} />
-      </View>
-      <View style={styles.marqueeContent}>
+      <View style={[styles.marqueeContent, { paddingLeft: 12 }]}>
         <Animated.View
           style={{
             transform: [{ translateX: animatedX }],
@@ -371,6 +368,18 @@ export function HomeScreen({ navigation }: Props) {
   const headerSearchOpacity = scrollY.interpolate({
     inputRange: [0, 50],
     outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+
+  const headerSearchInverseOpacity = scrollY.interpolate({
+    inputRange: [0, 50],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+
+  const micWidth = scrollY.interpolate({
+    inputRange: [0, 50],
+    outputRange: [34, 0],
     extrapolate: 'clamp',
   });
 
@@ -708,21 +717,31 @@ export function HomeScreen({ navigation }: Props) {
           >
             <View style={styles.searchInnerRow}>
               <Feather name="search" size={17} color={colors.textSecondary} style={{ marginRight: 8 }} />
-              <Animated.View style={{ opacity: headerSearchOpacity, flex: 1, overflow: 'hidden' }}>
-                <SearchTicker textColor={colors.textSecondary} />
-              </Animated.View>
+              
+              <View style={{ flex: 1, justifyContent: 'center' }}>
+                <Animated.View style={{ opacity: headerSearchOpacity, position: 'absolute', width: '100%' }}>
+                  <SearchTicker textColor={colors.textSecondary} />
+                </Animated.View>
+                
+                <Animated.View style={{ opacity: headerSearchInverseOpacity, position: 'absolute', width: '100%' }}>
+                  <Text style={[styles.searchPlaceholder, { color: colors.textSecondary }]} numberOfLines={1}>Search</Text>
+                </Animated.View>
+              </View>
             </View>
-            <TouchableOpacity 
-              style={styles.voiceMicBtn}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              onPress={(e) => {
-                e.stopPropagation();
-                triggerHaptic('medium');
-                navigation.navigate('SearchScreen', { autoStartVoice: true });
-              }}
-            >
-              <Feather name="mic" size={16} color={colors.primary} />
-            </TouchableOpacity>
+            
+            <Animated.View style={{ opacity: headerSearchOpacity, width: micWidth, overflow: 'hidden' }}>
+              <TouchableOpacity 
+                style={styles.voiceMicBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  triggerHaptic('medium');
+                  navigation.navigate('SearchScreen', { autoStartVoice: true });
+                }}
+              >
+                <Feather name="mic" size={16} color={colors.primary} />
+              </TouchableOpacity>
+            </Animated.View>
           </TouchableOpacity>
         </Animated.View>
       </View>
