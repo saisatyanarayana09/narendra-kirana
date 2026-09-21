@@ -1,5 +1,5 @@
 import React, { memo, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { Feather } from '@expo/vector-icons';
 import { fixImageUrl, getOptimizedImageUrl } from '../utils/image';
@@ -19,27 +19,14 @@ export const CartItemCard = memo(function CartItemCard({ item, onUpdateQuantity,
   
   const [localQty, setLocalQty] = useState(item.quantity);
   const localQtyRef = React.useRef(localQty);
-  // Latest server-confirmed quantity — updated whenever item.quantity changes from outside
-  const serverQtyRef = React.useRef(item.quantity);
-  // Whether user is actively tapping (blocks server sync from overwriting UI)
-  const interactionPendingRef = React.useRef(false);
-  const interactionTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Keep serverQtyRef up to date and sync to UI when user is idle
+  // CartContext serializes requests and suppresses superseded responses. That
+  // makes the cart state the single source of truth without an arbitrary
+  // timeout that can revert the stepper during a slow request.
   useEffect(() => {
-    serverQtyRef.current = item.quantity;
-    if (!interactionPendingRef.current) {
-      localQtyRef.current = item.quantity;
-      setLocalQty(item.quantity);
-    }
+    localQtyRef.current = item.quantity;
+    setLocalQty(item.quantity);
   }, [item.quantity]);
-
-  // Cleanup timers on unmount
-  useEffect(() => {
-    return () => {
-      if (interactionTimerRef.current) clearTimeout(interactionTimerRef.current);
-    };
-  }, []);
 
   const maxOrderQty = item.max_order_quantity ?? item.product?.max_order_quantity ?? 0;
   const stockQty = item.stock_quantity ?? item.product?.stock_quantity ?? 999;
@@ -47,23 +34,10 @@ export const CartItemCard = memo(function CartItemCard({ item, onUpdateQuantity,
   const maxAllowed = maxOrderQty > 0 ? Math.min(stockQty, maxOrderQty) : stockQty;
   const isMaxReached = isOutOfStock || localQty >= maxAllowed;
 
-  const markInteractionPending = () => {
-    interactionPendingRef.current = true;
-    if (interactionTimerRef.current) clearTimeout(interactionTimerRef.current);
-    // After debounce + network window, sync to actual server-confirmed value
-    interactionTimerRef.current = setTimeout(() => {
-      interactionPendingRef.current = false;
-      // Sync to ACTUAL server value (not local), in case server corrected qty (e.g. stock cap)
-      localQtyRef.current = serverQtyRef.current;
-      setLocalQty(serverQtyRef.current);
-    }, 900);
-  };
-
   const handleIncrement = () => {
     // Hard cap in JS to prevent web from bypassing the disabled prop on rapid taps
     if (localQtyRef.current >= maxAllowed || isOutOfStock) return;
     triggerHaptic('medium');
-    markInteractionPending();
     const nextQty = Math.min(localQtyRef.current + 1, maxAllowed);
     localQtyRef.current = nextQty;
     setLocalQty(nextQty);
@@ -72,7 +46,6 @@ export const CartItemCard = memo(function CartItemCard({ item, onUpdateQuantity,
 
   const handleDecrement = () => {
     triggerHaptic('medium');
-    markInteractionPending();
     const nextQty = localQtyRef.current - 1;
     localQtyRef.current = Math.max(0, nextQty);
     setLocalQty(Math.max(0, nextQty));

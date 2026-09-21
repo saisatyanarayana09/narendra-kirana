@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import api, { clearUserCache } from './services/api'
 
 const CartContext = createContext(null)
@@ -12,8 +12,36 @@ export function CartProvider({ children }) {
  const [cart, setCart] = useState(null)
  const [user, setUser] = useState(getUser)
  const [storeSettings, setStoreSettings] = useState(null)
- const [favorites, setFavorites] = useState([])
- const [notifications, setNotifications] = useState([])
+  const [favorites, setFavorites] = useState([])
+  const [notifications, setNotifications] = useState([])
+  const cartRef = useRef(cart)
+  const cartMutationQueue = useRef(Promise.resolve())
+  const cartMutationVersion = useRef(0)
+
+  useEffect(() => {
+    cartRef.current = cart
+  }, [cart])
+
+  const replaceCart = useCallback((nextCart) => {
+    cartRef.current = nextCart
+    setCart(nextCart)
+  }, [])
+
+  // Cart mutation responses contain every line item. Serialize writes and only
+  // let the newest response replace optimistic state, preventing late responses
+  // from undoing a rapid + / - sequence.
+  const enqueueCartMutation = useCallback((mutation) => {
+    const version = ++cartMutationVersion.current
+    const previous = cartMutationQueue.current
+    const next = previous.catch(() => undefined).then(() => mutation(version))
+    cartMutationQueue.current = next
+
+    void next.finally(() => {
+      if (cartMutationQueue.current === next) cartMutationQueue.current = Promise.resolve()
+    }).catch(() => undefined)
+
+    return next
+  }, [])
  
  const isCustomer = Boolean(user?.is_customer)
 
@@ -34,11 +62,12 @@ export function CartProvider({ children }) {
  }, [isCustomer]);
 
  
- const refreshCart = useCallback(async () => {
-   if (!isCustomer) return;
-   const res = await api.get('/cart/');
-   setCart(res.data);
- }, [isCustomer])
+  const refreshCart = useCallback(async () => {
+    if (!isCustomer) return;
+    const refreshVersion = cartMutationVersion.current;
+    const res = await api.get('/cart/');
+    if (refreshVersion === cartMutationVersion.current) replaceCart(res.data);
+  }, [isCustomer, replaceCart])
 
   const [notificationPermission, setNotificationPermission] = useState(() => {
     return typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'denied';
@@ -97,12 +126,12 @@ export function CartProvider({ children }) {
   }, [isCustomer])
 
   const refresh = useCallback(async () => {
-    if (!isCustomer) { setCart(null); setFavorites([]); setNotifications([]); return }
+    if (!isCustomer) { replaceCart(null); setFavorites([]); setNotifications([]); return }
     // Run them independently so one slow request doesn't block the others
     refreshCart().catch(console.error);
     refreshFavorites().catch(console.error);
     refreshNotifications().catch(console.error);
-  }, [isCustomer, refreshCart, refreshFavorites, refreshNotifications])
+  }, [isCustomer, refreshCart, refreshFavorites, refreshNotifications, replaceCart])
 
   useEffect(() => { 
      refresh();
@@ -150,38 +179,86 @@ export function CartProvider({ children }) {
       // Storage restricted or unavailable
     }
     setUser(null);
-    setCart(null);
+    replaceCart(null);
     setFavorites([]);
     setNotifications([]);
     seenNotificationIds.clear();
     hasLoadedInitialNotifications = false;
     window.location.href = '/';
-  }, []);
+  }, [replaceCart]);
 
- const add = useCallback(async (product) => {
-   await api.post('/cart/items/', { product: product.id, quantity: 1 });
-   refreshCart().catch(console.error);
- }, [refreshCart])
+  const add = useCallback(async (product) => {
+    await enqueueCartMutation(async (version) => {
+      const response = await api.post('/cart/items/', { product: product.id, quantity: 1 });
+      if (version === cartMutationVersion.current) replaceCart(response.data);
+    });
+  }, [enqueueCartMutation, replaceCart])
 
- const update = useCallback(async (item, quantity) => {
-   if (quantity < 1) await api.delete(`/cart/items/${item.id}/`);
-   else await api.patch(`/cart/items/${item.id}/`, { quantity });
-   refreshCart().catch(console.error);
- }, [refreshCart])
+  const update = useCallback(async (item, quantity) => {
+    const previousCart = cartRef.current;
+    const mutationVersion = cartMutationVersion.current + 1;
+    setCart((current) => {
+      if (!current?.items) return current;
+      const items = quantity < 1
+        ? { ...current, items: current.items.filter((cartItem) => cartItem.id !== item.id) }
+        : {
+            ...current,
+            items: current.items.map((cartItem) => (
+              cartItem.id === item.id
+                ? { ...cartItem, quantity, subtotal: (Number(cartItem.unit_price || 0) * quantity).toFixed(2) }
+              : cartItem
+            )),
+          };
+      const nextItems = items.items;
+      const itemsTotal = nextItems.reduce((total, cartItem) => total + Number(cartItem.unit_price || 0) * cartItem.quantity, 0);
+      const regularTotal = nextItems.reduce(
+        (total, cartItem) => total + Number(cartItem.regular_price || cartItem.unit_price || 0) * cartItem.quantity,
+        0,
+      );
+      const packagingFee = nextItems.length ? Number(current.packaging_fee || 0) : 0;
+      const promoDiscount = Math.min(Number(current.promo_discount || 0), itemsTotal);
+      const nextCart = {
+        ...items,
+        subtotal: regularTotal.toFixed(2),
+        items_total: itemsTotal.toFixed(2),
+        discount: Math.max(0, regularTotal - itemsTotal).toFixed(2),
+        packaging_fee: packagingFee.toFixed(2),
+        total: (Math.max(0, itemsTotal - promoDiscount) + packagingFee).toFixed(2),
+      };
+      cartRef.current = nextCart;
+      return nextCart;
+    });
+
+    try {
+      await enqueueCartMutation(async (version) => {
+        const response = quantity < 1
+          ? await api.delete(`/cart/items/${item.id}/`)
+          : await api.patch(`/cart/items/${item.id}/`, { quantity });
+        if (version === cartMutationVersion.current) replaceCart(response.data);
+      });
+    } catch (error) {
+      if (previousCart && cartMutationVersion.current === mutationVersion) replaceCart(previousCart);
+      throw error;
+    }
+  }, [enqueueCartMutation, replaceCart])
   const clearCart = useCallback(async () => {
     if (!isCustomer) return;
     try {
-      await api.post('/cart/clear/');
+      await enqueueCartMutation(async (version) => {
+        const response = await api.post('/cart/clear/');
+        if (version === cartMutationVersion.current) replaceCart(response.data);
+      });
     } catch {
       // ignore
     }
-    refreshCart().catch(console.error);
-  }, [isCustomer, refreshCart]);
+  }, [isCustomer, enqueueCartMutation, replaceCart]);
 
   const applyPromo = useCallback(async (code) => {
-    const response = await api.post('/cart/apply-promo/', { code });
-    setCart(response.data);
-  }, [])
+    await enqueueCartMutation(async (version) => {
+      const response = await api.post('/cart/apply-promo/', { code });
+      if (version === cartMutationVersion.current) replaceCart(response.data);
+    });
+  }, [enqueueCartMutation, replaceCart])
 
   const toggleFavorite = useCallback(async (productId) => {
     if (!isCustomer) return;

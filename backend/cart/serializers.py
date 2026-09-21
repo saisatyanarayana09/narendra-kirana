@@ -86,7 +86,9 @@ class CartSerializer(serializers.ModelSerializer):
 
     def get_packaging_fee(self, cart):
         if not self._items(cart): return Decimal('0.00')
-        return StoreSettings.load().packaging_fee
+        # Model defaults can be Python floats before the singleton settings row
+        # is reloaded from the database. Keep all cart arithmetic in Decimal.
+        return Decimal(str(StoreSettings.load().packaging_fee or 0))
 
     def get_total(self, cart):
         if not self._items(cart): return Decimal('0.00')

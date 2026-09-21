@@ -33,6 +33,10 @@ class CartItemCreateView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         product = serializer.validated_data['product']
         cart = customer_cart(request.user)
+        # All write endpoints take this cart-level lock. They return the entire
+        # cart, so serializing writes prevents a concurrent response from being
+        # built with only part of the customer's latest changes.
+        cart = Cart.objects.select_for_update().get(id=cart.id)
         
         item = CartItem.objects.select_for_update().filter(cart=cart, product=product).first()
         current_qty = item.quantity if item else 0
@@ -69,6 +73,8 @@ class CartItemDetailView(generics.RetrieveUpdateDestroyAPIView):
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         item = self.get_object()
+        Cart.objects.select_for_update().get(id=item.cart_id)
+        item = CartItem.objects.select_for_update().select_related('product').get(id=item.id)
         serializer = self.get_serializer(item, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         new_qty = serializer.validated_data.get('quantity', item.quantity)
@@ -93,9 +99,12 @@ class CartItemDetailView(generics.RetrieveUpdateDestroyAPIView):
         # Validation is already done in update(); just save here
         serializer.save()
 
+    @transaction.atomic
     def destroy(self, request, *args, **kwargs):
         item = self.get_object()
         cart_id = item.cart_id
+        Cart.objects.select_for_update().get(id=cart_id)
+        item = CartItem.objects.select_for_update().get(id=item.id)
         item.delete()
         # Return the full cart after deletion too
         cart = Cart.objects.prefetch_related('items__product').get(id=cart_id)
@@ -113,6 +122,7 @@ class ApplyPromoView(APIView):
     def post(self, request, *args, **kwargs):
         code = request.data.get('code', '').strip()
         cart = customer_cart(request.user)
+        cart = Cart.objects.select_for_update().get(id=cart.id)
         
         if not code:
             cart.promo_code = None
@@ -162,6 +172,7 @@ class CartClearView(APIView):
     @transaction.atomic
     def post(self, request, *args, **kwargs):
         cart = customer_cart(request.user)
+        cart = Cart.objects.select_for_update().get(id=cart.id)
         cart.items.all().delete()
         cart.promo_code = None
         cart.save(update_fields=['promo_code'])
@@ -179,6 +190,7 @@ class CartMergeView(APIView):
             return Response({'detail': 'Items must be a list.'}, status=status.HTTP_400_BAD_REQUEST)
 
         cart = customer_cart(request.user)
+        cart = Cart.objects.select_for_update().get(id=cart.id)
 
         for item in items:
             if not isinstance(item, dict):

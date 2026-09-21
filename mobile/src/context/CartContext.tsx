@@ -71,6 +71,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const storeSettingsRef = React.useRef<any>(storeSettings);
   const addToCartLocks = React.useRef<Record<number, Promise<void>>>({});
   const updateQuantityLocks = React.useRef<Record<number, ReturnType<typeof setTimeout>>>({});
+  // Cart endpoints return the entire cart. Serialize writes so an older full-cart
+  // response can never overwrite a newer quantity change for another item.
+  const cartMutationQueue = React.useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => {
     cartRef.current = cart;
@@ -79,6 +82,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     storeSettingsRef.current = storeSettings;
   }, [storeSettings]);
+
+  const enqueueCartMutation = useCallback((mutation: () => Promise<void>): Promise<void> => {
+    const previous = cartMutationQueue.current;
+    const next = previous.catch(() => undefined).then(mutation);
+    cartMutationQueue.current = next;
+
+    void next.finally(() => {
+      if (cartMutationQueue.current === next) {
+        cartMutationQueue.current = Promise.resolve();
+      }
+    }).catch(() => undefined);
+
+    return next;
+  }, []);
 
   const calculateGuestTotals = (items: CartItem[], packagingFeeStr: string = '0'): CartData => {
     let regularTotalNum = 0;
@@ -214,6 +231,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (!isSilent) setIsLoading(true);
       const res = await apiClient.get('/cart/');
       if (res?.data) {
+        cartRef.current = res.data;
         setCart(res.data);
       }
     } catch (error: any) {
@@ -239,20 +257,31 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [user?.id]);
 
   const removeFromCart = useCallback(async (itemId: number) => {
+    // A zero quantity is a delete. Cancel a not-yet-started PATCH and make any
+    // PATCH already in flight finish before the DELETE is sent. Otherwise a
+    // delayed PATCH can 404 after deletion and restore stale optimistic state.
+    if (updateQuantityLocks.current[itemId]) {
+      clearTimeout(updateQuantityLocks.current[itemId]);
+      delete updateQuantityLocks.current[itemId];
+    }
+
     const prevCart = cartRef.current;
     if (!user) {
       try {
-        const currentCart = (await loadGuestCart()) || cartRef.current;
-        if (!currentCart) return;
+        await enqueueCartMutation(async () => {
+          const currentCart = cartRef.current || await loadGuestCart();
+          if (!currentCart) return;
 
-        const updatedItems = currentCart.items.filter(
-          (item) => item.id !== itemId && getItemProductId(item) !== itemId
-        );
+          const updatedItems = currentCart.items.filter(
+            (item) => item.id !== itemId && getItemProductId(item) !== itemId
+          );
 
-        const packagingFee = storeSettingsRef.current?.packaging_fee || '0';
-        const newCartData = calculateGuestTotals(updatedItems, packagingFee);
-        await setGuestStorageItem(GUEST_CART_KEY, JSON.stringify(newCartData));
-        setCart(newCartData);
+          const packagingFee = storeSettingsRef.current?.packaging_fee || '0';
+          const newCartData = calculateGuestTotals(updatedItems, packagingFee);
+          await setGuestStorageItem(GUEST_CART_KEY, JSON.stringify(newCartData));
+          cartRef.current = newCartData;
+          setCart(newCartData);
+        });
       } catch (error) {
         console.error('Failed to remove from guest cart:', error);
         throw error;
@@ -278,7 +307,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const safePromo = newOfferSubtotal >= promo ? promo : 0;
       const newTotal = Math.max(0, newOfferSubtotal - safePromo) + packaging;
 
-      return {
+      const nextCart = {
         ...current,
         items: updatedItems,
         subtotal: newRegularSubtotal > 0 ? newRegularSubtotal.toFixed(2) : newOfferSubtotal.toFixed(2),
@@ -286,17 +315,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
         discount: Math.max(0, newRegularSubtotal - newOfferSubtotal).toFixed(2),
         total: newTotal.toFixed(2),
       };
+      cartRef.current = nextCart;
+      return nextCart;
     });
 
     try {
-      await apiClient.delete(`/cart/items/${itemId}/`);
-      await refreshCart(true);
+      await enqueueCartMutation(async () => {
+        const res = await apiClient.delete(`/cart/items/${itemId}/`);
+        if (res?.data?.items) {
+          cartRef.current = res.data;
+          setCart(res.data);
+        } else {
+          await refreshCart(true);
+        }
+      });
     } catch (error) {
       if (prevCart) setCart(prevCart);
       console.error('Failed to remove from cart:', error);
       throw error;
     }
-  }, [user, refreshCart]);
+  }, [user, refreshCart, enqueueCartMutation]);
 
   const updateQuantity = useCallback(async (itemId: number, quantity: number) => {
     if (quantity <= 0) {
@@ -311,27 +349,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     if (!user) {
       try {
-        const activeGuestCart = (await loadGuestCart()) || cartRef.current;
-        if (!activeGuestCart) return;
+        await enqueueCartMutation(async () => {
+          const activeGuestCart = cartRef.current || await loadGuestCart();
+          if (!activeGuestCart) return;
 
-        const updatedItems = activeGuestCart.items.map((item) => {
-          if (item.id === itemId || getItemProductId(item) === itemId) {
-            const stockLimit = item.stock_quantity ?? item.product?.stock_quantity ?? 999;
-            const maxOrderLimit = item.max_order_quantity ?? item.product?.max_order_quantity ?? 0;
-            const cap = maxOrderLimit > 0 ? Math.min(stockLimit, maxOrderLimit) : stockLimit;
-            const safeQty = Math.min(quantity, cap);
-            return {
-              ...item,
-              quantity: safeQty,
-            };
-          }
-          return item;
+          const updatedItems = activeGuestCart.items.map((item) => {
+            if (item.id === itemId || getItemProductId(item) === itemId) {
+              const stockLimit = item.stock_quantity ?? item.product?.stock_quantity ?? 999;
+              const maxOrderLimit = item.max_order_quantity ?? item.product?.max_order_quantity ?? 0;
+              const cap = maxOrderLimit > 0 ? Math.min(stockLimit, maxOrderLimit) : stockLimit;
+              const safeQty = Math.min(quantity, cap);
+              return {
+                ...item,
+                quantity: safeQty,
+              };
+            }
+            return item;
+          });
+
+          const packagingFee = storeSettingsRef.current?.packaging_fee || '0';
+          const newCartData = calculateGuestTotals(updatedItems, packagingFee);
+          await setGuestStorageItem(GUEST_CART_KEY, JSON.stringify(newCartData));
+          cartRef.current = newCartData;
+          setCart(newCartData);
         });
-
-        const packagingFee = storeSettingsRef.current?.packaging_fee || '0';
-        const newCartData = calculateGuestTotals(updatedItems, packagingFee);
-        await setGuestStorageItem(GUEST_CART_KEY, JSON.stringify(newCartData));
-        setCart(newCartData);
       } catch (error) {
         console.error('Failed to update guest cart quantity:', error);
         throw error;
@@ -372,7 +413,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const safePromo = newOfferSubtotal >= promo ? promo : 0;
       const newTotal = Math.max(0, newOfferSubtotal - safePromo) + (newOfferSubtotal > 0 ? packaging : 0);
 
-      return {
+      const nextCart = {
         ...current,
         items: updatedItems,
         subtotal: newRegularSubtotal > 0 ? newRegularSubtotal.toFixed(2) : newOfferSubtotal.toFixed(2),
@@ -380,6 +421,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         discount: Math.max(0, newRegularSubtotal - newOfferSubtotal).toFixed(2),
         total: newTotal.toFixed(2),
       };
+      cartRef.current = nextCart;
+      return nextCart;
     });
 
     // Clear existing debounce timer
@@ -415,32 +458,39 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      try {
-        const res = await apiClient.patch(`/cart/items/${targetId}/`, { quantity });
-        // Only sync if THIS is still the latest timer for this item (no newer tap came in)
-        if (updateQuantityLocks.current[itemId] === timerId) {
-          if (res?.data && res.data.items) {
-            setCart(res.data);
-          } else {
-            await refreshCart(true);
+      await enqueueCartMutation(async () => {
+        // The timer may have been superseded while an earlier request was in flight.
+        if (updateQuantityLocks.current[itemId] !== timerId) return;
+
+        try {
+          const res = await apiClient.patch(`/cart/items/${targetId}/`, { quantity });
+          // Only sync if THIS is still the latest timer for this item (no newer tap came in)
+          if (updateQuantityLocks.current[itemId] === timerId) {
+            if (res?.data && res.data.items) {
+              cartRef.current = res.data;
+              setCart(res.data);
+            } else {
+              await refreshCart(true);
+            }
+          }
+        } catch (error: any) {
+          // Only rollback if this is the latest pending update (don't stomp a newer tap)
+          if (updateQuantityLocks.current[itemId] === timerId && prevCart) {
+            cartRef.current = prevCart;
+            setCart(prevCart);
+          }
+          console.error('Failed to update quantity:', error);
+        } finally {
+          // Clean up lock only after the full network round-trip
+          if (updateQuantityLocks.current[itemId] === timerId) {
+            delete updateQuantityLocks.current[itemId];
           }
         }
-      } catch (error: any) {
-        // Only rollback if this is the latest pending update (don't stomp a newer tap)
-        if (updateQuantityLocks.current[itemId] === timerId && prevCart) {
-          setCart(prevCart);
-        }
-        console.error('Failed to update quantity:', error);
-      } finally {
-        // Clean up lock only after the full network round-trip
-        if (updateQuantityLocks.current[itemId] === timerId) {
-          delete updateQuantityLocks.current[itemId];
-        }
-      }
+      });
     }, 400);
     
     updateQuantityLocks.current[itemId] = timerId;
-  }, [user, removeFromCart, refreshCart]);
+  }, [user, removeFromCart, refreshCart, enqueueCartMutation]);
 
   const addToCart = useCallback(async (productId: number, quantity: number = 1, productDetails?: any) => {
     // Queue lock: ensure sequential processing per product to prevent ghost item race conditions
@@ -513,6 +563,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           const packagingFee = storeSettingsRef.current?.packaging_fee || '0';
           const newCartData = calculateGuestTotals(updatedItems, packagingFee);
           await setGuestStorageItem(GUEST_CART_KEY, JSON.stringify(newCartData));
+          cartRef.current = newCartData;
           setCart(newCartData);
           setLastItemAddedTimestamp(Date.now());
         } catch (error) {
@@ -572,7 +623,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const promo = parseFloat(current?.promo_discount || '0');
         const safePromo = newOfferSubtotal >= promo ? promo : 0;
         const newTotal = Math.max(0, newOfferSubtotal - safePromo) + (newOfferSubtotal > 0 ? packaging : 0);
-        return {
+        const nextCart = {
           ...current!,
           items,
           subtotal: newRegularSubtotal > 0 ? newRegularSubtotal.toFixed(2) : newOfferSubtotal.toFixed(2),
@@ -580,16 +631,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
           discount: Math.max(0, newRegularSubtotal - newOfferSubtotal).toFixed(2),
           total: newTotal.toFixed(2),
         };
+        cartRef.current = nextCart;
+        return nextCart;
       });
       setLastItemAddedTimestamp(Date.now());
 
       try {
-        const res = await apiClient.post('/cart/items/', { product: productId, quantity });
-        if (res?.data && res.data.items) {
-          setCart(res.data);
-        } else {
-          await refreshCart(true);
-        }
+        await enqueueCartMutation(async () => {
+          const res = await apiClient.post('/cart/items/', { product: productId, quantity });
+          if (res?.data && res.data.items) {
+            cartRef.current = res.data;
+            setCart(res.data);
+          } else {
+            await refreshCart(true);
+          }
+        });
       } catch (error) {
         if (prevCart) setCart(prevCart);
         console.error('Failed to add to cart:', error);
@@ -602,7 +658,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         delete addToCartLocks.current[productId];
       }
     }
-  }, [user, updateQuantity, refreshCart]);
+  }, [user, updateQuantity, refreshCart, enqueueCartMutation]);
 
   const clearCart = useCallback(async () => {
     if (!user) {
