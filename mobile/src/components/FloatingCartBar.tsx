@@ -87,6 +87,8 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
   }, [onClose, slideAnim, opacityAnim]);
 
   // Smooth bounce animation and haptic feedback when itemCount increments (without dismissing)
+  const autoDismissTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     if (itemCount > 0) {
       if (prevItemCountRef.current === 0) {
@@ -140,9 +142,37 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
           ]),
         ]).start();
       }
+
+      // Auto-dismiss after 4 seconds of inactivity
+      if (autoDismissTimerRef.current) {
+        clearTimeout(autoDismissTimerRef.current);
+      }
+      autoDismissTimerRef.current = setTimeout(() => {
+        Animated.parallel([
+          Animated.timing(slideAnim, {
+            toValue: 80,
+            duration: 250,
+            useNativeDriver: USE_NATIVE_DRIVER,
+          }),
+          Animated.timing(opacityAnim, {
+            toValue: 0,
+            duration: 250,
+            useNativeDriver: USE_NATIVE_DRIVER,
+          }),
+        ]).start(() => {
+          onClose();
+        });
+      }, 4000);
+
     }
     prevItemCountRef.current = itemCount;
-  }, [itemCount, slideAnim, opacityAnim, bounceAnim, badgeScaleAnim]);
+
+    return () => {
+      if (autoDismissTimerRef.current) {
+        clearTimeout(autoDismissTimerRef.current);
+      }
+    };
+  }, [itemCount, slideAnim, opacityAnim, bounceAnim, badgeScaleAnim, onClose]);
 
   // Animate slim Free Delivery progress line indicator
   useEffect(() => {
