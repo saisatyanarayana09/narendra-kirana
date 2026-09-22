@@ -229,11 +229,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     try {
       if (!isSilent) setIsLoading(true);
-      const res = await apiClient.get('/cart/');
-      if (res?.data) {
-        cartRef.current = res.data;
-        setCart(res.data);
-      }
+      await enqueueCartMutation(async () => {
+        const res = await apiClient.get('/cart/');
+        if (res?.data) {
+          cartRef.current = res.data;
+          setCart(res.data);
+        }
+      });
     } catch (error: any) {
       const status = error?.response?.status;
       if (status !== 403 && status !== 401) {
@@ -254,7 +256,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } finally {
       if (!isSilent) setIsLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, enqueueCartMutation]);
 
   const removeFromCart = useCallback(async (itemId: number) => {
     // A zero quantity is a delete. Cancel a not-yet-started PATCH and make any
@@ -290,6 +292,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
 
     // Optimistic removal
+    const itemToRemove = cartRef.current?.items?.find((i) => i.id === itemId);
+    const ghostItemProductId = itemToRemove ? getItemProductId(itemToRemove) : null;
+    
     setCart((current) => {
       if (!current?.items) return current;
       const updatedItems = current.items.filter((item) => item.id !== itemId);
@@ -321,7 +326,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     try {
       await enqueueCartMutation(async () => {
-        const res = await apiClient.delete(`/cart/items/${itemId}/`);
+        let targetId = itemId;
+        if (targetId < 0 && ghostItemProductId) {
+          // If the item was a ghost item, we must fetch the cart from the backend 
+          // because the POST may have just finished and we need the real ID to delete it.
+          // Or we can poll the backend cart. Let's just fetch the backend cart once, 
+          // because if enqueueCartMutation ran sequentially, the POST is completely finished on the backend.
+          const freshCartRes = await apiClient.get('/cart/');
+          const realItem = freshCartRes.data?.items?.find((i: any) => getItemProductId(i) === ghostItemProductId);
+          if (realItem) {
+            targetId = realItem.id;
+          } else {
+            // The item isn't on the backend anyway, maybe the POST failed. We can just abort the DELETE.
+            await refreshCart(true);
+            return;
+          }
+        }
+        
+        const res = await apiClient.delete(`/cart/items/${targetId}/`);
         if (res?.data?.items) {
           cartRef.current = res.data;
           setCart(res.data);
@@ -678,7 +700,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     try {
       setIsLoading(true);
-      await apiClient.post('/cart/clear/').catch(() => null);
+      await apiClient.post('/cart/clear/');
       await refreshCart();
     } catch (error) {
       console.error('Failed to clear cart:', error);
@@ -709,6 +731,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       await refreshCart();
     } catch (error) {
       console.error('Failed to remove promo:', error);
+      throw error;
     } finally {
       setIsLoading(false);
     }

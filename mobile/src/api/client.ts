@@ -95,15 +95,16 @@ apiClient.interceptors.response.use(
 
       const originalRequest = error?.config as CustomRequestConfig | undefined;
 
-      // Automatic retry for idempotent or cold-start waking up requests (max 2 retries)
+      // Automatic retry for idempotent or cold-start waking up requests (max 4 retries)
       if (originalRequest && (isTimeout || isNetworkError)) {
         const method = (originalRequest.method || 'get').toLowerCase();
         const isSafeMethod = ['get', 'head', 'options'].includes(method);
-        const maxRetries = 2;
+        const maxRetries = 4; // Up to 4 retries to accommodate 50s Render cold starts
 
         originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
         if (isSafeMethod && originalRequest._retryCount <= maxRetries) {
-          const delayMs = originalRequest._retryCount * 1500;
+          // Exponential backoff: 2s, 4s, 8s, 16s
+          const delayMs = Math.pow(2, originalRequest._retryCount) * 1000;
           console.log(
             `[ApiClient] Backend waking up or transient network hiccup. Retrying ${originalRequest.url} (attempt ${originalRequest._retryCount}/${maxRetries}) in ${delayMs}ms...`
           );

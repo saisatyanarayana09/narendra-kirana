@@ -101,7 +101,7 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
             style={styles.backButton} 
             onPress={() => {
               if (navigation.canGoBack()) {
-                navigation.goBack();
+                if(navigation.canGoBack()) { navigation.goBack(); } else { navigation.navigate('Main'); }
               } else {
                 navigation.navigate('HomeTab');
               }
@@ -145,7 +145,7 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             onPress={() => {
               if (navigation.canGoBack()) {
-                navigation.goBack();
+                if(navigation.canGoBack()) { navigation.goBack(); } else { navigation.navigate('Main'); }
               } else {
                 navigation.navigate('HomeTab');
               }
@@ -172,7 +172,7 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             onPress={() => {
               if (navigation.canGoBack()) {
-                navigation.goBack();
+                if(navigation.canGoBack()) { navigation.goBack(); } else { navigation.navigate('Main'); }
               } else {
                 navigation.navigate('HomeTab');
               }
@@ -216,7 +216,7 @@ export function FavoritesScreen({ navigation }: { navigation: AppNavigationProp 
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           onPress={() => {
             if (navigation.canGoBack()) {
-              navigation.goBack();
+              if(navigation.canGoBack()) { navigation.goBack(); } else { navigation.navigate('Main'); }
             } else {
               navigation.navigate('HomeTab');
             }

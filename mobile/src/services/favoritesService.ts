@@ -86,7 +86,7 @@ class FavoritesService {
 
     this.fetchPromise = (async () => {
       try {
-        const res = await apiClient.get('/favorites/').catch(() => ({ data: [] }));
+        const res = await apiClient.get('/favorites/');
         const rawItems: FavoriteItem[] = Array.isArray(res.data) ? res.data : (res.data?.results || []);
 
         const ids = new Set<number>();

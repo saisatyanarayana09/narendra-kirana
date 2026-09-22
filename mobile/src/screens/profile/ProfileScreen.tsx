@@ -263,7 +263,7 @@ export function ProfileScreen({ navigation }: { navigation: AppNavigationProp })
             onPress={() => {
               triggerHaptic('light');
               if (navigation.canGoBack()) {
-                navigation.goBack();
+                if(navigation.canGoBack()) { navigation.goBack(); } else { navigation.navigate('Main'); }
               } else {
                 navigation.navigate('HomeTab');
               }

@@ -137,7 +137,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
           <TouchableOpacity 
             style={styles.backButton}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            onPress={() => navigation.goBack()}
+            onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')}
             activeOpacity={0.7}
           >
             <Feather name="arrow-left" size={18} color={colors.primary} />
@@ -172,7 +172,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
         <TouchableOpacity 
           style={styles.backButton}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          onPress={() => navigation.goBack()}
+          onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')}
           activeOpacity={0.7}
         >
           <Feather name="arrow-left" size={18} color={colors.primary} />

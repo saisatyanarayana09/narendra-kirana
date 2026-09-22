@@ -69,18 +69,28 @@ export function SignupScreen({ navigation }: Props) {
     }
 
     setCheckingReferral(true);
+    const abortController = new AbortController();
+    
     const timer = setTimeout(async () => {
       try {
-        const res = await apiClient.get(`/auth/referral-lookup/?code=${encodeURIComponent(code)}`);
+        const res = await apiClient.get(`/auth/referral-lookup/?code=${encodeURIComponent(code)}`, {
+          signal: abortController.signal
+        });
         setReferralInfo({ isValid: true, name: res.data.referrer_name || res.data.name });
       } catch (err: any) {
+        if (err.name === 'CanceledError' || err.message === 'canceled') return;
         setReferralInfo({ isValid: false, error: err.response?.data?.error || 'Invalid referral code.' });
       } finally {
-        setCheckingReferral(false);
+        if (!abortController.signal.aborted) {
+          setCheckingReferral(false);
+        }
       }
     }, 500);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      abortController.abort();
+    };
   }, [form.referral_code]);
 
   const handleSignup = async () => {
@@ -202,7 +212,7 @@ export function SignupScreen({ navigation }: Props) {
           <View style={styles.headerBar}>
             <TouchableOpacity 
               style={styles.backButton} 
-              onPress={() => navigation.goBack()}
+              onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Login')}
               activeOpacity={0.7}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >

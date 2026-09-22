@@ -225,9 +225,9 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     loadLanguage();
   }, []);
 
-  const setLanguage = useCallback((lang: Language) => {
+  const setLanguage = useCallback(async (lang: Language) => {
     setLanguageState(lang);
-    saveItem(STORAGE_LANG_KEY, lang);
+    await saveItem(STORAGE_LANG_KEY, lang);
   }, []);
 
   const t = useCallback((key: string): string => {

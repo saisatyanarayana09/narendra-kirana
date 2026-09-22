@@ -119,7 +119,7 @@ export function LoginScreen({ navigation }: Props) {
         <TouchableOpacity 
           style={styles.backButton} 
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          onPress={() => navigation.canGoBack() ? navigation.goBack() : null}
+          onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Login')}
           activeOpacity={0.7}
         >
           <Feather name="arrow-left" color={colors.primary} size={18} />

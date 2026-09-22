@@ -86,9 +86,9 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     loadPreferences();
   }, []);
 
-  const toggleThemeMode = useCallback((mode: ThemeMode) => {
+  const toggleThemeMode = useCallback(async (mode: ThemeMode) => {
     setThemeModeState(mode);
-    saveItem(STORAGE_THEME_KEY, mode);
+    await saveItem(STORAGE_THEME_KEY, mode);
   }, []);
 
   const isDark = themeMode === 'system' ? systemColorScheme === 'dark' : themeMode === 'dark';

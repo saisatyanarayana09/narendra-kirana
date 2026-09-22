@@ -137,7 +137,7 @@ const BannerCarouselSection = React.memo(function BannerCarouselSection({ banner
         decelerationRate="fast"
         getItemLayout={getBannerItemLayout}
         contentContainerStyle={styles.bannersList}
-        keyExtractor={(item: any, index) => String(item?.id ?? index)}
+        keyExtractor={(item: any, index) => String(item?.id || item?.uuid || item?.uid || index)}
         onScrollBeginDrag={() => clearInterval(carouselTimerRef.current)}
         onScrollEndDrag={() => isFocused && startCarouselTimer()}
         onScrollToIndexFailed={(info) => {
@@ -564,6 +564,9 @@ export function HomeScreen({ navigation }: Props) {
         setFavoriteMap({ ...favoritesService.getFavoriteMap() });
       });
       return unsubscribe;
+    } else {
+      setFavoriteIds(new Set());
+      setFavoriteMap({});
     }
   }, [user, fetchFavorites]);
 
@@ -891,7 +894,7 @@ export function HomeScreen({ navigation }: Props) {
                   style={styles.seeAllBtn}
                   onPress={() => {
                     const cleanTitle = stripEmojis(section.title);
-                    const categoryId = section.category_id || section.category;
+                    const categoryId = section.category_id || section.category?.id || section.category;
                     if (categoryId) {
                       navigation.navigate('CategoriesTab', { 
                         screen: 'ProductListScreen', 

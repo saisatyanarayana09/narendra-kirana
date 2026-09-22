@@ -524,7 +524,7 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
           <TouchableOpacity 
             style={[styles.backToOrderBtn, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]} 
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            onPress={() => navigation.goBack()}
+            onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')}
             activeOpacity={0.7}
           >
             <Feather name="arrow-left" size={15} color="#334155" />
@@ -560,7 +560,7 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
           <TouchableOpacity 
             style={[styles.backToOrderBtn, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]} 
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            onPress={() => navigation.goBack()}
+            onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')}
             activeOpacity={0.7}
           >
             <Feather name="arrow-left" size={15} color="#334155" />
@@ -593,7 +593,7 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
           <TouchableOpacity 
             style={[styles.backToOrderBtn, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]} 
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            onPress={() => navigation.goBack()}
+            onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')}
             activeOpacity={0.7}
           >
             <Feather name="arrow-left" size={15} color="#334155" />
@@ -616,7 +616,7 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
         <TouchableOpacity 
           style={[styles.backToOrderBtn, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]} 
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          onPress={() => navigation.goBack()}
+          onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')}
           activeOpacity={0.7}
         >
           <Feather name="arrow-left" size={15} color="#334155" />

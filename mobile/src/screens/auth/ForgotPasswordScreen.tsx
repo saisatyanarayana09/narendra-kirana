@@ -12,6 +12,7 @@ import {
   ScrollView,
   Linking 
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { apiClient } from '../../api/client';
@@ -90,10 +91,11 @@ export function ForgotPasswordScreen({ navigation }: Props) {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={[styles.container, { backgroundColor: colors.background }]} 
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <KeyboardAvoidingView 
+        style={[styles.container, { backgroundColor: colors.background }]} 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
       <ScrollView 
         showsVerticalScrollIndicator={false} 
         keyboardShouldPersistTaps="handled"
@@ -288,6 +290,7 @@ export function ForgotPasswordScreen({ navigation }: Props) {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 

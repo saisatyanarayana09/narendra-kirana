@@ -172,7 +172,9 @@ export function MapLocationPicker({
         setCoords({ lat: newLat, lng: newLng });
         reverseGeocode(newLat, newLng);
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Map cleanup or animation error:', e);
+    }
   };
 
   const handleConfirm = () => {

@@ -72,7 +72,7 @@ export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) 
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')}>
             <Feather name="arrow-left" size={18} color={colors.primary} />
             <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
           </TouchableOpacity>
@@ -106,7 +106,7 @@ export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) 
           <TouchableOpacity 
             style={styles.backButton} 
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            onPress={() => navigation.goBack()}
+            onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')}
           >
             <Feather name="arrow-left" size={18} color={colors.primary} />
             <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
@@ -127,7 +127,7 @@ export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) 
         <TouchableOpacity 
           style={styles.backButton} 
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          onPress={() => navigation.goBack()}
+          onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')}
           activeOpacity={0.7}
         >
           <Feather name="arrow-left" size={18} color={colors.primary} />
@@ -138,7 +138,7 @@ export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) 
 
       <FlatList
         data={wallet?.transactions || []}
-        keyExtractor={(item, index) => String(item?.id ?? index)}
+        keyExtractor={(item, index) => String(item?.id || item?.uuid || item?.uid || index)}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         refreshControl={

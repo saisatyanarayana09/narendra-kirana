@@ -57,7 +57,9 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
           setIsFavorite(true);
           setFavoriteId(favoritesService.getFavoriteId(productId) || null);
         }
-      } catch (error) {}
+      } catch (error) {
+        console.warn('Failed to post recent view:', error);
+      }
     }
   }, [user, productId]);
 
@@ -178,7 +180,7 @@ export function ProductDetailScreen({ navigation, route }: { navigation: AppNavi
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           onPress={() => {
             if (navigation.canGoBack()) {
-              navigation.goBack();
+              if(navigation.canGoBack()) { navigation.goBack(); } else { navigation.navigate('Main'); }
             } else {
               navigation.navigate('HomeTab');
             }

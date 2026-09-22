@@ -164,7 +164,7 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
 
   const handleBack = () => {
     if (navigation.canGoBack()) {
-      navigation.goBack();
+      if(navigation.canGoBack()) { navigation.goBack(); } else { navigation.navigate('Main'); }
     } else {
       navigation.navigate('HomeTab');
     }
@@ -312,7 +312,7 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
       ) : (
         <FlatList
           data={orders}
-          keyExtractor={(item, index) => String(item?.id ?? index)}
+          keyExtractor={(item, index) => String(item?.id || item?.uuid || item?.uid || index)}
           contentContainerStyle={styles.listContainer}
           initialNumToRender={6}
           maxToRenderPerBatch={6}

@@ -165,7 +165,7 @@ export function AppSettingsScreen({ navigation }: { navigation: AppNavigationPro
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           onPress={() => {
             triggerHaptic('light');
-            navigation.goBack();
+            if(navigation.canGoBack()) { navigation.goBack(); } else { navigation.navigate('Main'); }
           }}
           activeOpacity={0.7}
         >

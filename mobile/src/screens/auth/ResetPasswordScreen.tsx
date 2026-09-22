@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   ScrollView 
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { apiClient } from '../../api/client';
 import { useTheme } from '../../context/ThemeContext';
@@ -207,10 +208,11 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={[styles.container, { backgroundColor: colors.background }]} 
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <KeyboardAvoidingView 
+        style={[styles.container, { backgroundColor: colors.background }]} 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
       <ScrollView 
         showsVerticalScrollIndicator={false} 
         keyboardShouldPersistTaps="handled"
@@ -555,6 +557,7 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 

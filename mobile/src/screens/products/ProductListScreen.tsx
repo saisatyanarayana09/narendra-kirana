@@ -66,6 +66,15 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
   const [selectedCategory, setSelectedCategory] = useState<number | null>(initialCategoryId);
   const [searchQuery, setSearchQuery] = useState<string>(initialSearch);
   const [sortOption, setSortOption] = useState<SortOption>('default');
+
+  useEffect(() => {
+    if (route.params?.categoryId !== undefined) {
+      setSelectedCategory(route.params.categoryId);
+    }
+    if (route.params?.search !== undefined) {
+      setSearchQuery(route.params.search);
+    }
+  }, [route.params?.categoryId, route.params?.search]);
   
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -139,6 +148,9 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
         setFavoriteMap({ ...favoritesService.getFavoriteMap() });
       });
       return unsubscribe;
+    } else {
+      setFavoriteIds(new Set());
+      setFavoriteMap({});
     }
   }, [user, fetchFavorites]);
 
@@ -386,7 +398,7 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           onPress={() => {
             if (navigation.canGoBack()) {
-              navigation.goBack();
+              if(navigation.canGoBack()) { navigation.goBack(); } else { navigation.navigate('Main'); }
             } else {
               navigation.navigate('HomeTab');
             }
@@ -457,7 +469,7 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
       ) : (
         <FlatList
           data={sortedProducts}
-          keyExtractor={(item, index) => String(item?.id ?? index)}
+          keyExtractor={(item, index) => String(item?.id || item?.uuid || item?.uid || index)}
           numColumns={2}
           ListHeaderComponent={listHeaderElement}
           getItemLayout={getItemLayout}

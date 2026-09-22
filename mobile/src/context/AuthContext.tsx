@@ -144,7 +144,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       const refreshToken = await getItem(STORAGE_KEYS.REFRESH);
       if (refreshToken) {
-        apiClient.post('/auth/logout/', { refresh: refreshToken }).catch(() => {});
+        await apiClient.post('/auth/logout/', { refresh: refreshToken }).catch((err) => {
+          console.warn('[AuthContext] Backend logout failed:', err.message);
+        });
       }
 
       // 2. Sign out of Google silently (only on Native platforms)
@@ -162,8 +164,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await deleteItem(STORAGE_KEYS.USER);
       resetWelcomeSession();
       favoritesService.clear();
-      clearCachedOrders().catch(() => {});
-      clearUserProfileCache().catch(() => {});
+      await clearCachedOrders().catch((e) => console.warn('Failed to clear orders cache', e));
+      await clearUserProfileCache().catch((e) => console.warn('Failed to clear profile cache', e));
       setUser(null);
     } catch (error) {
       console.error('Error during logout:', error);

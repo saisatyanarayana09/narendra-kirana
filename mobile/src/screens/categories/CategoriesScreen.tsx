@@ -132,7 +132,7 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           onPress={() => {
             if (navigation.canGoBack()) {
-              navigation.goBack();
+              if(navigation.canGoBack()) { navigation.goBack(); } else { navigation.navigate('Main'); }
             } else {
               navigation.navigate('HomeTab');
             }
@@ -147,7 +147,7 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
       
       <FlatList
         data={categories}
-        keyExtractor={(item, index) => String(item?.id ?? index)}
+        keyExtractor={(item, index) => String(item?.id || item?.uuid || item?.uid || index)}
         numColumns={3}
         refreshing={refreshing}
         onRefresh={() => fetchCategories(true)}

@@ -311,10 +311,7 @@ export function RootNavigator() {
             },
           });
         } else {
-          (navigationRef as any).navigate('Main', {
-            screen: target.screen,
-            params: target.params,
-          });
+          (navigationRef as any).navigate(target.screen, target.params);
         }
       } else {
         setPendingRedirect({ screen: target.screen, tab: target.tab, params: target.params });
@@ -371,17 +368,25 @@ export function RootNavigator() {
         const actionId = response?.actionIdentifier;
         const targetOrderId = data?.order_id || data?.orderId;
 
-        if (targetOrderId && navigationRef.isReady()) {
-          (navigationRef as any).navigate('Main', {
-            screen: 'OrdersTab',
-            params: {
-              screen: 'OrderTrackingScreen',
-              params: { 
-                orderId: String(targetOrderId),
-                action: actionId,
+        if (targetOrderId) {
+          if (navigationRef.isReady()) {
+            (navigationRef as any).navigate('Main', {
+              screen: 'OrdersTab',
+              params: {
+                screen: 'OrderTrackingScreen',
+                params: { 
+                  orderId: String(targetOrderId),
+                  action: actionId,
+                },
               },
-            },
-          });
+            });
+          } else {
+            setPendingRedirect({ 
+              screen: 'OrderTrackingScreen', 
+              tab: 'OrdersTab', 
+              params: { orderId: String(targetOrderId), action: actionId } 
+            });
+          }
         }
       } catch (e) {
         console.warn('[RootNavigator] Notification tap navigation error:', e);
@@ -423,10 +428,7 @@ export function RootNavigator() {
                 },
               });
             } else {
-              (navigationRef as any).navigate('Main', {
-                screen: redirect.screen,
-                params: redirect.params,
-              });
+              (navigationRef as any).navigate(redirect.screen, redirect.params);
             }
           }
         } catch (e) {

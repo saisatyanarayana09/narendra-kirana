@@ -107,7 +107,7 @@ export function AddressesScreen({ navigation }: { navigation: AppNavigationProp 
           <TouchableOpacity 
             style={styles.backButton} 
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            onPress={() => navigation.goBack()}
+            onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')}
           >
             <Feather name="arrow-left" size={18} color={colors.primary} />
             <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
@@ -142,7 +142,7 @@ export function AddressesScreen({ navigation }: { navigation: AppNavigationProp 
           <TouchableOpacity 
             style={styles.backButton} 
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            onPress={() => navigation.goBack()}
+            onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')}
           >
             <Feather name="arrow-left" size={18} color={colors.primary} />
             <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
@@ -163,7 +163,7 @@ export function AddressesScreen({ navigation }: { navigation: AppNavigationProp 
         <TouchableOpacity 
           style={styles.backButton} 
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          onPress={() => navigation.goBack()}
+          onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')}
           activeOpacity={0.7}
         >
           <Feather name="arrow-left" size={18} color={colors.primary} />
@@ -188,7 +188,7 @@ export function AddressesScreen({ navigation }: { navigation: AppNavigationProp 
 
       <FlatList
         data={addresses}
-        keyExtractor={(item, index) => String(item?.id ?? index)}
+        keyExtractor={(item, index) => String(item?.id || item?.uuid || item?.uid || index)}
         contentContainerStyle={styles.listContent}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />

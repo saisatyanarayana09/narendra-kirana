@@ -109,7 +109,7 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
           {
             text: 'Cancel',
             style: 'cancel',
-            onPress: () => navigation.goBack(),
+            onPress: () => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('CartScreen'),
           },
         ]
       );
@@ -135,9 +135,9 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
       ]);
       const addrList = Array.isArray(addrRes.data) ? addrRes.data : (addrRes.data?.results || []);
       setAddresses(addrList);
-      if (addrList.length > 0 && !selectedAddressId) {
+      if (addrList.length > 0) {
         const defaultAddr = addrList.find((a: any) => a.is_default) || addrList[0];
-        setSelectedAddressId(defaultAddr.id);
+        setSelectedAddressId(current => current || defaultAddr.id);
       }
       setWalletBalance(parseFloat(walletRes.data?.balance || '0'));
     } catch (err) {
@@ -307,7 +307,9 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
             return { start: s.start || s.start_time, end: s.end || s.end_time, label: s.label || `${s.start} - ${s.end}` };
           });
         }
-      } catch (e) {}
+      } catch (e) {
+        console.warn('Failed to parse time slots:', e);
+      }
     }
 
     if (list.length === 0) {
@@ -603,7 +605,7 @@ export function CheckoutScreen({ navigation }: { navigation: AppNavigationProp }
         <TouchableOpacity 
           style={styles.backButton} 
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          onPress={() => navigation.goBack()}
+          onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('CartScreen')}
           activeOpacity={0.7}
         >
           <Feather name="arrow-left" size={18} color={colors.primary} />

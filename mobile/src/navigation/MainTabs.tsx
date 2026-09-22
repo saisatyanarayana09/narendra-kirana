@@ -112,6 +112,7 @@ function ProfileStack() {
         <ProfileStackNav.Screen name="AccountSettingsScreen" component={AccountSettingsScreen} />
         <ProfileStackNav.Screen name="NotificationsScreen" component={NotificationsScreen} />
         <ProfileStackNav.Screen name="FavoritesScreen" component={FavoritesScreen} />
+        <ProfileStackNav.Screen name="ProductDetailScreen" component={ProductDetailScreen} />
         <ProfileStackNav.Screen name="AppSettingsScreen" component={AppSettingsScreen} />
         <ProfileStackNav.Screen name="OffersScreen" component={OffersScreen} />
         <ProfileStackNav.Screen name="LanguageScreen" component={LanguageScreen} />

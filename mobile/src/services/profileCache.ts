@@ -33,7 +33,7 @@ export async function loadCachedWallet(userId?: number | string | null): Promise
           return parsed;
         }
       }
-    } catch {}
+    } catch (e) { console.warn('[ProfileCache] Load failed:', e); }
     return null;
   })().finally(() => pendingLoads.delete(key));
 
@@ -41,11 +41,11 @@ export async function loadCachedWallet(userId?: number | string | null): Promise
   return p;
 }
 
-export function saveCachedWallet(userId: number | string, data: any): void {
+export async function saveCachedWallet(userId: number | string, data: any): Promise<void> {
   if (!userId || !data) return;
   const uid = String(userId);
   memoryWallet.set(uid, data);
-  AsyncStorage.setItem(`sk_wallet_${uid}`, JSON.stringify(data)).catch(() => {});
+  await AsyncStorage.setItem(`sk_wallet_${uid}`, JSON.stringify(data)).catch((e) => console.warn('[ProfileCache] Save wallet failed:', e));
 }
 
 // --- ADDRESSES ---
@@ -72,7 +72,7 @@ export async function loadCachedAddresses(userId?: number | string | null): Prom
           return parsed;
         }
       }
-    } catch {}
+    } catch (e) { console.warn('[ProfileCache] Load failed:', e); }
     return null;
   })().finally(() => pendingLoads.delete(key));
 
@@ -80,11 +80,11 @@ export async function loadCachedAddresses(userId?: number | string | null): Prom
   return p;
 }
 
-export function saveCachedAddresses(userId: number | string, data: any[]): void {
+export async function saveCachedAddresses(userId: number | string, data: any[]): Promise<void> {
   if (!userId || !Array.isArray(data)) return;
   const uid = String(userId);
   memoryAddresses.set(uid, data);
-  AsyncStorage.setItem(`sk_addresses_${uid}`, JSON.stringify(data)).catch(() => {});
+  await AsyncStorage.setItem(`sk_addresses_${uid}`, JSON.stringify(data)).catch((e) => console.warn('[ProfileCache] Save addresses failed:', e));
 }
 
 // --- NOTIFICATIONS ---
@@ -111,7 +111,7 @@ export async function loadCachedNotifications(userId?: number | string | null): 
           return parsed;
         }
       }
-    } catch {}
+    } catch (e) { console.warn('[ProfileCache] Load failed:', e); }
     return null;
   })().finally(() => pendingLoads.delete(key));
 
@@ -119,7 +119,7 @@ export async function loadCachedNotifications(userId?: number | string | null): 
   return p;
 }
 
-export function saveCachedNotifications(userId: number | string, data: any[]): void {
+export async function saveCachedNotifications(userId: number | string, data: any[]): Promise<void> {
   if (!userId || !Array.isArray(data)) return;
   const uid = String(userId);
   memoryNotifications.set(uid, data);
@@ -150,7 +150,7 @@ export async function loadCachedReferrals(userId?: number | string | null): Prom
           return parsed;
         }
       }
-    } catch {}
+    } catch (e) { console.warn('[ProfileCache] Load failed:', e); }
     return null;
   })().finally(() => pendingLoads.delete(key));
 
@@ -158,11 +158,11 @@ export async function loadCachedReferrals(userId?: number | string | null): Prom
   return p;
 }
 
-export function saveCachedReferrals(userId: number | string, data: any): void {
+export async function saveCachedReferrals(userId: number | string, data: any): Promise<void> {
   if (!userId || !data) return;
   const uid = String(userId);
   memoryReferrals.set(uid, data);
-  AsyncStorage.setItem(`sk_referrals_${uid}`, JSON.stringify(data)).catch(() => {});
+  await AsyncStorage.setItem(`sk_referrals_${uid}`, JSON.stringify(data)).catch((e) => console.warn('[ProfileCache] Save referrals failed:', e));
 }
 
 // --- CLEAR ALL USER PROFILE CACHES (ON LOGOUT) ---
@@ -184,5 +184,5 @@ export async function clearUserProfileCache(): Promise<void> {
     if (profileKeys.length > 0) {
       await AsyncStorage.multiRemove(profileKeys);
     }
-  } catch {}
+  } catch (e) { console.warn('[ProfileCache] Load failed:', e); }
 }
