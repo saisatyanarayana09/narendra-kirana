@@ -1,11 +1,13 @@
 name: React Native CI Validation
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
     paths:
       - 'mobile/**'
+      - '.github/workflows/validate.yml'
   pull_request:
     branches:
       - main
