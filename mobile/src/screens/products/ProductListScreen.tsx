@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -83,6 +83,7 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Favorites state synced via favoritesService
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(favoritesService.getFavoriteIds());
@@ -193,6 +194,13 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
   };
 
   const fetchProducts = async (pageNum: number, isReset = false, isSilent = false) => {
+    if (isReset && abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const currentAbortController = new AbortController();
+    if (isReset) {
+      abortControllerRef.current = currentAbortController;
+    }
     const key = getSectionCacheKey(selectedCategory, searchQuery, sortOption);
 
     if (isReset) {
@@ -212,7 +220,7 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
       const ordering = getOrderingParam(sortOption);
       if (ordering) params.ordering = ordering;
 
-      const res = await apiClient.get('/products/', { params });
+      const res = await apiClient.get('/products/', { params, signal: currentAbortController.signal });
       const newItems = Array.isArray(res.data) ? res.data : (res.data?.results || []);
       const nextUrl = res.data?.next;
 
@@ -236,7 +244,10 @@ export function ProductListScreen({ navigation, route }: { navigation: AppNaviga
       }
       setHasMore(Boolean(nextUrl));
       setPage(pageNum);
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.name === 'CanceledError' || error?.message === 'canceled') {
+        return; // Request was cancelled, do not update state
+      }
       console.error('Error fetching products:', error);
     } finally {
       setLoading(false);
