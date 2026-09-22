@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef } from "react";
 import {
   Pressable,
   Animated,
@@ -7,19 +7,28 @@ import {
   GestureResponderEvent,
   Platform,
   PressableProps,
-} from 'react-native';
-import { triggerHaptic } from '../utils/haptics';
+} from "react-native";
+
+import { triggerHaptic } from "../utils/haptics";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-export interface BouncyTouchableProps extends Omit<PressableProps, 'style'> {
+export interface BouncyTouchableProps extends Omit<PressableProps, "style"> {
   children?: React.ReactNode;
   onPress?: (event: GestureResponderEvent) => void;
   style?: StyleProp<ViewStyle>;
   scaleTo?: number;
   tension?: number;
   friction?: number;
-  hapticType?: 'light' | 'medium' | 'selection' | 'heavy' | 'success' | 'warning' | 'error' | false;
+  hapticType?:
+    | "light"
+    | "medium"
+    | "selection"
+    | "heavy"
+    | "success"
+    | "warning"
+    | "error"
+    | false;
   disabled?: boolean;
 }
 
@@ -30,7 +39,7 @@ export const BouncyTouchable: React.FC<BouncyTouchableProps> = ({
   scaleTo = 0.96,
   tension = 150,
   friction = 7,
-  hapticType = 'light',
+  hapticType = "light",
   disabled = false,
   onPressIn,
   onPressOut,
@@ -44,7 +53,7 @@ export const BouncyTouchable: React.FC<BouncyTouchableProps> = ({
       toValue: scaleTo,
       tension,
       friction,
-      useNativeDriver: Platform.OS !== 'web',
+      useNativeDriver: Platform.OS !== "web",
     }).start();
     onPressIn?.(e);
   };
@@ -54,7 +63,7 @@ export const BouncyTouchable: React.FC<BouncyTouchableProps> = ({
       toValue: 1,
       tension,
       friction,
-      useNativeDriver: Platform.OS !== 'web',
+      useNativeDriver: Platform.OS !== "web",
     }).start();
     onPressOut?.(e);
   };

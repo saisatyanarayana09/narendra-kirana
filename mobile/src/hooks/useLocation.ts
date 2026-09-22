@@ -1,24 +1,27 @@
-import { useState, useEffect } from 'react';
-import * as Location from 'expo-location';
+import * as Location from "expo-location";
+import { useState } from "react";
 
 export function useLocation() {
-  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [location, setLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isRequesting, setIsRequesting] = useState(false);
 
   const requestLocation = async () => {
     setIsRequesting(true);
     try {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setErrorMsg('Permission to access location was denied');
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setErrorMsg("Permission to access location was denied");
         return null;
       }
 
-      let currentLocation = await Location.getCurrentPositionAsync({});
+      const currentLocation = await Location.getCurrentPositionAsync({});
       const coords = {
         latitude: currentLocation.coords.latitude,
-        longitude: currentLocation.coords.longitude
+        longitude: currentLocation.coords.longitude,
       };
       setLocation(coords);
       return coords;

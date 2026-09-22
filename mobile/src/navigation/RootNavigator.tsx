@@ -1,54 +1,60 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  ActivityIndicator, 
+import { Feather } from "@expo/vector-icons";
+import {
+  NavigationContainer,
+  DefaultTheme,
+  DarkTheme,
+} from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import * as Linking from "expo-linking";
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
   BackHandler,
   ScrollView,
   Platform,
   Alert,
-  Linking as RNLinking 
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import * as Linking from 'expo-linking';
-import { Feather } from '@expo/vector-icons';
-import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
-import { LoadingSpinner } from '../components/LoadingSpinner';
-import { ErrorBoundary } from '../components/ErrorBoundary';
-import { navigationRef } from './navigationRef';
-import { storeApi, StoreSettings } from '../api/store';
-import { APP_VERSION } from '../constants/config';
-import { 
+  Linking as RNLinking,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import { AuthStack } from "./AuthStack";
+import { MainTabs } from "./MainTabs";
+import { navigationRef } from "./navigationRef";
+import { storeApi, StoreSettings } from "../api/store";
+import { ErrorBoundary } from "../components/ErrorBoundary";
+import { APP_VERSION } from "../constants/config";
+import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
+import { ForgotPasswordScreen } from "../screens/auth/ForgotPasswordScreen";
+import { LoginScreen } from "../screens/auth/LoginScreen";
+import { ResetPasswordScreen } from "../screens/auth/ResetPasswordScreen";
+import { SignupScreen } from "../screens/auth/SignupScreen";
+import {
   addNotificationResponseReceivedListener,
-  getLastNotificationResponseAsync 
-} from '../services/notificationService';
-import { 
-  downloadAndInstallApk, 
-  installDownloadedApk, 
+  getLastNotificationResponseAsync,
+} from "../services/notificationService";
+import {
+  downloadAndInstallApk,
+  installDownloadedApk,
   DEFAULT_APK_URL,
-  DownloadProgressInfo 
-} from '../services/updateService';
+  DownloadProgressInfo,
+} from "../services/updateService";
 
-import { AuthStack } from './AuthStack';
-import { MainTabs } from './MainTabs';
-import { LoginScreen } from '../screens/auth/LoginScreen';
-import { SignupScreen } from '../screens/auth/SignupScreen';
-import { ForgotPasswordScreen } from '../screens/auth/ForgotPasswordScreen';
-import { ResetPasswordScreen } from '../screens/auth/ResetPasswordScreen';
+export { navigationRef } from "./navigationRef";
 
-export { navigationRef } from './navigationRef';
-
-export function isVersionOlder(currentVersion: string, minVersion: string): boolean {
+export function isVersionOlder(
+  currentVersion: string,
+  minVersion: string,
+): boolean {
   if (!minVersion) return false;
-  const cleanCurrent = currentVersion.replace(/^[^0-9]+/, '').trim();
-  const cleanMin = minVersion.replace(/^[^0-9]+/, '').trim();
-  const cParts = cleanCurrent.split('.').map((p) => parseInt(p, 10) || 0);
-  const mParts = cleanMin.split('.').map((p) => parseInt(p, 10) || 0);
+  const cleanCurrent = currentVersion.replace(/^[^0-9]+/, "").trim();
+  const cleanMin = minVersion.replace(/^[^0-9]+/, "").trim();
+  const cParts = cleanCurrent.split(".").map((p) => parseInt(p, 10) || 0);
+  const mParts = cleanMin.split(".").map((p) => parseInt(p, 10) || 0);
   const len = Math.max(cParts.length, mParts.length);
   for (let i = 0; i < len; i++) {
     const c = cParts[i] || 0;
@@ -71,62 +77,76 @@ export interface ParsedDeepLink {
 export function parseDeepLinkUrl(url: string): ParsedDeepLink | null {
   try {
     const parsed = Linking.parse(url);
-    const host = (parsed.hostname || '').toLowerCase();
-    const isWebDomain = host.includes('.') || host === 'localhost';
-    const rawPath = (!isWebDomain && host) ? (parsed.path ? `${host}/${parsed.path}` : host) : (parsed.path || '');
-    const path = rawPath.replace(/^\/+|\/+$/g, '');
-    const segments = path.split('/').filter(Boolean);
+    const host = (parsed.hostname || "").toLowerCase();
+    const isWebDomain = host.includes(".") || host === "localhost";
+    const rawPath =
+      !isWebDomain && host
+        ? parsed.path
+          ? `${host}/${parsed.path}`
+          : host
+        : parsed.path || "";
+    const path = rawPath.replace(/^\/+|\/+$/g, "");
+    const segments = path.split("/").filter(Boolean);
 
     // 1. Invoice: /orders/:id/invoice or /invoice/:id
     if (
-      (segments[0] === 'orders' && segments[2] === 'invoice' && segments[1]) ||
-      (segments[0] === 'order' && segments[2] === 'invoice' && segments[1]) ||
-      (segments[0] === 'invoice' && segments[1])
+      (segments[0] === "orders" && segments[2] === "invoice" && segments[1]) ||
+      (segments[0] === "order" && segments[2] === "invoice" && segments[1]) ||
+      (segments[0] === "invoice" && segments[1])
     ) {
-      const orderId = segments[0] === 'invoice' ? segments[1] : segments[1];
+      const orderId = segments[0] === "invoice" ? segments[1] : segments[1];
       return {
-        screen: 'InvoiceScreen',
-        tab: 'OrdersTab',
+        screen: "InvoiceScreen",
+        tab: "OrdersTab",
         params: { orderId },
         requiresAuth: true,
       };
     }
 
     // 2. Order Tracking: /orders/:id or /order/:id
-    if ((segments[0] === 'orders' || segments[0] === 'order') && segments[1]) {
+    if ((segments[0] === "orders" || segments[0] === "order") && segments[1]) {
       return {
-        screen: 'OrderTrackingScreen',
-        tab: 'OrdersTab',
+        screen: "OrderTrackingScreen",
+        tab: "OrdersTab",
         params: { orderId: segments[1] },
         requiresAuth: true,
       };
     }
 
     // 3. Product: /product/:id or /products/:id
-    if ((segments[0] === 'product' || segments[0] === 'products') && segments[1]) {
+    if (
+      (segments[0] === "product" || segments[0] === "products") &&
+      segments[1]
+    ) {
       return {
-        screen: 'ProductDetailScreen',
-        tab: 'HomeTab',
+        screen: "ProductDetailScreen",
+        tab: "HomeTab",
         params: { productId: Number(segments[1]) },
         requiresAuth: false,
       };
     }
 
     // 4. Offers & Promo codes: /offers or /profile/offers
-    if (segments[0] === 'offers' || (segments[0] === 'profile' && segments[1] === 'offers')) {
+    if (
+      segments[0] === "offers" ||
+      (segments[0] === "profile" && segments[1] === "offers")
+    ) {
       return {
-        screen: 'OffersScreen',
-        tab: 'ProfileTab',
+        screen: "OffersScreen",
+        tab: "ProfileTab",
         params: {},
         requiresAuth: true,
       };
     }
 
     // 5. Wallet: /wallet or /profile/wallet
-    if (segments[0] === 'wallet' || (segments[0] === 'profile' && segments[1] === 'wallet')) {
+    if (
+      segments[0] === "wallet" ||
+      (segments[0] === "profile" && segments[1] === "wallet")
+    ) {
       return {
-        screen: 'WalletScreen',
-        tab: 'ProfileTab',
+        screen: "WalletScreen",
+        tab: "ProfileTab",
         params: {},
         requiresAuth: true,
       };
@@ -134,76 +154,85 @@ export function parseDeepLinkUrl(url: string): ParsedDeepLink | null {
 
     // 6. Refer & Earn: /refer or /refer-and-earn or /profile/refer-and-earn
     if (
-      segments[0] === 'refer' ||
-      segments[0] === 'refer-and-earn' ||
-      (segments[0] === 'profile' && segments[1] === 'refer-and-earn')
+      segments[0] === "refer" ||
+      segments[0] === "refer-and-earn" ||
+      (segments[0] === "profile" && segments[1] === "refer-and-earn")
     ) {
       return {
-        screen: 'ReferAndEarnScreen',
-        tab: 'ProfileTab',
+        screen: "ReferAndEarnScreen",
+        tab: "ProfileTab",
         params: {},
         requiresAuth: true,
       };
     }
 
     // 7. Cart & Checkout
-    if (segments[0] === 'cart') {
+    if (segments[0] === "cart") {
       return {
-        screen: 'CartScreen',
-        tab: 'CartTab',
+        screen: "CartScreen",
+        tab: "CartTab",
         params: {},
         requiresAuth: false,
       };
     }
-    if (segments[0] === 'checkout') {
+    if (segments[0] === "checkout") {
       return {
-        screen: 'CheckoutScreen',
-        tab: 'CartTab',
+        screen: "CheckoutScreen",
+        tab: "CartTab",
         params: {},
         requiresAuth: true,
       };
     }
 
     // 8. App Settings & Languages
-    if (segments[0] === 'settings' || (segments[0] === 'profile' && segments[1] === 'settings')) {
+    if (
+      segments[0] === "settings" ||
+      (segments[0] === "profile" && segments[1] === "settings")
+    ) {
       return {
-        screen: 'AppSettingsScreen',
-        tab: 'ProfileTab',
+        screen: "AppSettingsScreen",
+        tab: "ProfileTab",
         params: {},
         requiresAuth: true,
       };
     }
-    if (segments[0] === 'language' || (segments[0] === 'profile' && segments[1] === 'language')) {
+    if (
+      segments[0] === "language" ||
+      (segments[0] === "profile" && segments[1] === "language")
+    ) {
       return {
-        screen: 'LanguageScreen',
-        tab: 'ProfileTab',
+        screen: "LanguageScreen",
+        tab: "ProfileTab",
         params: {},
         requiresAuth: true,
       };
     }
 
     // 9. Password Reset
-    if (segments[0] === 'reset-password') {
+    if (segments[0] === "reset-password") {
       const qp = parsed.queryParams || {};
       const rawMode = qp.mode as string | undefined;
-      const mode = (rawMode === 'otp' || rawMode === 'link') 
-        ? rawMode 
-        : (qp.uid && qp.token ? 'link' : 'otp');
+      const mode =
+        rawMode === "otp" || rawMode === "link"
+          ? rawMode
+          : qp.uid && qp.token
+            ? "link"
+            : "otp";
 
       return {
-        screen: 'ResetPasswordScreen',
+        screen: "ResetPasswordScreen",
         params: {
-          uid: (qp.uid as string) || '',
-          token: (qp.token as string) || '',
-          email: (qp.email as string) || '',
+          uid: (qp.uid as string) || "",
+          token: (qp.token as string) || "",
+          email: (qp.email as string) || "",
           mode,
         },
         requiresAuth: false,
       };
     }
-    if (segments[0] === 'forgot-password') {
+    if (segments[0] === "forgot-password") {
       return {
-        screen: 'ForgotPasswordScreen',
+        screen: "ForgotPasswordScreen",
         params: {},
         requiresAuth: false,
       };
@@ -211,58 +240,58 @@ export function parseDeepLinkUrl(url: string): ParsedDeepLink | null {
 
     return null;
   } catch (err) {
-    console.error('Failed to parse deep link URL:', url, err);
+    console.error("Failed to parse deep link URL:", url, err);
     return null;
   }
 }
 
 const linking = {
   prefixes: [
-    Linking.createURL('/'),
-    'smartkirana://',
-    'https://narendra-kirana.vercel.app',
-    'https://narendra-kirana.onrender.com',
+    Linking.createURL("/"),
+    "smartkirana://",
+    "https://narendra-kirana.vercel.app",
+    "https://narendra-kirana.onrender.com",
   ],
   config: {
     screens: {
-      ResetPasswordScreen: 'reset-password',
-      ForgotPasswordScreen: 'forgot-password',
+      ResetPasswordScreen: "reset-password",
+      ForgotPasswordScreen: "forgot-password",
       Auth: {
         screens: {
-          Welcome: 'welcome',
-          Login: 'login',
-          Signup: 'signup',
+          Welcome: "welcome",
+          Login: "login",
+          Signup: "signup",
         },
       },
       Main: {
         screens: {
           HomeTab: {
             screens: {
-              HomeScreen: '',
-              ProductDetailScreen: 'product/:productId',
+              HomeScreen: "",
+              ProductDetailScreen: "product/:productId",
             },
           },
           OrdersTab: {
             screens: {
-              OrderHistoryScreen: 'orders',
-              OrderTrackingScreen: 'orders/:orderId',
-              InvoiceScreen: 'orders/:orderId/invoice',
+              OrderHistoryScreen: "orders",
+              OrderTrackingScreen: "orders/:orderId",
+              InvoiceScreen: "orders/:orderId/invoice",
             },
           },
           ProfileTab: {
             screens: {
-              ProfileScreen: 'profile',
-              OffersScreen: 'profile/offers',
-              WalletScreen: 'profile/wallet',
-              ReferAndEarnScreen: 'profile/refer-and-earn',
-              AppSettingsScreen: 'profile/settings',
-              LanguageScreen: 'profile/language',
+              ProfileScreen: "profile",
+              OffersScreen: "profile/offers",
+              WalletScreen: "profile/wallet",
+              ReferAndEarnScreen: "profile/refer-and-earn",
+              AppSettingsScreen: "profile/settings",
+              LanguageScreen: "profile/language",
             },
           },
           CartTab: {
             screens: {
-              CartScreen: 'cart',
-              CheckoutScreen: 'checkout',
+              CartScreen: "cart",
+              CheckoutScreen: "checkout",
             },
           },
         },
@@ -272,9 +301,17 @@ const linking = {
 };
 
 export function RootNavigator() {
-  const { user, isLoading, pendingRedirect, setPendingRedirect, clearPendingRedirect } = useAuth();
+  const {
+    user,
+    isLoading,
+    pendingRedirect,
+    setPendingRedirect,
+    clearPendingRedirect,
+  } = useAuth();
   const isNavReadyRef = useRef(false);
-  const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
+  const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(
+    null,
+  );
   const [checkingSettings, setCheckingSettings] = useState(false);
 
   const loadStoreSettings = useCallback(async () => {
@@ -283,7 +320,7 @@ export function RootNavigator() {
       const data = await storeApi.getSettings();
       setStoreSettings(data);
     } catch (err) {
-      console.warn('[RootNavigator] Could not fetch store settings:', err);
+      console.warn("[RootNavigator] Could not fetch store settings:", err);
     } finally {
       setCheckingSettings(false);
     }
@@ -303,7 +340,7 @@ export function RootNavigator() {
       // User is logged in: navigate straight to destination
       if (navigationRef.isReady()) {
         if (target.tab) {
-          (navigationRef as any).navigate('Main', {
+          (navigationRef as any).navigate("Main", {
             screen: target.tab,
             params: {
               screen: target.screen,
@@ -314,22 +351,34 @@ export function RootNavigator() {
           (navigationRef as any).navigate(target.screen, target.params);
         }
       } else {
-        setPendingRedirect({ screen: target.screen, tab: target.tab, params: target.params });
+        setPendingRedirect({
+          screen: target.screen,
+          tab: target.tab,
+          params: target.params,
+        });
       }
     } else {
       // User is NOT logged in
       if (target.requiresAuth) {
-        setPendingRedirect({ screen: target.screen, tab: target.tab, params: target.params });
+        setPendingRedirect({
+          screen: target.screen,
+          tab: target.tab,
+          params: target.params,
+        });
         // Guide to Login screen
         if (navigationRef.isReady()) {
-          (navigationRef as any).navigate('Auth', { screen: 'Login' });
+          (navigationRef as any).navigate("Auth", { screen: "Login" });
         }
       } else {
         // Public screen (e.g. ProductDetailScreen, ResetPasswordScreen)
-        setPendingRedirect({ screen: target.screen, tab: target.tab, params: target.params });
+        setPendingRedirect({
+          screen: target.screen,
+          tab: target.tab,
+          params: target.params,
+        });
         if (navigationRef.isReady()) {
           if (target.tab) {
-            (navigationRef as any).navigate('Main', {
+            (navigationRef as any).navigate("Main", {
               screen: target.tab,
               params: {
                 screen: target.screen,
@@ -353,11 +402,11 @@ export function RootNavigator() {
         }
       })
       .catch((err) => {
-        console.warn('[RootNavigator] Failed to get initial URL:', err);
+        console.warn("[RootNavigator] Failed to get initial URL:", err);
       });
 
     // 2. Listen for runtime deep link events (app already open/backgrounded)
-    const subscription = Linking.addEventListener('url', (event) => {
+    const subscription = Linking.addEventListener("url", (event) => {
       handleIncomingUrl(event.url);
     });
 
@@ -370,31 +419,33 @@ export function RootNavigator() {
 
         if (targetOrderId) {
           if (navigationRef.isReady()) {
-            (navigationRef as any).navigate('Main', {
-              screen: 'OrdersTab',
+            (navigationRef as any).navigate("Main", {
+              screen: "OrdersTab",
               params: {
-                screen: 'OrderTrackingScreen',
-                params: { 
+                screen: "OrderTrackingScreen",
+                params: {
                   orderId: String(targetOrderId),
                   action: actionId,
                 },
               },
             });
           } else {
-            setPendingRedirect({ 
-              screen: 'OrderTrackingScreen', 
-              tab: 'OrdersTab', 
-              params: { orderId: String(targetOrderId), action: actionId } 
+            setPendingRedirect({
+              screen: "OrderTrackingScreen",
+              tab: "OrdersTab",
+              params: { orderId: String(targetOrderId), action: actionId },
             });
           }
         }
       } catch (e) {
-        console.warn('[RootNavigator] Notification tap navigation error:', e);
+        console.warn("[RootNavigator] Notification tap navigation error:", e);
       }
     };
 
     // Listen for push notification click / tap events while app is open or backgrounded
-    const notifSub = addNotificationResponseReceivedListener(handleNotificationResponse);
+    const notifSub = addNotificationResponseReceivedListener(
+      handleNotificationResponse,
+    );
 
     // Check if app was opened directly from a notification tap while completely killed/closed
     getLastNotificationResponseAsync().then((response) => {
@@ -420,7 +471,7 @@ export function RootNavigator() {
         try {
           if (navigationRef.isReady()) {
             if (redirect.tab) {
-              (navigationRef as any).navigate('Main', {
+              (navigationRef as any).navigate("Main", {
                 screen: redirect.tab,
                 params: {
                   screen: redirect.screen,
@@ -432,7 +483,7 @@ export function RootNavigator() {
             }
           }
         } catch (e) {
-          console.warn('[RootNavigator] Post-login redirect error:', e);
+          console.warn("[RootNavigator] Post-login redirect error:", e);
         }
       }, 400);
 
@@ -455,44 +506,62 @@ export function RootNavigator() {
   };
 
   // 1. Mobile Version Gate: Check if current installed version < latest_mobile_version (or min_mobile_version)
-  const targetVersion = storeSettings?.latest_mobile_version || storeSettings?.min_mobile_version;
+  const targetVersion =
+    storeSettings?.latest_mobile_version || storeSettings?.min_mobile_version;
   const isOutdated = targetVersion
     ? isVersionOlder(APP_VERSION, targetVersion)
     : false;
-  const isForceUpdateRequired = isOutdated && Boolean(storeSettings?.force_app_update);
+  const isForceUpdateRequired =
+    isOutdated && Boolean(storeSettings?.force_app_update);
 
   const hasPromptedOptionalUpdateRef = useRef(false);
-  const customerName = user?.first_name || user?.name || user?.username || '';
+  const customerName = user?.first_name || user?.name || user?.username || "";
 
   useEffect(() => {
-    if (!isLoading && storeSettings && isOutdated && !isForceUpdateRequired && !hasPromptedOptionalUpdateRef.current) {
+    if (
+      !isLoading &&
+      storeSettings &&
+      isOutdated &&
+      !isForceUpdateRequired &&
+      !hasPromptedOptionalUpdateRef.current
+    ) {
       hasPromptedOptionalUpdateRef.current = true;
-      const rawUpdateUrl = storeSettings.app_update_url?.trim() || '';
-      const isPlayStore = rawUpdateUrl.includes('play.google.com') || rawUpdateUrl.startsWith('market://');
-      const updateUrl = (!rawUpdateUrl || isPlayStore) ? DEFAULT_APK_URL : rawUpdateUrl;
-      const greeting = customerName ? `Hi, ${customerName}! ` : '';
+      const rawUpdateUrl = storeSettings.app_update_url?.trim() || "";
+      const isPlayStore =
+        rawUpdateUrl.includes("play.google.com") ||
+        rawUpdateUrl.startsWith("market://");
+      const updateUrl =
+        !rawUpdateUrl || isPlayStore ? DEFAULT_APK_URL : rawUpdateUrl;
+      const greeting = customerName ? `Hi, ${customerName}! ` : "";
       Alert.alert(
-        'Update Available',
+        "Update Available",
         `${greeting}A new and improved version of Narendra Kirana (v${targetVersion}) is available. Would you like to update?`,
         [
-          { text: 'Later', style: 'cancel' },
+          { text: "Later", style: "cancel" },
           {
-            text: 'Update Now',
+            text: "Update Now",
             onPress: () => {
               if (navigationRef.isReady()) {
-                (navigationRef as any).navigate('Main', {
-                  screen: 'ProfileTab',
-                  params: { screen: 'AppSettingsScreen' },
+                (navigationRef as any).navigate("Main", {
+                  screen: "ProfileTab",
+                  params: { screen: "AppSettingsScreen" },
                 });
               } else {
                 RNLinking.openURL(updateUrl).catch(() => {});
               }
             },
           },
-        ]
+        ],
       );
     }
-  }, [isLoading, storeSettings, isOutdated, isForceUpdateRequired, targetVersion, customerName]);
+  }, [
+    isLoading,
+    storeSettings,
+    isOutdated,
+    isForceUpdateRequired,
+    targetVersion,
+    customerName,
+  ]);
 
   // We do NOT block the entire app with a full-screen spinner on auth loading!
   // NavigationContainer & MainTabs mount immediately so cached home content displays in <50ms.
@@ -528,7 +597,7 @@ export function RootNavigator() {
       <NavigationContainer
         ref={navigationRef}
         theme={navTheme}
-        linking={Platform.OS === 'web' ? (linking as any) : undefined}
+        linking={Platform.OS === "web" ? (linking as any) : undefined}
         onReady={() => {
           isNavReadyRef.current = true;
           // If a pending redirect was queued before onReady, execute it
@@ -539,7 +608,7 @@ export function RootNavigator() {
               try {
                 if (navigationRef.isReady()) {
                   if (redirect.tab) {
-                    (navigationRef as any).navigate('Main', {
+                    (navigationRef as any).navigate("Main", {
                       screen: redirect.tab,
                       params: {
                         screen: redirect.screen,
@@ -547,11 +616,14 @@ export function RootNavigator() {
                       },
                     });
                   } else {
-                    (navigationRef as any).navigate(redirect.screen, redirect.params);
+                    (navigationRef as any).navigate(
+                      redirect.screen,
+                      redirect.params,
+                    );
                   }
                 }
               } catch (e) {
-                console.warn('[RootNavigator] onReady redirect error:', e);
+                console.warn("[RootNavigator] onReady redirect error:", e);
               }
             }, 300);
           }
@@ -562,8 +634,14 @@ export function RootNavigator() {
           <Stack.Screen name="Auth" component={AuthStack} />
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Signup" component={SignupScreen} />
-          <Stack.Screen name="ForgotPasswordScreen" component={ForgotPasswordScreen} />
-          <Stack.Screen name="ResetPasswordScreen" component={ResetPasswordScreen} />
+          <Stack.Screen
+            name="ForgotPasswordScreen"
+            component={ForgotPasswordScreen}
+          />
+          <Stack.Screen
+            name="ResetPasswordScreen"
+            component={ResetPasswordScreen}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </ErrorBoundary>
@@ -585,54 +663,96 @@ function MaintenanceView({
 }) {
   useEffect(() => {
     const backAction = () => true;
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction,
+    );
     return () => backHandler.remove();
   }, []);
 
   return (
-    <SafeAreaView style={[styles.gateContainer, { backgroundColor: colors.background }]}>
-      <ScrollView contentContainerStyle={styles.gateScrollContent} showsVerticalScrollIndicator={false}>
+    <SafeAreaView
+      style={[styles.gateContainer, { backgroundColor: colors.background }]}
+    >
+      <ScrollView
+        contentContainerStyle={styles.gateScrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.gateContent}>
-          <View style={[styles.gateIconCircle, { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEE2E2' }]}>
+          <View
+            style={[
+              styles.gateIconCircle,
+              {
+                backgroundColor: isDark ? "rgba(239, 68, 68, 0.15)" : "#FEE2E2",
+              },
+            ]}
+          >
             <Feather name="tool" size={42} color="#DC2626" />
           </View>
 
           <Text style={[styles.gateStoreTitle, { color: colors.text }]}>
-            {settings?.store_name || 'Narendra Kirana Store'}
+            {settings?.store_name || "Narendra Kirana Store"}
           </Text>
 
-          <View style={[styles.gateBadge, isDark && { backgroundColor: 'rgba(239, 68, 68, 0.2)', borderColor: 'rgba(239, 68, 68, 0.4)' }]}>
+          <View
+            style={[
+              styles.gateBadge,
+              isDark && {
+                backgroundColor: "rgba(239, 68, 68, 0.2)",
+                borderColor: "rgba(239, 68, 68, 0.4)",
+              },
+            ]}
+          >
             <Text style={styles.gateBadgeText}>MAINTENANCE IN PROGRESS</Text>
           </View>
 
-          <Text style={[styles.gateHeading, { color: colors.text }]}>Under Scheduled Maintenance</Text>
+          <Text style={[styles.gateHeading, { color: colors.text }]}>
+            Under Scheduled Maintenance
+          </Text>
 
-          <Text style={[styles.gateDescription, { color: colors.textSecondary }]}>
+          <Text
+            style={[styles.gateDescription, { color: colors.textSecondary }]}
+          >
             {settings?.maintenance_message ||
-              'We are currently performing scheduled maintenance to serve you better. We will be back online shortly!'}
+              "We are currently performing scheduled maintenance to serve you better. We will be back online shortly!"}
           </Text>
 
           {Boolean(settings?.store_phone || settings?.store_email) && (
-            <View style={[styles.gateContactBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Text style={[styles.gateContactTitle, { color: colors.text }]}>Need Urgent Assistance?</Text>
+            <View
+              style={[
+                styles.gateContactBox,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
+            >
+              <Text style={[styles.gateContactTitle, { color: colors.text }]}>
+                Need Urgent Assistance?
+              </Text>
               {Boolean(settings?.store_phone) && (
                 <TouchableOpacity
                   style={styles.contactRow}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  onPress={() => RNLinking.openURL(`tel:${settings?.store_phone}`)}
+                  onPress={() =>
+                    RNLinking.openURL(`tel:${settings?.store_phone}`)
+                  }
                 >
                   <Feather name="phone" size={14} color={colors.primary} />
-                  <Text style={[styles.contactText, { color: colors.primary }]}>{settings?.store_phone}</Text>
+                  <Text style={[styles.contactText, { color: colors.primary }]}>
+                    {settings?.store_phone}
+                  </Text>
                 </TouchableOpacity>
               )}
               {Boolean(settings?.store_email) && (
                 <TouchableOpacity
                   style={styles.contactRow}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  onPress={() => RNLinking.openURL(`mailto:${settings?.store_email}`)}
+                  onPress={() =>
+                    RNLinking.openURL(`mailto:${settings?.store_email}`)
+                  }
                 >
                   <Feather name="mail" size={14} color={colors.primary} />
-                  <Text style={[styles.contactText, { color: colors.primary }]}>{settings?.store_email}</Text>
+                  <Text style={[styles.contactText, { color: colors.primary }]}>
+                    {settings?.store_email}
+                  </Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -676,16 +796,17 @@ function ForceUpdateView({
 }) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
-  const [progressText, setProgressText] = useState('');
+  const [progressText, setProgressText] = useState("");
   const [downloadedUri, setDownloadedUri] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [isInstalling, setIsInstalling] = useState(false);
 
-  const customerName = user?.first_name || user?.name || user?.username || '';
+  const customerName = user?.first_name || user?.name || user?.username || "";
   const rawUrl = settings?.app_update_url?.trim() || DEFAULT_APK_URL;
-  const isAndroid = Platform.OS === 'android';
-  const isPlayStore = rawUrl.includes('play.google.com') || rawUrl.startsWith('market://');
-  const effectiveApkUrl = (!rawUrl || isPlayStore) ? DEFAULT_APK_URL : rawUrl;
+  const isAndroid = Platform.OS === "android";
+  const isPlayStore =
+    rawUrl.includes("play.google.com") || rawUrl.startsWith("market://");
+  const effectiveApkUrl = !rawUrl || isPlayStore ? DEFAULT_APK_URL : rawUrl;
   const canInAppUpdate = isAndroid;
 
   const handleOpenBrowser = () => {
@@ -701,12 +822,12 @@ function ForceUpdateView({
         await installDownloadedApk(downloadedUri);
       } catch (err: any) {
         Alert.alert(
-          'Installation Notice',
+          "Installation Notice",
           'Could not trigger package installer automatically. Please grant "Install unknown apps" permission if prompted, or install manually from your notifications.',
           [
-            { text: 'Try Again', onPress: () => handleStartInAppUpdate() },
-            { text: 'Download via Browser', onPress: handleOpenBrowser },
-          ]
+            { text: "Try Again", onPress: () => handleStartInAppUpdate() },
+            { text: "Download via Browser", onPress: handleOpenBrowser },
+          ],
         );
       } finally {
         setIsInstalling(false);
@@ -721,31 +842,35 @@ function ForceUpdateView({
 
     setIsDownloading(true);
     setDownloadProgress(0);
-    setProgressText('Connecting to server...');
+    setProgressText("Connecting to server...");
     setDownloadError(null);
 
-    const res = await downloadAndInstallApk(effectiveApkUrl, (info: DownloadProgressInfo) => {
-      setDownloadProgress(info.percent);
-      setProgressText(info.progressText);
-    });
+    const res = await downloadAndInstallApk(
+      effectiveApkUrl,
+      (info: DownloadProgressInfo) => {
+        setDownloadProgress(info.percent);
+        setProgressText(info.progressText);
+      },
+    );
 
     setIsDownloading(false);
 
     if (res.success && res.uri) {
       setDownloadedUri(res.uri);
-      setProgressText('Download completed! Launching installer...');
+      setProgressText("Download completed! Launching installer...");
       // Automatically launch package installer immediately when download finishes!
       try {
         setIsInstalling(true);
         await installDownloadedApk(res.uri);
       } catch (installErr) {
-        console.warn('Auto launch installer notice:', installErr);
+        console.warn("Auto launch installer notice:", installErr);
       } finally {
         setIsInstalling(false);
       }
     } else if (!res.success) {
       setDownloadError(
-        res.error || 'Failed to download update. Please check your connection or download via browser.'
+        res.error ||
+          "Failed to download update. Please check your connection or download via browser.",
       );
     }
   };
@@ -753,14 +878,22 @@ function ForceUpdateView({
   // Block hardware back button during update
   useEffect(() => {
     const backAction = () => true;
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction,
+    );
     return () => backHandler.remove();
   }, []);
 
   // Automatically start downloading update the moment user opens the app!
   const hasAutoStartedRef = useRef(false);
   useEffect(() => {
-    if (canInAppUpdate && !downloadedUri && !isDownloading && !hasAutoStartedRef.current) {
+    if (
+      canInAppUpdate &&
+      !downloadedUri &&
+      !isDownloading &&
+      !hasAutoStartedRef.current
+    ) {
       hasAutoStartedRef.current = true;
       const timer = setTimeout(() => {
         handleStartInAppUpdate();
@@ -770,28 +903,50 @@ function ForceUpdateView({
   }, [canInAppUpdate, downloadedUri, isDownloading]);
 
   return (
-    <SafeAreaView style={[styles.gateContainer, { backgroundColor: colors.background }]}>
-      <ScrollView contentContainerStyle={styles.gateScrollContent} showsVerticalScrollIndicator={false}>
+    <SafeAreaView
+      style={[styles.gateContainer, { backgroundColor: colors.background }]}
+    >
+      <ScrollView
+        contentContainerStyle={styles.gateScrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.gateContent}>
-          <View style={[styles.gateIconCircle, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5' }]}>
-            <Feather name={downloadedUri ? 'check-circle' : 'arrow-up-circle'} size={44} color="#059669" />
+          <View
+            style={[
+              styles.gateIconCircle,
+              {
+                backgroundColor: isDark
+                  ? "rgba(16, 185, 129, 0.15)"
+                  : "#ECFDF5",
+              },
+            ]}
+          >
+            <Feather
+              name={downloadedUri ? "check-circle" : "arrow-up-circle"}
+              size={44}
+              color="#059669"
+            />
           </View>
 
           <Text style={[styles.gateStoreTitle, { color: colors.text }]}>
-            {settings?.store_name || 'Narendra Kirana Store'}
+            {settings?.store_name || "Narendra Kirana Store"}
           </Text>
 
           {/* Customer Greeting Badge */}
-          <View style={[
-            styles.userGreetingBadge, 
-            { 
-              backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5', 
-              borderColor: isDark ? 'rgba(16, 185, 129, 0.3)' : '#A7F3D0' 
-            }
-          ]}>
+          <View
+            style={[
+              styles.userGreetingBadge,
+              {
+                backgroundColor: isDark
+                  ? "rgba(16, 185, 129, 0.15)"
+                  : "#ECFDF5",
+                borderColor: isDark ? "rgba(16, 185, 129, 0.3)" : "#A7F3D0",
+              },
+            ]}
+          >
             <Feather name="user" size={15} color={colors.primary} />
             <Text style={[styles.userGreetingText, { color: colors.text }]}>
-              {customerName ? `Hi, ${customerName}!` : 'Welcome!'}
+              {customerName ? `Hi, ${customerName}!` : "Welcome!"}
             </Text>
           </View>
 
@@ -799,57 +954,135 @@ function ForceUpdateView({
             App updating, please wait...
           </Text>
 
-          <Text style={[styles.gateDescription, { color: colors.textSecondary }]}>
+          <Text
+            style={[styles.gateDescription, { color: colors.textSecondary }]}
+          >
             {customerName
               ? `We are getting the latest store updates ready for you, ${customerName}. Please hold on a moment.`
-              : (settings?.app_update_message || 'A newer version of the app is installing. Please wait a moment.')}
+              : settings?.app_update_message ||
+                "A newer version of the app is installing. Please wait a moment."}
           </Text>
 
-          <View style={[styles.versionPillContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.versionPillText, { color: colors.textSecondary }]}>
-              Current: <Text style={{ fontWeight: '700', color: colors.text }}>v{APP_VERSION}</Text>
+          <View
+            style={[
+              styles.versionPillContainer,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <Text
+              style={[styles.versionPillText, { color: colors.textSecondary }]}
+            >
+              Current:{" "}
+              <Text style={{ fontWeight: "700", color: colors.text }}>
+                v{APP_VERSION}
+              </Text>
             </Text>
             {Boolean(settings?.min_mobile_version) && (
-              <Text style={[styles.versionPillText, { color: colors.textSecondary }]}>
-                Required: <Text style={{ fontWeight: '700', color: colors.primary }}>v{settings?.min_mobile_version}</Text>
+              <Text
+                style={[
+                  styles.versionPillText,
+                  { color: colors.textSecondary },
+                ]}
+              >
+                Required:{" "}
+                <Text style={{ fontWeight: "700", color: colors.primary }}>
+                  v{settings?.min_mobile_version}
+                </Text>
               </Text>
             )}
           </View>
 
           {/* Download in progress box */}
           {isDownloading && (
-            <View style={[styles.progressContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View
+              style={[
+                styles.progressContainer,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
+            >
               <View style={styles.progressStatsRow}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <View
+                  style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+                >
                   <ActivityIndicator size="small" color={colors.primary} />
-                  <Text style={[styles.progressLabelText, { color: colors.text }]}>Downloading Update...</Text>
+                  <Text
+                    style={[styles.progressLabelText, { color: colors.text }]}
+                  >
+                    Downloading Update...
+                  </Text>
                 </View>
-                <Text style={[styles.progressPercentText, { color: colors.primary }]}>{downloadProgress}%</Text>
+                <Text
+                  style={[
+                    styles.progressPercentText,
+                    { color: colors.primary },
+                  ]}
+                >
+                  {downloadProgress}%
+                </Text>
               </View>
 
-              <View style={[styles.progressBarTrack, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0' }]}>
+              <View
+                style={[
+                  styles.progressBarTrack,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(255,255,255,0.1)"
+                      : "#E2E8F0",
+                  },
+                ]}
+              >
                 <View
                   style={[
                     styles.progressBarFill,
-                    { width: `${downloadProgress}%`, backgroundColor: colors.primary },
+                    {
+                      width: `${downloadProgress}%`,
+                      backgroundColor: colors.primary,
+                    },
                   ]}
                 />
               </View>
 
               <View style={styles.progressStatsRow}>
-                <Text style={[styles.progressBytesText, { color: colors.textSecondary }]}>
-                  {progressText || 'Downloading...'}
+                <Text
+                  style={[
+                    styles.progressBytesText,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  {progressText || "Downloading..."}
                 </Text>
-                <Text style={[styles.progressBytesText, { color: colors.textSecondary }]}>In-App Updater</Text>
+                <Text
+                  style={[
+                    styles.progressBytesText,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  In-App Updater
+                </Text>
               </View>
             </View>
           )}
 
           {/* Download ready card */}
           {Boolean(downloadedUri) && !isDownloading && (
-            <View style={[styles.readyCard, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5', borderColor: '#A7F3D0' }]}>
+            <View
+              style={[
+                styles.readyCard,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(16, 185, 129, 0.15)"
+                    : "#ECFDF5",
+                  borderColor: "#A7F3D0",
+                },
+              ]}
+            >
               <Feather name="check-circle" size={20} color="#059669" />
-              <Text style={[styles.readyCardText, { color: isDark ? '#34D399' : '#047857' }]}>
+              <Text
+                style={[
+                  styles.readyCardText,
+                  { color: isDark ? "#34D399" : "#047857" },
+                ]}
+              >
                 Update package downloaded. Tap below to launch installation.
               </Text>
             </View>
@@ -857,9 +1090,24 @@ function ForceUpdateView({
 
           {/* Download error card */}
           {Boolean(downloadError) && !isDownloading && (
-            <View style={[styles.errorCard, { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEF2F2', borderColor: '#FCA5A5' }]}>
+            <View
+              style={[
+                styles.errorCard,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(239, 68, 68, 0.15)"
+                    : "#FEF2F2",
+                  borderColor: "#FCA5A5",
+                },
+              ]}
+            >
               <Feather name="alert-circle" size={20} color="#DC2626" />
-              <Text style={[styles.errorCardText, { color: isDark ? '#F87171' : '#B91C1C' }]}>
+              <Text
+                style={[
+                  styles.errorCardText,
+                  { color: isDark ? "#F87171" : "#B91C1C" },
+                ]}
+              >
                 {downloadError}
               </Text>
             </View>
@@ -880,23 +1128,31 @@ function ForceUpdateView({
               <>
                 <ActivityIndicator size="small" color="#FFFFFF" />
                 <Text style={styles.gatePrimaryBtnText}>
-                  {isDownloading ? `Downloading (${downloadProgress}%)` : 'Launching Installer...'}
+                  {isDownloading
+                    ? `Downloading (${downloadProgress}%)`
+                    : "Launching Installer..."}
                 </Text>
               </>
             ) : downloadedUri ? (
               <>
                 <Feather name="package" size={18} color="#FFFFFF" />
-                <Text style={styles.gatePrimaryBtnText}>Install Update Now</Text>
+                <Text style={styles.gatePrimaryBtnText}>
+                  Install Update Now
+                </Text>
               </>
             ) : canInAppUpdate ? (
               <>
                 <Feather name="download" size={18} color="#FFFFFF" />
-                <Text style={styles.gatePrimaryBtnText}>1-Tap In-App Update</Text>
+                <Text style={styles.gatePrimaryBtnText}>
+                  1-Tap In-App Update
+                </Text>
               </>
             ) : (
               <>
                 <Feather name="external-link" size={18} color="#FFFFFF" />
-                <Text style={styles.gatePrimaryBtnText}>Download App Update</Text>
+                <Text style={styles.gatePrimaryBtnText}>
+                  Download App Update
+                </Text>
               </>
             )}
           </TouchableOpacity>
@@ -908,7 +1164,9 @@ function ForceUpdateView({
               onPress={handleOpenBrowser}
               activeOpacity={0.7}
             >
-              <Text style={[styles.browserLinkBtnText, { color: colors.primary }]}>
+              <Text
+                style={[styles.browserLinkBtnText, { color: colors.primary }]}
+              >
                 Or download via web browser
               </Text>
             </TouchableOpacity>
@@ -925,7 +1183,11 @@ function ForceUpdateView({
             ) : (
               <>
                 <Feather name="refresh-cw" size={14} color={colors.text} />
-                <Text style={[styles.gateSecondaryBtnText, { color: colors.text }]}>I've Already Updated</Text>
+                <Text
+                  style={[styles.gateSecondaryBtnText, { color: colors.text }]}
+                >
+                  I've Already Updated
+                </Text>
               </>
             )}
           </TouchableOpacity>
@@ -941,34 +1203,34 @@ const styles = StyleSheet.create({
   },
   gateScrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 24,
     paddingHorizontal: 24,
   },
   gateContent: {
-    width: '100%',
+    width: "100%",
     maxWidth: 420,
-    alignItems: 'center',
+    alignItems: "center",
   },
   gateIconCircle: {
     width: 88,
     height: 88,
     borderRadius: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 20,
   },
   gateStoreTitle: {
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: "800",
     letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     marginBottom: 8,
   },
   userGreetingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 6,
@@ -978,13 +1240,13 @@ const styles = StyleSheet.create({
   },
   userGreetingText: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: "800",
     letterSpacing: 0.2,
   },
   gateBadge: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: "#FEF2F2",
     borderWidth: 1,
-    borderColor: '#FEE2E2',
+    borderColor: "#FEE2E2",
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 20,
@@ -992,26 +1254,26 @@ const styles = StyleSheet.create({
   },
   gateBadgeText: {
     fontSize: 11,
-    fontWeight: '800',
-    color: '#DC2626',
+    fontWeight: "800",
+    color: "#DC2626",
     letterSpacing: 0.5,
   },
   gateHeading: {
     fontSize: 22,
-    fontWeight: '900',
-    textAlign: 'center',
+    fontWeight: "900",
+    textAlign: "center",
     marginBottom: 10,
     letterSpacing: -0.3,
   },
   gateDescription: {
     fontSize: 14,
     lineHeight: 22,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 24,
     paddingHorizontal: 12,
   },
   gateContactBox: {
-    width: '100%',
+    width: "100%",
     borderWidth: 1,
     borderRadius: 16,
     padding: 16,
@@ -1020,55 +1282,55 @@ const styles = StyleSheet.create({
   },
   gateContactTitle: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 4,
   },
   contactRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
     paddingVertical: 2,
   },
   contactText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   versionPillContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 16,
     borderWidth: 1,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 12,
     marginBottom: 24,
-    width: '100%',
+    width: "100%",
   },
   versionPillText: {
     fontSize: 13,
   },
   gatePrimaryBtn: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
     paddingVertical: 14,
     borderRadius: 14,
-    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+    boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
     elevation: 3,
   },
   gatePrimaryBtnText: {
     fontSize: 15,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    fontWeight: "800",
+    color: "#FFFFFF",
   },
   gateSecondaryBtn: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
     paddingVertical: 13,
     borderRadius: 14,
@@ -1077,10 +1339,10 @@ const styles = StyleSheet.create({
   },
   gateSecondaryBtnText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   progressContainer: {
-    width: '100%',
+    width: "100%",
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
@@ -1088,38 +1350,38 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   progressStatsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: "100%",
   },
   progressLabelText: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   progressPercentText: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: "800",
   },
   progressBarTrack: {
     height: 8,
-    width: '100%',
+    width: "100%",
     borderRadius: 4,
-    overflow: 'hidden',
+    overflow: "hidden",
     marginVertical: 4,
   },
   progressBarFill: {
-    height: '100%',
+    height: "100%",
     borderRadius: 4,
   },
   progressBytesText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   readyCard: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
     padding: 12,
     borderRadius: 12,
@@ -1128,14 +1390,14 @@ const styles = StyleSheet.create({
   },
   readyCardText: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: "700",
     flex: 1,
     lineHeight: 18,
   },
   errorCard: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
     padding: 12,
     borderRadius: 12,
@@ -1144,7 +1406,7 @@ const styles = StyleSheet.create({
   },
   errorCardText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
     flex: 1,
     lineHeight: 18,
   },
@@ -1152,12 +1414,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 16,
     marginTop: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   browserLinkBtnText: {
     fontSize: 13,
-    fontWeight: '600',
-    textDecorationLine: 'underline',
+    fontWeight: "600",
+    textDecorationLine: "underline",
   },
 });

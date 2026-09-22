@@ -1,27 +1,27 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  Animated, 
-  TouchableOpacity, 
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Animated,
+  TouchableOpacity,
   Image,
   Modal,
-  Platform
-} from 'react-native';
-import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
+  Platform,
+} from "react-native";
 
-const USE_NATIVE_DRIVER = Platform.OS !== 'web';
-import { 
-  getHasShownWelcomeSession, 
-  setHasShownWelcomeSession, 
-  resetWelcomeSession 
-} from '../utils/welcomeSession';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
+import {
+  getHasShownWelcomeSession,
+  setHasShownWelcomeSession,
+  resetWelcomeSession,
+} from "../utils/welcomeSession";
+
+const USE_NATIVE_DRIVER = Platform.OS !== "web";
 
 export { resetWelcomeSession };
-
 
 interface WelcomeScreenProps {
   forceShow?: boolean;
@@ -29,7 +29,11 @@ interface WelcomeScreenProps {
   onFinish?: () => void;
 }
 
-export function WelcomeScreen({ forceShow = false, onStart, onFinish }: WelcomeScreenProps) {
+export function WelcomeScreen({
+  forceShow = false,
+  onStart,
+  onFinish,
+}: WelcomeScreenProps) {
   const { user, isLoading } = useAuth();
   const { colors, isDark } = useTheme();
   const [visible, setVisible] = useState(false);
@@ -38,7 +42,7 @@ export function WelcomeScreen({ forceShow = false, onStart, onFinish }: WelcomeS
   const logoScaleAnim = useRef(new Animated.Value(0.85)).current;
   const logoTranslateYAnim = useRef(new Animated.Value(24)).current;
   const logoFadeAnim = useRef(new Animated.Value(0)).current;
-  
+
   const brandFadeAnim = useRef(new Animated.Value(0)).current;
   const greetingFadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -68,12 +72,34 @@ export function WelcomeScreen({ forceShow = false, onStart, onFinish }: WelcomeS
       // Staggered entrance
       Animated.stagger(150, [
         Animated.parallel([
-          Animated.spring(logoScaleAnim, { toValue: 1, tension: 50, friction: 7, useNativeDriver: USE_NATIVE_DRIVER }),
-          Animated.spring(logoTranslateYAnim, { toValue: 0, tension: 50, friction: 7, useNativeDriver: USE_NATIVE_DRIVER }),
-          Animated.timing(logoFadeAnim, { toValue: 1, duration: 400, useNativeDriver: USE_NATIVE_DRIVER }),
+          Animated.spring(logoScaleAnim, {
+            toValue: 1,
+            tension: 50,
+            friction: 7,
+            useNativeDriver: USE_NATIVE_DRIVER,
+          }),
+          Animated.spring(logoTranslateYAnim, {
+            toValue: 0,
+            tension: 50,
+            friction: 7,
+            useNativeDriver: USE_NATIVE_DRIVER,
+          }),
+          Animated.timing(logoFadeAnim, {
+            toValue: 1,
+            duration: 400,
+            useNativeDriver: USE_NATIVE_DRIVER,
+          }),
         ]),
-        Animated.timing(brandFadeAnim, { toValue: 1, duration: 400, useNativeDriver: USE_NATIVE_DRIVER }),
-        Animated.timing(greetingFadeAnim, { toValue: 1, duration: 400, useNativeDriver: USE_NATIVE_DRIVER }),
+        Animated.timing(brandFadeAnim, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+        Animated.timing(greetingFadeAnim, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
       ]).start();
 
       const timer = setTimeout(() => {
@@ -98,75 +124,121 @@ export function WelcomeScreen({ forceShow = false, onStart, onFinish }: WelcomeS
   if (!visible) return null;
 
   const hour = new Date().getHours();
-  let greeting = 'Welcome';
+  let greeting = "Welcome";
   if (hour >= 5 && hour < 12) {
-    greeting = 'Good morning';
+    greeting = "Good morning";
   } else if (hour >= 12 && hour < 17) {
-    greeting = 'Good afternoon';
+    greeting = "Good afternoon";
   } else if (hour >= 17 && hour < 22) {
-    greeting = 'Good evening';
+    greeting = "Good evening";
   }
 
-  const name = user?.first_name || user?.username || 'Guest';
+  const name = user?.first_name || user?.username || "Guest";
 
   return (
-    <Modal transparent statusBarTranslucent visible={visible} animationType="none" onRequestClose={dismiss}>
-      <Animated.View 
-        style={[
-          styles.overlay, 
-          { opacity: mainFadeAnim }
-        ]}
-      >
-        <LinearGradient 
-          colors={isDark ? ['#090D16', '#0C1220', '#064E3B'] : ['#FFFFFF', '#F0FDF4', '#ECFDF5']} 
-          start={{ x: 0.5, y: 0 }} 
-          end={{ x: 0.5, y: 1 }} 
-          style={StyleSheet.absoluteFill} 
+    <Modal
+      transparent
+      statusBarTranslucent
+      visible={visible}
+      animationType="none"
+      onRequestClose={dismiss}
+    >
+      <Animated.View style={[styles.overlay, { opacity: mainFadeAnim }]}>
+        <LinearGradient
+          colors={
+            isDark
+              ? ["#090D16", "#0C1220", "#064E3B"]
+              : ["#FFFFFF", "#F0FDF4", "#ECFDF5"]
+          }
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={StyleSheet.absoluteFill}
         />
-        
-        {/* Ambient Decoration */}
-        <View style={[styles.circle1, isDark && { borderColor: 'rgba(52, 211, 153, 0.1)' }]} />
-        <View style={[styles.circle2, isDark && { borderColor: 'rgba(52, 211, 153, 0.12)' }]} />
-        <View style={[styles.circle3, isDark && { backgroundColor: 'rgba(52, 211, 153, 0.06)' }]} />
 
-        <TouchableOpacity 
-          style={styles.touchContainer} 
-          activeOpacity={1} 
+        {/* Ambient Decoration */}
+        <View
+          style={[
+            styles.circle1,
+            isDark && { borderColor: "rgba(52, 211, 153, 0.1)" },
+          ]}
+        />
+        <View
+          style={[
+            styles.circle2,
+            isDark && { borderColor: "rgba(52, 211, 153, 0.12)" },
+          ]}
+        />
+        <View
+          style={[
+            styles.circle3,
+            isDark && { backgroundColor: "rgba(52, 211, 153, 0.06)" },
+          ]}
+        />
+
+        <TouchableOpacity
+          style={styles.touchContainer}
+          activeOpacity={1}
           onPress={dismiss}
         >
           <View style={styles.contentContainer}>
-            <Animated.View 
+            <Animated.View
               style={{
                 opacity: logoFadeAnim,
                 transform: [
                   { scale: logoScaleAnim },
-                  { translateY: logoTranslateYAnim }
+                  { translateY: logoTranslateYAnim },
                 ],
-                alignItems: 'center'
+                alignItems: "center",
               }}
             >
               <View style={styles.logoWrapper}>
-                <Image 
-                  source={require('../../assets/logo-transparent.png')} 
-                  style={styles.logoImage} 
+                <Image
+                  source={require("../../assets/logo-transparent.png")}
+                  style={styles.logoImage}
                   resizeMode="contain"
                 />
               </View>
             </Animated.View>
 
-            <Animated.View style={[styles.brandRow, { opacity: brandFadeAnim }]}>
-              <Text style={[styles.brandEmerald, isDark && { color: '#34D399' }]}>NARENDRA </Text>
-              <Text style={[styles.brandPrimary, isDark && { color: colors.primary }]}>KIRANA</Text>
+            <Animated.View
+              style={[styles.brandRow, { opacity: brandFadeAnim }]}
+            >
+              <Text
+                style={[styles.brandEmerald, isDark && { color: "#34D399" }]}
+              >
+                NARENDRA{" "}
+              </Text>
+              <Text
+                style={[
+                  styles.brandPrimary,
+                  isDark && { color: colors.primary },
+                ]}
+              >
+                KIRANA
+              </Text>
             </Animated.View>
 
             <Animated.View style={{ opacity: greetingFadeAnim }}>
-              <Text style={[styles.greetingHeadline, isDark && { color: '#F8FAFC' }]}>
-                {greeting},{'\n'}{name}.
+              <Text
+                style={[
+                  styles.greetingHeadline,
+                  isDark && { color: "#F8FAFC" },
+                ]}
+              >
+                {greeting},{"\n"}
+                {name}.
               </Text>
             </Animated.View>
           </View>
-          
-          <Text style={[styles.dismissHint, isDark && { color: 'rgba(148, 163, 184, 0.6)' }]}>Tap anywhere to continue</Text>
+
+          <Text
+            style={[
+              styles.dismissHint,
+              isDark && { color: "rgba(148, 163, 184, 0.6)" },
+            ]}
+          >
+            Tap anywhere to continue
+          </Text>
         </TouchableOpacity>
       </Animated.View>
     </Modal>
@@ -176,54 +248,54 @@ export function WelcomeScreen({ forceShow = false, onStart, onFinish }: WelcomeS
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
   },
   circle1: {
-    position: 'absolute',
-    alignSelf: 'center',
+    position: "absolute",
+    alignSelf: "center",
     width: 280,
     height: 280,
     borderRadius: 140,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.06)',
+    borderColor: "rgba(16, 185, 129, 0.06)",
   },
   circle2: {
-    position: 'absolute',
-    alignSelf: 'center',
+    position: "absolute",
+    alignSelf: "center",
     width: 200,
     height: 200,
     borderRadius: 100,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.08)',
+    borderColor: "rgba(16, 185, 129, 0.08)",
   },
   circle3: {
-    position: 'absolute',
-    alignSelf: 'center',
+    position: "absolute",
+    alignSelf: "center",
     width: 140,
     height: 140,
     borderRadius: 70,
-    backgroundColor: 'rgba(16, 185, 129, 0.04)',
+    backgroundColor: "rgba(16, 185, 129, 0.04)",
   },
   touchContainer: {
     flex: 1,
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
   },
   contentContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingHorizontal: 24,
   },
   logoWrapper: {
     width: 130,
     height: 130,
-    backgroundColor: 'transparent',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "transparent",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 18,
   },
   logoImage: {
@@ -231,38 +303,38 @@ const styles = StyleSheet.create({
     height: 130,
   },
   brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 24,
   },
   brandEmerald: {
     fontSize: 15,
-    fontWeight: '900',
-    color: '#064E3B',
+    fontWeight: "900",
+    color: "#064E3B",
     letterSpacing: 4,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
   brandPrimary: {
     fontSize: 15,
-    fontWeight: '900',
-    color: '#16A34A',
+    fontWeight: "900",
+    color: "#16A34A",
     letterSpacing: 4,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
   greetingHeadline: {
     fontSize: 36,
-    fontWeight: '900',
-    color: '#0F172A',
-    textAlign: 'center',
+    fontWeight: "900",
+    color: "#0F172A",
+    textAlign: "center",
     letterSpacing: -0.5,
     lineHeight: 44,
     paddingHorizontal: 16,
   },
   dismissHint: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 60,
     fontSize: 12,
-    color: 'rgba(100, 116, 139, 0.4)',
-    fontWeight: '500',
+    color: "rgba(100, 116, 139, 0.4)",
+    fontWeight: "500",
   },
 });

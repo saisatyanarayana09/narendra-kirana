@@ -1,5 +1,10 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getItem as getSecureItem, saveItem as saveSecureItem, deleteItem as deleteSecureItem } from './storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import {
+  getItem as getSecureItem,
+  saveItem as saveSecureItem,
+  deleteItem as deleteSecureItem,
+} from "./storage";
 
 // In-memory fallback map for environments where native storage module is null
 const memoryStorage = new Map<string, string>();
@@ -10,11 +15,11 @@ async function isAsyncStorageWorking(): Promise<boolean> {
     return asyncStorageAvailable;
   }
   try {
-    if (!AsyncStorage || typeof AsyncStorage.getItem !== 'function') {
+    if (!AsyncStorage || typeof AsyncStorage.getItem !== "function") {
       asyncStorageAvailable = false;
       return false;
     }
-    await AsyncStorage.getItem('storage_test');
+    await AsyncStorage.getItem("storage_test");
     asyncStorageAvailable = true;
     return true;
   } catch {
@@ -49,7 +54,10 @@ export async function getGuestStorageItem(key: string): Promise<string | null> {
   return memoryStorage.get(key) || null;
 }
 
-export async function setGuestStorageItem(key: string, value: string): Promise<void> {
+export async function setGuestStorageItem(
+  key: string,
+  value: string,
+): Promise<void> {
   memoryStorage.set(key, value);
 
   // 1. Try AsyncStorage

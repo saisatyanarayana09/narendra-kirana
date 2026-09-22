@@ -1,19 +1,24 @@
-import React from 'react';
+import { Feather } from "@expo/vector-icons";
+import React from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
-import { AppNavigationProp } from '../../navigation/types';
-import { useTheme } from '../../context/ThemeContext';
-import { useLanguage, Language } from '../../context/LanguageContext';
-import { triggerHaptic } from '../../utils/haptics';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-export function LanguageScreen({ navigation }: { navigation: AppNavigationProp }) {
+import { useLanguage, Language } from "../../context/LanguageContext";
+import { useTheme } from "../../context/ThemeContext";
+import { AppNavigationProp } from "../../navigation/types";
+import { triggerHaptic } from "../../utils/haptics";
+
+export function LanguageScreen({
+  navigation,
+}: {
+  navigation: AppNavigationProp;
+}) {
   const { colors } = useTheme();
   const { language, setLanguage, t } = useLanguage();
 
@@ -24,45 +29,61 @@ export function LanguageScreen({ navigation }: { navigation: AppNavigationProp }
     englishName: string;
   }[] = [
     {
-      code: 'en',
-      flag: '🇬🇧',
-      nativeName: 'English (India)',
-      englishName: 'English (India)',
+      code: "en",
+      flag: "🇬🇧",
+      nativeName: "English (India)",
+      englishName: "English (India)",
     },
     {
-      code: 'te',
-      flag: '🇮🇳',
-      nativeName: 'తెలుగు (India)',
-      englishName: 'Telugu (India)',
+      code: "te",
+      flag: "🇮🇳",
+      nativeName: "తెలుగు (India)",
+      englishName: "Telugu (India)",
     },
   ];
 
   const handleSelectLanguage = (lang: Language) => {
-    triggerHaptic('selection');
+    triggerHaptic("selection");
     setLanguage(lang);
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={["top"]}
+    >
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.border, backgroundColor: colors.surface }]}>
+      <View
+        style={[
+          styles.header,
+          { borderBottomColor: colors.border, backgroundColor: colors.surface },
+        ]}
+      >
         <TouchableOpacity
           style={styles.backButton}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           onPress={() => {
-            triggerHaptic('light');
-            if(navigation.canGoBack()) { navigation.goBack(); } else { navigation.navigate('Main'); }
+            triggerHaptic("light");
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate("Main");
+            }
           }}
           activeOpacity={0.7}
         >
           <Feather name="arrow-left" size={18} color={colors.primary} />
-          <Text style={[styles.backButtonText, { color: colors.primary }]}>{t('back')}</Text>
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>
+            {t("back")}
+          </Text>
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text, fontSize: 20 }]}>
-          {t('languages')}
+        <Text
+          style={[styles.headerTitle, { color: colors.text, fontSize: 20 }]}
+        >
+          {t("languages")}
         </Text>
         <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-          {t('chooseLanguageSubtitle')}
+          {t("chooseLanguageSubtitle")}
         </Text>
       </View>
 
@@ -72,7 +93,7 @@ export function LanguageScreen({ navigation }: { navigation: AppNavigationProp }
       >
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            {t('selectLanguage')}
+            {t("selectLanguage")}
           </Text>
         </View>
 
@@ -99,7 +120,9 @@ export function LanguageScreen({ navigation }: { navigation: AppNavigationProp }
                     style={[
                       styles.flagCircle,
                       {
-                        backgroundColor: isSelected ? colors.primaryLight : colors.background,
+                        backgroundColor: isSelected
+                          ? colors.primaryLight
+                          : colors.background,
                       },
                     ]}
                   >
@@ -113,13 +136,18 @@ export function LanguageScreen({ navigation }: { navigation: AppNavigationProp }
                         {
                           color: isSelected ? colors.primaryDark : colors.text,
                           fontSize: 16,
-                          fontWeight: isSelected ? '800' : '700',
+                          fontWeight: isSelected ? "800" : "700",
                         },
                       ]}
                     >
                       {opt.nativeName}
                     </Text>
-                    <Text style={[styles.englishName, { color: colors.textSecondary }]}>
+                    <Text
+                      style={[
+                        styles.englishName,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
                       {opt.englishName}
                     </Text>
                   </View>
@@ -130,11 +158,15 @@ export function LanguageScreen({ navigation }: { navigation: AppNavigationProp }
                     styles.radioIndicator,
                     {
                       borderColor: isSelected ? colors.primary : colors.border,
-                      backgroundColor: isSelected ? colors.primary : 'transparent',
+                      backgroundColor: isSelected
+                        ? colors.primary
+                        : "transparent",
                     },
                   ]}
                 >
-                  {isSelected && <Feather name="check" size={14} color="#FFFFFF" />}
+                  {isSelected && (
+                    <Feather name="check" size={14} color="#FFFFFF" />
+                  )}
                 </View>
               </TouchableOpacity>
             );
@@ -152,8 +184,14 @@ export function LanguageScreen({ navigation }: { navigation: AppNavigationProp }
           ]}
         >
           <Feather name="info" size={16} color={colors.primary} />
-          <Text style={[styles.noteText, { color: colors.textSecondary, fontSize: 13 }]}>
-            Changing the language immediately updates the navigation, categories, buttons, and settings across the app.
+          <Text
+            style={[
+              styles.noteText,
+              { color: colors.textSecondary, fontSize: 13 },
+            ]}
+          >
+            Changing the language immediately updates the navigation,
+            categories, buttons, and settings across the app.
           </Text>
         </View>
       </ScrollView>
@@ -172,25 +210,25 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 8,
     gap: 4,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   backButtonText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   headerTitle: {
-    fontWeight: '900',
+    fontWeight: "900",
     lineHeight: 24,
     letterSpacing: -0.5,
   },
   headerSubtitle: {
     fontSize: 13,
     marginTop: 2,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   scrollContent: {
     padding: 16,
@@ -202,8 +240,8 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 13,
-    fontWeight: '700',
-    textTransform: 'uppercase',
+    fontWeight: "700",
+    textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   cardsList: {
@@ -213,15 +251,15 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 14,
     paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.04)',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    boxShadow: "0px 1px 3px rgba(0, 0, 0, 0.04)",
     elevation: 1,
   },
   cardLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 14,
     flex: 1,
   },
@@ -229,8 +267,8 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   flagEmoji: {
     fontSize: 22,
@@ -243,29 +281,29 @@ const styles = StyleSheet.create({
   },
   englishName: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   radioIndicator: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginLeft: 10,
   },
   noteCard: {
     borderRadius: 14,
     borderWidth: 1,
     padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
     marginTop: 8,
   },
   noteText: {
     flex: 1,
     lineHeight: 18,
-    fontWeight: '500',
+    fontWeight: "500",
   },
 });

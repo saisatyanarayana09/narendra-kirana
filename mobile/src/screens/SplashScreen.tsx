@@ -1,7 +1,14 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Image, Platform } from 'react-native';
+import React, { useEffect, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Animated,
+  Image,
+  Platform,
+} from "react-native";
 
-const USE_NATIVE_DRIVER = Platform.OS !== 'web';
+const USE_NATIVE_DRIVER = Platform.OS !== "web";
 
 export function SplashScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -24,12 +31,17 @@ export function SplashScreen() {
 
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
+      <Animated.View
+        style={[
+          styles.content,
+          { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
+        ]}
+      >
         <View style={styles.logoBox}>
-          <Image 
-            source={require('../../assets/logo.jpg')} 
-            style={styles.logoImage} 
-            resizeMode="contain" 
+          <Image
+            source={require("../../assets/logo.jpg")}
+            style={styles.logoImage}
+            resizeMode="contain"
           />
         </View>
         <View style={styles.brandRow}>
@@ -45,22 +57,22 @@ export function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
   },
   content: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   logoBox: {
     width: 100,
     height: 100,
     borderRadius: 22,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 16,
-    boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.1)',
+    boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
     elevation: 4,
   },
   logoImage: {
@@ -68,27 +80,27 @@ const styles = StyleSheet.create({
     height: 90,
   },
   brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 8,
   },
   brandEmerald: {
     fontSize: 16,
-    fontWeight: '900',
-    color: '#064E3B',
+    fontWeight: "900",
+    color: "#064E3B",
     letterSpacing: 3,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
   brandRed: {
     fontSize: 16,
-    fontWeight: '900',
-    color: '#DC2626',
+    fontWeight: "900",
+    color: "#DC2626",
     letterSpacing: 3,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
   tagline: {
     fontSize: 13,
-    color: '#64748B',
-    fontWeight: '500',
+    color: "#64748B",
+    fontWeight: "500",
   },
 });

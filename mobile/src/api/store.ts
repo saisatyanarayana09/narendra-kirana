@@ -1,7 +1,8 @@
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_BASE_URL } from '../constants/config';
-import { apiClient } from './client';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+
+import { apiClient } from "./client";
+import { API_BASE_URL } from "../constants/config";
 
 export interface StoreSettings {
   store_name?: string;
@@ -46,7 +47,7 @@ export interface StoreSettings {
   enable_time_slots?: boolean;
   preparation_buffer_minutes?: number;
   max_orders_per_slot?: number;
-  time_slots_json?: Array<{ start?: string; end?: string; label?: string }> | string;
+  time_slots_json?: { start?: string; end?: string; label?: string }[] | string;
 
   // WhatsApp Support
   enable_whatsapp_support?: boolean;
@@ -84,7 +85,7 @@ export interface StoreSettings {
   maintenance_estimated_end?: string;
 }
 
-const SETTINGS_CACHE_KEY = 'sk_store_settings_cache';
+const SETTINGS_CACHE_KEY = "sk_store_settings_cache";
 let cachedSettings: StoreSettings | null = null;
 let cacheExpiry = 0;
 let inFlightSettingsPromise: Promise<StoreSettings> | null = null;
@@ -148,14 +149,20 @@ function fetchAndCacheSettings(): Promise<StoreSettings> {
 
   inFlightSettingsPromise = (async () => {
     try {
-      const res = await apiClient.get('/store/settings/');
-      const data = res.data ? (Array.isArray(res.data) ? res.data[0] : res.data) : null;
+      const res = await apiClient.get("/store/settings/");
+      const data = res.data
+        ? Array.isArray(res.data)
+          ? res.data[0]
+          : res.data
+        : null;
       if (data) {
         cachedSettings = data;
         cacheExpiry = Date.now() + 15000; // 15s fresh cache
 
         // Persist to disk for next cold start (non-blocking)
-        AsyncStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(data)).catch(() => {});
+        AsyncStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(data)).catch(
+          () => {},
+        );
       }
 
       return data;
@@ -163,16 +170,25 @@ function fetchAndCacheSettings(): Promise<StoreSettings> {
       // If apiClient failed with 401, fallback to unauthenticated request
       if (err?.response?.status === 401) {
         try {
-          const fallbackRes = await axios.get(`${API_BASE_URL}/store/settings/`, {
-            timeout: 30000,
-            headers: { 'Content-Type': 'application/json' },
-          });
-          const data = fallbackRes.data ? (Array.isArray(fallbackRes.data) ? fallbackRes.data[0] : fallbackRes.data) : null;
+          const fallbackRes = await axios.get(
+            `${API_BASE_URL}/store/settings/`,
+            {
+              timeout: 30000,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
+          const data = fallbackRes.data
+            ? Array.isArray(fallbackRes.data)
+              ? fallbackRes.data[0]
+              : fallbackRes.data
+            : null;
           if (data) {
             cachedSettings = data;
             cacheExpiry = Date.now() + 15000;
           }
-          AsyncStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(data)).catch(() => {});
+          AsyncStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(data)).catch(
+            () => {},
+          );
           return data;
         } catch {
           // Bubble original error if unauthenticated fallback also fails
@@ -190,4 +206,3 @@ function fetchAndCacheSettings(): Promise<StoreSettings> {
 
   return inFlightSettingsPromise;
 }
-

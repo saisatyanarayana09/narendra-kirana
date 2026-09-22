@@ -1,7 +1,8 @@
-import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { DeviceEventEmitter } from 'react-native';
-import { API_BASE_URL, STORAGE_KEYS } from '../constants/config';
-import { getItem, getItemSync, saveItem, deleteItem } from '../utils/storage';
+import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
+import { DeviceEventEmitter } from "react-native";
+
+import { API_BASE_URL, STORAGE_KEYS } from "../constants/config";
+import { getItem, getItemSync, saveItem, deleteItem } from "../utils/storage";
 
 export interface CustomRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
@@ -12,7 +13,7 @@ export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 60000, // 60s network timeout to comfortably accommodate free-tier backend cold starts
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
@@ -23,7 +24,7 @@ const clearAuthStorage = async () => {
     await deleteItem(STORAGE_KEYS.REFRESH);
     await deleteItem(STORAGE_KEYS.USER);
   } catch (err) {
-    console.warn('[ApiClient] Failed to clear auth storage:', err);
+    console.warn("[ApiClient] Failed to clear auth storage:", err);
   }
 };
 
@@ -32,11 +33,11 @@ const isAuthEndpoint = (url?: string): boolean => {
   if (!url) return false;
   const cleanUrl = url.toLowerCase();
   return (
-    cleanUrl.includes('auth/login') ||
-    cleanUrl.includes('auth/token/refresh') ||
-    cleanUrl.includes('auth/signup') ||
-    cleanUrl.includes('auth/register') ||
-    cleanUrl.includes('auth/password-reset')
+    cleanUrl.includes("auth/login") ||
+    cleanUrl.includes("auth/token/refresh") ||
+    cleanUrl.includes("auth/signup") ||
+    cleanUrl.includes("auth/register") ||
+    cleanUrl.includes("auth/password-reset")
   );
 };
 
@@ -44,25 +45,29 @@ const isAuthEndpoint = (url?: string): boolean => {
 apiClient.interceptors.request.use(
   async (config) => {
     try {
-      const token = getItemSync(STORAGE_KEYS.TOKEN) || await getItem(STORAGE_KEYS.TOKEN);
+      const token =
+        getItemSync(STORAGE_KEYS.TOKEN) || (await getItem(STORAGE_KEYS.TOKEN));
       if (token) {
         config.headers = config.headers || {};
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (err) {
-      console.warn('[ApiClient] Failed to retrieve auth token for request:', err);
+      console.warn(
+        "[ApiClient] Failed to retrieve auth token for request:",
+        err,
+      );
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // Concurrency queue for handling multiple 401s without duplicate refreshes
 let isRefreshing = false;
-let failedQueue: Array<{
+let failedQueue: {
   resolve: (token: string) => void;
   reject: (error: any) => void;
-}> = [];
+}[] = [];
 
 const processQueue = (error: any, token: string | null = null) => {
   failedQueue.forEach((prom) => {
@@ -82,23 +87,23 @@ apiClient.interceptors.response.use(
     try {
       // 1. Handle Network Timeout and Disconnect Errors (ECONNABORTED, ERR_NETWORK, etc.)
       const isTimeout =
-        error?.code === 'ECONNABORTED' ||
-        error?.code === 'ETIMEDOUT' ||
-        error?.message?.toLowerCase().includes('timeout');
+        error?.code === "ECONNABORTED" ||
+        error?.code === "ETIMEDOUT" ||
+        error?.message?.toLowerCase().includes("timeout");
 
       const isNetworkError =
-        error?.code === 'ERR_NETWORK' ||
-        error?.code === 'ENOTFOUND' ||
-        error?.code === 'ECONNREFUSED' ||
-        error?.message?.toLowerCase().includes('network') ||
+        error?.code === "ERR_NETWORK" ||
+        error?.code === "ENOTFOUND" ||
+        error?.code === "ECONNREFUSED" ||
+        error?.message?.toLowerCase().includes("network") ||
         (!error?.response && Boolean(error?.request));
 
       const originalRequest = error?.config as CustomRequestConfig | undefined;
 
       // Automatic retry for idempotent or cold-start waking up requests (max 4 retries)
       if (originalRequest && (isTimeout || isNetworkError)) {
-        const method = (originalRequest.method || 'get').toLowerCase();
-        const isSafeMethod = ['get', 'head', 'options'].includes(method);
+        const method = (originalRequest.method || "get").toLowerCase();
+        const isSafeMethod = ["get", "head", "options"].includes(method);
         const maxRetries = 4; // Up to 4 retries to accommodate 50s Render cold starts
 
         originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
@@ -106,7 +111,7 @@ apiClient.interceptors.response.use(
           // Exponential backoff: 2s, 4s, 8s, 16s
           const delayMs = Math.pow(2, originalRequest._retryCount) * 1000;
           console.log(
-            `[ApiClient] Backend waking up or transient network hiccup. Retrying ${originalRequest.url} (attempt ${originalRequest._retryCount}/${maxRetries}) in ${delayMs}ms...`
+            `[ApiClient] Backend waking up or transient network hiccup. Retrying ${originalRequest.url} (attempt ${originalRequest._retryCount}/${maxRetries}) in ${delayMs}ms...`,
           );
           await new Promise((resolve) => setTimeout(resolve, delayMs));
           return apiClient(originalRequest);
@@ -121,19 +126,21 @@ apiClient.interceptors.response.use(
 
           // Provide user-friendly message
           if (isTimeout) {
-            error.message = 'Connection timed out. Please check your internet connection.';
+            error.message =
+              "Connection timed out. Please check your internet connection.";
           } else {
-            error.message = 'Network connection error. Please verify your connection.';
+            error.message =
+              "Network connection error. Please verify your connection.";
           }
 
           // Ensure a safe fallback response structure so component catch blocks don't crash
           if (!error.response) {
             error.response = {
               status: isTimeout ? 408 : 0,
-              statusText: isTimeout ? 'Request Timeout' : 'Network Error',
+              statusText: isTimeout ? "Request Timeout" : "Network Error",
               data: {
                 detail: error.message,
-                error: isTimeout ? 'Request Timeout' : 'Network Error',
+                error: isTimeout ? "Request Timeout" : "Network Error",
               },
               headers: {},
               config: error.config,
@@ -142,7 +149,7 @@ apiClient.interceptors.response.use(
         }
 
         console.warn(
-          `[ApiClient] Network/Timeout error: ${error?.code || 'NO_RESPONSE'} - ${error?.message}`
+          `[ApiClient] Network/Timeout error: ${error?.code || "NO_RESPONSE"} - ${error?.message}`,
         );
         return Promise.reject(error);
       }
@@ -164,7 +171,7 @@ apiClient.interceptors.response.use(
         // If this request was already retried, prevent infinite loop
         if (originalRequest._retry) {
           await clearAuthStorage();
-          DeviceEventEmitter.emit('AUTH_FAILED');
+          DeviceEventEmitter.emit("AUTH_FAILED");
           return Promise.reject(error);
         }
 
@@ -191,7 +198,7 @@ apiClient.interceptors.response.use(
           if (!refreshToken) {
             processQueue(error, null);
             await clearAuthStorage();
-            DeviceEventEmitter.emit('AUTH_FAILED');
+            DeviceEventEmitter.emit("AUTH_FAILED");
             return Promise.reject(error);
           }
 
@@ -201,8 +208,8 @@ apiClient.interceptors.response.use(
             { refresh: refreshToken },
             {
               timeout: 30000,
-              headers: { 'Content-Type': 'application/json' },
-            }
+              headers: { "Content-Type": "application/json" },
+            },
           );
 
           const newAccessToken = refreshResponse.data?.access;
@@ -210,7 +217,10 @@ apiClient.interceptors.response.use(
           if (newAccessToken) {
             await saveItem(STORAGE_KEYS.TOKEN, newAccessToken);
             if (refreshResponse.data?.refresh) {
-              await saveItem(STORAGE_KEYS.REFRESH, refreshResponse.data.refresh);
+              await saveItem(
+                STORAGE_KEYS.REFRESH,
+                refreshResponse.data.refresh,
+              );
             }
 
             originalRequest.headers = originalRequest.headers || {};
@@ -219,24 +229,25 @@ apiClient.interceptors.response.use(
             processQueue(null, newAccessToken);
             return apiClient(originalRequest);
           } else {
-            throw new Error('Refresh response did not return an access token');
+            throw new Error("Refresh response did not return an access token");
           }
         } catch (refreshErr: any) {
           // Check if failure was transient network error or actual invalid token
           const isRefreshNetworkErr =
-            refreshErr?.code === 'ECONNABORTED' ||
-            refreshErr?.code === 'ERR_NETWORK' ||
-            refreshErr?.message?.toLowerCase().includes('network') ||
-            refreshErr?.message?.toLowerCase().includes('timeout') ||
+            refreshErr?.code === "ECONNABORTED" ||
+            refreshErr?.code === "ERR_NETWORK" ||
+            refreshErr?.message?.toLowerCase().includes("network") ||
+            refreshErr?.message?.toLowerCase().includes("timeout") ||
             !refreshErr?.response ||
-            (refreshErr?.response?.status >= 500 && refreshErr?.response?.status <= 599);
+            (refreshErr?.response?.status >= 500 &&
+              refreshErr?.response?.status <= 599);
 
           processQueue(refreshErr, null);
 
           if (!isRefreshNetworkErr) {
             // Token is expired / invalid / blacklisted: clear session
             await clearAuthStorage();
-            DeviceEventEmitter.emit('AUTH_FAILED');
+            DeviceEventEmitter.emit("AUTH_FAILED");
           }
 
           return Promise.reject(refreshErr);
@@ -247,8 +258,11 @@ apiClient.interceptors.response.use(
 
       return Promise.reject(error);
     } catch (interceptorErr) {
-      console.error('[ApiClient] Unhandled error inside response interceptor:', interceptorErr);
+      console.error(
+        "[ApiClient] Unhandled error inside response interceptor:",
+        interceptorErr,
+      );
       return Promise.reject(error || interceptorErr);
     }
-  }
+  },
 );

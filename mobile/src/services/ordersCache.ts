@@ -1,6 +1,6 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const CACHE_KEY = 'sk_orders_cache';
+const CACHE_KEY = "sk_orders_cache";
 
 // In-memory cache for instantaneous synchronous access (<50ms / 0ms)
 let memoryCache: any[] | null = null;
@@ -27,7 +27,7 @@ export async function loadCachedOrders(): Promise<any[] | null> {
         }
       }
     } catch (err) {
-      console.warn('[ordersCache] Failed to load cache:', err);
+      console.warn("[ordersCache] Failed to load cache:", err);
     }
     return null;
   })();
@@ -78,7 +78,7 @@ export async function saveCachedOrders(orders: any[]): Promise<void> {
   try {
     await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(orders));
   } catch (err) {
-    console.warn('[ordersCache] Failed to save cache:', err);
+    console.warn("[ordersCache] Failed to save cache:", err);
   }
 }
 

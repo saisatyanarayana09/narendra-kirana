@@ -1,4 +1,4 @@
-import * as Updates from 'expo-updates';
+import * as Updates from "expo-updates";
 
 export interface OtaState {
   isChecking: boolean;
@@ -32,7 +32,9 @@ export function getOtaState(): OtaState {
   return currentState;
 }
 
-export function subscribeOtaState(listener: (state: OtaState) => void): () => void {
+export function subscribeOtaState(
+  listener: (state: OtaState) => void,
+): () => void {
   listeners.add(listener);
   listener(currentState);
   return () => {
@@ -46,29 +48,34 @@ export function subscribeOtaState(listener: (state: OtaState) => void): () => vo
  * - If check takes > maxWaitMs (slow network): immediately returns false so user can shop,
  *   then continues downloading silently in background and notifies listeners when ready.
  */
-export async function runStartupOtaFlow(): Promise<{ shouldBlockAndReload: boolean }> {
+export async function runStartupOtaFlow(): Promise<{
+  shouldBlockAndReload: boolean;
+}> {
   if (__DEV__ || !Updates.isEnabled) {
     return { shouldBlockAndReload: false };
   }
 
   try {
     updateState({ isChecking: true });
-    
+
     // Set a hard 10-second timeout just in case network hangs
     const checkPromise = Updates.checkForUpdateAsync();
-    const timeoutPromise = new Promise<never>((_, reject) => 
-      setTimeout(() => reject(new Error('Check timeout')), 10000)
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Check timeout")), 10000),
     );
-    
-    const result = await Promise.race([checkPromise, timeoutPromise]) as Updates.UpdateCheckResult;
+
+    const result = (await Promise.race([
+      checkPromise,
+      timeoutPromise,
+    ])) as Updates.UpdateCheckResult;
     updateState({ isChecking: false });
 
     if (result.isAvailable) {
       updateState({ isUpdateAvailable: true, isDownloading: true });
-      
+
       const fetchPromise = Updates.fetchUpdateAsync();
       const fetchTimeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Download timeout')), 30000)
+        setTimeout(() => reject(new Error("Download timeout")), 30000),
       );
 
       await Promise.race([fetchPromise, fetchTimeout]);
@@ -79,8 +86,12 @@ export async function runStartupOtaFlow(): Promise<{ shouldBlockAndReload: boole
       return { shouldBlockAndReload: true };
     }
   } catch (err: any) {
-    console.warn('[OTA] Startup check/fetch failed or timed out:', err);
-    updateState({ isChecking: false, isDownloading: false, error: err?.message });
+    console.warn("[OTA] Startup check/fetch failed or timed out:", err);
+    updateState({
+      isChecking: false,
+      isDownloading: false,
+      error: err?.message,
+    });
   }
 
   return { shouldBlockAndReload: false };
@@ -91,7 +102,11 @@ export async function runStartupOtaFlow(): Promise<{ shouldBlockAndReload: boole
  */
 export async function checkAndDownloadOtaSilently(): Promise<boolean> {
   if (__DEV__ || !Updates.isEnabled) return false;
-  if (currentState.isChecking || currentState.isDownloading || currentState.isUpdatePending) {
+  if (
+    currentState.isChecking ||
+    currentState.isDownloading ||
+    currentState.isUpdatePending
+  ) {
     return currentState.isUpdatePending;
   }
 
@@ -107,7 +122,11 @@ export async function checkAndDownloadOtaSilently(): Promise<boolean> {
       return true;
     }
   } catch (err: any) {
-    updateState({ isChecking: false, isDownloading: false, error: err?.message });
+    updateState({
+      isChecking: false,
+      isDownloading: false,
+      error: err?.message,
+    });
   }
 
   return false;
@@ -123,7 +142,7 @@ export async function applyOtaUpdate(): Promise<void> {
   try {
     await Updates.reloadAsync();
   } catch (err) {
-    console.warn('[OTA] Failed to reload:', err);
+    console.warn("[OTA] Failed to reload:", err);
   }
 }
 

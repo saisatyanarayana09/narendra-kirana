@@ -1,4 +1,4 @@
-import { apiClient } from '../api/client';
+import { apiClient } from "../api/client";
 
 export interface FavoriteItem {
   id: number;
@@ -33,11 +33,11 @@ class FavoritesService {
   }
 
   private notify() {
-    this.listeners.forEach(fn => {
+    this.listeners.forEach((fn) => {
       try {
         fn();
       } catch (e) {
-        console.error('[FavoritesService] Listener error:', e);
+        console.error("[FavoritesService] Listener error:", e);
       }
     });
   }
@@ -86,14 +86,17 @@ class FavoritesService {
 
     this.fetchPromise = (async () => {
       try {
-        const res = await apiClient.get('/favorites/');
-        const rawItems: FavoriteItem[] = Array.isArray(res.data) ? res.data : (res.data?.results || []);
+        const res = await apiClient.get("/favorites/");
+        const rawItems: FavoriteItem[] = Array.isArray(res.data)
+          ? res.data
+          : res.data?.results || [];
 
         const ids = new Set<number>();
         const map: Record<number, number> = {};
 
-        rawItems.forEach(item => {
-          const pId = item.product?.id ?? item.product ?? item.product_details?.id;
+        rawItems.forEach((item) => {
+          const pId =
+            item.product?.id ?? item.product ?? item.product_details?.id;
           if (pId) {
             const numId = Number(pId);
             ids.add(numId);
@@ -109,7 +112,7 @@ class FavoritesService {
 
         return this.getSnapshot();
       } catch (err) {
-        console.warn('[FavoritesService] Error loading favorites:', err);
+        console.warn("[FavoritesService] Error loading favorites:", err);
         return this.getSnapshot();
       } finally {
         this.fetchPromise = null;
@@ -119,7 +122,10 @@ class FavoritesService {
     return this.fetchPromise;
   }
 
-  async toggleFavorite(productId: number, productDetails?: any): Promise<boolean> {
+  async toggleFavorite(
+    productId: number,
+    productDetails?: any,
+  ): Promise<boolean> {
     const isFav = this.favoriteIds.has(productId);
     const favId = this.favoriteMap[productId];
 
@@ -130,8 +136,10 @@ class FavoritesService {
     if (isFav) {
       nextIds.delete(productId);
       delete nextMap[productId];
-      this.items = this.items.filter(item => {
-        const pId = Number(item.product?.id ?? item.product ?? item.product_details?.id);
+      this.items = this.items.filter((item) => {
+        const pId = Number(
+          item.product?.id ?? item.product ?? item.product_details?.id,
+        );
         return pId !== productId && item.id !== favId;
       });
     } else {
@@ -155,20 +163,24 @@ class FavoritesService {
     try {
       if (isFav) {
         if (favId) {
-          await apiClient.delete(`/favorites/${favId}/`).catch(() =>
-            apiClient.post('/favorites/toggle/', { product: productId })
-          );
+          await apiClient
+            .delete(`/favorites/${favId}/`)
+            .catch(() =>
+              apiClient.post("/favorites/toggle/", { product: productId }),
+            );
         } else {
-          await apiClient.post('/favorites/toggle/', { product: productId });
+          await apiClient.post("/favorites/toggle/", { product: productId });
         }
         return false;
       } else {
-        const res = await apiClient.post('/favorites/', { product: productId });
+        const res = await apiClient.post("/favorites/", { product: productId });
         const newId = res.data?.id || res.data?.favorite?.id;
         if (newId) {
           this.favoriteMap[productId] = newId;
-          const found = this.items.find(i => {
-            const id = Number(i.product?.id ?? i.product ?? i.product_details?.id);
+          const found = this.items.find((i) => {
+            const id = Number(
+              i.product?.id ?? i.product ?? i.product_details?.id,
+            );
             return id === productId;
           });
           if (found) {

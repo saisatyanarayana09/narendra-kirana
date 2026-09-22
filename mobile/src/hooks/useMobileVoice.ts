@@ -1,16 +1,19 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Platform, Alert } from 'react-native';
-import * as Speech from 'expo-speech';
-import * as IntentLauncher from 'expo-intent-launcher';
+import * as IntentLauncher from "expo-intent-launcher";
+import * as Speech from "expo-speech";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Platform, Alert } from "react-native";
 
 interface UseMobileVoiceOptions {
   onResult?: (text: string) => void;
   language?: string;
 }
 
-export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceOptions = {}) {
+export function useMobileVoice({
+  onResult,
+  language = "en-IN",
+}: UseMobileVoiceOptions = {}) {
   const [isListening, setIsListening] = useState(false);
-  const [interimText, setInterimText] = useState('');
+  const [interimText, setInterimText] = useState("");
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,7 +36,9 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
       isMountedRef.current = false;
       if (recognizerRef.current) {
         try {
-          recognizerRef.current.abort ? recognizerRef.current.abort() : recognizerRef.current.stop();
+          recognizerRef.current.abort
+            ? recognizerRef.current.abort()
+            : recognizerRef.current.stop();
         } catch {
           // Ignore
         }
@@ -51,7 +56,9 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
     // Web Speech API cleanup
     if (recognizerRef.current) {
       try {
-        recognizerRef.current.abort ? recognizerRef.current.abort() : recognizerRef.current.stop();
+        recognizerRef.current.abort
+          ? recognizerRef.current.abort()
+          : recognizerRef.current.stop();
       } catch {
         // Ignore
       }
@@ -60,7 +67,7 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
 
     if (isMountedRef.current) {
       setIsListening(false);
-      setInterimText('');
+      setInterimText("");
     }
   }, []);
 
@@ -73,28 +80,29 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
     }
 
     // 1. Android Platform: Native Google SpeechRecognizer Intent (built into all Android devices, 0 native crashes)
-    if (Platform.OS === 'android') {
+    if (Platform.OS === "android") {
       try {
         setError(null);
         setIsListening(true);
-        setInterimText('Listening... Speak grocery item');
+        setInterimText("Listening... Speak grocery item");
 
-        const intentLanguage = language?.toLowerCase().includes('te')
-          ? 'te-IN'
-          : language?.toLowerCase().includes('hi')
-          ? 'hi-IN'
-          : 'en-IN';
+        const intentLanguage = language?.toLowerCase().includes("te")
+          ? "te-IN"
+          : language?.toLowerCase().includes("hi")
+            ? "hi-IN"
+            : "en-IN";
 
         const result = await IntentLauncher.startActivityAsync(
-          'android.speech.action.RECOGNIZE_SPEECH',
+          "android.speech.action.RECOGNIZE_SPEECH",
           {
             extra: {
-              'android.speech.extra.LANGUAGE_MODEL': 'free_form',
-              'android.speech.extra.LANGUAGE': intentLanguage,
-              'android.speech.extra.PROMPT': 'Say grocery item (e.g. Milk, Rice, Atta)...',
-              'android.speech.extra.MAX_RESULTS': 1,
+              "android.speech.extra.LANGUAGE_MODEL": "free_form",
+              "android.speech.extra.LANGUAGE": intentLanguage,
+              "android.speech.extra.PROMPT":
+                "Say grocery item (e.g. Milk, Rice, Atta)...",
+              "android.speech.extra.MAX_RESULTS": 1,
             },
-          }
+          },
         );
 
         if (isMountedRef.current) {
@@ -104,14 +112,14 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
         if (result.resultCode === IntentLauncher.ResultCode.Success) {
           const extraObj = (result.extra || {}) as any;
           const matches =
-            extraObj['android.speech.extra.RESULTS'] ||
-            extraObj['results'] ||
+            extraObj["android.speech.extra.RESULTS"] ||
+            extraObj["results"] ||
             [];
 
-          let spokenText = '';
+          let spokenText = "";
           if (Array.isArray(matches) && matches.length > 0) {
-            spokenText = String(matches[0] || '').trim();
-          } else if (typeof matches === 'string') {
+            spokenText = String(matches[0] || "").trim();
+          } else if (typeof matches === "string") {
             spokenText = matches.trim();
           }
 
@@ -121,43 +129,47 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
               onResultRef.current(spokenText);
             }
           } else if (isMountedRef.current) {
-            setInterimText('');
+            setInterimText("");
           }
         } else {
           // User canceled or pressed back
           if (isMountedRef.current) {
-            setInterimText('');
+            setInterimText("");
           }
         }
         return;
       } catch (err: any) {
         if (isMountedRef.current) {
           setIsListening(false);
-          setInterimText('');
+          setInterimText("");
         }
-        console.warn('[useMobileVoice] Android speech recognition intent unavailable:', err);
+        console.warn(
+          "[useMobileVoice] Android speech recognition intent unavailable:",
+          err,
+        );
         Alert.alert(
-          'Voice Search',
-          'Voice input was canceled or speech recognition is not enabled on this device. Please type your search.',
-          [{ text: 'OK' }]
+          "Voice Search",
+          "Voice input was canceled or speech recognition is not enabled on this device. Please type your search.",
+          [{ text: "OK" }],
         );
         return;
       }
     }
 
     // 2. Web Platform: Native Web Speech API
-    if (Platform.OS === 'web') {
-      if (typeof window === 'undefined') return;
+    if (Platform.OS === "web") {
+      if (typeof window === "undefined") return;
 
       const SpeechRecognition =
-        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        (window as any).SpeechRecognition ||
+        (window as any).webkitSpeechRecognition;
 
       if (!SpeechRecognition) {
-        setError('Voice recognition is not supported in this browser.');
+        setError("Voice recognition is not supported in this browser.");
         Alert.alert(
-          'Voice Search Unsupported',
-          'Voice recognition is not supported in this browser. Please use Google Chrome or Safari, or type your query.',
-          [{ text: 'OK' }]
+          "Voice Search Unsupported",
+          "Voice recognition is not supported in this browser. Please use Google Chrome or Safari, or type your query.",
+          [{ text: "OK" }],
         );
         return;
       }
@@ -165,7 +177,9 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
       try {
         if (recognizerRef.current) {
           try {
-            recognizerRef.current.abort ? recognizerRef.current.abort() : recognizerRef.current.stop();
+            recognizerRef.current.abort
+              ? recognizerRef.current.abort()
+              : recognizerRef.current.stop();
           } catch {
             // Ignore
           }
@@ -179,11 +193,11 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
 
         setError(null);
         setIsListening(true);
-        setInterimText('Listening for grocery item...');
+        setInterimText("Listening for grocery item...");
 
         recognizer.onresult = (event: any) => {
           if (!isMountedRef.current) return;
-          const result = event.results?.[0]?.[0]?.transcript || '';
+          const result = event.results?.[0]?.[0]?.transcript || "";
           setInterimText(result);
           if (event.results?.[0]?.isFinal) {
             setIsListening(false);
@@ -195,10 +209,10 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
 
         recognizer.onerror = (event: any) => {
           if (!isMountedRef.current) return;
-          console.warn('Speech recognition error:', event.error);
+          console.warn("Speech recognition error:", event.error);
           setIsListening(false);
-          setInterimText('');
-          if (event.error !== 'no-speech' && event.error !== 'aborted') {
+          setInterimText("");
+          if (event.error !== "no-speech" && event.error !== "aborted") {
             setError(`Speech recognition error: ${event.error}`);
           }
         };
@@ -212,19 +226,19 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
         recognizer.start();
         return;
       } catch (err: any) {
-        console.error('Failed to start web speech recognition:', err);
-        setError('Could not initialize microphone.');
+        console.error("Failed to start web speech recognition:", err);
+        setError("Could not initialize microphone.");
         setIsListening(false);
-        setInterimText('');
+        setInterimText("");
         return;
       }
     }
 
     // Other platforms (iOS without native speech module)
     Alert.alert(
-      'Voice Search',
-      'Please use your keyboard microphone to dictate your search.',
-      [{ text: 'OK' }]
+      "Voice Search",
+      "Please use your keyboard microphone to dictate your search.",
+      [{ text: "OK" }],
     );
   }, [language]);
 
@@ -246,7 +260,7 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
         setIsSpeaking(true);
 
         Speech.speak(textToSpeak, {
-          language: language,
+          language,
           pitch: options.pitch || 1.0,
           rate: options.rate || 0.9,
           onDone: () => {
@@ -260,11 +274,11 @@ export function useMobileVoice({ onResult, language = 'en-IN' }: UseMobileVoiceO
           },
         });
       } catch (err) {
-        console.error('Speech synthesis error:', err);
+        console.error("Speech synthesis error:", err);
         setIsSpeaking(false);
       }
     },
-    [language]
+    [language],
   );
 
   const stopSpeaking = useCallback(() => {

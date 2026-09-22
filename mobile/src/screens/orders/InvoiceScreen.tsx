@@ -1,38 +1,49 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
-  ActivityIndicator, 
+import { Feather, Ionicons } from "@expo/vector-icons";
+import * as FileSystem from "expo-file-system/legacy";
+import { Image } from "expo-image";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
   Platform,
   Share,
   Alert,
   StatusBar,
-  Linking as RNLinking
-} from 'react-native';
-import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather, Ionicons } from '@expo/vector-icons';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system/legacy';
-import { AppNavigationProp } from '../../navigation/types';
-import { theme } from '../../constants/theme';
-import { apiClient } from '../../api/client';
-import { fixImageUrl } from '../../utils/image';
-import { getItem, saveItem, deleteItem } from '../../utils/storage';
-import { useAuth } from '../../context/AuthContext';
-import { storeApi } from '../../api/store';
-import { getCachedOrderByIdSync, saveCachedSingleOrder } from '../../services/ordersCache';
+  Linking as RNLinking,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-const SAVED_DOWNLOAD_DIR_KEY = 'SAVED_SAF_INVOICE_DOWNLOAD_DIR';
+import { apiClient } from "../../api/client";
+import { storeApi } from "../../api/store";
+import { theme } from "../../constants/theme";
+import { useAuth } from "../../context/AuthContext";
+import { AppNavigationProp } from "../../navigation/types";
+import {
+  getCachedOrderByIdSync,
+  saveCachedSingleOrder,
+} from "../../services/ordersCache";
+import { fixImageUrl } from "../../utils/image";
+import { getItem, saveItem, deleteItem } from "../../utils/storage";
 
-export function InvoiceScreen({ navigation, route }: { navigation: AppNavigationProp, route: any }) {
+const SAVED_DOWNLOAD_DIR_KEY = "SAVED_SAF_INVOICE_DOWNLOAD_DIR";
+
+export function InvoiceScreen({
+  navigation,
+  route,
+}: {
+  navigation: AppNavigationProp;
+  route: any;
+}) {
   const { user } = useAuth();
   const { orderId, initialOrder } = route.params || {};
-  const cachedOrder = initialOrder || (orderId ? getCachedOrderByIdSync(orderId) : null);
+  const cachedOrder =
+    initialOrder || (orderId ? getCachedOrderByIdSync(orderId) : null);
   const [order, setOrder] = useState<any>(cachedOrder);
   const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(!cachedOrder);
@@ -41,9 +52,12 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
 
   useEffect(() => {
     // Pre-populate settings from memory cache
-    storeApi.getSettings().then((s) => {
-      if (s) setSettings(s);
-    }).catch(() => null);
+    storeApi
+      .getSettings()
+      .then((s) => {
+        if (s) setSettings(s);
+      })
+      .catch(() => null);
 
     if (user) {
       fetchInvoiceData();
@@ -63,7 +77,7 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
       }
       const [orderRes, settingsRes] = await Promise.all([
         apiClient.get(`/orders/${orderId}/`),
-        storeApi.getSettings().catch(() => null)
+        storeApi.getSettings().catch(() => null),
       ]);
       setOrder(orderRes.data);
       saveCachedSingleOrder(orderRes.data);
@@ -71,9 +85,9 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
         setSettings(settingsRes);
       }
     } catch (err) {
-      console.error('Failed to load invoice details:', err);
+      console.error("Failed to load invoice details:", err);
       if (!cachedOrder) {
-        setError('Failed to load invoice details.');
+        setError("Failed to load invoice details.");
       }
     } finally {
       setLoading(false);
@@ -81,45 +95,66 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
   };
 
   // Helper formatting
-  const orderDateObj = order?.created_at ? new Date(order.created_at) : new Date();
+  const orderDateObj = order?.created_at
+    ? new Date(order.created_at)
+    : new Date();
   const isOrderDateValid = !isNaN(orderDateObj.getTime());
-  const orderDate = isOrderDateValid 
-    ? orderDateObj.toLocaleDateString('en-IN', { 
-        year: 'numeric', month: 'long', day: 'numeric',
-        hour: '2-digit', minute: '2-digit', hour12: true
-      }) 
-    : 'N/A';
+  const orderDate = isOrderDateValid
+    ? orderDateObj.toLocaleDateString("en-IN", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      })
+    : "N/A";
 
   const invoiceDateObj = new Date();
-  const invoiceDate = invoiceDateObj.toLocaleDateString('en-IN', { 
-    year: 'numeric', month: 'long', day: 'numeric',
-    hour: '2-digit', minute: '2-digit', hour12: true
+  const invoiceDate = invoiceDateObj.toLocaleDateString("en-IN", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
   });
 
-  const orderYear = isOrderDateValid ? orderDateObj.getFullYear() : invoiceDateObj.getFullYear();
-  const invoiceNumber = `INV-${orderYear}-${String(order?.id || '').padStart(5, '0')}`;
-  const isDelivery = order?.order_type === 'DELIVERY';
-  const isRejected = order?.status === 'REJECTED';
+  const orderYear = isOrderDateValid
+    ? orderDateObj.getFullYear()
+    : invoiceDateObj.getFullYear();
+  const invoiceNumber = `INV-${orderYear}-${String(order?.id || "").padStart(5, "0")}`;
+  const isDelivery = order?.order_type === "DELIVERY";
+  const isRejected = order?.status === "REJECTED";
 
-  const validItems = (order?.items || []).filter((i: any) => i.status !== 'REJECTED');
+  const validItems = (order?.items || []).filter(
+    (i: any) => i.status !== "REJECTED",
+  );
   const subtotal = validItems.reduce((acc: number, item: any) => {
-    return acc + parseFloat(item.subtotal || item.price_snapshot || '0');
+    return acc + parseFloat(item.subtotal || item.price_snapshot || "0");
   }, 0);
 
   const signatureUrl = fixImageUrl(settings?.invoice_signature);
 
-  const rawTerms = settings?.invoice_terms_and_conditions || 
-    settings?.terms_and_conditions || 
+  const rawTerms =
+    settings?.invoice_terms_and_conditions ||
+    settings?.terms_and_conditions ||
     "1. Goods once sold will not be taken back without original bill.\n2. In case of any dispute, local jurisdiction applies.\n3. Perishable goods must be reported within 24 hours.";
-  const termsList = rawTerms.split('\n').map((t: string) => t.trim()).filter(Boolean);
+  const termsList = rawTerms
+    .split("\n")
+    .map((t: string) => t.trim())
+    .filter(Boolean);
 
   const handleWhatsAppHelp = async () => {
-    const rawNum = settings?.whatsapp_number || settings?.store_phone || '';
-    const cleanNumber = rawNum.replace(/[^0-9]/g, '');
-    const formattedNumber = cleanNumber.length === 10 ? `91${cleanNumber}` : cleanNumber;
-    const helpTemplate = settings?.whatsapp_order_help_template || 'Hi Narendra Kirana, I need help with Order #{order_id}';
-    const orderIdentifier = String(order?.id || orderId || '').trim();
-    const message = helpTemplate.replace('{order_id}', orderIdentifier);
+    const rawNum = settings?.whatsapp_number || settings?.store_phone || "";
+    const cleanNumber = rawNum.replace(/[^0-9]/g, "");
+    const formattedNumber =
+      cleanNumber.length === 10 ? `91${cleanNumber}` : cleanNumber;
+    const helpTemplate =
+      settings?.whatsapp_order_help_template ||
+      "Hi Narendra Kirana, I need help with Order #{order_id}";
+    const orderIdentifier = String(order?.id || orderId || "").trim();
+    const message = helpTemplate.replace("{order_id}", orderIdentifier);
 
     const waUrl = `whatsapp://send?phone=${formattedNumber}&text=${encodeURIComponent(message)}`;
     const webWaUrl = `https://wa.me/${formattedNumber}?text=${encodeURIComponent(message)}`;
@@ -133,34 +168,46 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
       }
     } catch {
       await RNLinking.openURL(webWaUrl).catch(() => {
-        Alert.alert('WhatsApp Not Available', `Please contact store support directly at ${rawNum}`);
+        Alert.alert(
+          "WhatsApp Not Available",
+          `Please contact store support directly at ${rawNum}`,
+        );
       });
     }
   };
 
   // Generate HTML for printable PDF exactly matching web app
   const generateInvoiceHtml = () => {
-    const itemsHtml = (order?.items || []).map((item: any, index: number) => {
-      const rejected = item.status === 'REJECTED';
-      const name = item.product_name_snapshot || item.product_name || 'Product';
-      const unit = item.unit_snapshot || '';
-      const price = (parseFloat(item.price_snapshot || item.price_at_order || '0') || 0).toFixed(2);
-      const itemSubtotal = rejected ? '0.00' : (parseFloat(item.subtotal || item.price_snapshot || '0') || 0).toFixed(2);
+    const itemsHtml = (order?.items || [])
+      .map((item: any, index: number) => {
+        const rejected = item.status === "REJECTED";
+        const name =
+          item.product_name_snapshot || item.product_name || "Product";
+        const unit = item.unit_snapshot || "";
+        const price = (
+          parseFloat(item.price_snapshot || item.price_at_order || "0") || 0
+        ).toFixed(2);
+        const itemSubtotal = rejected
+          ? "0.00"
+          : (
+              parseFloat(item.subtotal || item.price_snapshot || "0") || 0
+            ).toFixed(2);
 
-      return `
-        <tr style="border-bottom: 1px solid #E2E8F0; ${rejected ? 'opacity: 0.5;' : ''}">
+        return `
+        <tr style="border-bottom: 1px solid #E2E8F0; ${rejected ? "opacity: 0.5;" : ""}">
           <td style="padding: 12px 8px; text-align: center; color: #94A3B8; font-weight: bold;">${index + 1}</td>
           <td style="padding: 12px 8px;">
-            <div style="font-weight: bold; color: ${rejected ? '#64748B; text-decoration: line-through;' : '#0F172A;'}">${name}</div>
-            ${unit ? `<div style="font-size: 11px; color: #64748B; margin-top: 2px;">${unit}</div>` : ''}
-            ${rejected ? '<span style="font-size: 9px; font-weight: 900; color: #E11D48; background: #FFF1F2; border: 1px solid #FECDD3; padding: 2px 4px; border-radius: 4px; text-transform: uppercase;">Unavailable</span>' : ''}
+            <div style="font-weight: bold; color: ${rejected ? "#64748B; text-decoration: line-through;" : "#0F172A;"}">${name}</div>
+            ${unit ? `<div style="font-size: 11px; color: #64748B; margin-top: 2px;">${unit}</div>` : ""}
+            ${rejected ? '<span style="font-size: 9px; font-weight: 900; color: #E11D48; background: #FFF1F2; border: 1px solid #FECDD3; padding: 2px 4px; border-radius: 4px; text-transform: uppercase;">Unavailable</span>' : ""}
           </td>
-          <td style="padding: 12px 8px; text-align: center; font-weight: 600; ${rejected ? 'text-decoration: line-through; color: #64748B;' : 'color: #334155;'}">${item.quantity}</td>
-          <td style="padding: 12px 8px; text-align: right; ${rejected ? 'text-decoration: line-through; color: #64748B;' : 'color: #334155;'}">₹${price}</td>
-          <td style="padding: 12px 8px; text-align: right; font-weight: bold; ${rejected ? 'text-decoration: line-through; color: #64748B;' : 'color: #0F172A;'}">₹${itemSubtotal}</td>
+          <td style="padding: 12px 8px; text-align: center; font-weight: 600; ${rejected ? "text-decoration: line-through; color: #64748B;" : "color: #334155;"}">${item.quantity}</td>
+          <td style="padding: 12px 8px; text-align: right; ${rejected ? "text-decoration: line-through; color: #64748B;" : "color: #334155;"}">₹${price}</td>
+          <td style="padding: 12px 8px; text-align: right; font-weight: bold; ${rejected ? "text-decoration: line-through; color: #64748B;" : "color: #0F172A;"}">₹${itemSubtotal}</td>
         </tr>
       `;
-    }).join('');
+      })
+      .join("");
 
     return `
       <!DOCTYPE html>
@@ -211,19 +258,27 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
             <div>
               <h1 class="store-brand"><span class="green">NARENDRA</span> <span class="red">KIRANA</span></h1>
               <div class="store-info">
-                <div>${settings?.store_address || 'Main Road, Kirana Market'}</div>
-                ${settings?.store_phone ? `<div>Phone: ${settings.store_phone}</div>` : ''}
-                ${settings?.store_email ? `<div>Email: ${settings.store_email}</div>` : ''}
-                ${settings?.fssai_license_number ? `
+                <div>${settings?.store_address || "Main Road, Kirana Market"}</div>
+                ${settings?.store_phone ? `<div>Phone: ${settings.store_phone}</div>` : ""}
+                ${settings?.store_email ? `<div>Email: ${settings.store_email}</div>` : ""}
+                ${
+                  settings?.fssai_license_number
+                    ? `
                   <div style="display: inline-block; margin-top: 4px; font-size: 11px; font-weight: bold; color: #047857; background: #ECFDF5; border: 1px solid #A7F3D0; padding: 2px 6px; border-radius: 4px;">
                     ✓ FSSAI Lic. No: ${settings.fssai_license_number}
                   </div>
-                ` : ''}
-                ${settings?.gstin ? `
+                `
+                    : ""
+                }
+                ${
+                  settings?.gstin
+                    ? `
                   <div style="margin-top: 2px; font-size: 11px; font-weight: bold; color: #334155;">
                     GSTIN: ${settings.gstin}
                   </div>
-                ` : ''}
+                `
+                    : ""
+                }
               </div>
             </div>
             <div>
@@ -234,11 +289,11 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
           <div class="info-grid">
             <div class="info-card">
               <div class="info-label">BILLED TO</div>
-              <div class="info-title">${order?.customer_name || `Customer #${order?.customer || ''}`}</div>
+              <div class="info-title">${order?.customer_name || `Customer #${order?.customer || ""}`}</div>
               <div style="color: #475569; margin-bottom: 4px;">Status: <strong>${order?.status}</strong></div>
-              <div style="color: #475569; margin-bottom: 6px;">Order Type: <strong style="color: ${isDelivery ? '#4F46E5' : '#0F172A'};">${isDelivery ? 'HOME DELIVERY' : 'STORE PICKUP'}</strong></div>
+              <div style="color: #475569; margin-bottom: 6px;">Order Type: <strong style="color: ${isDelivery ? "#4F46E5" : "#0F172A"};">${isDelivery ? "HOME DELIVERY" : "STORE PICKUP"}</strong></div>
               <div style="color: #64748B;">
-                ${isDelivery ? (order?.delivery_address || 'Address not specified') + (order?.delivery_pincode ? `<br>Pincode: ${order.delivery_pincode}` : '') : `Pickup Time: ${order?.pickup_time || 'As soon as possible'}`}
+                ${isDelivery ? (order?.delivery_address || "Address not specified") + (order?.delivery_pincode ? `<br>Pincode: ${order.delivery_pincode}` : "") : `Pickup Time: ${order?.pickup_time || "As soon as possible"}`}
               </div>
             </div>
 
@@ -280,55 +335,79 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
                 <span style="font-weight: 600; color: #0F172A;">₹${(subtotal || 0).toFixed(2)}</span>
               </div>
 
-              ${parseFloat(order?.discount_applied || '0') > 0 ? `
+              ${
+                parseFloat(order?.discount_applied || "0") > 0
+                  ? `
                 <div class="total-line total-line.border-top" style="color: #4F46E5;">
                   <span>Product Savings</span>
-                  <span style="font-weight: bold;">-₹${(parseFloat(order?.discount_applied || '0') || 0).toFixed(2)}</span>
+                  <span style="font-weight: bold;">-₹${(parseFloat(order?.discount_applied || "0") || 0).toFixed(2)}</span>
                 </div>
-              ` : ''}
+              `
+                  : ""
+              }
 
-              ${parseFloat(order?.promo_discount || '0') > 0 ? `
+              ${
+                parseFloat(order?.promo_discount || "0") > 0
+                  ? `
                 <div class="total-line total-line.border-top" style="color: #059669;">
                   <span>Promo Discount</span>
-                  <span style="font-weight: bold;">-₹${(parseFloat(order?.promo_discount || '0') || 0).toFixed(2)}</span>
+                  <span style="font-weight: bold;">-₹${(parseFloat(order?.promo_discount || "0") || 0).toFixed(2)}</span>
                 </div>
-              ` : ''}
+              `
+                  : ""
+              }
 
-              ${parseFloat(order?.packaging_fee || '0') > 0 ? `
+              ${
+                parseFloat(order?.packaging_fee || "0") > 0
+                  ? `
                 <div class="total-line total-line.border-top">
                   <span>Packaging Fee</span>
-                  <span style="font-weight: 600; color: #0F172A;">₹${(parseFloat(order?.packaging_fee || '0') || 0).toFixed(2)}</span>
+                  <span style="font-weight: 600; color: #0F172A;">₹${(parseFloat(order?.packaging_fee || "0") || 0).toFixed(2)}</span>
                 </div>
-              ` : ''}
+              `
+                  : ""
+              }
 
-              ${isDelivery ? `
+              ${
+                isDelivery
+                  ? `
                 <div class="total-line total-line.border-top">
                   <span>Delivery Fee</span>
-                  <span style="font-weight: 600; color: #0F172A;">${parseFloat(order?.delivery_fee || '0') > 0 ? `₹${(parseFloat(order?.delivery_fee || '0') || 0).toFixed(2)}` : 'FREE'}</span>
+                  <span style="font-weight: 600; color: #0F172A;">${parseFloat(order?.delivery_fee || "0") > 0 ? `₹${(parseFloat(order?.delivery_fee || "0") || 0).toFixed(2)}` : "FREE"}</span>
                 </div>
-              ` : ''}
+              `
+                  : ""
+              }
 
-              ${parseFloat(order?.wallet_discount || '0') > 0 ? `
+              ${
+                parseFloat(order?.wallet_discount || "0") > 0
+                  ? `
                 <div class="total-line total-line.border-top" style="color: #059669;">
                   <span>Wallet Applied</span>
-                  <span style="font-weight: bold;">-₹${(parseFloat(order?.wallet_discount || '0') || 0).toFixed(2)}</span>
+                  <span style="font-weight: bold;">-₹${(parseFloat(order?.wallet_discount || "0") || 0).toFixed(2)}</span>
                 </div>
-              ` : ''}
+              `
+                  : ""
+              }
 
               <div class="total-line total-line.border-top">
                 <span>Payment Method</span>
                 <span style="font-weight: bold; color: #0F172A;">
-                  ${parseFloat(order?.total_amount || '0') === 0 
-                    ? 'Wallet Full' 
-                    : (parseFloat(order?.wallet_discount || '0') > 0 
-                        ? 'Hybrid (Wallet + Cash)' 
-                        : (isDelivery ? 'Cash on Delivery' : 'Cash at Store'))}
+                  ${
+                    parseFloat(order?.total_amount || "0") === 0
+                      ? "Wallet Full"
+                      : parseFloat(order?.wallet_discount || "0") > 0
+                        ? "Hybrid (Wallet + Cash)"
+                        : isDelivery
+                          ? "Cash on Delivery"
+                          : "Cash at Store"
+                  }
                 </span>
               </div>
 
               <div class="final-total">
-                <span class="final-total-label">${order?.status === 'COMPLETED' ? 'TOTAL PAID' : 'TOTAL DUE'}</span>
-                <span class="final-total-amount">₹${(parseFloat(order?.total_amount || '0') || 0).toFixed(2)}</span>
+                <span class="final-total-label">${order?.status === "COMPLETED" ? "TOTAL PAID" : "TOTAL DUE"}</span>
+                <span class="final-total-amount">₹${(parseFloat(order?.total_amount || "0") || 0).toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -336,13 +415,13 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
           <div class="footer">
             <div class="terms">
               <h4>Terms & Return Policy</h4>
-              ${termsList.map((t: string) => `<div>${t}</div>`).join('')}
+              ${termsList.map((t: string) => `<div>${t}</div>`).join("")}
               <div style="font-weight: bold; color: #0F172A; margin-top: 6px;">Thank you for your business!</div>
             </div>
 
             <div class="signature-box">
               <div class="signature-line">
-                ${signatureUrl ? `<img src="${signatureUrl}" style="max-height: 40px; object-fit: contain;" />` : `<span class="signature-text">${settings?.store_name || 'Authorized'}</span>`}
+                ${signatureUrl ? `<img src="${signatureUrl}" style="max-height: 40px; object-fit: contain;" />` : `<span class="signature-text">${settings?.store_name || "Authorized"}</span>`}
               </div>
               <div style="font-weight: bold; color: #0F172A; font-size: 13px;">Authorized Signatory</div>
               <div style="font-size: 10px; color: #64748B; text-transform: uppercase; letter-spacing: 1px;">Narendra Kirana</div>
@@ -358,16 +437,16 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
   const handleDownloadPdf = async () => {
     if (downloading || !order) return;
 
-    const rawId = String(order?.id || orderId || '').trim();
-    const numDigits = rawId.replace(/^ORD-?/i, '');
-    const formattedOrdId = rawId.toUpperCase().startsWith('ORD-') 
-      ? rawId.toUpperCase() 
-      : `ORD-${numDigits.padStart(4, '0')}`;
+    const rawId = String(order?.id || orderId || "").trim();
+    const numDigits = rawId.replace(/^ORD-?/i, "");
+    const formattedOrdId = rawId.toUpperCase().startsWith("ORD-")
+      ? rawId.toUpperCase()
+      : `ORD-${numDigits.padStart(4, "0")}`;
     const fileName = `Invoice_${formattedOrdId}.pdf`;
 
-    if (Platform.OS === 'web') {
+    if (Platform.OS === "web") {
       // In web browser, trigger native print / Save as PDF
-      if (typeof window !== 'undefined' && window.print) {
+      if (typeof window !== "undefined" && window.print) {
         window.print();
       }
       return;
@@ -376,22 +455,26 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
     try {
       setDownloading(true);
       const html = generateInvoiceHtml();
-      const { uri, base64 } = await Print.printToFileAsync({ html, base64: true });
+      const { uri, base64 } = await Print.printToFileAsync({
+        html,
+        base64: true,
+      });
 
       // On Android, attempt direct save to chosen folder via StorageAccessFramework
-      if (Platform.OS === 'android' && FileSystem.StorageAccessFramework) {
+      if (Platform.OS === "android" && FileSystem.StorageAccessFramework) {
         try {
-          const cleanFileName = fileName.replace(/\.pdf$/i, '');
+          const cleanFileName = fileName.replace(/\.pdf$/i, "");
           let directoryUri = await getItem(SAVED_DOWNLOAD_DIR_KEY);
 
           // 1. If folder permission was already granted previously, save directly without prompting!
           if (directoryUri) {
             try {
-              const newFileUri = await FileSystem.StorageAccessFramework.createFileAsync(
-                directoryUri,
-                cleanFileName,
-                'application/pdf'
-              );
+              const newFileUri =
+                await FileSystem.StorageAccessFramework.createFileAsync(
+                  directoryUri,
+                  cleanFileName,
+                  "application/pdf",
+                );
               if (base64) {
                 await FileSystem.writeAsStringAsync(newFileUri, base64, {
                   encoding: FileSystem.EncodingType.Base64,
@@ -404,10 +487,16 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
                   encoding: FileSystem.EncodingType.Base64,
                 });
               }
-              Alert.alert('Download Complete', `Invoice saved directly to your device as ${fileName}`);
+              Alert.alert(
+                "Download Complete",
+                `Invoice saved directly to your device as ${fileName}`,
+              );
               return;
             } catch (existingDirErr) {
-              console.log('Previously remembered directory invalid or revoked, re-prompting:', existingDirErr);
+              console.log(
+                "Previously remembered directory invalid or revoked, re-prompting:",
+                existingDirErr,
+              );
               await deleteItem(SAVED_DOWNLOAD_DIR_KEY);
               directoryUri = null;
             }
@@ -416,19 +505,26 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
           // 2. First-time only: request directory permission with Downloads pre-selected
           let initialDir: string | undefined;
           try {
-            initialDir = FileSystem.StorageAccessFramework.getUriForDirectoryInRoot('Download');
+            initialDir =
+              FileSystem.StorageAccessFramework.getUriForDirectoryInRoot(
+                "Download",
+              );
           } catch {}
 
-          const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync(initialDir);
+          const permissions =
+            await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync(
+              initialDir,
+            );
           if (permissions.granted) {
             directoryUri = permissions.directoryUri;
             await saveItem(SAVED_DOWNLOAD_DIR_KEY, directoryUri);
 
-            const newFileUri = await FileSystem.StorageAccessFramework.createFileAsync(
-              directoryUri,
-              cleanFileName,
-              'application/pdf'
-            );
+            const newFileUri =
+              await FileSystem.StorageAccessFramework.createFileAsync(
+                directoryUri,
+                cleanFileName,
+                "application/pdf",
+              );
             if (base64) {
               await FileSystem.writeAsStringAsync(newFileUri, base64, {
                 encoding: FileSystem.EncodingType.Base64,
@@ -441,11 +537,17 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
                 encoding: FileSystem.EncodingType.Base64,
               });
             }
-            Alert.alert('Download Complete', `Invoice saved directly to your device as ${fileName}`);
+            Alert.alert(
+              "Download Complete",
+              `Invoice saved directly to your device as ${fileName}`,
+            );
             return;
           }
         } catch (safErr) {
-          console.log('SAF prompt dismissed or error, saving to App Documents and sharing:', safErr);
+          console.log(
+            "SAF prompt dismissed or error, saving to App Documents and sharing:",
+            safErr,
+          );
         }
       }
 
@@ -455,16 +557,16 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
 
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(targetUri, {
-          mimeType: 'application/pdf',
+          mimeType: "application/pdf",
           dialogTitle: `Download ${fileName}`,
-          UTI: 'com.adobe.pdf',
+          UTI: "com.adobe.pdf",
         });
       } else {
-        Alert.alert('Download Complete', `Invoice saved as ${fileName}`);
+        Alert.alert("Download Complete", `Invoice saved as ${fileName}`);
       }
     } catch (err: any) {
-      console.error('Error generating PDF:', err);
-      Alert.alert('Error', 'Failed to generate invoice PDF.');
+      console.error("Error generating PDF:", err);
+      Alert.alert("Error", "Failed to generate invoice PDF.");
     } finally {
       setDownloading(false);
     }
@@ -475,11 +577,11 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
     if (!order) return;
     try {
       setDownloading(true);
-      const rawId = String(order?.id || orderId || '').trim();
-      const numDigits = rawId.replace(/^ORD-?/i, '');
-      const formattedOrdId = rawId.toUpperCase().startsWith('ORD-') 
-        ? rawId.toUpperCase() 
-        : `ORD-${numDigits.padStart(4, '0')}`;
+      const rawId = String(order?.id || orderId || "").trim();
+      const numDigits = rawId.replace(/^ORD-?/i, "");
+      const formattedOrdId = rawId.toUpperCase().startsWith("ORD-")
+        ? rawId.toUpperCase()
+        : `ORD-${numDigits.padStart(4, "0")}`;
       const fileName = `Invoice_${formattedOrdId}.pdf`;
 
       const html = generateInvoiceHtml();
@@ -489,28 +591,32 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
 
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(targetUri, {
-          mimeType: 'application/pdf',
+          mimeType: "application/pdf",
           dialogTitle: `Share ${fileName}`,
-          UTI: 'com.adobe.pdf',
+          UTI: "com.adobe.pdf",
         });
       } else {
         const itemsText = (order.items || [])
-          .filter((i: any) => i.status !== 'REJECTED')
-          .map((i: any) => `• ${i.quantity}x ${i.product_name_snapshot || i.product_name} - ₹${(parseFloat(i.subtotal || i.price_snapshot || '0') || 0).toFixed(2)}`)
-          .join('\n');
+          .filter((i: any) => i.status !== "REJECTED")
+          .map(
+            (i: any) =>
+              `• ${i.quantity}x ${i.product_name_snapshot || i.product_name} - ₹${(parseFloat(i.subtotal || i.price_snapshot || "0") || 0).toFixed(2)}`,
+          )
+          .join("\n");
 
-        const message = `🧾 *INVOICE: ${invoiceNumber}*\n` +
-          `🏪 *Store:* ${settings?.store_name || 'Narendra Kirana Store'}\n` +
+        const message =
+          `🧾 *INVOICE: ${invoiceNumber}*\n` +
+          `🏪 *Store:* ${settings?.store_name || "Narendra Kirana Store"}\n` +
           `📅 *Date:* ${orderDate}\n` +
-          `📦 *Type:* ${isDelivery ? 'Home Delivery' : 'Store Pickup'}\n\n` +
+          `📦 *Type:* ${isDelivery ? "Home Delivery" : "Store Pickup"}\n\n` +
           `*Items Ordered:*\n${itemsText}\n\n` +
-          `💰 *Total Paid:* ₹${(parseFloat(order?.total_amount || '0') || 0).toFixed(2)}\n\n` +
+          `💰 *Total Paid:* ₹${(parseFloat(order?.total_amount || "0") || 0).toFixed(2)}\n\n` +
           `Thank you for shopping with Narendra Kirana!`;
 
         await Share.share({ message });
       }
     } catch (err) {
-      console.error('Error sharing receipt:', err);
+      console.error("Error sharing receipt:", err);
     } finally {
       setDownloading(false);
     }
@@ -518,33 +624,58 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
 
   if (!user) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: '#F1F5F9' }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: "#F1F5F9" }]}
+        edges={["top"]}
+      >
         <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-        <View style={[styles.webActionBar, { backgroundColor: '#FFFFFF', borderBottomColor: '#E2E8F0' }]}>
-          <TouchableOpacity 
-            style={[styles.backToOrderBtn, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]} 
+        <View
+          style={[
+            styles.webActionBar,
+            { backgroundColor: "#FFFFFF", borderBottomColor: "#E2E8F0" },
+          ]}
+        >
+          <TouchableOpacity
+            style={[
+              styles.backToOrderBtn,
+              { backgroundColor: "#F8FAFC", borderColor: "#E2E8F0" },
+            ]}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')}
+            onPress={() =>
+              navigation.canGoBack()
+                ? navigation.goBack()
+                : navigation.navigate("Main")
+            }
             activeOpacity={0.7}
           >
             <Feather name="arrow-left" size={15} color="#334155" />
-            <Text style={[styles.backToOrderText, { color: '#334155' }]}>Back to Order</Text>
+            <Text style={[styles.backToOrderText, { color: "#334155" }]}>
+              Back to Order
+            </Text>
           </TouchableOpacity>
         </View>
         <View style={styles.guestStateContainer}>
-          <View style={[styles.guestIconBox, { backgroundColor: '#ECFDF5' }]}>
+          <View style={[styles.guestIconBox, { backgroundColor: "#ECFDF5" }]}>
             <Feather name="file-text" size={44} color="#059669" />
           </View>
-          <Text style={[styles.guestTitle, { color: '#0F172A' }]}>Sign In to View Invoice</Text>
-          <Text style={[styles.guestSubtitle, { color: '#64748B' }]}>
-            Please sign in to view and download official GST tax invoices for your purchases.
+          <Text style={[styles.guestTitle, { color: "#0F172A" }]}>
+            Sign In to View Invoice
+          </Text>
+          <Text style={[styles.guestSubtitle, { color: "#64748B" }]}>
+            Please sign in to view and download official GST tax invoices for
+            your purchases.
           </Text>
           <TouchableOpacity
-            style={[styles.guestSignInBtn, { backgroundColor: '#059669' }]}
-            onPress={() => navigation.navigate('Login')}
+            style={[styles.guestSignInBtn, { backgroundColor: "#059669" }]}
+            onPress={() => navigation.navigate("Login")}
             activeOpacity={0.85}
           >
-            <Feather name="log-in" size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
+            <Feather
+              name="log-in"
+              size={16}
+              color="#FFFFFF"
+              style={{ marginRight: 8 }}
+            />
             <Text style={styles.guestSignInBtnText}>Sign In / Register</Text>
           </TouchableOpacity>
         </View>
@@ -554,23 +685,42 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: '#F1F5F9' }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: "#F1F5F9" }]}
+        edges={["top"]}
+      >
         <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-        <View style={[styles.webActionBar, { backgroundColor: '#FFFFFF', borderBottomColor: '#E2E8F0' }]}>
-          <TouchableOpacity 
-            style={[styles.backToOrderBtn, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]} 
+        <View
+          style={[
+            styles.webActionBar,
+            { backgroundColor: "#FFFFFF", borderBottomColor: "#E2E8F0" },
+          ]}
+        >
+          <TouchableOpacity
+            style={[
+              styles.backToOrderBtn,
+              { backgroundColor: "#F8FAFC", borderColor: "#E2E8F0" },
+            ]}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')}
+            onPress={() =>
+              navigation.canGoBack()
+                ? navigation.goBack()
+                : navigation.navigate("Main")
+            }
             activeOpacity={0.7}
           >
             <Feather name="arrow-left" size={15} color="#334155" />
-            <Text style={[styles.backToOrderText, { color: '#334155' }]}>Back to Order</Text>
+            <Text style={[styles.backToOrderText, { color: "#334155" }]}>
+              Back to Order
+            </Text>
           </TouchableOpacity>
 
           <View style={styles.actionButtonsRight}>
             <View style={[styles.downloadPdfButton, { opacity: 0.4 }]}>
               <Feather name="printer" size={15} color="#FFFFFF" />
-              <Text style={styles.downloadPdfButtonText}>Download / Print PDF</Text>
+              <Text style={styles.downloadPdfButtonText}>
+                Download / Print PDF
+              </Text>
             </View>
             <View style={[styles.shareIconButton, { opacity: 0.4 }]}>
               <Feather name="share-2" size={15} color="#059669" />
@@ -579,7 +729,9 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
         </View>
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#059669" />
-          <Text style={[styles.loadingText, { color: '#64748B' }]}>Loading invoice...</Text>
+          <Text style={[styles.loadingText, { color: "#64748B" }]}>
+            Loading invoice...
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -587,45 +739,81 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
 
   if (error || !order) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: '#F1F5F9' }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: "#F1F5F9" }]}
+        edges={["top"]}
+      >
         <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-        <View style={[styles.webActionBar, { backgroundColor: '#FFFFFF', borderBottomColor: '#E2E8F0' }]}>
-          <TouchableOpacity 
-            style={[styles.backToOrderBtn, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]} 
+        <View
+          style={[
+            styles.webActionBar,
+            { backgroundColor: "#FFFFFF", borderBottomColor: "#E2E8F0" },
+          ]}
+        >
+          <TouchableOpacity
+            style={[
+              styles.backToOrderBtn,
+              { backgroundColor: "#F8FAFC", borderColor: "#E2E8F0" },
+            ]}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')}
+            onPress={() =>
+              navigation.canGoBack()
+                ? navigation.goBack()
+                : navigation.navigate("Main")
+            }
             activeOpacity={0.7}
           >
             <Feather name="arrow-left" size={15} color="#334155" />
-            <Text style={[styles.backToOrderText, { color: '#334155' }]}>Back to Order</Text>
+            <Text style={[styles.backToOrderText, { color: "#334155" }]}>
+              Back to Order
+            </Text>
           </TouchableOpacity>
         </View>
         <View style={styles.center}>
           <Feather name="alert-circle" size={48} color="#DC2626" />
-          <Text style={styles.errorText}>{error || 'Could not load invoice'}</Text>
+          <Text style={styles.errorText}>
+            {error || "Could not load invoice"}
+          </Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: '#F1F5F9' }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: "#F1F5F9" }]}
+      edges={["top"]}
+    >
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       {/* Action Bar matching web Invoice.jsx:76-86 */}
-      <View style={[styles.webActionBar, { backgroundColor: '#FFFFFF', borderBottomColor: '#E2E8F0' }]}>
-        <TouchableOpacity 
-          style={[styles.backToOrderBtn, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]} 
+      <View
+        style={[
+          styles.webActionBar,
+          { backgroundColor: "#FFFFFF", borderBottomColor: "#E2E8F0" },
+        ]}
+      >
+        <TouchableOpacity
+          style={[
+            styles.backToOrderBtn,
+            { backgroundColor: "#F8FAFC", borderColor: "#E2E8F0" },
+          ]}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')}
+          onPress={() =>
+            navigation.canGoBack()
+              ? navigation.goBack()
+              : navigation.navigate("Main")
+          }
           activeOpacity={0.7}
         >
           <Feather name="arrow-left" size={15} color="#334155" />
-          <Text style={[styles.backToOrderText, { color: '#334155' }]}>Back to Order</Text>
+          <Text style={[styles.backToOrderText, { color: "#334155" }]}>
+            Back to Order
+          </Text>
         </TouchableOpacity>
 
         <View style={styles.actionButtonsRight}>
-          <TouchableOpacity 
-            style={styles.downloadPdfButton} 
+          <TouchableOpacity
+            style={styles.downloadPdfButton}
             onPress={handleDownloadPdf}
             disabled={downloading}
             activeOpacity={0.85}
@@ -636,12 +824,12 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
               <Feather name="printer" size={15} color="#FFFFFF" />
             )}
             <Text style={styles.downloadPdfButtonText}>
-              {downloading ? 'Saving...' : 'Download / Print PDF'}
+              {downloading ? "Saving..." : "Download / Print PDF"}
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.shareIconButton} 
+          <TouchableOpacity
+            style={styles.shareIconButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             onPress={handleShare}
             disabled={downloading}
@@ -652,16 +840,18 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Printable A4 Container exactly matching web app */}
         <View style={styles.invoicePaper}>
-          
           {/* Watermark Logo matching web app Invoice.jsx:100-102 */}
           <View style={styles.watermarkContainer}>
-            <Image 
-              source={require('../../../assets/logo.jpg')} 
-              style={styles.watermarkLogo} 
-              contentFit="contain" 
+            <Image
+              source={require("../../../assets/logo.jpg")}
+              style={styles.watermarkLogo}
+              contentFit="contain"
             />
           </View>
 
@@ -675,28 +865,41 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
           <View style={styles.brandHeader}>
             <View style={{ flex: 1, paddingRight: 8 }}>
               <Text style={styles.storeName}>
-                <Text style={{ color: '#064E3B' }}>NARENDRA </Text>
-                <Text style={{ color: '#16A34A' }}>KIRANA</Text>
-                {String(settings?.store_name || '').toLowerCase().includes('store') && (
-                  <Text style={{ color: '#16A34A' }}> STORE</Text>
+                <Text style={{ color: "#064E3B" }}>NARENDRA </Text>
+                <Text style={{ color: "#16A34A" }}>KIRANA</Text>
+                {String(settings?.store_name || "")
+                  .toLowerCase()
+                  .includes("store") && (
+                  <Text style={{ color: "#16A34A" }}> STORE</Text>
                 )}
               </Text>
               {settings?.store_address ? (
-                <Text style={styles.storeDetailText}>{settings.store_address}</Text>
+                <Text style={styles.storeDetailText}>
+                  {settings.store_address}
+                </Text>
               ) : (
-                <Text style={styles.storeDetailText}>Main Road, Kirana Market</Text>
+                <Text style={styles.storeDetailText}>
+                  Main Road, Kirana Market
+                </Text>
               )}
               {settings?.store_phone ? (
-                <Text style={styles.storeDetailText}>{settings.store_phone}</Text>
+                <Text style={styles.storeDetailText}>
+                  {settings.store_phone}
+                </Text>
               ) : null}
               {settings?.store_email ? (
-                <Text style={styles.storeDetailText}>{settings.store_email}</Text>
+                <Text style={styles.storeDetailText}>
+                  {settings.store_email}
+                </Text>
               ) : null}
-              {Boolean(settings?.fssai_license_number || settings?.fssai_number) && (
+              {Boolean(
+                settings?.fssai_license_number || settings?.fssai_number,
+              ) && (
                 <View style={styles.fssaiBadge}>
                   <Feather name="check-circle" size={11} color="#047857" />
                   <Text style={styles.fssaiBadgeText}>
-                    FSSAI Lic: {settings?.fssai_license_number || settings?.fssai_number}
+                    FSSAI Lic:{" "}
+                    {settings?.fssai_license_number || settings?.fssai_number}
                   </Text>
                 </View>
               )}
@@ -721,25 +924,47 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
                 <Text style={styles.metaSectionLabel}>BILLED TO</Text>
               </View>
               <Text style={styles.customerName}>
-                {order.customer_name || `Customer #${order.customer || ''}`}
+                {order.customer_name || `Customer #${order.customer || ""}`}
               </Text>
               <Text style={styles.statusLine}>
-                Order Status: <Text style={[styles.statusText, isRejected ? { color: '#DC2626' } : { color: '#1E293B' }]}>{order.status}</Text>
+                Order Status:{" "}
+                <Text
+                  style={[
+                    styles.statusText,
+                    isRejected ? { color: "#DC2626" } : { color: "#1E293B" },
+                  ]}
+                >
+                  {order.status}
+                </Text>
               </Text>
 
               <View style={styles.orderTypeContainer}>
                 <Text style={styles.orderTypeLabel}>
-                  ORDER TYPE: <Text style={{ color: isDelivery ? '#4F46E5' : '#0F172A', fontWeight: 'bold' }}>
-                    {isDelivery ? 'HOME DELIVERY' : 'STORE PICKUP'}
+                  ORDER TYPE:{" "}
+                  <Text
+                    style={{
+                      color: isDelivery ? "#4F46E5" : "#0F172A",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {isDelivery ? "HOME DELIVERY" : "STORE PICKUP"}
                   </Text>
                 </Text>
                 {isDelivery ? (
                   <View style={{ marginTop: 2 }}>
-                    <Text style={styles.addressLine}>{order.delivery_address || 'Address not specified'}</Text>
-                    {order.delivery_pincode ? <Text style={styles.pincodeLine}>Pincode: {order.delivery_pincode}</Text> : null}
+                    <Text style={styles.addressLine}>
+                      {order.delivery_address || "Address not specified"}
+                    </Text>
+                    {order.delivery_pincode ? (
+                      <Text style={styles.pincodeLine}>
+                        Pincode: {order.delivery_pincode}
+                      </Text>
+                    ) : null}
                   </View>
                 ) : (
-                  <Text style={styles.addressLine}>Pickup Time: {order.pickup_time || 'As soon as possible'}</Text>
+                  <Text style={styles.addressLine}>
+                    Pickup Time: {order.pickup_time || "As soon as possible"}
+                  </Text>
                 )}
               </View>
             </View>
@@ -764,42 +989,95 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
           <View style={styles.table}>
             <View style={styles.tableHeaderRow}>
               <Text style={[styles.tableHeaderCell, styles.colIndex]}>#</Text>
-              <Text style={[styles.tableHeaderCell, styles.colDesc]}>Item Description</Text>
+              <Text style={[styles.tableHeaderCell, styles.colDesc]}>
+                Item Description
+              </Text>
               <Text style={[styles.tableHeaderCell, styles.colQty]}>Qty</Text>
-              <Text style={[styles.tableHeaderCell, styles.colPrice]}>Price</Text>
-              <Text style={[styles.tableHeaderCell, styles.colTotal]}>Total</Text>
+              <Text style={[styles.tableHeaderCell, styles.colPrice]}>
+                Price
+              </Text>
+              <Text style={[styles.tableHeaderCell, styles.colTotal]}>
+                Total
+              </Text>
             </View>
 
             {(order.items || []).map((item: any, index: number) => {
-              const itemRejected = item.status === 'REJECTED';
-              const name = item.product_name_snapshot || item.product_name || 'Product';
+              const itemRejected = item.status === "REJECTED";
+              const name =
+                item.product_name_snapshot || item.product_name || "Product";
               const unit = item.unit_snapshot;
-              const price = (parseFloat(item.price_snapshot || item.price_at_order || '0') || 0).toFixed(2);
-              const total = itemRejected ? '0.00' : (parseFloat(item.subtotal || item.price_snapshot || '0') || 0).toFixed(2);
+              const price = (
+                parseFloat(item.price_snapshot || item.price_at_order || "0") ||
+                0
+              ).toFixed(2);
+              const total = itemRejected
+                ? "0.00"
+                : (
+                    parseFloat(item.subtotal || item.price_snapshot || "0") || 0
+                  ).toFixed(2);
 
               return (
-                <View key={item.id || index} style={[styles.tableRow, index % 2 === 1 && styles.tableRowAlt]}>
-                  <Text style={[styles.tableCell, styles.colIndex, { color: '#94A3B8' }]}>
+                <View
+                  key={item.id || index}
+                  style={[
+                    styles.tableRow,
+                    index % 2 === 1 && styles.tableRowAlt,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.tableCell,
+                      styles.colIndex,
+                      { color: "#94A3B8" },
+                    ]}
+                  >
                     {index + 1}
                   </Text>
                   <View style={styles.colDesc}>
-                    <Text style={[styles.tableCellName, itemRejected && styles.lineThrough]}>
+                    <Text
+                      style={[
+                        styles.tableCellName,
+                        itemRejected && styles.lineThrough,
+                      ]}
+                    >
                       {name}
                     </Text>
-                    {unit ? <Text style={styles.tableCellUnit}>{unit}</Text> : null}
+                    {unit ? (
+                      <Text style={styles.tableCellUnit}>{unit}</Text>
+                    ) : null}
                     {itemRejected && (
                       <View style={styles.unavailableBadge}>
-                        <Text style={styles.unavailableBadgeText}>Unavailable</Text>
+                        <Text style={styles.unavailableBadgeText}>
+                          Unavailable
+                        </Text>
                       </View>
                     )}
                   </View>
-                  <Text style={[styles.tableCell, styles.colQty, itemRejected && styles.lineThrough]}>
+                  <Text
+                    style={[
+                      styles.tableCell,
+                      styles.colQty,
+                      itemRejected && styles.lineThrough,
+                    ]}
+                  >
                     {item.quantity}
                   </Text>
-                  <Text style={[styles.tableCell, styles.colPrice, itemRejected && styles.lineThrough]}>
+                  <Text
+                    style={[
+                      styles.tableCell,
+                      styles.colPrice,
+                      itemRejected && styles.lineThrough,
+                    ]}
+                  >
                     ₹{price}
                   </Text>
-                  <Text style={[styles.tableCellBold, styles.colTotal, itemRejected && styles.lineThrough]}>
+                  <Text
+                    style={[
+                      styles.tableCellBold,
+                      styles.colTotal,
+                      itemRejected && styles.lineThrough,
+                    ]}
+                  >
                     ₹{total}
                   </Text>
                 </View>
@@ -812,31 +1090,53 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
             <View style={styles.totalsBox}>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Subtotal</Text>
-                <Text style={styles.summaryValue}>₹{(subtotal || 0).toFixed(2)}</Text>
+                <Text style={styles.summaryValue}>
+                  ₹{(subtotal || 0).toFixed(2)}
+                </Text>
               </View>
 
-              {parseFloat(order.discount_applied || '0') > 0 && (
+              {parseFloat(order.discount_applied || "0") > 0 && (
                 <View style={styles.summaryRow}>
-                  <Text style={[styles.summaryLabel, { color: '#4F46E5' }]}>Product Savings</Text>
-                  <Text style={[styles.summaryValue, { color: '#4F46E5', fontWeight: 'bold' }]}>
-                    -₹{(parseFloat(order.discount_applied || '0') || 0).toFixed(2)}
+                  <Text style={[styles.summaryLabel, { color: "#4F46E5" }]}>
+                    Product Savings
+                  </Text>
+                  <Text
+                    style={[
+                      styles.summaryValue,
+                      { color: "#4F46E5", fontWeight: "bold" },
+                    ]}
+                  >
+                    -₹
+                    {(parseFloat(order.discount_applied || "0") || 0).toFixed(
+                      2,
+                    )}
                   </Text>
                 </View>
               )}
 
-              {parseFloat(order.promo_discount || '0') > 0 && (
+              {parseFloat(order.promo_discount || "0") > 0 && (
                 <View style={styles.summaryRow}>
-                  <Text style={[styles.summaryLabel, { color: '#059669' }]}>Promo Discount</Text>
-                  <Text style={[styles.summaryValue, { color: '#059669', fontWeight: 'bold' }]}>
-                    -₹{(parseFloat(order.promo_discount || '0') || 0).toFixed(2)}
+                  <Text style={[styles.summaryLabel, { color: "#059669" }]}>
+                    Promo Discount
+                  </Text>
+                  <Text
+                    style={[
+                      styles.summaryValue,
+                      { color: "#059669", fontWeight: "bold" },
+                    ]}
+                  >
+                    -₹
+                    {(parseFloat(order.promo_discount || "0") || 0).toFixed(2)}
                   </Text>
                 </View>
               )}
 
-              {parseFloat(order.packaging_fee || '0') > 0 && (
+              {parseFloat(order.packaging_fee || "0") > 0 && (
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Packaging Fee</Text>
-                  <Text style={styles.summaryValue}>₹{(parseFloat(order.packaging_fee || '0') || 0).toFixed(2)}</Text>
+                  <Text style={styles.summaryValue}>
+                    ₹{(parseFloat(order.packaging_fee || "0") || 0).toFixed(2)}
+                  </Text>
                 </View>
               )}
 
@@ -844,37 +1144,49 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Delivery Fee</Text>
                   <Text style={styles.summaryValue}>
-                    {parseFloat(order.delivery_fee || '0') > 0 ? `₹${(parseFloat(order.delivery_fee || '0') || 0).toFixed(2)}` : 'FREE'}
+                    {parseFloat(order.delivery_fee || "0") > 0
+                      ? `₹${(parseFloat(order.delivery_fee || "0") || 0).toFixed(2)}`
+                      : "FREE"}
                   </Text>
                 </View>
               )}
 
-              {parseFloat(order.wallet_discount || '0') > 0 && (
+              {parseFloat(order.wallet_discount || "0") > 0 && (
                 <View style={styles.summaryRow}>
-                  <Text style={[styles.summaryLabel, { color: '#059669' }]}>Wallet Applied</Text>
-                  <Text style={[styles.summaryValue, { color: '#059669', fontWeight: 'bold' }]}>
-                    -₹{(parseFloat(order.wallet_discount || '0') || 0).toFixed(2)}
+                  <Text style={[styles.summaryLabel, { color: "#059669" }]}>
+                    Wallet Applied
+                  </Text>
+                  <Text
+                    style={[
+                      styles.summaryValue,
+                      { color: "#059669", fontWeight: "bold" },
+                    ]}
+                  >
+                    -₹
+                    {(parseFloat(order.wallet_discount || "0") || 0).toFixed(2)}
                   </Text>
                 </View>
               )}
 
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Payment Method</Text>
-                <Text style={[styles.summaryValue, { fontWeight: 'bold' }]}>
-                  {parseFloat(order.total_amount || '0') === 0 
-                    ? 'Wallet Full' 
-                    : (parseFloat(order.wallet_discount || '0') > 0 
-                        ? 'Hybrid (Wallet + Cash)' 
-                        : (isDelivery ? 'Cash on Delivery' : 'Cash at Store'))}
+                <Text style={[styles.summaryValue, { fontWeight: "bold" }]}>
+                  {parseFloat(order.total_amount || "0") === 0
+                    ? "Wallet Full"
+                    : parseFloat(order.wallet_discount || "0") > 0
+                      ? "Hybrid (Wallet + Cash)"
+                      : isDelivery
+                        ? "Cash on Delivery"
+                        : "Cash at Store"}
                 </Text>
               </View>
 
               <View style={styles.finalTotalBox}>
                 <Text style={styles.finalTotalLabel}>
-                  {order.status === 'COMPLETED' ? 'TOTAL PAID' : 'TOTAL DUE'}
+                  {order.status === "COMPLETED" ? "TOTAL PAID" : "TOTAL DUE"}
                 </Text>
                 <Text style={styles.finalTotalAmount}>
-                  ₹{(parseFloat(order.total_amount || '0') || 0).toFixed(2)}
+                  ₹{(parseFloat(order.total_amount || "0") || 0).toFixed(2)}
                 </Text>
               </View>
             </View>
@@ -888,18 +1200,26 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
                 <Text style={styles.termsTitle}>Terms & Return Policy</Text>
               </View>
               {termsList.map((termLine: string, idx: number) => (
-                <Text key={idx} style={styles.termText}>{termLine}</Text>
+                <Text key={idx} style={styles.termText}>
+                  {termLine}
+                </Text>
               ))}
-              <Text style={styles.thankYouText}>Thank you for your business!</Text>
+              <Text style={styles.thankYouText}>
+                Thank you for your business!
+              </Text>
             </View>
 
             <View style={styles.signatureCol}>
               <View style={styles.signatureBox}>
                 {signatureUrl ? (
-                  <Image source={{ uri: signatureUrl }} style={styles.signatureImage} contentFit="contain" />
+                  <Image
+                    source={{ uri: signatureUrl }}
+                    style={styles.signatureImage}
+                    contentFit="contain"
+                  />
                 ) : (
                   <Text style={styles.signaturePlaceholderText}>
-                    {settings?.store_name || 'Authorized'}
+                    {settings?.store_name || "Authorized"}
                   </Text>
                 )}
               </View>
@@ -907,7 +1227,6 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
               <Text style={styles.signatoryStore}>Narendra Kirana</Text>
             </View>
           </View>
-
         </View>
 
         {/* Need Help? Chat on WhatsApp Button */}
@@ -917,7 +1236,9 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
           activeOpacity={0.85}
         >
           <Ionicons name="logo-whatsapp" size={18} color="#FFFFFF" />
-          <Text style={styles.whatsAppHelpBtnText}>Need Help? Chat on WhatsApp</Text>
+          <Text style={styles.whatsAppHelpBtnText}>
+            Need Help? Chat on WhatsApp
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -927,17 +1248,17 @@ export function InvoiceScreen({ navigation, route }: { navigation: AppNavigation
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F1F5F9', // bg-slate-100 matching web
+    backgroundColor: "#F1F5F9", // bg-slate-100 matching web
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.md,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: "#E2E8F0",
   },
   backButton: {
     padding: 4,
@@ -945,178 +1266,178 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     lineHeight: 22,
-    fontWeight: 'bold',
-    color: '#0F172A',
+    fontWeight: "bold",
+    color: "#0F172A",
   },
   headerActionBtn: {
     padding: 4,
   },
   center: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: theme.spacing.xl,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
+    color: "#64748B",
+    fontWeight: "500",
   },
   errorText: {
     marginTop: 12,
     fontSize: 15,
-    color: '#DC2626',
-    fontWeight: '600',
-    textAlign: 'center',
+    color: "#DC2626",
+    fontWeight: "600",
+    textAlign: "center",
   },
   scrollContent: {
     padding: 16,
     paddingBottom: 130,
   },
   webActionBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: "#E2E8F0",
   },
   backToOrderBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: "#F8FAFC",
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.05)',
+    borderColor: "#E2E8F0",
+    boxShadow: "0px 1px 2px rgba(0, 0, 0, 0.05)",
     elevation: 1,
   },
   backToOrderText: {
-    color: '#334155',
-    fontWeight: '600',
+    color: "#334155",
+    fontWeight: "600",
     fontSize: 13,
   },
   actionButtonsRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   downloadPdfButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
-    backgroundColor: '#059669', // emerald-600 matching web
+    backgroundColor: "#059669", // emerald-600 matching web
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 8,
-    boxShadow: '0px 2px 4px rgba(5, 150, 105, 0.18)',
+    boxShadow: "0px 2px 4px rgba(5, 150, 105, 0.18)",
     elevation: 2,
   },
   downloadPdfButtonText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
+    color: "#FFFFFF",
+    fontWeight: "bold",
     fontSize: 13,
   },
   shareIconButton: {
     width: 36,
     height: 36,
     borderRadius: 8,
-    backgroundColor: '#ECFDF5',
+    backgroundColor: "#ECFDF5",
     borderWidth: 1,
-    borderColor: '#A7F3D0',
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderColor: "#A7F3D0",
+    justifyContent: "center",
+    alignItems: "center",
   },
   invoicePaper: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 4, // rounded-sm matching web
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    boxShadow: '0px 4px 16px rgba(100, 116, 139, 0.1)',
+    borderColor: "#E2E8F0",
+    boxShadow: "0px 4px 16px rgba(100, 116, 139, 0.1)",
     elevation: 3,
-    position: 'relative',
-    overflow: 'hidden',
+    position: "relative",
+    overflow: "hidden",
   },
   watermarkContainer: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     bottom: 0,
     left: 0,
     right: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     opacity: 0.04,
-    pointerEvents: 'none',
+    pointerEvents: "none",
     zIndex: 0,
   },
   watermarkLogo: {
-    width: '75%',
+    width: "75%",
     height: 280,
   },
   rejectedWatermark: {
-    position: 'absolute',
-    top: '35%',
-    left: '8%',
-    right: '8%',
+    position: "absolute",
+    top: "35%",
+    left: "8%",
+    right: "8%",
     borderWidth: 6,
-    borderColor: '#DC2626',
+    borderColor: "#DC2626",
     borderRadius: 20,
     paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    transform: [{ rotate: '-35deg' }],
+    alignItems: "center",
+    justifyContent: "center",
+    transform: [{ rotate: "-35deg" }],
     opacity: 0.35,
     zIndex: 50,
   },
   rejectedWatermarkText: {
     fontSize: 44,
-    fontWeight: '900',
-    color: '#DC2626',
+    fontWeight: "900",
+    color: "#DC2626",
     letterSpacing: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   brandHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     paddingBottom: 10,
     zIndex: 1,
   },
   storeName: {
     fontSize: 22,
-    fontWeight: '900',
+    fontWeight: "900",
     letterSpacing: -0.5,
     marginBottom: 4,
   },
   storeDetailText: {
     fontSize: 12,
-    color: '#475569',
+    color: "#475569",
     lineHeight: 18,
   },
   invoiceTitleBox: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   invoiceTitleText: {
     fontSize: 34,
-    fontWeight: '900',
-    color: '#E2E8F0', // slate-200 matching web
+    fontWeight: "900",
+    color: "#E2E8F0", // slate-200 matching web
     letterSpacing: 4,
   },
   thickDivider: {
     height: 2.5,
-    backgroundColor: '#064E3B', // emerald-900 matching web
+    backgroundColor: "#064E3B", // emerald-900 matching web
     marginVertical: 12,
     zIndex: 1,
   },
   infoGrid: {
-    flexDirection: 'column',
+    flexDirection: "column",
     gap: 14,
     marginBottom: 16,
     zIndex: 1,
@@ -1126,138 +1447,138 @@ const styles = StyleSheet.create({
   },
   billedToTitleWrap: {
     borderBottomWidth: 1,
-    borderBottomColor: '#CBD5E1',
+    borderBottomColor: "#CBD5E1",
     paddingBottom: 2,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     marginBottom: 6,
   },
   metaSectionLabel: {
     fontSize: 10,
-    fontWeight: 'bold',
-    color: '#94A3B8',
+    fontWeight: "bold",
+    color: "#94A3B8",
     letterSpacing: 1.5,
     marginBottom: 4,
   },
   customerName: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#0F172A',
+    fontWeight: "bold",
+    color: "#0F172A",
     marginBottom: 4,
   },
   statusLine: {
     fontSize: 12,
-    color: '#475569',
+    color: "#475569",
     marginBottom: 2,
   },
   statusText: {
-    fontWeight: 'bold',
-    color: '#0F172A',
+    fontWeight: "bold",
+    color: "#0F172A",
   },
   orderTypeContainer: {
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: "#F1F5F9",
   },
   orderTypeLabel: {
     fontSize: 11,
-    fontWeight: 'bold',
-    color: '#475569',
+    fontWeight: "bold",
+    color: "#475569",
     letterSpacing: 0.5,
   },
   orderTypeLine: {
     fontSize: 12,
-    color: '#475569',
+    color: "#475569",
     marginBottom: 4,
   },
   addressLine: {
     fontSize: 12,
-    color: '#64748B',
+    color: "#64748B",
     lineHeight: 18,
     marginTop: 2,
   },
   pincodeLine: {
     fontSize: 12,
-    color: '#64748B',
+    color: "#64748B",
     marginTop: 2,
   },
   invoiceMetaCol: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: "#F8FAFC",
     padding: theme.spacing.md,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: "#F1F5F9",
     gap: 6,
   },
   metaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   metaLabel: {
     fontSize: 12,
-    color: '#64748B',
-    fontWeight: '500',
+    color: "#64748B",
+    fontWeight: "500",
   },
   metaValue: {
     fontSize: 12,
-    fontWeight: 'bold',
-    color: '#0F172A',
+    fontWeight: "bold",
+    color: "#0F172A",
   },
   table: {
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: "#E2E8F0",
     borderRadius: 6,
-    overflow: 'hidden',
+    overflow: "hidden",
     marginBottom: theme.spacing.lg,
   },
   tableHeaderRow: {
-    flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
+    flexDirection: "row",
+    backgroundColor: "#F1F5F9",
     paddingVertical: 10,
     paddingHorizontal: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#CBD5E1',
+    borderBottomColor: "#CBD5E1",
   },
   tableHeaderCell: {
     fontSize: 11,
-    fontWeight: 'bold',
-    color: '#334155',
-    textTransform: 'uppercase',
+    fontWeight: "bold",
+    color: "#334155",
+    textTransform: "uppercase",
   },
   tableRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 10,
     paddingHorizontal: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: "#F1F5F9",
   },
   tableRowAlt: {
-    backgroundColor: '#FAFAFA',
+    backgroundColor: "#FAFAFA",
   },
   tableCell: {
     fontSize: 12,
-    color: '#334155',
+    color: "#334155",
   },
   tableCellName: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#0F172A',
+    fontWeight: "600",
+    color: "#0F172A",
   },
   tableCellUnit: {
     fontSize: 11,
-    color: '#64748B',
+    color: "#64748B",
     marginTop: 1,
   },
   tableCellBold: {
     fontSize: 12,
-    fontWeight: 'bold',
-    color: '#0F172A',
+    fontWeight: "bold",
+    color: "#0F172A",
   },
   colIndex: {
     flex: 0.7,
-    textAlign: 'center',
+    textAlign: "center",
   },
   colDesc: {
     flex: 4.2,
@@ -1265,153 +1586,153 @@ const styles = StyleSheet.create({
   },
   colQty: {
     flex: 1.0,
-    textAlign: 'center',
+    textAlign: "center",
   },
   colPrice: {
     flex: 1.9,
-    textAlign: 'right',
+    textAlign: "right",
   },
   colTotal: {
     flex: 2.2,
-    textAlign: 'right',
+    textAlign: "right",
   },
   lineThrough: {
-    textDecorationLine: 'line-through',
-    color: '#94A3B8',
+    textDecorationLine: "line-through",
+    color: "#94A3B8",
   },
   unavailableBadge: {
-    backgroundColor: '#FFF1F2',
-    borderColor: '#FECDD3',
+    backgroundColor: "#FFF1F2",
+    borderColor: "#FECDD3",
     borderWidth: 1,
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: 4,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     marginTop: 2,
   },
   unavailableBadgeText: {
     fontSize: 9,
-    fontWeight: 'bold',
-    color: '#E11D48',
-    textTransform: 'uppercase',
+    fontWeight: "bold",
+    color: "#E11D48",
+    textTransform: "uppercase",
   },
   totalsContainer: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
     marginBottom: theme.spacing.xl,
   },
   totalsBox: {
-    width: '100%',
+    width: "100%",
     maxWidth: 320,
     gap: 6,
   },
   summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     paddingVertical: 3,
   },
   summaryLabel: {
     fontSize: 13,
-    color: '#475569',
+    color: "#475569",
   },
   summaryValue: {
     fontSize: 13,
-    color: '#0F172A',
-    fontWeight: '600',
+    color: "#0F172A",
+    fontWeight: "600",
   },
   finalTotalBox: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#ECFDF5', // emerald-50
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#ECFDF5", // emerald-50
     borderTopWidth: 2,
-    borderTopColor: '#064E3B',
+    borderTopColor: "#064E3B",
     padding: 12,
     marginTop: 6,
     borderRadius: 4,
   },
   finalTotalLabel: {
     fontSize: 13,
-    fontWeight: '900',
-    color: '#064E3B',
+    fontWeight: "900",
+    color: "#064E3B",
     letterSpacing: 1,
   },
   finalTotalAmount: {
     fontSize: 20,
-    fontWeight: '900',
-    color: '#064E3B',
+    fontWeight: "900",
+    color: "#064E3B",
   },
   invoiceFooter: {
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: "#E2E8F0",
     paddingTop: theme.spacing.lg,
-    flexDirection: 'column',
+    flexDirection: "column",
     gap: 20,
   },
   termsBox: {
     flex: 1,
   },
   termsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     marginBottom: 6,
   },
   termsTitle: {
     fontSize: 11,
-    fontWeight: 'bold',
-    color: '#334155',
-    textTransform: 'uppercase',
+    fontWeight: "bold",
+    color: "#334155",
+    textTransform: "uppercase",
     letterSpacing: 1,
   },
   termText: {
     fontSize: 11,
-    color: '#64748B',
+    color: "#64748B",
     lineHeight: 16,
   },
   thankYouText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#0F172A',
+    fontWeight: "600",
+    color: "#0F172A",
     marginTop: 6,
   },
   signatureCol: {
-    alignItems: 'flex-start',
+    alignItems: "flex-start",
   },
   signatureBox: {
     width: 160,
     height: 48,
     borderBottomWidth: 1,
-    borderBottomColor: '#94A3B8',
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderBottomColor: "#94A3B8",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 4,
   },
   signatureImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   signaturePlaceholderText: {
-    fontStyle: 'italic',
+    fontStyle: "italic",
     fontSize: 18,
-    color: '#475569',
-    fontFamily: Platform.OS === 'ios' ? 'Snell Roundhand' : 'serif',
+    color: "#475569",
+    fontFamily: Platform.OS === "ios" ? "Snell Roundhand" : "serif",
   },
   signatoryLabel: {
     fontSize: 12,
-    fontWeight: 'bold',
-    color: '#0F172A',
+    fontWeight: "bold",
+    color: "#0F172A",
   },
   signatoryStore: {
     fontSize: 10,
-    color: '#64748B',
-    textTransform: 'uppercase',
+    color: "#64748B",
+    textTransform: "uppercase",
     letterSpacing: 1,
     marginTop: 1,
   },
   guestStateContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 32,
     paddingBottom: 60,
   },
@@ -1419,82 +1740,82 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 45,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 20,
   },
   guestTitle: {
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: "800",
     marginBottom: 8,
-    textAlign: 'center',
-    color: '#0F172A',
+    textAlign: "center",
+    color: "#0F172A",
   },
   guestSubtitle: {
     fontSize: 14,
     lineHeight: 20,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 24,
-    color: '#64748B',
+    color: "#64748B",
   },
   guestSignInBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 14,
     paddingHorizontal: 28,
     borderRadius: 14,
-    boxShadow: '0px 4px 8px rgba(5, 150, 105, 0.2)',
+    boxShadow: "0px 4px 8px rgba(5, 150, 105, 0.2)",
     elevation: 4,
   },
   guestSignInBtnText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: "800",
   },
   fssaiBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
-    backgroundColor: '#ECFDF5',
+    backgroundColor: "#ECFDF5",
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: "#A7F3D0",
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 6,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     marginTop: 4,
   },
   fssaiBadgeText: {
     fontSize: 10,
-    fontWeight: '800',
-    color: '#047857',
+    fontWeight: "800",
+    color: "#047857",
   },
   gstinText: {
     fontSize: 11,
-    fontWeight: '700',
-    color: '#334155',
+    fontWeight: "700",
+    color: "#334155",
     marginTop: 3,
   },
   whatsAppHelpBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
-    backgroundColor: '#16A34A',
+    backgroundColor: "#16A34A",
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 14,
     marginTop: 16,
     marginBottom: 24,
     marginHorizontal: 12,
-    boxShadow: '0px 3px 5px rgba(22, 163, 74, 0.25)',
+    boxShadow: "0px 3px 5px rgba(22, 163, 74, 0.25)",
     elevation: 4,
   },
   whatsAppHelpBtnText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: "800",
   },
 });
 

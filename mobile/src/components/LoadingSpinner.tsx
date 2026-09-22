@@ -1,6 +1,7 @@
-import React from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { theme } from '../constants/theme';
+import React from "react";
+import { View, ActivityIndicator, StyleSheet } from "react-native";
+
+import { theme } from "../constants/theme";
 
 interface Props {
   fullScreen?: boolean;
@@ -14,15 +15,21 @@ export function LoadingSpinner({ fullScreen = false }: Props) {
       </View>
     );
   }
-  
-  return <ActivityIndicator size="small" color={theme.colors.primary} testID="loading-spinner" />;
+
+  return (
+    <ActivityIndicator
+      size="small"
+      color={theme.colors.primary}
+      testID="loading-spinner"
+    />
+  );
 }
 
 const styles = StyleSheet.create({
   fullScreen: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: theme.colors.background,
   },
 });

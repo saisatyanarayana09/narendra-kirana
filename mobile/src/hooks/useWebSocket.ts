@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { WS_BASE_URL, STORAGE_KEYS } from '../constants/config';
-import { getItem, getItemSync } from '../utils/storage';
+import { useEffect, useRef, useState, useCallback } from "react";
+
+import { WS_BASE_URL, STORAGE_KEYS } from "../constants/config";
+import { getItem, getItemSync } from "../utils/storage";
 
 export interface UseWebSocketOptions {
   path: string; // e.g. `/ws/orders/${orderId}/tracking/`
@@ -27,8 +28,12 @@ export function useWebSocket({
   const [lastMessage, setLastMessage] = useState<any>(null);
 
   const socketRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null,
+  );
   const reconnectAttemptsRef = useRef(0);
   const isMountedRef = useRef(true);
 
@@ -74,9 +79,10 @@ export function useWebSocket({
     clearHeartbeat();
 
     try {
-      const token = (await getItem(STORAGE_KEYS.TOKEN)) || getItemSync(STORAGE_KEYS.TOKEN);
-      const cleanPath = path.startsWith('/') ? path : `/${path}`;
-      const separator = cleanPath.includes('?') ? '&' : '?';
+      const token =
+        (await getItem(STORAGE_KEYS.TOKEN)) || getItemSync(STORAGE_KEYS.TOKEN);
+      const cleanPath = path.startsWith("/") ? path : `/${path}`;
+      const separator = cleanPath.includes("?") ? "&" : "?";
       const url = token
         ? `${WS_BASE_URL}${cleanPath}${separator}token=${encodeURIComponent(token)}`
         : `${WS_BASE_URL}${cleanPath}`;
@@ -96,7 +102,7 @@ export function useWebSocket({
           heartbeatIntervalRef.current = setInterval(() => {
             if (ws.readyState === WebSocket.OPEN) {
               try {
-                ws.send(JSON.stringify({ type: 'PING' }));
+                ws.send(JSON.stringify({ type: "PING" }));
               } catch {}
             }
           }, heartbeatIntervalMs);
@@ -107,7 +113,7 @@ export function useWebSocket({
         if (!isMountedRef.current) return;
         try {
           const parsed = JSON.parse(event.data);
-          if (parsed?.type === 'PONG') return; // Ignore heartbeat response
+          if (parsed?.type === "PONG") return; // Ignore heartbeat response
           setLastMessage(parsed);
           onMessageRef.current?.(parsed);
         } catch {
@@ -129,7 +135,10 @@ export function useWebSocket({
 
         // Schedule reconnection with exponential backoff (1s, 2s, 4s, max 16s)
         if (autoReconnect && enabled && isMountedRef.current) {
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 16000);
+          const delay = Math.min(
+            1000 * Math.pow(2, reconnectAttemptsRef.current),
+            16000,
+          );
           reconnectAttemptsRef.current += 1;
           clearReconnect();
           reconnectTimeoutRef.current = setTimeout(() => {
@@ -140,13 +149,13 @@ export function useWebSocket({
         }
       };
     } catch (e) {
-      console.warn('[useWebSocket] Connection attempt error:', e);
+      console.warn("[useWebSocket] Connection attempt error:", e);
     }
   }, [path, enabled, autoReconnect, heartbeatIntervalMs]);
 
   const sendMessage = useCallback((data: any) => {
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-      const payload = typeof data === 'string' ? data : JSON.stringify(data);
+      const payload = typeof data === "string" ? data : JSON.stringify(data);
       socketRef.current.send(payload);
       return true;
     }

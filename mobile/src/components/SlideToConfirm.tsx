@@ -1,4 +1,5 @@
-import React, { useRef, useState, useEffect, useMemo } from 'react';
+import { Feather } from "@expo/vector-icons";
+import React, { useRef, useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -9,10 +10,10 @@ import {
   ActivityIndicator,
   StyleProp,
   ViewStyle,
-} from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import { triggerHaptic } from '../utils/haptics';
-import { useTheme } from '../context/ThemeContext';
+} from "react-native";
+
+import { useTheme } from "../context/ThemeContext";
+import { triggerHaptic } from "../utils/haptics";
 
 export interface SlideToConfirmProps {
   onConfirm: () => void;
@@ -103,19 +104,31 @@ export const SlideToConfirm: React.FC<SlideToConfirmProps> = ({
     () =>
       PanResponder.create({
         onStartShouldSetPanResponder: () =>
-          !stateRef.current.disabled && !stateRef.current.isSubmitting && !isConfirmedRef.current,
+          !stateRef.current.disabled &&
+          !stateRef.current.isSubmitting &&
+          !isConfirmedRef.current,
         onMoveShouldSetPanResponder: (_, gesture) =>
           !stateRef.current.disabled &&
           !stateRef.current.isSubmitting &&
           !isConfirmedRef.current &&
           Math.abs(gesture.dx) > 4,
         onPanResponderGrant: () => {
-          if (stateRef.current.disabled || stateRef.current.isSubmitting || isConfirmedRef.current) return;
+          if (
+            stateRef.current.disabled ||
+            stateRef.current.isSubmitting ||
+            isConfirmedRef.current
+          )
+            return;
           lastMilestoneRef.current = 0;
-          triggerHaptic('light');
+          triggerHaptic("light");
         },
         onPanResponderMove: (_, gesture) => {
-          if (stateRef.current.disabled || stateRef.current.isSubmitting || isConfirmedRef.current) return;
+          if (
+            stateRef.current.disabled ||
+            stateRef.current.isSubmitting ||
+            isConfirmedRef.current
+          )
+            return;
           const max = maxSlideRef.current;
           if (max <= 0) return;
 
@@ -127,20 +140,25 @@ export const SlideToConfirm: React.FC<SlideToConfirmProps> = ({
           const milestone = Math.floor(ratio / 0.25);
           if (milestone > lastMilestoneRef.current && milestone < 4) {
             lastMilestoneRef.current = milestone;
-            triggerHaptic('selection');
+            triggerHaptic("selection");
           } else if (milestone < lastMilestoneRef.current) {
             lastMilestoneRef.current = milestone;
           }
         },
         onPanResponderRelease: () => {
-          if (stateRef.current.disabled || stateRef.current.isSubmitting || isConfirmedRef.current) return;
+          if (
+            stateRef.current.disabled ||
+            stateRef.current.isSubmitting ||
+            isConfirmedRef.current
+          )
+            return;
           const max = maxSlideRef.current;
           if (max <= 0) return;
 
           const threshold = max * 0.85;
           if (currentX.current >= threshold) {
             isConfirmedRef.current = true;
-            triggerHaptic('success');
+            triggerHaptic("success");
             Animated.timing(thumbX, {
               toValue: max,
               duration: 150,
@@ -167,7 +185,7 @@ export const SlideToConfirm: React.FC<SlideToConfirmProps> = ({
           }).start();
         },
       }),
-    [thumbX]
+    [thumbX],
   );
 
   const handleLayout = (e: LayoutChangeEvent) => {
@@ -178,24 +196,24 @@ export const SlideToConfirm: React.FC<SlideToConfirmProps> = ({
   };
 
   const effectivePrimaryColor = sliderColor || colors.primary;
-  const effectiveThumbColor = thumbColor || '#FFFFFF';
-  const effectiveTextColor = textColor || '#FFFFFF';
+  const effectiveThumbColor = thumbColor || "#FFFFFF";
+  const effectiveTextColor = textColor || "#FFFFFF";
 
   const defaultDisplayLabel = useMemo(() => {
-    if (isSubmitting) return 'Processing Order...';
+    if (isSubmitting) return "Processing Order...";
     if (label) return label;
     if (amount !== undefined) {
-      const amountStr = typeof amount === 'number' ? amount.toFixed(2) : amount;
+      const amountStr = typeof amount === "number" ? amount.toFixed(2) : amount;
       return `Swipe to Place Order • ₹${amountStr}`;
     }
-    return 'Swipe to Place Order';
+    return "Swipe to Place Order";
   }, [isSubmitting, label, amount]);
 
   // Fade out label as thumb slides across
   const textOpacity = thumbX.interpolate({
     inputRange: [0, Math.max(1, maxSlide * 0.65)],
     outputRange: [1, 0.15],
-    extrapolate: 'clamp',
+    extrapolate: "clamp",
   });
 
   // Track fill behind the thumb
@@ -210,8 +228,8 @@ export const SlideToConfirm: React.FC<SlideToConfirmProps> = ({
         {
           backgroundColor: isInteractiveDisabled
             ? isDark
-              ? '#1E293B'
-              : '#E2E8F0'
+              ? "#1E293B"
+              : "#E2E8F0"
             : effectivePrimaryColor,
         },
         style,
@@ -219,7 +237,10 @@ export const SlideToConfirm: React.FC<SlideToConfirmProps> = ({
       onLayout={handleLayout}
       accessibilityRole="button"
       accessibilityLabel={defaultDisplayLabel}
-      accessibilityState={{ disabled: isInteractiveDisabled, busy: isSubmitting }}
+      accessibilityState={{
+        disabled: isInteractiveDisabled,
+        busy: isSubmitting,
+      }}
     >
       {/* Active Fill Background Behind Thumb */}
       {!isInteractiveDisabled && (
@@ -228,22 +249,27 @@ export const SlideToConfirm: React.FC<SlideToConfirmProps> = ({
             styles.trackFill,
             {
               width: trackFillWidth,
-              backgroundColor: isDark ? '#047857' : '#047857',
+              backgroundColor: isDark ? "#047857" : "#047857",
             },
           ]}
         />
       )}
 
       {/* Label Text */}
-      <Animated.View style={[styles.textWrapper, { opacity: isInteractiveDisabled ? 0.6 : textOpacity }]}>
+      <Animated.View
+        style={[
+          styles.textWrapper,
+          { opacity: isInteractiveDisabled ? 0.6 : textOpacity },
+        ]}
+      >
         <Text
           style={[
             styles.labelText,
             {
               color: isInteractiveDisabled
                 ? isDark
-                  ? '#94A3B8'
-                  : '#64748B'
+                  ? "#94A3B8"
+                  : "#64748B"
                 : effectiveTextColor,
             },
           ]}
@@ -260,8 +286,8 @@ export const SlideToConfirm: React.FC<SlideToConfirmProps> = ({
           {
             backgroundColor: isInteractiveDisabled
               ? isDark
-                ? '#334155'
-                : '#CBD5E1'
+                ? "#334155"
+                : "#CBD5E1"
               : effectiveThumbColor,
             transform: [{ translateX: thumbX }],
           },
@@ -277,8 +303,8 @@ export const SlideToConfirm: React.FC<SlideToConfirmProps> = ({
             color={
               isInteractiveDisabled
                 ? isDark
-                  ? '#64748B'
-                  : '#94A3B8'
+                  ? "#64748B"
+                  : "#94A3B8"
                 : effectivePrimaryColor
             }
           />
@@ -292,15 +318,15 @@ const styles = StyleSheet.create({
   container: {
     height: TRACK_HEIGHT,
     borderRadius: TRACK_HEIGHT / 2,
-    justifyContent: 'center',
+    justifyContent: "center",
     padding: TRACK_PADDING,
-    position: 'relative',
-    overflow: 'hidden',
-    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.12)',
+    position: "relative",
+    overflow: "hidden",
+    boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.12)",
     elevation: 3,
   },
   trackFill: {
-    position: 'absolute',
+    position: "absolute",
     left: 0,
     top: 0,
     bottom: 0,
@@ -308,27 +334,27 @@ const styles = StyleSheet.create({
     opacity: 0.45,
   },
   textWrapper: {
-    position: 'absolute',
+    position: "absolute",
     left: 0,
     right: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingHorizontal: THUMB_SIZE + 12,
   },
   labelText: {
     fontSize: 14,
     lineHeight: 18,
-    fontWeight: '800',
+    fontWeight: "800",
     letterSpacing: 0.3,
-    textAlign: 'center',
+    textAlign: "center",
   },
   thumb: {
     width: THUMB_SIZE,
     height: THUMB_SIZE,
     borderRadius: THUMB_SIZE / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.25)',
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.25)",
     elevation: 4,
   },
 });

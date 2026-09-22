@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { Feather } from "@expo/vector-icons";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,13 +8,13 @@ import {
   Animated,
   Platform,
   Easing,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
-import { subscribeOtaState, applyOtaUpdate } from '../services/otaService';
-import { triggerHaptic } from '../utils/haptics';
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const USE_NATIVE_DRIVER = Platform.OS !== 'web';
+import { subscribeOtaState, applyOtaUpdate } from "../services/otaService";
+import { triggerHaptic } from "../utils/haptics";
+
+const USE_NATIVE_DRIVER = Platform.OS !== "web";
 const AUTO_DISMISS_MS = 7000;
 
 export function OtaUpdateBanner() {
@@ -34,7 +35,7 @@ export function OtaUpdateBanner() {
 
   const handleDismiss = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    triggerHaptic('light');
+    triggerHaptic("light");
     Animated.timing(slideAnim, {
       toValue: -120,
       duration: 250,
@@ -87,7 +88,7 @@ export function OtaUpdateBanner() {
 
   const handleRestart = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    triggerHaptic('medium');
+    triggerHaptic("medium");
     applyOtaUpdate();
   };
 
@@ -120,7 +121,12 @@ export function OtaUpdateBanner() {
             onPress={handleRestart}
             activeOpacity={0.85}
           >
-            <Feather name="refresh-cw" size={12} color="#064E3B" style={{ marginRight: 4 }} />
+            <Feather
+              name="refresh-cw"
+              size={12}
+              color="#064E3B"
+              style={{ marginRight: 4 }}
+            />
             <Text style={styles.restartBtnText}>Restart</Text>
           </TouchableOpacity>
 
@@ -152,30 +158,30 @@ export function OtaUpdateBanner() {
 
 const styles = StyleSheet.create({
   wrapper: {
-    position: 'absolute',
+    position: "absolute",
     left: 12,
     right: 12,
     zIndex: 999999,
     elevation: 25,
   },
   banner: {
-    backgroundColor: '#064E3B',
+    backgroundColor: "#064E3B",
     borderRadius: 16,
     paddingTop: 10,
     paddingBottom: 12,
     paddingHorizontal: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     borderWidth: 1.5,
-    borderColor: '#34D399',
-    boxShadow: '0px 6px 8px rgba(5, 150, 105, 0.3)',
+    borderColor: "#34D399",
+    boxShadow: "0px 6px 8px rgba(5, 150, 105, 0.3)",
     elevation: 10,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   leftGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
     marginRight: 8,
   },
@@ -183,9 +189,9 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.18)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(255, 255, 255, 0.18)",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 10,
   },
   emojiIcon: {
@@ -195,56 +201,56 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 13,
     lineHeight: 16,
-    fontWeight: '800',
+    fontWeight: "800",
     letterSpacing: 0.1,
   },
   subtitle: {
-    color: '#A7F3D0',
+    color: "#A7F3D0",
     fontSize: 11,
     lineHeight: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   rightGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   restartBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FDE047',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FDE047",
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 10,
   },
   restartBtnText: {
-    color: '#064E3B',
+    color: "#064E3B",
     fontSize: 12,
     lineHeight: 15,
-    fontWeight: '800',
+    fontWeight: "800",
   },
   closeBtn: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   progressBarBackground: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
     height: 2.5,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
   },
   progressBarFill: {
-    height: '100%',
-    width: '100%',
-    backgroundColor: '#FDE047',
+    height: "100%",
+    width: "100%",
+    backgroundColor: "#FDE047",
   },
 });

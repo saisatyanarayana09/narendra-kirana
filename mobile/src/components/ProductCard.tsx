@@ -1,19 +1,18 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  StyleProp, 
-  ViewStyle 
-} from 'react-native';
-import { Image } from 'expo-image';
-import { Feather, Ionicons } from '@expo/vector-icons';
-import { fixImageUrl, getOptimizedImageUrl } from '../utils/image';
-import { theme } from '../constants/theme';
-import { useTheme } from '../context/ThemeContext';
-import { triggerHaptic } from '../utils/haptics';
-import { BouncyTouchable } from './BouncyTouchable';
+import { Feather, Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  StyleProp,
+  ViewStyle,
+} from "react-native";
+
+import { BouncyTouchable } from "./BouncyTouchable";
+import { useTheme } from "../context/ThemeContext";
+import { getOptimizedImageUrl } from "../utils/image";
 
 export interface Product {
   id: number;
@@ -37,7 +36,10 @@ export interface ProductCardProps {
   product: Product;
   onPress: (product: Product) => void;
   onAddToCart?: (product: Product) => void | Promise<void>;
-  onUpdateQuantity?: (productId: number, newQty: number) => void | Promise<void>;
+  onUpdateQuantity?: (
+    productId: number,
+    newQty: number,
+  ) => void | Promise<void>;
   style?: StyleProp<ViewStyle>;
   isFavorite?: boolean | ((productId: number) => boolean);
   onToggleFavorite?: (product: any) => void;
@@ -45,10 +47,10 @@ export interface ProductCardProps {
   showQuantityStepper?: boolean;
 }
 
-function ProductCardComponent({ 
-  product, 
-  onPress, 
-  onAddToCart, 
+function ProductCardComponent({
+  product,
+  onPress,
+  onAddToCart,
   onUpdateQuantity,
   style,
   isFavorite,
@@ -60,22 +62,29 @@ function ProductCardComponent({
   const [updating, setUpdating] = useState(false);
   const [added, setAdded] = useState(false);
 
-  const isFav = typeof isFavorite === 'function' ? Boolean(isFavorite(product.id)) : Boolean(isFavorite);
+  const isFav =
+    typeof isFavorite === "function"
+      ? Boolean(isFavorite(product.id))
+      : Boolean(isFavorite);
 
   // Price calculations matching customer.jsx
-  const rawPrice = product.offer_price || product.price || product.regular_price || 0;
+  const rawPrice =
+    product.offer_price || product.price || product.regular_price || 0;
   const parsedPrice = parseFloat(String(rawPrice)) || 0;
 
   const rawMrp = product.regular_price || product.mrp || 0;
   const parsedMrp = parseFloat(String(rawMrp)) || 0;
 
-  const discount = (product.offer_price && parsedMrp > parsedPrice && parsedMrp > 0)
-    ? Math.round(((parsedMrp - parsedPrice) / parsedMrp) * 100)
-    : (parsedMrp > parsedPrice && parsedMrp > 0
+  const discount =
+    product.offer_price && parsedMrp > parsedPrice && parsedMrp > 0
       ? Math.round(((parsedMrp - parsedPrice) / parsedMrp) * 100)
-      : 0);
+      : parsedMrp > parsedPrice && parsedMrp > 0
+        ? Math.round(((parsedMrp - parsedPrice) / parsedMrp) * 100)
+        : 0;
 
-  const isInStock = product.is_in_stock !== false && (product.stock_quantity === undefined || product.stock_quantity > 0);
+  const isInStock =
+    product.is_in_stock !== false &&
+    (product.stock_quantity === undefined || product.stock_quantity > 0);
 
   // In-cart quantity check via prop (decoupled from CartContext for maximum React.memo performance)
   const currentCartQty = propCartQty ?? 0;
@@ -83,12 +92,19 @@ function ProductCardComponent({
 
   const stockQty = product.stock_quantity ?? 999;
   const maxOrderQty = product.max_order_quantity ?? 0;
-  const maxAllowed = maxOrderQty > 0 ? Math.min(stockQty, maxOrderQty) : stockQty;
+  const maxAllowed =
+    maxOrderQty > 0 ? Math.min(stockQty, maxOrderQty) : stockQty;
   const isMaxReached = inCart && currentCartQty >= maxAllowed;
 
   let primaryImage = getOptimizedImageUrl(product.image, 320, 320);
-  if (product.name?.toLowerCase().includes('pumpkin') && (!primaryImage || primaryImage.includes('dummyimage.com') || primaryImage.endsWith('/media/'))) {
-    primaryImage = 'https://raw.githubusercontent.com/saisatyanarayana09/narendra-kirana/main/frontend/public/products/pumpkin_seeds.jpg';
+  if (
+    product.name?.toLowerCase().includes("pumpkin") &&
+    (!primaryImage ||
+      primaryImage.includes("dummyimage.com") ||
+      primaryImage.endsWith("/media/"))
+  ) {
+    primaryImage =
+      "https://raw.githubusercontent.com/saisatyanarayana09/narendra-kirana/main/frontend/public/products/pumpkin_seeds.jpg";
   }
 
   const handleAdd = async () => {
@@ -103,7 +119,7 @@ function ProductCardComponent({
       setAdded(true);
       setTimeout(() => setAdded(false), 2000);
     } catch (err) {
-      console.error('Add to cart failed:', err);
+      console.error("Add to cart failed:", err);
     } finally {
       setUpdating(false);
     }
@@ -120,7 +136,7 @@ function ProductCardComponent({
         await Promise.resolve(onAddToCart(product));
       }
     } catch (err) {
-      console.error('Decrease quantity failed:', err);
+      console.error("Decrease quantity failed:", err);
     } finally {
       setUpdating(false);
     }
@@ -137,28 +153,30 @@ function ProductCardComponent({
         await Promise.resolve(onAddToCart(product));
       }
     } catch (err) {
-      console.error('Increase quantity failed:', err);
+      console.error("Increase quantity failed:", err);
     } finally {
       setUpdating(false);
     }
   };
 
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[
-        styles.container, 
+        styles.container,
         { backgroundColor: colors.surface, borderColor: colors.border },
-        style
-      ]} 
+        style,
+      ]}
       onPress={() => onPress(product)}
       activeOpacity={0.9}
     >
       {/* Image container */}
-      <View style={[
-        styles.imageContainer, 
-        { backgroundColor: isDark ? colors.background : '#F8FAFC' },
-        !isInStock && styles.imageOutOfStock
-      ]}>
+      <View
+        style={[
+          styles.imageContainer,
+          { backgroundColor: isDark ? colors.background : "#F8FAFC" },
+          !isInStock && styles.imageOutOfStock,
+        ]}
+      >
         {/* Discount ribbon at top left */}
         {discount > 0 && (
           <View style={styles.discountBadge}>
@@ -169,11 +187,11 @@ function ProductCardComponent({
 
         {/* Favorite button at top right */}
         {onToggleFavorite && (
-          <BouncyTouchable 
+          <BouncyTouchable
             style={[
               styles.favoriteButton,
-              isDark && { backgroundColor: 'rgba(30, 41, 59, 0.92)' }
-            ]} 
+              isDark && { backgroundColor: "rgba(30, 41, 59, 0.92)" },
+            ]}
             onPress={(e) => {
               e?.stopPropagation?.();
               onToggleFavorite(product);
@@ -182,28 +200,38 @@ function ProductCardComponent({
             hapticType="selection"
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons 
-              name={isFav ? "heart" : "heart-outline"} 
-              size={16} 
-              color={isFav ? "#E11D48" : (isDark ? "#64748B" : "#94A3B8")} 
+            <Ionicons
+              name={isFav ? "heart" : "heart-outline"}
+              size={16}
+              color={isFav ? "#E11D48" : isDark ? "#64748B" : "#94A3B8"}
             />
           </BouncyTouchable>
         )}
 
         {/* Product image or initial letter fallback */}
         {primaryImage ? (
-          <Image 
-            source={{ uri: primaryImage }} 
-            style={styles.image} 
+          <Image
+            source={{ uri: primaryImage }}
+            style={styles.image}
             contentFit="cover"
             recyclingKey={primaryImage || String(product.id)}
             cachePolicy="memory-disk"
             transition={150}
           />
         ) : (
-          <View style={[styles.placeholderImage, { backgroundColor: colors.inputBg }]}>
-            <Text style={[styles.placeholderLetter, { color: colors.textSecondary }]}>
-              {product.name?.charAt(0)?.toUpperCase() || 'P'}
+          <View
+            style={[
+              styles.placeholderImage,
+              { backgroundColor: colors.inputBg },
+            ]}
+          >
+            <Text
+              style={[
+                styles.placeholderLetter,
+                { color: colors.textSecondary },
+              ]}
+            >
+              {product.name?.charAt(0)?.toUpperCase() || "P"}
             </Text>
           </View>
         )}
@@ -221,26 +249,44 @@ function ProductCardComponent({
         {/* Brand Slot (reserved height ensures product names align across all cards) */}
         <View style={styles.brandRow}>
           {product.brand ? (
-            <Text style={[styles.brand, { color: colors.textSecondary }]} numberOfLines={1}>
+            <Text
+              style={[styles.brand, { color: colors.textSecondary }]}
+              numberOfLines={1}
+            >
               {product.brand}
             </Text>
           ) : null}
         </View>
 
         {/* Title Slot (2-line clamped with fixed container height) */}
-        <Text style={[styles.name, { color: colors.text }]} numberOfLines={2} ellipsizeMode="tail">
+        <Text
+          style={[styles.name, { color: colors.text }]}
+          numberOfLines={2}
+          ellipsizeMode="tail"
+        >
           {product.name}
         </Text>
 
         {/* Unit & Optional Tag Badge Row */}
         <View style={styles.unitRow}>
-          <Text style={[styles.unit, { color: colors.textSecondary }]} numberOfLines={1}>
-            {product.unit || '1 unit'}
+          <Text
+            style={[styles.unit, { color: colors.textSecondary }]}
+            numberOfLines={1}
+          >
+            {product.unit || "1 unit"}
           </Text>
           {product.tags ? (
-            <View style={[styles.tagBadge, isDark && { backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.3)' }]}>
+            <View
+              style={[
+                styles.tagBadge,
+                isDark && {
+                  backgroundColor: "rgba(239, 68, 68, 0.15)",
+                  borderColor: "rgba(239, 68, 68, 0.3)",
+                },
+              ]}
+            >
               <Text style={styles.tagText} numberOfLines={1}>
-                {product.tags.split(',')[0].trim()}
+                {product.tags.split(",")[0].trim()}
               </Text>
             </View>
           ) : null}
@@ -248,20 +294,30 @@ function ProductCardComponent({
 
         {/* Price Row: ₹{price} and strikethrough ₹{mrp} */}
         <View style={styles.priceRow}>
-          <Text style={[styles.price, { color: colors.text }]}>₹{parsedPrice}</Text>
-          {discount > 0 ? (
-            <Text style={styles.mrp}>₹{parsedMrp}</Text>
-          ) : null}
+          <Text style={[styles.price, { color: colors.text }]}>
+            ₹{parsedPrice}
+          </Text>
+          {discount > 0 ? <Text style={styles.mrp}>₹{parsedMrp}</Text> : null}
         </View>
 
         {/* Add to Cart / Stepper (only if showQuantityStepper is explicitly true) */}
         <View style={styles.actionContainer}>
           {!isInStock ? (
-            <View style={[styles.outOfStockButton, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+            <View
+              style={[
+                styles.outOfStockButton,
+                { backgroundColor: colors.inputBg, borderColor: colors.border },
+              ]}
+            >
               <Text style={styles.outOfStockButtonText}>Out of stock</Text>
             </View>
           ) : showQuantityStepper && currentCartQty > 0 ? (
-            <View style={[styles.stepperContainer, { backgroundColor: colors.primary }]}>
+            <View
+              style={[
+                styles.stepperContainer,
+                { backgroundColor: colors.primary },
+              ]}
+            >
               <BouncyTouchable
                 style={styles.stepperBtn}
                 onPress={handleDecrease}
@@ -277,32 +333,47 @@ function ProductCardComponent({
                 )}
               </BouncyTouchable>
 
-              <Text style={styles.stepperQtyText}>
-                {currentCartQty}
-              </Text>
+              <Text style={styles.stepperQtyText}>{currentCartQty}</Text>
 
               <BouncyTouchable
-                style={[styles.stepperBtn, isMaxReached && styles.stepperBtnDisabled]}
+                style={[
+                  styles.stepperBtn,
+                  isMaxReached && styles.stepperBtnDisabled,
+                ]}
                 onPress={handleIncrease}
                 hapticType="light"
                 scaleTo={0.88}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 disabled={updating || isMaxReached}
               >
-                <Feather 
-                  name="plus" 
-                  size={16} 
-                  color={isMaxReached ? 'rgba(255, 255, 255, 0.4)' : '#FFFFFF'} 
+                <Feather
+                  name="plus"
+                  size={16}
+                  color={isMaxReached ? "rgba(255, 255, 255, 0.4)" : "#FFFFFF"}
                 />
               </BouncyTouchable>
             </View>
           ) : (
-            <BouncyTouchable 
+            <BouncyTouchable
               style={[
-                styles.addToCartButton, 
+                styles.addToCartButton,
                 { backgroundColor: colors.primary },
-                added && [styles.addedButton, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5', borderColor: '#A7F3D0' }],
-                isMaxReached && [styles.maxReachedButton, isDark && { backgroundColor: colors.inputBg, borderColor: colors.border }]
+                added && [
+                  styles.addedButton,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(16, 185, 129, 0.15)"
+                      : "#ECFDF5",
+                    borderColor: "#A7F3D0",
+                  },
+                ],
+                isMaxReached && [
+                  styles.maxReachedButton,
+                  isDark && {
+                    backgroundColor: colors.inputBg,
+                    borderColor: colors.border,
+                  },
+                ],
               ]}
               onPress={handleAdd}
               disabled={updating || added || isMaxReached}
@@ -312,12 +383,19 @@ function ProductCardComponent({
               {isMaxReached ? (
                 <Text style={styles.maxReachedText}>Max in cart</Text>
               ) : added ? (
-                <Text style={[styles.addedText, { color: '#059669' }]}>✓ Added!</Text>
+                <Text style={[styles.addedText, { color: "#059669" }]}>
+                  ✓ Added!
+                </Text>
               ) : updating ? (
                 <Text style={styles.addToCartText}>Adding...</Text>
               ) : (
                 <View style={styles.buttonInner}>
-                  <Feather name="shopping-cart" size={13} color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Feather
+                    name="shopping-cart"
+                    size={13}
+                    color="#FFFFFF"
+                    style={{ marginRight: 6 }}
+                  />
                   <Text style={styles.addToCartText}>Add to Cart</Text>
                 </View>
               )}
@@ -329,47 +407,56 @@ function ProductCardComponent({
   );
 }
 
-export const ProductCard = React.memo(ProductCardComponent, (prevProps, nextProps) => {
-  const prevFav = typeof prevProps.isFavorite === 'function' ? Boolean(prevProps.isFavorite(prevProps.product.id)) : Boolean(prevProps.isFavorite);
-  const nextFav = typeof nextProps.isFavorite === 'function' ? Boolean(nextProps.isFavorite(nextProps.product.id)) : Boolean(nextProps.isFavorite);
+export const ProductCard = React.memo(
+  ProductCardComponent,
+  (prevProps, nextProps) => {
+    const prevFav =
+      typeof prevProps.isFavorite === "function"
+        ? Boolean(prevProps.isFavorite(prevProps.product.id))
+        : Boolean(prevProps.isFavorite);
+    const nextFav =
+      typeof nextProps.isFavorite === "function"
+        ? Boolean(nextProps.isFavorite(nextProps.product.id))
+        : Boolean(nextProps.isFavorite);
 
-  return (
-    prevProps.product.id === nextProps.product.id &&
-    prevProps.product.offer_price === nextProps.product.offer_price &&
-    prevProps.product.price === nextProps.product.price &&
-    prevProps.product.stock_quantity === nextProps.product.stock_quantity &&
-    prevProps.product.is_in_stock === nextProps.product.is_in_stock &&
-    prevProps.product.name === nextProps.product.name &&
-    prevProps.product.image === nextProps.product.image &&
-    prevFav === nextFav &&
-    prevProps.cartQty === nextProps.cartQty &&
-    prevProps.showQuantityStepper === nextProps.showQuantityStepper &&
-    prevProps.style === nextProps.style &&
-    prevProps.onUpdateQuantity === nextProps.onUpdateQuantity &&
-    prevProps.onAddToCart === nextProps.onAddToCart
-  );
-});
+    return (
+      prevProps.product.id === nextProps.product.id &&
+      prevProps.product.offer_price === nextProps.product.offer_price &&
+      prevProps.product.price === nextProps.product.price &&
+      prevProps.product.stock_quantity === nextProps.product.stock_quantity &&
+      prevProps.product.is_in_stock === nextProps.product.is_in_stock &&
+      prevProps.product.name === nextProps.product.name &&
+      prevProps.product.image === nextProps.product.image &&
+      prevFav === nextFav &&
+      prevProps.cartQty === nextProps.cartQty &&
+      prevProps.showQuantityStepper === nextProps.showQuantityStepper &&
+      prevProps.style === nextProps.style &&
+      prevProps.onUpdateQuantity === nextProps.onUpdateQuantity &&
+      prevProps.onAddToCart === nextProps.onAddToCart
+    );
+  },
+);
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    width: '100%',
+    borderColor: "#E2E8F0",
+    width: "100%",
     height: 296, // Strictly locked uniform height so every card in a row or grid has the exact same dimensions
-    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.04)',
+    boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.04)",
     elevation: 2,
-    flexDirection: 'column',
-    overflow: 'hidden',
+    flexDirection: "column",
+    overflow: "hidden",
   },
   imageContainer: {
     height: 132,
-    backgroundColor: '#F8FAFC',
-    position: 'relative',
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
+    backgroundColor: "#F8FAFC",
+    position: "relative",
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
     borderTopLeftRadius: 15,
     borderTopRightRadius: 15,
   },
@@ -377,71 +464,71 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   image: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   placeholderImage: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: "100%",
+    height: "100%",
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
   },
   placeholderLetter: {
     fontSize: 36,
-    fontWeight: '900',
-    color: '#CBD5E1',
+    fontWeight: "900",
+    color: "#CBD5E1",
   },
   discountBadge: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     zIndex: 10,
-    backgroundColor: '#DC2626',
+    backgroundColor: "#DC2626",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderBottomRightRadius: 12,
     borderTopLeftRadius: 15,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 3,
-    boxShadow: '0px 2px 3px rgba(220, 38, 38, 0.25)',
+    boxShadow: "0px 2px 3px rgba(220, 38, 38, 0.25)",
     elevation: 3,
   },
   discountText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 10,
-    fontWeight: '900',
+    fontWeight: "900",
     letterSpacing: 0.5,
   },
   favoriteButton: {
-    position: 'absolute',
+    position: "absolute",
     top: 8,
     right: 8,
     zIndex: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    backgroundColor: "rgba(255, 255, 255, 0.92)",
     padding: 6,
     borderRadius: 20,
-    boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.1)',
+    boxShadow: "0px 1px 2px rgba(0, 0, 0, 0.1)",
     elevation: 2,
   },
   outOfStockOverlay: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
+    position: "absolute",
+    top: "50%",
+    left: "50%",
     transform: [{ translateX: -50 }, { translateY: -12 }],
     zIndex: 20,
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    backgroundColor: "rgba(15, 23, 42, 0.85)",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: "rgba(255, 255, 255, 0.2)",
   },
   outOfStockText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 9,
-    fontWeight: '900',
+    fontWeight: "900",
     letterSpacing: 0.8,
   },
   content: {
@@ -449,45 +536,45 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 10,
     flex: 1,
-    flexDirection: 'column',
-    justifyContent: 'space-between',
+    flexDirection: "column",
+    justifyContent: "space-between",
   },
   brandRow: {
     height: 14,
-    justifyContent: 'center',
+    justifyContent: "center",
     marginBottom: 2,
   },
   brand: {
     fontSize: 10,
-    color: '#64748B',
-    textTransform: 'uppercase',
-    fontWeight: '700',
+    color: "#64748B",
+    textTransform: "uppercase",
+    fontWeight: "700",
     lineHeight: 14,
   },
   name: {
     fontSize: 13,
-    fontWeight: '700',
-    color: '#1E293B',
+    fontWeight: "700",
+    color: "#1E293B",
     lineHeight: 17,
     height: 34,
   },
   unitRow: {
     height: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginTop: 2,
   },
   unit: {
     fontSize: 11,
-    color: '#64748B',
-    fontWeight: '500',
+    color: "#64748B",
+    fontWeight: "500",
     flex: 1,
   },
   tagBadge: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: "#FEF2F2",
     borderWidth: 1,
-    borderColor: '#FEE2E2',
+    borderColor: "#FEE2E2",
     paddingHorizontal: 5,
     paddingVertical: 1,
     borderRadius: 4,
@@ -495,14 +582,14 @@ const styles = StyleSheet.create({
   },
   tagText: {
     fontSize: 9,
-    fontWeight: '800',
-    color: '#DC2626',
-    textTransform: 'uppercase',
+    fontWeight: "800",
+    color: "#DC2626",
+    textTransform: "uppercase",
   },
   priceRow: {
     height: 22,
-    flexDirection: 'row',
-    alignItems: 'baseline',
+    flexDirection: "row",
+    alignItems: "baseline",
     gap: 6,
     marginTop: 3,
     marginBottom: 4,
@@ -510,75 +597,75 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 16,
     lineHeight: 20,
-    fontWeight: '900',
-    color: '#0F172A',
-    fontVariant: ['tabular-nums'],
+    fontWeight: "900",
+    color: "#0F172A",
+    fontVariant: ["tabular-nums"],
   },
   mrp: {
     fontSize: 11,
-    color: '#94A3B8',
-    textDecorationLine: 'line-through',
-    fontWeight: '600',
-    fontVariant: ['tabular-nums'],
+    color: "#94A3B8",
+    textDecorationLine: "line-through",
+    fontWeight: "600",
+    fontVariant: ["tabular-nums"],
   },
   actionContainer: {
-    marginTop: 'auto',
+    marginTop: "auto",
     height: 38,
   },
   addToCartButton: {
     height: 38,
     borderRadius: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    boxShadow: '0px 2px 3px rgba(5, 150, 105, 0.2)',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    boxShadow: "0px 2px 3px rgba(5, 150, 105, 0.2)",
     elevation: 2,
   },
   buttonInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   addedButton: {
-    backgroundColor: '#ECFDF5',
+    backgroundColor: "#ECFDF5",
     borderWidth: 1,
-    borderColor: '#A7F3D0',
-    boxShadow: 'none',
+    borderColor: "#A7F3D0",
+    boxShadow: "none",
     elevation: 0,
   },
   addToCartText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 13,
     lineHeight: 16,
-    fontWeight: '800',
+    fontWeight: "800",
   },
   addedText: {
-    color: '#059669',
+    color: "#059669",
     fontSize: 13,
     lineHeight: 16,
-    fontWeight: '800',
+    fontWeight: "800",
   },
   addButton: {
     height: 38,
     borderRadius: 10,
     borderWidth: 1.5,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    boxShadow: '0px 1px 2px rgba(5, 150, 105, 0.1)',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    boxShadow: "0px 1px 2px rgba(5, 150, 105, 0.1)",
     elevation: 1,
   },
   addButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   addButtonText: {
     fontSize: 13,
     lineHeight: 16,
-    fontWeight: '800',
+    fontWeight: "800",
     letterSpacing: 0.5,
   },
   addButtonPlus: {
@@ -587,56 +674,56 @@ const styles = StyleSheet.create({
   stepperContainer: {
     height: 38,
     borderRadius: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
     paddingHorizontal: 6,
-    boxShadow: '0px 2px 3px rgba(5, 150, 105, 0.25)',
+    boxShadow: "0px 2px 3px rgba(5, 150, 105, 0.25)",
     elevation: 2,
   },
   stepperBtn: {
     width: 32,
     height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: 6,
   },
   stepperBtnDisabled: {
     opacity: 0.45,
   },
   stepperQtyText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: '900',
-    textAlign: 'center',
+    fontWeight: "900",
+    textAlign: "center",
     minWidth: 24,
   },
   maxReachedButton: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: "#F8FAFC",
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    boxShadow: 'none',
+    borderColor: "#E2E8F0",
+    boxShadow: "none",
     elevation: 0,
   },
   maxReachedText: {
-    color: '#94A3B8',
+    color: "#94A3B8",
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   outOfStockButton: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: "#F8FAFC",
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: "#E2E8F0",
     borderRadius: 10,
     height: 38,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
   },
   outOfStockButtonText: {
-    color: '#94A3B8',
+    color: "#94A3B8",
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: "800",
   },
 });

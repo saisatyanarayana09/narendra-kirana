@@ -1,6 +1,6 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const CACHE_KEY = 'sk_home_cache';
+const CACHE_KEY = "sk_home_cache";
 
 export interface CachedHomeData {
   categories: any[];
@@ -36,7 +36,7 @@ export async function loadHomeData(): Promise<CachedHomeData | null> {
         }
       }
     } catch (err) {
-      console.warn('[homeDataCache] Failed to load cache:', err);
+      console.warn("[homeDataCache] Failed to load cache:", err);
     }
     return null;
   })();
@@ -57,7 +57,9 @@ export function getHomeDataSync(): CachedHomeData | null {
  * Persist home data to AsyncStorage and update in-memory cache.
  * Called after a successful network fetch.
  */
-export async function saveHomeData(data: Omit<CachedHomeData, 'timestamp'>): Promise<void> {
+export async function saveHomeData(
+  data: Omit<CachedHomeData, "timestamp">,
+): Promise<void> {
   const cacheEntry: CachedHomeData = {
     ...data,
     timestamp: Date.now(),
@@ -67,7 +69,7 @@ export async function saveHomeData(data: Omit<CachedHomeData, 'timestamp'>): Pro
   try {
     await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(cacheEntry));
   } catch (err) {
-    console.warn('[homeDataCache] Failed to save cache:', err);
+    console.warn("[homeDataCache] Failed to save cache:", err);
   }
 }
 
@@ -83,4 +85,3 @@ export async function clearHomeDataCache(): Promise<void> {
 
 // Pre-warm cache on module import
 loadHomeData().catch(() => {});
-

@@ -1,16 +1,32 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather, MaterialIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { AppNavigationProp } from '../../navigation/types';
-import { theme } from '../../constants/theme';
-import { apiClient } from '../../api/client';
-import { useTheme } from '../../context/ThemeContext';
-import { useAuth } from '../../context/AuthContext';
-import { getCachedWalletSync, loadCachedWallet, saveCachedWallet } from '../../services/profileCache';
+import { Feather, MaterialIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  ActivityIndicator,
+  TouchableOpacity,
+  RefreshControl,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) {
+import { apiClient } from "../../api/client";
+import { useAuth } from "../../context/AuthContext";
+import { useTheme } from "../../context/ThemeContext";
+import { AppNavigationProp } from "../../navigation/types";
+import {
+  getCachedWalletSync,
+  loadCachedWallet,
+  saveCachedWallet,
+} from "../../services/profileCache";
+
+export function WalletScreen({
+  navigation,
+}: {
+  navigation: AppNavigationProp;
+}) {
   const { colors, isDark } = useTheme();
   const { user } = useAuth();
   const cachedWallet = getCachedWalletSync(user?.id);
@@ -41,11 +57,11 @@ export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) 
       return;
     }
     try {
-      const res = await apiClient.get('/auth/wallet/');
+      const res = await apiClient.get("/auth/wallet/");
       setWallet(res.data);
       saveCachedWallet(user.id, res.data);
     } catch (error) {
-      console.error('Failed to load wallet', error);
+      console.error("Failed to load wallet", error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -63,35 +79,78 @@ export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) 
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-IN', { 
-      day: 'numeric', month: 'short', year: 'numeric'
+    return date.toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
     });
   };
 
   if (!user) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={["top"]}
+      >
+        <View
+          style={[
+            styles.header,
+            {
+              backgroundColor: colors.surface,
+              borderBottomColor: colors.border,
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() =>
+              navigation.canGoBack()
+                ? navigation.goBack()
+                : navigation.navigate("Main")
+            }
+          >
             <Feather name="arrow-left" size={18} color={colors.primary} />
-            <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
+            <Text style={[styles.backButtonText, { color: colors.primary }]}>
+              Back
+            </Text>
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Digital Wallet</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            Digital Wallet
+          </Text>
         </View>
         <View style={styles.guestStateContainer}>
-          <View style={[styles.guestIconBox, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.15)' : '#ECFDF5' }]}>
-            <MaterialIcons name="account-balance-wallet" size={44} color={colors.primary} />
+          <View
+            style={[
+              styles.guestIconBox,
+              {
+                backgroundColor: isDark ? "rgba(5, 150, 105, 0.15)" : "#ECFDF5",
+              },
+            ]}
+          >
+            <MaterialIcons
+              name="account-balance-wallet"
+              size={44}
+              color={colors.primary}
+            />
           </View>
-          <Text style={[styles.guestTitle, { color: colors.text }]}>Sign In to Access Wallet</Text>
+          <Text style={[styles.guestTitle, { color: colors.text }]}>
+            Sign In to Access Wallet
+          </Text>
           <Text style={[styles.guestSubtitle, { color: colors.textSecondary }]}>
-            Sign in to check your wallet balance, earned referral cashback, and transaction history.
+            Sign in to check your wallet balance, earned referral cashback, and
+            transaction history.
           </Text>
           <TouchableOpacity
             style={[styles.guestSignInBtn, { backgroundColor: colors.primary }]}
-            onPress={() => navigation.navigate('Login')}
+            onPress={() => navigation.navigate("Login")}
             activeOpacity={0.85}
           >
-            <Feather name="log-in" size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
+            <Feather
+              name="log-in"
+              size={16}
+              color="#FFFFFF"
+              style={{ marginRight: 8 }}
+            />
             <Text style={styles.guestSignInBtnText}>Sign In / Register</Text>
           </TouchableOpacity>
         </View>
@@ -101,17 +160,36 @@ export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) 
 
   if (loading && !wallet) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-          <TouchableOpacity 
-            style={styles.backButton} 
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={["top"]}
+      >
+        <View
+          style={[
+            styles.header,
+            {
+              backgroundColor: colors.surface,
+              borderBottomColor: colors.border,
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={styles.backButton}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')}
+            onPress={() =>
+              navigation.canGoBack()
+                ? navigation.goBack()
+                : navigation.navigate("Main")
+            }
           >
             <Feather name="arrow-left" size={18} color={colors.primary} />
-            <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
+            <Text style={[styles.backButtonText, { color: colors.primary }]}>
+              Back
+            </Text>
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Digital Wallet</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            Digital Wallet
+          </Text>
         </View>
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -121,94 +199,166 @@ export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) 
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={["top"]}
+    >
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity 
-          style={styles.backButton} 
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: colors.surface, borderBottomColor: colors.border },
+        ]}
+      >
+        <TouchableOpacity
+          style={styles.backButton}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')}
+          onPress={() =>
+            navigation.canGoBack()
+              ? navigation.goBack()
+              : navigation.navigate("Main")
+          }
           activeOpacity={0.7}
         >
           <Feather name="arrow-left" size={18} color={colors.primary} />
-          <Text style={[styles.backButtonText, { color: colors.primary }]}>Back</Text>
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>
+            Back
+          </Text>
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Digital Wallet</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
+          Digital Wallet
+        </Text>
       </View>
 
       <FlatList
         data={wallet?.transactions || []}
-        keyExtractor={(item, index) => String(item?.id || item?.uuid || item?.uid || index)}
+        keyExtractor={(item, index) =>
+          String(item?.id || item?.uuid || item?.uid || index)
+        }
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
         }
         ListHeaderComponent={() => (
           <View style={styles.headerComponent}>
             {/* Emerald to Teal Gradient Hero Balance Card matching web Wallet.jsx */}
             <LinearGradient
-              colors={['#10B981', '#0D9488']}
+              colors={["#10B981", "#0D9488"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.heroCard}
             >
               <Text style={styles.heroCardLabel}>Your Wallet Balance</Text>
               <Text style={styles.heroBalanceAmount}>
-                ₹{(parseFloat(wallet?.balance || '0') || 0).toFixed(2)}
+                ₹{(parseFloat(wallet?.balance || "0") || 0).toFixed(2)}
               </Text>
               <Text style={styles.heroSubtitle}>
-                Use this balance at checkout to get instant discounts on your groceries.
+                Use this balance at checkout to get instant discounts on your
+                groceries.
               </Text>
               <TouchableOpacity
                 style={styles.earnRewardsBtn}
-                onPress={() => navigation.navigate('ReferAndEarnScreen')}
+                onPress={() => navigation.navigate("ReferAndEarnScreen")}
                 activeOpacity={0.85}
               >
                 <Feather name="gift" size={15} color="#0D9488" />
-                <Text style={styles.earnRewardsBtnText}>Earn More Rewards →</Text>
+                <Text style={styles.earnRewardsBtnText}>
+                  Earn More Rewards →
+                </Text>
               </TouchableOpacity>
             </LinearGradient>
 
             <View style={styles.sectionHeaderRow}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Transaction History</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                Transaction History
+              </Text>
             </View>
           </View>
         )}
         ListEmptyComponent={() => (
-          <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <MaterialIcons name="currency-rupee" size={36} color={colors.textSecondary} style={{ marginBottom: 8 }} />
+          <View
+            style={[
+              styles.emptyCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <MaterialIcons
+              name="currency-rupee"
+              size={36}
+              color={colors.textSecondary}
+              style={{ marginBottom: 8 }}
+            />
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
               No transactions yet. Earn money by referring friends!
             </Text>
           </View>
         )}
         renderItem={({ item }) => {
-          const amt = parseFloat(item.amount || '0');
+          const amt = parseFloat(item.amount || "0");
           const isCredit = amt > 0;
           return (
-            <View style={[styles.transactionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View
+              style={[
+                styles.transactionCard,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
+            >
               <View style={styles.transactionLeft}>
-                <View style={[styles.txIconCircle, { backgroundColor: isCredit ? (isDark ? 'rgba(16, 185, 129, 0.2)' : '#ECFDF5') : (isDark ? 'rgba(239, 68, 68, 0.2)' : '#FEF2F2') }]}>
-                  <Feather 
-                    name={isCredit ? "arrow-down-left" : "arrow-up-right"} 
-                    size={18} 
-                    color={isCredit ? '#10B981' : '#EF4444'} 
+                <View
+                  style={[
+                    styles.txIconCircle,
+                    {
+                      backgroundColor: isCredit
+                        ? isDark
+                          ? "rgba(16, 185, 129, 0.2)"
+                          : "#ECFDF5"
+                        : isDark
+                          ? "rgba(239, 68, 68, 0.2)"
+                          : "#FEF2F2",
+                    },
+                  ]}
+                >
+                  <Feather
+                    name={isCredit ? "arrow-down-left" : "arrow-up-right"}
+                    size={18}
+                    color={isCredit ? "#10B981" : "#EF4444"}
                   />
                 </View>
                 <View style={styles.txDetails}>
                   <Text style={[styles.txTypeTitle, { color: colors.text }]}>
-                    {(item.transaction_type || 'TRANSACTION').replace(/_/g, ' ')}
+                    {(item.transaction_type || "TRANSACTION").replace(
+                      /_/g,
+                      " ",
+                    )}
                   </Text>
                   {item.description ? (
-                    <Text style={[styles.txDesc, { color: colors.textSecondary }]}>{item.description}</Text>
+                    <Text
+                      style={[styles.txDesc, { color: colors.textSecondary }]}
+                    >
+                      {item.description}
+                    </Text>
                   ) : null}
-                  <Text style={[styles.txDate, { color: colors.textSecondary }]}>{formatDate(item.created_at)}</Text>
+                  <Text
+                    style={[styles.txDate, { color: colors.textSecondary }]}
+                  >
+                    {formatDate(item.created_at)}
+                  </Text>
                 </View>
               </View>
 
-              <Text style={[styles.txAmount, { color: isCredit ? '#10B981' : '#EF4444' }]}>
-                {isCredit ? '+' : '-'}₹{(Math.abs(amt) || 0).toFixed(2)}
+              <Text
+                style={[
+                  styles.txAmount,
+                  { color: isCredit ? "#10B981" : "#EF4444" },
+                ]}
+              >
+                {isCredit ? "+" : "-"}₹{(Math.abs(amt) || 0).toFixed(2)}
               </Text>
             </View>
           );
@@ -221,37 +371,37 @@ export function WalletScreen({ navigation }: { navigation: AppNavigationProp }) 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC', // slate-50
+    backgroundColor: "#F8FAFC", // slate-50
   },
   header: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: "#F1F5F9",
   },
   backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
     marginBottom: 6,
   },
   backButtonText: {
     fontSize: 13,
-    fontWeight: '700',
-    color: '#059669',
+    fontWeight: "700",
+    color: "#059669",
   },
   headerTitle: {
     fontSize: 24,
     lineHeight: 28,
-    fontWeight: '900',
-    color: '#0F172A',
+    fontWeight: "900",
+    color: "#0F172A",
     letterSpacing: -0.5,
   },
   center: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   scrollContent: {
     padding: 16,
@@ -264,45 +414,45 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 22,
     marginBottom: 20,
-    boxShadow: '0px 4px 8px rgba(5, 150, 105, 0.18)',
+    boxShadow: "0px 4px 8px rgba(5, 150, 105, 0.18)",
     elevation: 4,
   },
   heroCardLabel: {
     fontSize: 14,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: "600",
+    color: "rgba(255, 255, 255, 0.9)",
     marginBottom: 4,
   },
   heroBalanceAmount: {
     fontSize: 34,
     lineHeight: 40,
-    fontWeight: '900',
-    color: '#FFFFFF',
+    fontWeight: "900",
+    color: "#FFFFFF",
     letterSpacing: -0.5,
     marginBottom: 8,
   },
   heroSubtitle: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.85)',
+    color: "rgba(255, 255, 255, 0.85)",
     lineHeight: 18,
   },
   earnRewardsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
-    backgroundColor: '#FFFFFF',
-    alignSelf: 'flex-start',
+    backgroundColor: "#FFFFFF",
+    alignSelf: "flex-start",
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
     marginTop: 14,
-    boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.1)',
+    boxShadow: "0px 2px 3px rgba(0, 0, 0, 0.1)",
     elevation: 2,
   },
   earnRewardsBtnText: {
-    color: '#0D9488',
+    color: "#0D9488",
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: "800",
   },
   sectionHeaderRow: {
     marginBottom: 8,
@@ -310,40 +460,40 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     lineHeight: 22,
-    fontWeight: '800',
-    color: '#0F172A',
+    fontWeight: "800",
+    color: "#0F172A",
   },
   emptyCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: "#E2E8F0",
   },
   emptyText: {
-    color: '#64748B',
+    color: "#64748B",
     fontSize: 14,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 20,
   },
   transactionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#FFFFFF",
     padding: 14,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: "#F1F5F9",
     marginBottom: 8,
-    boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.02)',
+    boxShadow: "0px 1px 2px rgba(0, 0, 0, 0.02)",
     elevation: 1,
   },
   transactionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
     marginRight: 10,
     gap: 12,
@@ -352,36 +502,36 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   txDetails: {
     flex: 1,
   },
   txTypeTitle: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#0F172A',
-    textTransform: 'capitalize',
+    fontWeight: "700",
+    color: "#0F172A",
+    textTransform: "capitalize",
   },
   txDesc: {
     fontSize: 12,
-    color: '#64748B',
+    color: "#64748B",
     marginTop: 1,
   },
   txDate: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: "#94A3B8",
     marginTop: 2,
   },
   txAmount: {
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: "800",
   },
   guestStateContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 32,
     paddingBottom: 60,
   },
@@ -389,35 +539,35 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 45,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 20,
   },
   guestTitle: {
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: "800",
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   guestSubtitle: {
     fontSize: 14,
     lineHeight: 20,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 24,
   },
   guestSignInBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 14,
     paddingHorizontal: 28,
     borderRadius: 14,
-    boxShadow: '0px 4px 8px rgba(5, 150, 105, 0.2)',
+    boxShadow: "0px 4px 8px rgba(5, 150, 105, 0.2)",
     elevation: 4,
   },
   guestSignInBtnText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: "800",
   },
 });

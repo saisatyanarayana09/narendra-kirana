@@ -1,14 +1,26 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
-import { DeviceEventEmitter, Platform } from 'react-native';
-import { apiClient } from '../api/client';
-import { STORAGE_KEYS } from '../constants/config';
-import { getItem, getItemSync, saveItem, deleteItem } from '../utils/storage';
-import { resetWelcomeSession } from '../utils/welcomeSession';
-import { registerForPushNotificationsAsync, unregisterPushNotificationsAsync } from '../services/notificationService';
-import { favoritesService } from '../services/favoritesService';
-import { clearCachedOrders } from '../services/ordersCache';
-import { clearUserProfileCache } from '../services/profileCache';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  ReactNode,
+} from "react";
+import { DeviceEventEmitter, Platform } from "react-native";
+
+import { apiClient } from "../api/client";
+import { STORAGE_KEYS } from "../constants/config";
+import { favoritesService } from "../services/favoritesService";
+import {
+  registerForPushNotificationsAsync,
+  unregisterPushNotificationsAsync,
+} from "../services/notificationService";
+import { clearCachedOrders } from "../services/ordersCache";
+import { clearUserProfileCache } from "../services/profileCache";
+import { getItem, getItemSync, saveItem, deleteItem } from "../utils/storage";
+import { resetWelcomeSession } from "../utils/welcomeSession";
 
 export type User = {
   id: number;
@@ -45,7 +57,7 @@ type AuthContextType = {
   refreshUser: () => Promise<void>;
 };
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Try to read user from memoryStore synchronously (populated by preloadKeys)
 function tryGetSyncUser(): User | null {
@@ -62,7 +74,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const syncUser = tryGetSyncUser();
   const [user, setUser] = useState<User | null>(syncUser);
   const [isLoading, setIsLoading] = useState(!syncUser); // Only show loading if sync init failed
-  const [pendingRedirect, setPendingRedirect] = useState<PendingRedirect | null>(null);
+  const [pendingRedirect, setPendingRedirect] =
+    useState<PendingRedirect | null>(null);
 
   const clearPendingRedirect = useCallback(() => setPendingRedirect(null), []);
 
@@ -75,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         registerForPushNotificationsAsync().catch(() => {});
       }
     } catch (error) {
-      console.error('Failed to load user', error);
+      console.error("Failed to load user", error);
     } finally {
       setIsLoading(false);
     }
@@ -89,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     loadStoredUser();
 
-    const sub = DeviceEventEmitter.addListener('AUTH_FAILED', () => {
+    const sub = DeviceEventEmitter.addListener("AUTH_FAILED", () => {
       setUser(null);
     });
 
@@ -98,16 +111,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (data: any) => {
     try {
-      const response = await apiClient.post('/auth/login/', data);
-      
-      if (!response.data) throw new Error('Invalid response from server');
-      
+      const response = await apiClient.post("/auth/login/", data);
+
+      if (!response.data) throw new Error("Invalid response from server");
+
       const { access, refresh, user: loggedUser } = response.data;
-      
+
       await saveItem(STORAGE_KEYS.TOKEN, access);
       await saveItem(STORAGE_KEYS.REFRESH, refresh);
       await saveItem(STORAGE_KEYS.USER, JSON.stringify(loggedUser));
-      
+
       resetWelcomeSession();
       setUser(loggedUser);
       registerForPushNotificationsAsync().catch(() => {});
@@ -118,21 +131,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithGoogle = useCallback(async (idToken: string) => {
     try {
-      const response = await apiClient.post('/auth/google/customer/', {
+      const response = await apiClient.post("/auth/google/customer/", {
         credential: idToken,
-        token_type: 'id_token'
+        token_type: "id_token",
       });
-      
+
       const { access, refresh, user: userData } = response.data;
-      
+
       await saveItem(STORAGE_KEYS.TOKEN, access);
       await saveItem(STORAGE_KEYS.REFRESH, refresh);
       await saveItem(STORAGE_KEYS.USER, JSON.stringify(userData));
-      
+
       setUser(userData);
       registerForPushNotificationsAsync().catch(() => {});
     } catch (error: any) {
-      console.error('Google Login error:', error?.response?.data || error.message);
+      console.error(
+        "Google Login error:",
+        error?.response?.data || error.message,
+      );
       throw error;
     }
   }, []);
@@ -141,16 +157,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // 1. Fire and forget backend unregister
       unregisterPushNotificationsAsync().catch(() => {});
-      
+
       const refreshToken = await getItem(STORAGE_KEYS.REFRESH);
       if (refreshToken) {
-        await apiClient.post('/auth/logout/', { refresh: refreshToken }).catch((err) => {
-          console.warn('[AuthContext] Backend logout failed:', err.message);
-        });
+        await apiClient
+          .post("/auth/logout/", { refresh: refreshToken })
+          .catch((err) => {
+            console.warn("[AuthContext] Backend logout failed:", err.message);
+          });
       }
 
       // 2. Sign out of Google silently (only on Native platforms)
-      if (Platform.OS !== 'web') {
+      if (Platform.OS !== "web") {
         try {
           await GoogleSignin.signOut();
         } catch (e) {
@@ -164,11 +182,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await deleteItem(STORAGE_KEYS.USER);
       resetWelcomeSession();
       favoritesService.clear();
-      await clearCachedOrders().catch((e) => console.warn('Failed to clear orders cache', e));
-      await clearUserProfileCache().catch((e) => console.warn('Failed to clear profile cache', e));
+      await clearCachedOrders().catch((e) =>
+        console.warn("Failed to clear orders cache", e),
+      );
+      await clearUserProfileCache().catch((e) =>
+        console.warn("Failed to clear profile cache", e),
+      );
       setUser(null);
     } catch (error) {
-      console.error('Error during logout:', error);
+      console.error("Error during logout:", error);
       // Fallback: still nullify user so they don't get stuck
       setUser(null);
     }
@@ -179,58 +201,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await saveItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
       setUser(updatedUser);
     } catch (error) {
-      console.error('Failed to update user locally:', error);
+      console.error("Failed to update user locally:", error);
     }
   }, []);
 
   const refreshUser = useCallback(async () => {
     try {
-      const response = await apiClient.get('/auth/profile/');
+      const response = await apiClient.get("/auth/profile/");
       if (response.data) {
         await saveItem(STORAGE_KEYS.USER, JSON.stringify(response.data));
         setUser(response.data);
       }
     } catch (error: any) {
       if (error?.response?.status !== 401) {
-        console.error('Failed to refresh user profile:', error);
+        console.error("Failed to refresh user profile:", error);
       }
     }
   }, []);
 
-  const contextValue = useMemo(() => ({
-    user,
-    isLoading,
-    pendingRedirect,
-    setPendingRedirect,
-    clearPendingRedirect,
-    login,
-    loginWithGoogle,
-    logout,
-    updateUser,
-    refreshUser,
-  }), [
-    user,
-    isLoading,
-    pendingRedirect,
-    clearPendingRedirect,
-    login,
-    loginWithGoogle,
-    logout,
-    updateUser,
-    refreshUser,
-  ]);
+  const contextValue = useMemo(
+    () => ({
+      user,
+      isLoading,
+      pendingRedirect,
+      setPendingRedirect,
+      clearPendingRedirect,
+      login,
+      loginWithGoogle,
+      logout,
+      updateUser,
+      refreshUser,
+    }),
+    [
+      user,
+      isLoading,
+      pendingRedirect,
+      clearPendingRedirect,
+      login,
+      loginWithGoogle,
+      logout,
+      updateUser,
+      refreshUser,
+    ],
+  );
 
   return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
   );
 }
 
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

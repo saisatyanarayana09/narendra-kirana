@@ -1,31 +1,39 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  StyleSheet, 
-  TouchableOpacity, 
-  FlatList, 
-  ActivityIndicator, 
+import { Feather } from "@expo/vector-icons";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  ActivityIndicator,
   Dimensions,
   Animated,
-  Platform 
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
-import { AppNavigationProp } from '../../navigation/types';
-import { apiClient } from '../../api/client';
-import { useDebounce } from '../../hooks/useDebounce';
-import { ProductCard } from '../../components/ProductCard';
-import { useCart } from '../../context/CartContext';
-import { useTheme } from '../../context/ThemeContext';
-import { useMobileVoice } from '../../hooks/useMobileVoice';
+  Platform,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-const { width } = Dimensions.get('window');
-const USE_NATIVE_DRIVER = Platform.OS !== 'web';
+import { apiClient } from "../../api/client";
+import { ProductCard } from "../../components/ProductCard";
+import { useCart } from "../../context/CartContext";
+import { useTheme } from "../../context/ThemeContext";
+import { useDebounce } from "../../hooks/useDebounce";
+import { useMobileVoice } from "../../hooks/useMobileVoice";
+import { AppNavigationProp } from "../../navigation/types";
+
+const { width } = Dimensions.get("window");
+const USE_NATIVE_DRIVER = Platform.OS !== "web";
 
 const POPULAR_SEARCHES = [
-  'Rice & Dal', 'Cooking Oil', 'Aashirvaad Atta', 'Maggi', 'Sugar & Salt', 'Ghee', 'Spices', 'Tea'
+  "Rice & Dal",
+  "Cooking Oil",
+  "Aashirvaad Atta",
+  "Maggi",
+  "Sugar & Salt",
+  "Ghee",
+  "Spices",
+  "Tea",
 ];
 
 type Props = {
@@ -37,13 +45,13 @@ const SEARCH_CACHE_LIMIT = 50;
 const searchCache = new Map<string, any[]>();
 
 export function SearchScreen({ navigation, route }: Props) {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const debouncedQuery = useDebounce(query, 300);
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const { addToCart, cartQuantityMap } = useCart();
   const { colors, isDark } = useTheme();
-  const activeQueryRef = useRef('');
+  const activeQueryRef = useRef("");
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Looping pulsing animation references
@@ -115,7 +123,7 @@ export function SearchScreen({ navigation, route }: Props) {
               useNativeDriver: USE_NATIVE_DRIVER,
             }),
           ]),
-        ])
+        ]),
       );
       pulseLoopRef.current.start();
     } else {
@@ -171,7 +179,7 @@ export function SearchScreen({ navigation, route }: Props) {
 
     setLoading(true);
     try {
-      const response = await apiClient.get('/products/', {
+      const response = await apiClient.get("/products/", {
         params: { search: trimmed },
         signal: controller.signal,
       });
@@ -185,10 +193,14 @@ export function SearchScreen({ navigation, route }: Props) {
         setResults(data);
       }
     } catch (error: any) {
-      if (error?.name === 'CanceledError' || error?.code === 'ERR_CANCELED' || error?.name === 'AbortError') {
+      if (
+        error?.name === "CanceledError" ||
+        error?.code === "ERR_CANCELED" ||
+        error?.name === "AbortError"
+      ) {
         return; // Request was cleanly cancelled by newer keystroke
       }
-      console.error('Search error:', error);
+      console.error("Search error:", error);
     } finally {
       if (activeQueryRef.current === trimmed) {
         setLoading(false);
@@ -196,53 +208,85 @@ export function SearchScreen({ navigation, route }: Props) {
     }
   };
 
-  const handleProductPress = useCallback((p: any) => {
-    navigation.navigate('ProductDetailScreen', { productId: p.id, initialProduct: p });
-  }, [navigation]);
+  const handleProductPress = useCallback(
+    (p: any) => {
+      navigation.navigate("ProductDetailScreen", {
+        productId: p.id,
+        initialProduct: p,
+      });
+    },
+    [navigation],
+  );
 
-  const handleAddToCart = useCallback((p: any) => {
-    addToCart(p.id, 1, p);
-  }, [addToCart]);
+  const handleAddToCart = useCallback(
+    (p: any) => {
+      addToCart(p.id, 1, p);
+    },
+    [addToCart],
+  );
 
-  const getItemLayout = useCallback((_: any, index: number) => ({
-    length: 296,
-    offset: 296 * Math.floor(index / 2),
-    index,
-  }), []);
+  const getItemLayout = useCallback(
+    (_: any, index: number) => ({
+      length: 296,
+      offset: 296 * Math.floor(index / 2),
+      index,
+    }),
+    [],
+  );
 
-  const renderProductItem = useCallback(({ item }: { item: any }) => (
-    <View style={styles.cardWrapper}>
-      <ProductCard 
-        product={item} 
-        cartQty={cartQuantityMap[item.id] || 0}
-        onPress={handleProductPress} 
-        onAddToCart={handleAddToCart}
-      />
-    </View>
-  ), [cartQuantityMap, handleProductPress, handleAddToCart]);
+  const renderProductItem = useCallback(
+    ({ item }: { item: any }) => (
+      <View style={styles.cardWrapper}>
+        <ProductCard
+          product={item}
+          cartQty={cartQuantityMap[item.id] || 0}
+          onPress={handleProductPress}
+          onAddToCart={handleAddToCart}
+        />
+      </View>
+    ),
+    [cartQuantityMap, handleProductPress, handleAddToCart],
+  );
 
-  const renderListHeader = useCallback(() => (
-    <View style={styles.resultsHeader}>
-      <Text style={[styles.resultsCountText, { color: colors.textSecondary }]}>
-        Found {results.length} {results.length === 1 ? 'product' : 'products'}
-      </Text>
-    </View>
-  ), [results.length, colors.textSecondary]);
+  const renderListHeader = useCallback(
+    () => (
+      <View style={styles.resultsHeader}>
+        <Text
+          style={[styles.resultsCountText, { color: colors.textSecondary }]}
+        >
+          Found {results.length} {results.length === 1 ? "product" : "products"}
+        </Text>
+      </View>
+    ),
+    [results.length, colors.textSecondary],
+  );
 
   const displaySearchValue = isListening && interimText ? interimText : query;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={["top"]}
+    >
       {/* Header Search Bar matching web GlobalSearchBar */}
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity 
-          style={styles.backButton} 
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: colors.surface, borderBottomColor: colors.border },
+        ]}
+      >
+        <TouchableOpacity
+          style={styles.backButton}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           onPress={() => {
             if (navigation.canGoBack()) {
-              if(navigation.canGoBack()) { navigation.goBack(); } else { navigation.navigate('Main'); }
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation.navigate("Main");
+              }
             } else {
-              navigation.navigate('HomeTab');
+              navigation.navigate("HomeTab");
             }
           }}
           activeOpacity={0.7}
@@ -250,16 +294,26 @@ export function SearchScreen({ navigation, route }: Props) {
           <Feather name="arrow-left" color={colors.primary} size={20} />
         </TouchableOpacity>
 
-        <View style={[
-          styles.searchBar, 
-          { backgroundColor: colors.inputBg, borderColor: colors.border },
-          isListening && styles.searchBarListening
-        ]}>
-          <Feather name="search" size={18} color={isListening ? "#E11D48" : colors.textSecondary} />
+        <View
+          style={[
+            styles.searchBar,
+            { backgroundColor: colors.inputBg, borderColor: colors.border },
+            isListening && styles.searchBarListening,
+          ]}
+        >
+          <Feather
+            name="search"
+            size={18}
+            color={isListening ? "#E11D48" : colors.textSecondary}
+          />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
-            placeholder={isListening ? "Listening... Speak now" : "Search products..."}
-            placeholderTextColor={isListening ? "#E11D48" : colors.textSecondary}
+            placeholder={
+              isListening ? "Listening... Speak now" : "Search products..."
+            }
+            placeholderTextColor={
+              isListening ? "#E11D48" : colors.textSecondary
+            }
             value={displaySearchValue}
             onChangeText={(text) => {
               setQuery(text);
@@ -279,25 +333,27 @@ export function SearchScreen({ navigation, route }: Props) {
                     stopSpeaking();
                   } else {
                     const count = results.length;
-                    speak(`${query}. Found ${count} ${count === 1 ? 'item' : 'items'}.`);
+                    speak(
+                      `${query}. Found ${count} ${count === 1 ? "item" : "items"}.`,
+                    );
                   }
                 }}
                 style={styles.rightIconBtn}
                 activeOpacity={0.7}
               >
-                <Feather 
-                  name={isSpeaking ? "volume-x" : "volume-2"} 
-                  size={16} 
-                  color={isSpeaking ? colors.primary : colors.textSecondary} 
+                <Feather
+                  name={isSpeaking ? "volume-x" : "volume-2"}
+                  size={16}
+                  color={isSpeaking ? colors.primary : colors.textSecondary}
                 />
               </TouchableOpacity>
             )}
 
             {/* Clear Input Button */}
             {query.length > 0 && !isListening && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => {
-                  setQuery('');
+                  setQuery("");
                   if (isSpeaking) stopSpeaking();
                 }}
                 style={styles.rightIconBtn}
@@ -310,14 +366,14 @@ export function SearchScreen({ navigation, route }: Props) {
             {/* Speech-to-Text Microphone Icon Button */}
             <View>
               {isListening && (
-                <Animated.View 
+                <Animated.View
                   style={[
                     styles.micPulseRing,
                     {
                       transform: [{ scale: pulseAnim }],
                       opacity: pulseOpacity,
-                    }
-                  ]} 
+                    },
+                  ]}
                 />
               )}
               <TouchableOpacity
@@ -325,16 +381,16 @@ export function SearchScreen({ navigation, route }: Props) {
                 style={[
                   styles.micBtn,
                   isDark && { backgroundColor: colors.inputBg },
-                  isListening && styles.micBtnActive
+                  isListening && styles.micBtnActive,
                 ]}
                 activeOpacity={0.75}
                 accessibilityRole="button"
                 accessibilityLabel="Voice Search"
               >
-                <Feather 
-                  name={isListening ? "mic-off" : "mic"} 
-                  size={16} 
-                  color={isListening ? "#FFFFFF" : colors.primary} 
+                <Feather
+                  name={isListening ? "mic-off" : "mic"}
+                  size={16}
+                  color={isListening ? "#FFFFFF" : colors.primary}
                 />
               </TouchableOpacity>
             </View>
@@ -359,9 +415,21 @@ export function SearchScreen({ navigation, route }: Props) {
 
         {/* Voice Error Banner */}
         {!!voiceError && (
-          <View style={[styles.errorBanner, { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.2)' : '#FEE2E2' }]}>
+          <View
+            style={[
+              styles.errorBanner,
+              {
+                backgroundColor: isDark ? "rgba(239, 68, 68, 0.2)" : "#FEE2E2",
+              },
+            ]}
+          >
             <Feather name="alert-circle" size={14} color="#EF4444" />
-            <Text style={[styles.errorBannerText, { color: isDark ? '#FCA5A5' : '#B91C1C' }]}>
+            <Text
+              style={[
+                styles.errorBannerText,
+                { color: isDark ? "#FCA5A5" : "#B91C1C" },
+              ]}
+            >
               {voiceError}
             </Text>
           </View>
@@ -370,40 +438,72 @@ export function SearchScreen({ navigation, route }: Props) {
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={{ marginTop: 12, fontSize: 14, color: colors.textSecondary, fontWeight: '500' }}>Searching products...</Text>
+            <Text
+              style={{
+                marginTop: 12,
+                fontSize: 14,
+                color: colors.textSecondary,
+                fontWeight: "500",
+              }}
+            >
+              Searching products...
+            </Text>
           </View>
-        ) : query.trim() === '' ? (
+        ) : query.trim() === "" ? (
           /* Popular Searches When Empty */
           <View style={styles.initialStateContainer}>
-            <Text style={[styles.popularLabel, { color: colors.text }]}>Popular Searches</Text>
+            <Text style={[styles.popularLabel, { color: colors.text }]}>
+              Popular Searches
+            </Text>
             <View style={styles.tagsContainer}>
               {POPULAR_SEARCHES.map((tag) => (
                 <TouchableOpacity
                   key={tag}
-                  style={[styles.tagChip, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                  style={[
+                    styles.tagChip,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                    },
+                  ]}
                   onPress={() => setQuery(tag)}
                   activeOpacity={0.7}
                 >
-                  <Feather name="trending-up" size={13} color={colors.primary} style={{ marginRight: 6 }} />
-                  <Text style={[styles.tagText, { color: colors.text }]}>{tag}</Text>
+                  <Feather
+                    name="trending-up"
+                    size={13}
+                    color={colors.primary}
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text style={[styles.tagText, { color: colors.text }]}>
+                    {tag}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
         ) : results.length === 0 ? (
           <View style={styles.center}>
-            <View style={[styles.emptyIconBox, { backgroundColor: colors.inputBg }]}>
+            <View
+              style={[styles.emptyIconBox, { backgroundColor: colors.inputBg }]}
+            >
               <Feather name="search" size={36} color={colors.textSecondary} />
             </View>
-            <Text style={[styles.noResultsText, { color: colors.text }]}>No products found for "{query}"</Text>
-            <Text style={[styles.noResultsSub, { color: colors.textSecondary }]}>
+            <Text style={[styles.noResultsText, { color: colors.text }]}>
+              No products found for "{query}"
+            </Text>
+            <Text
+              style={[styles.noResultsSub, { color: colors.textSecondary }]}
+            >
               Try checking your spelling or search for broader keywords.
             </Text>
           </View>
         ) : (
           <FlatList
             data={results}
-            keyExtractor={(item, index) => String(item?.id || item?.uuid || item?.uid || index)}
+            keyExtractor={(item, index) =>
+              String(item?.id || item?.uuid || item?.uid || index)
+            }
             numColumns={2}
             keyboardDismissMode="on-drag"
             keyboardShouldPersistTaps="handled"
@@ -412,7 +512,7 @@ export function SearchScreen({ navigation, route }: Props) {
             initialNumToRender={6}
             maxToRenderPerBatch={6}
             windowSize={5}
-            removeClippedSubviews={Platform.OS === 'android'}
+            removeClippedSubviews={Platform.OS === "android"}
             updateCellsBatchingPeriod={50}
             getItemLayout={getItemLayout}
             ListHeaderComponent={renderListHeader}
@@ -427,16 +527,16 @@ export function SearchScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC', // slate-50
+    backgroundColor: "#F8FAFC", // slate-50
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: "#F1F5F9",
     gap: 10,
   },
   backButton: {
@@ -444,36 +544,36 @@ const styles = StyleSheet.create({
   },
   searchBar: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: "#E2E8F0",
     paddingHorizontal: 12,
     height: 44,
   },
   searchInput: {
     flex: 1,
-    height: '100%',
+    height: "100%",
     marginLeft: 8,
     paddingRight: 100,
     fontSize: 14,
-    fontWeight: '600',
-    color: '#0F172A',
+    fontWeight: "600",
+    color: "#0F172A",
   },
   clearButton: {
     padding: 4,
   },
   searchBarListening: {
-    borderColor: '#E11D48',
-    backgroundColor: '#FFF1F2',
+    borderColor: "#E11D48",
+    backgroundColor: "#FFF1F2",
   },
   rightButtonsGroup: {
-    position: 'absolute',
+    position: "absolute",
     right: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
   },
   rightIconBtn: {
@@ -484,27 +584,27 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
   },
   micBtnActive: {
-    backgroundColor: '#E11D48',
+    backgroundColor: "#E11D48",
   },
   micPulseRing: {
-    position: 'absolute',
+    position: "absolute",
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: '#FB7185',
+    backgroundColor: "#FB7185",
   },
   listeningBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFE4E6',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#FFE4E6",
     borderBottomWidth: 1,
-    borderBottomColor: '#FECDD3',
+    borderBottomColor: "#FECDD3",
     paddingHorizontal: 16,
     paddingVertical: 8,
     gap: 8,
@@ -512,18 +612,18 @@ const styles = StyleSheet.create({
   listeningText: {
     flex: 1,
     fontSize: 12,
-    fontWeight: '600',
-    color: '#9F1239',
-    fontStyle: 'italic',
+    fontWeight: "600",
+    color: "#9F1239",
+    fontStyle: "italic",
   },
   listeningDoneText: {
     fontSize: 12,
-    fontWeight: '800',
-    color: '#E11D48',
+    fontWeight: "800",
+    color: "#E11D48",
   },
   errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 8,
     gap: 8,
@@ -531,37 +631,37 @@ const styles = StyleSheet.create({
   errorBannerText: {
     flex: 1,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   content: {
     flex: 1,
   },
   center: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 32,
   },
   emptyIconBox: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#F1F5F9",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 16,
   },
   noResultsText: {
     fontSize: 18,
-    fontWeight: '800',
-    color: '#0F172A',
-    textAlign: 'center',
+    fontWeight: "800",
+    color: "#0F172A",
+    textAlign: "center",
     marginBottom: 6,
   },
   noResultsSub: {
     fontSize: 13,
-    color: '#64748B',
-    textAlign: 'center',
+    color: "#64748B",
+    textAlign: "center",
     lineHeight: 18,
     maxWidth: 280,
   },
@@ -570,31 +670,31 @@ const styles = StyleSheet.create({
   },
   popularLabel: {
     fontSize: 14,
-    fontWeight: '800',
-    color: '#0F172A',
+    fontWeight: "800",
+    color: "#0F172A",
     marginBottom: 12,
   },
   tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
   tagChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.02)',
+    borderColor: "#E2E8F0",
+    boxShadow: "0px 1px 2px rgba(0, 0, 0, 0.02)",
     elevation: 1,
   },
   tagText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#334155',
+    fontWeight: "600",
+    color: "#334155",
   },
   listContainer: {
     padding: 16,
@@ -605,11 +705,11 @@ const styles = StyleSheet.create({
   },
   resultsCountText: {
     fontSize: 13,
-    fontWeight: '700',
-    color: '#64748B',
+    fontWeight: "700",
+    color: "#64748B",
   },
   row: {
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
     marginBottom: 12,
   },
   cardWrapper: {

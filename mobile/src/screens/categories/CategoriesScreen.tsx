@@ -1,38 +1,47 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  ActivityIndicator, 
-  TouchableOpacity, 
+import { Feather } from "@expo/vector-icons";
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
   Dimensions,
-  Platform 
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
-import { AppNavigationProp } from '../../navigation/types';
-import { apiClient } from '../../api/client';
-import { useTheme } from '../../context/ThemeContext';
-import { useLanguage } from '../../context/LanguageContext';
-import { CategoryCard } from '../../components/CategoryCard';
-import { CategoryCardSkeleton } from '../../components/SkeletonLoader';
-import { getHomeDataSync, loadHomeData, saveHomeData } from '../../services/homeDataCache';
+  Platform,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-const { width } = Dimensions.get('window');
+import { apiClient } from "../../api/client";
+import { CategoryCard } from "../../components/CategoryCard";
+import { CategoryCardSkeleton } from "../../components/SkeletonLoader";
+import { useLanguage } from "../../context/LanguageContext";
+import { useTheme } from "../../context/ThemeContext";
+import { AppNavigationProp } from "../../navigation/types";
+import {
+  getHomeDataSync,
+  loadHomeData,
+  saveHomeData,
+} from "../../services/homeDataCache";
+
+const { width } = Dimensions.get("window");
 const HORIZONTAL_PADDING = 16;
 const GAP = 10;
-const CARD_WIDTH = Math.floor((width - (HORIZONTAL_PADDING * 2) - (GAP * 2)) / 3);
+const CARD_WIDTH = Math.floor((width - HORIZONTAL_PADDING * 2 - GAP * 2) / 3);
 const CARD_ROW_HEIGHT = CARD_WIDTH + 6;
 
 let cachedGlobalCategories: any[] | null = null;
 
-export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp }) {
+export function CategoriesScreen({
+  navigation,
+}: {
+  navigation: AppNavigationProp;
+}) {
   const { colors } = useTheme();
   const { t } = useLanguage();
 
   // Instant cache-first resolution (<50ms / 0ms)
-  const initialCategories = cachedGlobalCategories || getHomeDataSync()?.categories || [];
+  const initialCategories =
+    cachedGlobalCategories || getHomeDataSync()?.categories || [];
   const [categories, setCategories] = useState<any[]>(initialCategories);
   const [loading, setLoading] = useState(initialCategories.length === 0);
   const [refreshing, setRefreshing] = useState(false);
@@ -42,7 +51,9 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
     if (categories.length === 0) {
       loadHomeData().then((homeData) => {
         if (homeData?.categories && homeData.categories.length > 0) {
-          setCategories((prev) => (prev.length === 0 ? homeData.categories : prev));
+          setCategories((prev) =>
+            prev.length === 0 ? homeData.categories : prev,
+          );
           cachedGlobalCategories = homeData.categories;
           setLoading(false);
         }
@@ -55,13 +66,17 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
   const fetchCategories = async (isRefresh = false) => {
     if (isRefresh) {
       setRefreshing(true);
-    } else if (categories.length === 0 && !cachedGlobalCategories && !getHomeDataSync()?.categories?.length) {
+    } else if (
+      categories.length === 0 &&
+      !cachedGlobalCategories &&
+      !getHomeDataSync()?.categories?.length
+    ) {
       setLoading(true);
     }
 
     try {
-      const res = await apiClient.get('/categories/');
-      const cats = Array.isArray(res.data) ? res.data : (res.data?.results || []);
+      const res = await apiClient.get("/categories/");
+      const cats = Array.isArray(res.data) ? res.data : res.data?.results || [];
       if (cats.length > 0) {
         cachedGlobalCategories = cats;
         setCategories(cats);
@@ -76,45 +91,75 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
         }
       }
     } catch (error) {
-      console.error('Error fetching categories:', error);
+      console.error("Error fetching categories:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  const handleCategoryPress = useCallback((c: any) => {
-    navigation.navigate('ProductListScreen', { 
-      categoryId: c.id, 
-      categoryName: c.name 
-    });
-  }, [navigation]);
+  const handleCategoryPress = useCallback(
+    (c: any) => {
+      navigation.navigate("ProductListScreen", {
+        categoryId: c.id,
+        categoryName: c.name,
+      });
+    },
+    [navigation],
+  );
 
-  const getItemLayout = useCallback((_: any, index: number) => ({
-    length: CARD_ROW_HEIGHT,
-    offset: CARD_ROW_HEIGHT * Math.floor(index / 3),
-    index,
-  }), []);
+  const getItemLayout = useCallback(
+    (_: any, index: number) => ({
+      length: CARD_ROW_HEIGHT,
+      offset: CARD_ROW_HEIGHT * Math.floor(index / 3),
+      index,
+    }),
+    [],
+  );
 
-  const renderCategoryItem = useCallback(({ item, index }: { item: any; index: number }) => (
-    <View style={{ width: CARD_WIDTH }}>
-      <CategoryCard 
-        category={item} 
-        index={index}
-        style={styles.categoryCardStyle}
-        onPress={handleCategoryPress} 
-      />
-    </View>
-  ), [handleCategoryPress]);
+  const renderCategoryItem = useCallback(
+    ({ item, index }: { item: any; index: number }) => (
+      <View style={{ width: CARD_WIDTH }}>
+        <CategoryCard
+          category={item}
+          index={index}
+          style={styles.categoryCardStyle}
+          onPress={handleCategoryPress}
+        />
+      </View>
+    ),
+    [handleCategoryPress],
+  );
 
   if (loading && !refreshing && categories.length === 0) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('categories')}</Text>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={["top"]}
+      >
+        <View
+          style={[
+            styles.header,
+            {
+              backgroundColor: colors.surface,
+              borderBottomColor: colors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            {t("categories")}
+          </Text>
         </View>
 
-        <View style={{ paddingHorizontal: HORIZONTAL_PADDING, paddingTop: 14, flexDirection: 'row', flexWrap: 'wrap', gap: GAP }}>
+        <View
+          style={{
+            paddingHorizontal: HORIZONTAL_PADDING,
+            paddingTop: 14,
+            flexDirection: "row",
+            flexWrap: "wrap",
+            gap: GAP,
+          }}
+        >
           {[...Array(12)].map((_, i) => (
             <CategoryCardSkeleton key={i} />
           ))}
@@ -124,30 +169,48 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={["top"]}
+    >
       {/* Header matching web CategoriesPage 1:1 */}
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity 
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: colors.surface, borderBottomColor: colors.border },
+        ]}
+      >
+        <TouchableOpacity
           style={styles.backButton}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           onPress={() => {
             if (navigation.canGoBack()) {
-              if(navigation.canGoBack()) { navigation.goBack(); } else { navigation.navigate('Main'); }
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation.navigate("Main");
+              }
             } else {
-              navigation.navigate('HomeTab');
+              navigation.navigate("HomeTab");
             }
           }}
           activeOpacity={0.7}
         >
           <Feather name="arrow-left" size={16} color={colors.primary} />
-          <Text style={[styles.backText, { color: colors.primary }]}>{t('back')}</Text>
+          <Text style={[styles.backText, { color: colors.primary }]}>
+            {t("back")}
+          </Text>
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('categories')}</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
+          {t("categories")}
+        </Text>
       </View>
-      
+
       <FlatList
         data={categories}
-        keyExtractor={(item, index) => String(item?.id || item?.uuid || item?.uid || index)}
+        keyExtractor={(item, index) =>
+          String(item?.id || item?.uuid || item?.uid || index)
+        }
         numColumns={3}
         refreshing={refreshing}
         onRefresh={() => fetchCategories(true)}
@@ -156,7 +219,7 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
         initialNumToRender={9}
         maxToRenderPerBatch={9}
         windowSize={5}
-        removeClippedSubviews={Platform.OS === 'android'}
+        removeClippedSubviews={Platform.OS === "android"}
         getItemLayout={getItemLayout}
         renderItem={renderCategoryItem}
       />
@@ -167,40 +230,40 @@ export function CategoriesScreen({ navigation }: { navigation: AppNavigationProp
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: "#F8FAFC",
   },
   header: {
     paddingHorizontal: HORIZONTAL_PADDING,
     paddingTop: 12,
     paddingBottom: 14,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: "#E2E8F0",
   },
   backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     marginBottom: 8,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   backText: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#475569',
+    fontWeight: "700",
+    color: "#475569",
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: '800',
-    color: '#0F172A',
+    fontWeight: "800",
+    color: "#0F172A",
     letterSpacing: -0.5,
     lineHeight: 28,
   },
   center: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
   },
   listContainer: {
     paddingHorizontal: HORIZONTAL_PADDING,
@@ -212,10 +275,8 @@ const styles = StyleSheet.create({
     marginBottom: GAP,
   },
   categoryCardStyle: {
-    width: '100%',
+    width: "100%",
     marginRight: 0,
     marginBottom: 6,
   },
 });
-
-

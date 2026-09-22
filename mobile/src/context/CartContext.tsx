@@ -1,10 +1,23 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
-import { getGuestStorageItem, setGuestStorageItem, removeGuestStorageItem } from '../utils/guestStorage';
-import { apiClient } from '../api/client';
-import { storeApi } from '../api/store';
-import { useAuth } from './AuthContext';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  ReactNode,
+} from "react";
 
-export const GUEST_CART_KEY = 'smart_kirana_guest_cart';
+import { useAuth } from "./AuthContext";
+import { apiClient } from "../api/client";
+import { storeApi } from "../api/store";
+import {
+  getGuestStorageItem,
+  setGuestStorageItem,
+  removeGuestStorageItem,
+} from "../utils/guestStorage";
+
+export const GUEST_CART_KEY = "smart_kirana_guest_cart";
 
 export interface CartItem {
   id: number;
@@ -37,7 +50,11 @@ export interface CartContextType {
   cart: CartData | null;
   isLoading: boolean;
   storeSettings: any;
-  addToCart: (productId: number, quantity?: number, productDetails?: any) => Promise<void>;
+  addToCart: (
+    productId: number,
+    quantity?: number,
+    productDetails?: any,
+  ) => Promise<void>;
   updateQuantity: (itemId: number, quantity: number) => Promise<void>;
   removeFromCart: (itemId: number) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -50,10 +67,10 @@ export interface CartContextType {
 }
 
 export const getItemProductId = (item: CartItem): number => {
-  if (typeof item.product === 'object' && item.product !== null) {
+  if (typeof item.product === "object" && item.product !== null) {
     return Number(item.product.id);
   }
-  if (typeof item.product === 'number') {
+  if (typeof item.product === "number") {
     return item.product;
   }
   return Number(item.id);
@@ -66,11 +83,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartData | null>(null);
   const [storeSettings, setStoreSettings] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [lastItemAddedTimestamp, setLastItemAddedTimestamp] = useState<number>(0);
+  const [lastItemAddedTimestamp, setLastItemAddedTimestamp] =
+    useState<number>(0);
   const cartRef = React.useRef<CartData | null>(cart);
   const storeSettingsRef = React.useRef<any>(storeSettings);
   const addToCartLocks = React.useRef<Record<number, Promise<void>>>({});
-  const updateQuantityLocks = React.useRef<Record<number, ReturnType<typeof setTimeout>>>({});
+  const updateQuantityLocks = React.useRef<
+    Record<number, ReturnType<typeof setTimeout>>
+  >({});
   // Cart endpoints return the entire cart. Serialize writes so an older full-cart
   // response can never overwrite a newer quantity change for another item.
   const cartMutationQueue = React.useRef<Promise<void>>(Promise.resolve());
@@ -83,28 +103,42 @@ export function CartProvider({ children }: { children: ReactNode }) {
     storeSettingsRef.current = storeSettings;
   }, [storeSettings]);
 
-  const enqueueCartMutation = useCallback((mutation: () => Promise<void>): Promise<void> => {
-    const previous = cartMutationQueue.current;
-    const next = previous.catch(() => undefined).then(mutation);
-    cartMutationQueue.current = next;
+  const enqueueCartMutation = useCallback(
+    (mutation: () => Promise<void>): Promise<void> => {
+      const previous = cartMutationQueue.current;
+      const next = previous.catch(() => undefined).then(mutation);
+      cartMutationQueue.current = next;
 
-    void next.finally(() => {
-      if (cartMutationQueue.current === next) {
-        cartMutationQueue.current = Promise.resolve();
-      }
-    }).catch(() => undefined);
+      void next
+        .finally(() => {
+          if (cartMutationQueue.current === next) {
+            cartMutationQueue.current = Promise.resolve();
+          }
+        })
+        .catch(() => undefined);
 
-    return next;
-  }, []);
+      return next;
+    },
+    [],
+  );
 
-  const calculateGuestTotals = (items: CartItem[], packagingFeeStr: string = '0'): CartData => {
+  const calculateGuestTotals = (
+    items: CartItem[],
+    packagingFeeStr: string = "0",
+  ): CartData => {
     let regularTotalNum = 0;
     let offerTotalNum = 0;
 
     const computedItems = items.map((item) => {
-      const offerPriceNum = parseFloat(item.unit_price || item.product?.price || '0');
+      const offerPriceNum = parseFloat(
+        item.unit_price || item.product?.price || "0",
+      );
       const regularPriceNum = parseFloat(
-        item.product?.mrp || item.product?.regular_price || item.unit_price || item.product?.price || '0'
+        item.product?.mrp ||
+          item.product?.regular_price ||
+          item.unit_price ||
+          item.product?.price ||
+          "0",
       );
       const itemSub = offerPriceNum * item.quantity;
       regularTotalNum += regularPriceNum * item.quantity;
@@ -117,17 +151,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
 
     const discountNum = Math.max(0, regularTotalNum - offerTotalNum);
-    const packagingFeeNum = parseFloat(packagingFeeStr || '0');
+    const packagingFeeNum = parseFloat(packagingFeeStr || "0");
     const totalNum = offerTotalNum + (offerTotalNum > 0 ? packagingFeeNum : 0);
 
     return {
       items: computedItems,
-      subtotal: regularTotalNum > 0 ? regularTotalNum.toFixed(2) : offerTotalNum.toFixed(2),
+      subtotal:
+        regularTotalNum > 0
+          ? regularTotalNum.toFixed(2)
+          : offerTotalNum.toFixed(2),
       items_total: offerTotalNum.toFixed(2),
       discount: discountNum.toFixed(2),
       promo_code: null,
-      promo_discount: '0.00',
-      packaging_fee: offerTotalNum > 0 ? packagingFeeNum.toFixed(2) : '0.00',
+      promo_discount: "0.00",
+      packaging_fee: offerTotalNum > 0 ? packagingFeeNum.toFixed(2) : "0.00",
       total: totalNum.toFixed(2),
     };
   };
@@ -153,7 +190,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return data;
       }
     } catch (err) {
-      console.error('Failed to fetch store settings', err);
+      console.error("Failed to fetch store settings", err);
     }
     return storeSettings;
   }, [storeSettings]);
@@ -174,7 +211,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             const guestCart = JSON.parse(raw);
             const guestItems = guestCart.items || [];
             if (guestItems.length > 0) {
-              const res = await apiClient.post('/cart/merge/', {
+              const res = await apiClient.post("/cart/merge/", {
                 items: guestItems.map((i: any) => ({
                   product: getItemProductId(i),
                   quantity: i.quantity,
@@ -186,7 +223,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             }
           }
         } catch (e) {
-          console.warn('[CartContext] Cart merge error:', e);
+          console.warn("[CartContext] Cart merge error:", e);
         }
         await refreshCart();
       } else {
@@ -194,13 +231,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
         setCart(
           guestCart || {
             items: [],
-            subtotal: '0.00',
-            discount: '0.00',
+            subtotal: "0.00",
+            discount: "0.00",
             promo_code: null,
-            promo_discount: '0.00',
-            packaging_fee: '0.00',
-            total: '0.00',
-          }
+            promo_discount: "0.00",
+            packaging_fee: "0.00",
+            total: "0.00",
+          },
         );
       }
     };
@@ -208,460 +245,178 @@ export function CartProvider({ children }: { children: ReactNode }) {
     syncUserCart();
   }, [user?.id, isAuthLoading]);
 
-  const refreshCart = useCallback(async (isSilent = false) => {
-    if (!user) {
-      const guestCart = await loadGuestCart();
-      if (guestCart) {
-        setCart(guestCart);
-      } else {
-        setCart({
-          items: [],
-          subtotal: '0.00',
-          discount: '0.00',
-          promo_code: null,
-          promo_discount: '0.00',
-          packaging_fee: '0.00',
-          total: '0.00',
-        });
-      }
-      return;
-    }
-
-    try {
-      if (!isSilent) setIsLoading(true);
-      await enqueueCartMutation(async () => {
-        const res = await apiClient.get('/cart/');
-        if (res?.data) {
-          cartRef.current = res.data;
-          setCart(res.data);
-        }
-      });
-    } catch (error: any) {
-      const status = error?.response?.status;
-      if (status !== 403 && status !== 401) {
-        console.error('Failed to fetch cart:', error);
-      } else if (status === 403) {
-        console.warn('[CartContext] Cart fetch returned status 403.');
-      }
-      // Ensure cart is at least initialized so screens don't crash
-      setCart((prev) => prev || {
-        items: [],
-        subtotal: '0.00',
-        discount: '0.00',
-        promo_code: null,
-        promo_discount: '0.00',
-        packaging_fee: '0.00',
-        total: '0.00',
-      });
-    } finally {
-      if (!isSilent) setIsLoading(false);
-    }
-  }, [user?.id, enqueueCartMutation]);
-
-  const removeFromCart = useCallback(async (itemId: number) => {
-    // A zero quantity is a delete. Cancel a not-yet-started PATCH and make any
-    // PATCH already in flight finish before the DELETE is sent. Otherwise a
-    // delayed PATCH can 404 after deletion and restore stale optimistic state.
-    if (updateQuantityLocks.current[itemId]) {
-      clearTimeout(updateQuantityLocks.current[itemId]);
-      delete updateQuantityLocks.current[itemId];
-    }
-
-    const prevCart = cartRef.current;
-    if (!user) {
-      try {
-        await enqueueCartMutation(async () => {
-          const currentCart = cartRef.current || await loadGuestCart();
-          if (!currentCart) return;
-
-          const updatedItems = currentCart.items.filter(
-            (item) => item.id !== itemId && getItemProductId(item) !== itemId
-          );
-
-          const packagingFee = storeSettingsRef.current?.packaging_fee || '0';
-          const newCartData = calculateGuestTotals(updatedItems, packagingFee);
-          await setGuestStorageItem(GUEST_CART_KEY, JSON.stringify(newCartData));
-          cartRef.current = newCartData;
-          setCart(newCartData);
-        });
-      } catch (error) {
-        console.error('Failed to remove from guest cart:', error);
-        throw error;
-      }
-      return;
-    }
-
-    // Optimistic removal
-    const itemToRemove = cartRef.current?.items?.find((i) => i.id === itemId);
-    const ghostItemProductId = itemToRemove ? getItemProductId(itemToRemove) : null;
-    
-    setCart((current) => {
-      if (!current?.items) return current;
-      const updatedItems = current.items.filter((item) => item.id !== itemId);
-      let newOfferSubtotal = 0;
-      let newRegularSubtotal = 0;
-      updatedItems.forEach((i) => {
-        const pObj = typeof i.product === 'object' && i.product !== null ? i.product : null;
-        const offerP = parseFloat(i.unit_price || pObj?.price || '0');
-        const regP = parseFloat(i.regular_price || pObj?.mrp || pObj?.regular_price || i.unit_price || pObj?.price || '0');
-        newOfferSubtotal += offerP * i.quantity;
-        newRegularSubtotal += regP * i.quantity;
-      });
-      const packaging = updatedItems.length > 0 ? parseFloat(current.packaging_fee || '0') : 0;
-      const promo = parseFloat(current.promo_discount || '0');
-      const safePromo = newOfferSubtotal >= promo ? promo : 0;
-      const newTotal = Math.max(0, newOfferSubtotal - safePromo) + packaging;
-
-      const nextCart = {
-        ...current,
-        items: updatedItems,
-        subtotal: newRegularSubtotal > 0 ? newRegularSubtotal.toFixed(2) : newOfferSubtotal.toFixed(2),
-        items_total: newOfferSubtotal.toFixed(2),
-        discount: Math.max(0, newRegularSubtotal - newOfferSubtotal).toFixed(2),
-        total: newTotal.toFixed(2),
-      };
-      cartRef.current = nextCart;
-      return nextCart;
-    });
-
-    try {
-      await enqueueCartMutation(async () => {
-        let targetId = itemId;
-        if (targetId < 0 && ghostItemProductId) {
-          // If the item was a ghost item, we must fetch the cart from the backend 
-          // because the POST may have just finished and we need the real ID to delete it.
-          // Or we can poll the backend cart. Let's just fetch the backend cart once, 
-          // because if enqueueCartMutation ran sequentially, the POST is completely finished on the backend.
-          const freshCartRes = await apiClient.get('/cart/');
-          const realItem = freshCartRes.data?.items?.find((i: any) => getItemProductId(i) === ghostItemProductId);
-          if (realItem) {
-            targetId = realItem.id;
-          } else {
-            // The item isn't on the backend anyway, maybe the POST failed. We can just abort the DELETE.
-            await refreshCart(true);
-            return;
-          }
-        }
-        
-        const res = await apiClient.delete(`/cart/items/${targetId}/`);
-        if (res?.data?.items) {
-          cartRef.current = res.data;
-          setCart(res.data);
+  const refreshCart = useCallback(
+    async (isSilent = false) => {
+      if (!user) {
+        const guestCart = await loadGuestCart();
+        if (guestCart) {
+          setCart(guestCart);
         } else {
-          await refreshCart(true);
-        }
-      });
-    } catch (error) {
-      if (prevCart) setCart(prevCart);
-      console.error('Failed to remove from cart:', error);
-      throw error;
-    }
-  }, [user, refreshCart, enqueueCartMutation]);
-
-  const updateQuantity = useCallback(async (itemId: number, quantity: number) => {
-    if (quantity <= 0) {
-      return removeFromCart(itemId);
-    }
-
-    const currentCart = cartRef.current;
-    const currentQty = currentCart?.items?.find((item) => item.id === itemId || getItemProductId(item) === itemId)?.quantity || 0;
-    if (quantity > currentQty) {
-      setLastItemAddedTimestamp(Date.now());
-    }
-
-    if (!user) {
-      try {
-        await enqueueCartMutation(async () => {
-          const activeGuestCart = cartRef.current || await loadGuestCart();
-          if (!activeGuestCart) return;
-
-          const updatedItems = activeGuestCart.items.map((item) => {
-            if (item.id === itemId || getItemProductId(item) === itemId) {
-              const stockLimit = item.stock_quantity ?? item.product?.stock_quantity ?? 999;
-              const maxOrderLimit = item.max_order_quantity ?? item.product?.max_order_quantity ?? 0;
-              const cap = maxOrderLimit > 0 ? Math.min(stockLimit, maxOrderLimit) : stockLimit;
-              const safeQty = Math.min(quantity, cap);
-              return {
-                ...item,
-                quantity: safeQty,
-              };
-            }
-            return item;
+          setCart({
+            items: [],
+            subtotal: "0.00",
+            discount: "0.00",
+            promo_code: null,
+            promo_discount: "0.00",
+            packaging_fee: "0.00",
+            total: "0.00",
           });
+        }
+        return;
+      }
 
-          const packagingFee = storeSettingsRef.current?.packaging_fee || '0';
-          const newCartData = calculateGuestTotals(updatedItems, packagingFee);
-          await setGuestStorageItem(GUEST_CART_KEY, JSON.stringify(newCartData));
-          cartRef.current = newCartData;
-          setCart(newCartData);
+      try {
+        if (!isSilent) setIsLoading(true);
+        await enqueueCartMutation(async () => {
+          const res = await apiClient.get("/cart/");
+          if (res?.data) {
+            cartRef.current = res.data;
+            setCart(res.data);
+          }
         });
-      } catch (error) {
-        console.error('Failed to update guest cart quantity:', error);
-        throw error;
+      } catch (error: any) {
+        const status = error?.response?.status;
+        if (status !== 403 && status !== 401) {
+          console.error("Failed to fetch cart:", error);
+        } else if (status === 403) {
+          console.warn("[CartContext] Cart fetch returned status 403.");
+        }
+        // Ensure cart is at least initialized so screens don't crash
+        setCart(
+          (prev) =>
+            prev || {
+              items: [],
+              subtotal: "0.00",
+              discount: "0.00",
+              promo_code: null,
+              promo_discount: "0.00",
+              packaging_fee: "0.00",
+              total: "0.00",
+            },
+        );
+      } finally {
+        if (!isSilent) setIsLoading(false);
       }
-      return;
-    }
+    },
+    [user?.id, enqueueCartMutation],
+  );
 
-    // Optimistic update for instant responsiveness
-    const prevCart = cartRef.current;
-    const ghostItem = prevCart?.items?.find((i) => i.id === itemId);
-    const ghostItemProductId = (itemId < 0 && ghostItem) ? getItemProductId(ghostItem) : null;
-
-    setCart((current) => {
-      if (!current?.items) return current;
-      const updatedItems = current.items.map((item) => {
-        if (item.id === itemId || (itemId < 0 && getItemProductId(item) === ghostItemProductId)) {
-          const unitPriceNum = parseFloat(item.unit_price || item.product?.price || '0');
-          return {
-            ...item,
-            quantity,
-            subtotal: (unitPriceNum * quantity).toFixed(2),
-          };
-        }
-        return item;
-      });
-
-      let newOfferSubtotal = 0;
-      let newRegularSubtotal = 0;
-      updatedItems.forEach((i) => {
-        const pObj = typeof i.product === 'object' && i.product !== null ? i.product : null;
-        const offerP = parseFloat(i.unit_price || pObj?.price || '0');
-        const regP = parseFloat(i.regular_price || pObj?.mrp || pObj?.regular_price || i.unit_price || pObj?.price || '0');
-        newOfferSubtotal += offerP * i.quantity;
-        newRegularSubtotal += regP * i.quantity;
-      });
-      const packaging = parseFloat(current.packaging_fee || '0');
-      const promo = parseFloat(current.promo_discount || '0');
-      const safePromo = newOfferSubtotal >= promo ? promo : 0;
-      const newTotal = Math.max(0, newOfferSubtotal - safePromo) + (newOfferSubtotal > 0 ? packaging : 0);
-
-      const nextCart = {
-        ...current,
-        items: updatedItems,
-        subtotal: newRegularSubtotal > 0 ? newRegularSubtotal.toFixed(2) : newOfferSubtotal.toFixed(2),
-        items_total: newOfferSubtotal.toFixed(2),
-        discount: Math.max(0, newRegularSubtotal - newOfferSubtotal).toFixed(2),
-        total: newTotal.toFixed(2),
-      };
-      cartRef.current = nextCart;
-      return nextCart;
-    });
-
-    // Clear existing debounce timer
-    if (updateQuantityLocks.current[itemId]) {
-      clearTimeout(updateQuantityLocks.current[itemId]);
-    }
-
-    // Debounce the network request to prevent race conditions and handle ghost IDs
-    const timerId = setTimeout(async () => {
-      let targetId = itemId;
-
-      // Resolve Ghost ID (from optimistic addToCart) to Real ID
-      // If the POST /cart/items/ is still in-flight (slow network), poll up to 5x before giving up
-      if (targetId < 0 && ghostItemProductId) {
-        let resolved = false;
-        for (let attempt = 0; attempt < 5; attempt++) {
-          const latestCart = cartRef.current;
-          const realItem = latestCart?.items?.find((i) => getItemProductId(i) === ghostItemProductId && i.id > 0);
-          if (realItem) {
-            targetId = realItem.id;
-            resolved = true;
-            break;
-          }
-          // Wait 200ms before retrying
-          await new Promise((r) => setTimeout(r, 200));
-        }
-        if (!resolved) {
-          console.warn('[CartContext] Aborted patch: Ghost item never resolved to real ID after retries.');
-          if (updateQuantityLocks.current[itemId] === timerId) {
-            delete updateQuantityLocks.current[itemId];
-          }
-          return;
-        }
+  const removeFromCart = useCallback(
+    async (itemId: number) => {
+      // A zero quantity is a delete. Cancel a not-yet-started PATCH and make any
+      // PATCH already in flight finish before the DELETE is sent. Otherwise a
+      // delayed PATCH can 404 after deletion and restore stale optimistic state.
+      if (updateQuantityLocks.current[itemId]) {
+        clearTimeout(updateQuantityLocks.current[itemId]);
+        delete updateQuantityLocks.current[itemId];
       }
 
-      await enqueueCartMutation(async () => {
-        // The timer may have been superseded while an earlier request was in flight.
-        if (updateQuantityLocks.current[itemId] !== timerId) return;
-
-        try {
-          const res = await apiClient.patch(`/cart/items/${targetId}/`, { quantity });
-          // Only sync if THIS is still the latest timer for this item (no newer tap came in)
-          if (updateQuantityLocks.current[itemId] === timerId) {
-            if (res?.data && res.data.items) {
-              cartRef.current = res.data;
-              setCart(res.data);
-            } else {
-              await refreshCart(true);
-            }
-          }
-        } catch (error: any) {
-          // Only rollback if this is the latest pending update (don't stomp a newer tap)
-          if (updateQuantityLocks.current[itemId] === timerId && prevCart) {
-            cartRef.current = prevCart;
-            setCart(prevCart);
-          }
-          console.error('Failed to update quantity:', error);
-        } finally {
-          // Clean up lock only after the full network round-trip
-          if (updateQuantityLocks.current[itemId] === timerId) {
-            delete updateQuantityLocks.current[itemId];
-          }
-        }
-      });
-    }, 400);
-    
-    updateQuantityLocks.current[itemId] = timerId;
-  }, [user, removeFromCart, refreshCart, enqueueCartMutation]);
-
-  const addToCart = useCallback(async (productId: number, quantity: number = 1, productDetails?: any) => {
-    // Queue lock: ensure sequential processing per product to prevent ghost item race conditions
-    const prevLock = addToCartLocks.current[productId] || Promise.resolve();
-    let resolveLock!: () => void;
-    const nextLock = new Promise<void>((resolve) => { resolveLock = resolve; });
-    addToCartLocks.current[productId] = nextLock;
-
-    // Wait for any prior addToCart for this product to finish
-    try { await prevLock; } catch (e) {}
-
-    try {
-      // --- GUEST USER PATH ---
+      const prevCart = cartRef.current;
       if (!user) {
         try {
-          const currentCart = (await loadGuestCart()) || cartRef.current || {
-            items: [], subtotal: '0.00', discount: '0.00',
-            promo_code: null, promo_discount: '0.00', packaging_fee: '0.00', total: '0.00',
-          };
+          await enqueueCartMutation(async () => {
+            const currentCart = cartRef.current || (await loadGuestCart());
+            if (!currentCart) return;
 
-          const existingItemIndex = currentCart.items.findIndex((item) => getItemProductId(item) === productId);
-          let updatedItems = [...currentCart.items];
+            const updatedItems = currentCart.items.filter(
+              (item) => item.id !== itemId && getItemProductId(item) !== itemId,
+            );
 
-          if (existingItemIndex > -1) {
-            const existingItem = updatedItems[existingItemIndex];
-            const stockLimit = existingItem.stock_quantity ?? existingItem.product?.stock_quantity ?? 999;
-            const maxOrderLimit = existingItem.max_order_quantity ?? existingItem.product?.max_order_quantity ?? 0;
-            const cap = maxOrderLimit > 0 ? Math.min(stockLimit, maxOrderLimit) : stockLimit;
-            updatedItems[existingItemIndex] = { ...existingItem, quantity: Math.min(existingItem.quantity + quantity, cap) };
-          } else {
-            let details = productDetails;
-            if (!details || !details.price) {
-              try {
-                const res = await apiClient.get(`/products/${productId}/`);
-                details = res.data;
-                if (!details) throw new Error('Product not found');
-              } catch (err) {
-                console.error('Failed to fetch product details for guest cart', err);
-                import('react-native').then(({ Alert }) => {
-                  Alert.alert('Network Error', 'Could not fetch product details. Please check your connection and try again.');
-                });
-                return;
-              }
-            }
-            const stockLimit = details.stock_quantity ?? 999;
-            const maxOrderLimit = details.max_order_quantity ?? 0;
-            const cap = maxOrderLimit > 0 ? Math.min(stockLimit, maxOrderLimit) : stockLimit;
-            const safeQty = Math.min(quantity, cap);
-            const newItem: CartItem = {
-              id: productId,
-              product: {
-                id: productId, name: details.name || 'Product',
-                price: String(details.offer_price || details.price || '0'),
-                mrp: details.regular_price || details.mrp ? String(details.regular_price || details.mrp) : null,
-                is_in_stock: details.is_in_stock !== false,
-                image: details.image || details.primary_image || null,
-                unit: details.unit || 'pack',
-                stock_quantity: details.stock_quantity, max_order_quantity: details.max_order_quantity,
-              },
-              quantity: safeQty,
-              subtotal: (parseFloat(details.offer_price || details.price || '0') * safeQty).toFixed(2),
-              product_name: details.name, product_unit: details.unit,
-              product_image: details.image || details.primary_image || null,
-              stock_quantity: details.stock_quantity, max_order_quantity: details.max_order_quantity,
-              unit_price: String(details.offer_price || details.price || '0'),
-            };
-            updatedItems.push(newItem);
-          }
-
-          const packagingFee = storeSettingsRef.current?.packaging_fee || '0';
-          const newCartData = calculateGuestTotals(updatedItems, packagingFee);
-          await setGuestStorageItem(GUEST_CART_KEY, JSON.stringify(newCartData));
-          cartRef.current = newCartData;
-          setCart(newCartData);
-          setLastItemAddedTimestamp(Date.now());
+            const packagingFee = storeSettingsRef.current?.packaging_fee || "0";
+            const newCartData = calculateGuestTotals(
+              updatedItems,
+              packagingFee,
+            );
+            await setGuestStorageItem(
+              GUEST_CART_KEY,
+              JSON.stringify(newCartData),
+            );
+            cartRef.current = newCartData;
+            setCart(newCartData);
+          });
         } catch (error) {
-          console.error('Failed to add to guest cart:', error);
+          console.error("Failed to remove from guest cart:", error);
           throw error;
         }
         return;
       }
 
-      // --- AUTHENTICATED USER PATH ---
-      // If item already exists, delegate to updateQuantity
-      const currentCart = cartRef.current;
-      if (currentCart?.items) {
-        const existingItem = currentCart.items.find((item) => getItemProductId(item) === productId);
-        if (existingItem) {
-          await updateQuantity(existingItem.id, existingItem.quantity + quantity);
-          return;
-        }
-      }
-
-      // Optimistic update: immediately add NEW item with temporary negative ID
-      const prevCart = cartRef.current;
-      const details = productDetails || {};
-      const unitPriceNum = parseFloat(details.offer_price || details.price || '0');
-      const optimisticItem: CartItem = {
-        id: -(Date.now()),
-        product: {
-          id: productId, name: details.name || 'Product',
-          price: String(details.offer_price || details.price || '0'),
-          mrp: details.regular_price || details.mrp ? String(details.regular_price || details.mrp) : null,
-          is_in_stock: details.is_in_stock !== false,
-          image: details.image || details.primary_image || null,
-          unit: details.unit || 'pack',
-          stock_quantity: details.stock_quantity, max_order_quantity: details.max_order_quantity,
-        },
-        quantity,
-        subtotal: (unitPriceNum * quantity).toFixed(2),
-        product_name: details.name, product_unit: details.unit,
-        product_image: details.image || details.primary_image || null,
-        stock_quantity: details.stock_quantity, max_order_quantity: details.max_order_quantity,
-        unit_price: String(details.offer_price || details.price || '0'),
-        regular_price: String(details.regular_price || details.mrp || details.offer_price || details.price || '0'),
-      };
+      // Optimistic removal
+      const itemToRemove = cartRef.current?.items?.find((i) => i.id === itemId);
+      const ghostItemProductId = itemToRemove
+        ? getItemProductId(itemToRemove)
+        : null;
 
       setCart((current) => {
-        const items = [...(current?.items || []), optimisticItem];
+        if (!current?.items) return current;
+        const updatedItems = current.items.filter((item) => item.id !== itemId);
         let newOfferSubtotal = 0;
         let newRegularSubtotal = 0;
-        items.forEach((i) => {
-          const pObj = typeof i.product === 'object' && i.product !== null ? i.product : null;
-          const offerP = parseFloat(i.unit_price || pObj?.price || '0');
-          const regP = parseFloat(i.regular_price || pObj?.mrp || pObj?.regular_price || i.unit_price || pObj?.price || '0');
+        updatedItems.forEach((i) => {
+          const pObj =
+            typeof i.product === "object" && i.product !== null
+              ? i.product
+              : null;
+          const offerP = parseFloat(i.unit_price || pObj?.price || "0");
+          const regP = parseFloat(
+            i.regular_price ||
+              pObj?.mrp ||
+              pObj?.regular_price ||
+              i.unit_price ||
+              pObj?.price ||
+              "0",
+          );
           newOfferSubtotal += offerP * i.quantity;
           newRegularSubtotal += regP * i.quantity;
         });
-        const packaging = parseFloat(current?.packaging_fee || '0');
-        const promo = parseFloat(current?.promo_discount || '0');
+        const packaging =
+          updatedItems.length > 0
+            ? parseFloat(current.packaging_fee || "0")
+            : 0;
+        const promo = parseFloat(current.promo_discount || "0");
         const safePromo = newOfferSubtotal >= promo ? promo : 0;
-        const newTotal = Math.max(0, newOfferSubtotal - safePromo) + (newOfferSubtotal > 0 ? packaging : 0);
+        const newTotal = Math.max(0, newOfferSubtotal - safePromo) + packaging;
+
         const nextCart = {
-          ...current!,
-          items,
-          subtotal: newRegularSubtotal > 0 ? newRegularSubtotal.toFixed(2) : newOfferSubtotal.toFixed(2),
+          ...current,
+          items: updatedItems,
+          subtotal:
+            newRegularSubtotal > 0
+              ? newRegularSubtotal.toFixed(2)
+              : newOfferSubtotal.toFixed(2),
           items_total: newOfferSubtotal.toFixed(2),
-          discount: Math.max(0, newRegularSubtotal - newOfferSubtotal).toFixed(2),
+          discount: Math.max(0, newRegularSubtotal - newOfferSubtotal).toFixed(
+            2,
+          ),
           total: newTotal.toFixed(2),
         };
         cartRef.current = nextCart;
         return nextCart;
       });
-      setLastItemAddedTimestamp(Date.now());
 
       try {
         await enqueueCartMutation(async () => {
-          const res = await apiClient.post('/cart/items/', { product: productId, quantity });
-          if (res?.data && res.data.items) {
+          let targetId = itemId;
+          if (targetId < 0 && ghostItemProductId) {
+            // If the item was a ghost item, we must fetch the cart from the backend
+            // because the POST may have just finished and we need the real ID to delete it.
+            // Or we can poll the backend cart. Let's just fetch the backend cart once,
+            // because if enqueueCartMutation ran sequentially, the POST is completely finished on the backend.
+            const freshCartRes = await apiClient.get("/cart/");
+            const realItem = freshCartRes.data?.items?.find(
+              (i: any) => getItemProductId(i) === ghostItemProductId,
+            );
+            if (realItem) {
+              targetId = realItem.id;
+            } else {
+              // The item isn't on the backend anyway, maybe the POST failed. We can just abort the DELETE.
+              await refreshCart(true);
+              return;
+            }
+          }
+
+          const res = await apiClient.delete(`/cart/items/${targetId}/`);
+          if (res?.data?.items) {
             cartRef.current = res.data;
             setCart(res.data);
           } else {
@@ -670,67 +425,530 @@ export function CartProvider({ children }: { children: ReactNode }) {
         });
       } catch (error) {
         if (prevCart) setCart(prevCart);
-        console.error('Failed to add to cart:', error);
+        console.error("Failed to remove from cart:", error);
         throw error;
       }
-    } finally {
-      // Always release the lock, even if we throw or return early
-      resolveLock();
-      if (addToCartLocks.current[productId] === nextLock) {
-        delete addToCartLocks.current[productId];
+    },
+    [user, refreshCart, enqueueCartMutation],
+  );
+
+  const updateQuantity = useCallback(
+    async (itemId: number, quantity: number) => {
+      if (quantity <= 0) {
+        return removeFromCart(itemId);
       }
-    }
-  }, [user, updateQuantity, refreshCart, enqueueCartMutation]);
+
+      const currentCart = cartRef.current;
+      const currentQty =
+        currentCart?.items?.find(
+          (item) => item.id === itemId || getItemProductId(item) === itemId,
+        )?.quantity || 0;
+      if (quantity > currentQty) {
+        setLastItemAddedTimestamp(Date.now());
+      }
+
+      if (!user) {
+        try {
+          await enqueueCartMutation(async () => {
+            const activeGuestCart = cartRef.current || (await loadGuestCart());
+            if (!activeGuestCart) return;
+
+            const updatedItems = activeGuestCart.items.map((item) => {
+              if (item.id === itemId || getItemProductId(item) === itemId) {
+                const stockLimit =
+                  item.stock_quantity ?? item.product?.stock_quantity ?? 999;
+                const maxOrderLimit =
+                  item.max_order_quantity ??
+                  item.product?.max_order_quantity ??
+                  0;
+                const cap =
+                  maxOrderLimit > 0
+                    ? Math.min(stockLimit, maxOrderLimit)
+                    : stockLimit;
+                const safeQty = Math.min(quantity, cap);
+                return {
+                  ...item,
+                  quantity: safeQty,
+                };
+              }
+              return item;
+            });
+
+            const packagingFee = storeSettingsRef.current?.packaging_fee || "0";
+            const newCartData = calculateGuestTotals(
+              updatedItems,
+              packagingFee,
+            );
+            await setGuestStorageItem(
+              GUEST_CART_KEY,
+              JSON.stringify(newCartData),
+            );
+            cartRef.current = newCartData;
+            setCart(newCartData);
+          });
+        } catch (error) {
+          console.error("Failed to update guest cart quantity:", error);
+          throw error;
+        }
+        return;
+      }
+
+      // Optimistic update for instant responsiveness
+      const prevCart = cartRef.current;
+      const ghostItem = prevCart?.items?.find((i) => i.id === itemId);
+      const ghostItemProductId =
+        itemId < 0 && ghostItem ? getItemProductId(ghostItem) : null;
+
+      setCart((current) => {
+        if (!current?.items) return current;
+        const updatedItems = current.items.map((item) => {
+          if (
+            item.id === itemId ||
+            (itemId < 0 && getItemProductId(item) === ghostItemProductId)
+          ) {
+            const unitPriceNum = parseFloat(
+              item.unit_price || item.product?.price || "0",
+            );
+            return {
+              ...item,
+              quantity,
+              subtotal: (unitPriceNum * quantity).toFixed(2),
+            };
+          }
+          return item;
+        });
+
+        let newOfferSubtotal = 0;
+        let newRegularSubtotal = 0;
+        updatedItems.forEach((i) => {
+          const pObj =
+            typeof i.product === "object" && i.product !== null
+              ? i.product
+              : null;
+          const offerP = parseFloat(i.unit_price || pObj?.price || "0");
+          const regP = parseFloat(
+            i.regular_price ||
+              pObj?.mrp ||
+              pObj?.regular_price ||
+              i.unit_price ||
+              pObj?.price ||
+              "0",
+          );
+          newOfferSubtotal += offerP * i.quantity;
+          newRegularSubtotal += regP * i.quantity;
+        });
+        const packaging = parseFloat(current.packaging_fee || "0");
+        const promo = parseFloat(current.promo_discount || "0");
+        const safePromo = newOfferSubtotal >= promo ? promo : 0;
+        const newTotal =
+          Math.max(0, newOfferSubtotal - safePromo) +
+          (newOfferSubtotal > 0 ? packaging : 0);
+
+        const nextCart = {
+          ...current,
+          items: updatedItems,
+          subtotal:
+            newRegularSubtotal > 0
+              ? newRegularSubtotal.toFixed(2)
+              : newOfferSubtotal.toFixed(2),
+          items_total: newOfferSubtotal.toFixed(2),
+          discount: Math.max(0, newRegularSubtotal - newOfferSubtotal).toFixed(
+            2,
+          ),
+          total: newTotal.toFixed(2),
+        };
+        cartRef.current = nextCart;
+        return nextCart;
+      });
+
+      // Clear existing debounce timer
+      if (updateQuantityLocks.current[itemId]) {
+        clearTimeout(updateQuantityLocks.current[itemId]);
+      }
+
+      // Debounce the network request to prevent race conditions and handle ghost IDs
+      const timerId = setTimeout(async () => {
+        let targetId = itemId;
+
+        // Resolve Ghost ID (from optimistic addToCart) to Real ID
+        // If the POST /cart/items/ is still in-flight (slow network), poll up to 5x before giving up
+        if (targetId < 0 && ghostItemProductId) {
+          let resolved = false;
+          for (let attempt = 0; attempt < 5; attempt++) {
+            const latestCart = cartRef.current;
+            const realItem = latestCart?.items?.find(
+              (i) => getItemProductId(i) === ghostItemProductId && i.id > 0,
+            );
+            if (realItem) {
+              targetId = realItem.id;
+              resolved = true;
+              break;
+            }
+            // Wait 200ms before retrying
+            await new Promise((r) => setTimeout(r, 200));
+          }
+          if (!resolved) {
+            console.warn(
+              "[CartContext] Aborted patch: Ghost item never resolved to real ID after retries.",
+            );
+            if (updateQuantityLocks.current[itemId] === timerId) {
+              delete updateQuantityLocks.current[itemId];
+            }
+            return;
+          }
+        }
+
+        await enqueueCartMutation(async () => {
+          // The timer may have been superseded while an earlier request was in flight.
+          if (updateQuantityLocks.current[itemId] !== timerId) return;
+
+          try {
+            const res = await apiClient.patch(`/cart/items/${targetId}/`, {
+              quantity,
+            });
+            // Only sync if THIS is still the latest timer for this item (no newer tap came in)
+            if (updateQuantityLocks.current[itemId] === timerId) {
+              if (res?.data && res.data.items) {
+                cartRef.current = res.data;
+                setCart(res.data);
+              } else {
+                await refreshCart(true);
+              }
+            }
+          } catch (error: any) {
+            // Only rollback if this is the latest pending update (don't stomp a newer tap)
+            if (updateQuantityLocks.current[itemId] === timerId && prevCart) {
+              cartRef.current = prevCart;
+              setCart(prevCart);
+            }
+            console.error("Failed to update quantity:", error);
+          } finally {
+            // Clean up lock only after the full network round-trip
+            if (updateQuantityLocks.current[itemId] === timerId) {
+              delete updateQuantityLocks.current[itemId];
+            }
+          }
+        });
+      }, 400);
+
+      updateQuantityLocks.current[itemId] = timerId;
+    },
+    [user, removeFromCart, refreshCart, enqueueCartMutation],
+  );
+
+  const addToCart = useCallback(
+    async (productId: number, quantity: number = 1, productDetails?: any) => {
+      // Queue lock: ensure sequential processing per product to prevent ghost item race conditions
+      const prevLock = addToCartLocks.current[productId] || Promise.resolve();
+      let resolveLock!: () => void;
+      const nextLock = new Promise<void>((resolve) => {
+        resolveLock = resolve;
+      });
+      addToCartLocks.current[productId] = nextLock;
+
+      // Wait for any prior addToCart for this product to finish
+      try {
+        await prevLock;
+      } catch (e) {}
+
+      try {
+        // --- GUEST USER PATH ---
+        if (!user) {
+          try {
+            const currentCart = (await loadGuestCart()) ||
+              cartRef.current || {
+                items: [],
+                subtotal: "0.00",
+                discount: "0.00",
+                promo_code: null,
+                promo_discount: "0.00",
+                packaging_fee: "0.00",
+                total: "0.00",
+              };
+
+            const existingItemIndex = currentCart.items.findIndex(
+              (item) => getItemProductId(item) === productId,
+            );
+            const updatedItems = [...currentCart.items];
+
+            if (existingItemIndex > -1) {
+              const existingItem = updatedItems[existingItemIndex];
+              const stockLimit =
+                existingItem.stock_quantity ??
+                existingItem.product?.stock_quantity ??
+                999;
+              const maxOrderLimit =
+                existingItem.max_order_quantity ??
+                existingItem.product?.max_order_quantity ??
+                0;
+              const cap =
+                maxOrderLimit > 0
+                  ? Math.min(stockLimit, maxOrderLimit)
+                  : stockLimit;
+              updatedItems[existingItemIndex] = {
+                ...existingItem,
+                quantity: Math.min(existingItem.quantity + quantity, cap),
+              };
+            } else {
+              let details = productDetails;
+              if (!details || !details.price) {
+                try {
+                  const res = await apiClient.get(`/products/${productId}/`);
+                  details = res.data;
+                  if (!details) throw new Error("Product not found");
+                } catch (err) {
+                  console.error(
+                    "Failed to fetch product details for guest cart",
+                    err,
+                  );
+                  import("react-native").then(({ Alert }) => {
+                    Alert.alert(
+                      "Network Error",
+                      "Could not fetch product details. Please check your connection and try again.",
+                    );
+                  });
+                  return;
+                }
+              }
+              const stockLimit = details.stock_quantity ?? 999;
+              const maxOrderLimit = details.max_order_quantity ?? 0;
+              const cap =
+                maxOrderLimit > 0
+                  ? Math.min(stockLimit, maxOrderLimit)
+                  : stockLimit;
+              const safeQty = Math.min(quantity, cap);
+              const newItem: CartItem = {
+                id: productId,
+                product: {
+                  id: productId,
+                  name: details.name || "Product",
+                  price: String(details.offer_price || details.price || "0"),
+                  mrp:
+                    details.regular_price || details.mrp
+                      ? String(details.regular_price || details.mrp)
+                      : null,
+                  is_in_stock: details.is_in_stock !== false,
+                  image: details.image || details.primary_image || null,
+                  unit: details.unit || "pack",
+                  stock_quantity: details.stock_quantity,
+                  max_order_quantity: details.max_order_quantity,
+                },
+                quantity: safeQty,
+                subtotal: (
+                  parseFloat(details.offer_price || details.price || "0") *
+                  safeQty
+                ).toFixed(2),
+                product_name: details.name,
+                product_unit: details.unit,
+                product_image: details.image || details.primary_image || null,
+                stock_quantity: details.stock_quantity,
+                max_order_quantity: details.max_order_quantity,
+                unit_price: String(details.offer_price || details.price || "0"),
+              };
+              updatedItems.push(newItem);
+            }
+
+            const packagingFee = storeSettingsRef.current?.packaging_fee || "0";
+            const newCartData = calculateGuestTotals(
+              updatedItems,
+              packagingFee,
+            );
+            await setGuestStorageItem(
+              GUEST_CART_KEY,
+              JSON.stringify(newCartData),
+            );
+            cartRef.current = newCartData;
+            setCart(newCartData);
+            setLastItemAddedTimestamp(Date.now());
+          } catch (error) {
+            console.error("Failed to add to guest cart:", error);
+            throw error;
+          }
+          return;
+        }
+
+        // --- AUTHENTICATED USER PATH ---
+        // If item already exists, delegate to updateQuantity
+        const currentCart = cartRef.current;
+        if (currentCart?.items) {
+          const existingItem = currentCart.items.find(
+            (item) => getItemProductId(item) === productId,
+          );
+          if (existingItem) {
+            await updateQuantity(
+              existingItem.id,
+              existingItem.quantity + quantity,
+            );
+            return;
+          }
+        }
+
+        // Optimistic update: immediately add NEW item with temporary negative ID
+        const prevCart = cartRef.current;
+        const details = productDetails || {};
+        const unitPriceNum = parseFloat(
+          details.offer_price || details.price || "0",
+        );
+        const optimisticItem: CartItem = {
+          id: -Date.now(),
+          product: {
+            id: productId,
+            name: details.name || "Product",
+            price: String(details.offer_price || details.price || "0"),
+            mrp:
+              details.regular_price || details.mrp
+                ? String(details.regular_price || details.mrp)
+                : null,
+            is_in_stock: details.is_in_stock !== false,
+            image: details.image || details.primary_image || null,
+            unit: details.unit || "pack",
+            stock_quantity: details.stock_quantity,
+            max_order_quantity: details.max_order_quantity,
+          },
+          quantity,
+          subtotal: (unitPriceNum * quantity).toFixed(2),
+          product_name: details.name,
+          product_unit: details.unit,
+          product_image: details.image || details.primary_image || null,
+          stock_quantity: details.stock_quantity,
+          max_order_quantity: details.max_order_quantity,
+          unit_price: String(details.offer_price || details.price || "0"),
+          regular_price: String(
+            details.regular_price ||
+              details.mrp ||
+              details.offer_price ||
+              details.price ||
+              "0",
+          ),
+        };
+
+        setCart((current) => {
+          const items = [...(current?.items || []), optimisticItem];
+          let newOfferSubtotal = 0;
+          let newRegularSubtotal = 0;
+          items.forEach((i) => {
+            const pObj =
+              typeof i.product === "object" && i.product !== null
+                ? i.product
+                : null;
+            const offerP = parseFloat(i.unit_price || pObj?.price || "0");
+            const regP = parseFloat(
+              i.regular_price ||
+                pObj?.mrp ||
+                pObj?.regular_price ||
+                i.unit_price ||
+                pObj?.price ||
+                "0",
+            );
+            newOfferSubtotal += offerP * i.quantity;
+            newRegularSubtotal += regP * i.quantity;
+          });
+          const packaging = parseFloat(current?.packaging_fee || "0");
+          const promo = parseFloat(current?.promo_discount || "0");
+          const safePromo = newOfferSubtotal >= promo ? promo : 0;
+          const newTotal =
+            Math.max(0, newOfferSubtotal - safePromo) +
+            (newOfferSubtotal > 0 ? packaging : 0);
+          const nextCart = {
+            ...current!,
+            items,
+            subtotal:
+              newRegularSubtotal > 0
+                ? newRegularSubtotal.toFixed(2)
+                : newOfferSubtotal.toFixed(2),
+            items_total: newOfferSubtotal.toFixed(2),
+            discount: Math.max(
+              0,
+              newRegularSubtotal - newOfferSubtotal,
+            ).toFixed(2),
+            total: newTotal.toFixed(2),
+          };
+          cartRef.current = nextCart;
+          return nextCart;
+        });
+        setLastItemAddedTimestamp(Date.now());
+
+        try {
+          await enqueueCartMutation(async () => {
+            const res = await apiClient.post("/cart/items/", {
+              product: productId,
+              quantity,
+            });
+            if (res?.data && res.data.items) {
+              cartRef.current = res.data;
+              setCart(res.data);
+            } else {
+              await refreshCart(true);
+            }
+          });
+        } catch (error) {
+          if (prevCart) setCart(prevCart);
+          console.error("Failed to add to cart:", error);
+          throw error;
+        }
+      } finally {
+        // Always release the lock, even if we throw or return early
+        resolveLock();
+        if (addToCartLocks.current[productId] === nextLock) {
+          delete addToCartLocks.current[productId];
+        }
+      }
+    },
+    [user, updateQuantity, refreshCart, enqueueCartMutation],
+  );
 
   const clearCart = useCallback(async () => {
     if (!user) {
       await removeGuestStorageItem(GUEST_CART_KEY);
       setCart({
         items: [],
-        subtotal: '0.00',
-        items_total: '0.00',
-        discount: '0.00',
+        subtotal: "0.00",
+        items_total: "0.00",
+        discount: "0.00",
         promo_code: null,
-        promo_discount: '0.00',
-        packaging_fee: '0.00',
-        total: '0.00',
+        promo_discount: "0.00",
+        packaging_fee: "0.00",
+        total: "0.00",
       });
       return;
     }
 
     try {
       setIsLoading(true);
-      await apiClient.post('/cart/clear/');
+      await apiClient.post("/cart/clear/");
       await refreshCart();
     } catch (error) {
-      console.error('Failed to clear cart:', error);
+      console.error("Failed to clear cart:", error);
     } finally {
       setIsLoading(false);
     }
   }, [user, refreshCart]);
 
-  const applyPromo = useCallback(async (code: string) => {
-    if (!user) {
-      throw new Error('Please sign in to apply promo codes');
-    }
-    try {
-      setIsLoading(true);
-      await apiClient.post('/cart/apply-promo/', { code });
-      await refreshCart();
-    } catch (error: any) {
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user, refreshCart]);
+  const applyPromo = useCallback(
+    async (code: string) => {
+      if (!user) {
+        throw new Error("Please sign in to apply promo codes");
+      }
+      try {
+        setIsLoading(true);
+        await apiClient.post("/cart/apply-promo/", { code });
+        await refreshCart();
+      } catch (error: any) {
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [user, refreshCart],
+  );
 
   const removePromo = useCallback(async () => {
     try {
       setIsLoading(true);
-      await apiClient.post('/cart/apply-promo/', { code: '' });
+      await apiClient.post("/cart/apply-promo/", { code: "" });
       await refreshCart();
     } catch (error) {
-      console.error('Failed to remove promo:', error);
+      console.error("Failed to remove promo:", error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -750,51 +968,55 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return map;
   }, [cart?.items]);
 
-  const getItemQuantity = useCallback((productId: number): number => {
-    return cartQuantityMap[productId] || 0;
-  }, [cartQuantityMap]);
+  const getItemQuantity = useCallback(
+    (productId: number): number => {
+      return cartQuantityMap[productId] || 0;
+    },
+    [cartQuantityMap],
+  );
 
-  const contextValue = useMemo(() => ({
-    cart,
-    isLoading,
-    storeSettings,
-    addToCart,
-    updateQuantity,
-    removeFromCart,
-    clearCart,
-    applyPromo,
-    removePromo,
-    refreshCart,
-    cartQuantityMap,
-    getItemQuantity,
-    lastItemAddedTimestamp,
-  }), [
-    cart,
-    isLoading,
-    storeSettings,
-    addToCart,
-    updateQuantity,
-    removeFromCart,
-    clearCart,
-    applyPromo,
-    removePromo,
-    refreshCart,
-    cartQuantityMap,
-    getItemQuantity,
-    lastItemAddedTimestamp,
-  ]);
+  const contextValue = useMemo(
+    () => ({
+      cart,
+      isLoading,
+      storeSettings,
+      addToCart,
+      updateQuantity,
+      removeFromCart,
+      clearCart,
+      applyPromo,
+      removePromo,
+      refreshCart,
+      cartQuantityMap,
+      getItemQuantity,
+      lastItemAddedTimestamp,
+    }),
+    [
+      cart,
+      isLoading,
+      storeSettings,
+      addToCart,
+      updateQuantity,
+      removeFromCart,
+      clearCart,
+      applyPromo,
+      removePromo,
+      refreshCart,
+      cartQuantityMap,
+      getItemQuantity,
+      lastItemAddedTimestamp,
+    ],
+  );
 
   return (
-    <CartContext.Provider value={contextValue}>
-      {children}
-    </CartContext.Provider>
+    <CartContext.Provider value={contextValue}>{children}</CartContext.Provider>
   );
 }
 
 export function useCart() {
   const context = useContext(CartContext);
   if (context === undefined) {
-    throw new Error('useCart must be used within a CartProvider');
+    throw new Error("useCart must be used within a CartProvider");
   }
   return context;
 }

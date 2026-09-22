@@ -1,21 +1,22 @@
-import React, { useEffect, useRef, useMemo, useCallback } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
+import { Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useRef, useMemo, useCallback } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
   Animated,
   Platform,
   Dimensions,
-  Easing
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Feather } from '@expo/vector-icons';
-import { useCart } from '../context/CartContext';
-import { triggerHaptic } from '../utils/haptics';
+  Easing,
+} from "react-native";
 
-const USE_NATIVE_DRIVER = Platform.OS !== 'web';
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+import { useCart } from "../context/CartContext";
+import { triggerHaptic } from "../utils/haptics";
+
+const USE_NATIVE_DRIVER = Platform.OS !== "web";
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 interface FloatingCartBarProps {
   bottomOffset: number;
@@ -25,17 +26,22 @@ interface FloatingCartBarProps {
 }
 
 const HIDE_ON_SCREENS = [
-  'ProductDetailScreen',
-  'CheckoutScreen',
-  'OrderSuccessScreen',
-  'OrderTrackingScreen',
-  'InvoiceScreen',
-  'AddAddressScreen',
-  'CartScreen',
-  'CartTab',
+  "ProductDetailScreen",
+  "CheckoutScreen",
+  "OrderSuccessScreen",
+  "OrderTrackingScreen",
+  "InvoiceScreen",
+  "AddAddressScreen",
+  "CartScreen",
+  "CartTab",
 ];
 
-function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRouteName }: FloatingCartBarProps) {
+function FloatingCartBarComponent({
+  bottomOffset,
+  onPress,
+  onClose,
+  currentRouteName,
+}: FloatingCartBarProps) {
   const { cart, storeSettings } = useCart();
   const slideAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(1)).current;
@@ -47,30 +53,46 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
 
   const { itemCount, totalAmount, isFreeDelivery, shortfall } = useMemo(() => {
     const items = cart?.items || [];
-    const count = items.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
+    const count = items.reduce(
+      (sum: number, item: any) => sum + (item.quantity || 1),
+      0,
+    );
     const rawSub = items.reduce((sum: number, item: any) => {
       const itemSub = parseFloat(item.subtotal || 0);
       if (itemSub > 0) return sum + itemSub;
-      const p = typeof item.product === 'object' && item.product !== null ? item.product : {};
-      const price = parseFloat(item.unit_price || p.offer_price || p.price || p.regular_price || 0);
-      return sum + (price * (item.quantity || 1));
+      const p =
+        typeof item.product === "object" && item.product !== null
+          ? item.product
+          : {};
+      const price = parseFloat(
+        item.unit_price || p.offer_price || p.price || p.regular_price || 0,
+      );
+      return sum + price * (item.quantity || 1);
     }, 0);
     const tot = parseFloat(cart?.items_total || String(rawSub)) || rawSub;
-    const threshold = parseFloat(storeSettings?.free_delivery_threshold || '0');
+    const threshold = parseFloat(storeSettings?.free_delivery_threshold || "0");
     const free = threshold > 0 && tot >= threshold;
-    const short = threshold > 0 && !free ? Math.max(0, Number((threshold - tot).toFixed(2))) : 0;
-    return { itemCount: count, totalAmount: tot, isFreeDelivery: free, shortfall: short };
+    const short =
+      threshold > 0 && !free
+        ? Math.max(0, Number((threshold - tot).toFixed(2)))
+        : 0;
+    return {
+      itemCount: count,
+      totalAmount: tot,
+      isFreeDelivery: free,
+      shortfall: short,
+    };
   }, [cart, storeSettings]);
 
   const prevItemCountRef = useRef(itemCount);
 
   const handleOpenCart = useCallback(() => {
-    triggerHaptic('selection');
+    triggerHaptic("selection");
     onPress();
   }, [onPress]);
 
   const handleDismiss = useCallback(() => {
-    triggerHaptic('light');
+    triggerHaptic("light");
     Animated.parallel([
       Animated.timing(slideAnim, {
         toValue: 80,
@@ -110,11 +132,11 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
         ]).start();
       } else if (itemCount > prevItemCountRef.current) {
         // Item count increased: trigger smooth upward bounce on bar/badge and haptic feedback
-        triggerHaptic('medium');
+        triggerHaptic("medium");
         // Ensure the bar is visible and in place in case it had auto-dismissed
         opacityAnim.setValue(1);
         slideAnim.setValue(0);
-        
+
         Animated.parallel([
           Animated.sequence([
             Animated.timing(bounceAnim, {
@@ -146,15 +168,19 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
           ]),
         ]).start();
       }
-
     }
     prevItemCountRef.current = itemCount;
   }, [itemCount, slideAnim, opacityAnim, bounceAnim, badgeScaleAnim]);
 
   // Animate slim Free Delivery progress line indicator
   useEffect(() => {
-    const threshold = parseFloat(storeSettings?.free_delivery_threshold || '0');
-    const targetRatio = threshold > 0 ? Math.min(1, Math.max(0, totalAmount / threshold)) : (threshold === 0 && totalAmount > 0 ? 1 : 0);
+    const threshold = parseFloat(storeSettings?.free_delivery_threshold || "0");
+    const targetRatio =
+      threshold > 0
+        ? Math.min(1, Math.max(0, totalAmount / threshold))
+        : threshold === 0 && totalAmount > 0
+          ? 1
+          : 0;
     Animated.timing(progressAnim, {
       toValue: targetRatio,
       duration: 350,
@@ -176,11 +202,14 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
           duration: 600,
           useNativeDriver: USE_NATIVE_DRIVER,
         }),
-      ])
+      ]),
     ).start();
   }, [arrowAnim]);
 
-  if (itemCount === 0 || (currentRouteName && HIDE_ON_SCREENS.includes(currentRouteName))) {
+  if (
+    itemCount === 0 ||
+    (currentRouteName && HIDE_ON_SCREENS.includes(currentRouteName))
+  ) {
     return null;
   }
 
@@ -189,12 +218,12 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
       style={[
         styles.wrapper,
         {
-          pointerEvents: 'box-none',
+          pointerEvents: "box-none",
           bottom: bottomOffset,
           opacity: opacityAnim,
           transform: [
             { translateY: Animated.add(slideAnim, bounceAnim) },
-            { scale: pulseAnim }
+            { scale: pulseAnim },
           ],
         },
       ]}
@@ -205,24 +234,24 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
         style={styles.touchableCard}
       >
         <LinearGradient
-          colors={['#065F46', '#047857', '#064E3B']}
+          colors={["#065F46", "#047857", "#064E3B"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.container}
         >
           {/* Slim 2.5px Progress Indicator Line for Free Delivery */}
           <View style={styles.progressBarBackground}>
-            <Animated.View 
+            <Animated.View
               style={[
-                styles.progressBarFill, 
-                { 
+                styles.progressBarFill,
+                {
                   width: progressAnim.interpolate({
                     inputRange: [0, 1],
-                    outputRange: ['0%', '100%'],
+                    outputRange: ["0%", "100%"],
                   }),
-                  backgroundColor: isFreeDelivery ? '#10B981' : '#34D399',
-                }
-              ]} 
+                  backgroundColor: isFreeDelivery ? "#10B981" : "#34D399",
+                },
+              ]}
             />
           </View>
 
@@ -232,21 +261,38 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
               {isFreeDelivery ? (
                 <>
                   <Text style={styles.ribbonEmoji}>🎉</Text>
-                  <Text style={styles.ribbonTextHighlight} numberOfLines={1} ellipsizeMode="tail">
+                  <Text
+                    style={styles.ribbonTextHighlight}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
                     FREE Delivery Unlocked!
                   </Text>
                 </>
               ) : shortfall > 0 ? (
                 <>
                   <Text style={styles.ribbonEmoji}>🚚</Text>
-                  <Text style={styles.ribbonText} numberOfLines={1} ellipsizeMode="tail">
-                    Add <Text style={styles.ribbonBold}>₹{(Number(shortfall) || 0).toFixed(0)}</Text> more for <Text style={styles.ribbonBold}>FREE Delivery</Text>
+                  <Text
+                    style={styles.ribbonText}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    Add{" "}
+                    <Text style={styles.ribbonBold}>
+                      ₹{(Number(shortfall) || 0).toFixed(0)}
+                    </Text>{" "}
+                    more for{" "}
+                    <Text style={styles.ribbonBold}>FREE Delivery</Text>
                   </Text>
                 </>
               ) : (
                 <>
                   <Text style={styles.ribbonEmoji}>⚡</Text>
-                  <Text style={styles.ribbonTextHighlight} numberOfLines={1} ellipsizeMode="tail">
+                  <Text
+                    style={styles.ribbonTextHighlight}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
                     Express Store Delivery (15-25 mins)
                   </Text>
                 </>
@@ -270,7 +316,12 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
             <View style={styles.leftGroup}>
               <View style={styles.cartIconCircle}>
                 <Feather name="shopping-bag" size={18} color="#064E3B" />
-                <Animated.View style={[styles.badgeCount, { transform: [{ scale: badgeScaleAnim }] }]}>
+                <Animated.View
+                  style={[
+                    styles.badgeCount,
+                    { transform: [{ scale: badgeScaleAnim }] },
+                  ]}
+                >
                   <Text style={styles.badgeText}>{itemCount}</Text>
                 </Animated.View>
               </View>
@@ -282,7 +333,7 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
                   </Text>
                 </View>
                 <Text style={styles.itemsSubtext}>
-                  {itemCount} {itemCount === 1 ? 'item' : 'items'} in basket
+                  {itemCount} {itemCount === 1 ? "item" : "items"} in basket
                 </Text>
               </View>
             </View>
@@ -303,53 +354,53 @@ function FloatingCartBarComponent({ bottomOffset, onPress, onClose, currentRoute
 
 const styles = StyleSheet.create({
   wrapper: {
-    position: 'absolute',
+    position: "absolute",
     left: 12,
     right: 12,
     zIndex: 99999,
     elevation: 20,
-    pointerEvents: 'box-none' as any,
+    pointerEvents: "box-none" as any,
   },
   touchableCard: {
     borderRadius: 20,
-    boxShadow: '0px 8px 12px rgba(5, 150, 105, 0.4)',
+    boxShadow: "0px 8px 12px rgba(5, 150, 105, 0.4)",
     elevation: 16,
   },
   container: {
     borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: '#34D399', // Bright emerald highlighted glow
+    borderColor: "#34D399", // Bright emerald highlighted glow
     paddingHorizontal: 14,
     paddingTop: 8,
     paddingBottom: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   progressBarBackground: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    overflow: 'hidden',
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    overflow: "hidden",
     zIndex: 10,
   },
   progressBarFill: {
-    height: '100%',
-    backgroundColor: '#34D399',
+    height: "100%",
+    backgroundColor: "#34D399",
   },
   topRibbon: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingBottom: 6,
     marginBottom: 6,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.15)',
+    borderBottomColor: "rgba(255, 255, 255, 0.15)",
   },
   ribbonLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     flex: 1,
     marginRight: 8,
@@ -358,19 +409,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   ribbonText: {
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: "rgba(255, 255, 255, 0.9)",
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: "600",
     flexShrink: 1,
   },
   ribbonBold: {
-    color: '#FDE047', // Warm gold highlight
-    fontWeight: '800',
+    color: "#FDE047", // Warm gold highlight
+    fontWeight: "800",
   },
   ribbonTextHighlight: {
-    color: '#6EE7B7', // Luminous mint green
+    color: "#6EE7B7", // Luminous mint green
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: "800",
     letterSpacing: 0.2,
     flexShrink: 1,
   },
@@ -378,88 +429,88 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
     marginLeft: 8,
   },
   mainStrip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   leftGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
   cartIconCircle: {
     width: 40,
     height: 40,
     borderRadius: 14,
-    backgroundColor: '#A7F3D0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-    boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.15)',
+    backgroundColor: "#A7F3D0",
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+    boxShadow: "0px 2px 3px rgba(0, 0, 0, 0.15)",
     elevation: 3,
   },
   badgeCount: {
-    position: 'absolute',
+    position: "absolute",
     top: -5,
     right: -5,
-    backgroundColor: '#DC2626',
+    backgroundColor: "#DC2626",
     borderRadius: 10,
     minWidth: 18,
     height: 18,
     paddingHorizontal: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 1.5,
-    borderColor: '#064E3B',
+    borderColor: "#064E3B",
   },
   badgeText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 10,
     lineHeight: 12,
-    fontWeight: '900',
+    fontWeight: "900",
   },
   priceContainer: {
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   priceValue: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 18,
     lineHeight: 22,
-    fontWeight: '900',
+    fontWeight: "900",
     letterSpacing: -0.5,
   },
   itemsSubtext: {
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: "rgba(255, 255, 255, 0.8)",
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: "600",
     marginTop: 1,
   },
   viewCartButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
-    backgroundColor: '#FFFFFF', // High-contrast crisp white button
+    backgroundColor: "#FFFFFF", // High-contrast crisp white button
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 14,
-    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.12)',
+    boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.12)",
     elevation: 4,
   },
   viewCartText: {
-    color: '#064E3B', // Bold emerald matching brand
+    color: "#064E3B", // Bold emerald matching brand
     fontSize: 14,
     lineHeight: 18,
-    fontWeight: '900',
+    fontWeight: "900",
     letterSpacing: 0.3,
   },
 });

@@ -1,11 +1,12 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
-import NetInfo from '@react-native-community/netinfo';
-import { Feather } from '@expo/vector-icons';
-import { theme } from '../constants/theme';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from "@expo/vector-icons";
+import NetInfo from "@react-native-community/netinfo";
+import React, { useEffect, useState, useRef } from "react";
+import { Text, StyleSheet, Animated, Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const USE_NATIVE_DRIVER = Platform.OS !== 'web';
+import { theme } from "../constants/theme";
+
+const USE_NATIVE_DRIVER = Platform.OS !== "web";
 
 export function OfflineBanner() {
   const insets = useSafeAreaInsets();
@@ -14,7 +15,7 @@ export function OfflineBanner() {
   const slideAnim = useRef(new Animated.Value(hiddenOffset)).current;
 
   useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener(state => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
       const connected = state.isConnected ?? true;
 
       if (!connected) {
@@ -41,13 +42,13 @@ export function OfflineBanner() {
   if (!shouldRender) return null;
 
   return (
-    <Animated.View 
+    <Animated.View
       style={[
-        styles.container, 
-        { 
+        styles.container,
+        {
           transform: [{ translateY: slideAnim }],
           paddingTop: Math.max(insets.top, 16),
-        }
+        },
       ]}
     >
       <Feather name="wifi-off" size={16} color={theme.colors.surface} />
@@ -58,21 +59,21 @@ export function OfflineBanner() {
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     backgroundColor: theme.colors.error,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     paddingBottom: 12,
     zIndex: 9999,
     elevation: 9999,
   },
   text: {
     color: theme.colors.surface,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginLeft: 8,
     fontSize: 14,
   },

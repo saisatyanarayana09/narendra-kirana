@@ -1,4 +1,12 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Feather, Ionicons } from "@expo/vector-icons";
+import * as Location from "expo-location";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   View,
   Text,
@@ -7,12 +15,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  Platform
-} from 'react-native';
-import { WebView } from 'react-native-webview';
-import { Feather, MaterialIcons, Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Location from 'expo-location';
+  Platform,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { WebView } from "react-native-webview";
 
 interface MapLocationPickerProps {
   visible: boolean;
@@ -41,19 +47,19 @@ export function MapLocationPicker({
   initialLat = 17.385044,
   initialLng = 78.486671,
   title = "Pin Your Delivery Location",
-  storeSettings = null
+  storeSettings = null,
 }: MapLocationPickerProps) {
   const insets = useSafeAreaInsets();
   const webViewRef = useRef<WebView>(null);
 
   const [coords, setCoords] = useState<{ lat: number; lng: number }>({
     lat: initialLat || 17.385044,
-    lng: initialLng || 78.486671
+    lng: initialLng || 78.486671,
   });
 
-  const storeLat = parseFloat(storeSettings?.store_latitude || '17.385044');
-  const storeLng = parseFloat(storeSettings?.store_longitude || '78.486671');
-  const maxRadiusKm = parseFloat(storeSettings?.delivery_radius_km || '5.0');
+  const storeLat = parseFloat(storeSettings?.store_latitude || "17.385044");
+  const storeLng = parseFloat(storeSettings?.store_longitude || "78.486671");
+  const maxRadiusKm = parseFloat(storeSettings?.delivery_radius_km || "5.0");
   const enforceRadius = Boolean(storeSettings?.enforce_delivery_radius);
 
   const distanceKm = useMemo(() => {
@@ -74,11 +80,11 @@ export function MapLocationPicker({
   const isOutsideRadius = distanceKm !== null && distanceKm > maxRadiusKm;
 
   const [addressDetails, setAddressDetails] = useState({
-    street: '',
-    city: '',
-    state: '',
-    zip_code: '',
-    display_name: 'Move the pin to your exact building or doorstep'
+    street: "",
+    city: "",
+    state: "",
+    zip_code: "",
+    display_name: "Move the pin to your exact building or doorstep",
   });
 
   const [isLocating, setIsLocating] = useState(false);
@@ -91,31 +97,34 @@ export function MapLocationPicker({
       const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
       const res = await fetch(url, {
         headers: {
-          'Accept-Language': 'en',
-          'User-Agent': 'NarendraKiranaMobile/1.0'
-        }
+          "Accept-Language": "en",
+          "User-Agent": "NarendraKiranaMobile/1.0",
+        },
       });
       if (res.ok) {
         const data = await res.json();
         const addr = data.address || {};
-        const road = addr.road || addr.street || addr.neighbourhood || addr.suburb || '';
-        const area = addr.suburb || addr.residential || addr.city_district || '';
-        const city = addr.city || addr.town || addr.village || addr.county || '';
-        const state = addr.state || '';
-        const postcode = addr.postcode || '';
+        const road =
+          addr.road || addr.street || addr.neighbourhood || addr.suburb || "";
+        const area =
+          addr.suburb || addr.residential || addr.city_district || "";
+        const city =
+          addr.city || addr.town || addr.village || addr.county || "";
+        const state = addr.state || "";
+        const postcode = addr.postcode || "";
 
-        const streetLine = [road, area].filter(Boolean).join(', ');
+        const streetLine = [road, area].filter(Boolean).join(", ");
 
         setAddressDetails({
-          street: streetLine || data.name || '',
-          city: city,
-          state: state,
+          street: streetLine || data.name || "",
+          city,
+          state,
           zip_code: postcode,
-          display_name: data.display_name || 'Selected Location'
+          display_name: data.display_name || "Selected Location",
         });
       }
     } catch (e) {
-      console.warn('Reverse geocoding error:', e);
+      console.warn("Reverse geocoding error:", e);
     } finally {
       setIsGeocoding(false);
     }
@@ -135,12 +144,17 @@ export function MapLocationPicker({
     setIsLocating(true);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Please enable location permissions in Settings to locate your doorstep.');
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission Denied",
+          "Please enable location permissions in Settings to locate your doorstep.",
+        );
         setIsLocating(false);
         return;
       }
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
       const newLat = parseFloat(loc.coords.latitude.toFixed(6));
       const newLng = parseFloat(loc.coords.longitude.toFixed(6));
       setCoords({ lat: newLat, lng: newLng });
@@ -156,7 +170,10 @@ export function MapLocationPicker({
       }
       reverseGeocode(newLat, newLng);
     } catch (err: any) {
-      Alert.alert('GPS Error', err?.message || 'Could not fetch current location.');
+      Alert.alert(
+        "GPS Error",
+        err?.message || "Could not fetch current location.",
+      );
     } finally {
       setIsLocating(false);
     }
@@ -166,22 +183,22 @@ export function MapLocationPicker({
   const handleMessage = (event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
-      if (data.type === 'location_changed') {
+      if (data.type === "location_changed") {
         const newLat = parseFloat(Number(data.lat).toFixed(6));
         const newLng = parseFloat(Number(data.lng).toFixed(6));
         setCoords({ lat: newLat, lng: newLng });
         reverseGeocode(newLat, newLng);
       }
     } catch (e) {
-      console.warn('Map cleanup or animation error:', e);
+      console.warn("Map cleanup or animation error:", e);
     }
   };
 
   const handleConfirm = () => {
     if (isOutsideRadius && enforceRadius) {
       Alert.alert(
-        'Outside Delivery Radius',
-        `Selected doorstep is ${distanceKm} km away, which exceeds our maximum delivery radius of ${maxRadiusKm} km.`
+        "Outside Delivery Radius",
+        `Selected doorstep is ${distanceKm} km away, which exceeds our maximum delivery radius of ${maxRadiusKm} km.`,
       );
       return;
     }
@@ -194,7 +211,7 @@ export function MapLocationPicker({
       zip_code: addressDetails.zip_code,
       display_name: addressDetails.display_name,
       distance_km: distanceKm,
-      is_outside_radius: isOutsideRadius
+      is_outside_radius: isOutsideRadius,
     });
     onClose();
   };
@@ -276,7 +293,7 @@ export function MapLocationPicker({
         <div class="map-controls-col">
           <button class="ctrl-btn" id="layer-btn" onclick="toggleLayer()" title="Toggle Satellite / Street">🛰️</button>
           <button class="ctrl-btn" onclick="focusPin()" title="Focus on Pin">🎯</button>
-          ${storeSettings ? `<button class="ctrl-btn" onclick="focusStore()" title="Focus Store">🏪</button>` : ''}
+          ${storeSettings ? `<button class="ctrl-btn" onclick="focusStore()" title="Focus Store">🏪</button>` : ""}
           <button class="ctrl-btn" onclick="zoomIn()" style="font-weight:800; font-size:16px;">+</button>
           <button class="ctrl-btn" onclick="zoomOut()" style="font-weight:800; font-size:16px;">−</button>
         </div>
@@ -313,16 +330,22 @@ export function MapLocationPicker({
             map.flyTo(pt, 18, { duration: 0.8 });
           };
 
-          ${storeSettings ? `
+          ${
+            storeSettings
+              ? `
           window.focusStore = function() {
             map.flyTo([${storeLat}, ${storeLng}], 16, { duration: 0.8 });
           };
-          ` : ''}
+          `
+              : ""
+          }
 
           window.zoomIn = function() { map.zoomIn(); };
           window.zoomOut = function() { map.zoomOut(); };
 
-          ${storeSettings ? `
+          ${
+            storeSettings
+              ? `
           L.marker([${storeLat}, ${storeLng}], {
             icon: L.divIcon({
               className: 'store-pin',
@@ -340,7 +363,9 @@ export function MapLocationPicker({
             weight: 2,
             dashArray: '5, 5'
           }).addTo(map);
-          ` : ''}
+          `
+              : ""
+          }
 
           var customIcon = L.divIcon({
             className: 'pin-marker',
@@ -381,9 +406,13 @@ export function MapLocationPicker({
   `;
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent={false}
+      onRequestClose={onClose}
+    >
       <View style={[styles.container, { paddingTop: insets.top }]}>
-        
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
@@ -392,10 +421,16 @@ export function MapLocationPicker({
             </View>
             <View>
               <Text style={styles.headerTitle}>{title}</Text>
-              <Text style={styles.headerSubtitle}>Drag the pin to your doorstep</Text>
+              <Text style={styles.headerSubtitle}>
+                Drag the pin to your doorstep
+              </Text>
             </View>
           </View>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton} activeOpacity={0.7}>
+          <TouchableOpacity
+            onPress={onClose}
+            style={styles.closeButton}
+            activeOpacity={0.7}
+          >
             <Feather name="x" size={22} color="#64748B" />
           </TouchableOpacity>
         </View>
@@ -408,8 +443,8 @@ export function MapLocationPicker({
             onMessage={handleMessage}
             style={styles.webView}
             scrollEnabled={false}
-            javaScriptEnabled={true}
-            domStorageEnabled={true}
+            javaScriptEnabled
+            domStorageEnabled
           />
 
           {/* Quick "Locate Me" Button */}
@@ -431,33 +466,53 @@ export function MapLocationPicker({
         </View>
 
         {/* Footer Details Card */}
-        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <View
+          style={[
+            styles.footer,
+            { paddingBottom: Math.max(insets.bottom, 16) },
+          ]}
+        >
           <View style={styles.pinInfoCard}>
             <View style={styles.pinTag}>
               <Text style={styles.pinTagText}>SELECTED DOORSTEP</Text>
-              {isGeocoding && <ActivityIndicator size="small" color="#059669" style={{ marginLeft: 6 }} />}
+              {isGeocoding && (
+                <ActivityIndicator
+                  size="small"
+                  color="#059669"
+                  style={{ marginLeft: 6 }}
+                />
+              )}
             </View>
             <Text style={styles.displayNameText} numberOfLines={2}>
               {addressDetails.display_name}
             </Text>
             <Text style={styles.gpsCoordsText}>
               GPS: {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
-              {addressDetails.zip_code ? ` • Pincode: ${addressDetails.zip_code}` : ''}
+              {addressDetails.zip_code
+                ? ` • Pincode: ${addressDetails.zip_code}`
+                : ""}
             </Text>
           </View>
 
           <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.cancelBtn} onPress={onClose} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={styles.cancelBtn}
+              onPress={onClose}
+              activeOpacity={0.7}
+            >
               <Text style={styles.cancelBtnText}>Cancel</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirm} activeOpacity={0.85}>
+            <TouchableOpacity
+              style={styles.confirmBtn}
+              onPress={handleConfirm}
+              activeOpacity={0.85}
+            >
               <Feather name="check" size={18} color="#FFFFFF" />
               <Text style={styles.confirmBtnText}>Confirm Doorstep Pin</Text>
             </TouchableOpacity>
           </View>
         </View>
-
       </View>
     </Modal>
   );
@@ -466,22 +521,22 @@ export function MapLocationPicker({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: "#F1F5F9",
+    backgroundColor: "#FFFFFF",
     zIndex: 10,
   },
   headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
     flex: 1,
   },
@@ -489,18 +544,18 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: '#ECFDF5',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#ECFDF5",
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
     fontSize: 16,
-    fontWeight: '800',
-    color: '#0F172A',
+    fontWeight: "800",
+    color: "#0F172A",
   },
   headerSubtitle: {
     fontSize: 12,
-    color: '#64748B',
+    color: "#64748B",
     marginTop: 1,
   },
   closeButton: {
@@ -509,106 +564,106 @@ const styles = StyleSheet.create({
   },
   mapWrap: {
     flex: 1,
-    position: 'relative',
-    backgroundColor: '#E2E8F0',
+    position: "relative",
+    backgroundColor: "#E2E8F0",
   },
   webView: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   locateMeButton: {
-    position: 'absolute',
+    position: "absolute",
     right: 16,
     bottom: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 14,
-    boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.15)',
+    boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.15)",
     elevation: 4,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: "#E2E8F0",
   },
   locateMeText: {
     fontSize: 13,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontWeight: "700",
+    color: "#0F172A",
   },
   footer: {
     paddingHorizontal: 16,
     paddingTop: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: "#F1F5F9",
   },
   pinInfoCard: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: "#F8FAFC",
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: "#E2E8F0",
     marginBottom: 12,
   },
   pinTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 4,
   },
   pinTagText: {
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: "800",
     letterSpacing: 1,
-    color: '#059669',
+    color: "#059669",
   },
   displayNameText: {
     fontSize: 13,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontWeight: "700",
+    color: "#0F172A",
     lineHeight: 18,
   },
   gpsCoordsText: {
     fontSize: 11,
-    color: '#64748B',
+    color: "#64748B",
     marginTop: 4,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
   actionRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 10,
   },
   cancelBtn: {
     flex: 1,
     paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#FFFFFF',
+    borderColor: "#CBD5E1",
+    backgroundColor: "#FFFFFF",
   },
   cancelBtnText: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#475569',
+    fontWeight: "700",
+    color: "#475569",
   },
   confirmBtn: {
     flex: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 6,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: '#059669',
-    boxShadow: '0px 3px 6px rgba(5, 150, 105, 0.25)',
+    backgroundColor: "#059669",
+    boxShadow: "0px 3px 6px rgba(5, 150, 105, 0.25)",
     elevation: 3,
   },
   confirmBtnText: {
     fontSize: 14,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    fontWeight: "800",
+    color: "#FFFFFF",
   },
 });

@@ -1,4 +1,4 @@
-﻿// Session tracker so it only shows once per app session matching web app sessionStorage
+// Session tracker so it only shows once per app session matching web app sessionStorage
 let hasShownWelcomeSession = false;
 
 export function getHasShownWelcomeSession(): boolean {

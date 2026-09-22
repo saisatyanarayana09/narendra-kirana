@@ -1,23 +1,32 @@
-import * as SecureStore from 'expo-secure-store';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
 
 const memoryStore = new Map<string, string>();
 
-const SECURE_KEYS = new Set(['access_token', 'refresh_token', 'auth_token', 'user_token']);
+const SECURE_KEYS = new Set([
+  "access_token",
+  "refresh_token",
+  "auth_token",
+  "user_token",
+]);
 
 function isSecureKey(key: string): boolean {
-  return SECURE_KEYS.has(key) || key.toLowerCase().includes('token') || key.toLowerCase().includes('refresh');
+  return (
+    SECURE_KEYS.has(key) ||
+    key.toLowerCase().includes("token") ||
+    key.toLowerCase().includes("refresh")
+  );
 }
 
 function sanitizeKey(key: string): string {
-  return (key || 'key').replace(/[^a-zA-Z0-9._-]/g, '_');
+  return (key || "key").replace(/[^a-zA-Z0-9._-]/g, "_");
 }
 
 export async function saveItem(key: string, value: string): Promise<void> {
   memoryStore.set(key, value);
   try {
-    if (Platform.OS === 'web') {
+    if (Platform.OS === "web") {
       localStorage.setItem(key, value);
     } else if (isSecureKey(key)) {
       try {
@@ -30,7 +39,7 @@ export async function saveItem(key: string, value: string): Promise<void> {
       await AsyncStorage.setItem(key, value);
     }
   } catch (error) {
-    console.warn('[Storage] Error saving item:', key, error);
+    console.warn("[Storage] Error saving item:", key, error);
   }
 }
 
@@ -45,7 +54,7 @@ export async function getItem(key: string): Promise<string | null> {
   }
 
   try {
-    if (Platform.OS === 'web') {
+    if (Platform.OS === "web") {
       const val = localStorage.getItem(key);
       if (val !== null) memoryStore.set(key, val);
       return val;
@@ -88,7 +97,7 @@ export async function getItem(key: string): Promise<string | null> {
       return null;
     }
   } catch (error) {
-    console.warn('[Storage] Error getting item:', key, error);
+    console.warn("[Storage] Error getting item:", key, error);
     return null;
   }
 }
@@ -96,7 +105,7 @@ export async function getItem(key: string): Promise<string | null> {
 export async function deleteItem(key: string): Promise<void> {
   memoryStore.delete(key);
   try {
-    if (Platform.OS === 'web') {
+    if (Platform.OS === "web") {
       localStorage.removeItem(key);
     } else {
       if (isSecureKey(key)) {
@@ -113,7 +122,7 @@ export async function deleteItem(key: string): Promise<void> {
       }
     }
   } catch (error) {
-    console.warn('[Storage] Error deleting item:', key, error);
+    console.warn("[Storage] Error deleting item:", key, error);
   }
 }
 
@@ -127,7 +136,7 @@ export function preloadKeys(keys: string[]): Promise<void> {
   if (preloadPromise) return preloadPromise;
 
   preloadPromise = (async () => {
-    if (Platform.OS === 'web') return;
+    if (Platform.OS === "web") return;
 
     await Promise.allSettled(
       keys.map(async (key) => {
@@ -148,7 +157,7 @@ export function preloadKeys(keys: string[]): Promise<void> {
             memoryStore.set(key, asyncVal);
           }
         } catch {}
-      })
+      }),
     );
   })();
 
@@ -158,11 +167,9 @@ export function preloadKeys(keys: string[]): Promise<void> {
 // Auto-preload critical keys at module init time so context providers
 // can access them synchronously as early as possible
 preloadKeys([
-  'smart-kirana-mobile-token',
-  'smart-kirana-mobile-refresh',
-  'smart-kirana-mobile-user',
-  'sk_theme_mode',
-  'sk_language',
+  "smart-kirana-mobile-token",
+  "smart-kirana-mobile-refresh",
+  "smart-kirana-mobile-user",
+  "sk_theme_mode",
+  "sk_language",
 ]);
-
-

@@ -1,18 +1,18 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, Platform, ViewStyle, StyleProp } from 'react-native';
+import React, { useEffect, useRef } from "react";
+import { Animated, Platform, ViewStyle, StyleProp } from "react-native";
 
 interface AnimatedFadeInProps {
   children: React.ReactNode;
   index?: number;
   delay?: number;
   duration?: number;
-  direction?: 'up' | 'down' | 'left' | 'right' | 'none';
+  direction?: "up" | "down" | "left" | "right" | "none";
   distance?: number;
   style?: StyleProp<ViewStyle>;
   scaleFrom?: number;
 }
 
-const USE_NATIVE_DRIVER = Platform.OS !== 'web';
+const USE_NATIVE_DRIVER = Platform.OS !== "web";
 
 /**
  * Reusable fade-in + slide animation wrapper.
@@ -28,18 +28,23 @@ export function AnimatedFadeIn({
   index = 0,
   delay = 0,
   duration = 400,
-  direction = 'up',
+  direction = "up",
   distance = 24,
   style,
   scaleFrom,
 }: AnimatedFadeInProps) {
   const opacity = useRef(new Animated.Value(0)).current;
-  const translate = useRef(new Animated.Value(
-    direction === 'down' ? -distance :
-    direction === 'left' ? distance :
-    direction === 'right' ? -distance :
-    distance // 'up' or 'none'
-  )).current;
+  const translate = useRef(
+    new Animated.Value(
+      direction === "down"
+        ? -distance
+        : direction === "left"
+          ? distance
+          : direction === "right"
+            ? -distance
+            : distance, // 'up' or 'none'
+    ),
+  ).current;
   const scale = useRef(new Animated.Value(scaleFrom ?? 1)).current;
 
   useEffect(() => {
@@ -52,30 +57,34 @@ export function AnimatedFadeIn({
         delay: staggerDelay,
         useNativeDriver: USE_NATIVE_DRIVER,
       }),
-      ...(direction !== 'none' ? [
-        Animated.timing(translate, {
-          toValue: 0,
-          duration,
-          delay: staggerDelay,
-          useNativeDriver: USE_NATIVE_DRIVER,
-        }),
-      ] : []),
-      ...(scaleFrom != null ? [
-        Animated.timing(scale, {
-          toValue: 1,
-          duration,
-          delay: staggerDelay,
-          useNativeDriver: USE_NATIVE_DRIVER,
-        }),
-      ] : []),
+      ...(direction !== "none"
+        ? [
+            Animated.timing(translate, {
+              toValue: 0,
+              duration,
+              delay: staggerDelay,
+              useNativeDriver: USE_NATIVE_DRIVER,
+            }),
+          ]
+        : []),
+      ...(scaleFrom != null
+        ? [
+            Animated.timing(scale, {
+              toValue: 1,
+              duration,
+              delay: staggerDelay,
+              useNativeDriver: USE_NATIVE_DRIVER,
+            }),
+          ]
+        : []),
     ]).start();
   }, []);
 
   const translateKey =
-    direction === 'left' || direction === 'right' ? 'translateX' : 'translateY';
+    direction === "left" || direction === "right" ? "translateX" : "translateY";
 
   const transform: any[] = [];
-  if (direction !== 'none') {
+  if (direction !== "none") {
     transform.push({ [translateKey]: translate });
   }
   if (scaleFrom != null) {
@@ -83,12 +92,7 @@ export function AnimatedFadeIn({
   }
 
   return (
-    <Animated.View
-      style={[
-        { opacity, transform },
-        style,
-      ]}
-    >
+    <Animated.View style={[{ opacity, transform }, style]}>
       {children}
     </Animated.View>
   );

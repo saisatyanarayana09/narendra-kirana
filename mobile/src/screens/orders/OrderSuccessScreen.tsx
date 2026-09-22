@@ -1,25 +1,26 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  BackHandler, 
-  Animated, 
+import { Feather } from "@expo/vector-icons";
+import React, { useEffect, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  BackHandler,
+  Animated,
   Easing,
-  Platform
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather, MaterialIcons } from '@expo/vector-icons';
-import { AppNavigationProp } from '../../navigation/types';
-import { triggerHaptic } from '../../utils/haptics';
-import { useTheme } from '../../context/ThemeContext';
+  Platform,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-const USE_NATIVE_DRIVER = Platform.OS !== 'web';
+import { useTheme } from "../../context/ThemeContext";
+import { AppNavigationProp } from "../../navigation/types";
+import { triggerHaptic } from "../../utils/haptics";
 
-type Props = { 
-  navigation: AppNavigationProp; 
-  route: any; 
+const USE_NATIVE_DRIVER = Platform.OS !== "web";
+
+type Props = {
+  navigation: AppNavigationProp;
+  route: any;
 };
 
 export function OrderSuccessScreen({ navigation, route }: Props) {
@@ -34,7 +35,11 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
   const slideAnim = useRef(new Animated.Value(30)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
-  const formattedOrderId = orderId ? (String(orderId).startsWith('#') ? orderId : `#${orderId}`) : '';
+  const formattedOrderId = orderId
+    ? String(orderId).startsWith("#")
+      ? orderId
+      : `#${orderId}`
+    : "";
 
   // Clean navigation helper: resets CartStack so CartScreen is always root, then navigates to target
   const handleCleanExit = (targetAction: () => void) => {
@@ -45,33 +50,33 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
     try {
       navigation.reset({
         index: 0,
-        routes: [{ name: 'CartScreen' }],
+        routes: [{ name: "CartScreen" }],
       });
     } catch (e) {
-      console.log('CartStack reset fallback:', e);
+      console.log("CartStack reset fallback:", e);
     }
 
     targetAction();
   };
 
   const handleGoHome = () => {
-    triggerHaptic('selection');
+    triggerHaptic("selection");
     handleCleanExit(() => {
-      navigation.getParent()?.navigate('HomeTab');
+      navigation.getParent()?.navigate("HomeTab");
     });
   };
 
   const handleTrackOrder = () => {
-    triggerHaptic('selection');
+    triggerHaptic("selection");
     handleCleanExit(() => {
       if (orderId) {
-        navigation.getParent()?.navigate('OrdersTab', {
-          screen: 'OrderTrackingScreen',
+        navigation.getParent()?.navigate("OrdersTab", {
+          screen: "OrderTrackingScreen",
           params: { orderId },
         });
       } else {
-        navigation.getParent()?.navigate('OrdersTab', {
-          screen: 'OrderHistoryScreen',
+        navigation.getParent()?.navigate("OrdersTab", {
+          screen: "OrderHistoryScreen",
         });
       }
     });
@@ -79,7 +84,7 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
 
   // Trigger celebration animation and sound/haptics on mount
   useEffect(() => {
-    triggerHaptic('success');
+    triggerHaptic("success");
 
     // 1. Icon Pop Spring
     Animated.spring(scaleAnim, {
@@ -103,7 +108,7 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
           duration: 1800,
           useNativeDriver: USE_NATIVE_DRIVER,
         }),
-      ])
+      ]),
     ).start();
 
     // 3. Text Slide & Fade In
@@ -120,7 +125,7 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
         friction: 8,
         delay: 300,
         useNativeDriver: USE_NATIVE_DRIVER,
-      })
+      }),
     ]).start();
 
     // 4. Auto-redirect to order page after 4 seconds
@@ -137,31 +142,36 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
       handleGoHome();
       return true;
     };
-    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
     return () => subscription.remove();
   }, []);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       <View style={styles.content}>
         {/* Animated Celebration Badge */}
         <View style={styles.haloWrapper}>
           {/* Pulsing Radiance Ring */}
-          <Animated.View 
+          <Animated.View
             style={[
-              styles.haloRing, 
-              { 
+              styles.haloRing,
+              {
                 transform: [{ scale: haloAnim }],
                 opacity: haloOpacity,
-              }
-            ]} 
+              },
+            ]}
           />
 
           {/* Spring Checkmark Circle */}
-          <Animated.View 
+          <Animated.View
             style={[
-              styles.iconContainer, 
-              { transform: [{ scale: scaleAnim }] }
+              styles.iconContainer,
+              { transform: [{ scale: scaleAnim }] },
             ]}
           >
             <Feather name="check" size={50} color="#FFFFFF" />
@@ -178,16 +188,27 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
             <Text style={{ fontSize: 20 }}>✨</Text>
           </View>
         </View>
-        
+
         {/* Animated Headline & Subtitle */}
-        <Animated.View style={[styles.textWrapper, { opacity: opacityAnim, transform: [{ translateY: slideAnim }] }]}>
-          <Text style={[styles.title, { color: colors.text }]}>Order Confirmed!</Text>
+        <Animated.View
+          style={[
+            styles.textWrapper,
+            { opacity: opacityAnim, transform: [{ translateY: slideAnim }] },
+          ]}
+        >
+          <Text style={[styles.title, { color: colors.text }]}>
+            Order Confirmed!
+          </Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Your grocery order <Text style={[styles.orderIdBold, { color: colors.text }]}>{formattedOrderId}</Text> has been received and is being packed fresh with care!
+            Your grocery order{" "}
+            <Text style={[styles.orderIdBold, { color: colors.text }]}>
+              {formattedOrderId}
+            </Text>{" "}
+            has been received and is being packed fresh with care!
           </Text>
 
           {/* Action Buttons */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.primaryButton, { backgroundColor: colors.primary }]}
             onPress={handleTrackOrder}
             activeOpacity={0.88}
@@ -195,14 +216,21 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
             <Feather name="package" size={18} color="#FFFFFF" />
             <Text style={styles.primaryButtonText}>Track Order Live</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.secondaryButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+
+          <TouchableOpacity
+            style={[
+              styles.secondaryButton,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
             onPress={handleGoHome}
             activeOpacity={0.88}
           >
             <Feather name="shopping-bag" size={16} color={colors.primary} />
-            <Text style={[styles.secondaryButtonText, { color: colors.primary }]}>Continue Shopping</Text>
+            <Text
+              style={[styles.secondaryButtonText, { color: colors.primary }]}
+            >
+              Continue Shopping
+            </Text>
           </TouchableOpacity>
         </Animated.View>
       </View>
@@ -213,123 +241,122 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC', // slate-50
+    backgroundColor: "#F8FAFC", // slate-50
   },
   content: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 24,
     maxWidth: 420,
-    alignSelf: 'center',
-    width: '100%',
+    alignSelf: "center",
+    width: "100%",
   },
   haloWrapper: {
-    position: 'relative',
+    position: "relative",
     width: 120,
     height: 120,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 24,
   },
   haloRing: {
-    position: 'absolute',
+    position: "absolute",
     width: 110,
     height: 110,
     borderRadius: 55,
-    backgroundColor: 'rgba(16, 185, 129, 0.25)', // emerald-500 glow
+    backgroundColor: "rgba(16, 185, 129, 0.25)", // emerald-500 glow
   },
   iconContainer: {
     width: 90,
     height: 90,
     borderRadius: 45,
-    backgroundColor: '#059669', // Emerald-600
-    justifyContent: 'center',
-    alignItems: 'center',
-    boxShadow: '0px 8px 12px rgba(5, 150, 105, 0.35)',
+    backgroundColor: "#059669", // Emerald-600
+    justifyContent: "center",
+    alignItems: "center",
+    boxShadow: "0px 8px 12px rgba(5, 150, 105, 0.35)",
     elevation: 10,
     borderWidth: 3,
-    borderColor: '#A7F3D0',
+    borderColor: "#A7F3D0",
   },
   floatingEmojiLeft: {
-    position: 'absolute',
+    position: "absolute",
     top: -8,
     left: -12,
   },
   floatingEmojiRight: {
-    position: 'absolute',
+    position: "absolute",
     top: 4,
     right: -16,
   },
   floatingEmojiBottom: {
-    position: 'absolute',
+    position: "absolute",
     bottom: -6,
     right: 4,
   },
   textWrapper: {
-    width: '100%',
-    alignItems: 'center',
+    width: "100%",
+    alignItems: "center",
   },
   title: {
     fontSize: 28,
     lineHeight: 32,
-    fontWeight: '900',
-    color: '#0F172A',
+    fontWeight: "900",
+    color: "#0F172A",
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: "center",
     letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 14,
-    color: '#64748B',
-    textAlign: 'center',
+    color: "#64748B",
+    textAlign: "center",
     lineHeight: 22,
     marginBottom: 24,
     paddingHorizontal: 12,
   },
   orderIdBold: {
-    color: '#0F172A',
-    fontWeight: '800',
+    color: "#0F172A",
+    fontWeight: "800",
   },
   primaryButton: {
-    backgroundColor: '#059669',
-    width: '100%',
+    backgroundColor: "#059669",
+    width: "100%",
     paddingVertical: 15,
     borderRadius: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
     marginBottom: 12,
-    boxShadow: '0px 4px 6px rgba(5, 150, 105, 0.25)',
+    boxShadow: "0px 4px 6px rgba(5, 150, 105, 0.25)",
     elevation: 4,
   },
   primaryButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: "800",
   },
   secondaryButton: {
-    width: '100%',
+    width: "100%",
     paddingVertical: 14,
     borderRadius: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.05)',
+    borderColor: "#E2E8F0",
+    boxShadow: "0px 1px 2px rgba(0, 0, 0, 0.05)",
     elevation: 1,
     marginBottom: 8,
   },
   secondaryButtonText: {
-    color: '#0F172A',
+    color: "#0F172A",
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: "800",
   },
 });
 
 export default OrderSuccessScreen;
-

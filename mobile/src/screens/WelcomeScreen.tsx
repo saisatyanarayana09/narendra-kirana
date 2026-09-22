@@ -1,16 +1,26 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Animated, ScrollView, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { AuthStackParamList } from '../navigation/AuthStack';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useTheme } from '../context/ThemeContext';
+import { Feather } from "@expo/vector-icons";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  Animated,
+  ScrollView,
+  Platform,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-const USE_NATIVE_DRIVER = Platform.OS !== 'web';
+import { useTheme } from "../context/ThemeContext";
+import type { AuthStackParamList } from "../navigation/AuthStack";
+
+const USE_NATIVE_DRIVER = Platform.OS !== "web";
 
 type Props = {
-  navigation: NativeStackNavigationProp<AuthStackParamList, 'Welcome'>;
+  navigation: NativeStackNavigationProp<AuthStackParamList, "Welcome">;
 };
 
 export function WelcomeScreen({ navigation }: Props) {
@@ -23,111 +33,236 @@ export function WelcomeScreen({ navigation }: Props) {
 
   useEffect(() => {
     Animated.stagger(120, [
-      Animated.spring(logoAnim, { toValue: 1, useNativeDriver: USE_NATIVE_DRIVER, tension: 60, friction: 8 }),
-      Animated.spring(brandAnim, { toValue: 1, useNativeDriver: USE_NATIVE_DRIVER, tension: 60, friction: 8 }),
-      Animated.spring(taglineAnim, { toValue: 1, useNativeDriver: USE_NATIVE_DRIVER, tension: 60, friction: 8 }),
-      Animated.spring(pillsAnim, { toValue: 1, useNativeDriver: USE_NATIVE_DRIVER, tension: 60, friction: 8 }),
-      Animated.spring(buttonsAnim, { toValue: 1, useNativeDriver: USE_NATIVE_DRIVER, tension: 60, friction: 8 }),
+      Animated.spring(logoAnim, {
+        toValue: 1,
+        useNativeDriver: USE_NATIVE_DRIVER,
+        tension: 60,
+        friction: 8,
+      }),
+      Animated.spring(brandAnim, {
+        toValue: 1,
+        useNativeDriver: USE_NATIVE_DRIVER,
+        tension: 60,
+        friction: 8,
+      }),
+      Animated.spring(taglineAnim, {
+        toValue: 1,
+        useNativeDriver: USE_NATIVE_DRIVER,
+        tension: 60,
+        friction: 8,
+      }),
+      Animated.spring(pillsAnim, {
+        toValue: 1,
+        useNativeDriver: USE_NATIVE_DRIVER,
+        tension: 60,
+        friction: 8,
+      }),
+      Animated.spring(buttonsAnim, {
+        toValue: 1,
+        useNativeDriver: USE_NATIVE_DRIVER,
+        tension: 60,
+        friction: 8,
+      }),
     ]).start();
   }, [logoAnim, brandAnim, taglineAnim, pillsAnim, buttonsAnim]);
 
   const wrapAnimated = (anim: Animated.Value, children: React.ReactNode) => (
-    <Animated.View style={{ 
-      opacity: anim, 
-      transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }],
-      alignItems: 'center'
-    }}>
+    <Animated.View
+      style={{
+        opacity: anim,
+        transform: [
+          {
+            translateY: anim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [20, 0],
+            }),
+          },
+        ],
+        alignItems: "center",
+      }}
+    >
       {children}
     </Animated.View>
   );
 
-  const gradientColors = isDark 
-    ? (['#0F172A', '#064E3B', '#022C22'] as const)
-    : (['#FFFFFF', '#F0FDF4', '#ECFDF5'] as const);
+  const gradientColors = isDark
+    ? (["#0F172A", "#064E3B", "#022C22"] as const)
+    : (["#FFFFFF", "#F0FDF4", "#ECFDF5"] as const);
 
   return (
     <LinearGradient colors={gradientColors} style={styles.container}>
       <SafeAreaView style={styles.container}>
-        <ScrollView 
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'space-between' }} 
-          bounces={false} 
+        <ScrollView
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: "space-between",
+          }}
+          bounces={false}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.content}>
-            
-            {wrapAnimated(logoAnim, (
+            {wrapAnimated(
+              logoAnim,
               <View style={styles.logoContainer}>
-                <View style={[styles.glow, isDark && { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]} />
+                <View
+                  style={[
+                    styles.glow,
+                    isDark && { backgroundColor: "rgba(16, 185, 129, 0.15)" },
+                  ]}
+                />
                 <View style={styles.logoWrapper}>
-                  <Image 
-                    source={require('../../assets/logo-transparent.png')} 
-                    style={styles.logoImage} 
+                  <Image
+                    source={require("../../assets/logo-transparent.png")}
+                    style={styles.logoImage}
                     resizeMode="contain"
                   />
                 </View>
-              </View>
-            ))}
+              </View>,
+            )}
 
-            {wrapAnimated(brandAnim, (
+            {wrapAnimated(
+              brandAnim,
               <Text style={styles.brandTitle}>
-                <Text style={{ color: isDark ? '#34D399' : '#064E3B' }}>NARENDRA </Text>
-                <Text style={{ color: isDark ? '#10B981' : '#16A34A' }}>KIRANA</Text>
-              </Text>
-            ))}
+                <Text style={{ color: isDark ? "#34D399" : "#064E3B" }}>
+                  NARENDRA{" "}
+                </Text>
+                <Text style={{ color: isDark ? "#10B981" : "#16A34A" }}>
+                  KIRANA
+                </Text>
+              </Text>,
+            )}
 
-            {wrapAnimated(taglineAnim, (
+            {wrapAnimated(
+              taglineAnim,
               <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                Your neighborhood kirana store,{'\n'}now at your fingertips.
-              </Text>
-            ))}
+                Your neighborhood kirana store,{"\n"}now at your fingertips.
+              </Text>,
+            )}
 
-            {wrapAnimated(pillsAnim, (
+            {wrapAnimated(
+              pillsAnim,
               <View style={styles.featuresContainer}>
-                <View style={[styles.pill, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.2)' : '#F0FDF4' }]}>
+                <View
+                  style={[
+                    styles.pill,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(5, 150, 105, 0.2)"
+                        : "#F0FDF4",
+                    },
+                  ]}
+                >
                   <Feather name="zap" size={14} color={colors.primary} />
-                  <Text style={[styles.pillText, { color: isDark ? '#34D399' : '#064E3B' }]}>Express Delivery</Text>
+                  <Text
+                    style={[
+                      styles.pillText,
+                      { color: isDark ? "#34D399" : "#064E3B" },
+                    ]}
+                  >
+                    Express Delivery
+                  </Text>
                 </View>
-                <View style={[styles.pill, { backgroundColor: isDark ? 'rgba(37, 99, 235, 0.2)' : '#EFF6FF' }]}>
+                <View
+                  style={[
+                    styles.pill,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(37, 99, 235, 0.2)"
+                        : "#EFF6FF",
+                    },
+                  ]}
+                >
                   <Feather name="check-circle" size={14} color="#2563EB" />
-                  <Text style={[styles.pillText, { color: isDark ? '#93C5FD' : '#1E3A8A' }]}>100% Fresh</Text>
+                  <Text
+                    style={[
+                      styles.pillText,
+                      { color: isDark ? "#93C5FD" : "#1E3A8A" },
+                    ]}
+                  >
+                    100% Fresh
+                  </Text>
                 </View>
-                <View style={[styles.pill, { backgroundColor: isDark ? 'rgba(217, 119, 6, 0.2)' : '#FFFBEB' }]}>
+                <View
+                  style={[
+                    styles.pill,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(217, 119, 6, 0.2)"
+                        : "#FFFBEB",
+                    },
+                  ]}
+                >
                   <Feather name="tag" size={14} color="#D97706" />
-                  <Text style={[styles.pillText, { color: isDark ? '#FCD34D' : '#92400E' }]}>Best Prices</Text>
+                  <Text
+                    style={[
+                      styles.pillText,
+                      { color: isDark ? "#FCD34D" : "#92400E" },
+                    ]}
+                  >
+                    Best Prices
+                  </Text>
                 </View>
-              </View>
-            ))}
+              </View>,
+            )}
           </View>
-          
-          <Animated.View style={[styles.footer, { 
-            opacity: buttonsAnim, 
-            transform: [{ translateY: buttonsAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] 
-          }]}>
-            <TouchableOpacity 
-              style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-              onPress={() => navigation.navigate('Login')}
+
+          <Animated.View
+            style={[
+              styles.footer,
+              {
+                opacity: buttonsAnim,
+                transform: [
+                  {
+                    translateY: buttonsAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [20, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <TouchableOpacity
+              style={[
+                styles.primaryButton,
+                { backgroundColor: colors.primary },
+              ]}
+              onPress={() => navigation.navigate("Login")}
               activeOpacity={0.85}
             >
               <Text style={styles.primaryButtonText}>Get Started</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.secondaryButton}
-              onPress={() => navigation.navigate('Login')}
+              onPress={() => navigation.navigate("Login")}
               activeOpacity={0.85}
             >
-              <Text style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>
-                Already have an account? <Text style={{ color: colors.primary, fontWeight: '800' }}>Log in</Text>
+              <Text
+                style={[
+                  styles.secondaryButtonText,
+                  { color: colors.textSecondary },
+                ]}
+              >
+                Already have an account?{" "}
+                <Text style={{ color: colors.primary, fontWeight: "800" }}>
+                  Log in
+                </Text>
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.guestButton}
-              onPress={() => (navigation as any).navigate('Main')}
+              onPress={() => (navigation as any).navigate("Main")}
               activeOpacity={0.85}
             >
-              <Text style={[styles.guestButtonText, { color: colors.textSecondary }]}>
-                Continue as Guest  →
+              <Text
+                style={[
+                  styles.guestButtonText,
+                  { color: colors.textSecondary },
+                ]}
+              >
+                Continue as Guest →
               </Text>
             </TouchableOpacity>
           </Animated.View>
@@ -142,40 +277,40 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   guestButton: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 8,
     marginTop: -4,
   },
   guestButtonText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
     letterSpacing: 0.2,
   },
   content: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 24,
     paddingVertical: 20,
   },
   logoContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 16,
   },
   glow: {
-    position: 'absolute',
+    position: "absolute",
     width: 180,
     height: 180,
     borderRadius: 90,
-    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+    backgroundColor: "rgba(16, 185, 129, 0.08)",
   },
   logoWrapper: {
     width: 120,
     height: 120,
-    backgroundColor: 'transparent',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "transparent",
+    justifyContent: "center",
+    alignItems: "center",
   },
   logoImage: {
     width: 120,
@@ -184,29 +319,29 @@ const styles = StyleSheet.create({
   brandTitle: {
     fontSize: 28,
     lineHeight: 34,
-    fontWeight: '900',
+    fontWeight: "900",
     letterSpacing: 1,
     marginBottom: 10,
-    textAlign: 'center',
+    textAlign: "center",
   },
   subtitle: {
     fontSize: 15,
-    color: '#64748B',
-    textAlign: 'center',
+    color: "#64748B",
+    textAlign: "center",
     lineHeight: 22,
     marginBottom: 32,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   featuresContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
     paddingHorizontal: 16,
     marginBottom: 0,
   },
   pill: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -216,7 +351,7 @@ const styles = StyleSheet.create({
   },
   pillText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   footer: {
     padding: 24,
@@ -224,26 +359,25 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   primaryButton: {
-    backgroundColor: '#059669',
+    backgroundColor: "#059669",
     paddingVertical: 16,
     borderRadius: 16,
-    alignItems: 'center',
-    boxShadow: '0px 4px 8px rgba(5, 150, 105, 0.3)',
+    alignItems: "center",
+    boxShadow: "0px 4px 8px rgba(5, 150, 105, 0.3)",
     elevation: 6,
   },
   primaryButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 17,
-    fontWeight: '800',
+    fontWeight: "800",
   },
   secondaryButton: {
     paddingVertical: 14,
-    alignItems: 'center',
+    alignItems: "center",
   },
   secondaryButtonText: {
-    color: '#64748B',
+    color: "#64748B",
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: "500",
   },
 });
-

@@ -1,4 +1,4 @@
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 export type GlobalParamList = {
   HomeTab: { screen?: string; params?: any } | undefined;
@@ -12,7 +12,9 @@ export type GlobalParamList = {
   MainTabs: undefined;
   WelcomeScreen: { forceShow?: boolean } | undefined;
   HomeScreen: undefined;
-  ProductListScreen: { categoryId?: number | null; categoryName?: string; search?: string } | undefined;
+  ProductListScreen:
+    | { categoryId?: number | null; categoryName?: string; search?: string }
+    | undefined;
   CategoriesScreen: undefined;
   FavoritesScreen: undefined;
   CartScreen: undefined;
@@ -34,7 +36,9 @@ export type GlobalParamList = {
   OffersScreen: undefined;
   LanguageScreen: undefined;
   ForgotPasswordScreen: undefined;
-  ResetPasswordScreen: { uid?: string; token?: string; email?: string; mode?: 'otp' | 'link' } | undefined;
+  ResetPasswordScreen:
+    | { uid?: string; token?: string; email?: string; mode?: "otp" | "link" }
+    | undefined;
   Auth: { screen?: string; params?: any } | undefined;
   Login: undefined;
   Signup: undefined;

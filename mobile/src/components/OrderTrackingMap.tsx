@@ -1,4 +1,5 @@
-import React, { useMemo, useState, useRef, useEffect } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import React, { useMemo, useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,11 +8,10 @@ import {
   Linking,
   Platform,
   Modal,
-  StatusBar
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { WebView } from 'react-native-webview';
-import { Ionicons, Feather } from '@expo/vector-icons';
+  StatusBar,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { WebView } from "react-native-webview";
 
 interface OrderTrackingMapProps {
   order: any;
@@ -22,26 +22,46 @@ interface OrderTrackingMapProps {
 export function OrderTrackingMap({
   order,
   storeSettings,
-  height = 240
+  height = 240,
 }: OrderTrackingMapProps) {
-  const storeLat = parseFloat(storeSettings?.store_latitude || '17.385044');
-  const storeLng = parseFloat(storeSettings?.store_longitude || '78.486671');
-  const storeName = (storeSettings?.store_name || 'Narendra Kirana Store').replace(/['"\\<>]/g, '');
-  const storeAddress = (storeSettings?.store_address || 'Main Road, Store Location').replace(/['"\\<>]/g, ' ');
+  const storeLat = parseFloat(storeSettings?.store_latitude || "17.385044");
+  const storeLng = parseFloat(storeSettings?.store_longitude || "78.486671");
+  const storeName = (
+    storeSettings?.store_name || "Narendra Kirana Store"
+  ).replace(/['"\\<>]/g, "");
+  const storeAddress = (
+    storeSettings?.store_address || "Main Road, Store Location"
+  ).replace(/['"\\<>]/g, " ");
 
-  const isPickup = order?.order_type === 'PICKUP';
+  const isPickup = order?.order_type === "PICKUP";
 
-  const rawCustLat = parseFloat(order?.delivery_latitude ?? order?.customer_latitude);
-  const rawCustLng = parseFloat(order?.delivery_longitude ?? order?.customer_longitude);
-  const hasCustomerCoords = !isNaN(rawCustLat) && !isNaN(rawCustLng) && rawCustLat !== 0 && rawCustLng !== 0;
+  const rawCustLat = parseFloat(
+    order?.delivery_latitude ?? order?.customer_latitude,
+  );
+  const rawCustLng = parseFloat(
+    order?.delivery_longitude ?? order?.customer_longitude,
+  );
+  const hasCustomerCoords =
+    !isNaN(rawCustLat) &&
+    !isNaN(rawCustLng) &&
+    rawCustLat !== 0 &&
+    rawCustLng !== 0;
 
   // Real customer coordinates if pinned by user; fallback to store coordinates if missing
   const custLat = hasCustomerCoords ? rawCustLat : storeLat;
   const custLng = hasCustomerCoords ? rawCustLng : storeLng;
 
-  const rawRiderLat = parseFloat(order?.delivery_partner_lat ?? order?.delivery_partner?.current_lat);
-  const rawRiderLng = parseFloat(order?.delivery_partner_lng ?? order?.delivery_partner?.current_lng);
-  const hasRiderLiveCoords = !isNaN(rawRiderLat) && !isNaN(rawRiderLng) && rawRiderLat !== 0 && rawRiderLng !== 0;
+  const rawRiderLat = parseFloat(
+    order?.delivery_partner_lat ?? order?.delivery_partner?.current_lat,
+  );
+  const rawRiderLng = parseFloat(
+    order?.delivery_partner_lng ?? order?.delivery_partner?.current_lng,
+  );
+  const hasRiderLiveCoords =
+    !isNaN(rawRiderLat) &&
+    !isNaN(rawRiderLng) &&
+    rawRiderLat !== 0 &&
+    rawRiderLng !== 0;
 
   // NO FAKE 35%/65% INTERPOLATION: Only use authentic coordinates
   const riderLat = hasRiderLiveCoords ? rawRiderLat : null;
@@ -55,8 +75,15 @@ export function OrderTrackingMap({
   // Show store pin if pickup OR if rider has not started moving yet
   const showStorePin = isPickup || !hasRiderPosition;
 
-  const riderName = (order?.delivery_partner_name || order?.delivery_partner?.name || 'Delivery Partner').replace(/['"\\<>]/g, '');
-  const custAddress = (order?.delivery_address || 'Delivery Address').replace(/['"\\<>]/g, ' ');
+  const riderName = (
+    order?.delivery_partner_name ||
+    order?.delivery_partner?.name ||
+    "Delivery Partner"
+  ).replace(/['"\\<>]/g, "");
+  const custAddress = (order?.delivery_address || "Delivery Address").replace(
+    /['"\\<>]/g,
+    " ",
+  );
 
   const [isExpanded, setIsExpanded] = useState(false);
   const webViewRef = useRef<WebView>(null);
@@ -65,8 +92,8 @@ export function OrderTrackingMap({
   // Live GPS coordinate injection: smoothly moves the bike marker & recalculates route without WebView reload
   useEffect(() => {
     if (hasRiderLiveCoords && riderLat !== null && riderLng !== null) {
-      const heading = order?.delivery_partner?.heading ?? 'null';
-      const speed = order?.delivery_partner?.speed ?? 'null';
+      const heading = order?.delivery_partner?.heading ?? "null";
+      const speed = order?.delivery_partner?.speed ?? "null";
       const script = `
         if (typeof window.updateRiderPosition === 'function') {
           window.updateRiderPosition(${riderLat}, ${riderLng}, ${heading}, ${speed});
@@ -76,7 +103,12 @@ export function OrderTrackingMap({
       webViewRef.current?.injectJavaScript(script);
       fullscreenWebViewRef.current?.injectJavaScript(script);
     }
-  }, [riderLat, riderLng, order?.delivery_partner?.heading, order?.delivery_partner?.speed]);
+  }, [
+    riderLat,
+    riderLng,
+    order?.delivery_partner?.heading,
+    order?.delivery_partner?.speed,
+  ]);
 
   const trackingHtml = useMemo(() => {
     return `
@@ -149,15 +181,15 @@ export function OrderTrackingMap({
 
           <!-- Top Status ETA Badge -->
           <div class="eta-pill" id="eta-pill" onclick="recenterMap()">
-            <span class="eta-dot" style="background: ${hasRiderPosition ? '#4F46E5' : '#10B981'};"></span>
+            <span class="eta-dot" style="background: ${hasRiderPosition ? "#4F46E5" : "#10B981"};"></span>
             <span id="eta-text">${
               hasRiderPosition
-                ? 'Connecting live rider route...'
-                : (order?.status === 'OUT_FOR_DELIVERY'
-                    ? '🚚 Rider En Route 📡 Connecting GPS...'
-                    : (order?.status === 'READY'
-                        ? '📦 Order Packed 🚀 Ready for Dispatch'
-                        : '📍 Delivery Route Assigned'))
+                ? "Connecting live rider route..."
+                : order?.status === "OUT_FOR_DELIVERY"
+                  ? "🚚 Rider En Route 📡 Connecting GPS..."
+                  : order?.status === "READY"
+                    ? "📦 Order Packed 🚀 Ready for Dispatch"
+                    : "📍 Delivery Route Assigned"
             }</span>
           </div>
 
@@ -209,7 +241,9 @@ export function OrderTrackingMap({
 
               
 
-              ${hasRiderPosition ? `
+              ${
+                hasRiderPosition
+                  ? `
                 // Rider Live Pin (Pulse + Emoji)
                 var riderIcon = L.divIcon({
                   className: '',
@@ -221,7 +255,9 @@ export function OrderTrackingMap({
                 riderMarker = L.marker([${riderLat}, ${riderLng}], { icon: riderIcon }).addTo(map);
                 riderMarker.bindPopup('<div style="font-size:12px; line-height:1.4;"><b style="color:#4F46E5;">🛵 ${riderName}</b><br/><span style="color:#059669; font-weight:700;">● Live GPS Active</span><br/><span style="color:#475569;">On the way to your doorstep</span></div>');
                 riderMarker.openPopup();
-              ` : ''}
+              `
+                  : ""
+              }
 
               window.focusRider = function() {
                 if (riderMarker) {
@@ -296,7 +332,7 @@ export function OrderTrackingMap({
               }
 
               // Initial Route Fetch
-              fetchOSRMRoute(${originLng}, ${originLat}, ${custLng}, ${custLat}, ${hasRiderPosition ? 'true' : 'false'});
+              fetchOSRMRoute(${originLng}, ${originLat}, ${custLng}, ${custLat}, ${hasRiderPosition ? "true" : "false"});
 
               // Live Real-Time Coordinate Injection Handler (invoked smoothly without map reload!)
               window.updateRiderPosition = function(newLat, newLng, heading, speed) {
@@ -329,17 +365,35 @@ export function OrderTrackingMap({
         </body>
       </html>
     `;
-  }, [storeLat, storeLng, storeName, storeAddress, isPickup, custLat, custLng, originLat, originLng, showStorePin, hasRiderPosition, riderName, custAddress]);
+  }, [
+    storeLat,
+    storeLng,
+    storeName,
+    storeAddress,
+    isPickup,
+    custLat,
+    custLng,
+    originLat,
+    originLng,
+    showStorePin,
+    hasRiderPosition,
+    riderName,
+    custAddress,
+  ]);
 
   const handleOpenMaps = () => {
-    const destCoords = isPickup ? `${storeLat},${storeLng}` : `${custLat},${custLng}`;
+    const destCoords = isPickup
+      ? `${storeLat},${storeLng}`
+      : `${custLat},${custLng}`;
     const url = Platform.select({
       ios: `maps:0,0?q=${destCoords}`,
       android: `geo:${destCoords}?q=${destCoords}`,
-      default: `https://www.google.com/maps/dir/?api=1&destination=${destCoords}`
+      default: `https://www.google.com/maps/dir/?api=1&destination=${destCoords}`,
     });
     Linking.openURL(url!).catch(() => {
-      Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${destCoords}`);
+      Linking.openURL(
+        `https://www.google.com/maps/dir/?api=1&destination=${destCoords}`,
+      );
     });
   };
 
@@ -349,13 +403,12 @@ export function OrderTrackingMap({
         <WebView
           ref={webViewRef}
           source={{ html: trackingHtml }}
-          style={{ width: '100%', height }}
-          originWhitelist={['*']}
-          javaScriptEnabled={true}
-          domStorageEnabled={true}
+          style={{ width: "100%", height }}
+          originWhitelist={["*"]}
+          javaScriptEnabled
+          domStorageEnabled
           mixedContentMode="always"
           androidLayerType="hardware"
-          
         />
 
         {/* Expand / Fullscreen Map Button Top Right */}
@@ -376,7 +429,7 @@ export function OrderTrackingMap({
         >
           <Ionicons name="compass" size={14} color="#059669" />
           <Text style={styles.navButtonText}>
-            {isPickup ? 'Directions to Store' : 'Open in Google Maps'}
+            {isPickup ? "Directions to Store" : "Open in Google Maps"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -390,7 +443,7 @@ export function OrderTrackingMap({
       >
         <SafeAreaView style={styles.modalContainer}>
           <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
-          
+
           {/* Modal Header */}
           <View style={styles.modalHeader}>
             <View style={styles.modalHeaderLeft}>
@@ -417,9 +470,9 @@ export function OrderTrackingMap({
               ref={fullscreenWebViewRef}
               source={{ html: trackingHtml }}
               style={{ flex: 1 }}
-              originWhitelist={['*']}
-              javaScriptEnabled={true}
-              domStorageEnabled={true}
+              originWhitelist={["*"]}
+              javaScriptEnabled
+              domStorageEnabled
               mixedContentMode="always"
               androidLayerType="hardware"
             />
@@ -434,7 +487,9 @@ export function OrderTrackingMap({
             >
               <Ionicons name="navigate" size={16} color="#FFFFFF" />
               <Text style={styles.modalNavButtonText}>
-                {isPickup ? 'Launch Directions in Google Maps' : 'Turn-by-Turn in Google Maps'}
+                {isPickup
+                  ? "Launch Directions in Google Maps"
+                  : "Turn-by-Turn in Google Maps"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -446,67 +501,67 @@ export function OrderTrackingMap({
 
 const styles = StyleSheet.create({
   container: {
-    width: '100%',
+    width: "100%",
     borderRadius: 16,
-    overflow: 'hidden',
-    position: 'relative',
-    backgroundColor: '#F1F5F9',
+    overflow: "hidden",
+    position: "relative",
+    backgroundColor: "#F1F5F9",
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: "#E2E8F0",
   },
   expandButton: {
-    position: 'absolute',
+    position: "absolute",
     top: 10,
     right: 50,
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.15)',
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.15)",
     elevation: 3,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: "#E2E8F0",
   },
   navButton: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 10,
     left: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 5,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 10,
-    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+    boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
     elevation: 2,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: "#E2E8F0",
   },
   navButtonText: {
     fontSize: 11,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontWeight: "700",
+    color: "#0F172A",
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: "#0F172A",
   },
   modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
-    backgroundColor: '#0F172A',
+    borderBottomColor: "#1E293B",
+    backgroundColor: "#0F172A",
   },
   modalHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
     flex: 1,
     marginRight: 10,
@@ -515,50 +570,50 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#10B981',
+    backgroundColor: "#10B981",
   },
   modalTitle: {
     fontSize: 15,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    fontWeight: "800",
+    color: "#FFFFFF",
   },
   modalSubtitle: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: "#94A3B8",
     marginTop: 1,
   },
   closeBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#1E293B',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#1E293B",
+    alignItems: "center",
+    justifyContent: "center",
   },
   fullscreenMapWrap: {
     flex: 1,
-    position: 'relative',
+    position: "relative",
   },
   modalBottomBar: {
     padding: 14,
-    backgroundColor: '#0F172A',
+    backgroundColor: "#0F172A",
     borderTopWidth: 1,
-    borderTopColor: '#1E293B',
+    borderTopColor: "#1E293B",
   },
   modalNavButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
-    backgroundColor: '#059669',
+    backgroundColor: "#059669",
     paddingVertical: 14,
     borderRadius: 14,
-    boxShadow: '0px 3px 6px rgba(5, 150, 105, 0.3)',
+    boxShadow: "0px 3px 6px rgba(5, 150, 105, 0.3)",
     elevation: 4,
   },
   modalNavButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: "800",
   },
 });
