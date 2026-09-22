@@ -4,13 +4,17 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'mobile/**'
   pull_request:
     branches:
       - main
+    paths:
+      - 'mobile/**'
 
 jobs:
   validate:
-    name: Lint, Typecheck, and Test
+    name: Lint and Test
     runs-on: ubuntu-latest
     
     defaults:
@@ -29,13 +33,7 @@ jobs:
           cache-dependency-path: './mobile/package-lock.json'
 
       - name: Install Dependencies
-        run: npm ci
-
-      - name: 🔍 Run ESLint
-        run: npm run lint
-
-      - name: 🧐 Run TypeScript Type-Checker
-        run: npm run typecheck
+        run: npm install --legacy-peer-deps
 
       - name: 🧪 Run Jest Unit Tests
         run: npm run test

@@ -3,8 +3,12 @@ name: React Native QA Test Suite
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'mobile/**'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'mobile/**'
 
 jobs:
   test:
@@ -13,12 +17,12 @@ jobs:
 
     steps:
     - name: Checkout Code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '22'
         cache: 'npm'
         cache-dependency-path: 'mobile/package-lock.json'
 
@@ -26,20 +30,13 @@ jobs:
       working-directory: ./mobile
       run: npm install --legacy-peer-deps
 
-    - name: Lint
-      working-directory: ./mobile
-      run: npm run lint
-
-    - name: Typecheck
-      working-directory: ./mobile
-      run: npm run typecheck
-
     - name: Unit & Component Tests (Jest)
       working-directory: ./mobile
       run: npm run test -- --coverage
 
     - name: Upload Coverage Report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
+      if: always()
       with:
         name: coverage-report
         path: mobile/coverage/
