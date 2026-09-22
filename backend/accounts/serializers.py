@@ -159,7 +159,7 @@ class CustomerSignupSerializer(serializers.ModelSerializer):
         validated_data['is_owner'] = False
         
         user = User.objects.create(**validated_data)
-        user.is_active = False
+        user.is_active = True
         user.set_password(password)
         user.save()
 
