@@ -263,25 +263,18 @@ class GoogleCustomerAuthView(APIView):
         if not user:
             user = User.objects.filter(username__iexact=email).first()
 
+        if not user:
+            # We strictly reject new users via Google Sign-In because the app requires a mobile number.
+            # Users must manually register first.
+            return Response(
+                {'detail': 'No account found for this email. Please register manually first.'},
+                status=404
+            )
+
         is_new = False
         with transaction.atomic():
-            if not user:
-                is_new = True
-                base_username = email.split('@')[0]
-                username = email
-                if User.objects.filter(username__iexact=username).exists():
-                    username = f"{base_username}_{secrets.token_hex(4)}"
-
-                user = User.objects.create(
-                    username=username,
-                    email=email,
-                    first_name=first_name,
-                    last_name=last_name,
-                    is_customer=True,
-                    is_active=True
-                )
-                user.set_unusable_password()
-                user.save()
+            # Sync user details if needed
+            user.save()
 
             if user.is_locked:
                 return Response({
