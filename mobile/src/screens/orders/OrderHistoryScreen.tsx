@@ -23,140 +23,134 @@ import {
   saveCachedOrders,
 } from "../../services/ordersCache";
 
-const SkeletonOrderCard = ({ colors, isDark }: { colors: any, isDark: boolean }) => {
-  const pulseAnim = useRef(new Animated.Value(0.4)).current;
-  
+/* ─── Skeleton Loader ─── */
+const SkeletonCard = ({ colors, isDark }: { colors: any; isDark: boolean }) => {
+  const pulse = useRef(new Animated.Value(0.4)).current;
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 0.4, duration: 800, useNativeDriver: true })
-      ])
+        Animated.timing(pulse, { toValue: 1, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.4, duration: 800, useNativeDriver: true }),
+      ]),
     ).start();
   }, []);
-
-  const baseBg = isDark ? "#1E293B" : "#F1F5F9";
-
+  const b = isDark ? "#1E293B" : "#F1F5F9";
   return (
-    <Animated.View style={[styles.orderCard, { backgroundColor: colors.surface, borderColor: colors.border, opacity: pulseAnim }]}>
-      <View style={styles.cardHeader}>
-        <View style={{ gap: 8 }}>
-          <View style={{ width: 80, height: 20, backgroundColor: baseBg, borderRadius: 4 }} />
-          <View style={{ width: 120, height: 14, backgroundColor: baseBg, borderRadius: 4 }} />
+    <Animated.View style={[s.card, { backgroundColor: colors.surface, borderColor: colors.border, opacity: pulse }]}>
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: b }} />
+        <View style={{ flex: 1, marginLeft: 12, gap: 6 }}>
+          <View style={{ width: 100, height: 14, backgroundColor: b, borderRadius: 4 }} />
+          <View style={{ width: 140, height: 11, backgroundColor: b, borderRadius: 4 }} />
         </View>
-        <View style={{ width: 90, height: 28, backgroundColor: baseBg, borderRadius: 100 }} />
-      </View>
-      <View style={{ paddingTop: 16, marginTop: 16, borderTopWidth: 1, borderTopColor: colors.border }}>
-        <View style={{ width: "100%", height: 16, backgroundColor: baseBg, borderRadius: 4, marginBottom: 12 }} />
-        <View style={{ width: "60%", height: 24, backgroundColor: baseBg, borderRadius: 4 }} />
+        <View style={{ width: 60, height: 18, backgroundColor: b, borderRadius: 4 }} />
       </View>
     </Animated.View>
   );
 };
 
-export function OrderHistoryScreen({
-  navigation,
-}: {
-  navigation: AppNavigationProp;
-}) {
+/* ─── Status Helper ─── */
+type StatusMeta = { bg: string; text: string; border: string; icon: string; label: string };
+
+const STATUS_MAP_LIGHT: Record<string, StatusMeta> = {
+  COMPLETED: { bg: "#ECFDF5", text: "#047857", border: "#A7F3D0", icon: "check-circle", label: "Delivered" },
+  REJECTED: { bg: "#FFF1F2", text: "#BE123C", border: "#FECDD3", icon: "x-circle", label: "Cancelled" },
+  READY: { bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE", icon: "truck", label: "Ready" },
+  PREPARING: { bg: "#FFFBEB", text: "#B45309", border: "#FDE68A", icon: "loader", label: "Preparing" },
+  NEW: { bg: "#EEF2FF", text: "#4338CA", border: "#C7D2FE", icon: "clock", label: "Placed" },
+  DEFAULT: { bg: "#F8FAFC", text: "#475569", border: "#E2E8F0", icon: "info", label: "Order" },
+};
+const STATUS_MAP_DARK: Record<string, StatusMeta> = {
+  COMPLETED: { bg: "rgba(16,185,129,0.15)", text: "#34D399", border: "rgba(16,185,129,0.3)", icon: "check-circle", label: "Delivered" },
+  REJECTED: { bg: "rgba(244,63,94,0.15)", text: "#FB7185", border: "rgba(244,63,94,0.3)", icon: "x-circle", label: "Cancelled" },
+  READY: { bg: "rgba(59,130,246,0.15)", text: "#60A5FA", border: "rgba(59,130,246,0.3)", icon: "truck", label: "Ready" },
+  PREPARING: { bg: "rgba(245,158,11,0.15)", text: "#FBBF24", border: "rgba(245,158,11,0.3)", icon: "loader", label: "Preparing" },
+  NEW: { bg: "rgba(99,102,241,0.15)", text: "#818CF8", border: "rgba(99,102,241,0.3)", icon: "clock", label: "Placed" },
+  DEFAULT: { bg: "rgba(148,163,184,0.15)", text: "#94A3B8", border: "rgba(148,163,184,0.3)", icon: "info", label: "Order" },
+};
+
+/* ─── Date Formatter ─── */
+const fmtDate = (d: string) => {
+  try {
+    const dt = new Date(d);
+    const day = dt.getDate();
+    const mon = dt.toLocaleDateString("en-US", { month: "short" });
+    const hr = dt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+    return `${day} ${mon}, ${hr}`;
+  } catch {
+    return d;
+  }
+};
+
+/* ─── Main Screen ─── */
+export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationProp }) {
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
 
-  // Instant cache-first retrieval (<50ms)
   const cachedOrders = getCachedOrdersSync();
   const [orders, setOrders] = useState<any[]>(cachedOrders || []);
-  const [loading, setLoading] = useState(
-    !cachedOrders || cachedOrders.length === 0,
-  );
+  const [loading, setLoading] = useState(!cachedOrders || cachedOrders.length === 0);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
 
-  // Request counter to completely prevent race conditions
   const requestIdRef = useRef(0);
-  const hasRenderedOrdersRef = useRef(
-    Boolean(cachedOrders && cachedOrders.length > 0),
-  );
+  const hasRenderedRef = useRef(Boolean(cachedOrders && cachedOrders.length > 0));
 
   useEffect(() => {
     if (user) {
-      // If memory cache didn't have orders yet, try loading from disk cache immediately
       if (orders.length === 0) {
         loadCachedOrders().then((cached) => {
           if (cached && cached.length > 0) {
             setOrders((prev) => (prev.length === 0 ? cached : prev));
-            hasRenderedOrdersRef.current = true;
+            hasRenderedRef.current = true;
             setLoading(false);
           }
         });
       }
-      // Silent SWR background fetch
       fetchOrders(1);
     } else {
       setOrders([]);
-      hasRenderedOrdersRef.current = false;
+      hasRenderedRef.current = false;
       setLoading(false);
     }
   }, [user]);
 
-  const fetchOrders = async (
-    pageNum: number,
-    isRefresh = false,
-    isLoadMore = false,
-  ) => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+  const fetchOrders = async (pageNum: number, isRefresh = false, isLoadMore = false) => {
+    if (!user) { setLoading(false); return; }
     if (isLoadMore) {
       if (loadingMore || !hasMore || loading || refreshing) return;
       setLoadingMore(true);
     } else if (isRefresh) {
       setRefreshing(true);
-    } else {
-      // Never show blocking spinner if cached orders exist or were already rendered
-      if (!hasRenderedOrdersRef.current && orders.length === 0) {
-        setLoading(true);
-      }
+    } else if (!hasRenderedRef.current && orders.length === 0) {
+      setLoading(true);
     }
 
-    const currentReqId = ++requestIdRef.current;
-
+    const reqId = ++requestIdRef.current;
     try {
       const url = pageNum === 1 ? "/orders/" : `/orders/?page=${pageNum}`;
       const res = await apiClient.get(url);
-
-      // Discard results if a newer request was dispatched while this was in-flight
-      if (currentReqId !== requestIdRef.current) return;
-
-      const rawData = res.data;
-      const newOrders = Array.isArray(rawData)
-        ? rawData
-        : rawData?.results || [];
-
+      if (reqId !== requestIdRef.current) return;
+      const raw = res.data;
+      const list = Array.isArray(raw) ? raw : raw?.results || [];
       if (pageNum === 1) {
-        setOrders(newOrders);
-        hasRenderedOrdersRef.current = newOrders.length > 0;
-        saveCachedOrders(newOrders).catch(() => {});
+        setOrders(list);
+        hasRenderedRef.current = list.length > 0;
+        saveCachedOrders(list).catch(() => {});
       } else {
         setOrders((prev) => {
-          const existingIds = new Set(prev.map((o) => String(o.id)));
-          const uniqueNew = newOrders.filter(
-            (o: any) => !existingIds.has(String(o.id)),
-          );
-          return [...prev, ...uniqueNew];
+          const ids = new Set(prev.map((o) => String(o.id)));
+          return [...prev, ...list.filter((o: any) => !ids.has(String(o.id)))];
         });
       }
-
-      setHasMore(Boolean(rawData?.next));
+      setHasMore(Boolean(raw?.next));
       setPage(pageNum);
-    } catch (error: any) {
-      if (error?.response?.status !== 401) {
-        console.error("Error fetching orders:", error);
-      }
+    } catch (e: any) {
+      if (e?.response?.status !== 401) console.error("Error fetching orders:", e);
     } finally {
-      if (currentReqId === requestIdRef.current) {
+      if (reqId === requestIdRef.current) {
         if (isLoadMore) setLoadingMore(false);
         if (isRefresh) setRefreshing(false);
         setLoading(false);
@@ -164,684 +158,237 @@ export function OrderHistoryScreen({
     }
   };
 
-  const handleRefresh = () => {
-    setPage(1);
-    fetchOrders(1, true, false);
-  };
-
-  const handleLoadMore = () => {
-    if (hasMore && !loading && !refreshing && !loadingMore) {
-      fetchOrders(page + 1, false, true);
-    }
-  };
-
-  // Status badges matching web tokens (COMPLETED emerald, REJECTED rose, READY blue, PREPARING amber, NEW indigo)
-  const getStatusStyle = (status: string) => {
-    if (isDark) {
-      switch (status) {
-        case "COMPLETED":
-          return { bg: "rgba(16, 185, 129, 0.15)", text: "#34D399", border: "rgba(16, 185, 129, 0.3)", icon: "check-circle" };
-        case "REJECTED":
-          return { bg: "rgba(244, 63, 94, 0.15)", text: "#FB7185", border: "rgba(244, 63, 94, 0.3)", icon: "x-circle" };
-        case "READY":
-          return { bg: "rgba(59, 130, 246, 0.15)", text: "#60A5FA", border: "rgba(59, 130, 246, 0.3)", icon: "truck" };
-        case "PREPARING":
-          return { bg: "rgba(245, 158, 11, 0.15)", text: "#FBBF24", border: "rgba(245, 158, 11, 0.3)", icon: "package" };
-        case "NEW":
-          return { bg: "rgba(99, 102, 241, 0.15)", text: "#818CF8", border: "rgba(99, 102, 241, 0.3)", icon: "clock" };
-        default:
-          return { bg: "rgba(148, 163, 184, 0.15)", text: "#94A3B8", border: "rgba(148, 163, 184, 0.3)", icon: "info" };
-      }
-    }
-    switch (status) {
-      case "COMPLETED":
-        return { bg: "#ECFDF5", text: "#047857", border: "#A7F3D0", icon: "check-circle" };
-      case "REJECTED":
-        return { bg: "#FFF1F2", text: "#BE123C", border: "#FECDD3", icon: "x-circle" };
-      case "READY":
-        return { bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE", icon: "truck" };
-      case "PREPARING":
-        return { bg: "#FFFBEB", text: "#B45309", border: "#FDE68A", icon: "package" };
-      case "NEW":
-        return { bg: "#EEF2FF", text: "#4338CA", border: "#C7D2FE", icon: "clock" };
-      default:
-        return { bg: "#F8FAFC", text: "#475569", border: "#E2E8F0", icon: "info" };
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch {
-      return dateString;
-    }
-  };
-
   const handleBack = () => {
-    if (navigation.canGoBack()) {
-      if (navigation.canGoBack()) {
-        navigation.goBack();
-      } else {
-        navigation.navigate("Main");
-      }
-    } else {
-      navigation.navigate("HomeTab");
-    }
+    if (navigation.canGoBack()) navigation.goBack();
+    else navigation.navigate("HomeTab");
   };
 
-  const renderOrderItem = useCallback(
-    ({ item }: { item: any }) => {
-      const statusStyle = getStatusStyle(item.status);
-      const totalFormatted = (
-        parseFloat(String(item?.total_amount || 0)) || 0
-      ).toFixed(2);
-      const itemCount = item.items?.length || 0;
-
-      return (
-        <View
-          style={[
-            styles.orderCard,
-            { backgroundColor: colors.surface, borderColor: colors.border },
-          ]}
-        >
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() =>
-              navigation.navigate("OrderTrackingScreen", {
-                orderId: item.id,
-                initialOrder: item,
-              })
-            }
-          >
-            <View style={styles.cardHeader}>
-              <View>
-                <Text style={[styles.orderId, { color: colors.text }]}>
-                  #{item.id}
-                </Text>
-                <Text
-                  style={[styles.orderDate, { color: colors.textSecondary }]}
-                >
-                  {formatDate(item.created_at)}
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.statusBadge,
-                  {
-                    backgroundColor: statusStyle.bg,
-                    borderColor: statusStyle.border,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 4
-                  },
-                ]}
-              >
-                <Feather name={statusStyle.icon as any} size={12} color={statusStyle.text} />
-                <Text style={[styles.statusText, { color: statusStyle.text }]}>
-                  {item.status}
-                </Text>
-              </View>
-            </View>
-
-            <View
-              style={[styles.divider, { backgroundColor: colors.border }]}
-            />
-
-            <View style={styles.cardFooterRow}>
-              <Text
-                style={[styles.itemCountText, { color: colors.textSecondary }]}
-              >
-                {itemCount} {itemCount === 1 ? "item" : "items"}
-              </Text>
-              <View style={styles.totalBlock}>
-                <Text
-                  style={[styles.totalLabel, { color: colors.textSecondary }]}
-                >
-                  TOTAL
-                </Text>
-                <Text style={[styles.totalAmount, { color: colors.text }]}>
-                  {'\u20B9'}{totalFormatted}
-                </Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-
-          <View
-            style={[styles.cardActionFooter, { borderTopColor: colors.border }]}
-          >
-            {item.status === "COMPLETED" ? (
-              <View style={styles.completedActionsRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.detailsBtn,
-                    {
-                      backgroundColor: isDark ? colors.background : "#F8FAFC",
-                      borderColor: colors.border,
-                    },
-                  ]}
-                  onPress={() =>
-                    navigation.navigate("OrderTrackingScreen", {
-                      orderId: item.id,
-                      initialOrder: item,
-                    })
-                  }
-                  activeOpacity={0.7}
-                >
-                  <Feather name="package" size={14} color={colors.text} />
-                  <Text style={[styles.detailsBtnText, { color: colors.text }]}>
-                    Track Order
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.invoiceCardBtn,
-                    {
-                      backgroundColor: isDark
-                        ? "rgba(5, 150, 105, 0.2)"
-                        : "#ECFDF5",
-                      borderColor: isDark
-                        ? "rgba(5, 150, 105, 0.4)"
-                        : "#A7F3D0",
-                    },
-                  ]}
-                  onPress={() =>
-                    navigation.navigate("InvoiceScreen", {
-                      orderId: item.id,
-                      initialOrder: item,
-                    })
-                  }
-                  activeOpacity={0.7}
-                >
-                  <Feather name="file-text" size={14} color={colors.primary} />
-                  <Text
-                    style={[
-                      styles.invoiceCardBtnText,
-                      { color: colors.primary },
-                    ]}
-                  >
-                    View Invoice
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={styles.trackOrderBtn}
-                onPress={() =>
-                  navigation.navigate("OrderTrackingScreen", {
-                    orderId: item.id,
-                    initialOrder: item,
-                  })
-                }
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[styles.trackOrderBtnText, { color: colors.primary }]}
-                >
-                  Track Order
-                </Text>
-                <Feather name="arrow-right" size={14} color={colors.primary} />
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-      );
-    },
-    [colors, isDark, navigation],
+  const statusMeta = useCallback(
+    (st: string): StatusMeta => (isDark ? STATUS_MAP_DARK : STATUS_MAP_LIGHT)[st] || (isDark ? STATUS_MAP_DARK : STATUS_MAP_LIGHT).DEFAULT,
+    [isDark],
   );
 
-  const renderListFooter = useCallback(
-    () =>
-      loadingMore ? (
-        <ActivityIndicator style={{ margin: 20 }} color={colors.primary} />
-      ) : null,
+  /* ─── Header Component ─── */
+  const Header = () => (
+    <View style={[s.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+      <TouchableOpacity onPress={handleBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={s.backBtn}>
+        <Feather name="arrow-left" size={22} color={colors.text} />
+      </TouchableOpacity>
+      <Text style={[s.headerTitle, { color: colors.text }]}>My Orders</Text>
+      <View style={{ width: 22 }} />
+    </View>
+  );
+
+  /* ─── Compact Order Card ─── */
+  const renderItem = useCallback(
+    ({ item }: { item: any }) => {
+      const meta = statusMeta(item.status);
+      const total = (parseFloat(String(item?.total_amount || 0)) || 0).toFixed(2);
+      const count = item.items?.length || 0;
+
+      return (
+        <TouchableOpacity
+          activeOpacity={0.6}
+          onPress={() => navigation.navigate("OrderTrackingScreen", { orderId: item.id, initialOrder: item })}
+          style={[s.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        >
+          {/* Left: Status Icon */}
+          <View style={[s.iconCircle, { backgroundColor: meta.bg }]}>
+            <Feather name={meta.icon as any} size={18} color={meta.text} />
+          </View>
+
+          {/* Center: Info */}
+          <View style={s.cardCenter}>
+            <View style={s.topRow}>
+              <Text style={[s.orderLabel, { color: colors.text }]} numberOfLines={1}>
+                Order #{item.id}
+              </Text>
+              <View style={[s.badge, { backgroundColor: meta.bg, borderColor: meta.border }]}>
+                <Text style={[s.badgeText, { color: meta.text }]}>{meta.label}</Text>
+              </View>
+            </View>
+            <Text style={[s.dateLine, { color: colors.textSecondary }]} numberOfLines={1}>
+              {fmtDate(item.created_at)}  {'\u00B7'}  {count} {count === 1 ? "item" : "items"}
+            </Text>
+          </View>
+
+          {/* Right: Total + Chevron */}
+          <View style={s.cardRight}>
+            <Text style={[s.totalText, { color: colors.text }]}>{'\u20B9'}{total}</Text>
+            <Feather name="chevron-right" size={16} color={colors.textSecondary} />
+          </View>
+        </TouchableOpacity>
+      );
+    },
+    [colors, isDark, navigation, statusMeta],
+  );
+
+  const renderFooter = useCallback(
+    () => (loadingMore ? <ActivityIndicator style={{ margin: 16 }} color={colors.primary} /> : null),
     [loadingMore, colors.primary],
   );
 
+  /* ─── Guest State ─── */
   if (!user) {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={["top"]}
-      >
-        <View
-          style={[
-            styles.header,
-            { backgroundColor: colors.surface, borderBottomColor: colors.border, flexDirection: "row", alignItems: "center" },
-          ]}
-        >
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={handleBack}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Feather name="arrow-left" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <View style={{ flex: 1, marginLeft: 16 }}>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>
-              Order History
-            </Text>
-            <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-              Track and review your past purchases.
-            </Text>
+      <SafeAreaView style={[s.container, { backgroundColor: colors.background }]} edges={["top"]}>
+        <Header />
+        <View style={s.emptyWrap}>
+          <View style={[s.emptyIcon, { backgroundColor: isDark ? "rgba(5,150,105,0.15)" : "#ECFDF5" }]}>
+            <Feather name="shopping-bag" size={40} color={colors.primary} />
           </View>
-        </View>
-        <View style={styles.guestStateContainer}>
-          <View
-            style={[
-              styles.guestIconBox,
-              {
-                backgroundColor: isDark ? "rgba(5, 150, 105, 0.15)" : "#ECFDF5",
-              },
-            ]}
-          >
-            <Feather name="shopping-bag" size={44} color={colors.primary} />
-          </View>
-          <Text style={[styles.guestTitle, { color: colors.text }]}>
-            Sign in to view orders
-          </Text>
-          <Text style={[styles.guestSubtitle, { color: colors.textSecondary }]}>
-            Keep track of your live order status, view bills, and reorder items
-            easily.
+          <Text style={[s.emptyTitle, { color: colors.text }]}>Sign in to view orders</Text>
+          <Text style={[s.emptySubtitle, { color: colors.textSecondary }]}>
+            Track your live order status, view bills, and reorder easily.
           </Text>
           <TouchableOpacity
-            style={[styles.guestSignInBtn, { backgroundColor: colors.primary }]}
+            style={[s.ctaBtn, { backgroundColor: colors.primary }]}
             onPress={() => navigation.navigate("Login" as any)}
             activeOpacity={0.85}
           >
-            <Feather
-              name="log-in"
-              size={16}
-              color="#FFFFFF"
-              style={{ marginRight: 8 }}
-            />
-            <Text style={styles.guestSignInBtnText}>Sign In / Register</Text>
+            <Feather name="log-in" size={16} color="#FFF" style={{ marginRight: 8 }} />
+            <Text style={s.ctaBtnText}>Sign In / Register</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
 
+  /* ─── Loading Skeleton ─── */
   if (loading && page === 1 && !refreshing && orders.length === 0) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["top"]}>
-        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border, flexDirection: "row", alignItems: "center" }]}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={handleBack}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Feather name="arrow-left" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <View style={{ flex: 1, marginLeft: 16 }}>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>Order History</Text>
-            <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>Track and review your past purchases.</Text>
-          </View>
-        </View>
-        <View style={{ padding: 16, gap: 16 }}>
-          <SkeletonOrderCard colors={colors} isDark={isDark} />
-          <SkeletonOrderCard colors={colors} isDark={isDark} />
-          <SkeletonOrderCard colors={colors} isDark={isDark} />
+      <SafeAreaView style={[s.container, { backgroundColor: colors.background }]} edges={["top"]}>
+        <Header />
+        <View style={{ padding: 16, gap: 10 }}>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <SkeletonCard key={i} colors={colors} isDark={isDark} />
+          ))}
         </View>
       </SafeAreaView>
     );
   }
 
+  /* ─── Main View ─── */
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={["top"]}
-    >
-      {/* Header */}
-      <View
-        style={[
-          styles.header,
-          { backgroundColor: colors.surface, borderBottomColor: colors.border, flexDirection: "row", alignItems: "center" },
-        ]}
-      >
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={handleBack}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Feather name="arrow-left" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <View style={{ flex: 1, marginLeft: 16 }}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
-            Order History
-          </Text>
-          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-            Track and review your past purchases.
-          </Text>
-        </View>
-      </View>
-
+    <SafeAreaView style={[s.container, { backgroundColor: colors.background }]} edges={["top"]}>
+      <Header />
       {orders.length === 0 ? (
-        <View style={styles.emptyContent}>
-          <View
-            style={[
-              styles.emptyIconCircle,
-              {
-                backgroundColor: isDark ? "rgba(5, 150, 105, 0.2)" : "#ECFDF5",
-                borderColor: isDark ? "rgba(5, 150, 105, 0.4)" : "#A7F3D0",
-              },
-            ]}
-          >
-            <Feather name="package" size={48} color={colors.primary} />
+        <View style={s.emptyWrap}>
+          <View style={[s.emptyIcon, { backgroundColor: isDark ? "rgba(5,150,105,0.2)" : "#ECFDF5", borderColor: isDark ? "rgba(5,150,105,0.4)" : "#A7F3D0" }]}>
+            <Feather name="package" size={40} color={colors.primary} />
           </View>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>
-            No orders yet
-          </Text>
-          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-            It looks like you haven't placed any orders yet. Once you make a
-            purchase, it will appear here so you can track its status.
+          <Text style={[s.emptyTitle, { color: colors.text }]}>No orders yet</Text>
+          <Text style={[s.emptySubtitle, { color: colors.textSecondary }]}>
+            Once you place an order, it will show up here.
           </Text>
           <TouchableOpacity
-            style={[
-              styles.startShoppingBtn,
-              { backgroundColor: colors.primary },
-            ]}
+            style={[s.ctaBtn, { backgroundColor: colors.primary }]}
             onPress={() => navigation.navigate("HomeTab")}
             activeOpacity={0.85}
           >
-            <Text style={styles.startShoppingBtnText}>Start Shopping →</Text>
+            <Text style={s.ctaBtnText}>Start Shopping</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <FlatList
           data={orders}
-          keyExtractor={(item, index) =>
-            String(item?.id || item?.uuid || item?.uid || index)
-          }
-          contentContainerStyle={styles.listContainer}
-          initialNumToRender={6}
-          maxToRenderPerBatch={6}
-          windowSize={5}
+          keyExtractor={(item, idx) => String(item?.id || idx)}
+          contentContainerStyle={s.list}
+          initialNumToRender={10}
+          maxToRenderPerBatch={8}
+          windowSize={7}
           removeClippedSubviews={Platform.OS === "android"}
           updateCellsBatchingPeriod={50}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={handleRefresh}
+              onRefresh={() => { setPage(1); fetchOrders(1, true); }}
               colors={[colors.primary]}
               tintColor={colors.primary}
             />
           }
-          renderItem={renderOrderItem}
-          onEndReached={handleLoadMore}
+          renderItem={renderItem}
+          onEndReached={() => { if (hasMore && !loading && !refreshing && !loadingMore) fetchOrders(page + 1, false, true); }}
           onEndReachedThreshold={0.4}
-          ListFooterComponent={renderListFooter}
+          ListFooterComponent={renderFooter}
         />
       )}
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F8FAFC",
-  },
+/* ─── Styles ─── */
+const s = StyleSheet.create({
+  container: { flex: 1 },
+
+  /* Header */
   header: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 16,
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E2E8F0",
-  },
-  backButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+  },
+  backBtn: { padding: 2 },
+  headerTitle: { fontSize: 18, fontWeight: "700", letterSpacing: -0.3 },
+
+  /* List */
+  list: { padding: 12, paddingBottom: 100 },
+
+  /* Card — ultra compact single row */
+  card: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    borderWidth: 1,
     marginBottom: 8,
-    alignSelf: "flex-start",
   },
-  backButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#64748B",
-  },
-  headerTitle: {
-    fontSize: 24,
-    lineHeight: 28,
-    fontWeight: "900",
-    color: "#0F172A",
-    letterSpacing: -0.5,
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    color: "#64748B",
-    marginTop: 2,
-    fontWeight: "500",
-  },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#F8FAFC",
-  },
-  emptyContent: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  emptyIconCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: "#ECFDF5",
+  iconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 11,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 20,
+  },
+  cardCenter: { flex: 1, marginLeft: 12 },
+  topRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 3 },
+  orderLabel: { fontSize: 14, fontWeight: "700", letterSpacing: -0.2 },
+  badge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  badgeText: { fontSize: 10, fontWeight: "700", letterSpacing: 0.3 },
+  dateLine: { fontSize: 12, fontWeight: "500" },
+  cardRight: { alignItems: "flex-end", marginLeft: 8, gap: 2 },
+  totalText: { fontSize: 15, fontWeight: "800", letterSpacing: -0.3 },
+
+  /* Empty / Guest */
+  emptyWrap: { flex: 1, justifyContent: "center", alignItems: "center", padding: 32, paddingBottom: 60 },
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 18,
     borderWidth: 1,
     borderColor: "#A7F3D0",
   },
-  emptyTitle: {
-    fontSize: 22,
-    fontWeight: "900",
-    color: "#0F172A",
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: "#64748B",
-    textAlign: "center",
-    lineHeight: 20,
-    marginBottom: 24,
-    maxWidth: 320,
-  },
-  startShoppingBtn: {
-    backgroundColor: "#059669",
-    paddingVertical: 14,
+  emptyTitle: { fontSize: 20, fontWeight: "800", marginBottom: 6 },
+  emptySubtitle: { fontSize: 14, lineHeight: 20, textAlign: "center", marginBottom: 20, maxWidth: 280 },
+  ctaBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 13,
     paddingHorizontal: 28,
-    borderRadius: 14,
-    boxShadow: "0px 2px 4px rgba(5, 150, 105, 0.2)",
+    borderRadius: 12,
     elevation: 3,
   },
-  startShoppingBtnText: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "800",
-  },
-  listContainer: {
-    padding: 16,
-    paddingBottom: 130,
-  },
-  orderCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    boxShadow: "0px 1px 3px rgba(0, 0, 0, 0.05)",
-    elevation: 2,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  orderId: {
-    fontSize: 17,
-    fontWeight: "900",
-    color: "#0F172A",
-    letterSpacing: -0.3,
-  },
-  orderDate: {
-    fontSize: 12,
-    color: "#64748B",
-    fontWeight: "500",
-    marginTop: 2,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 0.5,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: "#F1F5F9",
-    marginVertical: 14,
-  },
-  cardFooterRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-  },
-  itemCountText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#475569",
-  },
-  totalBlock: {
-    alignItems: "flex-end",
-  },
-  totalLabel: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#94A3B8",
-    letterSpacing: 1,
-    marginBottom: 2,
-  },
-  totalAmount: {
-    fontSize: 19,
-    fontWeight: "900",
-    color: "#0F172A",
-  },
-  cardActionFooter: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#F8FAFC",
-  },
-  completedActionsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 8,
-  },
-  detailsBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 4,
-    paddingVertical: 8,
-    backgroundColor: "#F8FAFC",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
-  detailsBtnText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#334155",
-  },
-  invoiceCardBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 8,
-    backgroundColor: "#ECFDF5",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#A7F3D0",
-  },
-  invoiceCardBtnText: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#059669",
-  },
-  trackOrderBtn: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 6,
-    paddingVertical: 6,
-  },
-  trackOrderBtnText: {
-    fontSize: 13,
-    color: "#059669",
-    fontWeight: "800",
-  },
-  guestStateContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 32,
-    paddingBottom: 60,
-  },
-  guestIconBox: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  guestTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  guestSubtitle: {
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: "center",
-    marginBottom: 24,
-  },
-  guestSignInBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 28,
-    borderRadius: 14,
-    boxShadow: "0px 4px 8px rgba(5, 150, 105, 0.2)",
-    elevation: 4,
-  },
-  guestSignInBtnText: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "800",
-  },
+  ctaBtnText: { color: "#FFF", fontSize: 15, fontWeight: "800" },
 });
