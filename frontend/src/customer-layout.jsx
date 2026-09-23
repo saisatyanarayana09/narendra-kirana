@@ -7,7 +7,7 @@ import { useCart } from './cart-context'
 import { useLanguage } from './context/LanguageContext'
 import { useSpeechRecognition, useTextToSpeech } from './hooks/useVoice'
 import api from './services/api'
-import { FloatingCartBar } from './components/FloatingCartBar'
+
 import { SmartAppBanner } from './components/SmartAppBanner'
 
 function GlobalSearchBar() {
@@ -846,8 +846,7 @@ export function CustomerLayout({ children }) {
         </motion.div>
       </main>
 
-      {/* Floating Mini-Cart Bar */}
-      <FloatingCartBar />
+
 
       {/* 5-Tab Mobile Navigation Bar (strictly mobile & tablet: md:hidden) */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 flex items-center justify-around border-t border-slate-200/80 dark:border-slate-800/90 bg-white/95 dark:bg-[#0c1220]/95 backdrop-blur-xl py-2 px-1 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
