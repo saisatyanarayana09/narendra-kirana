@@ -43,6 +43,8 @@ export function WelcomeScreen({
   const logoScaleAnim = useRef(new Animated.Value(0.85)).current;
   const logoTranslateYAnim = useRef(new Animated.Value(24)).current;
   const logoFadeAnim = useRef(new Animated.Value(0)).current;
+  const nTranslateY = useRef(new Animated.Value(-80)).current;
+  const vTranslateY = useRef(new Animated.Value(80)).current;
 
   const brandFadeAnim = useRef(new Animated.Value(0)).current;
   const brandLeftTranslateX = useRef(new Animated.Value(-50)).current;
@@ -66,6 +68,8 @@ export function WelcomeScreen({
       logoScaleAnim.setValue(0.85);
       logoTranslateYAnim.setValue(24);
       logoFadeAnim.setValue(0);
+      nTranslateY.setValue(-80);
+      vTranslateY.setValue(80);
       brandFadeAnim.setValue(0);
       brandLeftTranslateX.setValue(-50);
       brandRightTranslateX.setValue(50);
@@ -96,6 +100,18 @@ export function WelcomeScreen({
           Animated.timing(logoFadeAnim, {
             toValue: 1,
             duration: 400,
+            useNativeDriver: USE_NATIVE_DRIVER,
+          }),
+          Animated.spring(nTranslateY, {
+            toValue: 0,
+            tension: 40,
+            friction: 5,
+            useNativeDriver: USE_NATIVE_DRIVER,
+          }),
+          Animated.spring(vTranslateY, {
+            toValue: 0,
+            tension: 40,
+            friction: 5,
             useNativeDriver: USE_NATIVE_DRIVER,
           }),
         ]),
@@ -249,11 +265,14 @@ export function WelcomeScreen({
               }}
             >
               <Animated.View style={[styles.logoWrapper, { transform: [{ rotateY: spinY }] }]}>
-                <Image
-                  source={require("../../assets/logo-transparent.png")}
-                  style={styles.logoImage}
-                  resizeMode="contain"
-                />
+                <View style={styles.nvContainer}>
+                  <Animated.Text style={[styles.logoLetterN, isDark && { color: "#F8FAFC" }, { transform: [{ translateY: nTranslateY }] }]}>
+                    N
+                  </Animated.Text>
+                  <Animated.Text style={[styles.logoLetterV, { transform: [{ translateY: vTranslateY }] }]}>
+                    V
+                  </Animated.Text>
+                </View>
               </Animated.View>
             </Animated.View>
 
@@ -361,9 +380,29 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 18,
   },
-  logoImage: {
-    width: 130,
-    height: 130,
+  nvContainer: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "center",
+  },
+  logoLetterN: {
+    fontSize: 85,
+    fontWeight: "900",
+    color: "#064E3B",
+    fontStyle: "italic",
+    marginRight: -12, // Slight overlap
+    textShadowColor: "rgba(0,0,0,0.1)",
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 8,
+  },
+  logoLetterV: {
+    fontSize: 70,
+    fontWeight: "900",
+    color: "#34D399",
+    fontStyle: "italic",
+    textShadowColor: "rgba(0,0,0,0.1)",
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 8,
   },
   brandRow: {
     flexDirection: "row",
