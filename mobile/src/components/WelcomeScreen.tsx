@@ -36,7 +36,7 @@ export function WelcomeScreen({
   onStart,
   onFinish,
 }: WelcomeScreenProps) {
-  const { isLoading } = useAuth();
+  const { isLoading, user } = useAuth();
   const { isDark, colors } = useTheme();
   const shouldShow = forceShow || !getHasShownWelcomeSession();
   const [visible, setVisible] = useState(shouldShow);
@@ -51,6 +51,7 @@ export function WelcomeScreen({
   const logoFadeAnim = useRef(new Animated.Value(0)).current;
   const logoScaleAnim = useRef(new Animated.Value(0.9)).current;
   const textFadeAnim = useRef(new Animated.Value(0)).current;
+  const greetingFadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (isLoading) return;
@@ -66,6 +67,7 @@ export function WelcomeScreen({
       logoFadeAnim.setValue(0);
       logoScaleAnim.setValue(0.9);
       textFadeAnim.setValue(0);
+      greetingFadeAnim.setValue(0);
 
       // The Spotlight Sweep!
       Animated.timing(spotlightY, {
@@ -100,12 +102,18 @@ export function WelcomeScreen({
           duration: 1000,
           delay: 800,
           useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+        Animated.timing(greetingFadeAnim, {
+          toValue: 1,
+          duration: 1000,
+          delay: 1100, // Slightly after brand text
+          useNativeDriver: USE_NATIVE_DRIVER,
         })
       ]).start();
 
       timerRef.current = setTimeout(() => {
         dismiss();
-      }, 3200);
+      }, 3600); // Increased slightly so user can read greeting
     } else if (forceShow) {
       setVisible(true);
     }
@@ -129,6 +137,18 @@ export function WelcomeScreen({
   };
 
   if (!visible) return null;
+
+  const hour = new Date().getHours();
+  let greeting = "Welcome";
+  if (hour >= 5 && hour < 12) {
+    greeting = "Good morning";
+  } else if (hour >= 12 && hour < 17) {
+    greeting = "Good afternoon";
+  } else if (hour >= 17 && hour < 22) {
+    greeting = "Good evening";
+  }
+
+  const name = user?.first_name || user?.username || "Guest";
 
   return (
     <Modal
@@ -188,6 +208,12 @@ export function WelcomeScreen({
               NARENDRA KIRANA
             </Text>
           </Animated.View>
+
+          <Animated.View style={{ opacity: greetingFadeAnim, marginTop: 12 }}>
+            <Text style={styles.greetingText}>
+              {greeting}, {name}
+            </Text>
+          </Animated.View>
         </View>
 
       </Animated.View>
@@ -238,6 +264,12 @@ const styles = StyleSheet.create({
     letterSpacing: 3,
     textTransform: "uppercase",
     color: "#FFFFFF",
+    textAlign: "center",
+  },
+  greetingText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "rgba(255, 255, 255, 0.8)",
     textAlign: "center",
   },
 });
