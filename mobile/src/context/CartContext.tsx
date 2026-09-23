@@ -301,14 +301,43 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [user?.id, enqueueCartMutation],
   );
 
+  /**
+   * Resolves any incoming ID to the matching cart item.
+   * Callers may pass a cart-item pk (from CartItemCard) or a product pk (from ProductCard).
+   * Returns { cartItemId, productId, item } or null.
+   */
+  const resolveCartItem = (rawId: number) => {
+    const items = cartRef.current?.items;
+    if (!items) return null;
+
+    // 1) Direct match by cart item ID (most common — from CartScreen)
+    const byCartId = items.find((i) => i.id === rawId);
+    if (byCartId) {
+      return { cartItemId: byCartId.id, productId: getItemProductId(byCartId), item: byCartId };
+    }
+
+    // 2) Match by product ID (from ProductCard / HomeScreen)
+    const byProductId = items.find((i) => getItemProductId(i) === rawId);
+    if (byProductId) {
+      return { cartItemId: byProductId.id, productId: rawId, item: byProductId };
+    }
+
+    return null;
+  };
+
   const removeFromCart = useCallback(
     async (itemId: number) => {
-      // A zero quantity is a delete. Cancel a not-yet-started PATCH and make any
-      // PATCH already in flight finish before the DELETE is sent. Otherwise a
-      // delayed PATCH can 404 after deletion and restore stale optimistic state.
-      if (updateQuantityLocks.current[itemId]) {
-        clearTimeout(updateQuantityLocks.current[itemId]);
-        delete updateQuantityLocks.current[itemId];
+      // Resolve incoming ID (could be cart item pk OR product pk)
+      const resolved = resolveCartItem(itemId);
+      const cartItemId = resolved?.cartItemId ?? itemId;
+      const productId = resolved?.productId ?? itemId;
+
+      // Cancel any pending debounced PATCH for this item (by both possible keys)
+      for (const key of [itemId, cartItemId, productId]) {
+        if (updateQuantityLocks.current[key]) {
+          clearTimeout(updateQuantityLocks.current[key]);
+          delete updateQuantityLocks.current[key];
+        }
       }
 
       const prevCart = cartRef.current;
@@ -319,49 +348,28 @@ export function CartProvider({ children }: { children: ReactNode }) {
             if (!currentCart) return;
 
             const updatedItems = currentCart.items.filter(
-              (item) => item.id !== itemId && getItemProductId(item) !== itemId,
+              (item) => item.id !== cartItemId && getItemProductId(item) !== productId,
             );
 
             const packagingFee = storeSettingsRef.current?.packaging_fee || "0";
-            const newCartData = calculateGuestTotals(
-              updatedItems,
-              packagingFee,
-            );
-            await setGuestStorageItem(
-              GUEST_CART_KEY,
-              JSON.stringify(newCartData),
-            );
+            const newCartData = calculateGuestTotals(updatedItems, packagingFee);
+            await setGuestStorageItem(GUEST_CART_KEY, JSON.stringify(newCartData));
             cartRef.current = newCartData;
             setCart(newCartData);
           });
         } catch (error) {
           console.error("Failed to remove from guest cart:", error);
-          throw error;
         }
         return;
       }
 
       // Optimistic removal
-      // CRITICAL FIX: itemId may be a product ID (from ProductCard). Resolve to cart item ID.
-      let resolvedRemoveId = itemId;
-      const matchedRemoveItem = cartRef.current?.items?.find(
-        (i) => i.id !== itemId && getItemProductId(i) === itemId && i.id > 0,
-      );
-      if (matchedRemoveItem) {
-        resolvedRemoveId = matchedRemoveItem.id;
-      }
-
-      const itemToRemove = cartRef.current?.items?.find(
-        (i) => i.id === resolvedRemoveId || getItemProductId(i) === itemId,
-      );
-      const ghostItemProductId = itemToRemove
-        ? getItemProductId(itemToRemove)
-        : null;
+      const ghostItemProductId = resolved ? productId : null;
 
       setCart((current) => {
         if (!current?.items) return current;
         const updatedItems = current.items.filter(
-          (item) => item.id !== resolvedRemoveId && getItemProductId(item) !== itemId,
+          (item) => item.id !== cartItemId && getItemProductId(item) !== productId,
         );
         let newOfferSubtotal = 0;
         let newRegularSubtotal = 0;
@@ -398,9 +406,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
               ? newRegularSubtotal.toFixed(2)
               : newOfferSubtotal.toFixed(2),
           items_total: newOfferSubtotal.toFixed(2),
-          discount: Math.max(0, newRegularSubtotal - newOfferSubtotal).toFixed(
-            2,
-          ),
+          discount: Math.max(0, newRegularSubtotal - newOfferSubtotal).toFixed(2),
           total: newTotal.toFixed(2),
         };
         cartRef.current = nextCart;
@@ -409,12 +415,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       try {
         await enqueueCartMutation(async () => {
-          let targetId = resolvedRemoveId;
+          let targetId = cartItemId;
+
+          // Ghost item: resolve to real ID from backend
           if (targetId < 0 && ghostItemProductId) {
-            // If the item was a ghost item, we must fetch the cart from the backend
-            // because the POST may have just finished and we need the real ID to delete it.
-            // Or we can poll the backend cart. Let's just fetch the backend cart once,
-            // because if enqueueCartMutation ran sequentially, the POST is completely finished on the backend.
             const freshCartRes = await apiClient.get("/cart/");
             const realItem = freshCartRes.data?.items?.find(
               (i: any) => getItemProductId(i) === ghostItemProductId,
@@ -422,24 +426,36 @@ export function CartProvider({ children }: { children: ReactNode }) {
             if (realItem) {
               targetId = realItem.id;
             } else {
-              // The item isn't on the backend anyway, maybe the POST failed. We can just abort the DELETE.
+              // Item isn't on backend (POST may have failed). Sync state.
               await refreshCart(true);
               return;
             }
           }
 
-          const res = await apiClient.delete(`/cart/items/${targetId}/`);
-          if (res?.data?.items) {
-            cartRef.current = res.data;
-            setCart(res.data);
-          } else {
-            await refreshCart(true);
+          try {
+            const res = await apiClient.delete(`/cart/items/${targetId}/`);
+            if (res?.data?.items) {
+              cartRef.current = res.data;
+              setCart(res.data);
+            } else {
+              await refreshCart(true);
+            }
+          } catch (deleteErr: any) {
+            // 404 means item was already deleted (race condition). Just refresh.
+            if (deleteErr?.response?.status === 404) {
+              await refreshCart(true);
+            } else {
+              throw deleteErr;
+            }
           }
         });
       } catch (error) {
-        if (prevCart) setCart(prevCart);
+        // On non-404 errors, rollback UI
+        if (prevCart) {
+          cartRef.current = prevCart;
+          setCart(prevCart);
+        }
         console.error("Failed to remove from cart:", error);
-        throw error;
       }
     },
     [user, refreshCart, enqueueCartMutation],
@@ -451,11 +467,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return removeFromCart(itemId);
       }
 
+      // Resolve incoming ID (could be cart item pk OR product pk)
+      const resolved = resolveCartItem(itemId);
+      const cartItemId = resolved?.cartItemId ?? itemId;
+      const productId = resolved?.productId ?? (resolved ? resolved.productId : itemId);
+
       const currentCart = cartRef.current;
-      const currentQty =
-        currentCart?.items?.find(
-          (item) => item.id === itemId || getItemProductId(item) === itemId,
-        )?.quantity || 0;
+      const currentQty = resolved?.item?.quantity || 0;
       if (quantity > currentQty) {
         setLastItemAddedTimestamp(Date.now());
       }
@@ -467,7 +485,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             if (!activeGuestCart) return;
 
             const updatedItems = activeGuestCart.items.map((item) => {
-              if (item.id === itemId || getItemProductId(item) === itemId) {
+              if (item.id === cartItemId || getItemProductId(item) === productId) {
                 const stockLimit =
                   item.stock_quantity ?? item.product?.stock_quantity ?? 999;
                 const maxOrderLimit =
@@ -479,58 +497,33 @@ export function CartProvider({ children }: { children: ReactNode }) {
                     ? Math.min(stockLimit, maxOrderLimit)
                     : stockLimit;
                 const safeQty = Math.min(quantity, cap);
-                return {
-                  ...item,
-                  quantity: safeQty,
-                };
+                return { ...item, quantity: safeQty };
               }
               return item;
             });
 
             const packagingFee = storeSettingsRef.current?.packaging_fee || "0";
-            const newCartData = calculateGuestTotals(
-              updatedItems,
-              packagingFee,
-            );
-            await setGuestStorageItem(
-              GUEST_CART_KEY,
-              JSON.stringify(newCartData),
-            );
+            const newCartData = calculateGuestTotals(updatedItems, packagingFee);
+            await setGuestStorageItem(GUEST_CART_KEY, JSON.stringify(newCartData));
             cartRef.current = newCartData;
             setCart(newCartData);
           });
         } catch (error) {
           console.error("Failed to update guest cart quantity:", error);
-          throw error;
         }
         return;
       }
 
-      // Optimistic update for instant responsiveness
+      // --- Authenticated user: optimistic update ---
       const prevCart = cartRef.current;
-
-      // CRITICAL FIX: itemId may be a **product ID** (from ProductCard) instead of
-      // a cart item ID (from CartItemCard). Resolve it to the actual cart item ID
-      // so the PATCH /cart/items/<pk>/ doesn't 404.
-      let resolvedItemId = itemId;
-      const matchedByProductId = prevCart?.items?.find(
-        (i) => i.id !== itemId && getItemProductId(i) === itemId && i.id > 0,
-      );
-      if (matchedByProductId) {
-        resolvedItemId = matchedByProductId.id;
-      }
-
-      const ghostItem = prevCart?.items?.find((i) => i.id === resolvedItemId);
-      const ghostItemProductId =
-        resolvedItemId < 0 && ghostItem ? getItemProductId(ghostItem) : null;
+      const ghostItemProductId = cartItemId < 0 ? productId : null;
 
       setCart((current) => {
         if (!current?.items) return current;
         const updatedItems = current.items.map((item) => {
           if (
-            item.id === resolvedItemId ||
-            getItemProductId(item) === itemId ||
-            (resolvedItemId < 0 && getItemProductId(item) === ghostItemProductId)
+            item.id === cartItemId ||
+            getItemProductId(item) === productId
           ) {
             const unitPriceNum = parseFloat(
               item.unit_price || item.product?.price || "0",
@@ -578,62 +571,56 @@ export function CartProvider({ children }: { children: ReactNode }) {
               ? newRegularSubtotal.toFixed(2)
               : newOfferSubtotal.toFixed(2),
           items_total: newOfferSubtotal.toFixed(2),
-          discount: Math.max(0, newRegularSubtotal - newOfferSubtotal).toFixed(
-            2,
-          ),
+          discount: Math.max(0, newRegularSubtotal - newOfferSubtotal).toFixed(2),
           total: newTotal.toFixed(2),
         };
         cartRef.current = nextCart;
         return nextCart;
       });
 
-      // Clear existing debounce timer
-      if (updateQuantityLocks.current[resolvedItemId]) {
-        clearTimeout(updateQuantityLocks.current[resolvedItemId]);
+      // Clear existing debounce timer for all possible key aliases
+      for (const key of [itemId, cartItemId, productId]) {
+        if (updateQuantityLocks.current[key]) {
+          clearTimeout(updateQuantityLocks.current[key]);
+          delete updateQuantityLocks.current[key];
+        }
       }
 
-      // Debounce the network request to prevent race conditions and handle ghost IDs
+      // Debounce the network request
       const timerId = setTimeout(async () => {
-        let targetId = resolvedItemId;
+        let targetId = cartItemId;
 
-        // Resolve Ghost ID (from optimistic addToCart) to Real ID
-        // If the POST /cart/items/ is still in-flight (slow network), poll up to 5x before giving up
-        if (targetId < 0 && ghostItemProductId) {
-          let resolved = false;
+        // Resolve Ghost ID to Real ID (poll if addToCart POST is still in-flight)
+        if (targetId < 0) {
+          const pId = ghostItemProductId || productId;
+          let resolvedFromBackend = false;
           for (let attempt = 0; attempt < 5; attempt++) {
             const latestCart = cartRef.current;
             const realItem = latestCart?.items?.find(
-              (i) => getItemProductId(i) === ghostItemProductId && i.id > 0,
+              (i) => getItemProductId(i) === pId && i.id > 0,
             );
             if (realItem) {
               targetId = realItem.id;
-              resolved = true;
+              resolvedFromBackend = true;
               break;
             }
-            // Wait 200ms before retrying
             await new Promise((r) => setTimeout(r, 200));
           }
-          if (!resolved) {
-            console.warn(
-              "[CartContext] Aborted patch: Ghost item never resolved to real ID after retries.",
-            );
-            if (updateQuantityLocks.current[resolvedItemId] === timerId) {
-              delete updateQuantityLocks.current[resolvedItemId];
+          if (!resolvedFromBackend) {
+            console.warn("[CartContext] Aborted patch: Ghost item never resolved to real ID.");
+            if (updateQuantityLocks.current[cartItemId] === timerId) {
+              delete updateQuantityLocks.current[cartItemId];
             }
             return;
           }
         }
 
         await enqueueCartMutation(async () => {
-          // The timer may have been superseded while an earlier request was in flight.
-          if (updateQuantityLocks.current[resolvedItemId] !== timerId) return;
+          if (updateQuantityLocks.current[cartItemId] !== timerId) return;
 
           try {
-            const res = await apiClient.patch(`/cart/items/${targetId}/`, {
-              quantity,
-            });
-            // Only sync if THIS is still the latest timer for this item (no newer tap came in)
-            if (updateQuantityLocks.current[resolvedItemId] === timerId) {
+            const res = await apiClient.patch(`/cart/items/${targetId}/`, { quantity });
+            if (updateQuantityLocks.current[cartItemId] === timerId) {
               if (res?.data && res.data.items) {
                 cartRef.current = res.data;
                 setCart(res.data);
@@ -642,22 +629,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
               }
             }
           } catch (error: any) {
-            // Only rollback if this is the latest pending update (don't stomp a newer tap)
-            if (updateQuantityLocks.current[resolvedItemId] === timerId && prevCart) {
+            if (error?.response?.status === 404) {
+              // Item was deleted by a concurrent removeFromCart. Refresh to sync.
+              await refreshCart(true);
+            } else if (updateQuantityLocks.current[cartItemId] === timerId && prevCart) {
               cartRef.current = prevCart;
               setCart(prevCart);
             }
             console.error("Failed to update quantity:", error);
           } finally {
-            // Clean up lock only after the full network round-trip
-            if (updateQuantityLocks.current[resolvedItemId] === timerId) {
-              delete updateQuantityLocks.current[resolvedItemId];
+            if (updateQuantityLocks.current[cartItemId] === timerId) {
+              delete updateQuantityLocks.current[cartItemId];
             }
           }
         });
       }, 400);
 
-      updateQuantityLocks.current[resolvedItemId] = timerId;
+      updateQuantityLocks.current[cartItemId] = timerId;
     },
     [user, removeFromCart, refreshCart, enqueueCartMutation],
   );
