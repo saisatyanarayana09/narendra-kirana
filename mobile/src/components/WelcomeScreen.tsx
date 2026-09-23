@@ -179,8 +179,12 @@ export function WelcomeScreen({
             </View>
           </Animated.View>
 
-          <Animated.View style={[styles.brandRow, { opacity: textFadeAnim }]}>
-            <Text style={styles.brandText}>
+          <Animated.View style={[styles.brandRow, { opacity: textFadeAnim, paddingHorizontal: 24 }]}>
+            <Text 
+              style={styles.brandText}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
               NARENDRA KIRANA
             </Text>
           </Animated.View>
@@ -218,7 +222,7 @@ const styles = StyleSheet.create({
     height: 150,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 28,
+    marginBottom: 20,
   },
   logoImage: {
     width: 150,
@@ -226,12 +230,14 @@ const styles = StyleSheet.create({
   },
   brandRow: {
     alignItems: "center",
+    width: "100%",
   },
   brandText: {
-    fontSize: 17,
-    fontWeight: "800",
-    letterSpacing: 5,
+    fontSize: 26,
+    fontWeight: "900",
+    letterSpacing: 3,
     textTransform: "uppercase",
     color: "#FFFFFF",
+    textAlign: "center",
   },
 });
