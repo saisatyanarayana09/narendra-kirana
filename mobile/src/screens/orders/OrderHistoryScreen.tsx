@@ -136,7 +136,7 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
 
     const reqId = ++requestIdRef.current;
     try {
-      let url = `/orders/?page=${pageNum}&page_size=6`;
+      let url = `/orders/?page=${pageNum}&page_size=5`;
       if (searchQuery) url += `&search=${searchQuery}`;
       if (statusFilter !== "ALL") url += `&status=${statusFilter}`;
       
@@ -409,32 +409,32 @@ const s = StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 18,
+    paddingVertical: 20,
     paddingHorizontal: 16,
     borderRadius: 16,
     borderWidth: 1,
-    marginBottom: 12,
+    marginBottom: 14,
   },
   iconCircle: {
-    width: 46,
-    height: 46,
+    width: 48,
+    height: 48,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
-  cardCenter: { flex: 1, marginLeft: 14, marginRight: 12 },
-  topRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 5 },
-  orderLabel: { fontSize: 16, fontWeight: "700", letterSpacing: -0.2 },
+  cardCenter: { flex: 1, marginLeft: 16, marginRight: 12 },
+  topRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 },
+  orderLabel: { fontSize: 17, fontWeight: "800", letterSpacing: -0.2 },
   badge: {
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 4,
     borderRadius: 6,
     borderWidth: 1,
   },
-  badgeText: { fontSize: 10, fontWeight: "800", letterSpacing: 0.4, textTransform: "uppercase" },
-  dateLine: { fontSize: 13, fontWeight: "500", marginTop: 2 },
-  cardRight: { alignItems: "flex-end", gap: 3 },
-  totalText: { fontSize: 17, fontWeight: "800", letterSpacing: -0.4 },
+  badgeText: { fontSize: 11, fontWeight: "800", letterSpacing: 0.5, textTransform: "uppercase" },
+  dateLine: { fontSize: 14, fontWeight: "600", marginTop: 2 },
+  cardRight: { alignItems: "flex-end", gap: 4 },
+  totalText: { fontSize: 18, fontWeight: "900", letterSpacing: -0.4 },
 
   /* Search & Filter Bar */
   filterBar: {
