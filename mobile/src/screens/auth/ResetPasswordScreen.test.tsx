@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import ResetPasswordScreen from './ResetPasswordScreen';
+import { ResetPasswordScreen } from './ResetPasswordScreen';
 
 // This is an auto-generated CodiumAI baseline test
 describe('ResetPasswordScreen Component', () => {

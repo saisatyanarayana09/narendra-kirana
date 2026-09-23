@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import AppSettingsScreen from './AppSettingsScreen';
+import { AppSettingsScreen } from './AppSettingsScreen';
 
 // This is an auto-generated CodiumAI baseline test
 describe('AppSettingsScreen Component', () => {

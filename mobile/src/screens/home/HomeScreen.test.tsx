@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import HomeScreen from './HomeScreen';
+import { HomeScreen } from './HomeScreen';
 
 // This is an auto-generated CodiumAI baseline test
 describe('HomeScreen Component', () => {

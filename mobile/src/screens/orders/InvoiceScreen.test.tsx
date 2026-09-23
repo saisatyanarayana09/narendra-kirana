@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import InvoiceScreen from './InvoiceScreen';
+import { InvoiceScreen } from './InvoiceScreen';
 
 // This is an auto-generated CodiumAI baseline test
 describe('InvoiceScreen Component', () => {

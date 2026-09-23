@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import NotificationsScreen from './NotificationsScreen';
+import { NotificationsScreen } from './NotificationsScreen';
 
 // This is an auto-generated CodiumAI baseline test
 describe('NotificationsScreen Component', () => {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import OtaUpdateBanner from './OtaUpdateBanner';
+import { OtaUpdateBanner } from './OtaUpdateBanner';
 
 // This is an auto-generated CodiumAI baseline test
 describe('OtaUpdateBanner Component', () => {

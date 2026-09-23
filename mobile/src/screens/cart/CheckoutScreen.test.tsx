@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import CheckoutScreen from './CheckoutScreen';
+import { CheckoutScreen } from './CheckoutScreen';
 
 // This is an auto-generated CodiumAI baseline test
 describe('CheckoutScreen Component', () => {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import ProfileScreen from './ProfileScreen';
+import { ProfileScreen } from './ProfileScreen';
 
 // This is an auto-generated CodiumAI baseline test
 describe('ProfileScreen Component', () => {

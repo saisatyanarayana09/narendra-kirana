@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import OfflineBanner from './OfflineBanner';
+import { OfflineBanner } from './OfflineBanner';
 
 // This is an auto-generated CodiumAI baseline test
 describe('OfflineBanner Component', () => {

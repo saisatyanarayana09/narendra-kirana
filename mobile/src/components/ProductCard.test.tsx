@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import ProductCard from './ProductCard';
+import { ProductCard } from './ProductCard';
 
 // This is an auto-generated CodiumAI baseline test
 describe('ProductCard Component', () => {

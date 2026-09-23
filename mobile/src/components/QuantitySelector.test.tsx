@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import QuantitySelector from './QuantitySelector';
+import { QuantitySelector } from './QuantitySelector';
 
 // This is an auto-generated CodiumAI baseline test
 describe('QuantitySelector Component', () => {

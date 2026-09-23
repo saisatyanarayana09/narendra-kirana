@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import SearchScreen from './SearchScreen';
+import { SearchScreen } from './SearchScreen';
 
 // This is an auto-generated CodiumAI baseline test
 describe('SearchScreen Component', () => {

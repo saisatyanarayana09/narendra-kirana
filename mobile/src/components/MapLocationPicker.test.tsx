@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import MapLocationPicker from './MapLocationPicker';
+import { MapLocationPicker } from './MapLocationPicker';
 
 // This is an auto-generated CodiumAI baseline test
 describe('MapLocationPicker Component', () => {

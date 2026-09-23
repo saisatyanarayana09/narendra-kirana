@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import CategoriesScreen from './CategoriesScreen';
+import { CategoriesScreen } from './CategoriesScreen';
 
 // This is an auto-generated CodiumAI baseline test
 describe('CategoriesScreen Component', () => {

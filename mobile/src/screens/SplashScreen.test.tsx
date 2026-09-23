@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import SplashScreen from './SplashScreen';
+import { SplashScreen } from './SplashScreen';
 
 // This is an auto-generated CodiumAI baseline test
 describe('SplashScreen Component', () => {

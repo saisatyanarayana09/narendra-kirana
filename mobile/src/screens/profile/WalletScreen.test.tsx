@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import WalletScreen from './WalletScreen';
+import { WalletScreen } from './WalletScreen';
 
 // This is an auto-generated CodiumAI baseline test
 describe('WalletScreen Component', () => {

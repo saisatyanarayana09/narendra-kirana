@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import OrderSuccessScreen from './OrderSuccessScreen';
+import { OrderSuccessScreen } from './OrderSuccessScreen';
 
 // This is an auto-generated CodiumAI baseline test
 describe('OrderSuccessScreen Component', () => {

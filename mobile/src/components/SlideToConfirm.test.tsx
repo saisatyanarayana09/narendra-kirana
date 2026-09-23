@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import SlideToConfirm from './SlideToConfirm';
+import { SlideToConfirm } from './SlideToConfirm';
 
 // This is an auto-generated CodiumAI baseline test
 describe('SlideToConfirm Component', () => {

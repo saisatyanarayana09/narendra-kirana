@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import BouncyTouchable from './BouncyTouchable';
+import { BouncyTouchable } from './BouncyTouchable';
 
 // This is an auto-generated CodiumAI baseline test
 describe('BouncyTouchable Component', () => {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import OtaLaunchScreen from './OtaLaunchScreen';
+import { OtaLaunchScreen } from './OtaLaunchScreen';
 
 // This is an auto-generated CodiumAI baseline test
 describe('OtaLaunchScreen Component', () => {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import ReferAndEarnScreen from './ReferAndEarnScreen';
+import { ReferAndEarnScreen } from './ReferAndEarnScreen';
 
 // This is an auto-generated CodiumAI baseline test
 describe('ReferAndEarnScreen Component', () => {

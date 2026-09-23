@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import AnimatedFadeIn from './AnimatedFadeIn';
+import { AnimatedFadeIn } from './AnimatedFadeIn';
 
 // This is an auto-generated CodiumAI baseline test
 describe('AnimatedFadeIn Component', () => {
