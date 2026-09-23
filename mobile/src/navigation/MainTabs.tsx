@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import {
   useNavigation,
   getFocusedRouteNameFromRoute,
+  CommonActions,
 } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React, { useState, useEffect, useRef } from "react";
@@ -445,10 +446,17 @@ export function MainTabs() {
           <FloatingCartBar
             bottomOffset={totalBarHeight + 6}
             onPress={() => {
-              navigation.navigate("Main" as any, {
-                screen: "CartTab",
-                params: { screen: "CartScreen" },
-              } as any);
+              if (navigationRef.isReady()) {
+                navigationRef.dispatch(
+                  CommonActions.navigate({
+                    name: "Main",
+                    params: {
+                      screen: "CartTab",
+                      params: { screen: "CartScreen" },
+                    },
+                  })
+                );
+              }
             }}
             onClose={() => setIsMinimizedForSession(true)}
             currentRouteName={currentRouteName}
