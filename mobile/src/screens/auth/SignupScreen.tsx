@@ -1,5 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { GoogleSignin } from "../../utils/GoogleSigninWrapper";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React, { useState, useEffect } from "react";
 import {
