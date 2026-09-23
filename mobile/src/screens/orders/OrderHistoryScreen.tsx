@@ -10,6 +10,8 @@ import {
   RefreshControl,
   Platform,
   Animated,
+  TextInput,
+  ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -95,12 +97,16 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
 
+  // Search and Filter State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+
   const requestIdRef = useRef(0);
   const hasRenderedRef = useRef(Boolean(cachedOrders && cachedOrders.length > 0));
 
   useEffect(() => {
     if (user) {
-      if (orders.length === 0) {
+      if (orders.length === 0 && !searchQuery && statusFilter === "ALL") {
         loadCachedOrders().then((cached) => {
           if (cached && cached.length > 0) {
             setOrders((prev) => (prev.length === 0 ? cached : prev));
@@ -115,7 +121,7 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
       hasRenderedRef.current = false;
       setLoading(false);
     }
-  }, [user]);
+  }, [user, searchQuery, statusFilter]);
 
   const fetchOrders = async (pageNum: number, isRefresh = false, isLoadMore = false) => {
     if (!user) { setLoading(false); return; }
@@ -130,7 +136,10 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
 
     const reqId = ++requestIdRef.current;
     try {
-      const url = pageNum === 1 ? "/orders/" : `/orders/?page=${pageNum}`;
+      let url = `/orders/?page=${pageNum}&page_size=6`;
+      if (searchQuery) url += `&search=${searchQuery}`;
+      if (statusFilter !== "ALL") url += `&status=${statusFilter}`;
+      
       const res = await apiClient.get(url);
       if (reqId !== requestIdRef.current) return;
       const raw = res.data;
@@ -179,6 +188,13 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
     </View>
   );
 
+  const [searchInput, setSearchInput] = useState("");
+
+  useEffect(() => {
+    const t = setTimeout(() => setSearchQuery(searchInput), 500);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
   /* ─── Compact Order Card ─── */
   const renderItem = useCallback(
     ({ item }: { item: any }) => {
@@ -200,7 +216,7 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
           {/* Center: Info */}
           <View style={s.cardCenter}>
             <View style={s.topRow}>
-              <Text style={[s.orderLabel, { color: colors.text }]} numberOfLines={1}>
+              <Text style={[s.orderLabel, { color: colors.text, flexShrink: 1 }]} numberOfLines={1}>
                 Order #{item.id}
               </Text>
               <View style={[s.badge, { backgroundColor: meta.bg, borderColor: meta.border }]}>
@@ -226,6 +242,57 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
   const renderFooter = useCallback(
     () => (loadingMore ? <ActivityIndicator style={{ margin: 16 }} color={colors.primary} /> : null),
     [loadingMore, colors.primary],
+  );
+
+  const FILTERS = ["ALL", "NEW", "PREPARING", "READY", "COMPLETED", "REJECTED"];
+  const filterLabels: any = {
+    ALL: "All Orders",
+    NEW: "Placed",
+    PREPARING: "Preparing",
+    READY: "Ready",
+    COMPLETED: "Delivered",
+    REJECTED: "Cancelled"
+  };
+
+  const FilterBar = () => (
+    <View style={[s.filterBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+      <View style={[s.searchBox, { backgroundColor: isDark ? "#1E293B" : "#F1F5F9" }]}>
+        <Feather name="search" size={16} color={colors.textSecondary} style={{ marginRight: 8 }} />
+        <TextInput
+          style={[s.searchInput, { color: colors.text }]}
+          placeholder="Search Order ID..."
+          placeholderTextColor={colors.textSecondary}
+          value={searchInput}
+          onChangeText={setSearchInput}
+          returnKeyType="search"
+        />
+        {searchInput.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchInput("")}>
+            <Feather name="x-circle" size={16} color={colors.textSecondary} />
+          </TouchableOpacity>
+        )}
+      </View>
+      <View style={s.scrollViewWrap}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.pillsContainer}>
+          {FILTERS.map(f => (
+            <TouchableOpacity
+              key={f}
+              onPress={() => setStatusFilter(f)}
+              style={[
+                s.pill,
+                statusFilter === f
+                  ? { backgroundColor: colors.primary, borderColor: colors.primary }
+                  : { backgroundColor: colors.background, borderColor: colors.border }
+              ]}
+            >
+              <Text style={[s.pillText, { color: statusFilter === f ? "#FFF" : colors.text }]}>
+                {filterLabels[f]}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    </View>
   );
 
   /* ─── Guest State ─── */
@@ -255,10 +322,11 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
   }
 
   /* ─── Loading Skeleton ─── */
-  if (loading && page === 1 && !refreshing && orders.length === 0) {
+  if (loading && page === 1 && !refreshing && orders.length === 0 && !searchQuery && statusFilter === "ALL") {
     return (
       <SafeAreaView style={[s.container, { backgroundColor: colors.background }]} edges={["top"]}>
         <Header />
+        <FilterBar />
         <View style={{ padding: 16, gap: 10 }}>
           {[1, 2, 3, 4, 5].map((i) => (
             <SkeletonCard key={i} colors={colors} isDark={isDark} />
@@ -272,6 +340,7 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
   return (
     <SafeAreaView style={[s.container, { backgroundColor: colors.background }]} edges={["top"]}>
       <Header />
+      <FilterBar />
       {orders.length === 0 ? (
         <View style={s.emptyWrap}>
           <View style={[s.emptyIcon, { backgroundColor: isDark ? "rgba(5,150,105,0.2)" : "#ECFDF5", borderColor: isDark ? "rgba(5,150,105,0.4)" : "#A7F3D0" }]}>
@@ -353,7 +422,7 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  cardCenter: { flex: 1, marginLeft: 12 },
+  cardCenter: { flex: 1, marginLeft: 12, marginRight: 12 },
   topRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 3 },
   orderLabel: { fontSize: 14, fontWeight: "700", letterSpacing: -0.2 },
   badge: {
@@ -364,9 +433,47 @@ const s = StyleSheet.create({
   },
   badgeText: { fontSize: 10, fontWeight: "700", letterSpacing: 0.3 },
   dateLine: { fontSize: 12, fontWeight: "500" },
-  cardRight: { alignItems: "flex-end", marginLeft: 8, gap: 2 },
+  cardRight: { alignItems: "flex-end", gap: 2 },
   totalText: { fontSize: 15, fontWeight: "800", letterSpacing: -0.3 },
 
+  /* Search & Filter Bar */
+  filterBar: {
+    paddingTop: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+  },
+  searchBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 16,
+    paddingHorizontal: 12,
+    height: 40,
+    borderRadius: 10,
+    marginBottom: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    height: "100%",
+  },
+  scrollViewWrap: {
+    height: 36,
+  },
+  pillsContainer: {
+    paddingHorizontal: 16,
+    gap: 8,
+    alignItems: "center",
+  },
+  pill: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  pillText: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
   /* Empty / Guest */
   emptyWrap: { flex: 1, justifyContent: "center", alignItems: "center", padding: 32, paddingBottom: 60 },
   emptyIcon: {
