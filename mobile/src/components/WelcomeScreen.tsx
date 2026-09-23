@@ -37,7 +37,7 @@ export function WelcomeScreen({
   onFinish,
 }: WelcomeScreenProps) {
   const { isLoading } = useAuth();
-  const { isDark } = useTheme();
+  const { isDark, colors } = useTheme();
   const shouldShow = forceShow || !getHasShownWelcomeSession();
   const [visible, setVisible] = useState(shouldShow);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -143,9 +143,8 @@ export function WelcomeScreen({
       {/* Base Layer: Pitch Black */}
       <Animated.View style={[styles.overlay, { opacity: mainFadeAnim }]}>
         
-        {/* Transition Layer: Deep Forest Green */}
-        <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: "#022C22", opacity: bgOpacityAnim }]} />
-        <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: "#064E3B", opacity: Animated.multiply(bgOpacityAnim, 0.5) }]} />
+        {/* Transition Layer: Brand Emerald */}
+        <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: colors.primary, opacity: bgOpacityAnim }]} />
 
         {/* The Spotlight Light Beam */}
         <Animated.View
