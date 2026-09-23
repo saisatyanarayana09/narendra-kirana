@@ -10,9 +10,7 @@ import { View, Platform, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "../components/ErrorBoundary";
-import { FloatingCartBar } from "../components/FloatingCartBar";
 import { WelcomeScreen } from "../components/WelcomeScreen";
-import { navigationRef } from "./navigationRef";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { useLanguage } from "../context/LanguageContext";
@@ -229,8 +227,6 @@ export function MainTabs() {
   const { user } = useAuth();
   const { t } = useLanguage();
   const [currentTab, setCurrentTab] = useState("HomeTab");
-  const [currentRouteName, setCurrentRouteName] = useState("");
-  const [isMinimizedForSession, setIsMinimizedForSession] = useState(false);
 
   // Cart popup bar should only come after welcome screen is completed
   const willShowWelcome = !getHasShownWelcomeSession();
@@ -248,22 +244,7 @@ export function MainTabs() {
     loadCachedOrders().catch(() => {});
   }, [user]);
 
-  // Keep currentRouteName synchronized with nested screen changes (e.g. ProductDetailScreen)
-  useEffect(() => {
-    const updateRoute = () => {
-      try {
-        if (navigationRef.isReady()) {
-          const route = navigationRef.getCurrentRoute();
-          if (route?.name) {
-            setCurrentRouteName(route.name);
-          }
-        }
-      } catch {}
-    };
-    updateRoute();
-    const unsub = navigationRef.addListener("state", updateRoute);
-    return unsub;
-  }, []);
+
 
   // Optimize Android bottom padding
   const bottomPadding = Math.max(
@@ -298,17 +279,6 @@ export function MainTabs() {
             if (route?.name && route.name !== currentTab) {
               setCurrentTab(route.name);
               triggerHaptic("selection");
-              // If user reaches CartTab by ANY means (tab icon, floating bar, etc.), permanently dismiss the floating bar
-              if (route.name === "CartTab") {
-                setIsMinimizedForSession(true);
-              }
-            }
-            if (route) {
-              const deepName =
-                getFocusedRouteNameFromRoute(route) ?? route.name;
-              setCurrentRouteName((prev) =>
-                prev !== deepName ? deepName : prev,
-              );
             }
           },
         }}
@@ -431,24 +401,6 @@ export function MainTabs() {
           })}
         />
       </Tab.Navigator>
-
-      {/* Floating Mini-Cart Bar: shows ONCE on app open if cart has items. Permanently hidden once dismissed or tapped. */}
-      {!isMinimizedForSession &&
-        !isWelcomeActive &&
-        currentTab !== "CartTab" &&
-        currentTab !== "ProfileTab" &&
-        cartItemCount > 0 && (
-          <FloatingCartBar
-            bottomOffset={totalBarHeight + 6}
-            onPress={() => {
-              // Permanently dismiss the bar for this session, then navigate
-              setIsMinimizedForSession(true);
-              navigation.navigate("CartTab", { screen: "CartScreen" });
-            }}
-            onClose={() => setIsMinimizedForSession(true)}
-            currentRouteName={currentRouteName}
-          />
-        )}
     </View>
   );
 }
