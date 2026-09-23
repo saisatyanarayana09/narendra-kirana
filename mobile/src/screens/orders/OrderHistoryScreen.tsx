@@ -210,7 +210,7 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
         >
           {/* Left: Status Icon */}
           <View style={[s.iconCircle, { backgroundColor: meta.bg }]}>
-            <Feather name={meta.icon as any} size={18} color={meta.text} />
+            <Feather name={meta.icon as any} size={22} color={meta.text} />
           </View>
 
           {/* Center: Info */}
@@ -409,32 +409,32 @@ const s = StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 14,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    borderRadius: 16,
     borderWidth: 1,
-    marginBottom: 8,
+    marginBottom: 12,
   },
   iconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 11,
+    width: 46,
+    height: 46,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
-  cardCenter: { flex: 1, marginLeft: 12, marginRight: 12 },
-  topRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 3 },
-  orderLabel: { fontSize: 14, fontWeight: "700", letterSpacing: -0.2 },
+  cardCenter: { flex: 1, marginLeft: 14, marginRight: 12 },
+  topRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 5 },
+  orderLabel: { fontSize: 16, fontWeight: "700", letterSpacing: -0.2 },
   badge: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 6,
     borderWidth: 1,
   },
-  badgeText: { fontSize: 10, fontWeight: "700", letterSpacing: 0.3 },
-  dateLine: { fontSize: 12, fontWeight: "500" },
-  cardRight: { alignItems: "flex-end", gap: 2 },
-  totalText: { fontSize: 15, fontWeight: "800", letterSpacing: -0.3 },
+  badgeText: { fontSize: 10, fontWeight: "800", letterSpacing: 0.4, textTransform: "uppercase" },
+  dateLine: { fontSize: 13, fontWeight: "500", marginTop: 2 },
+  cardRight: { alignItems: "flex-end", gap: 3 },
+  totalText: { fontSize: 17, fontWeight: "800", letterSpacing: -0.4 },
 
   /* Search & Filter Bar */
   filterBar: {
