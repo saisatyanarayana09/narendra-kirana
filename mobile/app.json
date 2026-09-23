@@ -5,9 +5,8 @@
     "owner": "narendra-kirana",
     "version": "1.3.8",
     "orientation": "portrait",
-    "icon": "./assets/narendra-logo.jpg",
+    "icon": "./assets/narendra-logo.png",
     "userInterfaceStyle": "light",
-    "jsEngine": "hermes",
     "scheme": "smartkirana",
     "updates": {
       "url": "https://u.expo.dev/f9d70244-0cb5-46bb-afee-248399d310de",
@@ -22,7 +21,6 @@
       "supportsTablet": true
     },
     "android": {
-      "jsEngine": "hermes",
       "package": "com.narendrakirana.app",
       "googleServicesFile": "./google-services.json",
       "versionCode": 13,
@@ -97,15 +95,7 @@
         "android.permission.REQUEST_INSTALL_PACKAGES"
       ]
     },
-    "splash": {
-      "image": "./assets/narendra-logo.jpg",
-      "resizeMode": "contain",
-      "backgroundColor": "#059669"
-    },
-    "notification": {
-      "icon": "./assets/android-icon-monochrome.png",
-      "color": "#059669"
-    },
+
     "web": {
       "favicon": "./assets/favicon.png"
     },
