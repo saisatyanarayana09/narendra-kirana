@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   View,
@@ -13,6 +14,7 @@ import {
 
 import { useCart } from "../context/CartContext";
 import { triggerHaptic } from "../utils/haptics";
+import { fixImageUrl, getOptimizedImageUrl } from "../utils/image";
 
 const USE_NATIVE_DRIVER = Platform.OS !== "web";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -85,6 +87,18 @@ function FloatingCartBarComponent({
       threshold: thresh,
     };
   }, [cart, storeSettings]);
+
+  const cartImages = useMemo(() => {
+    const items = cart?.items || [];
+    return items
+      .map((item: any) => {
+        const product = item.product || {};
+        const images = product.images || [];
+        return images.length > 0 ? getOptimizedImageUrl(fixImageUrl(images[0]), 100) : null;
+      })
+      .filter(Boolean)
+      .slice(0, 3);
+  }, [cart]);
 
   const prevItemCountRef = useRef(itemCount);
 
@@ -180,8 +194,29 @@ function FloatingCartBarComponent({
       >
         <View style={styles.mainStrip}>
           <View style={styles.leftGroup}>
-            <View style={styles.cartIconCircle}>
-              <Feather name="shopping-bag" size={18} color="#FFFFFF" />
+            <View style={styles.imagesGroup}>
+              {cartImages.length > 0 ? (
+                cartImages.map((uri, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.imageWrapper,
+                      { zIndex: 3 - index, marginLeft: index > 0 ? -12 : 0 },
+                    ]}
+                  >
+                    <Image
+                      source={{ uri }}
+                      style={styles.productThumbnail}
+                      contentFit="cover"
+                      transition={200}
+                    />
+                  </View>
+                ))
+              ) : (
+                <View style={styles.cartIconCircle}>
+                  <Feather name="shopping-bag" size={16} color="#FFFFFF" />
+                </View>
+              )}
               <View style={styles.badgeCount}>
                 <Text style={styles.badgeText}>{itemCount}</Text>
               </View>
@@ -267,23 +302,43 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
+  imagesGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    position: "relative",
+    marginRight: 4,
+  },
+  imageWrapper: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#374151",
+    borderWidth: 2,
+    borderColor: "#1F2937",
+    overflow: "hidden",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  productThumbnail: {
+    width: "100%",
+    height: "100%",
+  },
   cartIconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: "rgba(255, 255, 255, 0.1)",
     justifyContent: "center",
     alignItems: "center",
-    position: "relative",
   },
   badgeCount: {
     position: "absolute",
     top: -6,
-    right: -6,
-    backgroundColor: "#DC2626",
+    right: -10,
+    backgroundColor: "#10B981",
     borderRadius: 10,
-    minWidth: 20,
-    height: 20,
+    minWidth: 18,
+    height: 18,
     paddingHorizontal: 4,
     justifyContent: "center",
     alignItems: "center",
