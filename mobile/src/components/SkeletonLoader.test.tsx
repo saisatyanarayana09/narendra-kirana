@@ -1,6 +1,5 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import { SkeletonLoader } from './SkeletonLoader';
 
 // This is an auto-generated CodiumAI baseline test
 describe('SkeletonLoader Component', () => {
