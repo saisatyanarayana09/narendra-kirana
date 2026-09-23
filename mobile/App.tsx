@@ -88,32 +88,21 @@ function MainApp() {
   });
 
   const [isUpdatingOnStartup, setIsUpdatingOnStartup] = React.useState(false);
-  const [otaStatusText, setOtaStatusText] = React.useState('Checking for updates...');
-
-  const isInitialMountRef = React.useRef(true);
+  const [otaStatusText, setOtaStatusText] = React.useState('Updating...');
 
   React.useEffect(() => {
-    // 1. Listen for startup OTA checking, downloading and pending reload states
+    // Only show launch update screen when an update is ACTUALLY available and downloading/installing
     const unsubscribe = subscribeOtaState((state) => {
-      if (isInitialMountRef.current && state.isChecking) {
+      if (state.isUpdateAvailable && (state.isDownloading || state.isUpdatePending)) {
         setIsUpdatingOnStartup(true);
-        setOtaStatusText('Checking for updates...');
-      } else if (state.isUpdateAvailable && (state.isDownloading || state.isUpdatePending)) {
-        setIsUpdatingOnStartup(true);
-        if (state.isUpdatePending) {
-          setOtaStatusText('Update installed! Restarting app...');
-        } else if (state.isDownloading) {
-          setOtaStatusText('Downloading latest improvements & offers...');
-        }
-      } else if (!state.isChecking && !state.isDownloading && !state.isUpdatePending) {
+        setOtaStatusText('Updating...');
+      } else if (!state.isDownloading && !state.isUpdatePending) {
         setIsUpdatingOnStartup(false);
       }
     });
 
-    // 2. Run startup OTA check
-    runStartupOtaFlow().catch(() => {}).finally(() => {
-      isInitialMountRef.current = false;
-    });
+    // Run background startup OTA check without blocking screen
+    runStartupOtaFlow().catch(() => {});
 
     return () => unsubscribe();
   }, []);
@@ -127,6 +116,8 @@ function MainApp() {
   if (isUpdatingOnStartup) {
     return (
       <OtaLaunchScreen 
+        title="Updating"
+        subtitle="Please wait while the update is applied..."
         statusMessage={otaStatusText}
         onSkip={() => setIsUpdatingOnStartup(false)} 
       />

@@ -92,9 +92,9 @@ export const CategoryCard = memo(function CategoryCard({
             />
             {/* Dark gradient overlay matching web */}
             <LinearGradient
-              colors={["transparent", "rgba(0,0,0,0.4)", "rgba(0,0,0,0.85)"]}
-              locations={[0.3, 0.7, 1]}
-              style={StyleSheet.absoluteFill}
+              colors={["transparent", "rgba(0,0,0,0.35)", "rgba(0,0,0,0.85)"]}
+              locations={[0.3, 0.65, 1]}
+              style={styles.gradientOverlay}
             />
           </>
         ) : (
@@ -110,7 +110,7 @@ export const CategoryCard = memo(function CategoryCard({
             <LinearGradient
               colors={["transparent", "rgba(0,0,0,0.1)", "rgba(0,0,0,0.7)"]}
               locations={[0.4, 0.7, 1]}
-              style={StyleSheet.absoluteFill}
+              style={styles.gradientOverlay}
             />
           </View>
         )}
@@ -137,17 +137,33 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     justifyContent: "flex-end",
     alignItems: "center",
-    padding: 8,
+    padding: 0,
     boxShadow: "0px 1px 3px rgba(0, 0, 0, 0.05)",
-    elevation: 1,
+    elevation: 2,
+    position: "relative",
   },
   image: {
-    ...StyleSheet.absoluteFill,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     width: "100%",
     height: "100%",
   },
+  gradientOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
   fallbackContainer: {
-    ...StyleSheet.absoluteFill,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -158,7 +174,7 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 12,
-    lineHeight: 16,
+    lineHeight: 15,
     fontWeight: "800",
     textAlign: "center",
     color: "#FFFFFF",
@@ -166,5 +182,7 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
     zIndex: 10,
+    paddingHorizontal: 6,
+    paddingBottom: 8,
   },
 });

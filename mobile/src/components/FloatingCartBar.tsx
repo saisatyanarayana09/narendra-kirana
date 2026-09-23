@@ -52,6 +52,7 @@ function FloatingCartBarComponent({
   currentRouteName,
 }: FloatingCartBarProps) {
   const { cart, storeSettings } = useCart();
+  const [isDismissed, setIsDismissed] = useState(false);
   const slideAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -60,10 +61,10 @@ function FloatingCartBarComponent({
   const progressAnim = useRef(new Animated.Value(0)).current;
   const arrowAnim = useRef(new Animated.Value(0)).current;
 
-  const { itemCount, totalAmount, isFreeDelivery, shortfall } = useMemo(() => {
+  const { itemCount, totalAmount, isFreeDelivery, shortfall, threshold } = useMemo(() => {
     const items = cart?.items || [];
     const count = items.reduce(
-      (sum: number, item: any) => sum + (item.quantity || 1),
+      (sum: number, item: any) => sum + (item.quantity > 0 ? item.quantity : 0),
       0,
     );
     const rawSub = items.reduce((sum: number, item: any) => {
@@ -79,21 +80,28 @@ function FloatingCartBarComponent({
       return sum + price * (item.quantity || 1);
     }, 0);
     const tot = parseFloat(cart?.items_total || String(rawSub)) || rawSub;
-    const threshold = parseFloat(storeSettings?.free_delivery_threshold || "0");
-    const free = threshold > 0 && tot >= threshold;
+    const thresh = parseFloat(storeSettings?.free_delivery_threshold || "200") || 200;
+    const free = thresh > 0 && tot >= thresh;
     const short =
-      threshold > 0 && !free
-        ? Math.max(0, Number((threshold - tot).toFixed(2)))
+      thresh > 0 && !free
+        ? Math.max(0, Number((thresh - tot).toFixed(2)))
         : 0;
     return {
       itemCount: count,
       totalAmount: tot,
       isFreeDelivery: free,
       shortfall: short,
+      threshold: thresh,
     };
   }, [cart, storeSettings]);
 
   const prevItemCountRef = useRef(itemCount);
+
+  useEffect(() => {
+    if (itemCount > prevItemCountRef.current) {
+      setIsDismissed(false);
+    }
+  }, [itemCount]);
 
   const handleOpenCart = useCallback(() => {
     triggerHaptic("selection");
@@ -102,15 +110,16 @@ function FloatingCartBarComponent({
 
   const handleDismiss = useCallback(() => {
     triggerHaptic("light");
+    setIsDismissed(true);
     Animated.parallel([
       Animated.timing(slideAnim, {
         toValue: 80,
-        duration: 250,
+        duration: 200,
         useNativeDriver: USE_NATIVE_DRIVER,
       }),
       Animated.timing(opacityAnim, {
         toValue: 0,
-        duration: 250,
+        duration: 200,
         useNativeDriver: USE_NATIVE_DRIVER,
       }),
     ]).start(() => {
@@ -181,22 +190,19 @@ function FloatingCartBarComponent({
     prevItemCountRef.current = itemCount;
   }, [itemCount, slideAnim, opacityAnim, bounceAnim, badgeScaleAnim]);
 
-  // Animate slim Free Delivery progress line indicator
+  // Animate Free Delivery progress indicator
   useEffect(() => {
-    const threshold = parseFloat(storeSettings?.free_delivery_threshold || "0");
     const targetRatio =
       threshold > 0
         ? Math.min(1, Math.max(0, totalAmount / threshold))
-        : threshold === 0 && totalAmount > 0
-          ? 1
-          : 0;
+        : 1;
     Animated.timing(progressAnim, {
       toValue: targetRatio,
       duration: 350,
       easing: Easing.out(Easing.quad),
       useNativeDriver: false,
     }).start();
-  }, [totalAmount, storeSettings?.free_delivery_threshold, progressAnim]);
+  }, [totalAmount, threshold, progressAnim]);
 
   useEffect(() => {
     Animated.loop(
@@ -216,6 +222,7 @@ function FloatingCartBarComponent({
   }, [arrowAnim]);
 
   if (
+    isDismissed ||
     itemCount === 0 ||
     (currentRouteName && HIDE_ON_SCREENS.includes(currentRouteName))
   ) {
@@ -244,22 +251,6 @@ function FloatingCartBarComponent({
           end={{ x: 1, y: 1 }}
           style={styles.container}
         >
-          {/* Slim 2.5px Progress Indicator Line for Free Delivery */}
-          <View style={styles.progressBarBackground}>
-            <Animated.View
-              style={[
-                styles.progressBarFill,
-                {
-                  width: progressAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ["0%", "100%"],
-                  }),
-                  backgroundColor: isFreeDelivery ? "#10B981" : "#34D399",
-                },
-              ]}
-            />
-          </View>
-
           {/* Micro Progress / Notification Banner */}
           <View style={styles.topRibbon}>
             <TouchableOpacity
@@ -308,16 +299,43 @@ function FloatingCartBarComponent({
               )}
             </TouchableOpacity>
 
-            {/* Close Button to Hide / Dismiss */}
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={handleDismiss}
-              activeOpacity={0.7}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Feather name="x" size={14} color="#FFFFFF" />
-            </TouchableOpacity>
+            <View style={styles.ribbonRightGroup}>
+              {threshold > 0 && (
+                <Text style={styles.progressRatioText}>
+                  {isFreeDelivery
+                    ? "FREE"
+                    : `₹${Math.round(totalAmount)}/₹${Math.round(threshold)}`}
+                </Text>
+              )}
+              {/* Close Button to Hide / Dismiss */}
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={handleDismiss}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Feather name="x" size={14} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
           </View>
+
+          {/* Prominent Visible Progress Bar Track */}
+          {threshold > 0 && (
+            <View style={styles.progressTrackContainer}>
+              <Animated.View
+                style={[
+                  styles.progressTrackFill,
+                  {
+                    width: progressAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ["0%", "100%"],
+                    }),
+                    backgroundColor: isFreeDelivery ? "#10B981" : "#FDE047",
+                  },
+                ]}
+              />
+            </View>
+          )}
 
           {/* Main Action Strip */}
           <TouchableOpacity
@@ -388,19 +406,27 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     overflow: "hidden",
   },
-  progressBarBackground: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 4,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    overflow: "hidden",
-    zIndex: 10,
+  ribbonRightGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
-  progressBarFill: {
+  progressRatioText: {
+    color: "#FDE047",
+    fontSize: 11,
+    fontWeight: "800",
+    fontVariant: ["tabular-nums"],
+  },
+  progressTrackContainer: {
+    height: 4,
+    backgroundColor: "rgba(0, 0, 0, 0.25)",
+    borderRadius: 2,
+    overflow: "hidden",
+    marginBottom: 8,
+  },
+  progressTrackFill: {
     height: "100%",
-    backgroundColor: "#34D399",
+    borderRadius: 2,
   },
   topRibbon: {
     flexDirection: "row",

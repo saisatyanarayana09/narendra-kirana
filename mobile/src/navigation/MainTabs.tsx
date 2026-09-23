@@ -236,7 +236,10 @@ export function MainTabs() {
   const willShowWelcome = !getHasShownWelcomeSession();
   const [isWelcomeActive, setIsWelcomeActive] = useState(willShowWelcome);
 
-  const cartItemCount = cart?.items?.length || 0;
+  const cartItemCount = (cart?.items || []).reduce(
+    (sum: number, item: any) => sum + (item.quantity > 0 ? item.quantity : 0),
+    0,
+  );
   const prevCartItemCountRef = useRef(cartItemCount);
 
   useEffect(() => {
