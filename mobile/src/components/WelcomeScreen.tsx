@@ -219,35 +219,16 @@ export function WelcomeScreen({
     >
       <Animated.View style={[styles.overlay, { opacity: mainFadeAnim }]}>
         <LinearGradient
-          colors={
-            isDark
-              ? ["#090D16", "#0C1220", "#064E3B"]
-              : ["#FFFFFF", "#F0FDF4", "#ECFDF5"]
-          }
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
+          colors={["#064E3B", "#047857", "#10B981"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}
         />
 
         {/* Ambient Decoration */}
-        <View
-          style={[
-            styles.circle1,
-            isDark && { borderColor: "rgba(52, 211, 153, 0.1)" },
-          ]}
-        />
-        <View
-          style={[
-            styles.circle2,
-            isDark && { borderColor: "rgba(52, 211, 153, 0.12)" },
-          ]}
-        />
-        <View
-          style={[
-            styles.circle3,
-            isDark && { backgroundColor: "rgba(52, 211, 153, 0.06)" },
-          ]}
-        />
+        <View style={styles.circle1} />
+        <View style={styles.circle2} />
+        <View style={styles.circle3} />
 
         <TouchableOpacity
           style={styles.touchContainer}
@@ -279,8 +260,7 @@ export function WelcomeScreen({
             >
               <Animated.Text
                 style={[
-                  styles.brandEmerald, 
-                  isDark && { color: "#34D399" }, 
+                  styles.brandEmerald,
                   { transform: [{ translateX: brandLeftTranslateX }] }
                 ]}
               >
@@ -289,7 +269,6 @@ export function WelcomeScreen({
               <Animated.Text
                 style={[
                   styles.brandPrimary,
-                  isDark && { color: colors.primary },
                   { transform: [{ translateX: brandRightTranslateX }] }
                 ]}
               >
@@ -298,12 +277,7 @@ export function WelcomeScreen({
             </Animated.View>
 
             <Animated.View style={{ opacity: greetingFadeAnim }}>
-              <Text
-                style={[
-                  styles.greetingHeadline,
-                  isDark && { color: "#F8FAFC" },
-                ]}
-              >
+              <Text style={styles.greetingHeadline}>
                 {greeting},{"\n"}
                 {name}.
               </Text>
@@ -313,7 +287,6 @@ export function WelcomeScreen({
           <Animated.Text
             style={[
               styles.dismissHint,
-              isDark && { color: "rgba(148, 163, 184, 0.6)" },
               { opacity: hintOpacityAnim }
             ]}
           >
@@ -340,24 +313,24 @@ const styles = StyleSheet.create({
     height: 280,
     borderRadius: 140,
     borderWidth: 1,
-    borderColor: "rgba(16, 185, 129, 0.06)",
+    borderColor: "rgba(255, 255, 255, 0.15)",
   },
   circle2: {
     position: "absolute",
     alignSelf: "center",
-    width: 200,
-    height: 200,
-    borderRadius: 100,
+    width: 420,
+    height: 420,
+    borderRadius: 210,
     borderWidth: 1,
-    borderColor: "rgba(16, 185, 129, 0.08)",
+    borderColor: "rgba(255, 255, 255, 0.1)",
   },
   circle3: {
     position: "absolute",
     alignSelf: "center",
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: "rgba(16, 185, 129, 0.04)",
+    width: 560,
+    height: 560,
+    borderRadius: 280,
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
   },
   touchContainer: {
     flex: 1,
@@ -390,21 +363,21 @@ const styles = StyleSheet.create({
   brandEmerald: {
     fontSize: 15,
     fontWeight: "900",
-    color: "#064E3B",
+    color: "#FFFFFF",
     letterSpacing: 4,
     textTransform: "uppercase",
   },
   brandPrimary: {
     fontSize: 15,
     fontWeight: "900",
-    color: "#16A34A",
+    color: "#A7F3D0",
     letterSpacing: 4,
     textTransform: "uppercase",
   },
   greetingHeadline: {
     fontSize: 36,
     fontWeight: "900",
-    color: "#0F172A",
+    color: "#FFFFFF",
     textAlign: "center",
     letterSpacing: -0.5,
     lineHeight: 44,
@@ -414,7 +387,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 60,
     fontSize: 12,
-    color: "rgba(100, 116, 139, 0.4)",
+    color: "rgba(255, 255, 255, 0.6)",
     fontWeight: "500",
   },
 });
