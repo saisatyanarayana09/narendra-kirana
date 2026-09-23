@@ -11,6 +11,10 @@ import {
 } from '@expo-google-fonts/nunito';
 import { View, Text, Platform, LogBox } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
+
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 // Suppress third-party strict deprecation warnings from react-native-web / react-navigation
 LogBox.ignoreLogs([
@@ -124,20 +128,28 @@ function MainApp() {
     );
   }
 
+  const onLayoutRootView = React.useCallback(async () => {
+    if (fontsLoaded || fontError || Platform.OS === 'web') {
+      await SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [fontsLoaded, fontError]);
+
   return (
-    <ErrorBoundary>
-      <ThemeProvider>
-        <LanguageProvider>
-          <SafeAreaProvider>
-            <AuthProvider>
-              <CartProvider>
-                <ThemedAppContent />
-              </CartProvider>
-            </AuthProvider>
-          </SafeAreaProvider>
-        </LanguageProvider>
-      </ThemeProvider>
-    </ErrorBoundary>
+    <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+      <ErrorBoundary>
+        <ThemeProvider>
+          <LanguageProvider>
+            <SafeAreaProvider>
+              <AuthProvider>
+                <CartProvider>
+                  <ThemedAppContent />
+                </CartProvider>
+              </AuthProvider>
+            </SafeAreaProvider>
+          </LanguageProvider>
+        </ThemeProvider>
+      </ErrorBoundary>
+    </View>
   );
 }
 
