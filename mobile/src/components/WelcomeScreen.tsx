@@ -45,6 +45,8 @@ export function WelcomeScreen({
   const logoFadeAnim = useRef(new Animated.Value(0)).current;
 
   const brandFadeAnim = useRef(new Animated.Value(0)).current;
+  const brandLeftTranslateX = useRef(new Animated.Value(-50)).current;
+  const brandRightTranslateX = useRef(new Animated.Value(50)).current;
   const greetingFadeAnim = useRef(new Animated.Value(0)).current;
 
   // Continuous animations
@@ -65,6 +67,8 @@ export function WelcomeScreen({
       logoTranslateYAnim.setValue(24);
       logoFadeAnim.setValue(0);
       brandFadeAnim.setValue(0);
+      brandLeftTranslateX.setValue(-50);
+      brandRightTranslateX.setValue(50);
       greetingFadeAnim.setValue(0);
 
       // Fade in background immediately
@@ -95,11 +99,25 @@ export function WelcomeScreen({
             useNativeDriver: USE_NATIVE_DRIVER,
           }),
         ]),
-        Animated.timing(brandFadeAnim, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: USE_NATIVE_DRIVER,
-        }),
+        Animated.parallel([
+          Animated.timing(brandFadeAnim, {
+            toValue: 1,
+            duration: 400,
+            useNativeDriver: USE_NATIVE_DRIVER,
+          }),
+          Animated.spring(brandLeftTranslateX, {
+            toValue: 0,
+            tension: 50,
+            friction: 7,
+            useNativeDriver: USE_NATIVE_DRIVER,
+          }),
+          Animated.spring(brandRightTranslateX, {
+            toValue: 0,
+            tension: 50,
+            friction: 7,
+            useNativeDriver: USE_NATIVE_DRIVER,
+          })
+        ]),
         Animated.timing(greetingFadeAnim, {
           toValue: 1,
           duration: 400,
@@ -242,19 +260,24 @@ export function WelcomeScreen({
             <Animated.View
               style={[styles.brandRow, { opacity: brandFadeAnim }]}
             >
-              <Text
-                style={[styles.brandEmerald, isDark && { color: "#34D399" }]}
+              <Animated.Text
+                style={[
+                  styles.brandEmerald, 
+                  isDark && { color: "#34D399" }, 
+                  { transform: [{ translateX: brandLeftTranslateX }] }
+                ]}
               >
                 NARENDRA{" "}
-              </Text>
-              <Text
+              </Animated.Text>
+              <Animated.Text
                 style={[
                   styles.brandPrimary,
                   isDark && { color: colors.primary },
+                  { transform: [{ translateX: brandRightTranslateX }] }
                 ]}
               >
                 KIRANA
-              </Text>
+              </Animated.Text>
             </Animated.View>
 
             <Animated.View style={{ opacity: greetingFadeAnim }}>
