@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   Platform,
+  Animated,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -21,6 +22,37 @@ import {
   loadCachedOrders,
   saveCachedOrders,
 } from "../../services/ordersCache";
+
+const SkeletonOrderCard = ({ colors, isDark }: { colors: any, isDark: boolean }) => {
+  const pulseAnim = useRef(new Animated.Value(0.4)).current;
+  
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 0.4, duration: 800, useNativeDriver: true })
+      ])
+    ).start();
+  }, []);
+
+  const baseBg = isDark ? "#1E293B" : "#F1F5F9";
+
+  return (
+    <Animated.View style={[styles.orderCard, { backgroundColor: colors.surface, borderColor: colors.border, opacity: pulseAnim }]}>
+      <View style={styles.cardHeader}>
+        <View style={{ gap: 8 }}>
+          <View style={{ width: 80, height: 20, backgroundColor: baseBg, borderRadius: 4 }} />
+          <View style={{ width: 120, height: 14, backgroundColor: baseBg, borderRadius: 4 }} />
+        </View>
+        <View style={{ width: 90, height: 28, backgroundColor: baseBg, borderRadius: 100 }} />
+      </View>
+      <View style={{ paddingTop: 16, marginTop: 16, borderTopWidth: 1, borderTopColor: colors.border }}>
+        <View style={{ width: "100%", height: 16, backgroundColor: baseBg, borderRadius: 4, marginBottom: 12 }} />
+        <View style={{ width: "60%", height: 24, backgroundColor: baseBg, borderRadius: 4 }} />
+      </View>
+    </Animated.View>
+  );
+};
 
 export function OrderHistoryScreen({
   navigation,
@@ -148,56 +180,32 @@ export function OrderHistoryScreen({
     if (isDark) {
       switch (status) {
         case "COMPLETED":
-          return {
-            bg: "rgba(16, 185, 129, 0.15)",
-            text: "#34D399",
-            border: "rgba(16, 185, 129, 0.3)",
-          };
+          return { bg: "rgba(16, 185, 129, 0.15)", text: "#34D399", border: "rgba(16, 185, 129, 0.3)", icon: "check-circle" };
         case "REJECTED":
-          return {
-            bg: "rgba(244, 63, 94, 0.15)",
-            text: "#FB7185",
-            border: "rgba(244, 63, 94, 0.3)",
-          };
+          return { bg: "rgba(244, 63, 94, 0.15)", text: "#FB7185", border: "rgba(244, 63, 94, 0.3)", icon: "x-circle" };
         case "READY":
-          return {
-            bg: "rgba(59, 130, 246, 0.15)",
-            text: "#60A5FA",
-            border: "rgba(59, 130, 246, 0.3)",
-          };
+          return { bg: "rgba(59, 130, 246, 0.15)", text: "#60A5FA", border: "rgba(59, 130, 246, 0.3)", icon: "truck" };
         case "PREPARING":
-          return {
-            bg: "rgba(245, 158, 11, 0.15)",
-            text: "#FBBF24",
-            border: "rgba(245, 158, 11, 0.3)",
-          };
+          return { bg: "rgba(245, 158, 11, 0.15)", text: "#FBBF24", border: "rgba(245, 158, 11, 0.3)", icon: "package" };
         case "NEW":
-          return {
-            bg: "rgba(99, 102, 241, 0.15)",
-            text: "#818CF8",
-            border: "rgba(99, 102, 241, 0.3)",
-          };
+          return { bg: "rgba(99, 102, 241, 0.15)", text: "#818CF8", border: "rgba(99, 102, 241, 0.3)", icon: "clock" };
         default:
-          return {
-            bg: "rgba(148, 163, 184, 0.15)",
-            text: "#94A3B8",
-            border: "rgba(148, 163, 184, 0.3)",
-          };
+          return { bg: "rgba(148, 163, 184, 0.15)", text: "#94A3B8", border: "rgba(148, 163, 184, 0.3)", icon: "info" };
       }
     }
     switch (status) {
       case "COMPLETED":
-        return { bg: "#ECFDF5", text: "#047857", border: "#A7F3D0" }; // emerald
+        return { bg: "#ECFDF5", text: "#047857", border: "#A7F3D0", icon: "check-circle" };
       case "REJECTED":
-        return { bg: "#FFF1F2", text: "#BE123C", border: "#FECDD3" }; // rose
+        return { bg: "#FFF1F2", text: "#BE123C", border: "#FECDD3", icon: "x-circle" };
       case "READY":
-        return { bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE" }; // blue
+        return { bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE", icon: "truck" };
       case "PREPARING":
-        return { bg: "#FFFBEB", text: "#B45309", border: "#FDE68A" }; // amber
+        return { bg: "#FFFBEB", text: "#B45309", border: "#FDE68A", icon: "package" };
       case "NEW":
-        return { bg: "#EEF2FF", text: "#4338CA", border: "#C7D2FE" }; // indigo
+        return { bg: "#EEF2FF", text: "#4338CA", border: "#C7D2FE", icon: "clock" };
       default:
-        return { bg: "#F8FAFC", text: "#475569", border: "#E2E8F0" }; // slate
+        return { bg: "#F8FAFC", text: "#475569", border: "#E2E8F0", icon: "info" };
     }
   };
 
@@ -269,9 +277,13 @@ export function OrderHistoryScreen({
                   {
                     backgroundColor: statusStyle.bg,
                     borderColor: statusStyle.border,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 4
                   },
                 ]}
               >
+                <Feather name={statusStyle.icon as any} size={12} color={statusStyle.text} />
                 <Text style={[styles.statusText, { color: statusStyle.text }]}>
                   {item.status}
                 </Text>
@@ -295,7 +307,7 @@ export function OrderHistoryScreen({
                   TOTAL
                 </Text>
                 <Text style={[styles.totalAmount, { color: colors.text }]}>
-                  ₹{totalFormatted}
+                  {'\u20B9'}{totalFormatted}
                 </Text>
               </View>
             </View>
@@ -402,20 +414,24 @@ export function OrderHistoryScreen({
         <View
           style={[
             styles.header,
-            {
-              backgroundColor: colors.surface,
-              borderBottomColor: colors.border,
-            },
+            { backgroundColor: colors.surface, borderBottomColor: colors.border, flexDirection: "row", alignItems: "center" },
           ]}
         >
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
-            Order History
-          </Text>
-          <Text
-            style={[styles.headerSubtitle, { color: colors.textSecondary }]}
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={handleBack}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            Track and review your past purchases.
-          </Text>
+            <Feather name="arrow-left" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <View style={{ flex: 1, marginLeft: 16 }}>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>
+              Order History
+            </Text>
+            <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
+              Track and review your past purchases.
+            </Text>
+          </View>
         </View>
         <View style={styles.guestStateContainer}>
           <View
@@ -455,9 +471,26 @@ export function OrderHistoryScreen({
 
   if (loading && page === 1 && !refreshing && orders.length === 0) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["top"]}>
+        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border, flexDirection: "row", alignItems: "center" }]}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={handleBack}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Feather name="arrow-left" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <View style={{ flex: 1, marginLeft: 16 }}>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>Order History</Text>
+            <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>Track and review your past purchases.</Text>
+          </View>
+        </View>
+        <View style={{ padding: 16, gap: 16 }}>
+          <SkeletonOrderCard colors={colors} isDark={isDark} />
+          <SkeletonOrderCard colors={colors} isDark={isDark} />
+          <SkeletonOrderCard colors={colors} isDark={isDark} />
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -470,15 +503,24 @@ export function OrderHistoryScreen({
       <View
         style={[
           styles.header,
-          { backgroundColor: colors.surface, borderBottomColor: colors.border },
+          { backgroundColor: colors.surface, borderBottomColor: colors.border, flexDirection: "row", alignItems: "center" },
         ]}
       >
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          Order History
-        </Text>
-        <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-          Track and review your past purchases.
-        </Text>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={handleBack}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Feather name="arrow-left" size={24} color={colors.text} />
+        </TouchableOpacity>
+        <View style={{ flex: 1, marginLeft: 16 }}>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            Order History
+          </Text>
+          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
+            Track and review your past purchases.
+          </Text>
+        </View>
       </View>
 
       {orders.length === 0 ? (
