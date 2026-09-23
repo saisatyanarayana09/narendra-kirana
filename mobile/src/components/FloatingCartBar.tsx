@@ -186,9 +186,18 @@ function FloatingCartBarComponent({
           ]),
         ]).start();
       }
+
+      // Auto-dismiss after 4.5 seconds so user doesn't have to manually close it
+      const timerId = setTimeout(() => {
+        handleDismiss();
+      }, 4500);
+
+      prevItemCountRef.current = itemCount;
+      return () => clearTimeout(timerId);
+    } else {
+      prevItemCountRef.current = itemCount;
     }
-    prevItemCountRef.current = itemCount;
-  }, [itemCount, slideAnim, opacityAnim, bounceAnim, badgeScaleAnim]);
+  }, [itemCount, slideAnim, opacityAnim, bounceAnim, badgeScaleAnim, handleDismiss]);
 
   // Animate Free Delivery progress indicator
   useEffect(() => {
