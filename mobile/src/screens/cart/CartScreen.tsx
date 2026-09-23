@@ -29,7 +29,8 @@ import { triggerHaptic } from "../../utils/haptics";
 
 if (
   Platform.OS === "android" &&
-  typeof UIManager?.setLayoutAnimationEnabledExperimental === "function"
+  typeof UIManager?.setLayoutAnimationEnabledExperimental === "function" &&
+  !(global as any).nativeFabricUIManager
 ) {
   try {
     UIManager.setLayoutAnimationEnabledExperimental(true);

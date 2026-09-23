@@ -445,7 +445,10 @@ export function MainTabs() {
           <FloatingCartBar
             bottomOffset={totalBarHeight + 6}
             onPress={() => {
-              navigation.navigate("CartTab", { screen: "CartScreen" });
+              navigation.navigate("Main" as any, {
+                screen: "CartTab",
+                params: { screen: "CartScreen" },
+              } as any);
             }}
             onClose={() => setIsMinimizedForSession(true)}
             currentRouteName={currentRouteName}
