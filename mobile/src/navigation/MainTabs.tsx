@@ -3,7 +3,6 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import {
   useNavigation,
   getFocusedRouteNameFromRoute,
-  CommonActions,
 } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React, { useState, useEffect, useRef } from "react";
@@ -438,25 +437,10 @@ export function MainTabs() {
           <FloatingCartBar
             bottomOffset={totalBarHeight + 6}
             onPress={() => {
-              // Dispatch to the RootNavigator to go into Main -> CartTab
-              navigation.dispatch(
-                CommonActions.navigate({
-                  name: "Main",
-                  params: {
-                    screen: "CartTab",
-                    params: { screen: "CartScreen" },
-                  },
-                })
-              );
-              // Fallback
-              setTimeout(() => {
-                if (currentTab !== "CartTab" && navigationRef.isReady()) {
-                  (navigationRef as any).navigate("Main", {
-                    screen: "CartTab",
-                    params: { screen: "CartScreen" },
-                  });
-                }
-              }, 100);
+              // We are INSIDE MainTabs (which IS the "Main" screen).
+              // The `navigation` here belongs to the Tab.Navigator.
+              // So we navigate directly to CartTab — NOT to "Main".
+              navigation.navigate("CartTab", { screen: "CartScreen" });
             }}
             onClose={() => setIsMinimizedForSession(true)}
             currentRouteName={currentRouteName}
