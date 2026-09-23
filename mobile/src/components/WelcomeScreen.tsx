@@ -8,7 +8,6 @@ import {
   Modal,
   Platform,
   StatusBar,
-  Easing,
   Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -22,8 +21,7 @@ import {
 } from "../utils/welcomeSession";
 
 const USE_NATIVE_DRIVER = Platform.OS !== "web";
-const { width, height } = Dimensions.get("window");
-const GRADIENT_SIZE = Math.max(width, height) * 1.5;
+const { height } = Dimensions.get("window");
 
 export { resetWelcomeSession };
 
@@ -39,16 +37,20 @@ export function WelcomeScreen({
   onFinish,
 }: WelcomeScreenProps) {
   const { isLoading } = useAuth();
-  const { colors, isDark } = useTheme();
+  const { isDark } = useTheme();
   const shouldShow = forceShow || !getHasShownWelcomeSession();
   const [visible, setVisible] = useState(shouldShow);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Instantly block screen
   const mainFadeAnim = useRef(new Animated.Value(shouldShow ? 1 : 0)).current;
-  const logoScaleAnim = useRef(new Animated.Value(0.95)).current;
+  
+  // Cinematic Animation values
+  const bgOpacityAnim = useRef(new Animated.Value(0)).current; // Fades from Pitch Black to Deep Green
+  const spotlightY = useRef(new Animated.Value(-height)).current;
   const logoFadeAnim = useRef(new Animated.Value(0)).current;
+  const logoScaleAnim = useRef(new Animated.Value(0.9)).current;
   const textFadeAnim = useRef(new Animated.Value(0)).current;
-  const gradientRotateAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (isLoading) return;
@@ -59,44 +61,51 @@ export function WelcomeScreen({
 
       // Reset
       mainFadeAnim.setValue(1);
-      logoScaleAnim.setValue(0.95);
+      bgOpacityAnim.setValue(0);
+      spotlightY.setValue(-height);
       logoFadeAnim.setValue(0);
+      logoScaleAnim.setValue(0.9);
       textFadeAnim.setValue(0);
-      gradientRotateAnim.setValue(0);
 
-      // Start continuous gradient swirl
-      Animated.loop(
-        Animated.timing(gradientRotateAnim, {
-          toValue: 1,
-          duration: 15000,
-          easing: Easing.linear,
-          useNativeDriver: USE_NATIVE_DRIVER,
-        })
-      ).start();
+      // The Spotlight Sweep!
+      Animated.timing(spotlightY, {
+        toValue: height * 1.5,
+        duration: 2200,
+        useNativeDriver: USE_NATIVE_DRIVER,
+      }).start();
 
+      // Reveal sequence triggered exactly when spotlight hits the center
       Animated.parallel([
+        Animated.timing(bgOpacityAnim, {
+          toValue: 1,
+          duration: 1500,
+          delay: 500,
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
         Animated.timing(logoFadeAnim, {
           toValue: 1,
-          duration: 800,
+          duration: 1000,
+          delay: 500,
           useNativeDriver: USE_NATIVE_DRIVER,
         }),
         Animated.spring(logoScaleAnim, {
           toValue: 1,
-          tension: 20,
-          friction: 7,
+          tension: 10,
+          friction: 8,
+          delay: 500,
           useNativeDriver: USE_NATIVE_DRIVER,
         }),
         Animated.timing(textFadeAnim, {
           toValue: 1,
           duration: 1000,
-          delay: 400,
+          delay: 800,
           useNativeDriver: USE_NATIVE_DRIVER,
-        }),
+        })
       ]).start();
 
       timerRef.current = setTimeout(() => {
         dismiss();
-      }, 3500); // slightly longer so they can enjoy the moving gradient
+      }, 3200);
     } else if (forceShow) {
       setVisible(true);
     }
@@ -111,7 +120,7 @@ export function WelcomeScreen({
   const dismiss = () => {
     Animated.timing(mainFadeAnim, {
       toValue: 0,
-      duration: 500,
+      duration: 600,
       useNativeDriver: USE_NATIVE_DRIVER,
     }).start(() => {
       setVisible(false);
@@ -121,11 +130,6 @@ export function WelcomeScreen({
 
   if (!visible) return null;
 
-  const spin = gradientRotateAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0deg", "360deg"],
-  });
-
   return (
     <Modal
       transparent
@@ -134,31 +138,29 @@ export function WelcomeScreen({
       animationType="none"
       onRequestClose={dismiss}
     >
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor="transparent" translucent />
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      
+      {/* Base Layer: Pitch Black */}
       <Animated.View style={[styles.overlay, { opacity: mainFadeAnim }]}>
         
-        {/* Moving Background Gradient */}
+        {/* Transition Layer: Deep Forest Green */}
+        <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: "#022C22", opacity: bgOpacityAnim }]} />
+        <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: "#064E3B", opacity: Animated.multiply(bgOpacityAnim, 0.5) }]} />
+
+        {/* The Spotlight Light Beam */}
         <Animated.View
           style={[
-            styles.movingGradientContainer,
-            { transform: [{ rotate: spin }] }
+            styles.spotlightWrapper,
+            { transform: [{ translateY: spotlightY }, { rotate: '-25deg' }] }
           ]}
         >
           <LinearGradient
-            colors={
-              isDark
-                ? ["#064E3B", "#047857", "#115E59"]
-                : ["#4ADE80", "#10B981", "#059669"]
-            }
-            locations={[0.2, 0.5, 0.8]}
+            colors={['transparent', 'rgba(255,255,255,0.25)', 'transparent']}
             start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+            end={{ x: 0, y: 1 }}
             style={StyleSheet.absoluteFill}
           />
         </Animated.View>
-
-        {/* Frost / Glass effect overlay to make the moving gradient feel soft and premium */}
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.4)' }]} />
 
         {/* Foreground Content */}
         <View style={styles.contentContainer}>
@@ -179,12 +181,7 @@ export function WelcomeScreen({
           </Animated.View>
 
           <Animated.View style={[styles.brandRow, { opacity: textFadeAnim }]}>
-            <Text
-              style={[
-                styles.brandText,
-                { color: isDark ? "#FFFFFF" : "#022C22" }
-              ]}
-            >
+            <Text style={styles.brandText}>
               NARENDRA KIRANA
             </Text>
           </Animated.View>
@@ -202,15 +199,14 @@ const styles = StyleSheet.create({
     height: "100%",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#000",
+    backgroundColor: "#000000",
     overflow: "hidden",
   },
-  movingGradientContainer: {
+  spotlightWrapper: {
     position: "absolute",
-    width: GRADIENT_SIZE,
-    height: GRADIENT_SIZE,
-    top: -(GRADIENT_SIZE - height) / 2,
-    left: -(GRADIENT_SIZE - width) / 2,
+    width: "200%",
+    height: 300,
+    top: 0,
   },
   contentContainer: {
     flex: 1,
@@ -237,5 +233,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: 5,
     textTransform: "uppercase",
+    color: "#FFFFFF",
   },
 });
