@@ -37,6 +37,7 @@ export function WelcomeScreen({
   const { user, isLoading } = useAuth();
   const { colors, isDark } = useTheme();
   const [visible, setVisible] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const mainFadeAnim = useRef(new Animated.Value(0)).current;
   const logoScaleAnim = useRef(new Animated.Value(0.85)).current;
@@ -102,13 +103,17 @@ export function WelcomeScreen({
         }),
       ]).start();
 
-      const timer = setTimeout(() => {
+      timerRef.current = setTimeout(() => {
         dismiss();
       }, 2500);
-
-      return () => clearTimeout(timer);
     }
-  }, [user, isLoading, forceShow]);
+  }, [isLoading, forceShow]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   const dismiss = () => {
     Animated.timing(mainFadeAnim, {
