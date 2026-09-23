@@ -1,13 +1,12 @@
 import { Feather } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import React, { useEffect, useRef, useMemo, useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   Animated,
-  Dimensions,
   Platform,
   Easing,
 } from "react-native";
@@ -17,7 +16,14 @@ import { triggerHaptic } from "../utils/haptics";
 import { fixImageUrl, getOptimizedImageUrl } from "../utils/image";
 
 const USE_NATIVE_DRIVER = Platform.OS !== "web";
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// Module-level flag: survives component re-mounts. Resets only on full app restart.
+let _dismissedThisSession = false;
+
+/** Call this to reset the floating bar (e.g. on logout). */
+export function resetFloatingCartBar() {
+  _dismissedThisSession = false;
+}
 
 interface FloatingCartBarProps {
   bottomOffset: number;
@@ -48,45 +54,48 @@ function FloatingCartBarComponent({
   currentRouteName,
 }: FloatingCartBarProps) {
   const { cart, storeSettings } = useCart();
-  const [isDismissed, setIsDismissed] = useState(false);
-  
+
   const slideAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(1)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
+  const hasAnimatedIn = useRef(false);
 
-  const { itemCount, totalAmount, isFreeDelivery, shortfall, threshold } = useMemo(() => {
-    const items = cart?.items || [];
-    const count = items.reduce(
-      (sum: number, item: any) => sum + (item.quantity > 0 ? item.quantity : 0),
-      0,
-    );
-    const rawSub = items.reduce((sum: number, item: any) => {
-      const itemSub = parseFloat(item.subtotal || 0);
-      if (itemSub > 0) return sum + itemSub;
-      const p =
-        typeof item.product === "object" && item.product !== null
-          ? item.product
-          : {};
-      const price = parseFloat(
-        item.unit_price || p.offer_price || p.price || p.regular_price || 0,
+  const { itemCount, totalAmount, isFreeDelivery, shortfall, threshold } =
+    useMemo(() => {
+      const items = cart?.items || [];
+      const count = items.reduce(
+        (sum: number, item: any) =>
+          sum + (item.quantity > 0 ? item.quantity : 0),
+        0,
       );
-      return sum + price * (item.quantity || 1);
-    }, 0);
-    const tot = parseFloat(cart?.items_total || String(rawSub)) || rawSub;
-    const thresh = parseFloat(storeSettings?.free_delivery_threshold || "200") || 200;
-    const free = thresh > 0 && tot >= thresh;
-    const short =
-      thresh > 0 && !free
-        ? Math.max(0, Number((thresh - tot).toFixed(2)))
-        : 0;
-    return {
-      itemCount: count,
-      totalAmount: tot,
-      isFreeDelivery: free,
-      shortfall: short,
-      threshold: thresh,
-    };
-  }, [cart, storeSettings]);
+      const rawSub = items.reduce((sum: number, item: any) => {
+        const itemSub = parseFloat(item.subtotal || 0);
+        if (itemSub > 0) return sum + itemSub;
+        const p =
+          typeof item.product === "object" && item.product !== null
+            ? item.product
+            : {};
+        const price = parseFloat(
+          item.unit_price || p.offer_price || p.price || p.regular_price || 0,
+        );
+        return sum + price * (item.quantity || 1);
+      }, 0);
+      const tot = parseFloat(cart?.items_total || String(rawSub)) || rawSub;
+      const thresh =
+        parseFloat(storeSettings?.free_delivery_threshold || "200") || 200;
+      const free = thresh > 0 && tot >= thresh;
+      const short =
+        thresh > 0 && !free
+          ? Math.max(0, Number((thresh - tot).toFixed(2)))
+          : 0;
+      return {
+        itemCount: count,
+        totalAmount: tot,
+        isFreeDelivery: free,
+        shortfall: short,
+        threshold: thresh,
+      };
+    }, [cart, storeSettings]);
 
   const cartImages = useMemo(() => {
     const items = cart?.items || [];
@@ -94,81 +103,82 @@ function FloatingCartBarComponent({
       .map((item: any) => {
         const product = item.product || {};
         const images = product.images || [];
-        return images.length > 0 ? getOptimizedImageUrl(fixImageUrl(images[0]), 100) : null;
+        return images.length > 0
+          ? getOptimizedImageUrl(fixImageUrl(images[0]), 100)
+          : null;
       })
       .filter(Boolean)
       .slice(0, 3);
   }, [cart]);
 
-  const prevItemCountRef = useRef(itemCount);
-
-  const handleOpenCart = useCallback(() => {
-    triggerHaptic("selection");
-    onPress();
-  }, [onPress]);
-
-  const handleDismiss = useCallback(() => {
-    triggerHaptic("light");
-    Animated.parallel([
-      Animated.timing(slideAnim, {
-        toValue: 40,
-        duration: 200,
-        useNativeDriver: USE_NATIVE_DRIVER,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: USE_NATIVE_DRIVER,
-      }),
-    ]).start(() => {
-      setIsDismissed(true);
-      onClose();
-    });
-  }, [onClose, slideAnim, opacityAnim]);
-
+  // Slide-in animation on first mount
   useEffect(() => {
-    if (itemCount > 0) {
-      if (prevItemCountRef.current === 0) {
-        // Initial entrance from bottom
-        slideAnim.setValue(40);
-        opacityAnim.setValue(0);
-        Animated.parallel([
-          Animated.spring(slideAnim, {
-            toValue: 0,
-            useNativeDriver: USE_NATIVE_DRIVER,
-            tension: 70,
-            friction: 9,
-          }),
-          Animated.timing(opacityAnim, {
-            toValue: 1,
-            duration: 250,
-            useNativeDriver: USE_NATIVE_DRIVER,
-          }),
-        ]).start();
-      }
-      prevItemCountRef.current = itemCount;
-    } else {
-      prevItemCountRef.current = itemCount;
+    if (itemCount > 0 && !hasAnimatedIn.current) {
+      hasAnimatedIn.current = true;
+      slideAnim.setValue(60);
+      opacityAnim.setValue(0);
+      Animated.parallel([
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          useNativeDriver: USE_NATIVE_DRIVER,
+          tension: 65,
+          friction: 9,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+      ]).start();
     }
   }, [itemCount, slideAnim, opacityAnim]);
 
   // Animate Free Delivery progress indicator
   useEffect(() => {
     const targetRatio =
-      threshold > 0
-        ? Math.min(1, Math.max(0, totalAmount / threshold))
-        : 1;
-        
+      threshold > 0 ? Math.min(1, Math.max(0, totalAmount / threshold)) : 1;
+
     Animated.timing(progressAnim, {
       toValue: targetRatio,
       duration: 350,
       easing: Easing.out(Easing.quad),
-      useNativeDriver: false, // Must be false for width interpolation
+      useNativeDriver: false,
     }).start();
   }, [totalAmount, threshold, progressAnim]);
 
+  const dismiss = useCallback(() => {
+    _dismissedThisSession = true;
+    triggerHaptic("light");
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 60,
+        duration: 180,
+        useNativeDriver: USE_NATIVE_DRIVER,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 0,
+        duration: 180,
+        useNativeDriver: USE_NATIVE_DRIVER,
+      }),
+    ]).start(() => {
+      onClose();
+    });
+  }, [onClose, slideAnim, opacityAnim]);
+
+  const handleViewCart = useCallback(() => {
+    _dismissedThisSession = true;
+    triggerHaptic("selection");
+    onClose();
+    onPress();
+  }, [onPress, onClose]);
+
+  const handleClose = useCallback(() => {
+    dismiss();
+  }, [dismiss]);
+
+  // Don't render if already dismissed this session, empty cart, or on excluded screen
   if (
-    isDismissed ||
+    _dismissedThisSession ||
     itemCount === 0 ||
     (currentRouteName && HIDE_ON_SCREENS.includes(currentRouteName))
   ) {
@@ -187,12 +197,13 @@ function FloatingCartBarComponent({
         },
       ]}
     >
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPress={handleOpenCart}
-        style={styles.container}
-      >
-        <View style={styles.mainStrip}>
+      <View style={styles.container}>
+        {/* Main tappable area - View Cart */}
+        <Pressable
+          onPress={handleViewCart}
+          style={styles.mainStrip}
+          android_ripple={{ color: "rgba(255,255,255,0.1)" }}
+        >
           <View style={styles.leftGroup}>
             <View style={styles.imagesGroup}>
               {cartImages.length > 0 ? (
@@ -201,7 +212,10 @@ function FloatingCartBarComponent({
                     key={index}
                     style={[
                       styles.imageWrapper,
-                      { zIndex: 3 - index, marginLeft: index > 0 ? -12 : 0 },
+                      {
+                        zIndex: 3 - index,
+                        marginLeft: index > 0 ? -10 : 0,
+                      },
                     ]}
                   >
                     <Image
@@ -224,13 +238,13 @@ function FloatingCartBarComponent({
 
             <View style={styles.priceContainer}>
               <Text style={styles.priceValue}>
-                {`₹${(Number(totalAmount) || 0).toFixed(2)}`}
+                {`₹${(Number(totalAmount) || 0).toFixed(0)}`}
               </Text>
               {threshold > 0 && (
-                <Text style={styles.progressRatioText}>
+                <Text style={styles.deliveryText} numberOfLines={1}>
                   {isFreeDelivery
-                    ? "FREE Delivery"
-                    : `Add ₹${(Number(shortfall) || 0).toFixed(0)} for FREE Delivery`}
+                    ? "✓ FREE Delivery"
+                    : `Add ₹${(Number(shortfall) || 0).toFixed(0)} for free delivery`}
                 </Text>
               )}
             </View>
@@ -240,9 +254,9 @@ function FloatingCartBarComponent({
             <Text style={styles.viewCartText}>View Cart</Text>
             <Feather name="chevron-right" size={16} color="#FFFFFF" />
           </View>
-        </View>
+        </Pressable>
 
-        {/* Minimal Progress Bar */}
+        {/* Progress Bar */}
         {threshold > 0 && (
           <View style={styles.progressTrackContainer}>
             <Animated.View
@@ -260,15 +274,16 @@ function FloatingCartBarComponent({
           </View>
         )}
 
-        <TouchableOpacity
+        {/* Close button - OUTSIDE the main Pressable to avoid touch conflicts */}
+        <Pressable
+          onPress={handleClose}
           style={styles.closeButton}
-          onPress={handleDismiss}
-          activeOpacity={0.7}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+          android_ripple={{ color: "rgba(255,255,255,0.15)", borderless: true, radius: 16 }}
         >
-          <Feather name="x" size={16} color="#9CA3AF" />
-        </TouchableOpacity>
-      </TouchableOpacity>
+          <Feather name="x" size={14} color="#9CA3AF" />
+        </Pressable>
+      </View>
     </Animated.View>
   );
 }
@@ -283,60 +298,60 @@ const styles = StyleSheet.create({
     pointerEvents: "box-none" as any,
   },
   container: {
-    backgroundColor: "#1F2937", // Clean, minimal dark gray
+    backgroundColor: "#1F2937",
     borderRadius: 16,
     overflow: "hidden",
-    boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.2)",
     elevation: 12,
+    ...(Platform.OS === "web"
+      ? { boxShadow: "0px 4px 16px rgba(0, 0, 0, 0.25)" }
+      : {}),
   },
   mainStrip: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 14,
-    paddingLeft: 16,
-    paddingRight: 40, // Space for the close button
+    paddingVertical: 12,
+    paddingLeft: 14,
+    paddingRight: 44,
   },
   leftGroup: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
+    flex: 1,
   },
   imagesGroup: {
     flexDirection: "row",
     alignItems: "center",
     position: "relative",
-    marginRight: 4,
   },
   imageWrapper: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: "#374151",
     borderWidth: 2,
     borderColor: "#1F2937",
     overflow: "hidden",
-    justifyContent: "center",
-    alignItems: "center",
   },
   productThumbnail: {
     width: "100%",
     height: "100%",
   },
   cartIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: "rgba(255, 255, 255, 0.1)",
     justifyContent: "center",
     alignItems: "center",
   },
   badgeCount: {
     position: "absolute",
-    top: -6,
-    right: -10,
+    top: -5,
+    right: -8,
     backgroundColor: "#10B981",
-    borderRadius: 10,
+    borderRadius: 9,
     minWidth: 18,
     height: 18,
     paddingHorizontal: 4,
@@ -353,6 +368,7 @@ const styles = StyleSheet.create({
   },
   priceContainer: {
     justifyContent: "center",
+    flex: 1,
   },
   priceValue: {
     color: "#FFFFFF",
@@ -360,11 +376,11 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: -0.3,
   },
-  progressRatioText: {
+  deliveryText: {
     color: "#9CA3AF",
     fontSize: 11,
-    fontWeight: "600",
-    marginTop: 2,
+    fontWeight: "500",
+    marginTop: 1,
   },
   rightGroup: {
     flexDirection: "row",
@@ -375,11 +391,10 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 13,
     fontWeight: "700",
-    letterSpacing: 0.2,
   },
   progressTrackContainer: {
     height: 3,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
     width: "100%",
   },
   progressTrackFill: {
@@ -387,14 +402,14 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     position: "absolute",
-    top: 14,
-    right: 12,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    top: 10,
+    right: 10,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
   },
 });
 
