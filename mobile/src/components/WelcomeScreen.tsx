@@ -147,8 +147,8 @@ export function WelcomeScreen({
           <LinearGradient
             colors={
               isDark
-                ? ["#022C22", "#064E3B", "#0F766E", "#064E3B", "#022C22"]
-                : ["#F0FDF4", "#D1FAE5", "#A7F3D0", "#D1FAE5", "#F0FDF4"]
+                ? ["#064E3B", "#047857", "#115E59"]
+                : ["#4ADE80", "#10B981", "#059669"]
             }
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
