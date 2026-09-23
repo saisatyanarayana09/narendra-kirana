@@ -43,8 +43,6 @@ export function WelcomeScreen({
   const logoScaleAnim = useRef(new Animated.Value(0.85)).current;
   const logoTranslateYAnim = useRef(new Animated.Value(24)).current;
   const logoFadeAnim = useRef(new Animated.Value(0)).current;
-  const nTranslateY = useRef(new Animated.Value(-80)).current;
-  const vTranslateY = useRef(new Animated.Value(80)).current;
 
   const brandFadeAnim = useRef(new Animated.Value(0)).current;
   const brandLeftTranslateX = useRef(new Animated.Value(-50)).current;
@@ -53,7 +51,7 @@ export function WelcomeScreen({
 
   // Continuous animations
   const hintOpacityAnim = useRef(new Animated.Value(0.3)).current;
-  const spinAnim = useRef(new Animated.Value(0)).current;
+  const bounceAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (isLoading) return;
@@ -68,8 +66,6 @@ export function WelcomeScreen({
       logoScaleAnim.setValue(0.85);
       logoTranslateYAnim.setValue(24);
       logoFadeAnim.setValue(0);
-      nTranslateY.setValue(-80);
-      vTranslateY.setValue(80);
       brandFadeAnim.setValue(0);
       brandLeftTranslateX.setValue(-50);
       brandRightTranslateX.setValue(50);
@@ -102,18 +98,6 @@ export function WelcomeScreen({
             duration: 400,
             useNativeDriver: USE_NATIVE_DRIVER,
           }),
-          Animated.spring(nTranslateY, {
-            toValue: 0,
-            tension: 40,
-            friction: 5,
-            useNativeDriver: USE_NATIVE_DRIVER,
-          }),
-          Animated.spring(vTranslateY, {
-            toValue: 0,
-            tension: 40,
-            friction: 5,
-            useNativeDriver: USE_NATIVE_DRIVER,
-          }),
         ]),
         Animated.parallel([
           Animated.timing(brandFadeAnim, {
@@ -140,13 +124,35 @@ export function WelcomeScreen({
           useNativeDriver: USE_NATIVE_DRIVER,
         }),
       ]).start(() => {
-        // Start continuous 3D spin loop for logo
+        // Start continuous playful bouncing loop for logo
         Animated.loop(
-          Animated.timing(spinAnim, {
-            toValue: 1,
-            duration: 3000,
-            useNativeDriver: USE_NATIVE_DRIVER,
-          })
+          Animated.sequence([
+            Animated.timing(bounceAnim, {
+              toValue: -18,
+              duration: 250,
+              useNativeDriver: USE_NATIVE_DRIVER,
+            }),
+            Animated.timing(bounceAnim, {
+              toValue: 0,
+              duration: 250,
+              useNativeDriver: USE_NATIVE_DRIVER,
+            }),
+            Animated.timing(bounceAnim, {
+              toValue: -8,
+              duration: 150,
+              useNativeDriver: USE_NATIVE_DRIVER,
+            }),
+            Animated.timing(bounceAnim, {
+              toValue: 0,
+              duration: 150,
+              useNativeDriver: USE_NATIVE_DRIVER,
+            }),
+            Animated.timing(bounceAnim, {
+              toValue: 0,
+              duration: 1500, // pause between bounces
+              useNativeDriver: USE_NATIVE_DRIVER,
+            }),
+          ])
         ).start();
 
         // Start pulsing animation for hint text
@@ -202,11 +208,6 @@ export function WelcomeScreen({
   }
 
   const name = user?.first_name || user?.username || "Guest";
-
-  const spinY = spinAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0deg", "360deg"],
-  });
 
   return (
     <Modal
@@ -264,15 +265,12 @@ export function WelcomeScreen({
                 alignItems: "center",
               }}
             >
-              <Animated.View style={[styles.logoWrapper, { transform: [{ rotateY: spinY }] }]}>
-                <View style={styles.nvContainer}>
-                  <Animated.Text style={[styles.logoLetterN, isDark && { color: "#F8FAFC" }, { transform: [{ translateY: nTranslateY }] }]}>
-                    N
-                  </Animated.Text>
-                  <Animated.Text style={[styles.logoLetterV, { transform: [{ translateY: vTranslateY }] }]}>
-                    V
-                  </Animated.Text>
-                </View>
+              <Animated.View style={[styles.logoWrapper, { transform: [{ translateY: bounceAnim }] }]}>
+                <Image
+                  source={require("../../assets/logo-transparent.png")}
+                  style={styles.logoImage}
+                  resizeMode="contain"
+                />
               </Animated.View>
             </Animated.View>
 
@@ -380,29 +378,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 18,
   },
-  nvContainer: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    justifyContent: "center",
-  },
-  logoLetterN: {
-    fontSize: 85,
-    fontWeight: "900",
-    color: "#064E3B",
-    fontStyle: "italic",
-    marginRight: -12, // Slight overlap
-    textShadowColor: "rgba(0,0,0,0.1)",
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 8,
-  },
-  logoLetterV: {
-    fontSize: 70,
-    fontWeight: "900",
-    color: "#34D399",
-    fontStyle: "italic",
-    textShadowColor: "rgba(0,0,0,0.1)",
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 8,
+  logoImage: {
+    width: 130,
+    height: 130,
   },
   brandRow: {
     flexDirection: "row",
