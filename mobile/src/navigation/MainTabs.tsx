@@ -446,17 +446,19 @@ export function MainTabs() {
           <FloatingCartBar
             bottomOffset={totalBarHeight + 6}
             onPress={() => {
-              if (navigationRef.isReady()) {
-                navigationRef.dispatch(
-                  CommonActions.navigate({
-                    name: "Main",
-                    params: {
-                      screen: "CartTab",
-                      params: { screen: "CartScreen" },
-                    },
-                  })
-                );
-              }
+              // Try standard nested navigation first
+              navigation.dispatch(
+                CommonActions.navigate({
+                  name: "CartTab",
+                  params: { screen: "CartScreen" },
+                })
+              );
+              // Fallback for some RN6 edge cases
+              setTimeout(() => {
+                if (currentTab !== "CartTab" && navigationRef.isReady()) {
+                  navigationRef.navigate("CartTab" as never, { screen: "CartScreen" } as never);
+                }
+              }, 100);
             }}
             onClose={() => setIsMinimizedForSession(true)}
             currentRouteName={currentRouteName}
