@@ -47,6 +47,10 @@ export function WelcomeScreen({
   const brandFadeAnim = useRef(new Animated.Value(0)).current;
   const greetingFadeAnim = useRef(new Animated.Value(0)).current;
 
+  // Continuous animations
+  const hintOpacityAnim = useRef(new Animated.Value(0.3)).current;
+  const floatAnim = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
     if (isLoading) return;
 
@@ -101,11 +105,43 @@ export function WelcomeScreen({
           duration: 400,
           useNativeDriver: USE_NATIVE_DRIVER,
         }),
-      ]).start();
+      ]).start(() => {
+        // Start continuous floating loop for logo
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(floatAnim, {
+              toValue: -12,
+              duration: 1500,
+              useNativeDriver: USE_NATIVE_DRIVER,
+            }),
+            Animated.timing(floatAnim, {
+              toValue: 0,
+              duration: 1500,
+              useNativeDriver: USE_NATIVE_DRIVER,
+            }),
+          ])
+        ).start();
+
+        // Start pulsing animation for hint text
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(hintOpacityAnim, {
+              toValue: 1,
+              duration: 800,
+              useNativeDriver: USE_NATIVE_DRIVER,
+            }),
+            Animated.timing(hintOpacityAnim, {
+              toValue: 0.3,
+              duration: 800,
+              useNativeDriver: USE_NATIVE_DRIVER,
+            }),
+          ])
+        ).start();
+      });
 
       timerRef.current = setTimeout(() => {
         dismiss();
-      }, 2500);
+      }, 3500);
     }
   }, [isLoading, forceShow]);
 
@@ -196,13 +232,13 @@ export function WelcomeScreen({
                 alignItems: "center",
               }}
             >
-              <View style={styles.logoWrapper}>
+              <Animated.View style={[styles.logoWrapper, { transform: [{ translateY: floatAnim }] }]}>
                 <Image
                   source={require("../../assets/logo-transparent.png")}
                   style={styles.logoImage}
                   resizeMode="contain"
                 />
-              </View>
+              </Animated.View>
             </Animated.View>
 
             <Animated.View
@@ -236,14 +272,15 @@ export function WelcomeScreen({
             </Animated.View>
           </View>
 
-          <Text
+          <Animated.Text
             style={[
               styles.dismissHint,
               isDark && { color: "rgba(148, 163, 184, 0.6)" },
+              { opacity: hintOpacityAnim }
             ]}
           >
             Tap anywhere to continue
-          </Text>
+          </Animated.Text>
         </TouchableOpacity>
       </Animated.View>
     </Modal>
