@@ -205,7 +205,7 @@ function FloatingCartBarComponent({
                     ]}
                   >
                     <Image
-                      source={{ uri }}
+                      source={{ uri: uri || undefined }}
                       style={styles.productThumbnail}
                       contentFit="cover"
                       transition={200}
