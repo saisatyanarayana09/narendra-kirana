@@ -49,7 +49,7 @@ export function WelcomeScreen({
 
   // Continuous animations
   const hintOpacityAnim = useRef(new Animated.Value(0.3)).current;
-  const floatAnim = useRef(new Animated.Value(0)).current;
+  const spinAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (isLoading) return;
@@ -106,20 +106,13 @@ export function WelcomeScreen({
           useNativeDriver: USE_NATIVE_DRIVER,
         }),
       ]).start(() => {
-        // Start continuous floating loop for logo
+        // Start continuous 3D spin loop for logo
         Animated.loop(
-          Animated.sequence([
-            Animated.timing(floatAnim, {
-              toValue: -12,
-              duration: 1500,
-              useNativeDriver: USE_NATIVE_DRIVER,
-            }),
-            Animated.timing(floatAnim, {
-              toValue: 0,
-              duration: 1500,
-              useNativeDriver: USE_NATIVE_DRIVER,
-            }),
-          ])
+          Animated.timing(spinAnim, {
+            toValue: 1,
+            duration: 3000,
+            useNativeDriver: USE_NATIVE_DRIVER,
+          })
         ).start();
 
         // Start pulsing animation for hint text
@@ -175,6 +168,11 @@ export function WelcomeScreen({
   }
 
   const name = user?.first_name || user?.username || "Guest";
+
+  const spinY = spinAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "360deg"],
+  });
 
   return (
     <Modal
@@ -232,7 +230,7 @@ export function WelcomeScreen({
                 alignItems: "center",
               }}
             >
-              <Animated.View style={[styles.logoWrapper, { transform: [{ translateY: floatAnim }] }]}>
+              <Animated.View style={[styles.logoWrapper, { transform: [{ rotateY: spinY }] }]}>
                 <Image
                   source={require("../../assets/logo-transparent.png")}
                   style={styles.logoImage}
