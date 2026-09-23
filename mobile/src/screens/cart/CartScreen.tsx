@@ -188,21 +188,28 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
             },
           ]}
         >
-          <TouchableOpacity
-            style={styles.backButton}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            onPress={() =>
-              navigation.canGoBack()
-                ? navigation.goBack()
-                : navigation.navigate("Main")
-            }
-            activeOpacity={0.7}
-          >
-            <Feather name="arrow-left" size={18} color={colors.primary} />
-            <Text style={[styles.backButtonText, { color: colors.primary }]}>
-              Back
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.headerRow}>
+            <View style={styles.headerLeft}>
+              <TouchableOpacity
+                style={styles.backButton}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                onPress={() =>
+                  navigation.canGoBack()
+                    ? navigation.goBack()
+                    : navigation.navigate("Main")
+                }
+                activeOpacity={0.7}
+              >
+                <Feather name="arrow-left" size={18} color={colors.primary} />
+                <Text style={[styles.backButtonText, { color: colors.primary }]}>
+                  Back
+                </Text>
+              </TouchableOpacity>
+              <Text style={[styles.headerTitle, { color: colors.text }]}>
+                Your Cart
+              </Text>
+            </View>
+          </View>
         </View>
 
         <View style={styles.emptyContainer}>
@@ -239,38 +246,74 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={["top"]}
     >
-      {/* Header matching web */}
+      {/* Header */}
       <View
         style={[
           styles.header,
           { backgroundColor: colors.surface, borderBottomColor: colors.border },
         ]}
       >
-        <TouchableOpacity
-          style={styles.backButton}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          onPress={() =>
-            navigation.canGoBack()
-              ? navigation.goBack()
-              : navigation.navigate("Main")
-          }
-          activeOpacity={0.7}
-        >
-          <Feather name="arrow-left" size={18} color={colors.primary} />
-          <Text style={[styles.backButtonText, { color: colors.primary }]}>
-            Back
-          </Text>
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          Your cart
-        </Text>
+        <View style={styles.headerRow}>
+          <View style={styles.headerLeft}>
+            <TouchableOpacity
+              style={styles.backButton}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              onPress={() =>
+                navigation.canGoBack()
+                  ? navigation.goBack()
+                  : navigation.navigate("Main")
+              }
+              activeOpacity={0.7}
+            >
+              <Feather name="arrow-left" size={18} color={colors.primary} />
+              <Text style={[styles.backButtonText, { color: colors.primary }]}>
+                Back
+              </Text>
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>
+              Your Cart
+              {items.length > 0 && (
+                <Text
+                  style={[
+                    styles.headerItemCount,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  {" "}({items.reduce((s: number, i: any) => s + (i.quantity || 1), 0)})
+                </Text>
+              )}
+            </Text>
+          </View>
+          {items.length > 0 && (
+            <TouchableOpacity
+              style={styles.clearAllBtn}
+              onPress={() => {
+                Alert.alert(
+                  "Clear Cart",
+                  "Are you sure you want to remove all items from your cart?",
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                      text: "Clear All",
+                      style: "destructive",
+                      onPress: () => clearCart(),
+                    },
+                  ],
+                );
+              }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.clearAllText}>Clear All</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: items.length > 0 ? 140 + insets.bottom : 30 },
+          { paddingBottom: items.length > 0 ? 100 : 24 },
         ]}
       >
         {/* Out of Stock Warning Banner */}
@@ -804,7 +847,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
               backgroundColor: colors.surface,
               borderTopColor: colors.border,
               paddingTop: 12,
-              paddingBottom: Math.max(insets.bottom, 12),
+              paddingBottom: 12,
             },
           ]}
         >
@@ -920,11 +963,20 @@ const styles: any = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 12,
     backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
     borderBottomColor: "#F1F5F9",
-    position: "relative",
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   mrpStrikeText: {
     fontSize: 14,
@@ -989,25 +1041,39 @@ const styles: any = StyleSheet.create({
   backButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    marginBottom: 6,
+    gap: 3,
+    paddingVertical: 4,
+    paddingRight: 6,
   },
   backButtonText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "700",
     color: "#059669",
   },
   headerTitle: {
-    fontSize: 24,
-    lineHeight: 28,
+    fontSize: 18,
+    lineHeight: 22,
     fontWeight: "900",
     color: "#0F172A",
-    letterSpacing: -0.5,
+    letterSpacing: -0.4,
+  },
+  headerItemCount: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  clearAllBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  clearAllText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#EF4444",
   },
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: 140,
+    paddingBottom: 100,
   },
   emptyContainer: {
     flex: 1,

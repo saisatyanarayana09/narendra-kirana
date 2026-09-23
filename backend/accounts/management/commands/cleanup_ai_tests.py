@@ -17,8 +17,11 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.WARNING(f'Found {count} AI test accounts. Deleting...'))
         
-        # Because of Django's foreign key cascades, deleting the User will automatically
-        # delete their CustomerProfile, Addresses, Cart Items, and Orders.
+        from orders.models import Order
+        
+        # Because of Django's foreign key protection on Orders, we must delete orders explicitly first
+        Order.objects.filter(customer__in=ai_users).delete()
+        
         ai_users.delete()
         
         self.stdout.write(self.style.SUCCESS(f'Successfully deleted {count} AI test accounts and all their traces from the database.'))

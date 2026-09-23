@@ -32,8 +32,17 @@ const HIDE_ON_SCREENS = [
   "OrderTrackingScreen",
   "InvoiceScreen",
   "AddAddressScreen",
+  "AddressesScreen",
   "CartScreen",
   "CartTab",
+  "ProfileScreen",
+  "ProfileTab",
+  "WalletScreen",
+  "OrderHistoryScreen",
+  "AccountSettingsScreen",
+  "NotificationsScreen",
+  "AppSettingsScreen",
+  "LanguageScreen",
 ];
 
 function FloatingCartBarComponent({
@@ -215,10 +224,10 @@ function FloatingCartBarComponent({
 
   return (
     <Animated.View
+      pointerEvents="box-none"
       style={[
         styles.wrapper,
         {
-          pointerEvents: "box-none",
           bottom: bottomOffset,
           opacity: opacityAnim,
           transform: [
@@ -228,11 +237,7 @@ function FloatingCartBarComponent({
         },
       ]}
     >
-      <TouchableOpacity
-        activeOpacity={0.94}
-        onPress={handleOpenCart}
-        style={styles.touchableCard}
-      >
+      <View style={styles.cardContainer}>
         <LinearGradient
           colors={["#065F46", "#047857", "#064E3B"]}
           start={{ x: 0, y: 0 }}
@@ -257,7 +262,11 @@ function FloatingCartBarComponent({
 
           {/* Micro Progress / Notification Banner */}
           <View style={styles.topRibbon}>
-            <View style={styles.ribbonLeft}>
+            <TouchableOpacity
+              activeOpacity={0.88}
+              onPress={handleOpenCart}
+              style={styles.ribbonLeft}
+            >
               {isFreeDelivery ? (
                 <>
                   <Text style={styles.ribbonEmoji}>🎉</Text>
@@ -297,21 +306,25 @@ function FloatingCartBarComponent({
                   </Text>
                 </>
               )}
-            </View>
+            </TouchableOpacity>
 
             {/* Close Button to Hide / Dismiss */}
             <TouchableOpacity
               style={styles.closeButton}
               onPress={handleDismiss}
               activeOpacity={0.7}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Feather name="x" size={14} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 
           {/* Main Action Strip */}
-          <View style={styles.mainStrip}>
+          <TouchableOpacity
+            activeOpacity={0.92}
+            onPress={handleOpenCart}
+            style={styles.mainStrip}
+          >
             {/* Left: Cart Icon with Badge and Price */}
             <View style={styles.leftGroup}>
               <View style={styles.cartIconCircle}>
@@ -345,9 +358,9 @@ function FloatingCartBarComponent({
                 <Feather name="arrow-right" size={16} color="#064E3B" />
               </Animated.View>
             </View>
-          </View>
+          </TouchableOpacity>
         </LinearGradient>
-      </TouchableOpacity>
+      </View>
     </Animated.View>
   );
 }
@@ -361,7 +374,7 @@ const styles = StyleSheet.create({
     elevation: 20,
     pointerEvents: "box-none" as any,
   },
-  touchableCard: {
+  cardContainer: {
     borderRadius: 20,
     boxShadow: "0px 8px 12px rgba(5, 150, 105, 0.4)",
     elevation: 16,

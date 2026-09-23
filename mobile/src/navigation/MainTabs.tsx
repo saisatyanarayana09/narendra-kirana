@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { FloatingCartBar } from "../components/FloatingCartBar";
 import { WelcomeScreen } from "../components/WelcomeScreen";
+import { navigationRef } from "./navigationRef";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { useLanguage } from "../context/LanguageContext";
@@ -252,6 +253,23 @@ export function MainTabs() {
     loadCachedOrders().catch(() => {});
   }, [user]);
 
+  // Keep currentRouteName synchronized with nested screen changes (e.g. ProductDetailScreen)
+  useEffect(() => {
+    const updateRoute = () => {
+      try {
+        if (navigationRef.isReady()) {
+          const route = navigationRef.getCurrentRoute();
+          if (route?.name) {
+            setCurrentRouteName(route.name);
+          }
+        }
+      } catch {}
+    };
+    updateRoute();
+    const unsub = navigationRef.addListener("state", updateRoute);
+    return unsub;
+  }, []);
+
   // Optimize Android bottom padding
   const bottomPadding = Math.max(
     insets.bottom > 0 ? insets.bottom + 4 : 0,
@@ -415,13 +433,14 @@ export function MainTabs() {
         />
       </Tab.Navigator>
 
-      {/* Floating Mini-Cart Bar: persistently visible unless user explicitly closes it, and NEVER on CartTab */}
+      {/* Floating Mini-Cart Bar: persistently visible unless user explicitly closes it, and NEVER on CartTab or ProfileTab */}
       {!isMinimizedForSession &&
         !isWelcomeActive &&
         currentTab !== "CartTab" &&
+        currentTab !== "ProfileTab" &&
         cartItemCount > 0 && (
           <FloatingCartBar
-            bottomOffset={totalBarHeight + 10}
+            bottomOffset={totalBarHeight + 6}
             onPress={() => {
               navigation.navigate("CartTab", { screen: "CartScreen" });
             }}
