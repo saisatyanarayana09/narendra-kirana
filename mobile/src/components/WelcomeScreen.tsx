@@ -35,10 +35,12 @@ export function WelcomeScreen({
 }: WelcomeScreenProps) {
   const { isLoading } = useAuth();
   const { colors, isDark } = useTheme();
-  const [visible, setVisible] = useState(false);
+  const shouldShow = forceShow || !getHasShownWelcomeSession();
+  const [visible, setVisible] = useState(shouldShow);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const mainFadeAnim = useRef(new Animated.Value(0)).current;
+  // Initialize mainFadeAnim to 1 so it blocks the screen INSTANTLY without fading in
+  const mainFadeAnim = useRef(new Animated.Value(shouldShow ? 1 : 0)).current;
   const logoScaleAnim = useRef(new Animated.Value(0.95)).current;
   const logoFadeAnim = useRef(new Animated.Value(0)).current;
   const textFadeAnim = useRef(new Animated.Value(0)).current;
@@ -46,50 +48,45 @@ export function WelcomeScreen({
   useEffect(() => {
     if (isLoading) return;
 
-    if (forceShow || !getHasShownWelcomeSession()) {
+    if (visible) {
       setHasShownWelcomeSession(true);
-      setVisible(true);
       if (onStart) onStart();
 
-      // Reset animation values for clean replay
-      mainFadeAnim.setValue(0);
+      // Ensure main opacity is 1 in case of forceShow re-triggers
+      mainFadeAnim.setValue(1);
       logoScaleAnim.setValue(0.95);
       logoFadeAnim.setValue(0);
       textFadeAnim.setValue(0);
 
-      // Smooth minimalist entrance
-      Animated.timing(mainFadeAnim, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: USE_NATIVE_DRIVER,
-      }).start(() => {
-        Animated.parallel([
-          Animated.timing(logoFadeAnim, {
-            toValue: 1,
-            duration: 800,
-            useNativeDriver: USE_NATIVE_DRIVER,
-          }),
-          Animated.spring(logoScaleAnim, {
-            toValue: 1,
-            tension: 20,
-            friction: 7,
-            useNativeDriver: USE_NATIVE_DRIVER,
-          }),
-          Animated.timing(textFadeAnim, {
-            toValue: 1,
-            duration: 1000,
-            delay: 300,
-            useNativeDriver: USE_NATIVE_DRIVER,
-          }),
-        ]).start();
-      });
+      Animated.parallel([
+        Animated.timing(logoFadeAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+        Animated.spring(logoScaleAnim, {
+          toValue: 1,
+          tension: 20,
+          friction: 7,
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+        Animated.timing(textFadeAnim, {
+          toValue: 1,
+          duration: 1000,
+          delay: 300,
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+      ]).start();
 
       // Shorter timer for professional feel
       timerRef.current = setTimeout(() => {
         dismiss();
       }, 2800);
+    } else if (forceShow) {
+      // If forceShow triggers later when visible was false
+      setVisible(true);
     }
-  }, [isLoading, forceShow]);
+  }, [isLoading, forceShow, visible]);
 
   useEffect(() => {
     return () => {
