@@ -111,6 +111,12 @@ function MainApp() {
     return () => unsubscribe();
   }, []);
 
+  const onLayoutRootView = React.useCallback(async () => {
+    if (fontsLoaded || fontError || Platform.OS === 'web') {
+      await SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [fontsLoaded, fontError]);
+
   // Early returns AFTER all hooks have been called
   // On web, typography.ts handles fonts via direct CSS injection, so we bypass Expo's FontLoader to prevent fontfaceobserver 12000ms timeout crashes
   if (!fontsLoaded && !fontError && Platform.OS !== 'web') {
@@ -127,12 +133,6 @@ function MainApp() {
       />
     );
   }
-
-  const onLayoutRootView = React.useCallback(async () => {
-    if (fontsLoaded || fontError || Platform.OS === 'web') {
-      await SplashScreen.hideAsync().catch(() => {});
-    }
-  }, [fontsLoaded, fontError]);
 
   return (
     <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
