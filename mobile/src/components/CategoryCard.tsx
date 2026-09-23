@@ -9,6 +9,7 @@ import {
   StyleProp,
   ViewStyle,
   TouchableOpacity,
+  Platform,
 } from "react-native";
 
 import { useTheme } from "../context/ThemeContext";
@@ -178,9 +179,16 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     textAlign: "center",
     color: "#FFFFFF",
-    textShadowColor: "rgba(0, 0, 0, 0.9)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    ...Platform.select({
+      web: {
+        textShadow: "0px 1px 4px rgba(0, 0, 0, 0.9)",
+      } as any,
+      default: {
+        textShadowColor: "rgba(0, 0, 0, 0.9)",
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 4,
+      },
+    }),
     zIndex: 10,
     paddingHorizontal: 6,
     paddingBottom: 8,

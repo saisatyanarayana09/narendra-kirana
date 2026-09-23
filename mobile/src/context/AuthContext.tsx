@@ -136,6 +136,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         token_type: "id_token",
       });
 
+      if (!response || !response.data) {
+        throw new Error("Invalid response from server");
+      }
+
       const { access, refresh, user: userData } = response.data;
 
       await saveItem(STORAGE_KEYS.TOKEN, access);

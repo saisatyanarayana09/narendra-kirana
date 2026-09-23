@@ -1,6 +1,6 @@
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -51,6 +51,14 @@ export function ProductDetailScreen({
   const [toggling, setToggling] = useState(false);
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   const checkFavorite = useCallback(async () => {
@@ -193,7 +201,8 @@ export function ProductDetailScreen({
     try {
       await addToCart(product.id, 1, product);
       setAdded(true);
-      setTimeout(() => setAdded(false), 3000);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setAdded(false), 3000);
     } catch (err: any) {
       Alert.alert(
         "Error",

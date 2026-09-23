@@ -2,7 +2,7 @@ import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -44,6 +44,14 @@ export function ReferAndEarnScreen({
   );
   const [loading, setLoading] = useState(!cachedData);
   const [copied, setCopied] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
   const [activeTab, setActiveTab] = useState<"network" | "rewards">("network");
 
   const [qrModal, setQrModal] = useState<{
@@ -166,7 +174,8 @@ export function ReferAndEarnScreen({
   const handleCopy = async () => {
     await Clipboard.setStringAsync(referralCode);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setCopied(false), 2000);
   };
 
   const handleShare = async () => {

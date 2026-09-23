@@ -55,7 +55,7 @@ export function getCachedOrderByIdSync(orderId: number | string): any | null {
 /**
  * Update or insert a single order into cache.
  */
-export function saveCachedSingleOrder(order: any): void {
+export async function saveCachedSingleOrder(order: any): Promise<void> {
   if (!order || !order.id) return;
   if (!memoryCache) memoryCache = [];
   const idx = memoryCache.findIndex((o) => String(o.id) === String(order.id));
@@ -64,7 +64,9 @@ export function saveCachedSingleOrder(order: any): void {
   } else {
     memoryCache.unshift(order);
   }
-  AsyncStorage.setItem(CACHE_KEY, JSON.stringify(memoryCache)).catch(() => {});
+  try {
+    await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(memoryCache));
+  } catch {}
 }
 
 /**

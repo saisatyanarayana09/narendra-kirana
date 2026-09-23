@@ -154,9 +154,9 @@ export async function saveCachedNotifications(
   if (!userId || !Array.isArray(data)) return;
   const uid = String(userId);
   memoryNotifications.set(uid, data);
-  AsyncStorage.setItem(`sk_notifs_${uid}`, JSON.stringify(data)).catch(
-    () => {},
-  );
+  try {
+    await AsyncStorage.setItem(`sk_notifs_${uid}`, JSON.stringify(data));
+  } catch {}
 }
 
 // --- REFERRALS & EARN ---

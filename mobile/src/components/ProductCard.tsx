@@ -1,6 +1,6 @@
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -61,6 +61,13 @@ function ProductCardComponent({
   const { colors, isDark } = useTheme();
   const [updating, setUpdating] = useState(false);
   const [added, setAdded] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   const isFav =
     typeof isFavorite === "function"
@@ -117,7 +124,8 @@ function ProductCardComponent({
         await Promise.resolve(onUpdateQuantity(product.id, currentCartQty + 1));
       }
       setAdded(true);
-      setTimeout(() => setAdded(false), 2000);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setAdded(false), 2000);
     } catch (err) {
       console.error("Add to cart failed:", err);
     } finally {
