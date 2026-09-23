@@ -110,7 +110,6 @@ function FloatingCartBarComponent({
 
   const handleDismiss = useCallback(() => {
     triggerHaptic("light");
-    setIsDismissed(true);
     Animated.parallel([
       Animated.timing(slideAnim, {
         toValue: 80,
@@ -123,6 +122,7 @@ function FloatingCartBarComponent({
         useNativeDriver: USE_NATIVE_DRIVER,
       }),
     ]).start(() => {
+      setIsDismissed(true);
       onClose();
     });
   }, [onClose, slideAnim, opacityAnim]);
