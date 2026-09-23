@@ -342,14 +342,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
 
       // Optimistic removal
-      const itemToRemove = cartRef.current?.items?.find((i) => i.id === itemId);
+      // CRITICAL FIX: itemId may be a product ID (from ProductCard). Resolve to cart item ID.
+      let resolvedRemoveId = itemId;
+      const matchedRemoveItem = cartRef.current?.items?.find(
+        (i) => i.id !== itemId && getItemProductId(i) === itemId && i.id > 0,
+      );
+      if (matchedRemoveItem) {
+        resolvedRemoveId = matchedRemoveItem.id;
+      }
+
+      const itemToRemove = cartRef.current?.items?.find(
+        (i) => i.id === resolvedRemoveId || getItemProductId(i) === itemId,
+      );
       const ghostItemProductId = itemToRemove
         ? getItemProductId(itemToRemove)
         : null;
 
       setCart((current) => {
         if (!current?.items) return current;
-        const updatedItems = current.items.filter((item) => item.id !== itemId);
+        const updatedItems = current.items.filter(
+          (item) => item.id !== resolvedRemoveId && getItemProductId(item) !== itemId,
+        );
         let newOfferSubtotal = 0;
         let newRegularSubtotal = 0;
         updatedItems.forEach((i) => {
@@ -396,7 +409,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       try {
         await enqueueCartMutation(async () => {
-          let targetId = itemId;
+          let targetId = resolvedRemoveId;
           if (targetId < 0 && ghostItemProductId) {
             // If the item was a ghost item, we must fetch the cart from the backend
             // because the POST may have just finished and we need the real ID to delete it.
@@ -495,16 +508,29 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       // Optimistic update for instant responsiveness
       const prevCart = cartRef.current;
-      const ghostItem = prevCart?.items?.find((i) => i.id === itemId);
+
+      // CRITICAL FIX: itemId may be a **product ID** (from ProductCard) instead of
+      // a cart item ID (from CartItemCard). Resolve it to the actual cart item ID
+      // so the PATCH /cart/items/<pk>/ doesn't 404.
+      let resolvedItemId = itemId;
+      const matchedByProductId = prevCart?.items?.find(
+        (i) => i.id !== itemId && getItemProductId(i) === itemId && i.id > 0,
+      );
+      if (matchedByProductId) {
+        resolvedItemId = matchedByProductId.id;
+      }
+
+      const ghostItem = prevCart?.items?.find((i) => i.id === resolvedItemId);
       const ghostItemProductId =
-        itemId < 0 && ghostItem ? getItemProductId(ghostItem) : null;
+        resolvedItemId < 0 && ghostItem ? getItemProductId(ghostItem) : null;
 
       setCart((current) => {
         if (!current?.items) return current;
         const updatedItems = current.items.map((item) => {
           if (
-            item.id === itemId ||
-            (itemId < 0 && getItemProductId(item) === ghostItemProductId)
+            item.id === resolvedItemId ||
+            getItemProductId(item) === itemId ||
+            (resolvedItemId < 0 && getItemProductId(item) === ghostItemProductId)
           ) {
             const unitPriceNum = parseFloat(
               item.unit_price || item.product?.price || "0",
@@ -562,13 +588,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
       });
 
       // Clear existing debounce timer
-      if (updateQuantityLocks.current[itemId]) {
-        clearTimeout(updateQuantityLocks.current[itemId]);
+      if (updateQuantityLocks.current[resolvedItemId]) {
+        clearTimeout(updateQuantityLocks.current[resolvedItemId]);
       }
 
       // Debounce the network request to prevent race conditions and handle ghost IDs
       const timerId = setTimeout(async () => {
-        let targetId = itemId;
+        let targetId = resolvedItemId;
 
         // Resolve Ghost ID (from optimistic addToCart) to Real ID
         // If the POST /cart/items/ is still in-flight (slow network), poll up to 5x before giving up
@@ -591,8 +617,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
             console.warn(
               "[CartContext] Aborted patch: Ghost item never resolved to real ID after retries.",
             );
-            if (updateQuantityLocks.current[itemId] === timerId) {
-              delete updateQuantityLocks.current[itemId];
+            if (updateQuantityLocks.current[resolvedItemId] === timerId) {
+              delete updateQuantityLocks.current[resolvedItemId];
             }
             return;
           }
@@ -600,14 +626,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
         await enqueueCartMutation(async () => {
           // The timer may have been superseded while an earlier request was in flight.
-          if (updateQuantityLocks.current[itemId] !== timerId) return;
+          if (updateQuantityLocks.current[resolvedItemId] !== timerId) return;
 
           try {
             const res = await apiClient.patch(`/cart/items/${targetId}/`, {
               quantity,
             });
             // Only sync if THIS is still the latest timer for this item (no newer tap came in)
-            if (updateQuantityLocks.current[itemId] === timerId) {
+            if (updateQuantityLocks.current[resolvedItemId] === timerId) {
               if (res?.data && res.data.items) {
                 cartRef.current = res.data;
                 setCart(res.data);
@@ -617,21 +643,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
             }
           } catch (error: any) {
             // Only rollback if this is the latest pending update (don't stomp a newer tap)
-            if (updateQuantityLocks.current[itemId] === timerId && prevCart) {
+            if (updateQuantityLocks.current[resolvedItemId] === timerId && prevCart) {
               cartRef.current = prevCart;
               setCart(prevCart);
             }
             console.error("Failed to update quantity:", error);
           } finally {
             // Clean up lock only after the full network round-trip
-            if (updateQuantityLocks.current[itemId] === timerId) {
-              delete updateQuantityLocks.current[itemId];
+            if (updateQuantityLocks.current[resolvedItemId] === timerId) {
+              delete updateQuantityLocks.current[resolvedItemId];
             }
           }
         });
       }, 400);
 
-      updateQuantityLocks.current[itemId] = timerId;
+      updateQuantityLocks.current[resolvedItemId] = timerId;
     },
     [user, removeFromCart, refreshCart, enqueueCartMutation],
   );
