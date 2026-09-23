@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: "#F1F5F9",
-    marginBottom: 10,
+    marginBottom: 12,
     boxShadow: "0px 1px 3px rgba(0, 0, 0, 0.03)",
     elevation: 1,
   },

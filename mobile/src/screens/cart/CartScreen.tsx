@@ -270,7 +270,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: items.length > 0 ? 115 + insets.bottom : 30 },
+          { paddingBottom: items.length > 0 ? 140 + insets.bottom : 30 },
         ]}
       >
         {/* Out of Stock Warning Banner */}
@@ -1005,8 +1005,9 @@ const styles: any = StyleSheet.create({
     letterSpacing: -0.5,
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 130,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 140,
   },
   emptyContainer: {
     flex: 1,

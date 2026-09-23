@@ -355,8 +355,8 @@ function FloatingCartBarComponent({
 const styles = StyleSheet.create({
   wrapper: {
     position: "absolute",
-    left: 12,
-    right: 12,
+    left: 14,
+    right: 14,
     zIndex: 99999,
     elevation: 20,
     pointerEvents: "box-none" as any,
