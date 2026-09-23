@@ -205,7 +205,7 @@ export function WelcomeScreen({
               numberOfLines={1}
               adjustsFontSizeToFit
             >
-              NARENDRA KIRANA
+              Narendra Kirana
             </Text>
           </Animated.View>
 
@@ -262,7 +262,6 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: "900",
     letterSpacing: 3,
-    textTransform: "uppercase",
     color: "#FFFFFF",
     textAlign: "center",
   },
