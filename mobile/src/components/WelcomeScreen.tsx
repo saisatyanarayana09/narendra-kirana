@@ -23,7 +23,7 @@ import {
 
 const USE_NATIVE_DRIVER = Platform.OS !== "web";
 const { width, height } = Dimensions.get("window");
-const GRADIENT_SIZE = Math.max(width, height) * 2;
+const GRADIENT_SIZE = Math.max(width, height) * 1.5;
 
 export { resetWelcomeSession };
 
@@ -150,6 +150,7 @@ export function WelcomeScreen({
                 ? ["#064E3B", "#047857", "#115E59"]
                 : ["#4ADE80", "#10B981", "#059669"]
             }
+            locations={[0.2, 0.5, 0.8]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}
