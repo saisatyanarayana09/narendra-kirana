@@ -1,14 +1,13 @@
 import { Feather } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useRef, useMemo, useCallback, useState } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Animated,
-  Platform,
   Dimensions,
+  Platform,
   Easing,
 } from "react-native";
 
@@ -38,11 +37,6 @@ const HIDE_ON_SCREENS = [
   "ProfileScreen",
   "ProfileTab",
   "WalletScreen",
-  "OrderHistoryScreen",
-  "AccountSettingsScreen",
-  "NotificationsScreen",
-  "AppSettingsScreen",
-  "LanguageScreen",
 ];
 
 function FloatingCartBarComponent({
@@ -53,13 +47,10 @@ function FloatingCartBarComponent({
 }: FloatingCartBarProps) {
   const { cart, storeSettings } = useCart();
   const [isDismissed, setIsDismissed] = useState(false);
+  
   const slideAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(1)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const bounceAnim = useRef(new Animated.Value(0)).current;
-  const badgeScaleAnim = useRef(new Animated.Value(1)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
-  const arrowAnim = useRef(new Animated.Value(0)).current;
 
   const { itemCount, totalAmount, isFreeDelivery, shortfall, threshold } = useMemo(() => {
     const items = cart?.items || [];
@@ -97,12 +88,6 @@ function FloatingCartBarComponent({
 
   const prevItemCountRef = useRef(itemCount);
 
-  useEffect(() => {
-    if (itemCount > prevItemCountRef.current) {
-      setIsDismissed(false);
-    }
-  }, [itemCount]);
-
   const handleOpenCart = useCallback(() => {
     triggerHaptic("selection");
     onPress();
@@ -112,7 +97,7 @@ function FloatingCartBarComponent({
     triggerHaptic("light");
     Animated.parallel([
       Animated.timing(slideAnim, {
-        toValue: 80,
+        toValue: 40,
         duration: 200,
         useNativeDriver: USE_NATIVE_DRIVER,
       }),
@@ -127,13 +112,11 @@ function FloatingCartBarComponent({
     });
   }, [onClose, slideAnim, opacityAnim]);
 
-  // Smooth bounce animation and haptic feedback when itemCount increments
-
   useEffect(() => {
     if (itemCount > 0) {
       if (prevItemCountRef.current === 0) {
         // Initial entrance from bottom
-        slideAnim.setValue(80);
+        slideAnim.setValue(40);
         opacityAnim.setValue(0);
         Animated.parallel([
           Animated.spring(slideAnim, {
@@ -148,56 +131,12 @@ function FloatingCartBarComponent({
             useNativeDriver: USE_NATIVE_DRIVER,
           }),
         ]).start();
-      } else if (itemCount > prevItemCountRef.current) {
-        // Item count increased: trigger smooth upward bounce on bar/badge and haptic feedback
-        triggerHaptic("medium");
-        // Ensure the bar is visible and in place in case it had auto-dismissed
-        opacityAnim.setValue(1);
-        slideAnim.setValue(0);
-
-        Animated.parallel([
-          Animated.sequence([
-            Animated.timing(bounceAnim, {
-              toValue: -8,
-              duration: 130,
-              easing: Easing.out(Easing.quad),
-              useNativeDriver: USE_NATIVE_DRIVER,
-            }),
-            Animated.spring(bounceAnim, {
-              toValue: 0,
-              tension: 120,
-              friction: 6,
-              useNativeDriver: USE_NATIVE_DRIVER,
-            }),
-          ]),
-          Animated.sequence([
-            Animated.timing(badgeScaleAnim, {
-              toValue: 1.35,
-              duration: 130,
-              easing: Easing.out(Easing.quad),
-              useNativeDriver: USE_NATIVE_DRIVER,
-            }),
-            Animated.spring(badgeScaleAnim, {
-              toValue: 1,
-              tension: 140,
-              friction: 5,
-              useNativeDriver: USE_NATIVE_DRIVER,
-            }),
-          ]),
-        ]).start();
       }
-
-      // Auto-dismiss after 4.5 seconds so user doesn't have to manually close it
-      const timerId = setTimeout(() => {
-        handleDismiss();
-      }, 4500);
-
       prevItemCountRef.current = itemCount;
-      return () => clearTimeout(timerId);
     } else {
       prevItemCountRef.current = itemCount;
     }
-  }, [itemCount, slideAnim, opacityAnim, bounceAnim, badgeScaleAnim, handleDismiss]);
+  }, [itemCount, slideAnim, opacityAnim]);
 
   // Animate Free Delivery progress indicator
   useEffect(() => {
@@ -205,30 +144,14 @@ function FloatingCartBarComponent({
       threshold > 0
         ? Math.min(1, Math.max(0, totalAmount / threshold))
         : 1;
+        
     Animated.timing(progressAnim, {
       toValue: targetRatio,
       duration: 350,
       easing: Easing.out(Easing.quad),
-      useNativeDriver: false,
+      useNativeDriver: false, // Must be false for width interpolation
     }).start();
   }, [totalAmount, threshold, progressAnim]);
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(arrowAnim, {
-          toValue: 4,
-          duration: 600,
-          useNativeDriver: USE_NATIVE_DRIVER,
-        }),
-        Animated.timing(arrowAnim, {
-          toValue: 0,
-          duration: 600,
-          useNativeDriver: USE_NATIVE_DRIVER,
-        }),
-      ]),
-    ).start();
-  }, [arrowAnim]);
 
   if (
     isDismissed ||
@@ -246,148 +169,71 @@ function FloatingCartBarComponent({
         {
           bottom: bottomOffset,
           opacity: opacityAnim,
-          transform: [
-            { translateY: Animated.add(slideAnim, bounceAnim) },
-            { scale: pulseAnim },
-          ],
+          transform: [{ translateY: slideAnim }],
         },
       ]}
     >
-      <View style={styles.cardContainer}>
-        <LinearGradient
-          colors={["#065F46", "#047857", "#064E3B"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.container}
-        >
-          {/* Micro Progress / Notification Banner */}
-          <View style={styles.topRibbon}>
-            <TouchableOpacity
-              activeOpacity={0.88}
-              onPress={handleOpenCart}
-              style={styles.ribbonLeft}
-            >
-              {isFreeDelivery ? (
-                <>
-                  <Text style={styles.ribbonEmoji}>🎉</Text>
-                  <Text
-                    style={styles.ribbonTextHighlight}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    FREE Delivery Unlocked!
-                  </Text>
-                </>
-              ) : shortfall > 0 ? (
-                <>
-                  <Text style={styles.ribbonEmoji}>🚚</Text>
-                  <Text
-                    style={styles.ribbonText}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    Add{" "}
-                    <Text style={styles.ribbonBold}>
-                      ₹{(Number(shortfall) || 0).toFixed(0)}
-                    </Text>{" "}
-                    more for{" "}
-                    <Text style={styles.ribbonBold}>FREE Delivery</Text>
-                  </Text>
-                </>
-              ) : (
-                <>
-                  <Text style={styles.ribbonEmoji}>⚡</Text>
-                  <Text
-                    style={styles.ribbonTextHighlight}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    Express Store Delivery (15-25 mins)
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPress={handleOpenCart}
+        style={styles.container}
+      >
+        <View style={styles.mainStrip}>
+          <View style={styles.leftGroup}>
+            <View style={styles.cartIconCircle}>
+              <Feather name="shopping-bag" size={18} color="#FFFFFF" />
+              <View style={styles.badgeCount}>
+                <Text style={styles.badgeText}>{itemCount}</Text>
+              </View>
+            </View>
 
-            <View style={styles.ribbonRightGroup}>
+            <View style={styles.priceContainer}>
+              <Text style={styles.priceValue}>
+                {`₹${(Number(totalAmount) || 0).toFixed(2)}`}
+              </Text>
               {threshold > 0 && (
                 <Text style={styles.progressRatioText}>
                   {isFreeDelivery
-                    ? "FREE"
-                    : `₹${Math.round(totalAmount)}/₹${Math.round(threshold)}`}
+                    ? "FREE Delivery"
+                    : `Add ₹${(Number(shortfall) || 0).toFixed(0)} for FREE Delivery`}
                 </Text>
               )}
-              {/* Close Button to Hide / Dismiss */}
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={handleDismiss}
-                activeOpacity={0.7}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Feather name="x" size={14} color="#FFFFFF" />
-              </TouchableOpacity>
             </View>
           </View>
 
-          {/* Prominent Visible Progress Bar Track */}
-          {threshold > 0 && (
-            <View style={styles.progressTrackContainer}>
-              <Animated.View
-                style={[
-                  styles.progressTrackFill,
-                  {
-                    width: progressAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: ["0%", "100%"],
-                    }),
-                    backgroundColor: isFreeDelivery ? "#10B981" : "#FDE047",
-                  },
-                ]}
-              />
-            </View>
-          )}
+          <View style={styles.rightGroup}>
+            <Text style={styles.viewCartText}>View Cart</Text>
+            <Feather name="chevron-right" size={16} color="#FFFFFF" />
+          </View>
+        </View>
 
-          {/* Main Action Strip */}
-          <TouchableOpacity
-            activeOpacity={0.92}
-            onPress={handleOpenCart}
-            style={styles.mainStrip}
-          >
-            {/* Left: Cart Icon with Badge and Price */}
-            <View style={styles.leftGroup}>
-              <View style={styles.cartIconCircle}>
-                <Feather name="shopping-bag" size={18} color="#064E3B" />
-                <Animated.View
-                  style={[
-                    styles.badgeCount,
-                    { transform: [{ scale: badgeScaleAnim }] },
-                  ]}
-                >
-                  <Text style={styles.badgeText}>{itemCount}</Text>
-                </Animated.View>
-              </View>
+        {/* Minimal Progress Bar */}
+        {threshold > 0 && (
+          <View style={styles.progressTrackContainer}>
+            <Animated.View
+              style={[
+                styles.progressTrackFill,
+                {
+                  width: progressAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ["0%", "100%"],
+                  }),
+                  backgroundColor: isFreeDelivery ? "#34D399" : "#FBBF24",
+                },
+              ]}
+            />
+          </View>
+        )}
 
-              <View style={styles.priceContainer}>
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceValue}>
-                    {`₹${(Number(totalAmount) || 0).toFixed(2)}`}
-                  </Text>
-                </View>
-                <Text style={styles.itemsSubtext}>
-                  {itemCount} {itemCount === 1 ? "item" : "items"} in basket
-                </Text>
-              </View>
-            </View>
-
-            {/* Right: Prominent White Action Button */}
-            <View style={styles.viewCartButton}>
-              <Text style={styles.viewCartText}>View Cart</Text>
-              <Animated.View style={{ transform: [{ translateX: arrowAnim }] }}>
-                <Feather name="arrow-right" size={16} color="#064E3B" />
-              </Animated.View>
-            </View>
-          </TouchableOpacity>
-        </LinearGradient>
-      </View>
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={handleDismiss}
+          activeOpacity={0.7}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
+          <Feather name="x" size={16} color="#9CA3AF" />
+        </TouchableOpacity>
+      </TouchableOpacity>
     </Animated.View>
   );
 }
@@ -395,97 +241,26 @@ function FloatingCartBarComponent({
 const styles = StyleSheet.create({
   wrapper: {
     position: "absolute",
-    left: 14,
-    right: 14,
+    left: 16,
+    right: 16,
     zIndex: 99999,
     elevation: 20,
     pointerEvents: "box-none" as any,
   },
-  cardContainer: {
-    borderRadius: 20,
-    boxShadow: "0px 8px 12px rgba(5, 150, 105, 0.4)",
-    elevation: 16,
-  },
   container: {
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: "#34D399", // Bright emerald highlighted glow
-    paddingHorizontal: 14,
-    paddingTop: 8,
-    paddingBottom: 12,
+    backgroundColor: "#1F2937", // Clean, minimal dark gray
+    borderRadius: 16,
     overflow: "hidden",
-  },
-  ribbonRightGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  progressRatioText: {
-    color: "#FDE047",
-    fontSize: 11,
-    fontWeight: "800",
-    fontVariant: ["tabular-nums"],
-  },
-  progressTrackContainer: {
-    height: 4,
-    backgroundColor: "rgba(0, 0, 0, 0.25)",
-    borderRadius: 2,
-    overflow: "hidden",
-    marginBottom: 8,
-  },
-  progressTrackFill: {
-    height: "100%",
-    borderRadius: 2,
-  },
-  topRibbon: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingBottom: 6,
-    marginBottom: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.15)",
-  },
-  ribbonLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    flex: 1,
-    marginRight: 8,
-  },
-  ribbonEmoji: {
-    fontSize: 12,
-  },
-  ribbonText: {
-    color: "rgba(255, 255, 255, 0.9)",
-    fontSize: 11,
-    fontWeight: "600",
-    flexShrink: 1,
-  },
-  ribbonBold: {
-    color: "#FDE047", // Warm gold highlight
-    fontWeight: "800",
-  },
-  ribbonTextHighlight: {
-    color: "#6EE7B7", // Luminous mint green
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 0.2,
-    flexShrink: 1,
-  },
-  closeButton: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 8,
+    boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.2)",
+    elevation: 12,
   },
   mainStrip: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingVertical: 14,
+    paddingLeft: 16,
+    paddingRight: 40, // Space for the close button
   },
   leftGroup: {
     flexDirection: "row",
@@ -493,29 +268,27 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   cartIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    backgroundColor: "#A7F3D0",
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     justifyContent: "center",
     alignItems: "center",
     position: "relative",
-    boxShadow: "0px 2px 3px rgba(0, 0, 0, 0.15)",
-    elevation: 3,
   },
   badgeCount: {
     position: "absolute",
-    top: -5,
-    right: -5,
+    top: -6,
+    right: -6,
     backgroundColor: "#DC2626",
     borderRadius: 10,
-    minWidth: 18,
-    height: 18,
+    minWidth: 20,
+    height: 20,
     paddingHorizontal: 4,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: "#064E3B",
+    borderWidth: 2,
+    borderColor: "#1F2937",
   },
   badgeText: {
     color: "#FFFFFF",
@@ -526,40 +299,47 @@ const styles = StyleSheet.create({
   priceContainer: {
     justifyContent: "center",
   },
-  priceRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
   priceValue: {
     color: "#FFFFFF",
-    fontSize: 18,
-    lineHeight: 22,
-    fontWeight: "900",
-    letterSpacing: -0.5,
+    fontSize: 17,
+    fontWeight: "800",
+    letterSpacing: -0.3,
   },
-  itemsSubtext: {
-    color: "rgba(255, 255, 255, 0.8)",
+  progressRatioText: {
+    color: "#9CA3AF",
     fontSize: 11,
     fontWeight: "600",
-    marginTop: 1,
+    marginTop: 2,
   },
-  viewCartButton: {
+  rightGroup: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    backgroundColor: "#FFFFFF", // High-contrast crisp white button
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 14,
-    boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.12)",
-    elevation: 4,
+    gap: 4,
   },
   viewCartText: {
-    color: "#064E3B", // Bold emerald matching brand
-    fontSize: 14,
-    lineHeight: 18,
-    fontWeight: "900",
-    letterSpacing: 0.3,
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 0.2,
+  },
+  progressTrackContainer: {
+    height: 3,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    width: "100%",
+  },
+  progressTrackFill: {
+    height: "100%",
+  },
+  closeButton: {
+    position: "absolute",
+    top: 14,
+    right: 12,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
   },
 });
 

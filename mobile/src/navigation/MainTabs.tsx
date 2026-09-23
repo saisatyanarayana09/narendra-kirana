@@ -241,15 +241,7 @@ export function MainTabs() {
     (sum: number, item: any) => sum + (item.quantity > 0 ? item.quantity : 0),
     0,
   );
-  const prevCartItemCountRef = useRef(cartItemCount);
 
-  useEffect(() => {
-    // If the user adds a new item to the cart, un-minimize the floating cart bar so they see the feedback!
-    if (cartItemCount > prevCartItemCountRef.current) {
-      setIsMinimizedForSession(false);
-    }
-    prevCartItemCountRef.current = cartItemCount;
-  }, [cartItemCount]);
 
   // Pre-warm both homeDataCache and ordersCache when user is present or on component mount
   useEffect(() => {
@@ -456,7 +448,7 @@ export function MainTabs() {
               // Fallback for some RN6 edge cases
               setTimeout(() => {
                 if (currentTab !== "CartTab" && navigationRef.isReady()) {
-                  navigationRef.navigate("CartTab" as never, { screen: "CartScreen" } as never);
+                  (navigationRef as any).navigate("CartTab", { screen: "CartScreen" });
                 }
               }, 100);
             }}
