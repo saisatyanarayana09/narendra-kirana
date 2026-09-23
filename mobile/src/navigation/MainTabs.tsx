@@ -298,6 +298,10 @@ export function MainTabs() {
             if (route?.name && route.name !== currentTab) {
               setCurrentTab(route.name);
               triggerHaptic("selection");
+              // If user reaches CartTab by ANY means (tab icon, floating bar, etc.), permanently dismiss the floating bar
+              if (route.name === "CartTab") {
+                setIsMinimizedForSession(true);
+              }
             }
             if (route) {
               const deepName =
@@ -428,7 +432,7 @@ export function MainTabs() {
         />
       </Tab.Navigator>
 
-      {/* Floating Mini-Cart Bar: persistently visible unless user explicitly closes it, and NEVER on CartTab or ProfileTab */}
+      {/* Floating Mini-Cart Bar: shows ONCE on app open if cart has items. Permanently hidden once dismissed or tapped. */}
       {!isMinimizedForSession &&
         !isWelcomeActive &&
         currentTab !== "CartTab" &&
@@ -437,9 +441,8 @@ export function MainTabs() {
           <FloatingCartBar
             bottomOffset={totalBarHeight + 6}
             onPress={() => {
-              // We are INSIDE MainTabs (which IS the "Main" screen).
-              // The `navigation` here belongs to the Tab.Navigator.
-              // So we navigate directly to CartTab — NOT to "Main".
+              // Permanently dismiss the bar for this session, then navigate
+              setIsMinimizedForSession(true);
               navigation.navigate("CartTab", { screen: "CartScreen" });
             }}
             onClose={() => setIsMinimizedForSession(true)}
