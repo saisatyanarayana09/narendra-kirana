@@ -453,11 +453,12 @@ const s = StyleSheet.create({
     height: 52,
     borderRadius: 12,
     overflow: "hidden",
+    backgroundColor: "#F8FAFC", // subtle background for contain images
   },
   pcImage: {
     width: "100%",
     height: "100%",
-    resizeMode: "cover",
+    resizeMode: "contain",
   },
   pcImageFallback: {
     flex: 1,
@@ -470,10 +471,10 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
   pcItemsText: {
-    fontSize: 14,
-    fontWeight: "700",
+    fontSize: 12,
+    fontWeight: "500",
     marginBottom: 4,
-    lineHeight: 20,
+    lineHeight: 18,
   },
   pcDate: {
     fontSize: 12,
