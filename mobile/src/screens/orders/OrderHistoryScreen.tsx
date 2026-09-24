@@ -234,7 +234,7 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
                     s.pcThumbnailShadowBox, 
                     { 
                       backgroundColor: isDark ? "#1E293B" : "#F8FAFC",
-                      zIndex: 10 - idx,
+                      zIndex: idx,
                       marginLeft: idx === 0 ? 0 : -14 
                     }
                   ]}
@@ -252,7 +252,7 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
                 s.pcThumbnailExtra, 
                 { 
                   backgroundColor: isDark ? "#334155" : "#E2E8F0",
-                  zIndex: 1,
+                  zIndex: 10,
                   marginLeft: -14
                 }
               ]}>
