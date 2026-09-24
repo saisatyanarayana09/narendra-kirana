@@ -3,9 +3,19 @@ from .models import Order, OrderItem
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
+    product_image = serializers.SerializerMethodField()
+
     class Meta:
         model = OrderItem
-        fields = ['id', 'product', 'product_name_snapshot', 'unit_snapshot', 'price_snapshot', 'quantity', 'subtotal', 'status']
+        fields = ['id', 'product', 'product_name_snapshot', 'unit_snapshot', 'price_snapshot', 'quantity', 'subtotal', 'status', 'product_image']
+
+    def get_product_image(self, obj):
+        if obj.product and obj.product.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.product.image.url)
+            return obj.product.image.url
+        return None
 
 
 class OrderSerializer(serializers.ModelSerializer):

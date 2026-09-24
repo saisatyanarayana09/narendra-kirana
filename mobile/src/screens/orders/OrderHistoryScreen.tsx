@@ -195,43 +195,56 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  /* ─── Compact Order Card ─── */
+  /* ─── Premium Order Card ─── */
   const renderItem = useCallback(
     ({ item }: { item: any }) => {
       const meta = statusMeta(item.status);
       const total = (parseFloat(String(item?.total_amount || 0)) || 0).toFixed(2);
       const count = item.items?.length || 0;
+      
+      const itemNames = item.items?.map((i: any) => i.product_name_snapshot).join(", ") || "";
+      const isCompleted = item.status === "COMPLETED" || item.status === "REJECTED";
 
       return (
         <TouchableOpacity
-          activeOpacity={0.6}
+          activeOpacity={0.7}
           onPress={() => navigation.navigate("OrderTrackingScreen", { orderId: item.id, initialOrder: item })}
-          style={[s.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          style={[s.premiumCard, { backgroundColor: colors.surface }]}
         >
-          {/* Left: Status Icon */}
-          <View style={[s.iconCircle, { backgroundColor: meta.bg }]}>
-            <Feather name={meta.icon as any} size={22} color={meta.text} />
-          </View>
-
-          {/* Center: Info */}
-          <View style={s.cardCenter}>
-            <View style={s.topRow}>
-              <Text style={[s.orderLabel, { color: colors.text, flexShrink: 1 }]} numberOfLines={1}>
-                {item.id}
-              </Text>
-              <View style={[s.badge, { backgroundColor: meta.bg, borderColor: meta.border }]}>
-                <Text style={[s.badgeText, { color: meta.text }]}>{meta.label}</Text>
-              </View>
+          {/* Top Header */}
+          <View style={[s.pcHeader, { borderBottomColor: isDark ? "#334155" : "#F1F5F9" }]}>
+            <View style={s.pcHeaderLeft}>
+              <View style={[s.pcStatusDot, { backgroundColor: meta.bg }]} />
+              <Text style={[s.pcStatusText, { color: colors.textSecondary }]}>{meta.label}</Text>
             </View>
-            <Text style={[s.dateLine, { color: colors.textSecondary }]} numberOfLines={1}>
-              {fmtDate(item.created_at)}  {'\u00B7'}  {count} {count === 1 ? "item" : "items"}
-            </Text>
+            <Text style={[s.pcDate, { color: colors.textSecondary }]}>{fmtDate(item.created_at)}</Text>
           </View>
 
-          {/* Right: Total + Chevron */}
-          <View style={s.cardRight}>
-            <Text style={[s.totalText, { color: colors.text }]}>{'\u20B9'}{total}</Text>
-            <Feather name="chevron-right" size={16} color={colors.textSecondary} />
+          {/* Middle Body */}
+          <View style={s.pcBody}>
+            <View style={[s.pcIconWrap, { backgroundColor: isDark ? "#1E293B" : "#F8FAFC" }]}>
+              <Feather name="shopping-bag" size={24} color={colors.primary} />
+            </View>
+            <View style={s.pcInfo}>
+              <View style={s.pcTitleRow}>
+                <Text style={[s.pcOrderId, { color: colors.text }]}>{item.id}</Text>
+                <Text style={[s.pcTotal, { color: colors.text }]}>{'\u20B9'}{total}</Text>
+              </View>
+              <Text style={[s.pcItemsText, { color: colors.textSecondary }]} numberOfLines={1}>
+                {itemNames}
+              </Text>
+              <Text style={[s.pcCountText, { color: colors.textSecondary }]}>
+                {count} {count === 1 ? "item" : "items"}
+              </Text>
+            </View>
+          </View>
+
+          {/* Bottom Action */}
+          <View style={[s.pcFooter, { borderTopColor: isDark ? "#334155" : "#F1F5F9" }]}>
+            <Text style={[s.pcActionText, { color: colors.primary }]}>
+              {isCompleted ? "View Details" : "Track Order"}
+            </Text>
+            <Feather name="chevron-right" size={16} color={colors.primary} />
           </View>
         </TouchableOpacity>
       );
@@ -405,36 +418,58 @@ const s = StyleSheet.create({
   /* List */
   list: { padding: 12, paddingBottom: 100 },
 
-  /* Card — ultra compact single row */
-  card: {
+  /* Premium Card Styles */
+  premiumCard: {
+    marginBottom: 16,
+    borderRadius: 16,
+    marginHorizontal: 4,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  pcHeader: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 20,
+    justifyContent: "space-between",
     paddingHorizontal: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    marginBottom: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
   },
-  iconCircle: {
+  pcHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 6 },
+  pcStatusDot: { width: 8, height: 8, borderRadius: 4 },
+  pcStatusText: { fontSize: 13, fontWeight: "600", textTransform: "uppercase" },
+  pcDate: { fontSize: 13, fontWeight: "500" },
+
+  pcBody: {
+    flexDirection: "row",
+    padding: 16,
+    alignItems: "center",
+  },
+  pcIconWrap: {
     width: 48,
     height: 48,
-    borderRadius: 14,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
-  cardCenter: { flex: 1, marginLeft: 16, marginRight: 12 },
-  topRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
-  orderLabel: { fontSize: 14, fontWeight: "700", letterSpacing: 0 },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    borderWidth: 1,
+  pcInfo: { flex: 1, marginLeft: 16 },
+  pcTitleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 },
+  pcOrderId: { fontSize: 16, fontWeight: "800", letterSpacing: -0.2 },
+  pcTotal: { fontSize: 17, fontWeight: "800" },
+  pcItemsText: { fontSize: 14, fontWeight: "500", marginBottom: 2 },
+  pcCountText: { fontSize: 12, fontWeight: "500" },
+
+  pcFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    gap: 4,
   },
-  badgeText: { fontSize: 10, fontWeight: "800", letterSpacing: 0.5, textTransform: "uppercase" },
-  dateLine: { fontSize: 12, fontWeight: "500", marginTop: 2 },
-  cardRight: { alignItems: "flex-end", gap: 4 },
-  totalText: { fontSize: 16, fontWeight: "800", letterSpacing: -0.3 },
+  pcActionText: { fontSize: 14, fontWeight: "700" },
 
   /* Search & Filter Bar */
   filterBar: {
