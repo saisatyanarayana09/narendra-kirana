@@ -209,6 +209,12 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
       const images = (item.items || []).map((i: any) => i.product_image).filter(Boolean);
       const displayImages = images.slice(0, 4);
       const extraImages = images.length > 4 ? images.length - 4 : 0;
+      
+      const pileCount = displayImages.length + (extraImages > 0 ? 1 : 0);
+      const OFFSET_X = 14;
+      const OFFSET_Y = 6;
+      const pileWidth = pileCount === 0 ? 42 : 42 + (pileCount - 1) * OFFSET_X;
+      const pileHeight = pileCount === 0 ? 42 : 42 + (pileCount - 1) * OFFSET_Y;
 
       return (
         <TouchableOpacity
@@ -224,41 +230,47 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
             </View>
           </View>
 
-          {/* Middle Row: Image Thumbnails */}
+          {/* Middle Row: Image Thumbnails Diagonal Stack */}
           <View style={s.pcImagesRow}>
-            {displayImages.length > 0 ? (
-              displayImages.map((img: string, idx: number) => (
-                <View 
-                  key={idx} 
-                  style={[
-                    s.pcThumbnailShadowBox, 
-                    { 
-                      backgroundColor: isDark ? "#1E293B" : "#F8FAFC",
-                      zIndex: idx,
-                      marginLeft: idx === 0 ? 0 : -14 
-                    }
-                  ]}
-                >
-                  <Image source={{ uri: img }} style={s.pcThumbnail} />
+            <View style={{ width: pileWidth, height: pileHeight }}>
+              {displayImages.length > 0 ? (
+                displayImages.map((img: string, idx: number) => (
+                  <View 
+                    key={idx} 
+                    style={[
+                      s.pcThumbnailShadowBox, 
+                      { 
+                        position: "absolute",
+                        backgroundColor: isDark ? "#1E293B" : "#F8FAFC",
+                        zIndex: 10 - idx,
+                        left: idx * OFFSET_X,
+                        top: (pileCount - 1 - idx) * OFFSET_Y,
+                      }
+                    ]}
+                  >
+                    <Image source={{ uri: img }} style={s.pcThumbnail} />
+                  </View>
+                ))
+              ) : (
+                <View style={[s.pcThumbnailShadowBox, { position: "absolute", left: 0, top: 0, backgroundColor: isDark ? "#1E293B" : "#F8FAFC", justifyContent: "center", alignItems: "center" }]}>
+                  <Feather name="shopping-bag" size={20} color={colors.primary} />
                 </View>
-              ))
-            ) : (
-              <View style={[s.pcThumbnailShadowBox, { backgroundColor: isDark ? "#1E293B" : "#F8FAFC", justifyContent: "center", alignItems: "center" }]}>
-                <Feather name="shopping-bag" size={20} color={colors.primary} />
-              </View>
-            )}
-            {extraImages > 0 && (
-              <View style={[
-                s.pcThumbnailExtra, 
-                { 
-                  backgroundColor: isDark ? "#334155" : "#E2E8F0",
-                  zIndex: 10,
-                  marginLeft: -14
-                }
-              ]}>
-                <Text style={[s.pcThumbnailExtraText, { color: colors.text }]}>+{extraImages}</Text>
-              </View>
-            )}
+              )}
+              {extraImages > 0 && (
+                <View style={[
+                  s.pcThumbnailExtra, 
+                  { 
+                    position: "absolute",
+                    backgroundColor: isDark ? "#334155" : "#E2E8F0",
+                    zIndex: 1,
+                    left: displayImages.length * OFFSET_X,
+                    top: 0
+                  }
+                ]}>
+                  <Text style={[s.pcThumbnailExtraText, { color: colors.text }]}>+{extraImages}</Text>
+                </View>
+              )}
+            </View>
           </View>
 
           {/* Bottom Row: Item Summary, Date, Price */}
@@ -484,7 +496,7 @@ const s = StyleSheet.create({
     flexDirection: "row",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    height: 66,
+    height: 90,
     alignItems: "center",
   },
   pcThumbnailShadowBox: {
