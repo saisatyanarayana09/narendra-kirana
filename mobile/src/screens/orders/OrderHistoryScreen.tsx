@@ -231,12 +231,11 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
                 <View 
                   key={idx} 
                   style={[
-                    s.pcThumbnailWrapper, 
+                    s.pcThumbnailShadowBox, 
                     { 
                       backgroundColor: isDark ? "#1E293B" : "#F8FAFC",
-                      borderColor: colors.surface,
                       zIndex: 10 - idx,
-                      marginLeft: idx === 0 ? 0 : -20 
+                      marginLeft: idx === 0 ? 0 : -14 
                     }
                   ]}
                 >
@@ -244,7 +243,7 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
                 </View>
               ))
             ) : (
-              <View style={[s.pcThumbnailWrapper, { backgroundColor: isDark ? "#1E293B" : "#F8FAFC", borderColor: colors.surface, justifyContent: "center", alignItems: "center" }]}>
+              <View style={[s.pcThumbnailShadowBox, { backgroundColor: isDark ? "#1E293B" : "#F8FAFC", justifyContent: "center", alignItems: "center" }]}>
                 <Feather name="shopping-bag" size={20} color={colors.primary} />
               </View>
             )}
@@ -253,9 +252,8 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
                 s.pcThumbnailExtra, 
                 { 
                   backgroundColor: isDark ? "#334155" : "#E2E8F0",
-                  borderColor: colors.surface,
                   zIndex: 1,
-                  marginLeft: -20
+                  marginLeft: -14
                 }
               ]}>
                 <Text style={[s.pcThumbnailExtraText, { color: colors.text }]}>+{extraImages}</Text>
@@ -486,31 +484,43 @@ const s = StyleSheet.create({
     flexDirection: "row",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    height: 72,
+    height: 66,
     alignItems: "center",
   },
-  pcThumbnailWrapper: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    overflow: "hidden",
-    borderWidth: 2,
+  pcThumbnailShadowBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: -2, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.03)",
   },
   pcThumbnail: {
     width: "100%",
     height: "100%",
     resizeMode: "contain",
+    borderRadius: 8,
   },
   pcThumbnailExtra: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 2,
+    width: 42,
+    height: 42,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: -2, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.03)",
   },
   pcThumbnailExtraText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
   },
 
