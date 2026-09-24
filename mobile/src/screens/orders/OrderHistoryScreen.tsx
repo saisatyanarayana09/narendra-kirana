@@ -248,19 +248,16 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
           <View style={s.pcFooter}>
             <View style={s.pcFooterLeft}>
               {firstItem ? (
-                <View style={s.pcSummaryBlock}>
-                  <Text style={[s.pcItemsText, { color: colors.text }]} numberOfLines={1}>
-                    {firstItem.product_name_snapshot}
-                  </Text>
-                  <Text style={[s.pcMoreText, { color: additionalCount > 0 ? colors.textSecondary : 'transparent' }]} numberOfLines={1}>
-                    {additionalCount > 0 ? `+ ${additionalCount} more` : ' '}
-                  </Text>
-                </View>
+                <Text style={[s.pcItemsText, { color: colors.text }]} numberOfLines={1}>
+                  {firstItem.product_name_snapshot}
+                  {additionalCount > 0 && (
+                    <Text style={{ color: colors.textSecondary, fontWeight: "500", fontSize: 12 }}>
+                      {`  + ${additionalCount} more`}
+                    </Text>
+                  )}
+                </Text>
               ) : (
-                <View style={s.pcSummaryBlock}>
-                  <Text style={[s.pcItemsText, { color: colors.textSecondary }]}>No items</Text>
-                  <Text style={s.pcMoreText}> </Text>
-                </View>
+                <Text style={[s.pcItemsText, { color: colors.textSecondary }]}>No items</Text>
               )}
               <Text style={[s.pcDate, { color: colors.textSecondary }]}>
                 {fmtDate(item.created_at)}
@@ -507,15 +504,9 @@ const s = StyleSheet.create({
     paddingBottom: 16,
   },
   pcFooterLeft: { flex: 1, paddingRight: 12 },
-  pcSummaryBlock: { minHeight: 38 },
   pcItemsText: {
     fontSize: 13,
     fontWeight: "700",
-  },
-  pcMoreText: {
-    fontSize: 12,
-    fontWeight: "500",
-    marginTop: 2,
   },
   pcDate: {
     fontSize: 12,
