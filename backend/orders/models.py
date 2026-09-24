@@ -8,19 +8,16 @@ def order_id():
     from django.utils import timezone
     from orders.models import Order
     now = timezone.now()
-    # Format: ORD-YYYY-NNNNN (e.g. ORD-2026-00001)
-    prefix = f"ORD-{now.year}-"
+    # Format: ORDYYYYNNNNN (e.g. ORD202600001)
+    prefix = f"ORD{now.year}"
     last_order = Order.objects.filter(id__startswith=prefix).order_by('id').last()
     
     if not last_order:
         return f"{prefix}00001"
     
     try:
-        parts = last_order.id.split('-')
-        # Ensure we only parse the digits even if there's a legacy random suffix
-        # e.g., if previous was ORD-2609-0001-ABCD, it won't start with ORD-2026, 
-        # so it safely resets to 00001. If it does match, we parse the integer.
-        last_num = int(parts[-1])
+        # Extract the last 5 digits as the sequence number
+        last_num = int(last_order.id[-5:])
         return f"{prefix}{last_num + 1:05d}"
     except (ValueError, IndexError):
         return f"{prefix}00001"

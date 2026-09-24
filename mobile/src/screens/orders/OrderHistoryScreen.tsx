@@ -423,18 +423,18 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
   cardCenter: { flex: 1, marginLeft: 16, marginRight: 12 },
-  topRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 },
-  orderLabel: { fontSize: 17, fontWeight: "800", letterSpacing: -0.2 },
+  topRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
+  orderLabel: { fontSize: 14, fontWeight: "700", letterSpacing: 0 },
   badge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
     borderWidth: 1,
   },
-  badgeText: { fontSize: 11, fontWeight: "800", letterSpacing: 0.5, textTransform: "uppercase" },
-  dateLine: { fontSize: 14, fontWeight: "600", marginTop: 2 },
+  badgeText: { fontSize: 10, fontWeight: "800", letterSpacing: 0.5, textTransform: "uppercase" },
+  dateLine: { fontSize: 12, fontWeight: "500", marginTop: 2 },
   cardRight: { alignItems: "flex-end", gap: 4 },
-  totalText: { fontSize: 18, fontWeight: "900", letterSpacing: -0.4 },
+  totalText: { fontSize: 16, fontWeight: "800", letterSpacing: -0.3 },
 
   /* Search & Filter Bar */
   filterBar: {
