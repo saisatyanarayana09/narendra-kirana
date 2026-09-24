@@ -6,20 +6,24 @@ from products.models import Product
 
 def order_id():
     from django.utils import timezone
-    from django.utils.crypto import get_random_string
     from orders.models import Order
     now = timezone.now()
-    prefix = f"ORD-{now.strftime('%y%m')}-"
+    # Format: ORD-YYYY-NNNNN (e.g. ORD-2026-00001)
+    prefix = f"ORD-{now.year}-"
     last_order = Order.objects.filter(id__startswith=prefix).order_by('id').last()
+    
     if not last_order:
-        return f"{prefix}0001-{get_random_string(4).upper()}"
+        return f"{prefix}00001"
     
     try:
         parts = last_order.id.split('-')
-        last_num = int(parts[2]) if len(parts) > 3 else int(parts[-1])
-        return f"{prefix}{last_num + 1:04d}-{get_random_string(4).upper()}"
+        # Ensure we only parse the digits even if there's a legacy random suffix
+        # e.g., if previous was ORD-2609-0001-ABCD, it won't start with ORD-2026, 
+        # so it safely resets to 00001. If it does match, we parse the integer.
+        last_num = int(parts[-1])
+        return f"{prefix}{last_num + 1:05d}"
     except (ValueError, IndexError):
-        return f"{prefix}0001-{get_random_string(4).upper()}"
+        return f"{prefix}00001"
 
 
 class Order(models.Model):
