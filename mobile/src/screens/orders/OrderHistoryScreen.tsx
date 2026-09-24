@@ -204,8 +204,11 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
       const count = item.items?.length || 0;
       
       const firstItem = item.items?.[0];
-      const firstImage = firstItem?.product_image;
       const additionalCount = count > 1 ? count - 1 : 0;
+
+      const images = (item.items || []).map((i: any) => i.product_image).filter(Boolean);
+      const displayImages = images.slice(0, 4);
+      const extraImages = images.length > 4 ? images.length - 4 : 0;
 
       return (
         <TouchableOpacity
@@ -221,33 +224,43 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
             </View>
           </View>
 
-          {/* Middle Row: Items & Price */}
-          <View style={s.pcBody}>
-            <View style={s.pcImageContainer}>
-              {firstImage ? (
-                <Image source={{ uri: firstImage }} style={s.pcImage} />
-              ) : (
-                <View style={[s.pcImageFallback, { backgroundColor: isDark ? "#1E293B" : "#F8FAFC" }]}>
-                  <Feather name="shopping-bag" size={22} color={colors.primary} />
+          {/* Middle Row: Image Thumbnails */}
+          <View style={s.pcImagesRow}>
+            {displayImages.length > 0 ? (
+              displayImages.map((img: string, idx: number) => (
+                <View key={idx} style={[s.pcThumbnailWrapper, { backgroundColor: isDark ? "#1E293B" : "#F8FAFC" }]}>
+                  <Image source={{ uri: img }} style={s.pcThumbnail} />
                 </View>
-              )}
-            </View>
-            <View style={s.pcItemDetails}>
+              ))
+            ) : (
+              <View style={[s.pcThumbnailWrapper, { backgroundColor: isDark ? "#1E293B" : "#F8FAFC", justifyContent: "center", alignItems: "center" }]}>
+                <Feather name="shopping-bag" size={20} color={colors.primary} />
+              </View>
+            )}
+            {extraImages > 0 && (
+              <View style={[s.pcThumbnailExtra, { backgroundColor: isDark ? "#334155" : "#E2E8F0" }]}>
+                <Text style={[s.pcThumbnailExtraText, { color: colors.text }]}>+{extraImages}</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Bottom Row: Item Summary, Date, Price */}
+          <View style={s.pcFooter}>
+            <View style={s.pcFooterLeft}>
               {firstItem ? (
-                <View style={{ marginBottom: 4 }}>
+                <View style={s.pcSummaryBlock}>
                   <Text style={[s.pcItemsText, { color: colors.text }]} numberOfLines={1}>
                     {firstItem.product_name_snapshot}
                   </Text>
-                  {additionalCount > 0 && (
-                    <Text style={[s.pcMoreText, { color: colors.textSecondary }]} numberOfLines={1}>
-                      + {additionalCount} more
-                    </Text>
-                  )}
+                  <Text style={[s.pcMoreText, { color: additionalCount > 0 ? colors.textSecondary : 'transparent' }]} numberOfLines={1}>
+                    {additionalCount > 0 ? `+ ${additionalCount} more` : ' '}
+                  </Text>
                 </View>
               ) : (
-                <Text style={[s.pcItemsText, { color: colors.textSecondary, marginBottom: 4 }]}>
-                  No items
-                </Text>
+                <View style={s.pcSummaryBlock}>
+                  <Text style={[s.pcItemsText, { color: colors.textSecondary }]}>No items</Text>
+                  <Text style={s.pcMoreText}> </Text>
+                </View>
               )}
               <Text style={[s.pcDate, { color: colors.textSecondary }]}>
                 {fmtDate(item.created_at)}
@@ -453,36 +466,51 @@ const s = StyleSheet.create({
   pcStatusPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, alignItems: "center", justifyContent: "center" },
   pcStatusText: { fontSize: 11, fontWeight: "800", letterSpacing: 0.5, textTransform: "uppercase" },
 
-  pcBody: {
+  pcImagesRow: {
     flexDirection: "row",
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    height: 72,
     alignItems: "center",
   },
-  pcImageContainer: {
-    width: 52,
-    height: 52,
-    borderRadius: 12,
+  pcThumbnailWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    marginRight: 10,
     overflow: "hidden",
-    backgroundColor: "#F8FAFC", // subtle background for contain images
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
-  pcImage: {
+  pcThumbnail: {
     width: "100%",
     height: "100%",
     resizeMode: "contain",
   },
-  pcImageFallback: {
-    flex: 1,
+  pcThumbnailExtra: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
   },
-  pcItemDetails: {
-    flex: 1,
-    paddingHorizontal: 14,
-    justifyContent: "center",
+  pcThumbnailExtraText: {
+    fontSize: 14,
+    fontWeight: "700",
   },
+
+  pcFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  pcFooterLeft: { flex: 1, paddingRight: 12 },
+  pcSummaryBlock: { minHeight: 38 },
   pcItemsText: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   pcMoreText: {
     fontSize: 12,
@@ -492,6 +520,7 @@ const s = StyleSheet.create({
   pcDate: {
     fontSize: 12,
     fontWeight: "500",
+    marginTop: 6,
   },
   pcPriceBox: {
     flexDirection: "row",
