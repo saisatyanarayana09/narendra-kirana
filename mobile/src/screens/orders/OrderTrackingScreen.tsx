@@ -137,7 +137,7 @@ export function OrderTrackingScreen({
     } else if (data.type === "ORDER_STATUS_UPDATE") {
       triggerHaptic("success");
       showSystemNotification({
-        title: `Order #${orderId} ${String(data.status || "").replace(/_/g, " ")}! 📦`,
+        title: `${orderId} ${String(data.status || "").replace(/_/g, " ")}! 📦`,
         body:
           data.status === "OUT_FOR_DELIVERY"
             ? "Your order is out for delivery with our rider."
@@ -573,7 +573,7 @@ export function OrderTrackingScreen({
               </Text>
             </View>
             <Text style={[styles.orderIdText, { color: colors.text }]}>
-              #{order.id}
+              {order.id}
             </Text>
           </View>
           {order.status === "COMPLETED" && (

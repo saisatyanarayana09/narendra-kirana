@@ -217,7 +217,7 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
           <View style={s.cardCenter}>
             <View style={s.topRow}>
               <Text style={[s.orderLabel, { color: colors.text, flexShrink: 1 }]} numberOfLines={1}>
-                Order #{item.id}
+                {item.id}
               </Text>
               <View style={[s.badge, { backgroundColor: meta.bg, borderColor: meta.border }]}>
                 <Text style={[s.badgeText, { color: meta.text }]}>{meta.label}</Text>
