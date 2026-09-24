@@ -206,9 +206,6 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
       const firstItem = item.items?.[0];
       const firstImage = firstItem?.product_image;
       const additionalCount = count > 1 ? count - 1 : 0;
-      const summaryText = firstItem 
-        ? `${firstItem.product_name_snapshot}${additionalCount > 0 ? ` + ${additionalCount} more` : ""}`
-        : "No items";
 
       return (
         <TouchableOpacity
@@ -236,9 +233,22 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
               )}
             </View>
             <View style={s.pcItemDetails}>
-              <Text style={[s.pcItemsText, { color: colors.text }]} numberOfLines={2}>
-                {summaryText}
-              </Text>
+              {firstItem ? (
+                <View style={{ marginBottom: 4 }}>
+                  <Text style={[s.pcItemsText, { color: colors.text }]} numberOfLines={1}>
+                    {firstItem.product_name_snapshot}
+                  </Text>
+                  {additionalCount > 0 && (
+                    <Text style={[s.pcMoreText, { color: colors.textSecondary }]} numberOfLines={1}>
+                      + {additionalCount} more
+                    </Text>
+                  )}
+                </View>
+              ) : (
+                <Text style={[s.pcItemsText, { color: colors.textSecondary, marginBottom: 4 }]}>
+                  No items
+                </Text>
+              )}
               <Text style={[s.pcDate, { color: colors.textSecondary }]}>
                 {fmtDate(item.created_at)}
               </Text>
@@ -471,10 +481,13 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
   pcItemsText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  pcMoreText: {
     fontSize: 12,
     fontWeight: "500",
-    marginBottom: 4,
-    lineHeight: 18,
+    marginTop: 2,
   },
   pcDate: {
     fontSize: 12,
