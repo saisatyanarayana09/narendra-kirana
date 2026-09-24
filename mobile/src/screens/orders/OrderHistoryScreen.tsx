@@ -230,9 +230,10 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
             </View>
           </View>
 
-          {/* Middle Row: Image Thumbnails Diagonal Stack */}
-          <View style={s.pcImagesRow}>
-            <View style={{ width: pileWidth, height: pileHeight }}>
+          {/* Middle Row: Image Pile & Text */}
+          <View style={s.pcBody}>
+            {/* Left: Diagonal Stack */}
+            <View style={{ width: pileWidth, height: pileHeight, marginRight: 16 }}>
               {displayImages.length > 0 ? (
                 displayImages.map((img: string, idx: number) => (
                   <View 
@@ -271,27 +272,32 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
                 </View>
               )}
             </View>
+
+            {/* Right: Item Details */}
+            <View style={s.pcItemDetails}>
+              {firstItem ? (
+                <View style={s.pcSummaryBlock}>
+                  <Text style={[s.pcItemsText, { color: colors.text }]} numberOfLines={1}>
+                    {firstItem.product_name_snapshot}
+                  </Text>
+                  <Text style={[s.pcMoreText, { color: additionalCount > 0 ? colors.textSecondary : 'transparent' }]} numberOfLines={1}>
+                    {additionalCount > 0 ? `+ ${additionalCount} more` : ' '}
+                  </Text>
+                </View>
+              ) : (
+                <View style={s.pcSummaryBlock}>
+                  <Text style={[s.pcItemsText, { color: colors.textSecondary }]}>No items</Text>
+                  <Text style={s.pcMoreText}> </Text>
+                </View>
+              )}
+            </View>
           </View>
 
-          {/* Bottom Row: Item Summary, Date, Price */}
-          <View style={s.pcFooter}>
-            <View style={s.pcFooterLeft}>
-              {firstItem ? (
-                <Text style={[s.pcItemsText, { color: colors.text }]} numberOfLines={1}>
-                  {firstItem.product_name_snapshot}
-                  {additionalCount > 0 && (
-                    <Text style={{ color: colors.textSecondary, fontWeight: "500", fontSize: 12 }}>
-                      {`  + ${additionalCount} more`}
-                    </Text>
-                  )}
-                </Text>
-              ) : (
-                <Text style={[s.pcItemsText, { color: colors.textSecondary }]}>No items</Text>
-              )}
-              <Text style={[s.pcDate, { color: colors.textSecondary }]}>
-                {fmtDate(item.created_at)}
-              </Text>
-            </View>
+          {/* Bottom Row: Date & Price */}
+          <View style={[s.pcFooter, { borderTopColor: isDark ? "#334155" : "#F1F5F9" }]}>
+            <Text style={[s.pcDate, { color: colors.textSecondary }]}>
+              {fmtDate(item.created_at)}
+            </Text>
             <View style={s.pcPriceBox}>
               <Text style={[s.pcTotal, { color: colors.text }]}>{'\u20B9'}{total}</Text>
               <Feather name="chevron-right" size={18} color={colors.textSecondary} />
@@ -536,22 +542,40 @@ const s = StyleSheet.create({
     fontWeight: "700",
   },
 
+  pcBody: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    minHeight: 90,
+  },
+  pcItemDetails: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  pcSummaryBlock: {
+    justifyContent: "center",
+  },
   pcFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-end",
+    alignItems: "center",
     paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
   },
-  pcFooterLeft: { flex: 1, paddingRight: 12 },
   pcItemsText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "700",
+  },
+  pcMoreText: {
+    fontSize: 12,
+    fontWeight: "500",
+    marginTop: 4,
   },
   pcDate: {
     fontSize: 12,
     fontWeight: "500",
-    marginTop: 6,
   },
   pcPriceBox: {
     flexDirection: "row",
