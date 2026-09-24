@@ -440,7 +440,7 @@ const s = StyleSheet.create({
     borderBottomWidth: 1,
   },
   pcOrderId: { fontSize: 16, fontWeight: "800", letterSpacing: -0.2 },
-  pcStatusPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  pcStatusPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, alignItems: "center", justifyContent: "center" },
   pcStatusText: { fontSize: 11, fontWeight: "800", letterSpacing: 0.5, textTransform: "uppercase" },
 
   pcBody: {
@@ -466,11 +466,12 @@ const s = StyleSheet.create({
   },
   pcItemDetails: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
+    justifyContent: "center",
   },
   pcItemsText: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "700",
     marginBottom: 4,
     lineHeight: 20,
   },
@@ -479,11 +480,12 @@ const s = StyleSheet.create({
     fontWeight: "500",
   },
   pcPriceBox: {
-    alignItems: "flex-end",
-    gap: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
   },
   pcTotal: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "900",
     letterSpacing: -0.3,
   },
