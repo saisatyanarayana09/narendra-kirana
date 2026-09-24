@@ -228,17 +228,36 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
           <View style={s.pcImagesRow}>
             {displayImages.length > 0 ? (
               displayImages.map((img: string, idx: number) => (
-                <View key={idx} style={[s.pcThumbnailWrapper, { backgroundColor: isDark ? "#1E293B" : "#F8FAFC" }]}>
+                <View 
+                  key={idx} 
+                  style={[
+                    s.pcThumbnailWrapper, 
+                    { 
+                      backgroundColor: isDark ? "#1E293B" : "#F8FAFC",
+                      borderColor: colors.surface,
+                      zIndex: 10 - idx,
+                      marginLeft: idx === 0 ? 0 : -20 
+                    }
+                  ]}
+                >
                   <Image source={{ uri: img }} style={s.pcThumbnail} />
                 </View>
               ))
             ) : (
-              <View style={[s.pcThumbnailWrapper, { backgroundColor: isDark ? "#1E293B" : "#F8FAFC", justifyContent: "center", alignItems: "center" }]}>
+              <View style={[s.pcThumbnailWrapper, { backgroundColor: isDark ? "#1E293B" : "#F8FAFC", borderColor: colors.surface, justifyContent: "center", alignItems: "center" }]}>
                 <Feather name="shopping-bag" size={20} color={colors.primary} />
               </View>
             )}
             {extraImages > 0 && (
-              <View style={[s.pcThumbnailExtra, { backgroundColor: isDark ? "#334155" : "#E2E8F0" }]}>
+              <View style={[
+                s.pcThumbnailExtra, 
+                { 
+                  backgroundColor: isDark ? "#334155" : "#E2E8F0",
+                  borderColor: colors.surface,
+                  zIndex: 1,
+                  marginLeft: -20
+                }
+              ]}>
                 <Text style={[s.pcThumbnailExtraText, { color: colors.text }]}>+{extraImages}</Text>
               </View>
             )}
@@ -473,11 +492,9 @@ const s = StyleSheet.create({
   pcThumbnailWrapper: {
     width: 48,
     height: 48,
-    borderRadius: 8,
-    marginRight: 10,
+    borderRadius: 24,
     overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
+    borderWidth: 2,
   },
   pcThumbnail: {
     width: "100%",
@@ -487,7 +504,8 @@ const s = StyleSheet.create({
   pcThumbnailExtra: {
     width: 48,
     height: 48,
-    borderRadius: 8,
+    borderRadius: 24,
+    borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
   },
