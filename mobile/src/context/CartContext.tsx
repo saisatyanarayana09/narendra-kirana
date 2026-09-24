@@ -417,6 +417,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
         await enqueueCartMutation(async () => {
           let targetId = cartItemId;
 
+          const pId = ghostItemProductId || productId;
+          if (addToCartLocks.current[pId]) {
+            try { await addToCartLocks.current[pId]; } catch(e) {}
+          }
+
           // Ghost item: resolve to real ID from backend
           if (targetId < 0 && ghostItemProductId) {
             const freshCartRes = await apiClient.get("/cart/");
@@ -590,9 +595,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const timerId = setTimeout(async () => {
         let targetId = cartItemId;
 
+        const pId = ghostItemProductId || productId;
+        // Wait for any pending addToCart for this product to finish
+        if (addToCartLocks.current[pId]) {
+          try { await addToCartLocks.current[pId]; } catch(e) {}
+        }
+
         // Resolve Ghost ID to Real ID (poll if addToCart POST is still in-flight)
         if (targetId < 0) {
-          const pId = ghostItemProductId || productId;
           let resolvedFromBackend = false;
           for (let attempt = 0; attempt < 5; attempt++) {
             const latestCart = cartRef.current;

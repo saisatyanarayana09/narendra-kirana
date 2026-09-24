@@ -21,6 +21,7 @@ import {
 } from "react-native-safe-area-context";
 
 import { apiClient } from "../../api/client";
+import { FormInput } from "../../components/FormInput";
 import { MapLocationPicker } from "../../components/MapLocationPicker";
 import { SlideToConfirm } from "../../components/SlideToConfirm";
 import { useAuth } from "../../context/AuthContext";
@@ -1043,7 +1044,7 @@ export function CheckoutScreen({
                     ))}
                   </View>
 
-                  <TextInput
+                  <FormInput
                     style={[styles.formInput, styles.formTextArea]}
                     placeholder="House/Flat No, Street *"
                     placeholderTextColor="#94A3B8"
@@ -1055,7 +1056,7 @@ export function CheckoutScreen({
                     numberOfLines={2}
                   />
 
-                  <TextInput
+                  <FormInput
                     style={styles.formInput}
                     placeholder="Landmark (Optional)"
                     placeholderTextColor="#94A3B8"
@@ -1066,7 +1067,7 @@ export function CheckoutScreen({
                   />
 
                   <View style={styles.formRowTwo}>
-                    <TextInput
+                    <FormInput
                       style={[styles.formInput, { flex: 1 }]}
                       placeholder="City *"
                       placeholderTextColor="#94A3B8"
@@ -1075,7 +1076,7 @@ export function CheckoutScreen({
                         setAddressForm({ ...addressForm, city: t })
                       }
                     />
-                    <TextInput
+                    <FormInput
                       style={[styles.formInput, { flex: 1 }]}
                       placeholder="State *"
                       placeholderTextColor="#94A3B8"
@@ -1086,7 +1087,7 @@ export function CheckoutScreen({
                     />
                   </View>
 
-                  <TextInput
+                  <FormInput
                     style={styles.formInput}
                     placeholder="Pincode *"
                     placeholderTextColor="#94A3B8"
@@ -1242,7 +1243,7 @@ export function CheckoutScreen({
           <Text style={[styles.cardSectionLabel, { color: colors.text }]}>
             Custom delivery instructions (optional)
           </Text>
-          <TextInput
+          <FormInput
             style={[
               styles.noteInput,
               {
@@ -1610,7 +1611,7 @@ export function CheckoutScreen({
                   12-digit UTR / UPI Transaction Reference{" "}
                   <Text style={{ color: "#DC2626" }}>*</Text>
                 </Text>
-                <TextInput
+                <FormInput
                   style={[
                     styles.utrTextInput,
                     {

@@ -56,7 +56,8 @@ class ReferralSettingsView(generics.RetrieveUpdateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
-        return ReferralSettings.load()
+        obj, created = ReferralSettings.objects.select_related('referrer_reward_product').get_or_create(pk=1)
+        return obj
 
 class ReferralMilestoneViewSet(viewsets.ModelViewSet):
     queryset = ReferralMilestone.objects.all().order_by('required_referrals')

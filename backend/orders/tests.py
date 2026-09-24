@@ -20,6 +20,8 @@ User = get_user_model()
 
 class StoreSettingsAndOrderFeaturesTest(TestCase):
     def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
         self.factory = APIRequestFactory()
         self.user = User.objects.create_user(
             username='9876543210',

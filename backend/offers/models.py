@@ -102,3 +102,6 @@ class PromoUsage(models.Model):
     
     class Meta:
         ordering = ['-used_at']
+        indexes = [
+            models.Index(fields=['promo_code', 'user'], name='promo_usage_pu_idx'),
+        ]

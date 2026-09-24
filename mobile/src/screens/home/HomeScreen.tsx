@@ -25,7 +25,7 @@ import { apiClient } from "../../api/client";
 import { storeApi } from "../../api/store";
 import { AnimatedFadeIn } from "../../components/AnimatedFadeIn";
 import { CategoryCard } from "../../components/CategoryCard";
-import { ProductCard } from "../../components/ProductCard";
+import { ConnectedProductCard } from "../../components/ConnectedProductCard";
 import {
   BannerSkeleton,
   ProductCardSkeleton,
@@ -362,7 +362,7 @@ const SearchTicker = React.memo(function SearchTicker({
 
 export function HomeScreen({ navigation }: Props) {
   const { user } = useAuth();
-  const { cart, addToCart, cartQuantityMap } = useCart();
+  const { } = useCart();
   const { colors, isDark } = useTheme();
   const { t, language, setLanguage } = useLanguage();
 
@@ -500,57 +500,11 @@ export function HomeScreen({ navigation }: Props) {
   };
 
   // Favorites state synced via favoritesService
-  const [favoriteIds, setFavoriteIds] = useState<Set<number>>(
-    favoritesService.getFavoriteIds(),
-  );
-  const [favoriteMap, setFavoriteMap] = useState<Record<number, number>>(
-    favoritesService.getFavoriteMap(),
-  );
+  
 
-  const fetchFavorites = useCallback(
-    async (force = false) => {
-      if (!user) {
-        setFavoriteIds(new Set());
-        setFavoriteMap({});
-        return;
-      }
-      try {
-        const snap = await favoritesService.getFavorites(force);
-        setFavoriteIds(new Set(snap.ids));
-        setFavoriteMap({ ...snap.map });
-      } catch (error) {
-        console.log("Error fetching favorites:", error);
-      }
-    },
-    [user],
-  );
+  
 
-  const toggleFavorite = useCallback(
-    async (param: any) => {
-      const productId =
-        typeof param === "object" && param !== null ? param.id : Number(param);
-      if (!productId) return;
-
-      if (!user) {
-        Alert.alert(
-          "Sign In Required",
-          "Please sign in to save your favorite products.",
-          [
-            { text: "Cancel", style: "cancel" },
-            { text: "Sign In", onPress: () => navigation.navigate("Login") },
-          ],
-        );
-        return;
-      }
-
-      try {
-        await favoritesService.toggleFavorite(productId);
-      } catch (error) {
-        console.error("Error toggling favorite:", error);
-      }
-    },
-    [user, navigation],
-  );
+  
 
   const fetchHomeData = async () => {
     try {
@@ -661,42 +615,14 @@ export function HomeScreen({ navigation }: Props) {
     // 2. Fetch fresh data in background (SWR - stale while revalidate)
     fetchHomeData();
 
-    if (user) {
-      fetchFavorites();
-      const unsubscribe = favoritesService.subscribe(() => {
-        setFavoriteIds(new Set(favoritesService.getFavoriteIds()));
-        setFavoriteMap({ ...favoritesService.getFavoriteMap() });
-      });
-      return unsubscribe;
-    } else {
-      setFavoriteIds(new Set());
-      setFavoriteMap({});
-    }
-  }, [user, fetchFavorites]);
+    
+  }, [user]);
 
-  const handleProductPress = useCallback(
-    (p: any) => {
-      navigation.navigate("ProductDetailScreen", {
-        productId: p.id,
-        initialProduct: p,
-      });
-    },
-    [navigation],
-  );
+  
 
-  const handleAddToCart = useCallback(
-    (p: any) => {
-      addToCart(p.id, 1, p);
-    },
-    [addToCart],
-  );
+  
 
-  const handleToggleFavorite = useCallback(
-    (p: any) => {
-      toggleFavorite(p?.id ?? p);
-    },
-    [toggleFavorite],
-  );
+  
 
   const handleCategoryPress = useCallback(
     (c: any) => {
@@ -749,29 +675,16 @@ export function HomeScreen({ navigation }: Props) {
   const renderProductItem = useCallback(
     ({ item }: { item: any }) => (
       <View style={styles.horizontalProductItem}>
-        <ProductCard
-          product={item}
-          onPress={handleProductPress}
-          onAddToCart={handleAddToCart}
-          cartQty={cartQuantityMap[item.id] || 0}
-          isFavorite={favoriteIds.has(item.id)}
-          onToggleFavorite={handleToggleFavorite}
-        />
+        <ConnectedProductCard product={item} />
       </View>
     ),
-    [
-      handleProductPress,
-      handleAddToCart,
-      cartQuantityMap,
-      favoriteIds,
-      handleToggleFavorite,
-    ],
+    [],
   );
 
   const onRefresh = () => {
     setRefreshing(true);
     fetchHomeData();
-    fetchFavorites(true);
+    
   };
 
   const customSearches = React.useMemo(() => {

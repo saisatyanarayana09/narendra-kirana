@@ -4,7 +4,7 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  FlatList,
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
@@ -169,6 +169,25 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
     [updateQuantity],
   );
 
+  const renderCartItem = useCallback(
+    ({ item, index }: { item: any; index: number }) => (
+      <AnimatedFadeIn
+        key={String(item.product?.id ?? item.product ?? item.id)}
+        index={index}
+        direction="right"
+        distance={16}
+        duration={250}
+      >
+        <CartItemCard
+          item={item}
+          onUpdateQuantity={handleUpdateQuantity}
+          onRemove={handleRemoveItem}
+        />
+      </AnimatedFadeIn>
+    ),
+    [handleUpdateQuantity, handleRemoveItem]
+  );
+
   if (!cart) {
     return <LoadingSpinner fullScreen />;
   }
@@ -310,14 +329,19 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
         </View>
       </View>
 
-      <ScrollView
+      
+      <FlatList
+        data={items}
+        keyExtractor={(item) => String(item.product?.id ?? item.product ?? item.id)}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: items.length > 0 ? 100 : 24 },
-        ]}
-      >
-        {/* Out of Stock Warning Banner */}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: items.length > 0 ? 100 : 24 }]}
+        initialNumToRender={8}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={Platform.OS === "android"}
+        ListHeaderComponent={
+          <View>
+            {/* Out of Stock Warning Banner */}
         {hasOutOfStock && (
           <View style={styles.outOfStockBanner}>
             <View
@@ -459,32 +483,12 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
         )}
 
         {/* Cart Items List */}
-        <View style={styles.section}>
-          {items.map((item, index) => {
-            const productId =
-              typeof item.product === "object"
-                ? item.product?.id
-                : item.product;
-            const stableKey = productId ?? item.id;
-            return (
-              <AnimatedFadeIn
-                key={stableKey}
-                index={index}
-                direction="right"
-                distance={16}
-                duration={250}
-              >
-                <CartItemCard
-                  item={item}
-                  onUpdateQuantity={handleUpdateQuantity}
-                  onRemove={handleRemoveItem}
-                />
-              </AnimatedFadeIn>
-            );
-          })}
-        </View>
-
-        {/* Promo Code Card */}
+          </View>
+        }
+        renderItem={renderCartItem}
+        ListFooterComponent={
+          <View>
+            {/* Promo Code Card */}
         <View
           style={[
             styles.card,
@@ -837,7 +841,10 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
             </View>
           )}
         </View>
-      </ScrollView>
+          </View>
+        }
+      />
+
 
       {/* Sticky Bottom Checkout Bar – Always visible with clear disabled state */}
       {items.length > 0 && (

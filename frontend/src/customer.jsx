@@ -1,6 +1,6 @@
 import { optimizeImage } from './utils/image';
 
-import { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo, useCallback } from 'react'
 
 import { GSAPFadeUp, GSAPZoomIn, GSAPSlideIn, GSAPStagger } from './components/GSAPScroll'
 
@@ -40,7 +40,7 @@ const CATEGORY_COLORS = [
 
 
 
-function ProductImage({ product, large = false, priority = false }) {
+const ProductImage = React.memo(function ProductImage({ product, large = false, priority = false }) {
   const [activeImage, setActiveImage] = useState(0);
   const [imageLoaded, setImageLoaded] = useState(false);
   const images = [];
@@ -122,7 +122,7 @@ function ProductImage({ product, large = false, priority = false }) {
   }
 
   return <div className={`grid w-full place-items-center bg-slate-100 dark:bg-slate-800 text-3xl font-bold text-slate-300 dark:text-slate-600 rounded-2xl ${large ? 'h-64 sm:h-72 md:h-80' : 'h-32 sm:h-36'}`}>{product.name?.charAt(0)?.toUpperCase()}</div>
-}
+});
 
 
 
@@ -134,7 +134,7 @@ function SearchBox({ value, onChange }) {
 
 
 
-export function ProductCard({ product, priority = false, ...props }) {
+export const ProductCard = React.memo(function ProductCard({ product, priority = false, ...props }) {
 
   const { favorites, toggleFavorite, isCustomer, add, cart } = useCart();
   const navigate = useNavigate();
@@ -238,7 +238,7 @@ export function ProductCard({ product, priority = false, ...props }) {
       </div>
     </div>
   );
-}
+});
 
 
 
@@ -876,7 +876,7 @@ export function ProductsPage() {
     return () => clearTimeout(timer);
   }, [query, category, section]);
 
-  const loadMore = () => {
+  const loadMore = useCallback(() => {
     if (!nextPage || loadingMore) return;
     setLoadingMore(true);
     api.get(nextPage)
@@ -886,7 +886,7 @@ export function ProductsPage() {
       })
       .catch(console.error)
       .finally(() => setLoadingMore(false));
-  };
+  }, [nextPage, loadingMore]);
 
   function updateSearch(value) { const next = new URLSearchParams(searchParams); if (value) next.set('search', value); else next.delete('search'); setSearchParams(next) }
 

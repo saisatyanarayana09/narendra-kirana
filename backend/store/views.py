@@ -284,7 +284,7 @@ class HomepageSectionViewSet(viewsets.ModelViewSet):
 
 
 class FeedbackViewSet(viewsets.ModelViewSet):
-    queryset = Feedback.objects.all().order_by('-created_at')
+    queryset = Feedback.objects.select_related('customer').all().order_by('-created_at')
     serializer_class = FeedbackSerializer
 
     def get_permissions(self):

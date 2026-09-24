@@ -57,40 +57,67 @@ class CartSerializer(serializers.ModelSerializer):
             cart._prefetched_items = list(cart.items.all())
         return cart._prefetched_items
 
+    def _calculate_totals(self, cart):
+        if not hasattr(cart, '_totals_calculated'):
+            items = self._items(cart)
+            subtotal = Decimal('0.00')
+            items_total = Decimal('0.00')
+            discount = Decimal('0.00')
+            promo_eligible_total = Decimal('0.00')
+
+            promo_category_id = None
+            if cart.promo_code and getattr(cart.promo_code, 'applicable_category_id', None):
+                promo_category_id = cart.promo_code.applicable_category_id
+
+            for item in items:
+                qty = Decimal(item.quantity)
+                reg_price = item.product.regular_price
+                cur_price = current_price(item.product)
+                
+                subtotal += reg_price * qty
+                items_total += cur_price * qty
+                discount += (reg_price - cur_price) * qty
+                
+                if promo_category_id is None or item.product.category_id == promo_category_id:
+                    promo_eligible_total += cur_price * qty
+
+            promo_discount = Decimal('0.00')
+            if cart.promo_code and cart.promo_code.is_active and items_total >= cart.promo_code.min_order_amount:
+                if promo_eligible_total > Decimal('0.00'):
+                    if cart.promo_code.discount_type == 'PERCENTAGE':
+                        promo_discount = (promo_eligible_total * cart.promo_code.discount_value / Decimal('100.00')).quantize(Decimal('0.01'))
+                    else:
+                        promo_discount = min(cart.promo_code.discount_value, promo_eligible_total)
+
+            packaging_fee = Decimal('0.00') if not items else Decimal(str(StoreSettings.load().packaging_fee or 0))
+            total = max(Decimal('0.00'), items_total - promo_discount) + packaging_fee
+
+            cart._totals = {
+                'subtotal': subtotal,
+                'items_total': items_total,
+                'discount': discount,
+                'promo_discount': promo_discount,
+                'packaging_fee': packaging_fee,
+                'total': total
+            }
+            cart._totals_calculated = True
+
+        return cart._totals
+
     def get_subtotal(self, cart):
-        return sum((item.product.regular_price * item.quantity for item in self._items(cart)), Decimal('0.00'))
+        return self._calculate_totals(cart)['subtotal']
 
     def get_items_total(self, cart):
-        return sum((current_price(item.product) * item.quantity for item in self._items(cart)), Decimal('0.00'))
+        return self._calculate_totals(cart)['items_total']
 
     def get_discount(self, cart):
-        return sum(((item.product.regular_price - current_price(item.product)) * item.quantity for item in self._items(cart)), Decimal('0.00'))
+        return self._calculate_totals(cart)['discount']
 
     def get_promo_discount(self, cart):
-        base_total = sum((current_price(item.product) * item.quantity for item in self._items(cart)), Decimal('0.00'))
-        if not cart.promo_code or not cart.promo_code.is_active or base_total < cart.promo_code.min_order_amount:
-            return Decimal('0.00')
-            
-        eligible_total = base_total
-        if hasattr(cart.promo_code, 'applicable_category') and cart.promo_code.applicable_category:
-            eligible_total = sum((current_price(item.product) * item.quantity for item in self._items(cart) if item.product.category_id == cart.promo_code.applicable_category_id), Decimal('0.00'))
-            
-        if eligible_total == Decimal('0.00'):
-            return Decimal('0.00')
-
-        if cart.promo_code.discount_type == 'PERCENTAGE':
-            return (eligible_total * cart.promo_code.discount_value / Decimal('100.00')).quantize(Decimal('0.01'))
-            
-        # For flat discount, don't discount more than the eligible total
-        return min(cart.promo_code.discount_value, eligible_total)
+        return self._calculate_totals(cart)['promo_discount']
 
     def get_packaging_fee(self, cart):
-        if not self._items(cart): return Decimal('0.00')
-        # Model defaults can be Python floats before the singleton settings row
-        # is reloaded from the database. Keep all cart arithmetic in Decimal.
-        return Decimal(str(StoreSettings.load().packaging_fee or 0))
+        return self._calculate_totals(cart)['packaging_fee']
 
     def get_total(self, cart):
-        if not self._items(cart): return Decimal('0.00')
-        base_total = sum((current_price(item.product) * item.quantity for item in self._items(cart)), Decimal('0.00'))
-        return max(Decimal('0.00'), base_total - self.get_promo_discount(cart)) + self.get_packaging_fee(cart)
+        return self._calculate_totals(cart)['total']

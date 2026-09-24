@@ -12,6 +12,12 @@ class APIDashboardDataView(View):
     """JSON endpoint that provides all dashboard data."""
     
     def get(self, request):
+        from django.core.cache import cache
+        cache_key = 'admin_dashboard_data'
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return JsonResponse(cached_data)
+
         from orders.models import Order
         from products.models import Product, Category
         from accounts.models import User
@@ -168,4 +174,5 @@ class APIDashboardDataView(View):
             'endpoints': endpoints,
         }
         
+        cache.set(cache_key, data, 60)
         return JsonResponse(data)

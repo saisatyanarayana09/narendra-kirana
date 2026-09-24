@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState, lazy, Suspense } from 'react'
 import { Link, useNavigate, useParams, useLocation } from 'react-router-dom'
 import { Minus, Plus, Trash2, ShoppingBasket, ArrowLeft, Eye, EyeOff, CheckCircle2, Package, PackageSearch, Truck, Store, XCircle, MapPin, Edit2, RefreshCw, Gift, Lock, Sparkles, Check, AlertCircle, ShieldCheck, MailCheck, Copy, AlertTriangle, Clock, Calendar, QrCode } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -7,8 +7,8 @@ import api from './services/api'
 import { CustomerLayout } from './customer-layout'
 import { useCart } from './cart-context'
 import { QRCodeSVG } from 'qrcode.react'
-import MapLocationPicker from './components/MapLocationPicker'
-import OrderTrackingMap from './components/OrderTrackingMap'
+const MapLocationPicker = lazy(() => import('./components/MapLocationPicker'))
+const OrderTrackingMap = lazy(() => import('./components/OrderTrackingMap'))
 
 function GoogleIcon({ className = "w-5 h-5" }) {
   return (
@@ -1820,7 +1820,8 @@ export function CheckoutPage() {
                     )}
                   </div>
 
-                  <MapLocationPicker
+                  <Suspense fallback={<div className="h-48 flex items-center justify-center bg-slate-50 dark:bg-slate-800 rounded-xl animate-pulse text-sm text-slate-500 font-medium">Loading Map...</div>}>
+                    <MapLocationPicker
                     isOpen={showMapPicker}
                     onClose={() => setShowMapPicker(false)}
                     storeSettings={storeSettings}
@@ -1839,6 +1840,7 @@ export function CheckoutPage() {
                       toast.success('Doorstep location pinned on map!');
                     }}
                   />
+                  </Suspense>
                   <div className="grid grid-cols-2 gap-2.5">
                     <div className="col-span-2">
                       <input placeholder="Title (e.g. Home, Office)" value={addressForm.title} onChange={e => setAddressForm({...addressForm, title: e.target.value})} required className="w-full text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 p-2.5 sm:p-3 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-indigo-500"/>
@@ -2302,7 +2304,9 @@ export function OrderDetailPage() {
                     </p>
                   </div>
                 </div>
-                <OrderTrackingMap order={order} storeSettings={storeSettings} />
+                <Suspense fallback={<div className="h-64 flex items-center justify-center bg-slate-50 dark:bg-slate-800 rounded-b-2xl animate-pulse text-sm text-slate-500 font-medium">Loading Route Map...</div>}>
+                  <OrderTrackingMap order={order} storeSettings={storeSettings} />
+                </Suspense>
               </div>
             )}
 

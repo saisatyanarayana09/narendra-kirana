@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 
 class User(AbstractUser):
-    is_customer = models.BooleanField(default=True)
+    is_customer = models.BooleanField(default=True, db_index=True)
     is_owner = models.BooleanField(default=False)
     is_delivery_partner = models.BooleanField(default=False)
     
@@ -27,6 +27,12 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.username
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['-date_joined'], name='user_date_joined_idx'),
+            models.Index(fields=['is_active'], name='user_is_active_idx'),
+        ]
 
 class CustomerProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='customer_profile')

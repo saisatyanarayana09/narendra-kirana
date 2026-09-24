@@ -112,7 +112,18 @@
       "expo-file-system",
       "expo-image",
       "@react-native-google-signin/google-signin",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "newArchEnabled": true
+          },
+          "ios": {
+            "newArchEnabled": true
+          }
+        }
+      ]
     ],
     "extra": {
       "eas": {
