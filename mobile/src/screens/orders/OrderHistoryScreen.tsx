@@ -300,7 +300,6 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
             </Text>
             <View style={s.pcPriceBox}>
               <Text style={[s.pcTotal, { color: colors.text }]}>{'\u20B9'}{total}</Text>
-              <Feather name="chevron-right" size={18} color={colors.textSecondary} />
             </View>
           </View>
         </TouchableOpacity>
