@@ -38,12 +38,12 @@ const SkeletonCard = ({ colors, isDark }: { colors: any; isDark: boolean }) => {
   }, []);
   const b = isDark ? "#1E293B" : "#F1F5F9";
   return (
-    <Animated.View style={[s.card, { backgroundColor: colors.surface, borderColor: colors.border, opacity: pulse }]}>
+    <Animated.View style={[s.premiumCard, { backgroundColor: colors.surface, opacity: pulse, padding: 16 }]}>
       <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: b }} />
-        <View style={{ flex: 1, marginLeft: 12, gap: 6 }}>
-          <View style={{ width: 100, height: 14, backgroundColor: b, borderRadius: 4 }} />
-          <View style={{ width: 140, height: 11, backgroundColor: b, borderRadius: 4 }} />
+        <View style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: b }} />
+        <View style={{ flex: 1, marginLeft: 16, gap: 8 }}>
+          <View style={{ width: 120, height: 16, backgroundColor: b, borderRadius: 4 }} />
+          <View style={{ width: 180, height: 12, backgroundColor: b, borderRadius: 4 }} />
         </View>
         <View style={{ width: 60, height: 18, backgroundColor: b, borderRadius: 4 }} />
       </View>
