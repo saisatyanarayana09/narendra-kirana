@@ -12,6 +12,7 @@ import {
   Animated,
   TextInput,
   ScrollView,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -202,8 +203,12 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
       const total = (parseFloat(String(item?.total_amount || 0)) || 0).toFixed(2);
       const count = item.items?.length || 0;
       
-      const itemNames = item.items?.map((i: any) => i.product_name_snapshot).join(", ") || "";
-      const isCompleted = item.status === "COMPLETED" || item.status === "REJECTED";
+      const firstItem = item.items?.[0];
+      const firstImage = firstItem?.product_image;
+      const additionalCount = count > 1 ? count - 1 : 0;
+      const summaryText = firstItem 
+        ? `${firstItem.product_name_snapshot}${additionalCount > 0 ? ` + ${additionalCount} more` : ""}`
+        : "No items";
 
       return (
         <TouchableOpacity
@@ -211,40 +216,37 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
           onPress={() => navigation.navigate("OrderTrackingScreen", { orderId: item.id, initialOrder: item })}
           style={[s.premiumCard, { backgroundColor: colors.surface }]}
         >
-          {/* Top Header */}
+          {/* Top Row: Order ID & Status */}
           <View style={[s.pcHeader, { borderBottomColor: isDark ? "#334155" : "#F1F5F9" }]}>
-            <View style={s.pcHeaderLeft}>
-              <View style={[s.pcStatusDot, { backgroundColor: meta.bg }]} />
-              <Text style={[s.pcStatusText, { color: colors.textSecondary }]}>{meta.label}</Text>
+            <Text style={[s.pcOrderId, { color: colors.text }]}>{item.id}</Text>
+            <View style={[s.pcStatusPill, { backgroundColor: meta.bg }]}>
+              <Text style={[s.pcStatusText, { color: meta.text }]}>{meta.label}</Text>
             </View>
-            <Text style={[s.pcDate, { color: colors.textSecondary }]}>{fmtDate(item.created_at)}</Text>
           </View>
 
-          {/* Middle Body */}
+          {/* Middle Row: Items & Price */}
           <View style={s.pcBody}>
-            <View style={[s.pcIconWrap, { backgroundColor: isDark ? "#1E293B" : "#F8FAFC" }]}>
-              <Feather name="shopping-bag" size={24} color={colors.primary} />
+            <View style={s.pcImageContainer}>
+              {firstImage ? (
+                <Image source={{ uri: firstImage }} style={s.pcImage} />
+              ) : (
+                <View style={[s.pcImageFallback, { backgroundColor: isDark ? "#1E293B" : "#F8FAFC" }]}>
+                  <Feather name="shopping-bag" size={22} color={colors.primary} />
+                </View>
+              )}
             </View>
-            <View style={s.pcInfo}>
-              <View style={s.pcTitleRow}>
-                <Text style={[s.pcOrderId, { color: colors.text }]}>{item.id}</Text>
-                <Text style={[s.pcTotal, { color: colors.text }]}>{'\u20B9'}{total}</Text>
-              </View>
-              <Text style={[s.pcItemsText, { color: colors.textSecondary }]} numberOfLines={1}>
-                {itemNames}
+            <View style={s.pcItemDetails}>
+              <Text style={[s.pcItemsText, { color: colors.text }]} numberOfLines={2}>
+                {summaryText}
               </Text>
-              <Text style={[s.pcCountText, { color: colors.textSecondary }]}>
-                {count} {count === 1 ? "item" : "items"}
+              <Text style={[s.pcDate, { color: colors.textSecondary }]}>
+                {fmtDate(item.created_at)}
               </Text>
             </View>
-          </View>
-
-          {/* Bottom Action */}
-          <View style={[s.pcFooter, { borderTopColor: isDark ? "#334155" : "#F1F5F9" }]}>
-            <Text style={[s.pcActionText, { color: colors.primary }]}>
-              {isCompleted ? "View Details" : "Track Order"}
-            </Text>
-            <Feather name="chevron-right" size={16} color={colors.primary} />
+            <View style={s.pcPriceBox}>
+              <Text style={[s.pcTotal, { color: colors.text }]}>{'\u20B9'}{total}</Text>
+              <Feather name="chevron-right" size={18} color={colors.textSecondary} />
+            </View>
           </View>
         </TouchableOpacity>
       );
@@ -437,39 +439,54 @@ const s = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
   },
-  pcHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 6 },
-  pcStatusDot: { width: 8, height: 8, borderRadius: 4 },
-  pcStatusText: { fontSize: 13, fontWeight: "600", textTransform: "uppercase" },
-  pcDate: { fontSize: 13, fontWeight: "500" },
+  pcOrderId: { fontSize: 16, fontWeight: "800", letterSpacing: -0.2 },
+  pcStatusPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  pcStatusText: { fontSize: 11, fontWeight: "800", letterSpacing: 0.5, textTransform: "uppercase" },
 
   pcBody: {
     flexDirection: "row",
     padding: 16,
     alignItems: "center",
   },
-  pcIconWrap: {
-    width: 48,
-    height: 48,
+  pcImageContainer: {
+    width: 52,
+    height: 52,
     borderRadius: 12,
+    overflow: "hidden",
+  },
+  pcImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
+  },
+  pcImageFallback: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-  pcInfo: { flex: 1, marginLeft: 16 },
-  pcTitleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 },
-  pcOrderId: { fontSize: 16, fontWeight: "800", letterSpacing: -0.2 },
-  pcTotal: { fontSize: 17, fontWeight: "800" },
-  pcItemsText: { fontSize: 14, fontWeight: "500", marginBottom: 2 },
-  pcCountText: { fontSize: 12, fontWeight: "500" },
-
-  pcFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-    borderTopWidth: 1,
+  pcItemDetails: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  pcItemsText: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 4,
+    lineHeight: 20,
+  },
+  pcDate: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  pcPriceBox: {
+    alignItems: "flex-end",
     gap: 4,
   },
-  pcActionText: { fontSize: 14, fontWeight: "700" },
+  pcTotal: {
+    fontSize: 17,
+    fontWeight: "900",
+    letterSpacing: -0.3,
+  },
 
   /* Search & Filter Bar */
   filterBar: {
