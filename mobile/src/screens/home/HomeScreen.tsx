@@ -389,9 +389,9 @@ export function HomeScreen({ navigation }: Props) {
     extrapolate: "clamp",
   });
 
-  // Make collapsed search bar wider per user request
-  // Width 165 gives it more space for the text and proper padding inside.
-  const collapsedSearchBarWidth = 165;
+  // Calculate dynamic width so search bar fills all space next to the logo
+  // Logo is roughly 165px wide + 16px left padding + 14px gap = 195px
+  const collapsedSearchBarWidth = width - 195;
 
   // Search Bar scales down its width to fit perfectly on the right
   const searchBarWidth = scrollY.interpolate({
@@ -400,10 +400,10 @@ export function HomeScreen({ navigation }: Props) {
     extrapolate: "clamp",
   });
 
-  // Animate height slightly down (from 44 to 36) for a neat pill look
+  // Animate height slightly down (from 44 to 38) for a neat pill look
   const searchBarHeight = scrollY.interpolate({
     inputRange: [0, 80],
-    outputRange: [44, 38], // slightly taller than 36 for better padding
+    outputRange: [44, 38],
     extrapolate: "clamp",
   });
 
@@ -421,26 +421,8 @@ export function HomeScreen({ navigation }: Props) {
     extrapolate: "clamp",
   });
 
-  // Brand stays visible but scales down slightly and shifts left
-  // This creates space for the wider search bar on small screens!
-  const brandOpacity = 1;
-  const brandTranslateY = scrollY.interpolate({
-    inputRange: [0, 80],
-    outputRange: [0, -2],
-    extrapolate: "clamp",
-  });
-  const brandScale = scrollY.interpolate({
-    inputRange: [0, 80],
-    outputRange: [1, 0.85],
-    extrapolate: "clamp",
-  });
-  const brandTranslateX = scrollY.interpolate({
-    inputRange: [0, 80],
-    outputRange: [0, -10],
-    extrapolate: "clamp",
-  });
 
-  // The text ticker inside fades out as it gets squished
+  // Keep text slightly visible or crossfade it smoothly
   const headerSearchOpacity = scrollY.interpolate({
     inputRange: [0, 50],
     outputRange: [1, 0],
@@ -826,7 +808,7 @@ export function HomeScreen({ navigation }: Props) {
         ]}
       >
         {/* Tier 1: Brand & User Icon */}
-        <Animated.View style={[styles.headerTier1, { opacity: brandOpacity, transform: [{ translateY: brandTranslateY }, { translateX: brandTranslateX }, { scale: brandScale }] }]}>
+        <View style={styles.headerTier1}>
           <View style={styles.brandLocationGroup}>
             <View style={styles.brandTextWrap}>
               <Text
@@ -839,7 +821,7 @@ export function HomeScreen({ navigation }: Props) {
               </Text>
             </View>
           </View>
-        </Animated.View>
+        </View>
 
         {/* Tier 2: The placeholder space that collapses */}
         <Animated.View style={{ height: headerSearchHeight, opacity: 0 }} />
