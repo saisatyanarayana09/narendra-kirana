@@ -8,9 +8,11 @@ import {
   TouchableOpacity,
   StyleProp,
   ViewStyle,
+  Share,
 } from "react-native";
 
 import { BouncyTouchable } from "./BouncyTouchable";
+import { API_BASE_URL } from "../constants/config";
 import { useTheme } from "../context/ThemeContext";
 import { getOptimizedImageUrl } from "../utils/image";
 
@@ -68,6 +70,19 @@ function ProductCardComponent({
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, []);
+
+  const handleShare = async (e: any) => {
+    e?.stopPropagation?.();
+    try {
+      const shareUrl = API_BASE_URL.replace("/api/v1", `/product/${product.id}`);
+      await Share.share({
+        message: `Check out ${product.name} on Narendra Kirana!\n${shareUrl}`,
+        url: shareUrl,
+      });
+    } catch (error) {
+      console.error("Error sharing product:", error);
+    }
+  };
 
   const isFav =
     typeof isFavorite === "function"
@@ -215,6 +230,25 @@ function ProductCardComponent({
             />
           </BouncyTouchable>
         )}
+
+        {/* Share button at top right */}
+        <BouncyTouchable
+          style={[
+            styles.shareButton,
+            isDark && { backgroundColor: "rgba(30, 41, 59, 0.92)" },
+            !onToggleFavorite && { top: 8 }
+          ]}
+          onPress={handleShare}
+          scaleTo={0.82}
+          hapticType="selection"
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Feather
+            name="share-2"
+            size={14}
+            color={isDark ? "#64748B" : "#94A3B8"}
+          />
+        </BouncyTouchable>
 
         {/* Product image or initial letter fallback */}
         {primaryImage ? (
@@ -512,6 +546,17 @@ const styles = StyleSheet.create({
   favoriteButton: {
     position: "absolute",
     top: 8,
+    right: 8,
+    zIndex: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.92)",
+    padding: 6,
+    borderRadius: 20,
+    boxShadow: "0px 1px 2px rgba(0, 0, 0, 0.1)",
+    elevation: 2,
+  },
+  shareButton: {
+    position: "absolute",
+    top: 40,
     right: 8,
     zIndex: 10,
     backgroundColor: "rgba(255, 255, 255, 0.92)",

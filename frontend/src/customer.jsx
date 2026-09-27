@@ -6,7 +6,7 @@ import { GSAPFadeUp, GSAPZoomIn, GSAPSlideIn, GSAPStagger } from './components/G
 
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
-import { ChevronRight, ChevronLeft, Search, X, Heart, ArrowLeft, ShoppingCart, Sparkles, Zap, Star, Megaphone, ShieldCheck, Tag, Minus, Plus, Check } from 'lucide-react'
+import { ChevronRight, ChevronLeft, Search, X, Heart, ArrowLeft, ShoppingCart, Sparkles, Zap, Star, Megaphone, ShieldCheck, Tag, Minus, Plus, Check, Share2 } from 'lucide-react'
 
 import api, { readCacheSync } from './services/api'
 
@@ -1033,6 +1033,25 @@ export function ProductDetailPage() {
       .catch(() => setError('This product is unavailable or no longer active.'));
   }, [id]);
 
+  const handleShare = async () => {
+    if (!product) return;
+    const shareUrl = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${product.name} - Narendra Kirana`,
+          text: `Check out ${product.name} on Narendra Kirana!`,
+          url: shareUrl,
+        });
+      } catch (err) {
+        console.error('Error sharing:', err);
+      }
+    } else {
+      navigator.clipboard.writeText(shareUrl);
+      toast.success('Product link copied to clipboard!');
+    }
+  };
+
   async function addToCart() {
     if (!isCustomer) {
       navigate('/login');
@@ -1159,19 +1178,28 @@ export function ProductDetailPage() {
                     {isOutOfStock ? 'Out of Stock' : 'In Stock'}
                   </span>
                 </div>
-                {isCustomer && (
+                <div className="flex items-center gap-1">
                   <button
-                    onClick={() => toggleFavorite(product.id)}
-                    className="p-2 -mr-2 rounded-full hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
-                    title={isFav ? 'Remove from favorites' : 'Add to favorites'}
+                    onClick={handleShare}
+                    className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                    title="Share product"
                   >
-                    <Heart
-                      size={22}
-                      fill={isFav ? 'currentColor' : 'none'}
-                      className={isFav ? 'text-rose-500' : 'text-slate-300 dark:text-slate-600 hover:text-rose-400'}
-                    />
+                    <Share2 size={20} className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300" />
                   </button>
-                )}
+                  {isCustomer && (
+                    <button
+                      onClick={() => toggleFavorite(product.id)}
+                      className="p-2 -mr-2 rounded-full hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
+                      title={isFav ? 'Remove from favorites' : 'Add to favorites'}
+                    >
+                      <Heart
+                        size={22}
+                        fill={isFav ? 'currentColor' : 'none'}
+                        className={isFav ? 'text-rose-500' : 'text-slate-300 dark:text-slate-600 hover:text-rose-400'}
+                      />
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Title & Brand/Unit */}

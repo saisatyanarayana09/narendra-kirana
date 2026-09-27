@@ -23,6 +23,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { AppNavigationProp } from "../../navigation/types";
 import { favoritesService } from "../../services/favoritesService";
 import { fixImageUrl, getOptimizedImageUrl } from "../../utils/image";
+import { API_BASE_URL } from "../../constants/config";
 
 const { width } = Dimensions.get("window");
 
@@ -164,8 +165,10 @@ export function ProductDetailScreen({
 
   const handleShare = async () => {
     try {
+      const shareUrl = API_BASE_URL.replace("/api/v1", `/product/${product.id}`);
       await Share.share({
-        message: `Check out ${product.name} on Narendra Kirana!`,
+        message: `Check out ${product.name} on Narendra Kirana!\n${shareUrl}`,
+        url: shareUrl,
       });
     } catch (error: any) {
       console.error(error);
