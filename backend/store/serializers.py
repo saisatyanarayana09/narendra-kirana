@@ -5,7 +5,7 @@ from products.serializers import ProductSerializer
 
 
 class StoreEmailSettingsSerializer(serializers.ModelSerializer):
-    app_password = serializers.CharField(required=False, allow_blank=True)
+    app_password = serializers.CharField(required=False, allow_blank=True, write_only=True)
     has_password = serializers.SerializerMethodField()
     masked_password = serializers.SerializerMethodField()
 
