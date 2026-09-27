@@ -10,7 +10,7 @@ import api from './services/api'
 
 import { SmartAppBanner } from './components/SmartAppBanner'
 
-function GlobalSearchBar() {
+function GlobalSearchBar({ settings }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -18,6 +18,51 @@ function GlobalSearchBar() {
   const navigate = useNavigate();
   const wrapperRef = useRef(null);
   const { language } = useLanguage();
+
+  // Dynamic Animated Placeholders
+  const placeholders = React.useMemo(() => {
+    if (settings?.popular_searches) {
+      const parsed = settings.popular_searches
+        .split("\n")
+        .map(s => s.trim())
+        .filter(Boolean);
+      if (parsed.length > 0) {
+        return parsed.map(s => `Search '${s}'...`);
+      }
+    }
+    return ["Search products...", "Search for milk...", "Search for atta..."];
+  }, [settings?.popular_searches]);
+
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [typewriterText, setTypewriterText] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    if (isListening || query.length > 0) return;
+    
+    const currentWord = placeholders[placeholderIndex];
+    let typingSpeed = isDeleting ? 30 : 60;
+    
+    let timeout;
+    
+    if (!isDeleting && typewriterText === currentWord) {
+      typingSpeed = 2500; // Pause at the end
+      timeout = setTimeout(() => setIsDeleting(true), typingSpeed);
+    } else if (isDeleting && typewriterText === "") {
+      setIsDeleting(false);
+      setPlaceholderIndex((prev) => (prev + 1) % placeholders.length);
+    } else {
+      timeout = setTimeout(() => {
+        setTypewriterText((prev) => 
+          isDeleting 
+            ? prev.slice(0, -1) 
+            : currentWord.slice(0, prev.length + 1)
+        );
+      }, typingSpeed);
+    }
+
+    return () => clearTimeout(timeout);
+  }, [typewriterText, isDeleting, placeholderIndex, placeholders, isListening, query]);
 
   // Text-to-Speech Voice Hook
   const { speak, stop: stopSpeaking, isSpeaking } = useTextToSpeech();
@@ -126,7 +171,7 @@ function GlobalSearchBar() {
             if (isListening) toggleListening();
           }}
           onFocus={() => { if (results.length > 0) setIsOpen(true); }}
-          placeholder={isListening ? "Listening... Speak now" : "Search products..."}
+          placeholder={isListening ? "Listening... Speak now" : (typewriterText || "")}
           className={`w-full bg-transparent pl-3 pr-20 py-2.5 outline-none text-sm text-slate-900 dark:text-white ${
             isListening ? 'placeholder:text-rose-500 placeholder:font-medium' : 'placeholder:text-slate-400'
           }`}
@@ -779,7 +824,7 @@ export function CustomerLayout({ children }) {
           </Link>
           
           {/* Center Search Bar */}
-          <GlobalSearchBar />
+          <GlobalSearchBar settings={storeSettings} />
         
           {/* Right Controls */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
