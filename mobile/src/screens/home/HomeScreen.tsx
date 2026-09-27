@@ -389,9 +389,9 @@ export function HomeScreen({ navigation }: Props) {
     extrapolate: "clamp",
   });
 
-  // Make collapsed search bar much smaller so it doesn't touch the logo!
-  // Width 120 gives plenty of breathing room on small screens.
-  const collapsedSearchBarWidth = 120;
+  // Make collapsed search bar wider per user request
+  // Width 165 gives it more space for the text and proper padding inside.
+  const collapsedSearchBarWidth = 165;
 
   // Search Bar scales down its width to fit perfectly on the right
   const searchBarWidth = scrollY.interpolate({
@@ -403,14 +403,14 @@ export function HomeScreen({ navigation }: Props) {
   // Animate height slightly down (from 44 to 36) for a neat pill look
   const searchBarHeight = scrollY.interpolate({
     inputRange: [0, 80],
-    outputRange: [44, 36],
+    outputRange: [44, 38], // slightly taller than 36 for better padding
     extrapolate: "clamp",
   });
 
   // Search Bar translates UP to horizontally align with the logo center
   const searchBarTranslateY = scrollY.interpolate({
     inputRange: [0, 80],
-    outputRange: [0, -44], // exactly aligned mathematically with the text's Y-center
+    outputRange: [0, -42],
     extrapolate: "clamp",
   });
 
@@ -421,9 +421,24 @@ export function HomeScreen({ navigation }: Props) {
     extrapolate: "clamp",
   });
 
-  // Brand stays fully visible and doesn't move
+  // Brand stays visible but scales down slightly and shifts left
+  // This creates space for the wider search bar on small screens!
   const brandOpacity = 1;
-  const brandTranslateY = 0;
+  const brandTranslateY = scrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: [0, -2],
+    extrapolate: "clamp",
+  });
+  const brandScale = scrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: [1, 0.85],
+    extrapolate: "clamp",
+  });
+  const brandTranslateX = scrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: [0, -10],
+    extrapolate: "clamp",
+  });
 
   // The text ticker inside fades out as it gets squished
   const headerSearchOpacity = scrollY.interpolate({
@@ -811,7 +826,7 @@ export function HomeScreen({ navigation }: Props) {
         ]}
       >
         {/* Tier 1: Brand & User Icon */}
-        <Animated.View style={[styles.headerTier1, { opacity: brandOpacity, transform: [{ translateY: brandTranslateY }] }]}>
+        <Animated.View style={[styles.headerTier1, { opacity: brandOpacity, transform: [{ translateY: brandTranslateY }, { translateX: brandTranslateX }, { scale: brandScale }] }]}>
           <View style={styles.brandLocationGroup}>
             <View style={styles.brandTextWrap}>
               <Text
