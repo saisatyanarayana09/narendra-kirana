@@ -87,13 +87,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     useState<number>(0);
   const cartRef = React.useRef<CartData | null>(cart);
   const storeSettingsRef = React.useRef<any>(storeSettings);
-  const addToCartLocks = React.useRef<Record<number, Promise<void>>>({});
+  const addToCartLocks = React.useRef<Record<number, Promise<void> | undefined>>({});
   const updateQuantityLocks = React.useRef<
     Record<number, ReturnType<typeof setTimeout>>
   >({});
   // Cart endpoints return the entire cart. Serialize writes so an older full-cart
   // response can never overwrite a newer quantity change for another item.
   const cartMutationQueue = React.useRef<Promise<void>>(Promise.resolve());
+  const cartMutationVersion = React.useRef<number>(0);
 
   useEffect(() => {
     cartRef.current = cart;
@@ -104,9 +105,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [storeSettings]);
 
   const enqueueCartMutation = useCallback(
-    (mutation: () => Promise<void>): Promise<void> => {
+    (mutation: (version: number) => Promise<void>): Promise<void> => {
+      const version = ++cartMutationVersion.current;
       const previous = cartMutationQueue.current;
-      const next = previous.catch(() => undefined).then(mutation);
+      const next = previous.catch(() => undefined).then(() => mutation(version));
       cartMutationQueue.current = next;
 
       void next
@@ -267,11 +269,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       try {
         if (!isSilent) setIsLoading(true);
-        await enqueueCartMutation(async () => {
+        await enqueueCartMutation(async (version) => {
           const res = await apiClient.get("/cart/");
           if (res?.data) {
-            cartRef.current = res.data;
-            setCart(res.data);
+            if (version === cartMutationVersion.current) { cartRef.current = res.data; setCart(res.data); }
           }
         });
       } catch (error: any) {
@@ -343,7 +344,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const prevCart = cartRef.current;
       if (!user) {
         try {
-          await enqueueCartMutation(async () => {
+          await enqueueCartMutation(async (version) => {
             const currentCart = cartRef.current || (await loadGuestCart());
             if (!currentCart) return;
 
@@ -354,8 +355,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             const packagingFee = storeSettingsRef.current?.packaging_fee || "0";
             const newCartData = calculateGuestTotals(updatedItems, packagingFee);
             await setGuestStorageItem(GUEST_CART_KEY, JSON.stringify(newCartData));
-            cartRef.current = newCartData;
-            setCart(newCartData);
+            if (version === cartMutationVersion.current) { cartRef.current = newCartData; setCart(newCartData); }
           });
         } catch (error) {
           console.error("Failed to remove from guest cart:", error);
@@ -414,7 +414,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       });
 
       try {
-        await enqueueCartMutation(async () => {
+        await enqueueCartMutation(async (version) => {
           let targetId = cartItemId;
 
           const pId = ghostItemProductId || productId;
@@ -440,8 +440,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           try {
             const res = await apiClient.delete(`/cart/items/${targetId}/`);
             if (res?.data?.items) {
-              cartRef.current = res.data;
-              setCart(res.data);
+              if (version === cartMutationVersion.current) { cartRef.current = res.data; setCart(res.data); }
             } else {
               await refreshCart(true);
             }
@@ -485,7 +484,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       if (!user) {
         try {
-          await enqueueCartMutation(async () => {
+          await enqueueCartMutation(async (version) => {
             const activeGuestCart = cartRef.current || (await loadGuestCart());
             if (!activeGuestCart) return;
 
@@ -510,8 +509,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             const packagingFee = storeSettingsRef.current?.packaging_fee || "0";
             const newCartData = calculateGuestTotals(updatedItems, packagingFee);
             await setGuestStorageItem(GUEST_CART_KEY, JSON.stringify(newCartData));
-            cartRef.current = newCartData;
-            setCart(newCartData);
+            if (version === cartMutationVersion.current) { cartRef.current = newCartData; setCart(newCartData); }
           });
         } catch (error) {
           console.error("Failed to update guest cart quantity:", error);
@@ -625,15 +623,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
           }
         }
 
-        await enqueueCartMutation(async () => {
+        await enqueueCartMutation(async (version) => {
           if (updateQuantityLocks.current[cartItemId] !== timerId) return;
 
           try {
             const res = await apiClient.patch(`/cart/items/${targetId}/`, { quantity });
             if (updateQuantityLocks.current[cartItemId] === timerId) {
               if (res?.data && res.data.items) {
-                cartRef.current = res.data;
-                setCart(res.data);
+                if (version === cartMutationVersion.current) { cartRef.current = res.data; setCart(res.data); }
               } else {
                 await refreshCart(true);
               }
@@ -893,14 +890,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
         setLastItemAddedTimestamp(Date.now());
 
         try {
-          await enqueueCartMutation(async () => {
+          await enqueueCartMutation(async (version) => {
             const res = await apiClient.post("/cart/items/", {
               product: productId,
               quantity,
             });
             if (res?.data && res.data.items) {
-              cartRef.current = res.data;
-              setCart(res.data);
+              if (version === cartMutationVersion.current) { cartRef.current = res.data; setCart(res.data); }
             } else {
               await refreshCart(true);
             }
@@ -1044,3 +1040,4 @@ export function useCart() {
   }
   return context;
 }
+
