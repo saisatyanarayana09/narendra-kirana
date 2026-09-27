@@ -389,43 +389,60 @@ export function HomeScreen({ navigation }: Props) {
     extrapolate: "clamp",
   });
 
-  // Brand text fades out and translates up on scroll
-  const brandOpacity = scrollY.interpolate({
-    inputRange: [0, 40],
+  // Make collapsed search bar much smaller so it doesn't touch the logo!
+  // Width 120 gives plenty of breathing room on small screens.
+  const collapsedSearchBarWidth = 120;
+
+  // Search Bar scales down its width to fit perfectly on the right
+  const searchBarWidth = scrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: [width - 32, collapsedSearchBarWidth],
+    extrapolate: "clamp",
+  });
+
+  // Animate height slightly down (from 44 to 36) for a neat pill look
+  const searchBarHeight = scrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: [44, 36],
+    extrapolate: "clamp",
+  });
+
+  // Search Bar translates UP to horizontally align with the logo center
+  const searchBarTranslateY = scrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: [0, -44], // exactly aligned mathematically with the text's Y-center
+    extrapolate: "clamp",
+  });
+
+  // Search Bar translates RIGHT to dock on the right edge
+  const searchBarTranslateX = scrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: [0, width - 32 - collapsedSearchBarWidth],
+    extrapolate: "clamp",
+  });
+
+  // Brand stays fully visible and doesn't move
+  const brandOpacity = 1;
+  const brandTranslateY = 0;
+
+  // The text ticker inside fades out as it gets squished
+  const headerSearchOpacity = scrollY.interpolate({
+    inputRange: [0, 50],
     outputRange: [1, 0],
     extrapolate: "clamp",
   });
 
-  const brandTranslateY = scrollY.interpolate({
-    inputRange: [0, 80],
-    outputRange: [0, -20],
+  const headerSearchInverseOpacity = scrollY.interpolate({
+    inputRange: [0, 50],
+    outputRange: [0, 1],
     extrapolate: "clamp",
   });
 
-  // Search Bar stays full width
-  const searchBarWidth = width - 32;
-
-  // Search Bar height shrinks slightly for a crisper sticky header
-  const searchBarHeight = scrollY.interpolate({
-    inputRange: [0, 80],
-    outputRange: [44, 40],
+  const micWidth = scrollY.interpolate({
+    inputRange: [0, 50],
+    outputRange: [34, 0], // hide the mic icon to save space in the small pill
     extrapolate: "clamp",
   });
-
-  // Search Bar translates UP to seamlessly take the place of the brand text
-  const searchBarTranslateY = scrollY.interpolate({
-    inputRange: [0, 80],
-    outputRange: [0, -38],
-    extrapolate: "clamp",
-  });
-
-  // No X translation needed anymore
-  const searchBarTranslateX = 0;
-
-  // The text ticker inside stays fully visible
-  const headerSearchOpacity = 1;
-  const headerSearchInverseOpacity = 0;
-  const micWidth = 34;
 
   useEffect(() => {
     if (settings?.enable_festive_popup) {
@@ -818,11 +835,11 @@ export function HomeScreen({ navigation }: Props) {
             position: "absolute",
             top: 48,
             left: 16,
-            right: 16,
-            width: "auto", // since right and left are 16
+            width: searchBarWidth,
             height: searchBarHeight,
             transform: [
               { translateY: searchBarTranslateY },
+              { translateX: searchBarTranslateX },
             ],
             zIndex: 60,
           }}
