@@ -271,7 +271,12 @@ const Dashboard = () => {
                 </div>
                 <div className="mt-4 pt-3 border-t border-slate-200/60 dark:border-slate-700/60 flex justify-between items-end">
                   <span className="text-xs font-bold text-slate-400 dark:text-slate-500">{new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                  <span className="text-base font-black text-emerald-600 dark:text-emerald-400">₹{order.total_amount}</span>
+                  <div className="flex flex-col items-end">
+                    <span className="text-base font-black text-emerald-600 dark:text-emerald-400">₹{order.total_amount}</span>
+                    {order.payment_method === 'UPI' && (
+                      <span className="bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400 text-[10px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider mt-0.5">UPI</span>
+                    )}
+                  </div>
                 </div>
               </Link>
             ))}

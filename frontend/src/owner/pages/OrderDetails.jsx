@@ -342,6 +342,18 @@ const OrderDetails = () => {
         </div>
       </div>
 
+      {order.payment_method === 'UPI' && ['NEW', 'ACCEPTED', 'PREPARING'].includes(order.status) && (
+        <div className="bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 flex items-start gap-3 shadow-sm">
+           <AlertTriangle className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" size={20} />
+           <div>
+              <p className="font-bold text-amber-800 dark:text-amber-300">UPI Payment Verification Required</p>
+              <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
+                This order was paid via UPI. Please verify the receipt of <span className="font-bold text-amber-900 dark:text-amber-200">₹{order.total_amount}</span> in your bank app for UTR / Ref No: <span className="font-mono font-bold bg-amber-200 dark:bg-amber-900/60 px-1.5 py-0.5 rounded text-amber-900 dark:text-amber-200">{order.upi_transaction_id || 'Not provided'}</span> before dispatching.
+              </p>
+           </div>
+        </div>
+      )}
+
       {/* Mobile Top Action Bar */}
       {renderActionButtons(true)}
 
@@ -630,6 +642,14 @@ const OrderDetails = () => {
                   {order.payment_method || (parseFloat(order.total_amount) === 0 ? 'Wallet' : 'COD')}
                 </span>
               </div>
+              {order.payment_method === 'UPI' && (
+                <div className="flex justify-between text-xs font-medium pt-1">
+                  <span className="text-slate-500 dark:text-slate-400">UPI UTR / Ref</span>
+                  <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                    {order.upi_transaction_id || 'N/A'}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between items-center p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800 mt-3">
                 <span className="text-sm font-extrabold text-slate-900 dark:text-white">Total Due</span>
                 <span className="text-xl font-black text-indigo-700 dark:text-indigo-400 tracking-tight">₹{order.total_amount}</span>

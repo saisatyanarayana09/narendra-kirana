@@ -231,6 +231,9 @@ const Orders = () => {
                       <span>{order.items?.length || 0} items</span>
                       <span className="text-slate-300 dark:text-slate-700">•</span>
                       <span className="font-extrabold text-slate-900 dark:text-white">₹{order.total_amount}</span>
+                      {order.payment_method === 'UPI' && (
+                        <span className="bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400 text-[10px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider ml-1 self-center">UPI</span>
+                      )}
                     </div>
                     <div className="text-xs text-slate-400 dark:text-slate-500 font-medium mt-1.5 flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5"/>
