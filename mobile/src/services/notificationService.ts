@@ -151,12 +151,14 @@ export async function showSystemNotification({
   data = {},
   categoryId = "ORDER_DELIVERY",
   channelId = "orders",
+  imageUrl,
 }: {
   title: string;
   body: string;
   data?: Record<string, any>;
   categoryId?: string;
   channelId?: string;
+  imageUrl?: string;
 }): Promise<void> {
   const Notifications = getNotifications();
   if (!Notifications) return;
@@ -165,15 +167,22 @@ export async function showSystemNotification({
     await setupNotificationChannels();
     await setupNotificationCategories();
 
+    const img = imageUrl || data?.image_url || data?.image;
+    const contentObj: any = {
+      title,
+      body,
+      data: { ...data, image_url: img },
+      categoryIdentifier: categoryId,
+      sound: "default",
+      channelId,
+    };
+
+    if (img) {
+      contentObj.attachments = [{ url: img }];
+    }
+
     await Notifications.scheduleNotificationAsync({
-      content: {
-        title,
-        body,
-        data,
-        categoryIdentifier: categoryId,
-        sound: "default",
-        channelId,
-      },
+      content: contentObj,
       trigger: null, // Display immediately in system bar
     });
   } catch (err) {

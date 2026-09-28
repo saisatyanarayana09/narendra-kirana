@@ -31,7 +31,7 @@ def _dispatch_expo_push(tokens_with_ids, title, body, data=None, channel_id='ord
             else:
                 category_id = 'ORDER_DELIVERY'
 
-        messages.append({
+        msg_payload = {
             'to': token_clean,
             'sound': 'default',
             'title': title,
@@ -41,7 +41,13 @@ def _dispatch_expo_push(tokens_with_ids, title, body, data=None, channel_id='ord
             'priority': 'high',
             'categoryId': category_id,
             '_displayInForeground': True
-        })
+        }
+        
+        image_url = (data or {}).get('image_url') or (data or {}).get('image')
+        if image_url:
+            msg_payload['image'] = image_url
+
+        messages.append(msg_payload)
 
     if not messages:
         return

@@ -64,11 +64,14 @@ class TopLevelErrorBoundary extends Component<{ children: ReactNode }, { hasErro
   }
 }
 
+import { InAppNotificationBanner } from './src/components/InAppNotificationBanner';
+
 function ThemedAppContent() {
   const { colors, isDark } = useTheme();
 
   return (
     <>
+      <InAppNotificationBanner />
       <OfflineBanner />
       <OtaUpdateBanner />
       <RootNavigator />

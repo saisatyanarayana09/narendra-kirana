@@ -21,9 +21,58 @@ class OwnerNotificationCreateView(generics.CreateAPIView):
     serializer_class = NotificationSerializer
 
     def perform_create(self, serializer):
-        # Allow owner to create a notification for any user.
-        # The user field must be provided in the request payload.
         serializer.save()
+
+
+class OwnerBroadcastPushView(APIView):
+    permission_classes = [IsOwnerUser]
+
+    def post(self, request):
+        title = request.data.get('title', '').strip()
+        message = request.data.get('message', '').strip()
+        image_url = request.data.get('image_url', '').strip()
+        category = request.data.get('category', 'PROMO').strip()
+        action_url = request.data.get('action_url', '').strip()
+
+        if not title or not message:
+            return Response({'detail': 'Title and message are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        users = User.objects.filter(is_active=True)
+
+        notifications_to_create = [
+            Notification(
+                user=user,
+                title=title,
+                message=message,
+                image_url=image_url,
+                category=category,
+                action_url=action_url,
+            ) for user in users
+        ]
+        Notification.objects.bulk_create(notifications_to_create)
+
+        # Dispatch push notifications to all registered device tokens
+        from .services import _dispatch_expo_push
+        tokens_with_ids = list(DevicePushToken.objects.values_list('id', 'token'))
+        if tokens_with_ids:
+            import threading
+            push_data = {
+                'image_url': image_url,
+                'category': category,
+                'action_url': action_url,
+            }
+            threading.Thread(
+                target=_dispatch_expo_push,
+                args=(tokens_with_ids, title, message, push_data, 'general'),
+                daemon=True
+            ).start()
+
+        return Response({
+            'detail': f'Broadcast notification dispatched to {len(users)} users.',
+            'created_count': len(notifications_to_create),
+        }, status=status.HTTP_201_CREATED)
 
 
 class RegisterPushTokenView(APIView):

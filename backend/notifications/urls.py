@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     NotificationViewSet,
     OwnerNotificationCreateView,
+    OwnerBroadcastPushView,
     RegisterPushTokenView,
     UnregisterPushTokenView,
     ClientErrorLogView,
@@ -16,6 +17,7 @@ urlpatterns = [
     path('push-token/', RegisterPushTokenView.as_view(), name='register-push-token'),
     path('push-token/delete/', UnregisterPushTokenView.as_view(), name='unregister-push-token'),
     path('owner/send/', OwnerNotificationCreateView.as_view(), name='owner-send-notification'),
+    path('owner/broadcast/', OwnerBroadcastPushView.as_view(), name='owner-broadcast-notification'),
     path('', include(router.urls)),
 ]
 

@@ -62,6 +62,7 @@ const Settings = lazyWithRetry(() => import('./owner/pages/Settings'));
 const AdvancedSettings = lazyWithRetry(() => import('./owner/pages/AdvancedSettings'));
 const Showcase = lazyWithRetry(() => import('./owner/pages/Showcase'));
 const DeliveryPartners = lazyWithRetry(() => import('./owner/pages/DeliveryPartners'));
+const NotificationsBroadcast = lazyWithRetry(() => import('./owner/pages/NotificationsBroadcast'));
 
 const DeliveryLogin = lazyWithRetry(() => import('./delivery/DeliveryLogin'));
 const DeliveryGuard = lazyWithRetry(() => import('./delivery/DeliveryGuard'));
@@ -403,6 +404,8 @@ function App() {
                     <Route path="/owner/showcase" element={<Showcase />} />
                     <Route path="/delivery-partners" element={<DeliveryPartners />} />
                     <Route path="/owner/delivery-partners" element={<DeliveryPartners />} />
+                    <Route path="/push-broadcast" element={<NotificationsBroadcast />} />
+                    <Route path="/owner/push-broadcast" element={<NotificationsBroadcast />} />
                   </Route>
 
                   <Route path="/orders/:id/invoice" element={<Guard isOwnerDomain><Invoice /></Guard>} />
@@ -503,6 +506,7 @@ function App() {
                         <Route path="advanced-settings" element={<AdvancedSettings />} />
                         <Route path="showcase" element={<Showcase />} />
                         <Route path="delivery-partners" element={<DeliveryPartners />} />
+                        <Route path="push-broadcast" element={<NotificationsBroadcast />} />
                       </Route>
 
                       <Route path="/owner/orders/:id/invoice" element={<Guard><Invoice /></Guard>} />

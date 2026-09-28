@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
-import React, { useState, useEffect, useCallback } from "react";
+import { Image } from "expo-image";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -8,10 +9,12 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { apiClient } from "../../api/client";
+import { BouncyTouchable } from "../../components/BouncyTouchable";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { AppNavigationProp } from "../../navigation/types";
@@ -20,6 +23,9 @@ import {
   loadCachedNotifications,
   saveCachedNotifications,
 } from "../../services/profileCache";
+import { triggerHaptic } from "../../utils/haptics";
+
+type FilterTab = "ALL" | "PROMO" | "ORDER" | "SYSTEM";
 
 export function NotificationsScreen({
   navigation,
@@ -35,6 +41,7 @@ export function NotificationsScreen({
   );
   const [refreshing, setRefreshing] = useState(false);
   const [markingAll, setMarkingAll] = useState(false);
+  const [activeTab, setActiveTab] = useState<FilterTab>("ALL");
 
   useEffect(() => {
     if (user) {
@@ -86,7 +93,7 @@ export function NotificationsScreen({
     const target = notifications.find((n) => n.id === id);
     if (!target || target.is_read) return;
 
-    // Optimistically update local state so unread highlight clears immediately
+    triggerHaptic("selection");
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)),
     );
@@ -103,8 +110,8 @@ export function NotificationsScreen({
     const unreadList = notifications.filter((n) => !n.is_read);
     if (unreadList.length === 0 || markingAll) return;
 
+    triggerHaptic("success");
     setMarkingAll(true);
-    // Optimistically update all notifications locally
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
 
     try {
@@ -125,6 +132,7 @@ export function NotificationsScreen({
 
   const deleteNotification = async (id: number) => {
     if (!user) return;
+    triggerHaptic("light");
     try {
       setNotifications((prev) => prev.filter((n) => n.id !== id));
       await apiClient.delete(`/notifications/${id}/`);
@@ -134,14 +142,99 @@ export function NotificationsScreen({
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const handleAction = (item: any) => {
+    markAsRead(item.id);
+    const actionUrl = item.action_url || item.data?.action_url || item.data?.url;
+    
+    if (actionUrl) {
+      if (actionUrl.includes("order")) {
+        const orderId = actionUrl.split("/").pop();
+        if (orderId && !isNaN(Number(orderId))) {
+          navigation.navigate("OrderTrackingScreen", { orderId: Number(orderId) });
+          return;
+        }
+        navigation.navigate("Main", { screen: "Orders" } as any);
+        return;
+      }
+      if (actionUrl.includes("product")) {
+        const prodId = actionUrl.split("/").pop();
+        if (prodId && !isNaN(Number(prodId))) {
+          navigation.navigate("ProductDetailScreen", { productId: Number(prodId) });
+          return;
+        }
+      }
+    }
+
+    if (item.category === "ORDER") {
+      navigation.navigate("Main", { screen: "Orders" } as any);
+    } else if (item.category === "PROMO") {
+      navigation.navigate("Main", { screen: "Home" } as any);
+    }
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    if (!dateString) return "";
     const date = new Date(dateString);
+    const now = new Date();
+    const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffSec < 60) return "Just now";
+    if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
+    if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
+    if (diffSec < 172800) return "Yesterday";
     return date.toLocaleDateString("en-IN", {
       day: "numeric",
       month: "short",
-      year: "numeric",
     });
   };
+
+  const getCategoryTheme = (cat?: string) => {
+    switch (cat) {
+      case "ORDER":
+        return {
+          icon: "shopping-bag" as const,
+          color: "#10B981",
+          bgColor: isDark ? "rgba(16, 185, 129, 0.15)" : "#ECFDF5",
+          badgeLabel: "ORDER UPDATE",
+          actionText: "Track Order",
+        };
+      case "PROMO":
+        return {
+          icon: "gift" as const,
+          color: "#F59E0B",
+          bgColor: isDark ? "rgba(245, 158, 11, 0.15)" : "#FEF3C7",
+          badgeLabel: "EXCLUSIVE OFFER",
+          actionText: "View Offer",
+        };
+      case "WALLET":
+        return {
+          icon: "credit-card" as const,
+          color: "#6366F1",
+          bgColor: isDark ? "rgba(99, 102, 241, 0.15)" : "#EEF2FF",
+          badgeLabel: "WALLET & PAYMENT",
+          actionText: "Check Balance",
+        };
+      default:
+        return {
+          icon: "bell" as const,
+          color: "#0284C7",
+          bgColor: isDark ? "rgba(2, 132, 199, 0.15)" : "#E0F2FE",
+          badgeLabel: "NOTIFICATION",
+          actionText: "View Details",
+        };
+    }
+  };
+
+  const filteredNotifications = useMemo(() => {
+    if (activeTab === "ALL") return notifications;
+    return notifications.filter((n) => {
+      const cat = n.category || "SYSTEM";
+      if (activeTab === "PROMO") return cat === "PROMO";
+      if (activeTab === "ORDER") return cat === "ORDER";
+      if (activeTab === "SYSTEM") return cat === "SYSTEM" || cat === "WALLET";
+      return true;
+    });
+  }, [notifications, activeTab]);
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
@@ -214,52 +307,12 @@ export function NotificationsScreen({
     );
   }
 
-  if (loading && notifications.length === 0) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={["top"]}
-      >
-        <View
-          style={[
-            styles.header,
-            {
-              backgroundColor: colors.surface,
-              borderBottomColor: colors.border,
-            },
-          ]}
-        >
-          <TouchableOpacity
-            style={styles.backButton}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            onPress={() =>
-              navigation.canGoBack()
-                ? navigation.goBack()
-                : navigation.navigate("Main")
-            }
-          >
-            <Feather name="arrow-left" size={18} color={colors.primary} />
-            <Text style={[styles.backButtonText, { color: colors.primary }]}>
-              Back
-            </Text>
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
-            Notifications
-          </Text>
-        </View>
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={["top"]}
     >
-      {/* Header matching web Notifications.jsx */}
+      {/* Header */}
       <View
         style={[
           styles.header,
@@ -310,7 +363,7 @@ export function NotificationsScreen({
                   <Text
                     style={[styles.markAllReadText, { color: colors.primary }]}
                   >
-                    Mark all as read
+                    Mark all read
                   </Text>
                 </>
               )}
@@ -318,124 +371,226 @@ export function NotificationsScreen({
           )}
         </View>
 
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          Notifications
-        </Text>
-        <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-          Updates about your orders and offers.
-        </Text>
+        <View style={{ marginTop: 8 }}>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            Notifications
+          </Text>
+          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
+            Updates about your orders, exclusive offers and alerts.
+          </Text>
+        </View>
+
+        {/* Category Tabs */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabsContainer}
+        >
+          {[
+            { id: "ALL", label: "All" },
+            { id: "ORDER", label: "Orders" },
+            { id: "PROMO", label: "Offers" },
+            { id: "SYSTEM", label: "Alerts" },
+          ].map((tab) => {
+            const isTabActive = activeTab === tab.id;
+            return (
+              <TouchableOpacity
+                key={tab.id}
+                onPress={() => {
+                  triggerHaptic("selection");
+                  setActiveTab(tab.id as FilterTab);
+                }}
+                style={[
+                  styles.tabChip,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(255, 255, 255, 0.05)"
+                      : "#F1F5F9",
+                    borderColor: isDark ? "#334155" : "#E2E8F0",
+                  },
+                  isTabActive && {
+                    backgroundColor: colors.primary,
+                    borderColor: colors.primary,
+                  },
+                ]}
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={[
+                    styles.tabChipText,
+                    { color: colors.textSecondary },
+                    isTabActive && { color: "#FFFFFF", fontWeight: "900" },
+                  ]}
+                >
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
-      <FlatList
-        data={notifications}
-        keyExtractor={(item, index) =>
-          String(item?.id || item?.uuid || item?.uid || index)
-        }
-        contentContainerStyle={styles.listContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[colors.primary]}
-            tintColor={colors.primary}
-          />
-        }
-        ListEmptyComponent={() => (
-          <View
-            style={[
-              styles.emptyContainer,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
-          >
+      {loading && notifications.length === 0 ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={filteredNotifications}
+          keyExtractor={(item, index) =>
+            String(item?.id || item?.uuid || item?.uid || index)
+          }
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
+            />
+          }
+          ListEmptyComponent={() => (
             <View
               style={[
-                styles.emptyIconCircle,
-                {
-                  backgroundColor: isDark
-                    ? "rgba(5, 150, 105, 0.2)"
-                    : "#D1FAE5",
-                },
-              ]}
-            >
-              <Feather name="bell" size={40} color={colors.primary} />
-            </View>
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>
-              You're all caught up!
-            </Text>
-            <Text
-              style={[styles.emptySubtitle, { color: colors.textSecondary }]}
-            >
-              We'll notify you here when there are updates about your orders or
-              exciting new offers.
-            </Text>
-          </View>
-        )}
-        renderItem={({ item }) => {
-          const isRead = item.is_read;
-          return (
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => markAsRead(item.id)}
-              style={[
-                styles.notificationCard,
+                styles.emptyContainer,
                 { backgroundColor: colors.surface, borderColor: colors.border },
-                !isRead && {
-                  backgroundColor: isDark
-                    ? "rgba(5, 150, 105, 0.15)"
-                    : "#ECFDF5",
-                  borderColor: isDark ? "rgba(5, 150, 105, 0.3)" : "#A7F3D0",
-                },
               ]}
             >
-              <View style={styles.cardHeader}>
-                <View style={styles.titleRow}>
-                  {!isRead && <View style={styles.unreadDot} />}
-                  <Text
-                    style={[
-                      styles.notifTitle,
-                      { color: colors.text },
-                      !isRead && {
-                        color: isDark ? "#34D399" : "#064E3B",
-                        fontWeight: "800",
-                      },
-                    ]}
-                  >
-                    {item.title}
-                  </Text>
-                </View>
-                <View style={styles.headerMeta}>
-                  <Text
-                    style={[styles.dateText, { color: colors.textSecondary }]}
-                  >
-                    {formatDate(item.created_at)}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => deleteNotification(item.id)}
-                    style={styles.deleteBtn}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <Feather
-                      name="trash-2"
-                      size={15}
-                      color={colors.textSecondary}
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <Text
+              <View
                 style={[
-                  styles.notifMessage,
-                  { color: colors.textSecondary },
-                  !isRead && { color: isDark ? "#A7F3D0" : "#047857" },
+                  styles.emptyIconCircle,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(5, 150, 105, 0.2)"
+                      : "#D1FAE5",
+                  },
                 ]}
               >
-                {item.message}
+                <Feather name="bell-off" size={36} color={colors.primary} />
+              </View>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                No notifications found
               </Text>
-            </TouchableOpacity>
-          );
-        }}
-      />
+              <Text
+                style={[styles.emptySubtitle, { color: colors.textSecondary }]}
+              >
+                {activeTab === "ALL"
+                  ? "You're all caught up! We'll notify you here when updates arrive."
+                  : `No ${activeTab.toLowerCase()} notifications right now.`}
+              </Text>
+            </View>
+          )}
+          renderItem={({ item }) => {
+            const isRead = item.is_read;
+            const theme = getCategoryTheme(item.category);
+            const imageUrl = item.image_url || item.data?.image_url;
+
+            return (
+              <BouncyTouchable
+                onPress={() => handleAction(item)}
+                style={[
+                  styles.notificationCard,
+                  { backgroundColor: colors.surface, borderColor: colors.border },
+                  !isRead && {
+                    backgroundColor: isDark
+                      ? "rgba(5, 150, 105, 0.12)"
+                      : "#F0FDF4",
+                    borderColor: isDark ? "rgba(5, 150, 105, 0.4)" : "#BBF7D0",
+                  },
+                ]}
+              >
+                <View style={styles.cardTopBar}>
+                  <View style={styles.badgeRow}>
+                    {!isRead && <View style={styles.unreadDot} />}
+                    <View
+                      style={[
+                        styles.catIconCircle,
+                        { backgroundColor: theme.bgColor },
+                      ]}
+                    >
+                      <Feather
+                        name={theme.icon}
+                        size={13}
+                        color={theme.color}
+                      />
+                    </View>
+                    <Text
+                      style={[styles.catBadgeText, { color: theme.color }]}
+                    >
+                      {theme.badgeLabel}
+                    </Text>
+                  </View>
+
+                  <View style={styles.metaRight}>
+                    <Text
+                      style={[styles.dateText, { color: colors.textSecondary }]}
+                    >
+                      {formatTimeAgo(item.created_at)}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => deleteNotification(item.id)}
+                      style={styles.deleteBtn}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Feather
+                        name="trash-2"
+                        size={14}
+                        color={colors.textSecondary}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Title */}
+                <Text
+                  style={[
+                    styles.notifTitle,
+                    { color: colors.text },
+                    !isRead && { fontWeight: "900" },
+                  ]}
+                >
+                  {item.title}
+                </Text>
+
+                {/* Body Message */}
+                <Text
+                  style={[
+                    styles.notifMessage,
+                    { color: colors.textSecondary },
+                    !isRead && { color: isDark ? "#CBD5E1" : "#334155" },
+                  ]}
+                >
+                  {item.message}
+                </Text>
+
+                {/* Rich Image Card Attachment */}
+                {imageUrl ? (
+                  <View style={styles.imageCardContainer}>
+                    <Image
+                      source={{ uri: imageUrl }}
+                      style={styles.notifImage}
+                      contentFit="cover"
+                      transition={300}
+                    />
+                  </View>
+                ) : null}
+
+                {/* Action CTA Bar */}
+                <View style={styles.ctaRow}>
+                  <Text style={[styles.ctaText, { color: colors.primary }]}>
+                    {theme.actionText}
+                  </Text>
+                  <Feather
+                    name="chevron-right"
+                    size={14}
+                    color={colors.primary}
+                  />
+                </View>
+              </BouncyTouchable>
+            );
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -443,20 +598,17 @@ export function NotificationsScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8FAFC", // slate-50
   },
   header: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#FFFFFF",
+    paddingTop: 10,
+    paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#F1F5F9",
   },
   headerTopRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 6,
   },
   backButton: {
     flexDirection: "row",
@@ -464,184 +616,201 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   backButtonText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "700",
-    color: "#059669",
   },
   markAllReadBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    paddingVertical: 4,
-    paddingHorizontal: 9,
-    backgroundColor: "#ECFDF5",
-    borderRadius: 8,
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#A7F3D0",
   },
   markAllReadText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#059669",
+    fontSize: 11,
+    fontWeight: "800",
   },
   headerTitle: {
-    fontSize: 24,
-    lineHeight: 28,
+    fontSize: 22,
     fontWeight: "900",
-    color: "#0F172A",
     letterSpacing: -0.5,
   },
   headerSubtitle: {
-    fontSize: 13,
-    color: "#64748B",
+    fontSize: 12,
     marginTop: 2,
     fontWeight: "500",
+  },
+  tabsContainer: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 12,
+  },
+  tabChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  tabChipText: {
+    fontSize: 12,
+    fontWeight: "700",
   },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  listContent: {
-    padding: 16,
-    paddingBottom: 130,
-  },
-  emptyContainer: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    marginTop: 20,
-  },
-  emptyIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: "#D1FAE5",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: "#0F172A",
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    fontSize: 13,
-    color: "#64748B",
-    textAlign: "center",
-    lineHeight: 19,
-    maxWidth: 280,
-  },
-  notificationCard: {
-    backgroundColor: "#FFFFFF",
-    padding: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
-    marginBottom: 10,
-    boxShadow: "0px 1px 3px rgba(0, 0, 0, 0.03)",
-    elevation: 1,
-  },
-  notificationCardUnread: {
-    backgroundColor: "#ECFDF5",
-    borderColor: "#A7F3D0",
-  },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 6,
-  },
-  titleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-    marginRight: 8,
-  },
-  unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#10B981",
-    marginRight: 6,
-  },
-  notifTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#0F172A",
-    flex: 1,
-  },
-  notifTitleUnread: {
-    color: "#064E3B",
-    fontWeight: "800",
-  },
-  headerMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  dateText: {
-    fontSize: 11,
-    color: "#94A3B8",
-    fontWeight: "500",
-  },
-  deleteBtn: {
-    padding: 2,
-  },
-  notifMessage: {
-    fontSize: 13,
-    color: "#64748B",
-    lineHeight: 18,
-  },
-  notifMessageUnread: {
-    color: "#047857",
-  },
   guestStateContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 32,
-    paddingBottom: 60,
   },
   guestIconBox: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 20,
   },
   guestTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    marginBottom: 8,
+    fontSize: 18,
+    fontWeight: "900",
     textAlign: "center",
+    marginBottom: 8,
   },
   guestSubtitle: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 13,
     textAlign: "center",
+    lineHeight: 18,
     marginBottom: 24,
   },
   guestSignInBtn: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 28,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
     borderRadius: 14,
-    boxShadow: "0px 4px 8px rgba(5, 150, 105, 0.2)",
-    elevation: 4,
   },
   guestSignInBtnText: {
     color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  listContent: {
+    padding: 16,
+    gap: 12,
+  },
+  notificationCard: {
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    boxShadow: "0px 2px 8px rgba(0, 0, 0, 0.04)",
+    elevation: 1,
+  },
+  cardTopBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  badgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  unreadDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: "#10B981",
+  },
+  catIconCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  catBadgeText: {
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 0.6,
+  },
+  metaRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  dateText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  deleteBtn: {
+    padding: 2,
+  },
+  notifTitle: {
     fontSize: 15,
     fontWeight: "800",
+    lineHeight: 20,
+    marginBottom: 4,
+  },
+  notifMessage: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "500",
+  },
+  imageCardContainer: {
+    marginTop: 10,
+    borderRadius: 12,
+    overflow: "hidden",
+    height: 140,
+    backgroundColor: "#F1F5F9",
+  },
+  notifImage: {
+    width: "100%",
+    height: "100%",
+  },
+  ctaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 2,
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 0.5,
+    borderTopColor: "rgba(148, 163, 184, 0.2)",
+  },
+  ctaText: {
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  emptyContainer: {
+    padding: 32,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: "center",
+    marginTop: 24,
+  },
+  emptyIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: "900",
+    marginBottom: 6,
+  },
+  emptySubtitle: {
+    fontSize: 13,
+    textAlign: "center",
+    lineHeight: 18,
   },
 });
