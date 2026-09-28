@@ -1,82 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Truck, Plus, User, Phone, Bike, CheckCircle2, 
-  Clock, AlertCircle, RefreshCw, X, Shield, Search 
-} from 'lucide-react';
-import toast from 'react-hot-toast';
-import api from '../../services/api';
+import re
 
-export default function DeliveryPartners() {
-  const [partners, setPartners] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+def update_file(file_path, new_return):
+    with open(file_path, "r", encoding="utf-8") as f:
+        content = f.read()
 
-  // Form State
-  const [formData, setFormData] = useState({
-    username: '',
-    password: '',
-    first_name: '',
-    last_name: '',
-    phone_number: '',
-    vehicle_type: 'Bike',
-    vehicle_number: ''
-  });
-  const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState('');
+    # Find the first 'return (' inside the component
+    parts = content.split("return (", 1)
+    if len(parts) == 2:
+        new_content = parts[0] + new_return
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(new_content)
+        print(f"Updated {file_path}")
+    else:
+        print(f"Failed to find return in {file_path}")
 
-  const fetchPartners = async (silent = false) => {
-    if (!silent) setRefreshing(true);
-    try {
-      const res = await api.get('/delivery/partners/');
-      setPartners(res.data || []);
-    } catch (err) {
-      console.error('Failed to load delivery partners:', err);
-      toast.error('Failed to load delivery partners.');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchPartners();
-  }, []);
-
-  const handleAddPartner = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setFormError('');
-
-    try {
-      await api.post('/delivery/partners/', formData);
-      toast.success('Delivery partner added successfully! 🛵');
-      setIsAddModalOpen(false);
-      setFormData({
-        username: '',
-        password: '',
-        first_name: '',
-        last_name: '',
-        phone_number: '',
-        vehicle_type: 'Bike',
-        vehicle_number: ''
-      });
-      fetchPartners(true);
-    } catch (err) {
-      setFormError(err.response?.data?.detail || 'Failed to create delivery partner.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const filtered = partners.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (p.phone && p.phone.includes(searchTerm))
-  );
-
-  return (
+# --- DeliveryPartners.jsx ---
+dp_return = """return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
@@ -237,3 +176,6 @@ export default function DeliveryPartners() {
     </div>
   );
 }
+"""
+update_file("s:/smart-kirana/frontend/src/owner/pages/DeliveryPartners.jsx", dp_return)
+

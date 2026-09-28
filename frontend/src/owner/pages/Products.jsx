@@ -279,8 +279,16 @@ const Products = () => {
  return (
  <div className="max-w-7xl mx-auto space-y-6">
    <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-     <h1 className="text-2xl font-bold text-gray-900">Products</h1>
-     <div className="flex flex-col sm:flex-row gap-2">
+     <div>
+       <div className="flex items-center gap-2.5">
+         <h1 className="text-xl font-semibold text-slate-900 tracking-tight">Products</h1>
+         <span className="px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+           {products.length}
+         </span>
+       </div>
+       <p className="text-sm text-slate-500 mt-1">Manage inventory, pricing, and product details.</p>
+     </div>
+     <div className="flex flex-col sm:flex-row gap-3">
        <div className="relative">
          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
          <input 
@@ -288,101 +296,102 @@ const Products = () => {
            placeholder="Search products..." 
            value={searchTerm}
            onChange={(e) => setSearchTerm(e.target.value)}
-           className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm w-full sm:w-64 transition-all shadow-sm"
+           className="w-full pl-9 pr-4 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-all shadow-sm sm:w-64"
          />
        </div>
        <div className="flex gap-2">
-         <button onClick={() => setIsScanning(true)} className="flex items-center px-4 py-2 bg-emerald-100 text-emerald-700 font-bold rounded-xl hover:bg-emerald-200 transition shadow-sm whitespace-nowrap">
-           <ScanLine className="w-5 h-5 sm:mr-2"/><span className="hidden sm:inline">Scan</span>
+         <button onClick={() => setIsScanning(true)} className="flex items-center px-3 py-1.5 bg-white border border-slate-200 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition-all shadow-sm whitespace-nowrap text-sm">
+           <ScanLine className="w-4 h-4 sm:mr-1.5"/><span className="hidden sm:inline">Scan</span>
          </button>
-         <button onClick={() => openForm()} className="flex items-center px-4 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow-sm whitespace-nowrap">
-           <Plus className="w-5 h-5 sm:mr-2"/><span className="hidden sm:inline">Add</span>
+         <button onClick={() => openForm()} className="flex items-center px-3 py-1.5 bg-slate-900 text-white font-medium rounded-lg hover:bg-slate-800 transition-all shadow-sm whitespace-nowrap text-sm">
+           <Plus className="w-4 h-4 sm:mr-1.5"/><span className="hidden sm:inline">Add Product</span>
          </button>
        </div>
      </div>
    </div>
 
  {isFormOpen && createPortal(
- <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
- <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]">
- <div className="flex justify-between items-center p-6 md:px-8 md:py-6 border-b border-slate-100 flex-shrink-0">
- <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">{editingId ? 'Edit Product' : 'New Product'}</h2>
- <button onClick={closeForm} className="text-slate-400 hover:text-slate-600 p-2 -mr-2 hover:bg-slate-50 rounded-full">
- <X className="w-6 h-6"/>
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/20 backdrop-blur-sm">
+ <div className="bg-white rounded-xl w-full max-w-2xl shadow-xl border border-slate-200 flex flex-col max-h-[90vh]">
+ <div className="flex justify-between items-center p-5 md:px-6 md:py-4 border-b border-slate-200 flex-shrink-0">
+ <h2 className="text-lg font-semibold text-slate-900 tracking-tight">{editingId ? 'Edit Product' : 'New Product'}</h2>
+ <button onClick={closeForm} className="text-slate-400 hover:text-slate-600 p-1.5 hover:bg-slate-100 rounded-md transition-colors">
+ <X className="w-4 h-4"/>
  </button>
  </div>
- <div className="p-6 md:p-8 overflow-y-auto flex-1 custom-scrollbar">
- <form id="productForm" onSubmit={handleSubmit} className="space-y-5">
- <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+ <div className="p-5 md:p-6 overflow-y-auto flex-1 custom-scrollbar">
+ <form id="productForm" onSubmit={handleSubmit} className="space-y-4">
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
  <div>
- <label className="block text-sm font-bold text-slate-700 mb-1.5">Name</label>
- <input type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="e.g. Aashirvaad Atta"/>
+ <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
+ <input type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-all shadow-sm" placeholder="e.g. Aashirvaad Atta"/>
  </div>
  <div>
- <label className="block text-sm font-bold text-slate-700 mb-1.5">Category</label>
- <select required value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+ <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
+ <select required value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-all shadow-sm">
  <option value="">Select Category</option>
  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
  </select>
  </div>
  <div>
- <label className="block text-sm font-bold text-slate-700 mb-1.5">Brand</label>
- <input type="text" value={formData.brand} onChange={e => setFormData({...formData, brand: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="e.g. ITC"/>
+ <label className="block text-sm font-medium text-slate-700 mb-1">Brand</label>
+ <input type="text" value={formData.brand} onChange={e => setFormData({...formData, brand: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-all shadow-sm" placeholder="e.g. ITC"/>
  </div>
  <div>
- <label className="block text-sm font-bold text-slate-700 mb-1.5">Unit / Size</label>
- <input type="text" required value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="e.g. 1 kg, 500 g"/>
+ <label className="block text-sm font-medium text-slate-700 mb-1">Unit / Size</label>
+ <input type="text" required value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-all shadow-sm" placeholder="e.g. 1 kg, 500 g"/>
  </div>
  <div>
- <label className="block text-sm font-bold text-slate-700 mb-1.5">MRP (₹)</label>
- <input type="number" step="0.01" required value={formData.regular_price} onChange={e => setFormData({...formData, regular_price: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"/>
+ <label className="block text-sm font-medium text-slate-700 mb-1">MRP (₹)</label>
+ <input type="number" step="0.01" required value={formData.regular_price} onChange={e => setFormData({...formData, regular_price: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-all shadow-sm"/>
  </div>
  <div>
- <label className="block text-sm font-bold text-slate-700 mb-1.5">Special Price (₹)</label>
- <input type="number" step="0.01" value={formData.offer_price} onChange={e => setFormData({...formData, offer_price: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="Leave blank if no offer"/>
+ <label className="block text-sm font-medium text-slate-700 mb-1">Special Price (₹)</label>
+ <input type="number" step="0.01" value={formData.offer_price} onChange={e => setFormData({...formData, offer_price: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-all shadow-sm" placeholder="Leave blank if no offer"/>
  </div>
  <div>
- <label className="block text-sm font-bold text-slate-700 mb-1.5">Cost Price (₹)</label>
- <input type="number" step="0.01" value={formData.cost_price} onChange={e => setFormData({...formData, cost_price: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="Optional (For profit tracking)"/>
+ <label className="block text-sm font-medium text-slate-700 mb-1">Cost Price (₹)</label>
+ <input type="number" step="0.01" value={formData.cost_price} onChange={e => setFormData({...formData, cost_price: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-all shadow-sm" placeholder="Optional (For profit tracking)"/>
  </div>
  <div>
- <label className="block text-sm font-bold text-slate-700 mb-1.5">Stock Quantity</label>
- <input type="number" required value={formData.stock_quantity} onChange={e => setFormData({...formData, stock_quantity: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"/>
+ <label className="block text-sm font-medium text-slate-700 mb-1">Stock Quantity</label>
+ <input type="number" required value={formData.stock_quantity} onChange={e => setFormData({...formData, stock_quantity: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-all shadow-sm"/>
  </div>
  <div>
- <label className="block text-sm font-bold text-slate-700 mb-1.5 flex justify-between items-center">
+ <label className="block text-sm font-medium text-slate-700 mb-1 flex justify-between items-center">
     <span>SKU / Barcode</span>
-    <button type="button" onClick={() => setShowScanner(!showScanner)} className="text-indigo-600 text-xs flex items-center hover:text-indigo-800 bg-indigo-50 px-2 py-1 rounded">
-        <Camera size={14} className="mr-1" /> Scan
+    <button type="button" onClick={() => setShowScanner(!showScanner)} className="text-slate-600 hover:text-slate-900 text-xs flex items-center bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+        <Camera size={12} className="mr-1" /> Scan
     </button>
  </label>
- <input type="text" value={formData.sku} onChange={e => setFormData({...formData, sku: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="Optional"/>
+ <input type="text" value={formData.sku} onChange={e => setFormData({...formData, sku: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-all shadow-sm" placeholder="Optional"/>
  {showScanner && (
-    <div className="mt-2 p-2 border border-slate-200 rounded-xl overflow-hidden bg-white">
+    <div className="mt-2 p-2 border border-slate-200 rounded-lg overflow-hidden bg-white">
         <div id="reader" className="w-full"></div>
-        <button type="button" onClick={() => setShowScanner(false)} className="w-full mt-2 text-xs text-center text-red-500 font-bold py-1">Close Scanner</button>
+        <button type="button" onClick={() => setShowScanner(false)} className="w-full mt-2 text-xs text-center text-red-600 font-medium py-1">Close Scanner</button>
     </div>
  )}
  </div>
  <div>
- <label className="block text-sm font-bold text-slate-700 mb-1.5">Expiry Date</label>
- <input type="date" value={formData.expiry_date} onChange={e => setFormData({...formData, expiry_date: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"/>
+ <label className="block text-sm font-medium text-slate-700 mb-1">Expiry Date</label>
+ <input type="date" value={formData.expiry_date} onChange={e => setFormData({...formData, expiry_date: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-all shadow-sm"/>
  </div>
  <div>
- <label className="block text-sm font-bold text-slate-700 mb-1.5">Tags (Comma Separated)</label>
- <input type="text" value={formData.tags} onChange={e => setFormData({...formData, tags: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="e.g. Bestseller, Organic"/>
+ <label className="block text-sm font-medium text-slate-700 mb-1">Tags (Comma Separated)</label>
+ <input type="text" value={formData.tags} onChange={e => setFormData({...formData, tags: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-all shadow-sm" placeholder="e.g. Bestseller, Organic"/>
  </div>
  <div>
- <label className="block text-sm font-bold text-slate-700 mb-1.5">Max Order Quantity</label>
- <input type="number" value={formData.max_order_quantity} onChange={e => setFormData({...formData, max_order_quantity: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="Limit per user"/>
+ <label className="block text-sm font-medium text-slate-700 mb-1">Max Order Quantity</label>
+ <input type="number" value={formData.max_order_quantity} onChange={e => setFormData({...formData, max_order_quantity: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-all shadow-sm" placeholder="Limit per user"/>
  </div>
  </div>
  <div>
- <label className="block text-sm font-bold text-slate-700 mb-1.5">Description</label>
- <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" rows="2"/>
+ <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+ <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-all shadow-sm" rows="2"/>
  </div>
  <div>
- <label className="block text-sm font-bold text-slate-700 mb-1.5">Product Image <span className="text-slate-400 font-medium">(Square 1:1)</span></label>
+ <label className="block text-sm font-medium text-slate-700 mb-1">Product Image <span className="text-slate-400 text-xs font-normal">(Square 1:1)</span></label>
+ <div className="border border-slate-200 rounded-lg p-3 bg-slate-50">
  <ImageCropper
  aspect={1}
  label="Upload Photo"
@@ -393,47 +402,47 @@ const Products = () => {
  }
  onCropComplete={(file) => setFormData({...formData, image: file})}
  />
-
+ </div>
  </div>
  
- <div className="md:col-span-2 mt-4">
-    <label className="block text-sm font-bold text-slate-700 mb-1.5">Gallery Images (Optional)</label>
-    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+ <div className="md:col-span-2 mt-2">
+    <label className="block text-sm font-medium text-slate-700 mb-2">Gallery Images (Optional)</label>
+    <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3">
         {formData.gallery_images.map((img, idx) => (
-            <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 group">
+            <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 group">
                 <img 
                     src={img instanceof File || img instanceof Blob ? URL.createObjectURL(img) : (img.image || img)} 
                     className="w-full h-full object-cover" 
                     alt="Gallery item"
                 />
-                <button type="button" onClick={() => handleRemoveGalleryImage(idx, img)} className="absolute top-1 right-1 p-1 bg-red-500/80 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                    <X className="w-4 h-4"/>
+                <button type="button" onClick={() => handleRemoveGalleryImage(idx, img)} className="absolute top-1 right-1 p-1 bg-red-600/90 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
+                    <X className="w-3 h-3"/>
                 </button>
             </div>
         ))}
-        <label className="aspect-square rounded-xl border-2 border-dashed border-slate-300 hover:border-indigo-500 bg-slate-50 hover:bg-indigo-50 transition-colors flex flex-col items-center justify-center cursor-pointer text-slate-400 hover:text-indigo-500">
-            <Plus className="w-6 h-6 mb-1"/>
-            <span className="text-xs font-medium">Add Photos</span>
+        <label className="aspect-square rounded-lg border border-dashed border-slate-300 hover:border-slate-400 bg-slate-50 hover:bg-slate-100 transition-colors flex flex-col items-center justify-center cursor-pointer text-slate-400 hover:text-slate-600">
+            <Plus className="w-5 h-5 mb-1"/>
+            <span className="text-[10px] font-medium">Add Photos</span>
             <input type="file" multiple accept="image/*" onChange={handleGalleryUpload} className="hidden" />
         </label>
     </div>
  </div>
 
-<div className="flex items-center space-x-6 pt-4 md:col-span-2">
+<div className="flex items-center space-x-6 pt-2 md:col-span-2">
  <div className="flex items-center">
- <input type="checkbox" id="isActiveProd" checked={formData.is_active} onChange={e => setFormData({...formData, is_active: e.target.checked})} className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500"/>
- <label htmlFor="isActiveProd" className="ml-2 text-sm text-gray-900">Active (Visible)</label>
+ <input type="checkbox" id="isActiveProd" checked={formData.is_active} onChange={e => setFormData({...formData, is_active: e.target.checked})} className="w-4 h-4 text-slate-900 rounded border-slate-300 focus:ring-slate-900"/>
+ <label htmlFor="isActiveProd" className="ml-2 text-sm text-slate-700 font-medium">Active (Visible)</label>
  </div>
  <div className="flex items-center">
- <input type="checkbox" id="inStock" checked={formData.is_in_stock} onChange={e => setFormData({...formData, is_in_stock: e.target.checked})} className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500"/>
- <label htmlFor="inStock" className="ml-2 text-sm text-gray-900">In Stock</label>
+ <input type="checkbox" id="inStock" checked={formData.is_in_stock} onChange={e => setFormData({...formData, is_in_stock: e.target.checked})} className="w-4 h-4 text-slate-900 rounded border-slate-300 focus:ring-slate-900"/>
+ <label htmlFor="inStock" className="ml-2 text-sm text-slate-700 font-medium">In Stock</label>
  </div>
  </div>
  </form>
  </div>
- <div className="p-6 md:px-8 md:py-6 border-t border-slate-100 bg-slate-50 flex justify-end space-x-3 flex-shrink-0 rounded-b-2xl">
- <button type="button" onClick={closeForm} className="px-6 py-2.5 text-sm font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-sm">Cancel</button>
- <button type="submit" form="productForm" className="px-6 py-2.5 text-sm font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-colors shadow-sm">{editingId ? 'Save Changes' : 'Add Product'}</button>
+ <div className="p-4 md:px-6 md:py-4 border-t border-slate-200 bg-slate-50 flex justify-end space-x-2 flex-shrink-0 rounded-b-xl">
+ <button type="button" onClick={closeForm} className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">Cancel</button>
+ <button type="submit" form="productForm" className="px-4 py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors shadow-sm">{editingId ? 'Save Changes' : 'Add Product'}</button>
  </div>
  </div>
  </div>
@@ -441,33 +450,22 @@ const Products = () => {
 
  {/* Products List */}
  {loading && products.length === 0 ? (
-   <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden divide-y divide-slate-100">
+   <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden divide-y divide-slate-100">
      {[1, 2, 3, 4, 5].map(i => (
-       <div key={i} className="p-4 sm:p-5 flex flex-col sm:flex-row gap-4 sm:items-center justify-between animate-pulse">
+       <div key={i} className="p-4 flex flex-col sm:flex-row gap-4 sm:items-center justify-between animate-pulse">
          <div className="flex items-center gap-4 flex-1">
-           <div className="w-5 h-5 bg-slate-200 rounded"></div>
-           <div className="w-16 h-16 sm:w-20 sm:h-20 bg-slate-200 rounded-xl flex-shrink-0"></div>
+           <div className="w-4 h-4 bg-slate-100 rounded"></div>
+           <div className="w-12 h-12 bg-slate-100 rounded-lg flex-shrink-0"></div>
            <div className="space-y-2 flex-1">
-             <div className="flex gap-2">
-               <div className="w-16 h-4 bg-slate-200 rounded"></div>
-               <div className="w-12 h-4 bg-slate-200 rounded"></div>
-             </div>
-             <div className="w-1/2 h-5 bg-slate-200 rounded"></div>
-             <div className="w-1/3 h-4 bg-slate-200 rounded"></div>
-           </div>
-         </div>
-         <div className="flex items-center justify-between sm:justify-end gap-6 sm:w-64 flex-shrink-0 pt-3 sm:pt-0">
-           <div className="w-16 h-6 bg-slate-200 rounded"></div>
-           <div className="flex space-x-2">
-             <div className="w-16 h-8 bg-slate-200 rounded-xl"></div>
-             <div className="w-9 h-8 bg-slate-200 rounded-xl"></div>
+             <div className="w-32 h-4 bg-slate-100 rounded"></div>
+             <div className="w-24 h-3 bg-slate-100 rounded"></div>
            </div>
          </div>
        </div>
      ))}
    </div>
  ) : filteredProducts.length > 0 ? (
- <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+ <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
  <DragDropContext onDragEnd={onDragEnd}>
  <Droppable droppableId="products">
  {(provided) => (
@@ -478,14 +476,14 @@ const Products = () => {
  <div
  ref={provided.innerRef}
  {...provided.draggableProps}
- className={`p-4 sm:p-5 hover:bg-slate-50 transition-colors flex flex-col sm:flex-row gap-4 sm:items-center justify-between group ${snapshot.isDragging ? 'bg-indigo-50 shadow-lg ring-1 ring-indigo-500 z-10' : ''}`}
+ className={`p-4 hover:bg-slate-50/80 transition-colors flex flex-col sm:flex-row gap-4 sm:items-center justify-between group ${snapshot.isDragging ? 'bg-slate-50 shadow-md ring-1 ring-slate-200 z-10' : ''}`}
  style={provided.draggableProps.style}
  >
  <div className="flex items-center gap-4 min-w-0 flex-1">
- <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-slate-200 text-slate-400">
- <GripVertical className="w-5 h-5"/>
+ <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing p-1 rounded hover:text-slate-600 text-slate-300 transition-colors">
+ <GripVertical className="w-4 h-4"/>
  </div>
- <div className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 bg-slate-50 rounded-xl overflow-hidden flex items-center justify-center border border-slate-100 group-hover:border-indigo-100 transition-colors">
+ <div className="w-12 h-12 flex-shrink-0 bg-white rounded-lg overflow-hidden flex items-center justify-center border border-slate-200 group-hover:border-slate-300 transition-colors">
  {product.image ? (
  <img 
    loading='lazy' 
@@ -497,37 +495,48 @@ const Products = () => {
        e.currentTarget.src = '/media/products/pumpkin_seeds.jpg';
      }
    }}
-   className="w-full h-full object-contain p-1 transition-transform duration-500 group-hover:scale-110"
+   className="w-full h-full object-cover"
  />
  ) : (
- <ImageIcon className="w-8 h-8 text-slate-300"/>
+ <ImageIcon className="w-5 h-5 text-slate-300"/>
  )}
  </div>
  <div className="min-w-0 flex-1">
- <div className="flex items-center gap-2 mb-1.5">
- <span className="text-xs font-extrabold text-indigo-600 uppercase tracking-widest">{product.category_name}</span>
- <span className={`px-2 py-0.5 text-[10px] font-extrabold rounded-md uppercase tracking-wider ${product.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}`}>{product.is_active ? 'Active' : 'Hidden'}</span>
- <span className={`px-2 py-0.5 text-[10px] font-extrabold rounded-md uppercase tracking-wider ${product.stock_quantity > 0 ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'}`}>{product.stock_quantity > 0 ? `Stock: ${product.stock_quantity}` : 'Out of Stock'}</span>
- {product.sku && <span className="px-2 py-0.5 text-[10px] font-extrabold rounded-md uppercase tracking-wider bg-slate-100 text-slate-500">SKU: {product.sku}</span>}
- </div>
- <h3 className="text-base sm:text-lg font-bold text-slate-900 truncate">{product.name}</h3>
- <div className="text-sm text-slate-500 font-medium truncate mt-0.5">{product.unit} {product.brand && `• ${product.brand}`}</div>
- </div>
- </div>
- <div className="flex items-center justify-between sm:justify-end gap-6 sm:w-64 flex-shrink-0 border-t sm:border-0 pt-3 sm:pt-0">
- <div className="flex flex-col sm:items-end">
- {product.offer_price ? (
- <><span className="text-lg font-extrabold text-slate-900 tracking-tight">₹{product.offer_price}</span><span className="text-xs font-bold text-slate-400 line-through">₹{product.regular_price}</span></>
+ <div className="flex items-center gap-2 mb-0.5">
+ <h3 className="text-sm font-semibold text-slate-900 truncate">{product.name}</h3>
+ {product.is_active ? (
+    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" title="Active"></span>
  ) : (
- <span className="text-lg font-extrabold text-slate-900 tracking-tight">₹{product.regular_price}</span>
+    <span className="w-1.5 h-1.5 rounded-full bg-slate-300" title="Hidden"></span>
  )}
  </div>
- <div className="flex items-center space-x-2">
- <button onClick={() => openForm(product)} className="p-2 sm:px-4 sm:py-2 flex items-center text-sm font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-600 hover:text-white rounded-xl transition-colors">
- <Edit2 className="w-4 h-4 sm:mr-1.5"/><span className="hidden sm:inline">Edit</span>
+ <div className="text-xs text-slate-500 truncate flex items-center gap-1.5">
+   <span className="font-medium text-slate-700">{product.category_name}</span>
+   <span className="text-slate-300">•</span>
+   <span>{product.unit} {product.brand && `• ${product.brand}`}</span>
+   <span className="text-slate-300">•</span>
+   <span className={product.stock_quantity > 0 ? 'text-slate-500' : 'text-red-500 font-medium'}>{product.stock_quantity > 0 ? `${product.stock_quantity} in stock` : 'Out of Stock'}</span>
+   {product.sku && <>
+    <span className="text-slate-300">•</span>
+    <span className="font-mono text-slate-400">SKU: {product.sku}</span>
+   </>}
+ </div>
+ </div>
+ </div>
+ <div className="flex items-center justify-between sm:justify-end gap-6 sm:w-64 flex-shrink-0 pt-2 sm:pt-0">
+ <div className="flex flex-col sm:items-end">
+ {product.offer_price ? (
+ <div className="flex items-center gap-1.5"><span className="text-sm font-semibold text-slate-900 tracking-tight">₹{product.offer_price}</span><span className="text-xs text-slate-400 line-through">₹{product.regular_price}</span></div>
+ ) : (
+ <span className="text-sm font-semibold text-slate-900 tracking-tight">₹{product.regular_price}</span>
+ )}
+ </div>
+ <div className="flex items-center space-x-1">
+ <button onClick={() => openForm(product)} className="p-1.5 text-slate-400 hover:text-slate-900 rounded-md hover:bg-slate-100 transition-colors inline-flex items-center">
+ <Edit2 className="w-4 h-4"/>
  </button>
- <button onClick={() => handleDelete(product.id)} className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-600 hover:text-white rounded-xl transition-colors">
- <Trash2 className="w-5 h-5"/>
+ <button onClick={() => handleDelete(product.id)} className="p-1.5 text-slate-400 hover:text-red-600 rounded-md hover:bg-red-50 transition-colors inline-flex items-center">
+ <Trash2 className="w-4 h-4"/>
  </button>
  </div>
  </div>
@@ -542,14 +551,14 @@ const Products = () => {
  </DragDropContext>
  </div>
  ) : (
- <div className="flex flex-col items-center justify-center py-16 px-4 bg-white rounded-2xl border border-dashed border-slate-200">
- <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
- <Package className="w-8 h-8 text-slate-400"/>
+ <div className="flex flex-col items-center justify-center py-16 px-4 bg-white rounded-xl border border-dashed border-slate-200">
+ <div className="w-12 h-12 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center mb-3">
+ <Package className="w-6 h-6 text-slate-400"/>
  </div>
- <h3 className="text-lg font-bold text-slate-900">No products found</h3>
- <p className="text-slate-500 mt-1 mb-6">Get started by adding your first product to the catalog.</p>
- <button onClick={() => openForm()} className="flex items-center px-5 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors shadow-sm">
- <Plus className="w-5 h-5 mr-2"/>Add Product
+ <h3 className="text-sm font-semibold text-slate-900">No products found</h3>
+ <p className="text-sm text-slate-500 mt-1 mb-4">Get started by adding your first product to the catalog.</p>
+ <button onClick={() => openForm()} className="flex items-center px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors shadow-sm">
+ <Plus className="w-4 h-4 mr-1.5"/>Add Product
  </button>
  </div>
  )}
