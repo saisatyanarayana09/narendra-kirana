@@ -11,12 +11,14 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import ProductFormModal from '../components/ProductFormModal';
 
 const Dashboard = () => {
   const [orders, setOrders] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -112,10 +114,10 @@ const Dashboard = () => {
 
       {/* Quick Access Hub */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Link to="/owner/products" className="flex flex-col items-center justify-center gap-3 p-5 bg-white dark:bg-[#0d1322] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-700 transition-all group">
+        <button onClick={() => setIsProductModalOpen(true)} className="flex flex-col items-center justify-center gap-3 p-5 bg-white dark:bg-[#0d1322] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-700 transition-all group">
           <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform"><Plus size={24}/></div>
           <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Add Product</span>
-        </Link>
+        </button>
         <Link to="/owner/orders" className="flex flex-col items-center justify-center gap-3 p-5 bg-white dark:bg-[#0d1322] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700 transition-all group">
           <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform"><Activity size={24}/></div>
           <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Active Orders</span>
@@ -305,6 +307,11 @@ const Dashboard = () => {
         )}
       </div>
 
+      <ProductFormModal 
+        isOpen={isProductModalOpen} 
+        onClose={() => setIsProductModalOpen(false)} 
+        onSaveSuccess={fetchDashboardData} 
+      />
     </div>
   );
 };
