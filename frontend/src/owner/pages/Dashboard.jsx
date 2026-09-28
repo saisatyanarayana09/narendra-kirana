@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, 
-  Tooltip as RechartsTooltip, ResponsiveContainer
-} from 'recharts';
+
 import { 
   PackageSearch, Clock, TrendingUp, ChevronRight, 
   AlertTriangle, Plus, Gift, Tag, Activity,
@@ -171,33 +168,8 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Split View: Sales Chart & Low Stock */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        
-        {/* Chart (66%) */}
-        <div className="bg-white dark:bg-[#0d1322] rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 xl:col-span-2">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">Sales (Last 7 Days)</h2>
-            <div className="px-4 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
-              <p className="text-sm font-bold text-slate-600 dark:text-slate-300">Total: ₹{loading || !analytics ? '...' : analytics.weekly_sales}</p>
-            </div>
-          </div>
-          <div className="h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={analytics?.chart_data || []} margin={{ top: 10, right: 15, bottom: 5, left: 10 }}>
-                <Line type="monotone" dataKey="Sales" stroke="#10b981" strokeWidth={4} dot={{ r: 5, fill: '#10b981', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 8 }} />
-                <CartesianGrid stroke="#e2e8f0" strokeDasharray="6 6" vertical={false} className="dark:opacity-10" />
-                <XAxis dataKey="name" stroke="#64748b" fontSize={13} fontWeight={600} tickLine={false} axisLine={false} dy={10} />
-                <YAxis stroke="#64748b" fontSize={13} fontWeight={600} tickLine={false} axisLine={false} dx={-10} tickFormatter={(val) => `₹${val}`} />
-                <RechartsTooltip 
-                  cursor={{ fill: 'transparent', stroke: '#cbd5e1', strokeWidth: 2, strokeDasharray: '4 4' }} 
-                  formatter={(val) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Sales']}
-                  contentStyle={{ borderRadius: '16px', border: 'none', backgroundColor: '#0f172a', color: '#ffffff', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px 16px', fontWeight: 'bold' }} 
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+      {/* Low Stock Alerts */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
         {/* Low Stock Alerts (33%) with Quick Restock */}
         <div className="bg-white dark:bg-[#0d1322] rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 flex flex-col h-[400px]">
