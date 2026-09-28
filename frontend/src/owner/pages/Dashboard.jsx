@@ -17,8 +17,23 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
 
+  const [ownerName, setOwnerName] = useState(() => {
+    try {
+      const user = JSON.parse(localStorage.getItem('smart-kirana-owner-user'));
+      return [user?.first_name, user?.last_name].filter(Boolean).join(' ') || user?.username || 'Owner';
+    } catch {
+      return 'Owner';
+    }
+  });
+
   useEffect(() => {
     fetchDashboardData();
+    api.get('/accounts/profile/').then(res => {
+      if (res.data) {
+        localStorage.setItem('smart-kirana-owner-user', JSON.stringify(res.data));
+        setOwnerName([res.data.first_name, res.data.last_name].filter(Boolean).join(' ') || res.data.username || 'Owner');
+      }
+    }).catch(() => {});
     const interval = setInterval(() => {
       if (!document.hidden) fetchDashboardData();
     }, 60000);
@@ -105,15 +120,6 @@ const Dashboard = () => {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   
-  const getOwnerName = () => {
-    try {
-      const user = JSON.parse(localStorage.getItem('smart-kirana-owner-user'));
-      return user?.first_name || user?.username || 'Owner';
-    } catch {
-      return 'Owner';
-    }
-  };
-  const ownerName = getOwnerName();
   const pendingCount = orders.filter(o => ['NEW', 'ACCEPTED', 'PREPARING'].includes(o.status)).length;
 
   return (
