@@ -18,6 +18,7 @@ import {
   getNotifications,
 } from "../services/notificationService";
 import { triggerHaptic } from "../utils/haptics";
+import { navigationRef } from "../navigation/RootNavigator";
 
 const { width } = Dimensions.get("window");
 
@@ -148,6 +149,49 @@ export function InAppNotificationBanner() {
     }
   };
 
+  const handleBannerPress = () => {
+    triggerHaptic("selection");
+    dismissBanner();
+
+    if (!activeNotif) return;
+    const actionUrl = activeNotif.actionUrl || activeNotif.data?.url;
+
+    if (actionUrl) {
+      if (actionUrl.includes("order")) {
+        const orderId = actionUrl.split("/").pop();
+        if (orderId && !isNaN(Number(orderId))) {
+          if (navigationRef.isReady()) {
+            (navigationRef as any).navigate("OrderTrackingScreen", { orderId: Number(orderId) });
+          }
+          return;
+        }
+        if (navigationRef.isReady()) {
+          (navigationRef as any).navigate("Main", { screen: "Orders" });
+        }
+        return;
+      }
+      if (actionUrl.includes("product")) {
+        const prodId = actionUrl.split("/").pop();
+        if (prodId && !isNaN(Number(prodId))) {
+          if (navigationRef.isReady()) {
+            (navigationRef as any).navigate("ProductDetailScreen", { productId: Number(prodId) });
+          }
+          return;
+        }
+      }
+    }
+
+    if (activeNotif.category === "ORDER") {
+      if (navigationRef.isReady()) {
+        (navigationRef as any).navigate("Main", { screen: "Orders" });
+      }
+    } else if (activeNotif.category === "PROMO") {
+      if (navigationRef.isReady()) {
+        (navigationRef as any).navigate("Main", { screen: "Home" });
+      }
+    }
+  };
+
   const catConfig = getCategoryConfig(activeNotif.category);
 
   return (
@@ -165,11 +209,7 @@ export function InAppNotificationBanner() {
       <TouchableOpacity
         style={styles.bannerContent}
         activeOpacity={0.9}
-        onPress={() => {
-          triggerHaptic("selection");
-          dismissBanner();
-          // Handle navigation if needed
-        }}
+        onPress={handleBannerPress}
       >
         {activeNotif.imageUrl ? (
           <Image

@@ -60,6 +60,7 @@ class OwnerBroadcastPushView(APIView):
             import threading
             push_data = {
                 'image_url': image_url,
+                'category_id': category,
                 'category': category,
                 'action_url': action_url,
             }
