@@ -47,14 +47,13 @@ const Dashboard = () => {
     e.preventDefault();
     e.stopPropagation();
     
-    // Optimistic UI update
     const previousStock = product.stock_quantity;
     const newStock = previousStock + amount;
     setProducts(products.map(p => p.id === product.id ? { ...p, stock_quantity: newStock } : p));
     
     try {
       await api.patch(`/products/${product.id}/`, { stock_quantity: newStock });
-      toast.success(`Restocked ${amount}x ${product.name}!`);
+      toast.success(`Restocked ${amount}x ${product.name}`);
     } catch (err) {
       setProducts(products.map(p => p.id === product.id ? { ...p, stock_quantity: previousStock } : p));
       toast.error('Failed to restock items');
@@ -68,7 +67,6 @@ const Dashboard = () => {
       if (!window.confirm('Are you sure you want to reject this order?')) return;
     }
     
-    // Optimistic UI for quick action
     setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
     
     try {
@@ -81,30 +79,31 @@ const Dashboard = () => {
     }
   };
 
-  // Base metrics
   const newOrders = orders.filter(o => o.status === 'NEW').length;
   const preparing = orders.filter(o => o.status === 'ACCEPTED' || o.status === 'PREPARING').length;
-  const recentOrders = [...orders].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5);
+  const recentOrders = [...orders].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 6);
   const allLowStock = products.filter(p => p.stock_quantity <= 5).sort((a, b) => a.stock_quantity - b.stock_quantity);
-  const lowStockProducts = allLowStock.slice(0, 5);
+  const lowStockProducts = allLowStock.slice(0, 6);
 
-
-  const getStatusColor = (status) => {
-    const colors = {
-      NEW: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300',
-      ACCEPTED: 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300',
-      PREPARING: 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300',
-      READY: 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300',
-      COMPLETED: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
-      REJECTED: 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300'
+  const getStatusBadge = (status) => {
+    const styles = {
+      NEW: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
+      ACCEPTED: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20',
+      PREPARING: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20',
+      READY: 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20',
+      COMPLETED: 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20',
+      REJECTED: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'
     };
-    return colors[status] || 'bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-slate-300';
+    const style = styles[status] || 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700';
+    return (
+      <span className={`px-2.5 py-1 text-[11px] font-semibold rounded-full border uppercase tracking-wider ${style}`}>
+        {status}
+      </span>
+    );
   };
 
-
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
-  const emoji = hour < 12 ? '🌅' : hour < 17 ? '☀️' : '🌙';
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   
   const getOwnerName = () => {
     try {
@@ -115,122 +114,229 @@ const Dashboard = () => {
     }
   };
   const ownerName = getOwnerName();
-  
   const pendingCount = orders.filter(o => ['NEW', 'ACCEPTED', 'PREPARING'].includes(o.status)).length;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 font-sans">
       
-      {/* Welcome Header */}
-      <div className="bg-white dark:bg-[#0d1322] px-6 py-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white">{greeting}, {ownerName}</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            You have <span className="font-semibold text-slate-700 dark:text-slate-300">{pendingCount}</span> active {pendingCount === 1 ? 'order' : 'orders'} in the queue today.
+          <h1 className="text-3xl font-semibold text-slate-900 dark:text-white tracking-tight">
+            {greeting}, {ownerName}
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+            You have <span className="font-medium text-slate-900 dark:text-slate-200">{pendingCount} active {pendingCount === 1 ? 'order' : 'orders'}</span> requiring attention today.
+          </p>
+        </div>
+        
+        {/* Quick Access Hub */}
+        <div className="flex flex-wrap items-center gap-3">
+          <button 
+            onClick={() => setIsProductModalOpen(true)} 
+            className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-medium transition-colors shadow-sm dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
+          >
+            <Plus size={16} /> Add Product
+          </button>
+          <Link 
+            to="/owner/orders" 
+            className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-sm font-medium transition-colors shadow-sm dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800 dark:hover:bg-slate-800"
+          >
+            <Activity size={16} /> Active Orders
+          </Link>
+          <Link 
+            to="/owner/offers" 
+            className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-sm font-medium transition-colors shadow-sm dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800 dark:hover:bg-slate-800"
+          >
+            <Tag size={16} /> Create Offer
+          </Link>
+          <Link 
+            to="/owner/push-broadcast" 
+            className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-sm font-medium transition-colors shadow-sm dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800 dark:hover:bg-slate-800"
+          >
+            <Gift size={16} /> Broadcast
+          </Link>
+        </div>
+      </div>
+
+      {/* Metrics Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+          <div className="flex justify-between items-start mb-4">
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Needs Approval</p>
+            <div className="p-2 bg-rose-50 dark:bg-rose-500/10 rounded-lg">
+              <PackageSearch size={18} className="text-rose-600 dark:text-rose-400" />
+            </div>
+          </div>
+          <p className="text-4xl font-semibold text-slate-900 dark:text-white tracking-tight">
+            {loading ? '-' : newOrders}
+          </p>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+          <div className="flex justify-between items-start mb-4">
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Preparing Now</p>
+            <div className="p-2 bg-amber-50 dark:bg-amber-500/10 rounded-lg">
+              <Clock size={18} className="text-amber-600 dark:text-amber-400" />
+            </div>
+          </div>
+          <p className="text-4xl font-semibold text-slate-900 dark:text-white tracking-tight">
+            {loading ? '-' : preparing}
+          </p>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col justify-between relative overflow-hidden">
+          <div className="relative z-10 flex justify-between items-start mb-4">
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Today's Sales</p>
+            <div className="p-2 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg">
+              <TrendingUp size={18} className="text-emerald-600 dark:text-emerald-400" />
+            </div>
+          </div>
+          <p className="relative z-10 text-4xl font-semibold text-slate-900 dark:text-white tracking-tight">
+            ₹{loading || !analytics ? '-' : analytics.today_sales}
           </p>
         </div>
       </div>
 
-      {/* Quick Access Hub */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <button onClick={() => setIsProductModalOpen(true)} className="flex items-center gap-3 p-4 bg-white dark:bg-[#0d1322] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all text-left">
-          <div className="text-slate-500 dark:text-slate-400"><Plus size={18}/></div>
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Add Product</span>
-        </button>
-        <Link to="/owner/orders" className="flex items-center gap-3 p-4 bg-white dark:bg-[#0d1322] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all">
-          <div className="text-slate-500 dark:text-slate-400"><Activity size={18}/></div>
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Active Orders</span>
-        </Link>
-        <Link to="/owner/offers" className="flex items-center gap-3 p-4 bg-white dark:bg-[#0d1322] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all">
-          <div className="text-slate-500 dark:text-slate-400"><Tag size={18}/></div>
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Create Offer</span>
-        </Link>
-        <Link to="/owner/push-broadcast" className="flex items-center gap-3 p-4 bg-white dark:bg-[#0d1322] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all">
-          <div className="text-slate-500 dark:text-slate-400"><Gift size={18}/></div>
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Push Broadcast</span>
-        </Link>
-      </div>
-      
-      {/* Primary Metrics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Link to="/owner/orders" className="bg-white dark:bg-[#0d1322] p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-all flex flex-col justify-between h-32">
-          <div className="flex justify-between items-center">
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Needs Approval</p>
-            <PackageSearch size={18} className="text-slate-400" />
+      {/* Main Content Area */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 items-start">
+        
+        {/* Live Orders (2/3 width on large screens) */}
+        <div className="xl:col-span-2 space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white tracking-tight">Active Orders</h2>
+            <Link to="/owner/orders" className="text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white flex items-center transition-colors">
+              View all <ChevronRight size={16} className="ml-1" />
+            </Link>
           </div>
-          <p className="text-3xl font-semibold text-slate-900 dark:text-white tracking-tight">{loading ? '...' : newOrders}</p>
-        </Link>
 
-        <Link to="/owner/orders" className="bg-white dark:bg-[#0d1322] p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-all flex flex-col justify-between h-32">
-          <div className="flex justify-between items-center">
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Preparing Now</p>
-            <Clock size={18} className="text-slate-400" />
-          </div>
-          <p className="text-3xl font-semibold text-slate-900 dark:text-white tracking-tight">{loading ? '...' : preparing}</p>
-        </Link>
-
-        <div className="bg-white dark:bg-[#0d1322] p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 transition-all flex flex-col justify-between h-32">
-          <div className="flex justify-between items-center">
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Today's Sales</p>
-            <TrendingUp size={18} className="text-slate-400" />
-          </div>
-          <p className="text-3xl font-semibold text-slate-900 dark:text-white tracking-tight">₹{loading || !analytics ? '...' : analytics.today_sales}</p>
-        </div>
-      </div>
-
-      {/* Low Stock Alerts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {/* Low Stock Alerts */}
-        <div className="bg-white dark:bg-[#0d1322] rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 flex flex-col h-[420px]">
-          <div className="flex justify-between items-center mb-5">
-            <h2 className="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-              Low Stock Alerts
-            </h2>
-            <AlertTriangle size={18} className="text-slate-400" />
-          </div>
-          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-            {loading ? (
-              <div className="flex h-full items-center justify-center text-slate-400 text-sm">Loading...</div>
-            ) : lowStockProducts.length === 0 ? (
-              <div className="flex flex-col h-full items-center justify-center text-center p-6 text-slate-500">
-                <p className="font-medium text-sm">Inventory is healthy</p>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+            {loading && orders.length === 0 ? (
+              <div className="p-8 text-center text-sm text-slate-500">Loading orders...</div>
+            ) : recentOrders.length === 0 ? (
+              <div className="p-12 text-center flex flex-col items-center">
+                <div className="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center mb-4">
+                  <PackageSearch className="text-slate-400" size={24} />
+                </div>
+                <p className="text-sm font-medium text-slate-900 dark:text-white">No active orders</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">When customers place orders, they will appear here.</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                {recentOrders.map(order => (
+                  <div key={order.id} className="p-5 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+                    <div className="flex items-start gap-4 flex-1">
+                      <div className="flex-shrink-0 w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-xl flex flex-col items-center justify-center border border-slate-200 dark:border-slate-700">
+                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase leading-none mb-1">ID</span>
+                        <span className="text-xs font-mono font-semibold text-slate-900 dark:text-white leading-none">{order.id.split('-').pop().slice(0, 4)}</span>
+                      </div>
+                      
+                      <div>
+                        <div className="flex items-center gap-3 mb-1">
+                          <Link to={`/owner/orders/${order.id}`} className="font-semibold text-slate-900 dark:text-white hover:underline text-sm">
+                            {order.customer_name || 'Guest User'}
+                          </Link>
+                          {getStatusBadge(order.status)}
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+                          <span>{order.items_count} items</span>
+                          <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
+                          <span>{new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                          <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
+                          <span className="font-medium text-slate-700 dark:text-slate-300">₹{order.total_amount}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Order Actions */}
+                    <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                      {order.status === 'NEW' && (
+                        <>
+                          <button onClick={(e) => handleQuickAction(e, order.id, 'REJECTED')} className="flex-1 sm:flex-none px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 hover:text-rose-600 text-slate-600 rounded-lg text-sm font-medium transition-colors dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:text-rose-400 dark:hover:bg-slate-800">
+                            Reject
+                          </button>
+                          <button onClick={(e) => handleQuickAction(e, order.id, 'ACCEPTED')} className="flex-1 sm:flex-none px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-medium transition-colors shadow-sm dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
+                            Accept
+                          </button>
+                        </>
+                      )}
+                      {order.status === 'ACCEPTED' && (
+                        <button onClick={(e) => handleQuickAction(e, order.id, 'PREPARING')} className="w-full sm:w-auto px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-medium transition-colors shadow-sm dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
+                          Start Preparing
+                        </button>
+                      )}
+                      {order.status === 'PREPARING' && (
+                        <button onClick={(e) => handleQuickAction(e, order.id, order.order_type === 'PICKUP' ? 'READY' : 'OUT_FOR_DELIVERY')} className="w-full sm:w-auto px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-medium transition-colors shadow-sm dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
+                          {order.order_type === 'PICKUP' ? 'Ready for Pickup' : 'Out for Delivery'}
+                        </button>
+                      )}
+                      {['READY', 'OUT_FOR_DELIVERY', 'COMPLETED', 'REJECTED'].includes(order.status) && (
+                         <Link to={`/owner/orders/${order.id}`} className="w-full sm:w-auto px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-medium transition-colors dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 text-center">
+                           View Details
+                         </Link>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Low Stock Alerts (1/3 width on large screens) */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+              Low Stock Alerts
+              {lowStockProducts.length > 0 && (
+                <span className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                </span>
+              )}
+            </h2>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+            {loading ? (
+              <div className="p-8 text-center text-sm text-slate-500">Loading inventory...</div>
+            ) : lowStockProducts.length === 0 ? (
+              <div className="p-8 text-center flex flex-col items-center">
+                <div className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center mb-3">
+                  <AlertTriangle className="text-emerald-500" size={20} />
+                </div>
+                <p className="text-sm font-medium text-slate-900 dark:text-white">Inventory is healthy</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">No items are running low on stock.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
                 {lowStockProducts.map(product => (
-                  <div key={product.id} className="flex flex-col p-4 border border-slate-100 dark:border-slate-800 rounded-lg hover:border-slate-200 dark:hover:border-slate-700 transition-colors">
-                    <Link to="/owner/products" className="flex items-center justify-between group">
+                  <div key={product.id} className="p-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                    <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3 overflow-hidden">
-                        <div className="w-10 h-10 bg-slate-50 dark:bg-slate-900 rounded p-1 border border-slate-100 dark:border-slate-700 flex-shrink-0">
+                        <div className="w-10 h-10 bg-slate-50 dark:bg-slate-800 rounded-lg p-1.5 border border-slate-200 dark:border-slate-700 flex-shrink-0">
                           {product.image ? (
-                            <img src={product.image} alt={product.name} className="w-full h-full object-contain" />
+                            <img src={product.image} alt={product.name} className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs font-semibold">{product.name.charAt(0)}</div>
                           )}
                         </div>
                         <div className="overflow-hidden pr-2">
-                          <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{product.name}</p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">{product.stock_quantity} {product.unit} left</p>
+                          <Link to="/owner/products" className="text-sm font-medium text-slate-900 dark:text-white truncate hover:underline block">{product.name}</Link>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-sm uppercase tracking-wider ${product.stock_quantity === 0 ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'}`}>
+                              {product.stock_quantity === 0 ? 'OUT' : 'LOW'}
+                            </span>
+                            <span className="text-xs text-slate-500 dark:text-slate-400 truncate">{product.stock_quantity} {product.unit} left</span>
+                          </div>
                         </div>
                       </div>
-                      <span className={`flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded ${product.stock_quantity === 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'}`}>
-                        {product.stock_quantity === 0 ? 'OUT' : 'LOW'}
-                      </span>
-                    </Link>
-                    
-                    <div className="flex items-center justify-end gap-2 pt-3 mt-2 border-t border-slate-50 dark:border-slate-800/50">
-                      <span className="text-[10px] font-medium text-slate-400 uppercase mr-auto">Restock</span>
-                      <button 
-                        onClick={(e) => handleQuickRestock(e, product, 10)}
-                        className="flex items-center gap-1 px-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 transition-colors"
-                      >
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={(e) => handleQuickRestock(e, product, 10)} className="flex-1 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 rounded-md text-xs font-medium transition-colors dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700">
                         +10
                       </button>
-                      <button 
-                        onClick={(e) => handleQuickRestock(e, product, 50)}
-                        className="flex items-center gap-1 px-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 transition-colors"
-                      >
+                      <button onClick={(e) => handleQuickRestock(e, product, 50)} className="flex-1 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 rounded-md text-xs font-medium transition-colors dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700">
                         +50
                       </button>
                     </div>
@@ -241,91 +347,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Recent Activity */}
-        <div className="lg:col-span-2 bg-white dark:bg-[#0d1322] rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 flex flex-col h-[420px]">
-          <div className="flex justify-between items-center mb-5">
-            <h2 className="text-base font-semibold text-slate-900 dark:text-white">Live Orders</h2>
-            <Link to="/owner/orders" className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700">
-              View all
-            </Link>
-          </div>
-          
-          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-            {loading && orders.length === 0 ? (
-              <div className="flex h-full items-center justify-center text-slate-400 text-sm">Loading...</div>
-            ) : recentOrders.length === 0 ? (
-              <div className="flex h-full items-center justify-center text-center p-6 text-slate-500">
-                <p className="font-medium text-sm">No active orders</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {recentOrders.map(order => (
-                  <div key={order.id} className="flex flex-col p-4 border border-slate-100 dark:border-slate-800 rounded-lg hover:border-slate-200 dark:hover:border-slate-700 transition-all">
-                    <Link to={`/owner/orders/${order.id}`}>
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="text-xs font-mono text-slate-500 dark:text-slate-400">{order.id.split('-').pop()}</span>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${getStatusColor(order.status)}`}>
-                          {order.status}
-                        </span>
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-semibold text-slate-900 dark:text-white text-sm">{order.customer_name || 'Guest User'}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{order.items_count} items</p>
-                      </div>
-                      <div className="mt-3 pt-3 border-t border-slate-50 dark:border-slate-800/50 flex justify-between items-end">
-                        <span className="text-xs text-slate-400 dark:text-slate-500">{new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                        <div className="flex items-center gap-2">
-                          {order.payment_method === 'UPI' && (
-                            <span className="bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">UPI</span>
-                          )}
-                          <span className="text-sm font-bold text-slate-900 dark:text-white">₹{order.total_amount}</span>
-                        </div>
-                      </div>
-                    </Link>
-
-                    {/* Quick Actions */}
-                    {order.status === 'NEW' && (
-                      <div className="mt-3 grid grid-cols-2 gap-2 pt-3 border-t border-slate-50 dark:border-slate-800/50">
-                        <button 
-                          onClick={(e) => handleQuickAction(e, order.id, 'ACCEPTED')}
-                          className="py-1.5 px-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded transition-colors"
-                        >
-                          Accept
-                        </button>
-                        <button 
-                          onClick={(e) => handleQuickAction(e, order.id, 'REJECTED')}
-                          className="py-1.5 px-2 bg-white text-rose-600 border border-slate-200 hover:bg-rose-50 rounded text-xs font-medium transition-colors"
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    )}
-                    {order.status === 'ACCEPTED' && (
-                      <div className="mt-3 pt-3 border-t border-slate-50 dark:border-slate-800/50">
-                        <button 
-                          onClick={(e) => handleQuickAction(e, order.id, 'PREPARING')}
-                          className="w-full py-1.5 px-2 bg-slate-900 hover:bg-black text-white text-xs font-medium rounded transition-colors"
-                        >
-                          Start Preparing
-                        </button>
-                      </div>
-                    )}
-                    {order.status === 'PREPARING' && (
-                      <div className="mt-3 pt-3 border-t border-slate-50 dark:border-slate-800/50">
-                        <button 
-                          onClick={(e) => handleQuickAction(e, order.id, order.order_type === 'PICKUP' ? 'READY' : 'OUT_FOR_DELIVERY')}
-                          className="w-full py-1.5 px-2 bg-slate-900 hover:bg-black text-white text-xs font-medium rounded transition-colors"
-                        >
-                          {order.order_type === 'PICKUP' ? 'Ready for Pickup' : 'Out for Delivery'}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
       </div>
 
       <ProductFormModal 
