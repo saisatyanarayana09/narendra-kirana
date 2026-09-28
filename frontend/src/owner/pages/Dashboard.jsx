@@ -7,7 +7,7 @@ import {
 import { 
   PackageSearch, Clock, TrendingUp, ChevronRight, 
   AlertTriangle, Plus, Gift, Tag, Activity,
-  BrainCircuit, Users, Target, PlusCircle
+  PlusCircle
 } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
@@ -69,29 +69,6 @@ const Dashboard = () => {
   const allLowStock = products.filter(p => p.stock_quantity <= 5).sort((a, b) => a.stock_quantity - b.stock_quantity);
   const lowStockProducts = allLowStock.slice(0, 5);
 
-  // Advanced Smart Insights Calculations
-  const todayOrders = orders.filter(o => new Date(o.created_at).toDateString() === new Date().toDateString());
-  const aov = todayOrders.length > 0 ? (todayOrders.reduce((sum, o) => sum + parseFloat(o.total_amount || 0), 0) / todayOrders.length).toFixed(0) : 0;
-  
-  const hourCounts = orders.reduce((acc, o) => {
-    const hr = new Date(o.created_at).getHours();
-    acc[hr] = (acc[hr] || 0) + 1;
-    return acc;
-  }, {});
-  let peakHour = null;
-  let maxCount = 0;
-  Object.entries(hourCounts).forEach(([hr, count]) => {
-    if (count > maxCount) { maxCount = count; peakHour = hr; }
-  });
-  const formatHour = h => h === null ? '--' : (h % 12 || 12) + (h < 12 ? ' AM' : ' PM');
-
-  const customerSpends = orders.reduce((acc, o) => {
-    if (o.customer_name) {
-      acc[o.customer_name] = (acc[o.customer_name] || 0) + parseFloat(o.total_amount || 0);
-    }
-    return acc;
-  }, {});
-  const topCustomer = Object.entries(customerSpends).sort((a,b) => b[1] - a[1])[0];
 
   const getStatusColor = (status) => {
     const colors = {
@@ -153,39 +130,7 @@ const Dashboard = () => {
         </Link>
       </div>
 
-      {/* Smart Insights (Advanced AI-style features) */}
-      <div className="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-2xl shadow-sm border border-slate-800 p-6 relative overflow-hidden">
-        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-indigo-500/20 blur-3xl rounded-full"></div>
-        <div className="flex items-center gap-2 mb-6">
-          <BrainCircuit size={24} className="text-indigo-400" />
-          <h2 className="text-xl font-extrabold text-white tracking-tight">Smart Insights</h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/10">
-            <div className="flex items-center gap-2 text-indigo-300 mb-2 font-bold text-sm">
-              <Target size={16} /> Average Order Value
-            </div>
-            <p className="text-2xl font-black text-white">₹{loading ? '...' : aov}</p>
-            <p className="text-xs text-indigo-200/60 mt-1">Based on today's orders</p>
-          </div>
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/10">
-            <div className="flex items-center gap-2 text-indigo-300 mb-2 font-bold text-sm">
-              <Clock size={16} /> Peak Ordering Hour
-            </div>
-            <p className="text-2xl font-black text-white">{loading ? '...' : formatHour(peakHour)}</p>
-            <p className="text-xs text-indigo-200/60 mt-1">When most orders arrive</p>
-          </div>
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/10">
-            <div className="flex items-center gap-2 text-indigo-300 mb-2 font-bold text-sm">
-              <Users size={16} /> Top Customer
-            </div>
-            <p className="text-2xl font-black text-white truncate" title={topCustomer ? topCustomer[0] : ''}>
-              {loading ? '...' : (topCustomer ? topCustomer[0] : 'None yet')}
-            </p>
-            <p className="text-xs text-indigo-200/60 mt-1">Highest total spend</p>
-          </div>
-        </div>
-      </div>
+
       
       {/* Primary Metrics Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
