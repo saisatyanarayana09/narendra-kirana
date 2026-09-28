@@ -110,82 +110,87 @@ const Dashboard = () => {
         </p>
       </div>
 
-      {/* Action Center */}
+      {/* Quick Access Hub */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Link to="/owner/products" className="flex items-center justify-center gap-2 p-4 bg-white dark:bg-[#0d1322] rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-emerald-200 dark:hover:border-emerald-800/60 transition-all text-slate-700 dark:text-slate-200 font-bold group">
-          <div className="p-2 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-lg group-hover:scale-110 transition-transform"><Plus size={18}/></div>
-          Add Product
+        <Link to="/owner/products" className="flex flex-col items-center justify-center gap-3 p-5 bg-white dark:bg-[#0d1322] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-700 transition-all group">
+          <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform"><Plus size={24}/></div>
+          <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Add Product</span>
         </Link>
-        <Link to="/owner/offers" className="flex items-center justify-center gap-2 p-4 bg-white dark:bg-[#0d1322] rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800/60 transition-all text-slate-700 dark:text-slate-200 font-bold group">
-          <div className="p-2 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 rounded-lg group-hover:scale-110 transition-transform"><Tag size={18}/></div>
-          Create Offer
+        <Link to="/owner/orders" className="flex flex-col items-center justify-center gap-3 p-5 bg-white dark:bg-[#0d1322] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700 transition-all group">
+          <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform"><Activity size={24}/></div>
+          <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Active Orders</span>
         </Link>
-        <Link to="/owner/referrals" className="flex items-center justify-center gap-2 p-4 bg-white dark:bg-[#0d1322] rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-purple-200 dark:hover:border-purple-800/60 transition-all text-slate-700 dark:text-slate-200 font-bold group">
-          <div className="p-2 bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 rounded-lg group-hover:scale-110 transition-transform"><Gift size={18}/></div>
-          Scan Referral
+        <Link to="/owner/offers" className="flex flex-col items-center justify-center gap-3 p-5 bg-white dark:bg-[#0d1322] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-amber-300 dark:hover:border-amber-700 transition-all group">
+          <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform"><Tag size={24}/></div>
+          <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Create Offer</span>
         </Link>
-        <Link to="/owner/orders" className="flex items-center justify-center gap-2 p-4 bg-white dark:bg-[#0d1322] rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-amber-200 dark:hover:border-amber-800/60 transition-all text-slate-700 dark:text-slate-200 font-bold group">
-          <div className="p-2 bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 rounded-lg group-hover:scale-110 transition-transform"><Activity size={18}/></div>
-          Active Orders
+        <Link to="/owner/push-broadcast" className="flex flex-col items-center justify-center gap-3 p-5 bg-white dark:bg-[#0d1322] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-purple-300 dark:hover:border-purple-700 transition-all group">
+          <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform"><Gift size={24}/></div>
+          <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Push Broadcast</span>
         </Link>
       </div>
-
-
       
       {/* Primary Metrics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white dark:bg-[#0d1322] p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 transition-all duration-300 hover:-translate-y-1 hover:shadow-md group relative overflow-hidden">
-          {newOrders > 0 && <div className="absolute top-0 right-0 w-16 h-16 bg-red-50 dark:bg-red-950/50 rounded-bl-full flex items-start justify-end p-3"><div className="w-3 h-3 bg-red-500 rounded-full animate-ping"></div></div>}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Link to="/owner/orders" className="bg-white dark:bg-[#0d1322] p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 transition-all hover:shadow-md hover:border-red-200 dark:hover:border-red-900/50 group block">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm font-bold text-slate-500 dark:text-slate-400">Needs Approval (New)</p>
-              <p className={`text-4xl font-extrabold mt-2 tracking-tight ${newOrders > 0 ? 'text-red-500 dark:text-red-400' : 'text-slate-700 dark:text-slate-200'}`}>{loading ? '...' : newOrders}</p>
+              <p className="text-sm font-bold text-slate-500 dark:text-slate-400">Needs Approval</p>
+              <p className={`text-5xl font-black mt-3 tracking-tight ${newOrders > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-200'}`}>{loading ? '...' : newOrders}</p>
             </div>
-            <div className="p-3 bg-red-50 dark:bg-red-950/50 rounded-xl text-red-500 dark:text-red-400 group-hover:scale-110 transition-transform"><PackageSearch size={24}/></div>
+            <div className={`p-4 rounded-2xl ${newOrders > 0 ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-slate-100 text-slate-400 dark:bg-slate-800'}`}>
+              <PackageSearch size={28}/>
+            </div>
           </div>
-        </div>
+        </Link>
 
-        <div className="bg-white dark:bg-[#0d1322] p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 transition-all duration-300 hover:-translate-y-1 hover:shadow-md group">
+        <Link to="/owner/orders" className="bg-white dark:bg-[#0d1322] p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 transition-all hover:shadow-md hover:border-amber-200 dark:hover:border-amber-900/50 group block">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm font-bold text-slate-500 dark:text-slate-400">Preparing</p>
-              <p className="text-4xl font-extrabold text-amber-500 mt-2 tracking-tight">{loading ? '...' : preparing}</p>
+              <p className="text-sm font-bold text-slate-500 dark:text-slate-400">Preparing Now</p>
+              <p className="text-5xl font-black text-amber-500 mt-3 tracking-tight">{loading ? '...' : preparing}</p>
             </div>
-            <div className="p-3 bg-amber-50 dark:bg-amber-950/50 rounded-xl text-amber-500 dark:text-amber-400 group-hover:scale-110 transition-transform"><Clock size={24}/></div>
+            <div className="p-4 bg-amber-100 dark:bg-amber-900/30 rounded-2xl text-amber-600 dark:text-amber-400">
+              <Clock size={28}/>
+            </div>
           </div>
-        </div>
+        </Link>
 
-        <div className="bg-white dark:bg-[#0d1322] p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 transition-all duration-300 hover:-translate-y-1 hover:shadow-md group">
+        <div className="bg-white dark:bg-[#0d1322] p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 transition-all hover:shadow-md group">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-sm font-bold text-slate-500 dark:text-slate-400">Today's Sales</p>
-              <p className="text-4xl font-extrabold text-slate-900 dark:text-white mt-2 tracking-tight">₹{loading || !analytics ? '...' : analytics.today_sales}</p>
+              <p className="text-4xl font-black text-slate-900 dark:text-white mt-4 tracking-tight">₹{loading || !analytics ? '...' : analytics.today_sales}</p>
             </div>
-            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 rounded-xl text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform"><TrendingUp size={24}/></div>
+            <div className="p-4 bg-emerald-100 dark:bg-emerald-900/30 rounded-2xl text-emerald-600 dark:text-emerald-400">
+              <TrendingUp size={28}/>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Split View: Sales Chart & Low Stock */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         
         {/* Chart (66%) */}
-        <div className="bg-white dark:bg-[#0d1322] rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-6 lg:col-span-2">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Sales (Last 7 Days)</h2>
-            <p className="text-sm font-bold text-slate-500 dark:text-slate-400">Total: ₹{loading || !analytics ? '...' : analytics.weekly_sales}</p>
+        <div className="bg-white dark:bg-[#0d1322] rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 xl:col-span-2">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">Sales (Last 7 Days)</h2>
+            <div className="px-4 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
+              <p className="text-sm font-bold text-slate-600 dark:text-slate-300">Total: ₹{loading || !analytics ? '...' : analytics.weekly_sales}</p>
+            </div>
           </div>
-          <div className="h-64 w-full">
+          <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={analytics?.chart_data || []} margin={{ top: 10, right: 15, bottom: 5, left: 10 }}>
-                <Line type="monotone" dataKey="Sales" stroke="#059669" strokeWidth={3} dot={{ r: 4, fill: '#059669' }} activeDot={{ r: 6 }} />
-                <CartesianGrid stroke="#f1f5f9" strokeDasharray="5 5" vertical={false} className="dark:opacity-10" />
-                <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `₹${val}`} />
+                <Line type="monotone" dataKey="Sales" stroke="#10b981" strokeWidth={4} dot={{ r: 5, fill: '#10b981', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 8 }} />
+                <CartesianGrid stroke="#e2e8f0" strokeDasharray="6 6" vertical={false} className="dark:opacity-10" />
+                <XAxis dataKey="name" stroke="#64748b" fontSize={13} fontWeight={600} tickLine={false} axisLine={false} dy={10} />
+                <YAxis stroke="#64748b" fontSize={13} fontWeight={600} tickLine={false} axisLine={false} dx={-10} tickFormatter={(val) => `₹${val}`} />
                 <RechartsTooltip 
-                  cursor={{ fill: 'transparent' }} 
+                  cursor={{ fill: 'transparent', stroke: '#cbd5e1', strokeWidth: 2, strokeDasharray: '4 4' }} 
                   formatter={(val) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Sales']}
-                  contentStyle={{ borderRadius: '12px', border: '1px solid #334155', backgroundColor: '#0f172a', color: '#ffffff', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.3)', fontWeight: 'bold' }} 
+                  contentStyle={{ borderRadius: '16px', border: 'none', backgroundColor: '#0f172a', color: '#ffffff', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px 16px', fontWeight: 'bold' }} 
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -193,60 +198,58 @@ const Dashboard = () => {
         </div>
 
         {/* Low Stock Alerts (33%) with Quick Restock */}
-        <div className="bg-white dark:bg-[#0d1322] rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-6 flex flex-col transition-colors">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <AlertTriangle size={20} className="text-amber-500" />
+        <div className="bg-white dark:bg-[#0d1322] rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 flex flex-col h-[400px]">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+              <AlertTriangle size={22} className="text-amber-500" />
               Low Stock Alerts
             </h2>
           </div>
           <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
             {loading ? (
-              <div className="text-center py-8 text-slate-400 dark:text-slate-500 font-medium">Checking inventory...</div>
+              <div className="flex h-full items-center justify-center text-slate-400 font-medium">Checking inventory...</div>
             ) : lowStockProducts.length === 0 ? (
-              <div className="text-center py-10 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-dashed border-emerald-200 dark:border-emerald-800">
-                <p className="font-bold text-emerald-600 dark:text-emerald-400">Inventory is healthy!</p>
-                <p className="text-xs text-emerald-500 dark:text-emerald-400/80 mt-1">No items are running low.</p>
+              <div className="flex flex-col h-full items-center justify-center bg-emerald-50 dark:bg-emerald-950/20 rounded-2xl border-2 border-dashed border-emerald-200 dark:border-emerald-800/50 p-6 text-center">
+                <p className="font-extrabold text-lg text-emerald-600 dark:text-emerald-400">Inventory is healthy!</p>
+                <p className="text-sm font-medium text-emerald-600/70 dark:text-emerald-400/70 mt-2">No items are running low.</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {lowStockProducts.map(product => (
-                  <div key={product.id} className="flex flex-col p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 rounded-xl hover:border-amber-200 dark:hover:border-amber-700/60 transition-colors">
-                    <Link to="/owner/products" className="flex items-center justify-between mb-2 group">
+                  <div key={product.id} className="flex flex-col p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <Link to="/owner/products" className="flex items-center justify-between mb-3 group">
                       <div className="flex items-center gap-3 overflow-hidden">
-                        <div className="w-8 h-8 bg-white dark:bg-slate-800 rounded-lg p-1 border border-slate-200 dark:border-slate-700 flex-shrink-0">
+                        <div className="w-10 h-10 bg-white dark:bg-slate-900 rounded-xl p-1.5 border border-slate-200 dark:border-slate-700 flex-shrink-0 shadow-sm">
                           {product.image ? (
                             <img src={product.image} alt={product.name} className="w-full h-full object-contain" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-slate-300 dark:text-slate-600 font-bold">{product.name.charAt(0)}</div>
                           )}
                         </div>
-                        <div className="overflow-hidden">
-                          <p className="text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">{product.name}</p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{product.stock_quantity} {product.unit} left</p>
+                        <div className="overflow-hidden pr-2">
+                          <p className="text-sm font-extrabold text-slate-900 dark:text-white truncate group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">{product.name}</p>
+                          <p className="text-xs font-bold text-slate-500 dark:text-slate-400 truncate mt-0.5">{product.stock_quantity} {product.unit} left</p>
                         </div>
                       </div>
-                      <span className={`flex-shrink-0 inline-flex items-center px-2 py-1 rounded-md text-xs font-black ${product.stock_quantity === 0 ? 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'}`}>
-                        {product.stock_quantity === 0 ? 'OUT' : 'LOW'}
+                      <span className={`flex-shrink-0 inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black tracking-wider ${product.stock_quantity === 0 ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400'}`}>
+                        {product.stock_quantity === 0 ? 'OUT OF STOCK' : 'LOW STOCK'}
                       </span>
                     </Link>
                     
                     {/* Quick Restock Actions */}
-                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 mt-1">
-                      <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mr-auto">Restock:</span>
+                    <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-700 mt-1">
+                      <span className="text-[11px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest mr-auto">Restock</span>
                       <button 
                         onClick={(e) => handleQuickRestock(e, product, 10)}
-                        aria-label={`Restock 10 units of ${product.name}`}
-                        className="flex items-center gap-1 px-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 hover:text-emerald-700 dark:hover:text-emerald-300 hover:border-emerald-200 dark:hover:border-emerald-700 transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 dark:hover:bg-emerald-900/50 dark:hover:text-emerald-300 dark:hover:border-emerald-700 transition-all shadow-sm"
                       >
-                        <PlusCircle size={12} /> 10
+                        <PlusCircle size={14} /> 10
                       </button>
                       <button 
                         onClick={(e) => handleQuickRestock(e, product, 50)}
-                        aria-label={`Restock 50 units of ${product.name}`}
-                        className="flex items-center gap-1 px-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 hover:text-emerald-700 dark:hover:text-emerald-300 hover:border-emerald-200 dark:hover:border-emerald-700 transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 dark:hover:bg-emerald-900/50 dark:hover:text-emerald-300 dark:hover:border-emerald-700 transition-all shadow-sm"
                       >
-                        <PlusCircle size={12} /> 50
+                        <PlusCircle size={14} /> 50
                       </button>
                     </div>
                   </div>
@@ -255,8 +258,8 @@ const Dashboard = () => {
             )}
           </div>
           {allLowStock.length > 5 && (
-            <Link to="/owner/products" className="mt-4 text-center text-sm font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors block border-t border-slate-100 dark:border-slate-800 pt-4">
-              View all {allLowStock.length} low stock items
+            <Link to="/owner/products" className="mt-5 text-center text-sm font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors block">
+              View all {allLowStock.length} low stock items &rarr;
             </Link>
           )}
         </div>
