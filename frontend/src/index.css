@@ -733,3 +733,23 @@ body {
   display: none !important;
 }
 
+
+.bg-stripes {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(0, 0, 0, 0.03),
+    rgba(0, 0, 0, 0.03) 10px,
+    transparent 10px,
+    transparent 20px
+  );
+}
+.dark .bg-stripes {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.03),
+    rgba(255, 255, 255, 0.03) 10px,
+    transparent 10px,
+    transparent 20px
+  );
+}
+
