@@ -61,6 +61,26 @@ const Dashboard = () => {
     }
   };
 
+  const handleQuickAction = async (e, orderId, newStatus) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (newStatus === 'REJECTED') {
+      if (!window.confirm('Are you sure you want to reject this order?')) return;
+    }
+    
+    // Optimistic UI for quick action
+    setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+    
+    try {
+      await api.patch(`/orders/${orderId}/status/`, { status: newStatus });
+      toast.success(`Order marked as ${newStatus}`);
+      fetchDashboardData();
+    } catch (err) {
+      toast.error('Failed to update order status');
+      fetchDashboardData();
+    }
+  };
+
   // Base metrics
   const newOrders = orders.filter(o => o.status === 'NEW').length;
   const preparing = orders.filter(o => o.status === 'ACCEPTED' || o.status === 'PREPARING').length;
@@ -278,6 +298,44 @@ const Dashboard = () => {
                     )}
                   </div>
                 </div>
+
+                {/* Quick Actions */}
+                {order.status === 'NEW' && (
+                  <div className="mt-3 grid grid-cols-2 gap-2 pt-3 border-t border-slate-200/60 dark:border-slate-700/60">
+                    <button 
+                      onClick={(e) => handleQuickAction(e, order.id, 'ACCEPTED')}
+                      className="py-2 px-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
+                    >
+                      Accept
+                    </button>
+                    <button 
+                      onClick={(e) => handleQuickAction(e, order.id, 'REJECTED')}
+                      className="py-2 px-2 bg-rose-100 text-rose-700 hover:bg-rose-200 dark:bg-rose-900/40 dark:text-rose-300 rounded-lg text-xs font-bold transition-colors shadow-sm"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                )}
+                {order.status === 'ACCEPTED' && (
+                  <div className="mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-700/60">
+                    <button 
+                      onClick={(e) => handleQuickAction(e, order.id, 'PREPARING')}
+                      className="w-full py-2 px-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
+                    >
+                      Start Preparing
+                    </button>
+                  </div>
+                )}
+                {order.status === 'PREPARING' && (
+                  <div className="mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-700/60">
+                    <button 
+                      onClick={(e) => handleQuickAction(e, order.id, order.order_type === 'PICKUP' ? 'READY' : 'OUT_FOR_DELIVERY')}
+                      className="w-full py-2 px-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
+                    >
+                      {order.order_type === 'PICKUP' ? 'Ready for Pickup' : 'Out for Delivery'}
+                    </button>
+                  </div>
+                )}
               </Link>
             ))}
           </div>
