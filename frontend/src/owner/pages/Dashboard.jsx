@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { 
   PackageSearch, Clock, TrendingUp, ChevronRight, 
   AlertTriangle, Plus, Gift, Tag, Activity,
-  PlusCircle
+  PlusCircle, ShoppingBag
 } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
@@ -144,12 +144,12 @@ const Dashboard = () => {
           >
             <Plus size={16} /> Add Product
           </button>
-          <Link 
-            to="/owner/orders" 
-            className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-sm font-medium transition-colors shadow-sm dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800 dark:hover:bg-slate-800"
-          >
-            <Activity size={16} /> Active Orders
-          </Link>
+          <button 
+              onClick={() => setIsActiveOrdersModalOpen(true)} 
+              className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-sm font-medium transition-colors shadow-sm dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800 dark:hover:bg-slate-800"
+            >
+              <Activity size={16} /> Active Orders
+            </button>
           <Link 
             to="/owner/offers" 
             className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-sm font-medium transition-colors shadow-sm dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800 dark:hover:bg-slate-800"
@@ -359,6 +359,14 @@ const Dashboard = () => {
         isOpen={isProductModalOpen} 
         onClose={() => setIsProductModalOpen(false)} 
         onSaveSuccess={fetchDashboardData} 
+      />
+
+      <ActiveOrdersModal 
+        isOpen={isActiveOrdersModalOpen} 
+        onClose={() => setIsActiveOrdersModalOpen(false)} 
+        orders={orders}
+        handleQuickAction={handleQuickAction}
+        getStatusBadge={getStatusBadge}
       />
     </div>
   );
