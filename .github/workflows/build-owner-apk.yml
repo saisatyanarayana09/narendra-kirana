@@ -63,7 +63,6 @@ jobs:
       - name: Compile Android Release APK
         working-directory: owner-mobile/android
         env:
-          ENTRY_FILE: index.js
           GRADLE_OPTS: "-Dorg.gradle.jvmargs='-Xmx4096m -XX:MaxMetaspaceSize=1024m'"
         run: |
           chmod +x gradlew
