@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 const ActiveOrdersModal = ({ isOpen, onClose, orders, handleQuickAction, getStatusBadge }) => {
   if (!isOpen) return null;
 
-  const activeOrders = orders.filter(o => ['NEW', 'ACCEPTED', 'PREPARING'].includes(o.status));
+  const activeOrders = orders.filter(o => ['NEW', 'ACCEPTED', 'PREPARING', 'READY'].includes(o.status));
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
@@ -96,10 +96,26 @@ const ActiveOrdersModal = ({ isOpen, onClose, orders, handleQuickAction, getStat
                     )}
                     {order.status === 'PREPARING' && (
                       <button 
-                        onClick={(e) => handleQuickAction(e, order.id, order.order_type === 'PICKUP' ? 'READY' : 'OUT_FOR_DELIVERY')}
+                        onClick={(e) => handleQuickAction(e, order.id, 'READY')}
                         className="w-full md:w-auto px-6 py-2 bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-100 text-white dark:text-slate-900 text-xs font-medium rounded-lg transition-colors shadow-sm"
                       >
-                        {order.order_type === 'PICKUP' ? 'Ready for Pickup' : 'Out for Delivery'}
+                        Mark Ready
+                      </button>
+                    )}
+                    {order.status === 'READY' && order.order_type !== 'PICKUP' && (
+                      <button 
+                        onClick={(e) => handleQuickAction(e, order.id, 'OUT_FOR_DELIVERY')}
+                        className="w-full md:w-auto px-6 py-2 bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-100 text-white dark:text-slate-900 text-xs font-medium rounded-lg transition-colors shadow-sm"
+                      >
+                        Out for Delivery
+                      </button>
+                    )}
+                    {order.status === 'READY' && order.order_type === 'PICKUP' && (
+                      <button 
+                        onClick={(e) => handleQuickAction(e, order.id, 'COMPLETED')}
+                        className="w-full md:w-auto px-6 py-2 bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-100 text-white dark:text-slate-900 text-xs font-medium rounded-lg transition-colors shadow-sm"
+                      >
+                        Picked Up
                       </button>
                     )}
                   </div>

@@ -1,0 +1,125 @@
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, LogBox, Platform } from 'react-native';
+import { Stack } from 'expo-router';
+import { AuthProvider } from '../context/AuthContext';
+import { StatusBar } from 'expo-status-bar';
+import { usePushNotifications } from '../hooks/usePushNotifications';
+
+// Suppress React Native Web internal deprecation warnings & noisy LogBox banners
+try {
+  LogBox.ignoreLogs([
+    'props.pointerEvents is deprecated',
+    'expo-notifications',
+  ]);
+} catch {
+  // Ignore on environments where LogBox is unavailable
+}
+
+if (Platform.OS === 'web' && typeof console !== 'undefined') {
+  const originalWarn = console.warn;
+  console.warn = (...args: any[]) => {
+    if (typeof args[0] === 'string' && args[0].includes('props.pointerEvents is deprecated')) {
+      return;
+    }
+    originalWarn(...args);
+  };
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  errorMessage: string;
+}
+
+class GlobalErrorBoundary extends React.Component<{ children: React.ReactNode }, ErrorBoundaryState> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, errorMessage: '' };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return {
+      hasError: true,
+      errorMessage: error?.message || 'An unexpected error occurred.',
+    };
+  }
+
+  componentDidCatch() {
+    // Handled gracefully by fallback UI without triggering RedBox/LogBox
+  }
+
+  handleReset = () => {
+    this.setState({ hasError: false, errorMessage: '' });
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorTitle}>Something went wrong</Text>
+          <Text style={styles.errorMessage}>{this.state.errorMessage}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={this.handleReset}>
+            <Text style={styles.retryText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function AppContent() {
+  usePushNotifications();
+
+  return (
+    <>
+      <StatusBar style="light" />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      </Stack>
+    </>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <GlobalErrorBoundary>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </GlobalErrorBoundary>
+  );
+}
+
+const styles = StyleSheet.create({
+  errorContainer: {
+    flex: 1,
+    backgroundColor: '#0f172a',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  errorTitle: {
+    color: '#f8fafc',
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  errorMessage: {
+    color: '#94a3b8',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  retryBtn: {
+    backgroundColor: '#10b981',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+});
