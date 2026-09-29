@@ -9,6 +9,7 @@ import {
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import ProductFormModal from '../components/ProductFormModal';
+import ActiveOrdersModal from '../components/ActiveOrdersModal';
 
 const Dashboard = () => {
   const [orders, setOrders] = useState([]);
@@ -16,6 +17,7 @@ const Dashboard = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [isActiveOrdersModalOpen, setIsActiveOrdersModalOpen] = useState(false);
 
   const [ownerName, setOwnerName] = useState(() => {
     try {

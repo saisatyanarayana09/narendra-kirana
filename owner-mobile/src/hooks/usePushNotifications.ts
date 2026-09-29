@@ -1,14 +1,24 @@
 import { useState, useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
-import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
+import type * as NotificationsType from 'expo-notifications';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
+function getNativeNotifications(): typeof NotificationsType | null {
+  if (Platform.OS === 'web') return null;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return require('expo-notifications');
+  } catch {
+    return null;
+  }
+}
+
 if (Platform.OS !== 'web') {
   try {
-    Notifications.setNotificationHandler({
-      handleNotification: async (): Promise<Notifications.NotificationBehavior> =>
+    const Notifications = getNativeNotifications();
+    Notifications?.setNotificationHandler({
+      handleNotification: async (): Promise<NotificationsType.NotificationBehavior> =>
         ({
           shouldShowAlert: true,
           shouldPlaySound: true,
@@ -25,7 +35,7 @@ if (Platform.OS !== 'web') {
 export function usePushNotifications() {
   const { token: authToken } = useAuth();
   const [expoPushToken, setExpoPushToken] = useState<string>('');
-  const [notification, setNotification] = useState<Notifications.Notification | false>(false);
+  const [notification, setNotification] = useState<NotificationsType.Notification | false>(false);
   const notificationListener = useRef<any>(null);
   const responseListener = useRef<any>(null);
 
@@ -34,9 +44,12 @@ export function usePushNotifications() {
       return;
     }
 
+    const Notifications = getNativeNotifications();
+    if (!Notifications) return;
+
     let isMounted = true;
 
-    registerForPushNotificationsAsync()
+    registerForPushNotificationsAsync(Notifications)
       .then((pushToken) => {
         if (pushToken && isMounted) {
           setExpoPushToken(pushToken);
@@ -73,10 +86,15 @@ export function usePushNotifications() {
   return { expoPushToken, notification };
 }
 
-async function registerForPushNotificationsAsync(): Promise<string | undefined> {
+async function registerForPushNotificationsAsync(
+  Notifications: typeof NotificationsType
+): Promise<string | undefined> {
   if (Platform.OS === 'web') return undefined;
 
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Device = require('expo-device');
+
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('default', {
         name: 'default',
@@ -86,7 +104,7 @@ async function registerForPushNotificationsAsync(): Promise<string | undefined> 
       });
     }
 
-    if (!Device.isDevice) {
+    if (!Device?.isDevice) {
       return undefined;
     }
 

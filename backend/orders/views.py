@@ -630,7 +630,7 @@ class OrderViewSet(ModelViewSet):
                 
         return Response(OrderSerializer(order, context=self.get_serializer_context()).data)
 
-    @action(detail=True, methods=['patch'], permission_classes=[IsOwnerUser])
+    @action(detail=True, methods=['patch', 'post'], permission_classes=[IsOwnerUser])
     def owner_note(self, request, pk=None):
         order = self.get_object()
         note = request.data.get('owner_note', '')

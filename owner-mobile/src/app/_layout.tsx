@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, LogBox, Platform } from 'react-native';
 import { Stack } from 'expo-router';
 import { AuthProvider } from '../context/AuthContext';
+import { AppThemeProvider, useAppTheme } from '../context/ThemeContext';
 import { StatusBar } from 'expo-status-bar';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 
@@ -9,6 +10,7 @@ import { usePushNotifications } from '../hooks/usePushNotifications';
 try {
   LogBox.ignoreLogs([
     'props.pointerEvents is deprecated',
+    '"shadow*" style props are deprecated',
     'expo-notifications',
   ]);
 } catch {
@@ -18,7 +20,12 @@ try {
 if (Platform.OS === 'web' && typeof console !== 'undefined') {
   const originalWarn = console.warn;
   console.warn = (...args: any[]) => {
-    if (typeof args[0] === 'string' && args[0].includes('props.pointerEvents is deprecated')) {
+    const msg = typeof args[0] === 'string' ? args[0] : '';
+    if (
+      msg.includes('props.pointerEvents is deprecated') ||
+      msg.includes('"shadow*" style props are deprecated') ||
+      msg.includes('[expo-notifications]')
+    ) {
       return;
     }
     originalWarn(...args);
@@ -69,10 +76,11 @@ class GlobalErrorBoundary extends React.Component<{ children: React.ReactNode },
 
 function AppContent() {
   usePushNotifications();
+  const { isDark } = useAppTheme();
 
   return (
     <>
-      <StatusBar style="light" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -84,9 +92,11 @@ function AppContent() {
 export default function RootLayout() {
   return (
     <GlobalErrorBoundary>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <AppThemeProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </AppThemeProvider>
     </GlobalErrorBoundary>
   );
 }

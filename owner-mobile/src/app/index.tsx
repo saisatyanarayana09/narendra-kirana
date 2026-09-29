@@ -1,11 +1,12 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import { Redirect } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
 
 export default function Index() {
   const { token, isLoading } = useAuth();
 
-  if (isLoading) {
+  if (isLoading || (Platform.OS === 'web' && typeof window === 'undefined')) {
     return null;
   }
 

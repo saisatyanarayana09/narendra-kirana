@@ -7,7 +7,7 @@ export default function OrdersLayout() {
       headerTintColor: '#fff',
     }}>
       <Stack.Screen name="index" options={{ title: 'Orders List', headerShown: false }} />
-      <Stack.Screen name="[id]" options={{ title: 'Order Details' }} />
+      <Stack.Screen name="[id]" options={{ title: 'Order Details', headerShown: false }} />
     </Stack>
   );
 }

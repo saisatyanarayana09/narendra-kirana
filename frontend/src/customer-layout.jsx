@@ -37,6 +37,28 @@ function GlobalSearchBar({ settings }) {
   const [typewriterText, setTypewriterText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Text-to-Speech Voice Hook
+  const { speak, stop: stopSpeaking, isSpeaking } = useTextToSpeech();
+
+  // Speech-to-Text Voice Hook
+  const { 
+    isListening, 
+    interimTranscript, 
+    error: voiceError, 
+    setError: setVoiceError, 
+    toggleListening 
+  } = useSpeechRecognition({
+    onResult: (finalText) => {
+      setQuery(finalText);
+    },
+    onFinal: (finalText) => {
+      setQuery(finalText);
+      setIsOpen(false);
+      navigate(`/products?search=${encodeURIComponent(finalText)}`);
+    },
+    lang: language === 'te' ? 'te-IN' : 'en-IN',
+  });
+
   useEffect(() => {
     if (isListening || query.length > 0) return;
     
@@ -63,28 +85,6 @@ function GlobalSearchBar({ settings }) {
 
     return () => clearTimeout(timeout);
   }, [typewriterText, isDeleting, placeholderIndex, placeholders, isListening, query]);
-
-  // Text-to-Speech Voice Hook
-  const { speak, stop: stopSpeaking, isSpeaking } = useTextToSpeech();
-
-  // Speech-to-Text Voice Hook
-  const { 
-    isListening, 
-    interimTranscript, 
-    error: voiceError, 
-    setError: setVoiceError, 
-    toggleListening 
-  } = useSpeechRecognition({
-    onResult: (finalText) => {
-      setQuery(finalText);
-    },
-    onFinal: (finalText) => {
-      setQuery(finalText);
-      setIsOpen(false);
-      navigate(`/products?search=${encodeURIComponent(finalText)}`);
-    },
-    lang: language === 'te' ? 'te-IN' : 'en-IN',
-  });
 
   useEffect(() => {
     const handleClickOutside = (event) => {

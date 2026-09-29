@@ -18,7 +18,7 @@ let onUnauthorizedCallback: (() => void) | null = null;
 
 const api = axios.create({
   baseURL: process.env.EXPO_PUBLIC_API_URL || 'https://narendra-kirana.onrender.com/api/v1',
-  timeout: 25000,
+  timeout: 45000,
 }) as ApiInstance;
 
 const apiCache = new LRUCache<any>(30);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, memo, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, memo, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,13 +8,24 @@ import {
   ActivityIndicator,
   TextInput,
   RefreshControl,
+  ScrollView,
+  Switch,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import api, { ApiInstance, getErrorMessage } from '../../../services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useAuth } from '../../../context/AuthContext';
+import { useAppTheme } from '../../../context/ThemeContext';
+import { showAlert, showConfirm } from '../../../utils/alerts';
+import UniversalCameraScanner from '../../../components/UniversalCameraScanner';
 
+// ─── Search Trie for 0ms Prefix Search ───
 class TrieNode {
   children: Record<string, TrieNode>;
   productIds: Set<number>;
@@ -31,6 +42,7 @@ class ProductTrie {
   constructor() {
     this.root = new TrieNode();
   }
+
   insert(word: string, productId: number) {
     if (!word || typeof word !== 'string') return;
     const cleanWord = word.toLowerCase().trim();
@@ -46,6 +58,7 @@ class ProductTrie {
       }
     });
   }
+
   searchPrefix(prefix: string): Set<number> | null {
     if (!prefix || typeof prefix !== 'string') return null;
     let node = this.root;
@@ -62,50 +75,347 @@ class ProductTrie {
   }
 }
 
-interface ProductItemProps {
+// ─── Interactive Product Card Component ───
+interface ProductCardProps {
   item: any;
+  colors: any;
+  isDark: boolean;
   onEdit: (id: number) => void;
+  onQuickEdit: (item: any) => void;
+  onStockDelta: (item: any, delta: number) => void;
+  onDelete: (id: number, name: string) => void;
 }
 
-const ProductItem = memo(({ item, onEdit }: ProductItemProps) => {
-  return (
-    <View style={styles.card}>
-      <Image
-        source={{ uri: item?.image || 'https://via.placeholder.com/150' }}
-        style={styles.image}
-        contentFit="cover"
-        cachePolicy="memory-disk"
-      />
-      <View style={styles.cardInfo}>
-        <Text style={styles.name}>{item?.name || 'Unnamed Product'}</Text>
-        <Text style={styles.price}>
-          ₹{item?.offer_price ?? item?.regular_price ?? item?.price ?? '0.00'}
-          {item?.unit ? <Text style={styles.unit}> / {item.unit}</Text> : null}
-        </Text>
-        <Text style={styles.stock}>
-          {item?.is_in_stock ? (
-            <Text style={{ color: '#10b981' }}>In Stock ({item?.stock_quantity ?? 0})</Text>
-          ) : (
-            <Text style={{ color: '#ef4444' }}>Out of Stock</Text>
-          )}
-        </Text>
-      </View>
-      <TouchableOpacity style={styles.editBtn} onPress={() => item?.id && onEdit(item.id)}>
-        <Ionicons name="pencil" size={20} color="#cbd5e1" />
-      </TouchableOpacity>
-    </View>
-  );
-});
+const ProductCard = memo(
+  ({
+    item,
+    colors,
+    isDark,
+    onEdit,
+    onQuickEdit,
+    onStockDelta,
+    onDelete,
+  }: ProductCardProps) => {
+    const qty = Number(item?.stock_quantity ?? 0);
+    const inStock = Boolean(item?.is_in_stock) && qty > 0;
+    const isLowStock = inStock && qty <= 5;
 
+    const regular = parseFloat(item?.regular_price ?? item?.price ?? 0);
+    const offer = parseFloat(item?.offer_price ?? 0);
+    const hasDiscount = offer > 0 && regular > offer;
+    const discountPercent = hasDiscount
+      ? Math.round(((regular - offer) / regular) * 100)
+      : 0;
+
+    return (
+      <View
+        style={[
+          styles.productCard,
+          {
+            backgroundColor: colors.card,
+            borderColor: isLowStock
+              ? isDark
+                ? 'rgba(245, 158, 11, 0.4)'
+                : '#fde68a'
+              : !inStock
+                ? isDark
+                  ? 'rgba(244, 63, 94, 0.35)'
+                  : '#fecdd3'
+                : colors.border,
+          },
+        ]}
+      >
+        {/* Card Main Row: Thumbnail + Details (Tap to Open Full Editor) */}
+        <TouchableOpacity
+          style={styles.cardMainRow}
+          activeOpacity={0.7}
+          onPress={() => item?.id && onEdit(item.id)}
+          accessibilityLabel={`Edit ${item?.name || 'Product'}`}
+        >
+          {/* Thumbnail Box with Discount Ribbon */}
+          <View
+            style={[
+              styles.cardThumbBox,
+              {
+                backgroundColor: colors.cardAlt,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            {item?.image ? (
+              <Image
+                source={{ uri: item.image }}
+                style={styles.cardImg}
+                contentFit="contain"
+                cachePolicy="memory-disk"
+              />
+            ) : (
+              <Ionicons name="cube-outline" size={26} color={colors.textMuted} />
+            )}
+
+            {hasDiscount ? (
+              <View style={styles.discountBadge}>
+                <Text style={styles.discountBadgeText}>-{discountPercent}%</Text>
+              </View>
+            ) : null}
+          </View>
+
+          {/* Product Info Block */}
+          <View style={styles.cardInfoBlock}>
+            <View style={styles.titleRowWrap}>
+              <Text
+                style={[styles.productName, { color: colors.text }]}
+                numberOfLines={2}
+              >
+                {item?.name || 'Unnamed Product'}
+              </Text>
+            </View>
+
+            {/* Badges: Category, Unit, SKU */}
+            <View style={styles.tagsRow}>
+              {item?.category_name ? (
+                <View
+                  style={[
+                    styles.tagPill,
+                    {
+                      backgroundColor: isDark ? 'rgba(59, 130, 246, 0.14)' : '#eff6ff',
+                      borderColor: isDark ? 'rgba(59, 130, 246, 0.3)' : '#bfdbfe',
+                    },
+                  ]}
+                >
+                  <Text style={[styles.tagPillText, { color: isDark ? '#93c5fd' : '#2563eb' }]}>
+                    {item.category_name}
+                  </Text>
+                </View>
+              ) : null}
+
+              {item?.unit ? (
+                <View
+                  style={[
+                    styles.tagPill,
+                    {
+                      backgroundColor: colors.cardAlt,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.tagPillText, { color: colors.textMuted }]}>
+                    {item.unit}
+                  </Text>
+                </View>
+              ) : null}
+
+              {item?.sku ? (
+                <View
+                  style={[
+                    styles.tagPill,
+                    {
+                      backgroundColor: colors.cardAlt,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <Ionicons name="barcode-outline" size={10} color={colors.textMuted} />
+                  <Text style={[styles.tagPillText, { color: colors.textMuted }]}>
+                    {item.sku}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+
+            {/* Pricing Line */}
+            <View style={styles.cardPriceRow}>
+              <Text style={styles.offerPriceText}>
+                ₹{item?.offer_price ? item.offer_price : item?.regular_price ?? item?.price ?? '0.00'}
+              </Text>
+              {hasDiscount ? (
+                <Text style={[styles.strikeThroughPrice, { color: colors.textMuted }]}>
+                  ₹{item.regular_price}
+                </Text>
+              ) : null}
+
+              {/* Status Pill */}
+              <View
+                style={[
+                  styles.stockStatusBadge,
+                  {
+                    backgroundColor: inStock
+                      ? isLowStock
+                        ? isDark
+                          ? 'rgba(245, 158, 11, 0.16)'
+                          : '#fef3c7'
+                        : isDark
+                          ? 'rgba(16, 185, 129, 0.16)'
+                          : '#ecfdf5'
+                      : isDark
+                        ? 'rgba(244, 63, 94, 0.16)'
+                        : '#fff1f2',
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.stockDot,
+                    {
+                      backgroundColor: inStock
+                        ? isLowStock
+                          ? '#f59e0b'
+                          : '#10b981'
+                        : '#f43f5e',
+                    },
+                  ]}
+                />
+                <Text
+                  style={[
+                    styles.stockStatusText,
+                    {
+                      color: inStock
+                        ? isLowStock
+                          ? isDark
+                            ? '#fcd34d'
+                            : '#b45309'
+                          : isDark
+                            ? '#6ee7b7'
+                            : '#047857'
+                        : isDark
+                          ? '#fda4af'
+                          : '#be123c',
+                    },
+                  ]}
+                >
+                  {inStock
+                    ? isLowStock
+                      ? `Low: ${qty} left`
+                      : `${qty} in stock`
+                    : 'Out of Stock'}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        {/* Card Interactive Footer Bar: Stepper & Clean Actions */}
+        <View
+          style={[
+            styles.cardFooterBar,
+            {
+              borderTopColor: colors.border,
+              backgroundColor: isDark ? 'rgba(15, 23, 42, 0.4)' : 'rgba(248, 250, 252, 0.8)',
+            },
+          ]}
+        >
+          {/* Quick Stock +/- Stepper */}
+          <View style={styles.stepperContainer}>
+            <Text style={[styles.stepperLabel, { color: colors.textMuted }]}>Stock:</Text>
+            <View
+              style={[
+                styles.stepperPill,
+                { backgroundColor: colors.cardAlt, borderColor: colors.border },
+              ]}
+            >
+              <TouchableOpacity
+                style={styles.stepperBtn}
+                onPress={() => onStockDelta(item, -1)}
+                disabled={qty <= 0}
+                accessibilityLabel="Decrease stock"
+              >
+                <Ionicons
+                  name="remove"
+                  size={14}
+                  color={qty > 0 ? colors.text : colors.textMuted}
+                />
+              </TouchableOpacity>
+
+              <Text style={[styles.stepperValText, { color: colors.text }]}>
+                {qty}
+              </Text>
+
+              <TouchableOpacity
+                style={styles.stepperBtn}
+                onPress={() => onStockDelta(item, +1)}
+                accessibilityLabel="Increase stock"
+              >
+                <Ionicons name="add" size={14} color="#10b981" />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Actions Right: Single Edit Button + Delete */}
+          <View style={styles.cardActionsRight}>
+            <TouchableOpacity
+              style={[
+                styles.quickActionBtn,
+                { backgroundColor: colors.cardAlt, borderColor: colors.border },
+              ]}
+              onPress={() => onQuickEdit(item)}
+              accessibilityLabel="Edit Product"
+            >
+              <Ionicons name="create-outline" size={14} color="#3b82f6" />
+              <Text style={[styles.quickActionText, { color: colors.text }]}>Edit</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.iconMiniBtn,
+                { backgroundColor: isDark ? 'rgba(244, 63, 94, 0.12)' : '#fff1f2' },
+              ]}
+              onPress={() => item?.id && onDelete(item.id, item?.name || 'Product')}
+              accessibilityLabel="Delete Product"
+            >
+              <Ionicons name="trash-outline" size={14} color="#f43f5e" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  }
+);
+
+// ─── Main Products List Screen ───
 export default function ProductsListScreen() {
   const { token } = useAuth();
+  const { isDark, colors } = useAppTheme();
+  const router = useRouter();
+
   const [products, setProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [stockFilter, setStockFilter] = useState<'ALL' | 'IN_STOCK' | 'LOW_STOCK' | 'OUT'>('ALL');
+  const [selectedCatId, setSelectedCatId] = useState<number | 'ALL'>('ALL');
+  const [sortBy, setSortBy] = useState<'DEFAULT' | 'NAME' | 'PRICE_ASC' | 'PRICE_DESC' | 'STOCK_LOW'>('DEFAULT');
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const router = useRouter();
 
+  // Quick Edit Modal State
+  const [quickEditProduct, setQuickEditProduct] = useState<any | null>(null);
+  const [qePrice, setQePrice] = useState('');
+  const [qeOfferPrice, setQeOfferPrice] = useState('');
+  const [qeStock, setQeStock] = useState('');
+  const [qeInStock, setQeInStock] = useState(true);
+  const [savingQuickEdit, setSavingQuickEdit] = useState(false);
+
+  // Barcode Scanner Modal State
+  const [showScanner, setShowScanner] = useState(false);
+
+  // ─── Sticky Header Scroll Tracking ───
+  const listRef = useRef<FlatList>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const offsetY = event.nativeEvent.contentOffset.y;
+      if (offsetY > 10 && !isScrolled) {
+        setIsScrolled(true);
+      } else if (offsetY <= 10 && isScrolled) {
+        setIsScrolled(false);
+      }
+    },
+    [isScrolled]
+  );
+
+  // ─── Fetch Products & Categories ───
   const fetchProducts = useCallback(
     async (forceRefresh = false) => {
       if (!token) {
@@ -116,12 +426,24 @@ export default function ProductsListScreen() {
 
       setErrorMsg(null);
       try {
-        const response = await (api as ApiInstance).cachedGet('/products/', { forceRefresh });
-        const raw = response?.data?.results ?? response?.data;
-        setProducts(Array.isArray(raw) ? raw : []);
-      } catch (error: any) {
-        if (error?.response?.status !== 401) {
-          setErrorMsg(getErrorMessage(error, 'Failed to fetch products.'));
+        const [prodRes, catRes] = await Promise.allSettled([
+          (api as ApiInstance).cachedGet('/products/', { forceRefresh }),
+          api.get('/categories/'),
+        ]);
+
+        if (prodRes.status === 'fulfilled' && prodRes.value?.data) {
+          const raw = prodRes.value.data?.results ?? prodRes.value.data;
+          setProducts(Array.isArray(raw) ? raw : []);
+        } else if (prodRes.status === 'rejected') {
+          const err = prodRes.reason;
+          if (err?.response?.status !== 401) {
+            setErrorMsg(getErrorMessage(err, 'Failed to fetch products.'));
+          }
+        }
+
+        if (catRes.status === 'fulfilled' && catRes.value?.data) {
+          const rawCats = catRes.value.data?.results ?? catRes.value.data;
+          setCategories(Array.isArray(rawCats) ? rawCats : []);
         }
       } finally {
         setLoading(false);
@@ -140,6 +462,130 @@ export default function ProductsListScreen() {
     fetchProducts(true);
   }, [fetchProducts]);
 
+  // ─── Fast In-Line Stock Adjustments ───
+  const handleStockDelta = useCallback(
+    async (item: any, delta: number) => {
+      const currentQty = Number(item?.stock_quantity ?? 0);
+      const newQty = Math.max(0, currentQty + delta);
+      const newInStock = newQty > 0;
+
+      // Optimistic state update for instant UI feedback
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === item.id
+            ? { ...p, stock_quantity: newQty, is_in_stock: newInStock }
+            : p
+        )
+      );
+
+      try {
+        await api.patch(`/products/${item.id}/`, {
+          stock_quantity: newQty,
+          is_in_stock: newInStock,
+        });
+        (api as ApiInstance).clearCache();
+      } catch (err: any) {
+        // Revert on error
+        setProducts((prev) =>
+          prev.map((p) => (p.id === item.id ? item : p))
+        );
+        showAlert('Error', getErrorMessage(err, 'Failed to update stock.'));
+      }
+    },
+    []
+  );
+
+
+  const handleDelete = useCallback(
+    (id: number, name: string) => {
+      showConfirm(
+        'Delete Product',
+        `Are you sure you want to permanently delete "${name}"?`,
+        async () => {
+          try {
+            await api.delete(`/products/${id}/`);
+            (api as ApiInstance).clearCache();
+            setProducts((prev) => prev.filter((p) => p.id !== id));
+            showAlert('Deleted', `"${name}" removed from inventory.`);
+          } catch (e: any) {
+            showAlert('Error', getErrorMessage(e, 'Failed to delete product.'));
+          }
+        },
+        undefined,
+        'Delete'
+      );
+    },
+    []
+  );
+
+  // ─── Quick Edit Modal Handlers ───
+  const openQuickEdit = (item: any) => {
+    setQuickEditProduct(item);
+    setQePrice(String(item?.regular_price ?? item?.price ?? ''));
+    setQeOfferPrice(item?.offer_price ? String(item.offer_price) : '');
+    setQeStock(String(item?.stock_quantity ?? '0'));
+    setQeInStock(Boolean(item?.is_in_stock));
+  };
+
+  const handleSaveQuickEdit = async () => {
+    if (!quickEditProduct?.id) return;
+    setSavingQuickEdit(true);
+    try {
+      const patchData: any = {
+        regular_price: qePrice,
+        offer_price: qeOfferPrice ? qeOfferPrice : null,
+        stock_quantity: parseInt(qeStock, 10) || 0,
+        is_in_stock: qeInStock,
+      };
+
+      const res = await api.patch(`/products/${quickEditProduct.id}/`, patchData);
+      (api as ApiInstance).clearCache();
+
+      if (res?.data) {
+        setProducts((prev) =>
+          prev.map((p) => (p.id === quickEditProduct.id ? res.data : p))
+        );
+      }
+      setQuickEditProduct(null);
+      showAlert('Success', 'Product updated successfully!');
+    } catch (e: any) {
+      showAlert('Error', getErrorMessage(e, 'Failed to update product.'));
+    } finally {
+      setSavingQuickEdit(false);
+    }
+  };
+
+  // ─── Barcode Scanner Handler ───
+  const handleBarcodeScan = (scannedSku: string) => {
+    setShowScanner(false);
+    const clean = scannedSku.trim();
+    if (!clean) return;
+
+    // Search in current product list
+    const found = products.find(
+      (p) => String(p?.sku || '').trim().toLowerCase() === clean.toLowerCase()
+    );
+
+    if (found) {
+      setSearchQuery(found.name);
+      openQuickEdit(found);
+    } else {
+      showConfirm(
+        'Product Not Found',
+        `Barcode "${clean}" is not in your inventory yet.\n\nWould you like to add it as a new product now?`,
+        () => {
+          router.push({
+            pathname: '/(tabs)/products/new',
+            params: { sku: clean },
+          });
+        },
+        undefined,
+        'Add Product'
+      );
+    }
+  };
+
+  // ─── Search Trie & Indexing ───
   const { productMap, searchTrie } = useMemo(() => {
     const safeProducts = Array.isArray(products) ? products : [];
     const map = new Map<number, any>();
@@ -150,26 +596,143 @@ export default function ProductsListScreen() {
       if (!p || p.id == null) continue;
       map.set(p.id, p);
       if (p.name) trie.insert(String(p.name), p.id);
+      if (p.sku) trie.insert(String(p.sku), p.id);
+      if (p.brand) trie.insert(String(p.brand), p.id);
+      if (p.category_name) trie.insert(String(p.category_name), p.id);
     }
 
     return { productMap: map, searchTrie: trie };
   }, [products]);
 
+  // ─── Metrics / KPIs ───
+  const stats = useMemo(() => {
+    const safe = Array.isArray(products) ? products : [];
+    let inStock = 0;
+    let lowStock = 0;
+    let outOfStock = 0;
+
+    for (let i = 0; i < safe.length; i++) {
+      const p = safe[i];
+      const qty = Number(p?.stock_quantity ?? 0);
+      const isAvailable = Boolean(p?.is_in_stock) && qty > 0;
+      if (isAvailable) {
+        inStock++;
+        if (qty <= 5) lowStock++;
+      } else {
+        outOfStock++;
+      }
+    }
+
+    return {
+      total: safe.length,
+      inStock,
+      lowStock,
+      outOfStock,
+    };
+  }, [products]);
+
+  // ─── 4 Interactive KPI Cards Configuration with Effects ───
+  const kpiCards = useMemo(
+    () => [
+      {
+        key: 'ALL' as const,
+        label: 'Total',
+        icon: 'cube-outline' as const,
+        color: '#3b82f6',
+        activeBg: isDark ? 'rgba(59, 130, 246, 0.18)' : '#eff6ff',
+        activeBorder: '#3b82f6',
+        count: stats.total,
+      },
+      {
+        key: 'IN_STOCK' as const,
+        label: 'In Stock',
+        icon: 'checkmark-circle-outline' as const,
+        color: '#10b981',
+        activeBg: isDark ? 'rgba(16, 185, 129, 0.18)' : '#ecfdf5',
+        activeBorder: '#10b981',
+        count: stats.inStock,
+      },
+      {
+        key: 'LOW_STOCK' as const,
+        label: 'Low (≤5)',
+        icon: 'alert-circle-outline' as const,
+        color: '#f59e0b',
+        activeBg: isDark ? 'rgba(245, 158, 11, 0.18)' : '#fffbeb',
+        activeBorder: '#f59e0b',
+        count: stats.lowStock,
+      },
+      {
+        key: 'OUT' as const,
+        label: 'Out',
+        icon: 'close-circle-outline' as const,
+        color: '#f43f5e',
+        activeBg: isDark ? 'rgba(244, 63, 94, 0.18)' : '#fff1f2',
+        activeBorder: '#f43f5e',
+        count: stats.outOfStock,
+      },
+    ],
+    [isDark, stats]
+  );
+
+  // ─── Filtered & Sorted Products ───
   const displayedProducts = useMemo(() => {
     const safeProducts = Array.isArray(products) ? products : [];
-    if (!searchQuery.trim()) return safeProducts;
+    let baseList = safeProducts;
 
-    const matchedIds = searchTrie.searchPrefix(searchQuery);
-    if (!matchedIds) return safeProducts;
+    // Search filter
+    if (searchQuery.trim()) {
+      const matchedIds = searchTrie.searchPrefix(searchQuery);
+      if (matchedIds) {
+        const results: any[] = [];
+        matchedIds.forEach((id) => {
+          const p = productMap.get(id);
+          if (p) results.push(p);
+        });
+        baseList = results;
+      }
+    }
 
-    const results: any[] = [];
-    matchedIds.forEach((id) => {
-      const p = productMap.get(id);
-      if (p) results.push(p);
+    // Category filter
+    if (selectedCatId !== 'ALL') {
+      baseList = baseList.filter((p) => p?.category === selectedCatId);
+    }
+
+    // Stock state filter
+    baseList = baseList.filter((p) => {
+      if (!p) return false;
+      const qty = Number(p.stock_quantity ?? 0);
+      const inStock = Boolean(p.is_in_stock) && qty > 0;
+      if (stockFilter === 'IN_STOCK') return inStock;
+      if (stockFilter === 'LOW_STOCK') return inStock && qty <= 5;
+      if (stockFilter === 'OUT') return !inStock;
+      return true;
     });
 
-    return results;
-  }, [searchQuery, products, searchTrie, productMap]);
+    // Sorting
+    if (sortBy === 'NAME') {
+      baseList = [...baseList].sort((a, b) =>
+        String(a?.name || '').localeCompare(String(b?.name || ''))
+      );
+    } else if (sortBy === 'PRICE_ASC') {
+      baseList = [...baseList].sort(
+        (a, b) =>
+          parseFloat(a?.offer_price || a?.regular_price || 0) -
+          parseFloat(b?.offer_price || b?.regular_price || 0)
+      );
+    } else if (sortBy === 'PRICE_DESC') {
+      baseList = [...baseList].sort(
+        (a, b) =>
+          parseFloat(b?.offer_price || b?.regular_price || 0) -
+          parseFloat(a?.offer_price || a?.regular_price || 0)
+      );
+    } else if (sortBy === 'STOCK_LOW') {
+      baseList = [...baseList].sort(
+        (a, b) => Number(a?.stock_quantity ?? 0) - Number(b?.stock_quantity ?? 0)
+      );
+    }
+
+    return baseList;
+  }, [searchQuery, products, searchTrie, productMap, selectedCatId, stockFilter, sortBy]);
 
   const handleEdit = useCallback(
     (id: number) => {
@@ -178,191 +741,1208 @@ export default function ProductsListScreen() {
     [router]
   );
 
-  const renderItem = useCallback(
-    ({ item }: { item: any }) => <ProductItem item={item} onEdit={handleEdit} />,
-    [handleEdit]
-  );
-
-  const keyExtractor = useCallback(
-    (item: any, index: number) => (item?.id != null ? String(item.id) : `prod-${index}`),
-    []
-  );
-
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Products</Text>
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#64748b" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search inventory..."
-            placeholderTextColor="#64748b"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
+      <View style={styles.maxContainer}>
+        {/* 1 & 2. Top Header & The Four KPI Boxes (Visible at top, collapses on scroll) */}
+        {!isScrolled && (
+          <View style={styles.topSectionWrap}>
+            {/* Header with Title & Add Product Action */}
+            <View style={styles.topHeader}>
+              <TouchableOpacity
+                activeOpacity={0.75}
+                onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
+                style={styles.titleCol}
+              >
+                <View style={styles.titleRow}>
+                  <Text style={[styles.pageTitle, { color: colors.text }]}>Products</Text>
+                  <View
+                    style={[
+                      styles.countBadge,
+                      { backgroundColor: colors.cardAlt, borderColor: colors.border },
+                    ]}
+                  >
+                    <Text style={[styles.countBadgeText, { color: colors.textMuted }]}>
+                      {products.length} SKUs
+                    </Text>
+                  </View>
+                </View>
+                <Text style={[styles.pageSubtitle, { color: colors.textMuted }]}>
+                  Manage inventory, pricing & live stock
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.primaryAddBtn, { backgroundColor: '#10b981' }]}
+                onPress={() => router.push('/(tabs)/products/new')}
+                accessibilityLabel="Add New Product"
+              >
+                <Ionicons name="add" size={18} color="#ffffff" />
+                <Text style={styles.primaryAddBtnText}>Add Product</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Interactive KPI Stats Bar (Four Boxes with Dynamic Glow & Visual Effects) */}
+            <View style={styles.kpiRow}>
+              {kpiCards.map((card) => {
+                const active = stockFilter === card.key;
+                return (
+                  <TouchableOpacity
+                    key={card.key}
+                    activeOpacity={0.7}
+                    style={[
+                      styles.kpiCard,
+                      {
+                        backgroundColor: active ? card.activeBg : colors.card,
+                        borderColor: active ? card.activeBorder : colors.border,
+                        borderWidth: active ? 1.5 : 1,
+                      },
+                      active && [
+                        styles.kpiCardActive,
+                        {
+                          shadowColor: card.color,
+                          ...Platform.select({
+                            web: {
+                              boxShadow: `0 4px 14px ${card.color}35`,
+                            } as any,
+                          }),
+                        },
+                      ],
+                    ]}
+                    onPress={() =>
+                      setStockFilter(active && card.key !== 'ALL' ? 'ALL' : card.key)
+                    }
+                    accessibilityLabel={`${card.label} filter, ${card.count} items`}
+                  >
+                    <View style={styles.kpiTopRow}>
+                      <Ionicons
+                        name={card.icon}
+                        size={13}
+                        color={active ? card.color : colors.textMuted}
+                      />
+                      <Text
+                        style={[
+                          styles.kpiValue,
+                          {
+                            color: active
+                              ? card.color
+                              : card.key === 'ALL'
+                                ? colors.text
+                                : card.color,
+                          },
+                        ]}
+                      >
+                        {card.count}
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.kpiLabel,
+                        {
+                          color: active ? card.color : colors.textMuted,
+                          fontWeight: active ? '800' : '700',
+                        },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {card.label}
+                    </Text>
+                    {active && (
+                      <View
+                        style={[styles.kpiActiveDot, { backgroundColor: card.color }]}
+                      />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {/* ─── 3. Sticky Search Bar (Sticky Effect Applied Directly to Search Bar) ─── */}
+        <View
+          style={[
+            styles.stickySearchBarWrap,
+            {
+              backgroundColor: colors.bg,
+              borderBottomColor: isScrolled ? colors.border : 'transparent',
+            },
+            isScrolled && styles.stickySearchBarScrolled,
+            isScrolled && isDark && styles.stickySearchBarScrolledDark,
+            isScrolled && {
+              ...Platform.select({
+                web: {
+                  boxShadow: isDark
+                    ? '0 6px 20px rgba(0, 0, 0, 0.5)'
+                    : '0 4px 16px rgba(15, 23, 42, 0.08)',
+                } as any,
+              }),
+            },
+          ]}
+        >
+          <View style={styles.searchBarRow}>
+            <View
+              style={[
+                styles.searchBarPill,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
+              <Ionicons name="search-outline" size={17} color={colors.textMuted} />
+              <TextInput
+                style={[styles.searchInput, { color: colors.text }]}
+                placeholder="Search by name, SKU, brand, category..."
+                placeholderTextColor={colors.textMuted}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+              {searchQuery ? (
+                <TouchableOpacity
+                  onPress={() => setSearchQuery('')}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="close-circle" size={17} color={colors.textMuted} />
+                </TouchableOpacity>
+              ) : null}
+
+              <TouchableOpacity
+                style={styles.searchScanIconBtn}
+                onPress={() => setShowScanner(true)}
+                accessibilityLabel="Scan Barcode"
+              >
+                <Ionicons name="barcode-outline" size={20} color="#10b981" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Sort Selector Button */}
+            <TouchableOpacity
+              style={[
+                styles.sortBtn,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+              onPress={() => {
+                const modes: Array<'DEFAULT' | 'NAME' | 'PRICE_ASC' | 'PRICE_DESC' | 'STOCK_LOW'> = [
+                  'DEFAULT',
+                  'NAME',
+                  'PRICE_ASC',
+                  'PRICE_DESC',
+                  'STOCK_LOW',
+                ];
+                const nextIdx = (modes.indexOf(sortBy) + 1) % modes.length;
+                setSortBy(modes[nextIdx]);
+              }}
+            >
+              <Ionicons name="swap-vertical" size={16} color={colors.text} />
+              <Text style={[styles.sortBtnText, { color: colors.text }]}>
+                {sortBy === 'NAME'
+                  ? 'Name'
+                  : sortBy === 'PRICE_ASC'
+                    ? 'Price ↑'
+                    : sortBy === 'PRICE_DESC'
+                      ? 'Price ↓'
+                      : sortBy === 'STOCK_LOW'
+                        ? 'Stock ↑'
+                        : 'Sort'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Quick Add Button when scrolled so Add Product is always 1-tap accessible */}
+            {isScrolled && (
+              <TouchableOpacity
+                style={[styles.compactAddBtn, { backgroundColor: '#10b981' }]}
+                onPress={() => router.push('/(tabs)/products/new')}
+                accessibilityLabel="Add New Product"
+              >
+                <Ionicons name="add" size={18} color="#ffffff" />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Active Filter Chip (Visible when scrolled and filter is active) */}
+          {isScrolled && stockFilter !== 'ALL' && (
+            <View style={styles.activeFilterChipRow}>
+              <TouchableOpacity
+                style={[
+                  styles.activeFilterChip,
+                  {
+                    backgroundColor:
+                      stockFilter === 'IN_STOCK'
+                        ? isDark ? 'rgba(16, 185, 129, 0.2)' : '#ecfdf5'
+                        : stockFilter === 'LOW_STOCK'
+                          ? isDark ? 'rgba(245, 158, 11, 0.2)' : '#fffbeb'
+                          : isDark ? 'rgba(244, 63, 94, 0.2)' : '#fff1f2',
+                    borderColor:
+                      stockFilter === 'IN_STOCK'
+                        ? '#10b981'
+                        : stockFilter === 'LOW_STOCK'
+                          ? '#f59e0b'
+                          : '#f43f5e',
+                  },
+                ]}
+                onPress={() => setStockFilter('ALL')}
+              >
+                <Text
+                  style={[
+                    styles.activeFilterChipText,
+                    {
+                      color:
+                        stockFilter === 'IN_STOCK'
+                          ? '#10b981'
+                          : stockFilter === 'LOW_STOCK'
+                            ? '#f59e0b'
+                            : '#f43f5e',
+                    },
+                  ]}
+                >
+                  Filter: {stockFilter === 'IN_STOCK' ? 'In Stock' : stockFilter === 'LOW_STOCK' ? 'Low Stock' : 'Out of Stock'}
+                </Text>
+                <Ionicons
+                  name="close-circle"
+                  size={14}
+                  color={
+                    stockFilter === 'IN_STOCK'
+                      ? '#10b981'
+                      : stockFilter === 'LOW_STOCK'
+                        ? '#f59e0b'
+                        : '#f43f5e'
+                  }
+                />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
+
+        {/* 4. Horizontal Category Filter Pills (Disappears on Scroll as Requested!) */}
+        {!isScrolled && categories.length > 0 && (
+          <View style={styles.categoriesScrollWrap}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoriesScroll}
+            >
+              <TouchableOpacity
+                style={[
+                  styles.categoryPill,
+                  selectedCatId === 'ALL'
+                    ? { backgroundColor: isDark ? '#ffffff' : '#0f172a' }
+                    : { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
+                ]}
+                onPress={() => setSelectedCatId('ALL')}
+              >
+                <Text
+                  style={[
+                    styles.categoryPillText,
+                    {
+                      color:
+                        selectedCatId === 'ALL'
+                          ? isDark
+                            ? '#0f172a'
+                            : '#ffffff'
+                          : colors.textMuted,
+                      fontWeight: selectedCatId === 'ALL' ? '800' : '600',
+                    },
+                  ]}
+                >
+                  All Categories
+                </Text>
+              </TouchableOpacity>
+
+              {categories.map((cat) => {
+                const active = selectedCatId === cat.id;
+                return (
+                  <TouchableOpacity
+                    key={cat.id}
+                    style={[
+                      styles.categoryPill,
+                      active
+                        ? { backgroundColor: isDark ? '#ffffff' : '#0f172a' }
+                        : { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
+                    ]}
+                    onPress={() => setSelectedCatId(active ? 'ALL' : cat.id)}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryPillText,
+                        {
+                          color: active
+                            ? isDark
+                              ? '#0f172a'
+                              : '#ffffff'
+                            : colors.textMuted,
+                          fontWeight: active ? '800' : '600',
+                        },
+                      ]}
+                    >
+                      {cat.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Error Banner */}
+        {errorMsg ? (
+          <View style={styles.errorBannerWrap}>
+            <View style={styles.errorBanner}>
+              <Text style={styles.errorText}>{errorMsg}</Text>
+              <TouchableOpacity onPress={() => fetchProducts(true)}>
+                <Text style={styles.retryText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : null}
+
+        {/* 5. Products List */}
+        {loading && !refreshing ? (
+          <View style={styles.centered}>
+            <ActivityIndicator size="large" color="#10b981" />
+            <Text style={[styles.loadingText, { color: colors.textMuted }]}>
+              Loading inventory...
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            ref={listRef}
+            data={displayedProducts}
+            keyExtractor={(item, idx) =>
+              item?.id != null ? String(item.id) : `prod-${idx}`
+            }
+            renderItem={({ item }) => (
+              <ProductCard
+                item={item}
+                colors={colors}
+                isDark={isDark}
+                onEdit={handleEdit}
+                onQuickEdit={openQuickEdit}
+                onStockDelta={handleStockDelta}
+                onDelete={handleDelete}
+              />
+            )}
+            contentContainerStyle={styles.listContent}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor="#10b981"
+              />
+            }
+            initialNumToRender={10}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            ListEmptyComponent={
+              <View style={[styles.emptyBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <Ionicons name="search-outline" size={44} color={colors.textMuted} />
+                <Text style={[styles.emptyTitle, { color: colors.text }]}>No products found</Text>
+                <Text style={[styles.emptySub, { color: colors.textMuted }]}>
+                  {searchQuery
+                    ? `No matches for "${searchQuery}". Try a different keyword or scan.`
+                    : 'Your catalog is empty. Tap below to add your first product!'}
+                </Text>
+                <TouchableOpacity
+                  style={[styles.emptyAddBtn, { backgroundColor: '#10b981' }]}
+                  onPress={() => router.push('/(tabs)/products/new')}
+                >
+                  <Ionicons name="add-circle-outline" size={18} color="#ffffff" />
+                  <Text style={styles.emptyAddBtnText}>Add New Product</Text>
+                </TouchableOpacity>
+              </View>
+            }
+          />
+        )}
       </View>
 
-      {errorMsg ? (
-        <View style={styles.errorBanner}>
-          <Text style={styles.errorText}>{errorMsg}</Text>
-          <TouchableOpacity onPress={() => fetchProducts(true)}>
-            <Text style={styles.retryText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      ) : null}
+      {/* ─── 7. Quick Edit Price & Stock Modal ─── */}
+      <Modal
+        visible={Boolean(quickEditProduct)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setQuickEditProduct(null)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalBackdrop}
+        >
+          <View
+            style={[
+              styles.quickEditModalCard,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <View style={styles.modalHeaderRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>
+                  Quick Edit Product
+                </Text>
+                <Text
+                  style={[styles.modalSub, { color: colors.textMuted }]}
+                  numberOfLines={1}
+                >
+                  {quickEditProduct?.name}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setQuickEditProduct(null)}
+                style={[styles.modalCloseBtn, { backgroundColor: colors.cardAlt }]}
+              >
+                <Ionicons name="close" size={18} color={colors.text} />
+              </TouchableOpacity>
+            </View>
 
-      {loading && !refreshing ? (
-        <ActivityIndicator size="large" color="#10b981" style={{ marginTop: 40 }} />
-      ) : (
-        <FlatList
-          data={displayedProducts}
-          keyExtractor={keyExtractor}
-          renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#10b981" />}
-          initialNumToRender={8}
-          maxToRenderPerBatch={8}
-          windowSize={5}
-          removeClippedSubviews={false}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>
-              {searchQuery ? `No products found matching "${searchQuery}"` : 'No products found.'}
-            </Text>
-          }
+            {/* Inputs: Regular Price, Offer Price */}
+            <View style={styles.modalInputsRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.inputLabel, { color: colors.textMuted }]}>
+                  Regular Price (₹)
+                </Text>
+                <TextInput
+                  style={[
+                    styles.modalInput,
+                    {
+                      backgroundColor: colors.cardAlt,
+                      borderColor: colors.border,
+                      color: colors.text,
+                    },
+                  ]}
+                  keyboardType="numeric"
+                  value={qePrice}
+                  onChangeText={setQePrice}
+                />
+              </View>
+
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.inputLabel, { color: colors.textMuted }]}>
+                  Offer Price (₹)
+                </Text>
+                <TextInput
+                  style={[
+                    styles.modalInput,
+                    {
+                      backgroundColor: colors.cardAlt,
+                      borderColor: colors.border,
+                      color: colors.text,
+                    },
+                  ]}
+                  keyboardType="numeric"
+                  placeholder="Optional"
+                  placeholderTextColor={colors.textMuted}
+                  value={qeOfferPrice}
+                  onChangeText={setQeOfferPrice}
+                />
+              </View>
+            </View>
+
+            {/* Stock Quantity + Quick Add Chips */}
+            <View style={{ gap: 6 }}>
+              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>
+                Stock Quantity (Units)
+              </Text>
+              <TextInput
+                style={[
+                  styles.modalInput,
+                  {
+                    backgroundColor: colors.cardAlt,
+                    borderColor: colors.border,
+                    color: colors.text,
+                  },
+                ]}
+                keyboardType="numeric"
+                value={qeStock}
+                onChangeText={setQeStock}
+              />
+              <View style={styles.quickAddChipsRow}>
+                {[5, 10, 25, 50].map((addAmount) => (
+                  <TouchableOpacity
+                    key={addAmount}
+                    style={[
+                      styles.quickAddChip,
+                      { backgroundColor: colors.cardAlt, borderColor: colors.border },
+                    ]}
+                    onPress={() => {
+                      const cur = parseInt(qeStock, 10) || 0;
+                      setQeStock(String(cur + addAmount));
+                    }}
+                  >
+                    <Text style={[styles.quickAddChipText, { color: colors.text }]}>
+                      +{addAmount}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* In-Stock Switch */}
+            <View style={styles.modalSwitchRow}>
+              <View>
+                <Text style={[styles.switchTitle, { color: colors.text }]}>
+                  Available in Store
+                </Text>
+                <Text style={[styles.switchSub, { color: colors.textMuted }]}>
+                  Customers can see and order this item
+                </Text>
+              </View>
+              <Switch
+                value={qeInStock}
+                onValueChange={setQeInStock}
+                trackColor={{ false: colors.border, true: '#10b981' }}
+              />
+            </View>
+
+            {/* Modal Actions */}
+            <View style={styles.modalBtnsRow}>
+              <TouchableOpacity
+                style={[
+                  styles.modalCancelBtn,
+                  { backgroundColor: colors.cardAlt, borderColor: colors.border },
+                ]}
+                onPress={() => setQuickEditProduct(null)}
+              >
+                <Text style={[styles.modalCancelBtnText, { color: colors.text }]}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalSaveBtn, { backgroundColor: '#10b981' }]}
+                onPress={handleSaveQuickEdit}
+                disabled={savingQuickEdit}
+              >
+                {savingQuickEdit ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <>
+                    <Ionicons name="checkmark-circle" size={16} color="#ffffff" />
+                    <Text style={styles.modalSaveBtnText}>Save Changes</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* Direct Link to Full Product Editor */}
+            <TouchableOpacity
+              style={styles.modalFullEditLink}
+              onPress={() => {
+                const id = quickEditProduct?.id;
+                setQuickEditProduct(null);
+                if (id) {
+                  router.push({ pathname: '/(tabs)/products/new', params: { id: String(id) } });
+                }
+              }}
+            >
+              <Ionicons name="open-outline" size={14} color="#3b82f6" />
+              <Text style={styles.modalFullEditLinkText}>
+                Open full product editor (photos, description, SKU) →
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* ─── 8. Barcode Scanner Modal ─── */}
+      <Modal
+        visible={showScanner}
+        animationType="slide"
+        onRequestClose={() => setShowScanner(false)}
+      >
+        <UniversalCameraScanner
+          mode="all"
+          title="Product Barcode Scanner"
+          subtitle="Point at any product barcode to locate or update stock"
+          onScan={handleBarcodeScan}
+          onClose={() => setShowScanner(false)}
         />
-      )}
-
-      <TouchableOpacity style={styles.fab} onPress={() => router.push('/(tabs)/products/new')}>
-        <Ionicons name="add" size={32} color="#fff" />
-      </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
 
+// ─── Styles ───
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
   },
-  header: {
-    backgroundColor: '#1e293b',
-    padding: 16,
-    paddingTop: 48,
+  maxContainer: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 960,
+    alignSelf: 'center',
+  },
+  topSectionWrap: {
+    paddingHorizontal: 14,
+    paddingTop: 10,
+  },
+  stickySearchBarWrap: {
+    width: '100%',
+    zIndex: 100,
+    paddingHorizontal: 14,
+    paddingTop: 6,
+    paddingBottom: 6,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    ...Platform.select({
+      web: {
+        position: 'sticky' as any,
+        top: 0,
+      },
+    }),
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#f8fafc',
-    marginBottom: 12,
+  stickySearchBarScrolled: {
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 5,
+    paddingTop: 8,
+    paddingBottom: 8,
   },
-  searchContainer: {
+  stickySearchBarScrolledDark: {
+    shadowColor: '#000000',
+    shadowOpacity: 0.45,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  titleCol: {
+    justifyContent: 'center',
+  },
+  topHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    gap: 10,
+  },
+  titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
+    gap: 8,
+  },
+  pageTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: -0.4,
+  },
+  countBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
     borderRadius: 8,
-    paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+  },
+  countBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  pageSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  primaryAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  primaryAddBtnText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  kpiRow: {
+    flexDirection: 'row',
+    gap: 7,
+    marginBottom: 10,
+  },
+  kpiRowScrolled: {
+    marginBottom: 8,
+  },
+  kpiCard: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  kpiCardActive: {
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  kpiTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    justifyContent: 'center',
+  },
+  kpiValue: {
+    fontSize: 15.5,
+    fontWeight: '900',
+  },
+  kpiLabel: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  kpiActiveDot: {
+    position: 'absolute',
+    bottom: 2,
+    width: 14,
+    height: 2.5,
+    borderRadius: 2,
+  },
+  compactAddBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 0,
+  },
+  activeFilterChipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+    marginBottom: 2,
+  },
+  activeFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  activeFilterChipText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  searchBarPill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    height: 42,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 12,
   },
   searchInput: {
     flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    color: '#f8fafc',
-    fontSize: 16,
+    fontSize: 13,
+    height: '100%',
+  },
+  searchScanIconBtn: {
+    padding: 4,
+  },
+  sortBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    height: 42,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  sortBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  categoriesScrollWrap: {
+    paddingHorizontal: 14,
+    marginTop: 8,
+    marginBottom: 6,
+  },
+  categoriesScroll: {
+    gap: 7,
+  },
+  categoryPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+  },
+  categoryPillText: {
+    fontSize: 12,
+  },
+  errorBannerWrap: {
+    paddingHorizontal: 14,
+    marginTop: 6,
   },
   errorBanner: {
-    backgroundColor: '#450a0a',
-    margin: 16,
-    marginBottom: 0,
+    backgroundColor: '#fef2f2',
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#dc2626',
+    borderColor: '#fecaca',
+    marginBottom: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   errorText: {
-    color: '#fecaca',
+    color: '#b91c1c',
+    fontSize: 12,
     flex: 1,
-    fontSize: 13,
   },
   retryText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    marginLeft: 12,
+    color: '#b91c1c',
+    fontWeight: '800',
+    fontSize: 12,
+    marginLeft: 10,
   },
   listContent: {
-    padding: 16,
-    paddingBottom: 100,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    gap: 10,
+    paddingBottom: 90,
   },
-  card: {
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
+  productCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  cardMainRow: {
+    flexDirection: 'row',
     padding: 12,
-    marginBottom: 12,
+    gap: 12,
+  },
+  cardThumbBox: {
+    width: 64,
+    height: 64,
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  cardImg: {
+    width: '100%',
+    height: '100%',
+  },
+  discountBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: '#e11d48',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderBottomLeftRadius: 6,
+  },
+  discountBadgeText: {
+    color: '#ffffff',
+    fontSize: 9,
+    fontWeight: '900',
+  },
+  cardInfoBlock: {
+    flex: 1,
+    gap: 4,
+  },
+  titleRowWrap: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  productName: {
+    fontSize: 14.5,
+    fontWeight: '800',
+    lineHeight: 19,
+  },
+  tagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 5,
+  },
+  tagPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 5,
+    borderWidth: 1,
+  },
+  tagPillText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  cardPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginTop: 2,
+  },
+  offerPriceText: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#10b981',
+  },
+  strikeThroughPrice: {
+    fontSize: 12,
+    textDecorationLine: 'line-through',
+  },
+  stockStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginLeft: 'auto',
+  },
+  stockDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  stockStatusText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+  },
+  cardFooterBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderTopWidth: 1,
+    gap: 8,
+  },
+  stepperContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  stepperLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  stepperPill: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
-  },
-  image: {
-    width: 60,
-    height: 60,
     borderRadius: 8,
-    marginRight: 12,
+    overflow: 'hidden',
   },
-  cardInfo: {
-    flex: 1,
-  },
-  name: {
-    color: '#f8fafc',
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  price: {
-    color: '#f8fafc',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  unit: {
-    color: '#94a3b8',
-    fontSize: 13,
-    fontWeight: 'normal',
-  },
-  stock: {
-    fontSize: 12,
-    marginTop: 4,
-  },
-  editBtn: {
-    padding: 8,
-  },
-  emptyText: {
-    color: '#64748b',
-    textAlign: 'center',
-    marginTop: 40,
-    fontSize: 16,
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 24,
-    right: 24,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#10b981',
+  stepperBtn: {
+    width: 26,
+    height: 26,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#10b981',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+  },
+  stepperValText: {
+    fontSize: 12,
+    fontWeight: '800',
+    paddingHorizontal: 8,
+    minWidth: 26,
+    textAlign: 'center',
+  },
+  cardActionsRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  quickActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  quickActionText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  iconMiniBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  centered: {
+    flex: 1,
+    padding: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  loadingText: {
+    fontSize: 13,
+  },
+  emptyBox: {
+    padding: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 20,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    marginTop: 4,
+  },
+  emptySub: {
+    fontSize: 12,
+    textAlign: 'center',
+    maxWidth: 280,
+    lineHeight: 18,
+  },
+  emptyAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginTop: 6,
+  },
+  emptyAddBtnText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  quickEditModalCard: {
+    width: '100%',
+    maxWidth: 440,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 18,
+    gap: 14,
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  modalSub: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  modalCloseBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalInputsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  inputLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  modalInput: {
+    height: 40,
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  quickAddChipsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 2,
+  },
+  quickAddChip: {
+    flex: 1,
+    paddingVertical: 5,
+    borderRadius: 7,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  quickAddChipText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  modalSwitchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 4,
+  },
+  switchTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  switchSub: {
+    fontSize: 11,
+  },
+  modalBtnsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    paddingTop: 6,
+  },
+  modalCancelBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  modalCancelBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  modalSaveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  modalSaveBtnText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  modalFullEditLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    marginTop: -2,
+  },
+  modalFullEditLinkText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#3b82f6',
   },
 });
