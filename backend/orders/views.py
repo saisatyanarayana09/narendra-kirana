@@ -415,8 +415,8 @@ class OrderViewSet(ModelViewSet):
             except Exception as ws_err:
                 logger.debug("WS order creation broadcast error: %s", ws_err)
 
-        created_title = f"Order #{order.id} Placed Successfully! 🎉"
-        created_msg = f"Hi {request.user.first_name or 'there'}, thank you for your purchase! We've received your order and will start processing it shortly."
+        created_title = "Narendra Kirana"
+        created_msg = "Order placed successfully."
         transaction.on_commit(on_commit_tasks)
         
         return Response(OrderSerializer(order, context=self.get_serializer_context()).data, status=status.HTTP_201_CREATED)
@@ -445,8 +445,8 @@ class OrderViewSet(ModelViewSet):
             order.save(update_fields=['status', 'updated_at'])
 
             if next_status == Order.Status.ACCEPTED:
-                accept_title = f"Order #{order.id} Accepted! 🛍️"
-                accept_body = f"Your order #{order.id} has been accepted by Narendra Kirana and is being processed."
+                accept_title = "Narendra Kirana"
+                accept_body = "Your order has been accepted and is being processed."
                 Notification.objects.create(
                     user=order.customer,
                     title=accept_title,
@@ -460,8 +460,8 @@ class OrderViewSet(ModelViewSet):
                 )
 
             elif next_status == Order.Status.PREPARING:
-                prep_title = f"Order #{order.id} Being Packed! 📦"
-                prep_body = f"Your grocery items for order #{order.id} are being packed fresh and carefully."
+                prep_title = "Narendra Kirana"
+                prep_body = "Your grocery items are currently being packed fresh and carefully."
                 Notification.objects.create(
                     user=order.customer,
                     title=prep_title,
@@ -475,11 +475,11 @@ class OrderViewSet(ModelViewSet):
                 )
 
             elif next_status == Order.Status.READY:
-                ready_title = f"Order #{order.id} Ready! 🛍️"
+                ready_title = "Narendra Kirana"
                 if order.order_type == 'DELIVERY':
-                    ready_body = f"Your order #{order.id} is packed and waiting for delivery partner pickup."
+                    ready_body = "Your order is packed and waiting for delivery pickup."
                 else:
-                    ready_body = f"Your order #{order.id} is ready for pickup at Narendra Kirana Store!"
+                    ready_body = "Your order is ready for pickup at Narendra Kirana Store!"
                 Notification.objects.create(
                     user=order.customer,
                     title=ready_title,
@@ -495,7 +495,7 @@ class OrderViewSet(ModelViewSet):
             elif next_status == Order.Status.OUT_FOR_DELIVERY:
                 order.dispatched_at = timezone.now()
                 order.save(update_fields=['dispatched_at', 'updated_at'])
-                out_title = f"Order #{order.id} is Out for Delivery! 🛵"
+                out_title = "Narendra Kirana"
                 out_body = f"Your order is on the way! Your delivery verification OTP is {order.delivery_otp}."
                 Notification.objects.create(
                     user=order.customer,
@@ -519,8 +519,8 @@ class OrderViewSet(ModelViewSet):
                     except Exception:
                         pass
 
-                comp_title = f"Order #{order.id} Delivered! 🎉"
-                comp_body = f"Hi {order.customer.first_name or 'there'}, your order has been successfully delivered/picked up. Thank you for shopping with us!"
+                comp_title = "Narendra Kirana"
+                comp_body = "Your order has been successfully delivered/picked up. Thank you for shopping with us!"
                 Notification.objects.create(
                     user=order.customer,
                     title=comp_title,
@@ -605,8 +605,8 @@ class OrderViewSet(ModelViewSet):
                         description=f"Refund for cancelled order #{order.id}"
                     )
                         
-                rej_title = f"Order #{order.id} Cancelled"
-                rej_body = f"Hi {order.customer.first_name or 'there'}, unfortunately we had to cancel your order. Please contact the store for more details."
+                rej_title = "Narendra Kirana"
+                rej_body = "Unfortunately, we had to cancel your order. Please contact the store for more details."
                 Notification.objects.create(
                     user=order.customer,
                     title=rej_title,
@@ -681,8 +681,8 @@ class OrderViewSet(ModelViewSet):
             )
 
             # Notify customer that delivery partner is assigned
-            cust_title = f"Delivery Partner Assigned! 🛵"
-            cust_msg = f"{partner.get_full_name() or partner.username} has been assigned to deliver your order #{order.id}."
+            cust_title = "Narendra Kirana"
+            cust_msg = f"{partner.get_full_name() or partner.username} has been assigned to deliver your order."
             Notification.objects.create(
                 user=order.customer,
                 title=cust_title,
