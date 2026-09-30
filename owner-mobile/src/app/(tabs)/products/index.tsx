@@ -84,6 +84,10 @@ interface ProductCardProps {
   onQuickEdit: (item: any) => void;
   onStockDelta: (item: any, delta: number) => void;
   onDelete: (id: number, name: string) => void;
+  reorderMode?: boolean;
+  index?: number;
+  totalCount?: number;
+  onMoveProduct?: (index: number, direction: -1 | 1) => void;
 }
 
 const ProductCard = memo(
@@ -95,6 +99,10 @@ const ProductCard = memo(
     onQuickEdit,
     onStockDelta,
     onDelete,
+    reorderMode,
+    index,
+    totalCount,
+    onMoveProduct,
   }: ProductCardProps) => {
     const qty = Number(item?.stock_quantity ?? 0);
     const inStock = Boolean(item?.is_in_stock) && qty > 0;
@@ -366,6 +374,87 @@ const ProductCard = memo(
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Reorder Controls Strip (Active when catalog reordering is toggled) */}
+        {reorderMode && onMoveProduct !== undefined && typeof index === 'number' && (
+          <View
+            style={[
+              styles.reorderStrip,
+              {
+                borderTopColor: colors.border,
+                backgroundColor: isDark ? 'rgba(16, 185, 129, 0.08)' : '#f0fdf4',
+              },
+            ]}
+          >
+            <View style={styles.reorderRankBox}>
+              <Ionicons name="reorder-two-outline" size={18} color="#10b981" />
+              <Text style={[styles.reorderRankText, { color: colors.text }]}>
+                Order #{index + 1}
+              </Text>
+            </View>
+
+            <View style={styles.reorderBtnsRow}>
+              <TouchableOpacity
+                style={[
+                  styles.reorderArrowBtn,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                    opacity: index === 0 ? 0.35 : 1,
+                  },
+                ]}
+                onPress={() => onMoveProduct(index, -1)}
+                disabled={index === 0}
+                accessibilityLabel="Move Product Up"
+              >
+                <Ionicons
+                  name="arrow-up"
+                  size={14}
+                  color={index === 0 ? colors.textMuted : '#10b981'}
+                />
+                <Text
+                  style={[
+                    styles.reorderBtnLabel,
+                    { color: index === 0 ? colors.textMuted : '#10b981' },
+                  ]}
+                >
+                  Up
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.reorderArrowBtn,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                    opacity: index === (totalCount ?? 0) - 1 ? 0.35 : 1,
+                  },
+                ]}
+                onPress={() => onMoveProduct(index, 1)}
+                disabled={index === (totalCount ?? 0) - 1}
+                accessibilityLabel="Move Product Down"
+              >
+                <Ionicons
+                  name="arrow-down"
+                  size={14}
+                  color={index === (totalCount ?? 0) - 1 ? colors.textMuted : '#10b981'}
+                />
+                <Text
+                  style={[
+                    styles.reorderBtnLabel,
+                    {
+                      color:
+                        index === (totalCount ?? 0) - 1 ? colors.textMuted : '#10b981',
+                    },
+                  ]}
+                >
+                  Down
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </View>
     );
   }
@@ -383,6 +472,7 @@ export default function ProductsListScreen() {
   const [stockFilter, setStockFilter] = useState<'ALL' | 'IN_STOCK' | 'LOW_STOCK' | 'OUT'>('ALL');
   const [selectedCatId, setSelectedCatId] = useState<number | 'ALL'>('ALL');
   const [sortBy, setSortBy] = useState<'DEFAULT' | 'NAME' | 'PRICE_ASC' | 'PRICE_DESC' | 'STOCK_LOW'>('DEFAULT');
+  const [reorderMode, setReorderMode] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -517,6 +607,45 @@ export default function ProductsListScreen() {
     },
     []
   );
+
+  // ─── Catalog Products Reorder Handler ───
+  const moveProduct = useCallback(
+    async (index: number, direction: -1 | 1) => {
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= products.length) return;
+
+      const updated = [...products];
+      const [moved] = updated.splice(index, 1);
+      updated.splice(targetIndex, 0, moved);
+      setProducts(updated);
+
+      try {
+        const updates = updated.map((item, idx) => ({ id: item.id, display_order: idx }));
+        await api.post('/products/reorder/', updates);
+        (api as ApiInstance).clearCache();
+      } catch (err: any) {
+        fetchProducts(true);
+        showAlert('Error', getErrorMessage(err, 'Failed to save product order.'));
+      }
+    },
+    [products, fetchProducts]
+  );
+
+  const toggleReorderMode = useCallback(() => {
+    if (!reorderMode) {
+      if (searchQuery || selectedCatId !== 'ALL' || stockFilter !== 'ALL' || sortBy !== 'DEFAULT') {
+        setSearchQuery('');
+        setSelectedCatId('ALL');
+        setStockFilter('ALL');
+        setSortBy('DEFAULT');
+        showAlert(
+          'Reorder Mode',
+          'Catalog filters cleared to show master display order. Use Up/Down arrows to position products.'
+        );
+      }
+    }
+    setReorderMode((prev) => !prev);
+  }, [reorderMode, searchQuery, selectedCatId, stockFilter, sortBy]);
 
   // ─── Quick Edit Modal Handlers ───
   const openQuickEdit = (item: any) => {
@@ -677,6 +806,9 @@ export default function ProductsListScreen() {
   // ─── Filtered & Sorted Products ───
   const displayedProducts = useMemo(() => {
     const safeProducts = Array.isArray(products) ? products : [];
+    if (reorderMode) {
+      return safeProducts;
+    }
     let baseList = safeProducts;
 
     // Search filter
@@ -945,6 +1077,33 @@ export default function ProductsListScreen() {
               </Text>
             </TouchableOpacity>
 
+            {/* Reorder Catalog Button */}
+            <TouchableOpacity
+              style={[
+                styles.reorderToggleBtn,
+                {
+                  backgroundColor: reorderMode ? '#10b981' : colors.card,
+                  borderColor: reorderMode ? '#10b981' : colors.border,
+                },
+              ]}
+              onPress={toggleReorderMode}
+              accessibilityLabel="Toggle Reorder Mode"
+            >
+              <Ionicons
+                name={reorderMode ? 'checkmark-done' : 'reorder-three-outline'}
+                size={16}
+                color={reorderMode ? '#ffffff' : colors.text}
+              />
+              <Text
+                style={[
+                  styles.reorderToggleBtnText,
+                  { color: reorderMode ? '#ffffff' : colors.text },
+                ]}
+              >
+                {reorderMode ? 'Done' : 'Reorder'}
+              </Text>
+            </TouchableOpacity>
+
             {/* Quick Add Button when scrolled so Add Product is always 1-tap accessible */}
             {isScrolled && (
               <TouchableOpacity
@@ -1094,6 +1253,28 @@ export default function ProductsListScreen() {
         ) : null}
 
         {/* 5. Products List */}
+        {reorderMode && (
+          <View
+            style={[
+              styles.reorderActiveBanner,
+              {
+                backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ecfdf5',
+                borderColor: '#10b981',
+              },
+            ]}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+              <Ionicons name="swap-vertical" size={18} color="#10b981" />
+              <Text style={{ fontSize: 13, color: isDark ? '#a7f3d0' : '#065f46', fontWeight: '600', flex: 1 }}>
+                Catalog Reordering: Tap Up or Down to rearrange products.
+              </Text>
+            </View>
+            <TouchableOpacity onPress={toggleReorderMode} style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
+              <Text style={{ color: '#10b981', fontWeight: '700', fontSize: 13 }}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {loading && !refreshing ? (
           <View style={styles.centered}>
             <ActivityIndicator size="large" color="#10b981" />
@@ -1108,7 +1289,7 @@ export default function ProductsListScreen() {
             keyExtractor={(item, idx) =>
               item?.id != null ? String(item.id) : `prod-${idx}`
             }
-            renderItem={({ item }) => (
+            renderItem={({ item, index }) => (
               <ProductCard
                 item={item}
                 colors={colors}
@@ -1117,6 +1298,10 @@ export default function ProductsListScreen() {
                 onQuickEdit={openQuickEdit}
                 onStockDelta={handleStockDelta}
                 onDelete={handleDelete}
+                reorderMode={reorderMode}
+                index={index}
+                totalCount={displayedProducts.length}
+                onMoveProduct={moveProduct}
               />
             )}
             contentContainerStyle={styles.listContent}
@@ -1944,5 +2129,64 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     fontWeight: '700',
     color: '#3b82f6',
+  },
+  reorderStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+  },
+  reorderRankBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  reorderRankText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  reorderBtnsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  reorderArrowBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  reorderBtnLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  reorderToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  reorderToggleBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  reorderActiveBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderWidth: 1,
   },
 });

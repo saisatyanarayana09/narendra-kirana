@@ -41,6 +41,7 @@ export default function MapScreen() {
   const [storeLat, setStoreLat] = useState('17.385044');
   const [storeLng, setStoreLng] = useState('78.486671');
   const [enforceRadius, setEnforceRadius] = useState(false);
+  const [addressPreview, setAddressPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -76,6 +77,54 @@ export default function MapScreen() {
       isMounted = false;
     };
   }, []);
+
+  // Live Reverse Geocode lookup for human-readable store address preview
+  useEffect(() => {
+    const lat = parseFloat(storeLat);
+    const lng = parseFloat(storeLng);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      const timer = setTimeout(async () => {
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+            {
+              headers: {
+                'User-Agent': 'NarendraKiranaOwnerMobile/1.0',
+                'Accept-Language': 'en',
+              },
+            }
+          );
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.display_name) {
+              setAddressPreview(data.display_name.split(',').slice(0, 3).join(', '));
+            }
+          }
+        } catch {
+          // Non-blocking preview fallback
+        }
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [storeLat, storeLng]);
+
+  const handleUseCurrentLocation = () => {
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setStoreLat(pos.coords.latitude.toFixed(6));
+          setStoreLng(pos.coords.longitude.toFixed(6));
+          showAlert('GPS Located', 'Store location updated to your current device GPS position.');
+        },
+        () => {
+          showAlert('Location Notice', 'Could not detect device GPS. You can drag the pin on the map or enter coordinates.');
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    } else {
+      showAlert('Notice', 'Drag the marker on the map to set your store location.');
+    }
+  };
 
   const handleSave = async () => {
     const numLat = parseFloat(storeLat);
@@ -135,8 +184,29 @@ export default function MapScreen() {
               latitudeDelta: 0.12,
               longitudeDelta: 0.12,
             }}
+            onPress={(e: any) => {
+              const coord = e?.nativeEvent?.coordinate;
+              if (coord?.latitude && coord?.longitude) {
+                setStoreLat(coord.latitude.toFixed(6));
+                setStoreLng(coord.longitude.toFixed(6));
+              }
+            }}
           >
-            {Marker ? <Marker coordinate={storeLocation} title="Narendra Kirana" /> : null}
+            {Marker ? (
+              <Marker
+                coordinate={storeLocation}
+                title="Narendra Kirana Store Hub"
+                description="Drag pin or tap map to update position"
+                draggable
+                onDragEnd={(e: any) => {
+                  const coord = e?.nativeEvent?.coordinate;
+                  if (coord?.latitude && coord?.longitude) {
+                    setStoreLat(coord.latitude.toFixed(6));
+                    setStoreLng(coord.longitude.toFixed(6));
+                  }
+                }}
+              />
+            ) : null}
             {Circle ? (
               <Circle
                 center={storeLocation}
@@ -147,6 +217,14 @@ export default function MapScreen() {
               />
             ) : null}
           </MapView>
+
+          {/* Floating Helper Hint Banner */}
+          <View style={styles.mapOverlayHint}>
+            <Ionicons name="hand-left-outline" size={13} color="#10b981" />
+            <Text style={styles.mapOverlayHintText}>
+              Drag pin or tap map to position store hub
+            </Text>
+          </View>
         </View>
       ) : (
         <View
@@ -204,6 +282,28 @@ export default function MapScreen() {
             />
           </View>
         </View>
+
+        {/* Detected Address Preview Chip */}
+        {addressPreview ? (
+          <View style={[styles.addressBadge, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
+            <Ionicons name="business-outline" size={14} color="#10b981" />
+            <Text style={[styles.addressBadgeText, { color: colors.textMuted }]} numberOfLines={2}>
+              {addressPreview}
+            </Text>
+          </View>
+        ) : null}
+
+        {/* GPS Quick Pin Action Button */}
+        <TouchableOpacity
+          style={[styles.gpsActionBtn, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}
+          onPress={handleUseCurrentLocation}
+          accessibilityLabel="Use Current GPS Device Location"
+        >
+          <Ionicons name="navigate-outline" size={16} color="#10b981" />
+          <Text style={[styles.gpsActionBtnText, { color: colors.text }]}>
+            Use Current Device GPS Location
+          </Text>
+        </TouchableOpacity>
 
         {/* Delivery Radius Presets */}
         <Text style={[styles.label, { color: colors.textMuted, marginTop: 12 }]}>
@@ -438,5 +538,53 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  mapOverlayHint: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    right: 10,
+    backgroundColor: 'rgba(15, 23, 42, 0.78)',
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  mapOverlayHintText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '600',
+    flex: 1,
+  },
+  addressBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginTop: 10,
+  },
+  addressBadgeText: {
+    fontSize: 12,
+    flex: 1,
+    lineHeight: 16,
+  },
+  gpsActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginTop: 10,
+  },
+  gpsActionBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

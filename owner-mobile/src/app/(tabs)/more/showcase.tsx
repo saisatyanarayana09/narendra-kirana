@@ -356,6 +356,30 @@ export default function ShowcaseScreen() {
     }
   };
 
+  const handleMoveProductInSection = async (sec: any, pIdx: number, direction: -1 | 1) => {
+    const target = pIdx + direction;
+    if (target < 0 || target >= (sec.items?.length || 0)) return;
+
+    const items = [...(sec.items || [])];
+    const [moved] = items.splice(pIdx, 1);
+    items.splice(target, 0, moved);
+
+    const updatedSections = sections.map((s) =>
+      s.id === sec.id ? { ...s, items } : s
+    );
+    setSections(updatedSections);
+
+    try {
+      await api.patch(`/store/homepage-sections/${sec.id}/`, {
+        product_ids: items.map((p: any) => p.id),
+      });
+      (api as ApiInstance).clearCache();
+    } catch {
+      fetchData();
+      showAlert('Error', 'Failed to update product order in aisle.');
+    }
+  };
+
   const filteredCatalog = allProducts.filter((p) => {
     if (!productSearch.trim()) return true;
     const term = productSearch.toLowerCase();
@@ -679,6 +703,29 @@ export default function ShowcaseScreen() {
                                 <Text style={[styles.prodPrice, { color: '#10b981' }]}>
                                   ₹{item.offer_price || item.regular_price}
                                 </Text>
+
+                                {/* Position & Horizontal Shift Reorder Controls */}
+                                <View style={styles.prodShiftRow}>
+                                  <TouchableOpacity
+                                    style={[styles.prodShiftBtn, { opacity: pIdx === 0 ? 0.25 : 1 }]}
+                                    onPress={() => handleMoveProductInSection(sec, pIdx, -1)}
+                                    disabled={pIdx === 0}
+                                    accessibilityLabel="Move Left"
+                                  >
+                                    <Ionicons name="chevron-back" size={13} color={colors.text} />
+                                  </TouchableOpacity>
+                                  <Text style={[styles.posBadgeTextSmall, { color: colors.textMuted }]}>
+                                    #{pIdx + 1}
+                                  </Text>
+                                  <TouchableOpacity
+                                    style={[styles.prodShiftBtn, { opacity: pIdx === sec.items.length - 1 ? 0.25 : 1 }]}
+                                    onPress={() => handleMoveProductInSection(sec, pIdx, 1)}
+                                    disabled={pIdx === sec.items.length - 1}
+                                    accessibilityLabel="Move Right"
+                                  >
+                                    <Ionicons name="chevron-forward" size={13} color={colors.text} />
+                                  </TouchableOpacity>
+                                </View>
 
                                 <TouchableOpacity
                                   style={styles.removeProdBtn}
@@ -1301,6 +1348,22 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 4,
     right: 4,
+  },
+  prodShiftRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 6,
+    paddingHorizontal: 2,
+  },
+  prodShiftBtn: {
+    padding: 3,
+    borderRadius: 4,
+  },
+  posBadgeTextSmall: {
+    fontSize: 10,
+    fontWeight: '700',
   },
   modalOverlay: {
     flex: 1,
