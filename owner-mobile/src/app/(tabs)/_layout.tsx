@@ -272,6 +272,8 @@ export default function TabLayout() {
     currentSection.matchKey
   );
   const isHubTab = isHubOpen || isMoreSection;
+  const isSubScreen =
+    !isDesktop && isMoreSection && pathname !== '/(tabs)/more' && pathname !== '/more';
 
   const handleToggleStore = async () => {
     const nextState = !storeOpen;
@@ -362,49 +364,51 @@ export default function TabLayout() {
 
       {/* Main Content Column */}
       <View style={styles.mainCol}>
-        {/* Single Streamlined Top Header Bar */}
-        <View
-          style={[
-            styles.topHeader,
-            {
-              backgroundColor: colors.headerBg,
-              borderBottomColor: colors.border,
-              paddingTop: insets.top,
-            },
-          ]}
-        >
-          <View style={styles.headerLeft}>
-            {isDesktop ? (
-              <View style={styles.breadcrumbRow}>
-                <Text style={[styles.breadcrumbPortal, { color: colors.textMuted }]}>
-                  OWNER PORTAL
-                </Text>
-                <Text style={{ color: colors.border, marginHorizontal: 6 }}>/</Text>
-                <Ionicons name={currentSection.icon} size={16} color="#10b981" />
-                <Text style={[styles.breadcrumbSection, { color: colors.text }]}>
-                  {currentSection.name}
-                </Text>
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={styles.mobileBrandWrap}
-                onPress={() => navigateTo('/(tabs)')}
-              >
-                <View style={styles.mobileLogoDot}>
-                  <Image
-                    source={require('../../../assets/images/narendra-logo.png')}
-                    style={styles.mobileLogoImg}
-                    contentFit="contain"
-                  />
+        {/* Single Streamlined Top Header Bar (Desktop breadcrumb OR Mobile main tabs only) */}
+        {!isSubScreen && (
+          <View
+            style={[
+              styles.topHeader,
+              {
+                backgroundColor: colors.headerBg,
+                borderBottomColor: colors.border,
+                paddingTop: insets.top,
+              },
+            ]}
+          >
+            <View style={styles.headerLeft}>
+              {isDesktop ? (
+                <View style={styles.breadcrumbRow}>
+                  <Text style={[styles.breadcrumbPortal, { color: colors.textMuted }]}>
+                    OWNER PORTAL
+                  </Text>
+                  <Text style={{ color: colors.border, marginHorizontal: 6 }}>/</Text>
+                  <Ionicons name={currentSection.icon} size={16} color="#10b981" />
+                  <Text style={[styles.breadcrumbSection, { color: colors.text }]}>
+                    {currentSection.name}
+                  </Text>
                 </View>
-                <Text style={styles.mobileBrandTitle}>
-                  <Text style={{ color: colors.text }}>Narendra </Text>
-                  <Text style={{ color: '#10b981' }}>Kirana</Text>
-                </Text>
-              </TouchableOpacity>
-            )}
+              ) : (
+                <TouchableOpacity
+                  style={styles.mobileBrandWrap}
+                  onPress={() => navigateTo('/(tabs)')}
+                >
+                  <View style={styles.mobileLogoDot}>
+                    <Image
+                      source={require('../../../assets/images/narendra-logo.png')}
+                      style={styles.mobileLogoImg}
+                      contentFit="contain"
+                    />
+                  </View>
+                  <Text style={styles.mobileBrandTitle}>
+                    <Text style={{ color: colors.text }}>Narendra </Text>
+                    <Text style={{ color: '#10b981' }}>Kirana</Text>
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
-        </View>
+        )}
 
         {/* Main Screen Outlet via Expo Router Tabs */}
         <View style={styles.contentArea}>

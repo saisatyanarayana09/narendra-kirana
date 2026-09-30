@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import api, { ApiInstance, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert } from '../../../utils/alerts';
+import ScreenHeader from '../../../components/ScreenHeader';
 
 const InvoiceRow = memo(
   ({
@@ -134,6 +135,11 @@ export default function InvoicesScreen() {
     fetchInvoices(true);
   }, [fetchInvoices]);
 
+  const totalRevenue = useMemo(() => {
+    const safeOrders = Array.isArray(orders) ? orders : [];
+    return safeOrders.reduce((sum: number, o: any) => sum + (parseFloat(o?.total_amount) || 0), 0);
+  }, [orders]);
+
   const filteredOrders = useMemo(() => {
     const safeOrders = Array.isArray(orders) ? orders : [];
     const q = searchTerm.trim().toLowerCase();
@@ -218,6 +224,12 @@ export default function InvoicesScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
+      {/* Universal Screen Header */}
+      <ScreenHeader
+        title="Tax Invoices & Billing"
+        subtitle={`${filteredOrders.length} invoices • ₹${totalRevenue.toFixed(0)} billed`}
+      />
+
       {/* Top Filter and Search Header */}
       <View style={[styles.filterHeader, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <View style={[styles.searchRow, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>

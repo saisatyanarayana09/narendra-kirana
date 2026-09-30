@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import api, { getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert, showConfirm } from '../../../utils/alerts';
+import ScreenHeader from '../../../components/ScreenHeader';
 
 export default function FeedbackScreen() {
   const { colors, isDark } = useAppTheme();
@@ -19,6 +20,10 @@ export default function FeedbackScreen() {
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const avgRating = feedbacks.length
+    ? feedbacks.reduce((acc, f) => acc + (Number(f?.rating) || 0), 0) / feedbacks.length
+    : 5.0;
 
   const fetchFeedbacks = useCallback(async () => {
     try {
@@ -58,6 +63,12 @@ export default function FeedbackScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
+      {/* Universal Screen Header */}
+      <ScreenHeader
+        title="Customer Reviews"
+        subtitle={`${feedbacks.length} reviews • ${avgRating.toFixed(1)}★ average`}
+      />
+
       {loading && !refreshing ? (
         <ActivityIndicator size="large" color="#10b981" style={{ marginTop: 40 }} />
       ) : (

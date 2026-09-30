@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import api, { getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert } from '../../../utils/alerts';
+import ScreenHeader from '../../../components/ScreenHeader';
 
 type BroadcastCategory = 'PROMO' | 'ORDER' | 'WALLET' | 'SYSTEM';
 
@@ -66,10 +67,32 @@ export default function BroadcastScreen() {
   const activeCategory = CATEGORIES.find((c) => c.id === category) || CATEGORIES[0];
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.bg }]}
-      contentContainerStyle={styles.content}
-    >
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
+      {/* Universal Screen Header */}
+      <ScreenHeader
+        title="Push Broadcast"
+        subtitle="Campaign alerts & notifications"
+        rightAction={
+          <TouchableOpacity
+            style={[styles.headerSendBtn, { backgroundColor: '#0d9488', opacity: sending ? 0.7 : 1 }]}
+            onPress={handleSend}
+            disabled={sending}
+          >
+            {sending ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <>
+                <Ionicons name="paper-plane" size={14} color="#fff" />
+                <Text style={styles.headerSendBtnText}>Send</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        }
+      />
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.bg }]}
+        contentContainerStyle={styles.content}
+      >
       <Text style={[styles.headerSub, { color: colors.textMuted }]}>
         Dispatch high-conversion push alerts with images, offers, and deep links directly to customer phones.
       </Text>
@@ -209,12 +232,26 @@ export default function BroadcastScreen() {
         </TouchableOpacity>
       </View>
     </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  headerSendBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  headerSendBtnText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
   },
   content: {
     padding: 16,

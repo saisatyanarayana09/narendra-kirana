@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import api, { ApiInstance, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert } from '../../../utils/alerts';
+import ScreenHeader from '../../../components/ScreenHeader';
 
 // Safely import maps on native only to prevent NativeModuleError on Web/unsupported environments
 let MapView: any = null;
@@ -170,10 +171,32 @@ export default function MapScreen() {
   const storeLocation = { latitude: numLat, longitude: numLng };
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.bg }]}
-      contentContainerStyle={styles.content}
-    >
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
+      {/* Universal Screen Header */}
+      <ScreenHeader
+        title="Live GPS & Radar"
+        subtitle={`${radiusKm} km delivery geofence radius`}
+        rightAction={
+          <TouchableOpacity
+            style={[styles.headerSaveBtn, { backgroundColor: '#10b981', opacity: saving ? 0.7 : 1 }]}
+            onPress={handleSave}
+            disabled={saving}
+          >
+            {saving ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <>
+                <Ionicons name="checkmark" size={16} color="#fff" />
+                <Text style={styles.headerSaveBtnText}>Save</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        }
+      />
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.bg }]}
+        contentContainerStyle={styles.content}
+      >
       {/* Map or Web Zone Display */}
       {Platform.OS !== 'web' && MapView ? (
         <View style={styles.mapContainer}>
@@ -389,12 +412,26 @@ export default function MapScreen() {
         </TouchableOpacity>
       </View>
     </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  headerSaveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  headerSaveBtnText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
   },
   centered: {
     alignItems: 'center',

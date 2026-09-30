@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,14 @@ import { OWNER_NAVIGATION } from '../_layout';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../../services/api';
+import ScreenHeader from '../../../components/ScreenHeader';
+import ModernSwitch from '../../../components/ModernSwitch';
+
+interface SectionGroup {
+  groupTitle: string;
+  groupDesc: string;
+  items: typeof OWNER_NAVIGATION;
+}
 
 export default function MoreScreen() {
   const { token, logout } = useAuth();
@@ -53,162 +61,218 @@ export default function MoreScreen() {
     }
   };
 
-  return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.bg }]}
-      contentContainerStyle={styles.content}
-    >
-      <View style={styles.maxContainer}>
-        <View style={styles.header}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
-            Store Sections Hub
-          </Text>
-          <Text style={[styles.headerSub, { color: colors.textMuted }]}>
-            Quickly access and jump to any store management section
-          </Text>
-        </View>
+  const navMap = useMemo(() => {
+    const map = new Map<string, (typeof OWNER_NAVIGATION)[0]>();
+    OWNER_NAVIGATION.forEach((item) => {
+      map.set(item.route, item);
+    });
+    return map;
+  }, []);
 
-        {/* Quick Controls Bar: Store Live & Theme Switcher */}
-        <View
-          style={[
-            styles.controlsRow,
-            {
-              backgroundColor: colors.card,
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          {/* Store Live / Closed Button */}
-          {storeLoaded && (
+  const groups: SectionGroup[] = useMemo(() => {
+    const getItem = (route: string) => navMap.get(route);
+
+    return [
+      {
+        groupTitle: 'Daily Operations & Fleet',
+        groupDesc: 'Order processing, driver dispatch & billing',
+        items: [
+          getItem('/(tabs)/orders'),
+          getItem('/(tabs)/more/delivery'),
+          getItem('/(tabs)/more/invoices'),
+          getItem('/(tabs)/more/map'),
+        ].filter(Boolean) as typeof OWNER_NAVIGATION,
+      },
+      {
+        groupTitle: 'Catalog & Visual Storefront',
+        groupDesc: 'Products, inventory stock & promotional aisles',
+        items: [
+          getItem('/(tabs)/products'),
+          getItem('/(tabs)/more/categories'),
+          getItem('/(tabs)/more/showcase'),
+        ].filter(Boolean) as typeof OWNER_NAVIGATION,
+      },
+      {
+        groupTitle: 'Marketing & Customer Growth',
+        groupDesc: 'Coupons, push notifications, referrals & reviews',
+        items: [
+          getItem('/(tabs)/more/offers'),
+          getItem('/(tabs)/more/broadcast'),
+          getItem('/(tabs)/more/referrals'),
+          getItem('/(tabs)/more/customers'),
+          getItem('/(tabs)/more/feedback'),
+        ].filter(Boolean) as typeof OWNER_NAVIGATION,
+      },
+      {
+        groupTitle: 'Business Intelligence & Store Admin',
+        groupDesc: 'Revenue analytics, store timings, UPI & system backup',
+        items: [
+          getItem('/(tabs)/more/reports'),
+          getItem('/(tabs)/more/settings'),
+          getItem('/(tabs)/more/advanced-settings'),
+          getItem('/(tabs)/more/scanner'),
+        ].filter(Boolean) as typeof OWNER_NAVIGATION,
+      },
+    ];
+  }, [navMap]);
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
+      {/* Universal Screen Header */}
+      <ScreenHeader
+        title="Store Sections Hub"
+        subtitle="All 16 management tools"
+        showBack={false}
+        rightAction={
+          storeLoaded ? (
             <TouchableOpacity
+              style={[
+                styles.storeStatusPill,
+                {
+                  backgroundColor: storeOpen
+                    ? isDark
+                      ? 'rgba(16, 185, 129, 0.2)'
+                      : '#ecfdf5'
+                    : isDark
+                      ? 'rgba(239, 68, 68, 0.2)'
+                      : '#fff1f2',
+                  borderColor: storeOpen ? '#10b981' : '#f43f5e',
+                },
+              ]}
               activeOpacity={0.8}
               onPress={handleToggleStore}
-              style={[
-                styles.storePill,
-                storeOpen
-                  ? isDark
-                    ? styles.storeOpenDark
-                    : styles.storeOpenLight
-                  : isDark
-                    ? styles.storeClosedDark
-                    : styles.storeClosedLight,
-              ]}
             >
               <View
                 style={[
-                  styles.storeDot,
+                  styles.statusDot,
                   { backgroundColor: storeOpen ? '#10b981' : '#f43f5e' },
                 ]}
               />
-              <View style={styles.storeInfo}>
-                <Text
-                  style={[
-                    styles.storeTitle,
-                    {
-                      color: storeOpen
-                        ? isDark
-                          ? '#6ee7b7'
-                          : '#047857'
-                        : isDark
-                          ? '#fda4af'
-                          : '#be123c',
-                    },
-                  ]}
-                >
-                  {storeOpen ? 'Store Live' : 'Store Closed'}
-                </Text>
-                <Text style={[styles.storeSub, { color: colors.textMuted }]}>
-                  {storeOpen ? 'Accepting Orders' : 'Offline'}
-                </Text>
-              </View>
-              <Ionicons
-                name="swap-horizontal"
-                size={16}
-                color={
-                  storeOpen
-                    ? isDark
-                      ? '#6ee7b7'
-                      : '#047857'
-                    : isDark
-                      ? '#fda4af'
-                      : '#be123c'
-                }
-              />
+              <Text
+                style={[
+                  styles.statusText,
+                  { color: storeOpen ? '#10b981' : '#f43f5e' },
+                ]}
+              >
+                {storeOpen ? 'Store Live' : 'Closed'}
+              </Text>
             </TouchableOpacity>
-          )}
+          ) : undefined
+        }
+      />
 
-          {/* Theme Toggle Button */}
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={toggleTheme}
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.bg }]}
+        contentContainerStyle={styles.content}
+      >
+        <View style={styles.maxContainer}>
+          {/* Quick Controls Strip: Theme & Storefront Status */}
+          <View
             style={[
-              styles.themeBtn,
-              {
-                backgroundColor: colors.cardAlt,
-                borderColor: colors.border,
-              },
+              styles.controlsRow,
+              { backgroundColor: colors.card, borderColor: colors.border },
             ]}
           >
-            <Ionicons
-              name={isDark ? 'sunny' : 'moon'}
-              size={18}
-              color={isDark ? '#fbbf24' : '#4f46e5'}
-            />
-            <View style={styles.themeInfo}>
-              <Text style={[styles.themeTitle, { color: colors.text }]}>
-                {isDark ? 'Light' : 'Dark'} Mode
-              </Text>
-              <Text style={[styles.themeSub, { color: colors.textMuted }]}>
-                Appearance
-              </Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.grid}>
-          {OWNER_NAVIGATION.map((item) => (
-            <TouchableOpacity
-              key={item.name}
-              style={[
-                styles.card,
-                {
-                  width: isWide ? '31.5%' : '48%',
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                },
-              ]}
-              onPress={() => router.push(item.route as any)}
-            >
-              <View style={styles.cardTop}>
-                <View style={[styles.iconBox, { backgroundColor: item.color }]}>
-                  <Ionicons name={item.icon} size={18} color="#ffffff" />
-                </View>
-                <View style={[styles.badge, { backgroundColor: colors.cardAlt }]}>
-                  <Text style={[styles.badgeText, { color: colors.textMuted }]}>
-                    {item.badge}
-                  </Text>
-                </View>
+            <View style={styles.controlLeft}>
+              <Ionicons
+                name={isDark ? 'moon' : 'sunny'}
+                size={18}
+                color={isDark ? '#fbbf24' : '#f59e0b'}
+              />
+              <View>
+                <Text style={[styles.controlTitle, { color: colors.text }]}>
+                  Appearance Mode
+                </Text>
+                <Text style={[styles.controlSub, { color: colors.textMuted }]}>
+                  {isDark ? 'Dark theme active' : 'Light theme active'}
+                </Text>
               </View>
-              <Text style={[styles.cardTitle, { color: colors.text }]}>{item.name}</Text>
-              <Text style={[styles.cardDesc, { color: colors.textMuted }]} numberOfLines={2}>
-                {item.desc}
+            </View>
+
+            <TouchableOpacity
+              style={[styles.themeToggleBtn, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}
+              onPress={toggleTheme}
+            >
+              <Text style={[styles.themeToggleBtnText, { color: colors.text }]}>
+                Switch to {isDark ? 'Light' : 'Dark'}
               </Text>
             </TouchableOpacity>
-          ))}
-        </View>
+          </View>
 
-        <TouchableOpacity
-          style={[
-            styles.logoutButton,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-          onPress={logout}
-        >
-          <Ionicons name="log-out-outline" size={20} color="#e11d48" />
-          <Text style={styles.logoutText}>Log Out of Owner Portal</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+          {/* Categorized Tool Rails */}
+          {groups.map((group) => (
+            <View key={group.groupTitle} style={styles.groupSection}>
+              <View style={styles.groupHeader}>
+                <Text style={[styles.groupTitleText, { color: colors.text }]}>
+                  {group.groupTitle}
+                </Text>
+                <Text style={[styles.groupDescText, { color: colors.textMuted }]}>
+                  {group.groupDesc}
+                </Text>
+              </View>
+
+              <View style={styles.grid}>
+                {group.items.map((item) => (
+                  <TouchableOpacity
+                    key={item.name}
+                    style={[
+                      styles.card,
+                      {
+                        width: isWide ? '48.5%' : '100%',
+                        backgroundColor: colors.card,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                    activeOpacity={0.7}
+                    onPress={() => router.push(item.route as any)}
+                  >
+                    <View style={styles.cardLeft}>
+                      <View style={[styles.iconBox, { backgroundColor: item.color }]}>
+                        <Ionicons name={item.icon} size={20} color="#ffffff" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <View style={styles.titleBadgeRow}>
+                          <Text style={[styles.cardTitle, { color: colors.text }]}>
+                            {item.name}
+                          </Text>
+                          <View
+                            style={[
+                              styles.badge,
+                              { backgroundColor: colors.cardAlt, borderColor: colors.border },
+                            ]}
+                          >
+                            <Text style={[styles.badgeText, { color: colors.textMuted }]}>
+                              {item.badge}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text style={[styles.cardDesc, { color: colors.textMuted }]} numberOfLines={1}>
+                          {item.desc}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <Ionicons name="chevron-forward" size={17} color={colors.textMuted} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          ))}
+
+          {/* Logout Action */}
+          <TouchableOpacity
+            style={[
+              styles.logoutButton,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+            onPress={logout}
+          >
+            <Ionicons name="log-out-outline" size={18} color="#e11d48" />
+            <Text style={styles.logoutText}>Log Out of Owner Portal</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -217,148 +281,139 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 16,
-    paddingBottom: 40,
+    padding: 14,
+    paddingBottom: 36,
   },
   maxContainer: {
     width: '100%',
-    maxWidth: 1150,
+    maxWidth: 1000,
     alignSelf: 'center',
   },
-  header: {
-    marginBottom: 18,
+  storeStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
   },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    letterSpacing: -0.4,
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
-  headerSub: {
-    fontSize: 13,
-    marginTop: 4,
+  statusText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   controlsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 20,
+    justifyContent: 'space-between',
     padding: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
-  storePill: {
-    flex: 1.15,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
+    marginBottom: 18,
   },
-  storeOpenLight: {
-    backgroundColor: '#ecfdf5',
-    borderColor: '#a7f3d0',
-  },
-  storeOpenDark: {
-    backgroundColor: 'rgba(6, 78, 59, 0.5)',
-    borderColor: '#065f46',
-  },
-  storeClosedLight: {
-    backgroundColor: '#fff1f2',
-    borderColor: '#fecdd3',
-  },
-  storeClosedDark: {
-    backgroundColor: 'rgba(136, 19, 55, 0.5)',
-    borderColor: '#9f1239',
-  },
-  storeDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  storeInfo: {
-    flex: 1,
-  },
-  storeTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  storeSub: {
-    fontSize: 10.5,
-    fontWeight: '600',
-  },
-  themeBtn: {
-    flex: 0.85,
+  controlLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
+  },
+  controlTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  controlSub: {
+    fontSize: 11,
+    marginTop: 1,
+  },
+  themeToggleBtn: {
     paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
     borderWidth: 1,
   },
-  themeInfo: {
-    flex: 1,
-  },
-  themeTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  themeSub: {
-    fontSize: 10.5,
+  themeToggleBtnText: {
+    fontSize: 12,
     fontWeight: '600',
+  },
+  groupSection: {
+    marginBottom: 20,
+  },
+  groupHeader: {
+    marginBottom: 10,
+    paddingHorizontal: 2,
+  },
+  groupTitleText: {
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+  },
+  groupDescText: {
+    fontSize: 11,
+    marginTop: 2,
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 24,
+    gap: 8,
   },
   card: {
-    padding: 16,
-    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    borderRadius: 12,
     borderWidth: 1,
   },
-  cardTop: {
+  cardLeft: {
+    flex: 1,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    gap: 12,
   },
   iconBox: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
     borderRadius: 10,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: '800',
+  titleBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   cardTitle: {
     fontSize: 14,
     fontWeight: '700',
   },
+  badge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
   cardDesc: {
     fontSize: 11,
-    marginTop: 4,
-    lineHeight: 15,
+    marginTop: 2,
   },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    padding: 15,
+    padding: 14,
     borderRadius: 12,
     borderWidth: 1,
+    marginTop: 8,
+    marginBottom: 20,
   },
   logoutText: {
     color: '#e11d48',

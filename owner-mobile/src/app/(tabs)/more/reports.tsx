@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import api, { ApiInstance, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
+import ScreenHeader from '../../../components/ScreenHeader';
 
 type Timeframe = '7' | '30' | 'all';
 
@@ -132,17 +133,23 @@ export default function ReportsScreen() {
   const maxSale = Math.max(1, ...chartPoints.map((pt) => pt.Sales));
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.bg }]}
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor="#10b981"
-        />
-      }
-    >
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
+      {/* Universal Screen Header */}
+      <ScreenHeader
+        title="Sales & Analytics"
+        subtitle={`₹${parseFloat(totalSales).toLocaleString('en-IN', { maximumFractionDigits: 0 })} revenue • ${totalOrders} orders`}
+      />
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.bg }]}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#10b981"
+          />
+        }
+      >
       {errorMsg ? (
         <View style={styles.errorBox}>
           <Text style={styles.errorText}>{errorMsg}</Text>
@@ -285,6 +292,7 @@ export default function ReportsScreen() {
         )}
       </View>
     </ScrollView>
+    </View>
   );
 }
 

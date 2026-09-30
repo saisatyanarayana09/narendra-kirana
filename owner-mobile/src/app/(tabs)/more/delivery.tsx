@@ -16,6 +16,7 @@ import api, { getErrorMessage } from '../../../services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert } from '../../../utils/alerts';
+import ScreenHeader from '../../../components/ScreenHeader';
 
 interface Driver {
   id: number;
@@ -208,37 +209,38 @@ export default function DeliveryPartnersScreen() {
     });
   }, [partners, searchTerm]);
 
+  const onlineCount = useMemo(
+    () => partners.filter((p) => Boolean(p.is_online)).length,
+    [partners]
+  );
+
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      {/* Top Header */}
-      <View style={[styles.topBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <View>
-          <Text style={[styles.topTitle, { color: colors.text }]}>
-            Delivery Fleet ({partners.length})
-          </Text>
-          <Text style={[styles.topSub, { color: colors.textMuted }]}>
-            Manage drivers & vehicle assignments
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={[styles.addToggleBtn, { backgroundColor: showAddForm ? colors.cardAlt : '#10b981' }]}
-          onPress={() => setShowAddForm((prev) => !prev)}
-        >
-          <Ionicons
-            name={showAddForm ? 'close' : 'person-add-outline'}
-            size={16}
-            color={showAddForm ? colors.text : '#fff'}
-          />
-          <Text
-            style={[
-              styles.addToggleText,
-              { color: showAddForm ? colors.text : '#fff' },
-            ]}
+      {/* Universal Screen Header */}
+      <ScreenHeader
+        title="Delivery Fleet"
+        subtitle={`${partners.length} drivers • ${onlineCount} online`}
+        rightAction={
+          <TouchableOpacity
+            style={[styles.addToggleBtn, { backgroundColor: showAddForm ? colors.cardAlt : '#10b981' }]}
+            onPress={() => setShowAddForm((prev) => !prev)}
           >
-            {showAddForm ? 'Close' : 'Add Rider'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+            <Ionicons
+              name={showAddForm ? 'close' : 'person-add-outline'}
+              size={16}
+              color={showAddForm ? colors.text : '#fff'}
+            />
+            <Text
+              style={[
+                styles.addToggleText,
+                { color: showAddForm ? colors.text : '#fff' },
+              ]}
+            >
+              {showAddForm ? 'Close' : 'Add Rider'}
+            </Text>
+          </TouchableOpacity>
+        }
+      />
 
       {/* Add Rider Form Collapsible Card */}
       {showAddForm && (

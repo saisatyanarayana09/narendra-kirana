@@ -11,6 +11,7 @@ import {
   Linking,
 } from 'react-native';
 import ModernSwitch from '../../../components/ModernSwitch';
+import ScreenHeader from '../../../components/ScreenHeader';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -436,38 +437,27 @@ export default function AdvancedSettingsScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.bg }]}>
-      {/* Top Header */}
-      <View style={[styles.topBar, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <View style={styles.topBarLeft}>
+      {/* Universal Screen Header */}
+      <ScreenHeader
+        title="Advanced Settings"
+        subtitle="UPI, slots, hours & policies"
+        rightAction={
           <TouchableOpacity
-            style={[styles.backBtn, { backgroundColor: colors.cardAlt }]}
-            onPress={() => router.back()}
+            style={[styles.saveHeaderBtn, { backgroundColor: '#10b981', opacity: saving ? 0.7 : 1 }]}
+            onPress={handleSave}
+            disabled={saving}
           >
-            <Ionicons name="arrow-back" size={20} color={colors.text} />
+            {saving ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <>
+                <Ionicons name="checkmark" size={16} color="#fff" />
+                <Text style={styles.saveHeaderBtnText}>Save</Text>
+              </>
+            )}
           </TouchableOpacity>
-          <View>
-            <Text style={[styles.screenTitle, { color: colors.text }]}>Advanced Settings</Text>
-            <Text style={[styles.screenSub, { color: colors.textMuted }]}>
-              Payments, schedules, delivery slots, loyalty & data
-            </Text>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={[styles.saveHeaderBtn, { backgroundColor: '#10b981' }]}
-          onPress={handleSave}
-          disabled={saving}
-        >
-          {saving ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <>
-              <Ionicons name="save-outline" size={16} color="#fff" />
-              <Text style={styles.saveHeaderBtnText}>Save</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
+        }
+      />
 
       {/* Tabs Horizontal Bar */}
       <View style={[styles.tabBar, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>

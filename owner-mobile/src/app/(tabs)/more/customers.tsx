@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import api, { getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert, showConfirm } from '../../../utils/alerts';
+import ScreenHeader from '../../../components/ScreenHeader';
 
 type TabKey = 'all' | 'active' | 'inactive' | 'locked' | 'delete_requested';
 
@@ -193,6 +194,12 @@ export default function CustomersScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
+      {/* Universal Screen Header */}
+      <ScreenHeader
+        title="Customers CRM"
+        subtitle={`${customers.length} registered customers`}
+      />
+
       <View style={[styles.headerBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <View style={[styles.searchBar, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
           <Ionicons name="search" size={18} color={colors.textMuted} />

@@ -12,6 +12,7 @@ import {
   Linking,
 } from 'react-native';
 import ModernSwitch from '../../../components/ModernSwitch';
+import ScreenHeader from '../../../components/ScreenHeader';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -383,47 +384,68 @@ export default function SettingsScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.bg }]}>
-      {/* Top Header */}
-      <View style={[styles.topBar, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <View style={styles.topBarLeft}>
-          <TouchableOpacity
-            style={[styles.backBtn, { backgroundColor: colors.cardAlt }]}
-            onPress={() => router.back()}
-          >
-            <Ionicons name="arrow-back" size={20} color={colors.text} />
-          </TouchableOpacity>
-          <View>
-            <Text style={[styles.screenTitle, { color: colors.text }]}>Store Settings</Text>
-            <Text style={[styles.screenSub, { color: colors.textMuted }]}>
-              Core operations, delivery fees & email configuration
-            </Text>
+      {/* Universal Screen Header */}
+      <ScreenHeader
+        title="Store Settings"
+        subtitle="Operations, delivery & email"
+        rightAction={
+          <View style={styles.headerActionsRow}>
+            <TouchableOpacity
+              style={[styles.actionPill, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}
+              onPress={handleQuickDownloadBackup}
+              disabled={downloadingBackup}
+            >
+              <Ionicons name="download-outline" size={15} color={colors.text} />
+              <Text style={[styles.actionPillText, { color: colors.text }]}>
+                {downloadingBackup ? '...' : 'Backup'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.headerSaveBtn, { backgroundColor: '#10b981', opacity: saving ? 0.7 : 1 }]}
+              onPress={handleSaveAll}
+              disabled={saving}
+            >
+              {saving ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark" size={16} color="#fff" />
+                  <Text style={styles.headerSaveBtnText}>Save</Text>
+                </>
+              )}
+            </TouchableOpacity>
           </View>
-        </View>
-
-        <View style={styles.topActions}>
-          <TouchableOpacity
-            style={[styles.actionPill, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}
-            onPress={handleQuickDownloadBackup}
-            disabled={downloadingBackup}
-          >
-            <Ionicons name="download-outline" size={16} color={colors.text} />
-            <Text style={[styles.actionPillText, { color: colors.text }]}>
-              {downloadingBackup ? 'Exporting...' : 'Backup'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.actionPillPrimary, { backgroundColor: '#10b981' }]}
-            onPress={() => router.push('/(tabs)/more/advanced-settings' as any)}
-          >
-            <Ionicons name="options-outline" size={16} color="#fff" />
-            <Text style={styles.actionPillPrimaryText}>Advanced</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+        }
+      />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.maxContainer}>
+
+          {/* Quick Link Banner to Advanced Settings */}
+          <TouchableOpacity
+            style={[
+              styles.advancedShortcutBanner,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+            activeOpacity={0.8}
+            onPress={() => router.push('/(tabs)/more/advanced-settings' as any)}
+          >
+            <View style={styles.advancedShortcutLeft}>
+              <View style={[styles.advancedIconBox, { backgroundColor: 'rgba(234, 88, 12, 0.12)' }]}>
+                <Ionicons name="options-outline" size={18} color="#ea580c" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.advancedShortcutTitle, { color: colors.text }]}>
+                  Looking for UPI, Operating Hours, or Slots?
+                </Text>
+                <Text style={[styles.advancedShortcutSub, { color: colors.textMuted }]}>
+                  Tap to configure Advanced Store Settings →
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </TouchableOpacity>
 
           {/* Section 1: Store Profile & Status */}
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -1549,6 +1571,54 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '700',
+  },
+  headerActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerSaveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  headerSaveBtnText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  advancedShortcutBanner: {
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  advancedShortcutLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  advancedIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  advancedShortcutTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  advancedShortcutSub: {
+    fontSize: 11,
+    marginTop: 1,
   },
   modalOverlay: {
     flex: 1,

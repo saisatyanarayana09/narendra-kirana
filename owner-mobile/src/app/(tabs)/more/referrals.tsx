@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import api, { getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert, showConfirm } from '../../../utils/alerts';
+import ScreenHeader from '../../../components/ScreenHeader';
 
 export default function ReferralsScreen() {
   const router = useRouter();
@@ -172,36 +173,59 @@ export default function ReferralsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      {/* Top Header & Tab Navigation */}
-      <View style={[styles.topBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <View style={styles.tabsRow}>
-          {(['settings', 'milestones', 'history'] as const).map((tab) => (
+      {/* Universal Screen Header */}
+      <ScreenHeader
+        title="Referral Program"
+        subtitle={`${settings?.is_active ? 'Active' : 'Paused'} • ₹${settings?.referrer_reward ?? 50} per invite`}
+        rightAction={
+          activeTab === 'settings' ? (
             <TouchableOpacity
-              key={tab}
-              style={[
-                styles.tabBtn,
-                { backgroundColor: activeTab === tab ? '#10b981' : colors.cardAlt },
-              ]}
-              onPress={() => setActiveTab(tab)}
+              style={[styles.headerSaveBtn, { backgroundColor: '#10b981', opacity: saving ? 0.7 : 1 }]}
+              onPress={handleSaveSettings}
+              disabled={saving}
             >
-              <Text
-                style={[
-                  styles.tabText,
-                  { color: activeTab === tab ? '#ffffff' : colors.textMuted },
-                ]}
-              >
-                {tab === 'settings' ? 'Config' : tab === 'milestones' ? 'Milestones' : 'History'}
-              </Text>
+              {saving ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark" size={16} color="#fff" />
+                  <Text style={styles.headerSaveBtnText}>Save</Text>
+                </>
+              )}
             </TouchableOpacity>
-          ))}
+          ) : undefined
+        }
+      />
+
+      {/* Segmented Tab Bar */}
+      <View style={[styles.tabBarWrap, { backgroundColor: colors.bg }]}>
+        <View style={[styles.segmentTrack, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          {(['settings', 'milestones', 'history'] as const).map((tab) => {
+            const active = activeTab === tab;
+            return (
+              <TouchableOpacity
+                key={tab}
+                style={[
+                  styles.segmentBtn,
+                  active && { backgroundColor: isDark ? '#064e3b' : '#d1fae5' },
+                ]}
+                onPress={() => setActiveTab(tab)}
+              >
+                <Text
+                  style={[
+                    styles.segmentText,
+                    {
+                      color: active ? '#10b981' : colors.textMuted,
+                      fontWeight: active ? '800' : '600',
+                    },
+                  ]}
+                >
+                  {tab === 'settings' ? 'Rules' : tab === 'milestones' ? 'Milestones' : 'History'}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
-        <TouchableOpacity
-          style={styles.scanBtn}
-          onPress={() => router.push('/(tabs)/more/scanner')}
-        >
-          <Ionicons name="qr-code-outline" size={17} color="#fff" />
-          <Text style={styles.scanBtnText}>Scan QR</Text>
-        </TouchableOpacity>
       </View>
 
       {loading && !refreshing ? (
@@ -908,5 +932,39 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: 'bold',
     marginTop: 2,
+  },
+  headerSaveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  headerSaveBtnText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  tabBarWrap: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  segmentTrack: {
+    flexDirection: 'row',
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 3,
+    gap: 4,
+  },
+  segmentBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 36,
+    borderRadius: 8,
+  },
+  segmentText: {
+    fontSize: 13,
   },
 });

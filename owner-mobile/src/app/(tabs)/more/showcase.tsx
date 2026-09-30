@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,25 +11,29 @@ import {
   Platform,
   Modal,
   FlatList,
+  KeyboardAvoidingView,
 } from 'react-native';
-import ModernSwitch from '../../../components/ModernSwitch';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import api, { ApiInstance, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert, showConfirm } from '../../../utils/alerts';
+import ScreenHeader from '../../../components/ScreenHeader';
+import ModernSwitch from '../../../components/ModernSwitch';
 
 export default function ShowcaseScreen() {
   const { colors, isDark } = useAppTheme();
 
+  const [activeTab, setActiveTab] = useState<'banners' | 'sections'>('banners');
   const [sections, setSections] = useState<any[]>([]);
   const [banners, setBanners] = useState<any[]>([]);
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // New section creation
+  // New section creation state
+  const [newSectionModalOpen, setNewSectionModalOpen] = useState(false);
   const [newSectionTitle, setNewSectionTitle] = useState('');
   const [creatingSection, setCreatingSection] = useState(false);
 
@@ -40,12 +44,7 @@ export default function ShowcaseScreen() {
   const [bannerLink, setBannerLink] = useState('');
   const [uploadingBanner, setUploadingBanner] = useState(false);
 
-  // Rename section modal
-  const [renamingSection, setRenamingSection] = useState<any | null>(null);
-  const [renameTitle, setRenameTitle] = useState('');
-  const [renaming, setRenaming] = useState(false);
-
-  // Curate products modal
+  // Curate products modal state
   const [curatingSection, setCuratingSection] = useState<any | null>(null);
   const [curatedItems, setCuratedItems] = useState<any[]>([]);
   const [productSearch, setProductSearch] = useState('');
@@ -83,7 +82,7 @@ export default function ShowcaseScreen() {
         setAllProducts(Array.isArray(rawProd) ? rawProd : []);
       }
     } catch {
-      // Handled per-promise
+      // Handled per promise
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -94,10 +93,12 @@ export default function ShowcaseScreen() {
     fetchData();
   }, [fetchData]);
 
-  // ----------------------------------------------------
-  // BANNER OPERATIONS
-  // ----------------------------------------------------
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchData();
+  }, [fetchData]);
 
+  // ---------------- Banner Actions ----------------
   const handlePickBannerImage = async () => {
     const res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -112,7 +113,7 @@ export default function ShowcaseScreen() {
 
   const handleUploadBanner = async () => {
     if (!bannerImageUri) {
-      showAlert('Validation', 'Please select an image for the promotional banner.');
+      showAlert('Validation', 'Please select a banner image.');
       return;
     }
     const cleanTitle = bannerTitle.trim() || 'Promotional Banner';
@@ -145,6 +146,7 @@ export default function ShowcaseScreen() {
 
       await api.post('/offers/banners/', formData);
       (api as ApiInstance).clearCache();
+
       setBannerModalOpen(false);
       setBannerImageUri(null);
       setBannerTitle('');
@@ -159,13 +161,20 @@ export default function ShowcaseScreen() {
   };
 
   const handleToggleBanner = async (ban: any) => {
+    const next = !ban.is_active;
+    // 0ms Optimistic update
+    setBanners((prev) =>
+      prev.map((b) => (b.id === ban.id ? { ...b, is_active: next } : b))
+    );
+
     try {
-      await api.patch(`/offers/banners/${ban.id}/`, {
-        is_active: !ban.is_active,
-      });
+      await api.patch(`/offers/banners/${ban.id}/`, { is_active: next });
       (api as ApiInstance).clearCache();
-      fetchData();
     } catch (e: any) {
+      // Revert
+      setBanners((prev) =>
+        prev.map((b) => (b.id === ban.id ? { ...b, is_active: !next } : b))
+      );
       showAlert('Error', getErrorMessage(e, 'Failed to toggle banner status.'));
     }
   };
@@ -196,7 +205,7 @@ export default function ShowcaseScreen() {
       try {
         await api.delete(`/offers/banners/${id}/`);
         (api as ApiInstance).clearCache();
-        fetchData();
+        setBanners((prev) => prev.filter((b) => b.id !== id));
         showAlert('Deleted', 'Promotional banner removed.');
       } catch (e: any) {
         showAlert('Error', getErrorMessage(e, 'Failed to delete banner.'));
@@ -204,10 +213,7 @@ export default function ShowcaseScreen() {
     });
   };
 
-  // ----------------------------------------------------
-  // SECTION OPERATIONS
-  // ----------------------------------------------------
-
+  // ---------------- Section Actions ----------------
   const handleCreateSection = async () => {
     const cleanTitle = newSectionTitle.trim();
     if (!cleanTitle) {
@@ -223,6 +229,7 @@ export default function ShowcaseScreen() {
         display_order: sections.length,
       });
       (api as ApiInstance).clearCache();
+      setNewSectionModalOpen(false);
       setNewSectionTitle('');
       await fetchData();
       showAlert('Success', `Homepage aisle "${cleanTitle}" created!`);
@@ -234,13 +241,20 @@ export default function ShowcaseScreen() {
   };
 
   const handleToggleSection = async (sec: any) => {
+    const next = !sec.is_active;
+    // 0ms Optimistic update
+    setSections((prev) =>
+      prev.map((s) => (s.id === sec.id ? { ...s, is_active: next } : s))
+    );
+
     try {
-      await api.patch(`/store/homepage-sections/${sec.id}/`, {
-        is_active: !sec.is_active,
-      });
+      await api.patch(`/store/homepage-sections/${sec.id}/`, { is_active: next });
       (api as ApiInstance).clearCache();
-      fetchData();
     } catch (e: any) {
+      // Revert
+      setSections((prev) =>
+        prev.map((s) => (s.id === sec.id ? { ...s, is_active: !next } : s))
+      );
       showAlert('Error', getErrorMessage(e, 'Failed to update section.'));
     }
   };
@@ -267,61 +281,31 @@ export default function ShowcaseScreen() {
   };
 
   const handleDeleteSection = (id: number, title: string) => {
-    showConfirm('Delete Section', `Delete homepage section "${title}"?`, async () => {
+    showConfirm('Delete Aisle', `Delete homepage section "${title}"?`, async () => {
       try {
         await api.delete(`/store/homepage-sections/${id}/`);
         (api as ApiInstance).clearCache();
-        fetchData();
+        setSections((prev) => prev.filter((s) => s.id !== id));
+        showAlert('Deleted', 'Homepage section removed.');
       } catch (e: any) {
         showAlert('Error', getErrorMessage(e, 'Failed to delete section.'));
       }
     });
   };
 
-  const handleOpenRename = (sec: any) => {
-    setRenamingSection(sec);
-    setRenameTitle(sec.title || '');
-  };
-
-  const handleSaveRename = async () => {
-    if (!renamingSection) return;
-    const cleanTitle = renameTitle.trim();
-    if (!cleanTitle) {
-      showAlert('Validation', 'Section title cannot be empty.');
-      return;
-    }
-    setRenaming(true);
-    try {
-      await api.patch(`/store/homepage-sections/${renamingSection.id}/`, {
-        title: cleanTitle,
-      });
-      (api as ApiInstance).clearCache();
-      setRenamingSection(null);
-      fetchData();
-      showAlert('Success', 'Section title renamed!');
-    } catch (e: any) {
-      showAlert('Error', getErrorMessage(e, 'Failed to rename section.'));
-    } finally {
-      setRenaming(false);
-    }
-  };
-
-  // ----------------------------------------------------
-  // PRODUCT CURATION IN SECTION
-  // ----------------------------------------------------
-
-  const handleOpenCurate = (sec: any) => {
-    setCuratingSection(sec);
-    setCuratedItems([...(sec.items || [])]);
+  // Curate products handler
+  const openCurator = (section: any) => {
+    setCuratingSection(section);
+    setCuratedItems(section.items ? [...section.items] : []);
     setProductSearch('');
   };
 
-  const handleToggleProductInCurated = (prod: any) => {
-    const exists = curatedItems.some((i) => i.id === prod.id);
+  const toggleProductInCurated = (product: any) => {
+    const exists = curatedItems.some((p) => p.id === product.id);
     if (exists) {
-      setCuratedItems(curatedItems.filter((i) => i.id !== prod.id));
+      setCuratedItems((prev) => prev.filter((p) => p.id !== product.id));
     } else {
-      setCuratedItems([...curatedItems, prod]);
+      setCuratedItems((prev) => [...prev, product]);
     }
   };
 
@@ -329,13 +313,17 @@ export default function ShowcaseScreen() {
     if (!curatingSection) return;
     setSavingProducts(true);
     try {
-      await api.patch(`/store/homepage-sections/${curatingSection.id}/`, {
-        product_ids: curatedItems.map((p) => p.id),
+      const itemsPayload = curatedItems.map((p, idx) => ({
+        product_id: p.id,
+        position: idx,
+      }));
+      await api.post(`/store/homepage-sections/${curatingSection.id}/set-products/`, {
+        products: itemsPayload,
       });
       (api as ApiInstance).clearCache();
       setCuratingSection(null);
       await fetchData();
-      showAlert('Saved', 'Showcase section products updated successfully!');
+      showAlert('Success', 'Section products updated successfully!');
     } catch (e: any) {
       showAlert('Error', getErrorMessage(e, 'Failed to save section products.'));
     } finally {
@@ -343,595 +331,635 @@ export default function ShowcaseScreen() {
     }
   };
 
-  const handleQuickRemoveProduct = async (sec: any, prodId: number) => {
-    const updated = (sec.items || []).filter((i: any) => i.id !== prodId);
-    try {
-      await api.patch(`/store/homepage-sections/${sec.id}/`, {
-        product_ids: updated.map((p: any) => p.id),
-      });
-      (api as ApiInstance).clearCache();
-      fetchData();
-    } catch (e: any) {
-      showAlert('Error', getErrorMessage(e, 'Failed to remove product from section.'));
-    }
-  };
-
-  const handleMoveProductInSection = async (sec: any, pIdx: number, direction: -1 | 1) => {
-    const target = pIdx + direction;
-    if (target < 0 || target >= (sec.items?.length || 0)) return;
-
-    const items = [...(sec.items || [])];
-    const [moved] = items.splice(pIdx, 1);
-    items.splice(target, 0, moved);
-
-    const updatedSections = sections.map((s) =>
-      s.id === sec.id ? { ...s, items } : s
-    );
-    setSections(updatedSections);
-
-    try {
-      await api.patch(`/store/homepage-sections/${sec.id}/`, {
-        product_ids: items.map((p: any) => p.id),
-      });
-      (api as ApiInstance).clearCache();
-    } catch {
-      fetchData();
-      showAlert('Error', 'Failed to update product order in aisle.');
-    }
-  };
-
-  const filteredCatalog = allProducts.filter((p) => {
-    if (!productSearch.trim()) return true;
-    const term = productSearch.toLowerCase();
-    const nameMatch = p?.name?.toLowerCase().includes(term);
-    const catMatch = p?.category_name?.toLowerCase().includes(term);
-    return nameMatch || catMatch;
-  });
-
-  if (loading && !refreshing) {
-    return (
-      <View style={[styles.center, { backgroundColor: colors.bg }]}>
-        <ActivityIndicator size="large" color="#10b981" />
-        <Text style={[styles.loadingText, { color: colors.textMuted }]}>
-          Loading storefront showcase...
-        </Text>
-      </View>
-    );
-  }
+  const filteredCatalog = useMemo(() => {
+    if (!productSearch.trim()) return allProducts;
+    const q = productSearch.trim().toLowerCase();
+    return allProducts.filter((p) => (p.name || '').toLowerCase().includes(q));
+  }, [allProducts, productSearch]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => {
-              setRefreshing(true);
-              fetchData();
+      {/* Universal Screen Header */}
+      <ScreenHeader
+        title="Storefront Showcase"
+        subtitle={`${banners.length} hero banners • ${sections.length} curated aisles`}
+        rightAction={
+          <TouchableOpacity
+            style={styles.addHeaderBtn}
+            onPress={() => {
+              if (activeTab === 'banners') {
+                setBannerModalOpen(true);
+              } else {
+                setNewSectionModalOpen(true);
+              }
             }}
-            tintColor="#10b981"
-          />
-        }
-      >
-        <View style={styles.maxContainer}>
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: colors.text }]}>Storefront Showcase</Text>
-            <Text style={[styles.subTitle, { color: colors.textMuted }]}>
-              Curate top hero banners and custom product aisles featured on the customer app
+            accessibilityRole="button"
+            accessibilityLabel={activeTab === 'banners' ? 'Upload Banner' : 'Create Aisle'}
+          >
+            <Ionicons name="add" size={18} color="#ffffff" />
+            <Text style={styles.addHeaderBtnText}>
+              {activeTab === 'banners' ? 'Add Banner' : 'Add Aisle'}
             </Text>
-          </View>
+          </TouchableOpacity>
+        }
+      />
 
-          {/* ================================================================ */}
-          {/* SECTION 1: PROMOTIONAL HERO BANNERS */}
-          {/* ================================================================ */}
-          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={styles.cardHeader}>
-              <View style={{ flex: 1 }}>
-                <View style={styles.cardTitleRow}>
-                  <Ionicons name="images-outline" size={18} color="#ec4899" />
-                  <Text style={[styles.cardTitle, { color: colors.text }]}>
-                    Hero Banners ({banners.length})
-                  </Text>
+      {/* Segmented Controller Tab Bar */}
+      <View style={[styles.tabBarWrap, { backgroundColor: colors.bg }]}>
+        <View
+          style={[
+            styles.segmentTrack,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <TouchableOpacity
+            style={[
+              styles.segmentBtn,
+              activeTab === 'banners' && {
+                backgroundColor: isDark ? '#064e3b' : '#d1fae5',
+              },
+            ]}
+            onPress={() => setActiveTab('banners')}
+          >
+            <Ionicons
+              name="images-outline"
+              size={16}
+              color={activeTab === 'banners' ? '#10b981' : colors.textMuted}
+            />
+            <Text
+              style={[
+                styles.segmentText,
+                {
+                  color: activeTab === 'banners' ? '#10b981' : colors.textMuted,
+                  fontWeight: activeTab === 'banners' ? '800' : '600',
+                },
+              ]}
+            >
+              Hero Banners ({banners.length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.segmentBtn,
+              activeTab === 'sections' && {
+                backgroundColor: isDark ? '#064e3b' : '#d1fae5',
+              },
+            ]}
+            onPress={() => setActiveTab('sections')}
+          >
+            <Ionicons
+              name="grid-outline"
+              size={16}
+              color={activeTab === 'sections' ? '#10b981' : colors.textMuted}
+            />
+            <Text
+              style={[
+                styles.segmentText,
+                {
+                  color: activeTab === 'sections' ? '#10b981' : colors.textMuted,
+                  fontWeight: activeTab === 'sections' ? '800' : '600',
+                },
+              ]}
+            >
+              Homepage Aisles ({sections.length})
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Main Content Area */}
+      {loading ? (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#10b981" />
+          <Text style={[styles.loadingText, { color: colors.textMuted }]}>
+            Loading showcase data...
+          </Text>
+        </View>
+      ) : activeTab === 'banners' ? (
+        /* TAB 1: BANNERS LIST */
+        <FlatList
+          data={banners}
+          keyExtractor={(item) => String(item.id)}
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#10b981"
+            />
+          }
+          renderItem={({ item, index }) => (
+            <View
+              style={[
+                styles.bannerCard,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
+              {/* 16:9 Banner Image Preview */}
+              <View style={[styles.bannerImgWrap, { backgroundColor: colors.cardAlt }]}>
+                {item.image ? (
+                  <Image
+                    source={{ uri: item.image }}
+                    style={styles.bannerImg}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <Ionicons name="image-outline" size={32} color={colors.textMuted} />
+                )}
+                <View style={styles.bannerBadge}>
+                  <Text style={styles.bannerBadgeText}>Slide #{index + 1}</Text>
                 </View>
-                <Text style={[styles.cardSub, { color: colors.textMuted }]}>
-                  Main carousel banners displayed at the top of the storefront
-                </Text>
               </View>
 
+              {/* Title & Link */}
+              <View style={styles.bannerMeta}>
+                <Text style={[styles.bannerTitle, { color: colors.text }]} numberOfLines={1}>
+                  {item.title || `Banner #${item.id}`}
+                </Text>
+                {Boolean(item.link) && (
+                  <Text style={[styles.bannerLink, { color: colors.textMuted }]} numberOfLines={1}>
+                    🔗 {item.link}
+                  </Text>
+                )}
+              </View>
+
+              {/* Card Footer with ModernSwitch & Reorder */}
+              <View style={[styles.cardFooter, { borderTopColor: colors.border }]}>
+                <View style={styles.reorderArrows}>
+                  <TouchableOpacity
+                    style={[styles.arrowBtn, { opacity: index === 0 ? 0.3 : 1 }]}
+                    onPress={() => handleMoveBanner(index, -1)}
+                    disabled={index === 0}
+                  >
+                    <Ionicons name="chevron-up" size={16} color={colors.text} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.arrowBtn, { opacity: index === banners.length - 1 ? 0.3 : 1 }]}
+                    onPress={() => handleMoveBanner(index, 1)}
+                    disabled={index === banners.length - 1}
+                  >
+                    <Ionicons name="chevron-down" size={16} color={colors.text} />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.footerRight}>
+                  <ModernSwitch
+                    value={Boolean(item.is_active)}
+                    onValueChange={() => handleToggleBanner(item)}
+                  />
+
+                  <TouchableOpacity
+                    style={[styles.deleteBtn, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}
+                    onPress={() => handleDeleteBanner(item.id, item.title || `Banner #${item.id}`)}
+                  >
+                    <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <View style={[styles.emptyIconBox, { backgroundColor: colors.cardAlt }]}>
+                <Ionicons name="images-outline" size={32} color={colors.textMuted} />
+              </View>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>No Hero Banners</Text>
+              <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
+                Upload eye-catching 16:9 carousel banners for your customer storefront
+              </Text>
               <TouchableOpacity
-                style={[styles.uploadBannerBtn, { backgroundColor: '#10b981' }]}
+                style={styles.emptyActionBtn}
                 onPress={() => setBannerModalOpen(true)}
               >
-                <Ionicons name="cloud-upload-outline" size={16} color="#fff" />
-                <Text style={styles.uploadBannerBtnText}>Upload Banner</Text>
+                <Ionicons name="add" size={18} color="#fff" />
+                <Text style={styles.emptyActionBtnText}>Upload Banner</Text>
               </TouchableOpacity>
             </View>
-
-            {banners.length === 0 ? (
-              <View style={[styles.emptyBox, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
-                <Ionicons name="image-outline" size={32} color={colors.textMuted} />
-                <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-                  No promotional banners uploaded yet.
-                </Text>
-                <TouchableOpacity
-                  style={[styles.addFirstBtn, { borderColor: '#10b981' }]}
-                  onPress={() => setBannerModalOpen(true)}
-                >
-                  <Text style={styles.addFirstBtnText}>+ Add First Banner</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.bannerList}>
-                {banners.map((ban, idx) => (
-                  <View
-                    key={ban?.id ?? `ban-${idx}`}
-                    style={[
-                      styles.bannerItem,
-                      { backgroundColor: colors.cardAlt, borderColor: colors.border },
-                    ]}
-                  >
-                    {/* Thumbnail */}
-                    <View style={styles.bannerThumbWrap}>
-                      {ban.image ? (
-                        <Image source={{ uri: ban.image }} style={styles.bannerThumb} contentFit="cover" />
-                      ) : (
-                        <View style={[styles.bannerThumbFallback, { backgroundColor: colors.border }]}>
-                          <Ionicons name="image-outline" size={20} color={colors.textMuted} />
-                        </View>
-                      )}
-                    </View>
-
-                    {/* Info */}
-                    <View style={styles.bannerInfo}>
-                      <Text style={[styles.bannerTitleText, { color: colors.text }]} numberOfLines={1}>
-                        {ban.title || `Banner #${ban.id}`}
-                      </Text>
-                      {ban.link ? (
-                        <Text style={[styles.bannerLinkText, { color: colors.textMuted }]} numberOfLines={1}>
-                          🔗 {ban.link}
-                        </Text>
-                      ) : null}
-                      <View style={styles.bannerStatusRow}>
-                        <View
-                          style={[
-                            styles.statusDot,
-                            { backgroundColor: ban.is_active ? '#10b981' : '#f43f5e' },
-                          ]}
-                        />
-                        <Text style={[styles.bannerStatusText, { color: colors.textMuted }]}>
-                          {ban.is_active ? 'Active' : 'Hidden'}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* Order buttons */}
-                    <View style={styles.orderBtnsCol}>
-                      <TouchableOpacity
-                        style={[styles.orderBtn, { opacity: idx === 0 ? 0.3 : 1 }]}
-                        onPress={() => handleMoveBanner(idx, -1)}
-                        disabled={idx === 0}
-                      >
-                        <Ionicons name="chevron-up" size={16} color={colors.text} />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.orderBtn, { opacity: idx === banners.length - 1 ? 0.3 : 1 }]}
-                        onPress={() => handleMoveBanner(idx, 1)}
-                        disabled={idx === banners.length - 1}
-                      >
-                        <Ionicons name="chevron-down" size={16} color={colors.text} />
-                      </TouchableOpacity>
-                    </View>
-
-                    {/* Switch */}
-                    <ModernSwitch
-                      value={Boolean(ban.is_active)}
-                      onValueChange={() => handleToggleBanner(ban)}
-                    />
-
-                    {/* Delete */}
-                    <TouchableOpacity
-                      style={styles.trashBtn}
-                      onPress={() => handleDeleteBanner(ban.id, ban.title || `Banner #${ban.id}`)}
-                    >
-                      <Ionicons name="trash-outline" size={18} color="#ef4444" />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
-
-          {/* ================================================================ */}
-          {/* SECTION 2: SHOWCASE AISLES / SECTIONS */}
-          {/* ================================================================ */}
-          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, marginTop: 16 }]}>
-            <View style={styles.cardHeader}>
-              <View>
-                <View style={styles.cardTitleRow}>
-                  <Ionicons name="layers-outline" size={18} color="#0ea5e9" />
-                  <Text style={[styles.cardTitle, { color: colors.text }]}>
-                    Curated Homepage Aisles ({sections.length})
+          }
+        />
+      ) : (
+        /* TAB 2: HOMEPAGE SECTIONS / AISLES LIST */
+        <FlatList
+          data={sections}
+          keyExtractor={(item) => String(item.id)}
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#10b981"
+            />
+          }
+          renderItem={({ item, index }) => (
+            <View
+              style={[
+                styles.sectionCard,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
+              {/* Header with Title & Item Count */}
+              <View style={styles.sectionHeaderRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                    {item.title}
+                  </Text>
+                  <Text style={[styles.sectionItemsCount, { color: colors.textMuted }]}>
+                    {item.items?.length ?? 0} products curated in this aisle
                   </Text>
                 </View>
-                <Text style={[styles.cardSub, { color: colors.textMuted }]}>
-                  Custom curated grocery shelves shown to customers on the app home screen
-                </Text>
-              </View>
-            </View>
 
-            {/* Create new section inline */}
-            <View style={[styles.createRow, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
-              <TextInput
-                style={[styles.input, { flex: 1, backgroundColor: colors.card, borderColor: colors.border, color: colors.text }]}
-                placeholder="e.g. Weekend Essentials, Breakfast Deals..."
-                placeholderTextColor={colors.textMuted}
-                value={newSectionTitle}
-                onChangeText={setNewSectionTitle}
-              />
-              <TouchableOpacity
-                style={[styles.addBtn, { backgroundColor: '#10b981' }]}
-                onPress={handleCreateSection}
-                disabled={creatingSection}
-              >
-                {creatingSection ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <>
-                    <Ionicons name="add" size={18} color="#fff" />
-                    <Text style={styles.addBtnText}>Add Aisle</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </View>
-
-            {sections.length === 0 ? (
-              <View style={[styles.emptyBox, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
-                <Ionicons name="grid-outline" size={32} color={colors.textMuted} />
-                <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-                  No custom homepage aisles created yet.
-                </Text>
+                <View
+                  style={[
+                    styles.orderPill,
+                    { backgroundColor: colors.cardAlt, borderColor: colors.border },
+                  ]}
+                >
+                  <Text style={[styles.orderPillText, { color: colors.textMuted }]}>
+                    #{index + 1}
+                  </Text>
+                </View>
               </View>
-            ) : (
-              <View style={styles.sectionsList}>
-                {sections.map((sec, idx) => {
-                  const itemsCount = (sec.items || []).length;
-                  return (
+
+              {/* Curated Product Thumbnails Row */}
+              {item.items && item.items.length > 0 ? (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.curatedThumbnailsRow}
+                >
+                  {item.items.slice(0, 10).map((p: any) => (
                     <View
-                      key={sec?.id ?? `sec-${idx}`}
+                      key={p.id}
                       style={[
-                        styles.sectionCard,
+                        styles.curatedThumbBox,
                         { backgroundColor: colors.cardAlt, borderColor: colors.border },
                       ]}
                     >
-                      {/* Section Top Header */}
-                      <View style={styles.secTopRow}>
-                        <View style={styles.secTitleWrap}>
-                          <View style={[styles.orderBadge, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                            <Text style={[styles.orderBadgeText, { color: colors.textMuted }]}>#{idx + 1}</Text>
-                          </View>
-                          <Text style={[styles.secTitleText, { color: colors.text }]}>{sec.title}</Text>
-                          <TouchableOpacity style={styles.renameIconBtn} onPress={() => handleOpenRename(sec)}>
-                            <Ionicons name="pencil-outline" size={15} color={colors.textMuted} />
-                          </TouchableOpacity>
-                        </View>
-
-                        <View style={styles.secControlsRow}>
-                          <View style={styles.orderBtnsCol}>
-                            <TouchableOpacity
-                              style={[styles.orderBtn, { opacity: idx === 0 ? 0.3 : 1 }]}
-                              onPress={() => handleMoveSection(idx, -1)}
-                              disabled={idx === 0}
-                            >
-                              <Ionicons name="chevron-up" size={16} color={colors.text} />
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              style={[styles.orderBtn, { opacity: idx === sections.length - 1 ? 0.3 : 1 }]}
-                              onPress={() => handleMoveSection(idx, 1)}
-                              disabled={idx === sections.length - 1}
-                            >
-                              <Ionicons name="chevron-down" size={16} color={colors.text} />
-                            </TouchableOpacity>
-                          </View>
-
-                          <ModernSwitch
-                            value={Boolean(sec.is_active)}
-                            onValueChange={() => handleToggleSection(sec)}
-                          />
-
-                          <TouchableOpacity
-                            style={styles.trashBtn}
-                            onPress={() => handleDeleteSection(sec.id, sec.title)}
-                          >
-                            <Ionicons name="trash-outline" size={18} color="#ef4444" />
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-
-                      {/* Products preview strip */}
-                      <View style={styles.productsArea}>
-                        <View style={styles.productsAreaHeader}>
-                          <Text style={[styles.productsCountText, { color: colors.textMuted }]}>
-                            {itemsCount} {itemsCount === 1 ? 'Product' : 'Products'} Curated
-                          </Text>
-                          <TouchableOpacity
-                            style={[styles.curateBtn, { backgroundColor: '#10b981' }]}
-                            onPress={() => handleOpenCurate(sec)}
-                          >
-                            <Ionicons name="add-circle-outline" size={16} color="#fff" />
-                            <Text style={styles.curateBtnText}>Curate Products</Text>
-                          </TouchableOpacity>
-                        </View>
-
-                        {itemsCount === 0 ? (
-                          <View style={[styles.noItemsBox, { borderColor: colors.border }]}>
-                            <Text style={[styles.noItemsText, { color: colors.textMuted }]}>
-                              No products assigned to this aisle. Click "Curate Products" to add items.
-                            </Text>
-                          </View>
-                        ) : (
-                          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hScroll}>
-                            {sec.items.map((item: any, pIdx: number) => (
-                              <View
-                                key={item?.id ?? `item-${pIdx}`}
-                                style={[
-                                  styles.prodPill,
-                                  { backgroundColor: colors.card, borderColor: colors.border },
-                                ]}
-                              >
-                                <View style={styles.prodThumbWrap}>
-                                  {item.image ? (
-                                    <Image source={{ uri: item.image }} style={styles.prodThumb} contentFit="contain" />
-                                  ) : (
-                                    <View style={[styles.prodThumbFallback, { backgroundColor: colors.cardAlt }]}>
-                                      <Text style={[styles.prodThumbInitial, { color: colors.textMuted }]}>
-                                        {(item.name || 'P').charAt(0)}
-                                      </Text>
-                                    </View>
-                                  )}
-                                  <View style={styles.posBadge}>
-                                    <Text style={styles.posBadgeText}>#{pIdx + 1}</Text>
-                                  </View>
-                                </View>
-
-                                <Text style={[styles.prodName, { color: colors.text }]} numberOfLines={1}>
-                                  {item.name}
-                                </Text>
-                                <Text style={[styles.prodPrice, { color: '#10b981' }]}>
-                                  ₹{item.offer_price || item.regular_price}
-                                </Text>
-
-                                {/* Position & Horizontal Shift Reorder Controls */}
-                                <View style={styles.prodShiftRow}>
-                                  <TouchableOpacity
-                                    style={[styles.prodShiftBtn, { opacity: pIdx === 0 ? 0.25 : 1 }]}
-                                    onPress={() => handleMoveProductInSection(sec, pIdx, -1)}
-                                    disabled={pIdx === 0}
-                                    accessibilityLabel="Move Left"
-                                  >
-                                    <Ionicons name="chevron-back" size={13} color={colors.text} />
-                                  </TouchableOpacity>
-                                  <Text style={[styles.posBadgeTextSmall, { color: colors.textMuted }]}>
-                                    #{pIdx + 1}
-                                  </Text>
-                                  <TouchableOpacity
-                                    style={[styles.prodShiftBtn, { opacity: pIdx === sec.items.length - 1 ? 0.25 : 1 }]}
-                                    onPress={() => handleMoveProductInSection(sec, pIdx, 1)}
-                                    disabled={pIdx === sec.items.length - 1}
-                                    accessibilityLabel="Move Right"
-                                  >
-                                    <Ionicons name="chevron-forward" size={13} color={colors.text} />
-                                  </TouchableOpacity>
-                                </View>
-
-                                <TouchableOpacity
-                                  style={styles.removeProdBtn}
-                                  onPress={() => handleQuickRemoveProduct(sec, item.id)}
-                                >
-                                  <Ionicons name="close-circle" size={18} color="#ef4444" />
-                                </TouchableOpacity>
-                              </View>
-                            ))}
-                          </ScrollView>
-                        )}
-                      </View>
+                      {p.image ? (
+                        <Image
+                          source={{ uri: p.image }}
+                          style={styles.curatedThumbImg}
+                          contentFit="cover"
+                        />
+                      ) : (
+                        <Ionicons name="cube-outline" size={16} color={colors.textMuted} />
+                      )}
                     </View>
-                  );
-                })}
-              </View>
-            )}
-          </View>
-        </View>
-      </ScrollView>
-
-      {/* ================================================================ */}
-      {/* MODAL: UPLOAD HERO BANNER */}
-      {/* ================================================================ */}
-      <Modal visible={bannerModalOpen} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={styles.modalHeader}>
-              <View>
-                <Text style={[styles.modalTitle, { color: colors.text }]}>Upload Hero Banner</Text>
-                <Text style={[styles.modalSub, { color: colors.textMuted }]}>
-                  Recommended aspect ratio 16:9 for sharp storefront display
-                </Text>
-              </View>
-              <TouchableOpacity onPress={() => setBannerModalOpen(false)}>
-                <Ionicons name="close" size={22} color={colors.textMuted} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Image Picker Box */}
-            <TouchableOpacity
-              style={[
-                styles.bannerPickerBox,
-                { backgroundColor: colors.cardAlt, borderColor: colors.border },
-              ]}
-              onPress={handlePickBannerImage}
-            >
-              {bannerImageUri ? (
-                <Image source={{ uri: bannerImageUri }} style={styles.pickedBannerPreview} contentFit="cover" />
+                  ))}
+                  {item.items.length > 10 && (
+                    <View
+                      style={[
+                        styles.morePill,
+                        { backgroundColor: colors.cardAlt, borderColor: colors.border },
+                      ]}
+                    >
+                      <Text style={[styles.morePillText, { color: colors.textMuted }]}>
+                        +{item.items.length - 10}
+                      </Text>
+                    </View>
+                  )}
+                </ScrollView>
               ) : (
-                <View style={styles.bannerPickerPlaceholder}>
-                  <Ionicons name="cloud-upload-outline" size={36} color="#10b981" />
-                  <Text style={[styles.pickerTitle, { color: colors.text }]}>Tap to Select Banner Image</Text>
-                  <Text style={[styles.pickerSub, { color: colors.textMuted }]}>
-                    Supports JPG, PNG, WEBP from device gallery
+                <View style={[styles.emptyAisleBox, { backgroundColor: colors.cardAlt }]}>
+                  <Ionicons name="basket-outline" size={18} color={colors.textMuted} />
+                  <Text style={[styles.emptyAisleText, { color: colors.textMuted }]}>
+                    No products added yet. Tap "Curate Products" below.
                   </Text>
                 </View>
               )}
-            </TouchableOpacity>
 
-            {bannerImageUri && (
-              <TouchableOpacity style={styles.repickBtn} onPress={handlePickBannerImage}>
-                <Ionicons name="refresh" size={14} color="#10b981" />
-                <Text style={styles.repickBtnText}>Choose Different Image</Text>
-              </TouchableOpacity>
-            )}
+              {/* Card Footer with Curate Button, Switch & Reorder */}
+              <View style={[styles.cardFooter, { borderTopColor: colors.border }]}>
+                <TouchableOpacity
+                  style={[styles.curateBtn, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}
+                  onPress={() => openCurator(item)}
+                >
+                  <Ionicons name="layers-outline" size={15} color="#10b981" />
+                  <Text style={[styles.curateBtnText, { color: colors.text }]}>
+                    Curate Products
+                  </Text>
+                </TouchableOpacity>
 
-            <Text style={[styles.label, { color: colors.textMuted }]}>Banner Title</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
-              placeholder="e.g. Festival Super Saver Weekend"
-              placeholderTextColor={colors.textMuted}
-              value={bannerTitle}
-              onChangeText={setBannerTitle}
-            />
+                <View style={styles.footerRight}>
+                  {/* Reorder Arrows */}
+                  <View style={styles.reorderArrows}>
+                    <TouchableOpacity
+                      style={[styles.arrowBtn, { opacity: index === 0 ? 0.3 : 1 }]}
+                      onPress={() => handleMoveSection(index, -1)}
+                      disabled={index === 0}
+                    >
+                      <Ionicons name="chevron-up" size={15} color={colors.text} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.arrowBtn, { opacity: index === sections.length - 1 ? 0.3 : 1 }]}
+                      onPress={() => handleMoveSection(index, 1)}
+                      disabled={index === sections.length - 1}
+                    >
+                      <Ionicons name="chevron-down" size={15} color={colors.text} />
+                    </TouchableOpacity>
+                  </View>
 
-            <Text style={[styles.label, { color: colors.textMuted, marginTop: 10 }]}>Destination Link (Optional)</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
-              placeholder="e.g. /category/grains or external URL"
-              placeholderTextColor={colors.textMuted}
-              autoCapitalize="none"
-              value={bannerLink}
-              onChangeText={setBannerLink}
-            />
+                  <ModernSwitch
+                    value={Boolean(item.is_active)}
+                    onValueChange={() => handleToggleSection(item)}
+                  />
 
-            <View style={styles.modalActionsRow}>
+                  <TouchableOpacity
+                    style={[styles.deleteBtn, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}
+                    onPress={() => handleDeleteSection(item.id, item.title)}
+                  >
+                    <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <View style={[styles.emptyIconBox, { backgroundColor: colors.cardAlt }]}>
+                <Ionicons name="grid-outline" size={32} color={colors.textMuted} />
+              </View>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>No Curated Aisles</Text>
+              <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
+                Create custom homepage rows (e.g. "Festival Specials", "Summer Coolers")
+              </Text>
               <TouchableOpacity
-                style={[styles.cancelBtn, { borderColor: colors.border }]}
-                onPress={() => setBannerModalOpen(false)}
+                style={styles.emptyActionBtn}
+                onPress={() => setNewSectionModalOpen(true)}
               >
-                <Text style={[styles.cancelBtnText, { color: colors.textMuted }]}>Cancel</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.submitBtn, { backgroundColor: '#10b981' }]}
-                onPress={handleUploadBanner}
-                disabled={uploadingBanner}
-              >
-                {uploadingBanner ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <>
-                    <Ionicons name="cloud-upload-outline" size={16} color="#fff" />
-                    <Text style={styles.submitBtnText}>Upload Banner</Text>
-                  </>
-                )}
+                <Ionicons name="add" size={18} color="#fff" />
+                <Text style={styles.emptyActionBtnText}>Create Aisle</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
-      </Modal>
+          }
+        />
+      )}
 
-      {/* ================================================================ */}
-      {/* MODAL: RENAME SECTION */}
-      {/* ================================================================ */}
-      <Modal visible={Boolean(renamingSection)} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCardSmall, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Rename Homepage Aisle</Text>
-              <TouchableOpacity onPress={() => setRenamingSection(null)}>
-                <Ionicons name="close" size={20} color={colors.textMuted} />
-              </TouchableOpacity>
-            </View>
-
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text, marginVertical: 14 }]}
-              value={renameTitle}
-              onChangeText={setRenameTitle}
-              placeholder="Aisle title"
-              placeholderTextColor={colors.textMuted}
-            />
-
-            <View style={styles.modalActionsRow}>
-              <TouchableOpacity
-                style={[styles.cancelBtn, { borderColor: colors.border }]}
-                onPress={() => setRenamingSection(null)}
-              >
-                <Text style={[styles.cancelBtnText, { color: colors.textMuted }]}>Cancel</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.submitBtn, { backgroundColor: '#10b981' }]}
-                onPress={handleSaveRename}
-                disabled={renaming}
-              >
-                {renaming ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <Text style={styles.submitBtnText}>Save</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* ================================================================ */}
-      {/* MODAL: CURATE SECTION PRODUCTS */}
-      {/* ================================================================ */}
-      <Modal visible={Boolean(curatingSection)} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.curateModalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={styles.modalHeader}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.modalTitle, { color: colors.text }]} numberOfLines={1}>
-                  Curate "{curatingSection?.title}"
+      {/* Modal 1: Upload Banner */}
+      <Modal
+        visible={bannerModalOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setBannerModalOpen(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalBackdrop}
+        >
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setBannerModalOpen(false)}
+          />
+          <View
+            style={[
+              styles.modalCard,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+              <View>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>
+                  Upload Hero Banner
                 </Text>
-                <Text style={[styles.modalSub, { color: colors.textMuted }]}>
-                  {curatedItems.length} products currently selected
+                <Text style={[styles.modalSubtitle, { color: colors.textMuted }]}>
+                  16:9 banner displayed in customer top carousel
                 </Text>
               </View>
-              <TouchableOpacity onPress={() => setCuratingSection(null)}>
-                <Ionicons name="close" size={24} color={colors.textMuted} />
+              <TouchableOpacity
+                style={[styles.closeCircle, { backgroundColor: colors.cardAlt }]}
+                onPress={() => setBannerModalOpen(false)}
+              >
+                <Ionicons name="close" size={18} color={colors.text} />
               </TouchableOpacity>
             </View>
 
-            {/* Search filter */}
-            <View style={[styles.searchBox, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
-              <Ionicons name="search" size={18} color={colors.textMuted} />
+            <ScrollView contentContainerStyle={styles.modalBody}>
+              {/* Banner Image Picker */}
+              <TouchableOpacity
+                style={[
+                  styles.bannerPickerBox,
+                  { backgroundColor: colors.cardAlt, borderColor: colors.border },
+                ]}
+                onPress={handlePickBannerImage}
+              >
+                {bannerImageUri ? (
+                  <Image
+                    source={{ uri: bannerImageUri }}
+                    style={styles.bannerPickerImg}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <View style={styles.bannerPlaceholder}>
+                    <Ionicons name="cloud-upload-outline" size={32} color="#10b981" />
+                    <Text style={[styles.bannerPlaceholderTitle, { color: colors.text }]}>
+                      Tap to select 16:9 banner
+                    </Text>
+                    <Text style={[styles.bannerPlaceholderSub, { color: colors.textMuted }]}>
+                      Recommended: 1200 x 675 px (PNG / JPG)
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              <Text style={[styles.inputLabel, { color: colors.textMuted, marginTop: 14 }]}>
+                Banner Title (Optional)
+              </Text>
+              <TextInput
+                style={[styles.textInput, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                placeholder="e.g. Weekend Mega Sale"
+                placeholderTextColor={colors.textMuted}
+                value={bannerTitle}
+                onChangeText={setBannerTitle}
+              />
+
+              <Text style={[styles.inputLabel, { color: colors.textMuted, marginTop: 14 }]}>
+                Destination Link (Optional)
+              </Text>
+              <TextInput
+                style={[styles.textInput, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                placeholder="e.g. /category/rice or promo link"
+                placeholderTextColor={colors.textMuted}
+                autoCapitalize="none"
+                value={bannerLink}
+                onChangeText={setBannerLink}
+              />
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.cancelBtn, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}
+                  onPress={() => setBannerModalOpen(false)}
+                  disabled={uploadingBanner}
+                >
+                  <Text style={[styles.cancelBtnText, { color: colors.text }]}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.saveBtn, { opacity: uploadingBanner ? 0.7 : 1 }]}
+                  onPress={handleUploadBanner}
+                  disabled={uploadingBanner}
+                >
+                  {uploadingBanner ? (
+                    <ActivityIndicator color="#ffffff" />
+                  ) : (
+                    <>
+                      <Ionicons name="cloud-upload-outline" size={18} color="#ffffff" />
+                      <Text style={styles.saveBtnText}>Upload Banner</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Modal 2: Create Aisle Section */}
+      <Modal
+        visible={newSectionModalOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setNewSectionModalOpen(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalBackdrop}
+        >
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setNewSectionModalOpen(false)}
+          />
+          <View
+            style={[
+              styles.modalCard,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+              <View>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>
+                  New Homepage Aisle
+                </Text>
+                <Text style={[styles.modalSubtitle, { color: colors.textMuted }]}>
+                  A curated row on customer homepage
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.closeCircle, { backgroundColor: colors.cardAlt }]}
+                onPress={() => setNewSectionModalOpen(false)}
+              >
+                <Ionicons name="close" size={18} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>
+                Aisle Title *
+              </Text>
+              <TextInput
+                style={[styles.textInput, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                placeholder="e.g. Festival Sweets, Daily Essentials"
+                placeholderTextColor={colors.textMuted}
+                value={newSectionTitle}
+                onChangeText={setNewSectionTitle}
+                autoFocus
+              />
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.cancelBtn, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}
+                  onPress={() => setNewSectionModalOpen(false)}
+                  disabled={creatingSection}
+                >
+                  <Text style={[styles.cancelBtnText, { color: colors.text }]}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.saveBtn, { opacity: creatingSection ? 0.7 : 1 }]}
+                  onPress={handleCreateSection}
+                  disabled={creatingSection}
+                >
+                  {creatingSection ? (
+                    <ActivityIndicator color="#ffffff" />
+                  ) : (
+                    <>
+                      <Ionicons name="add-circle-outline" size={18} color="#ffffff" />
+                      <Text style={styles.saveBtnText}>Create Aisle</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Modal 3: Curate Products Bottom Sheet */}
+      <Modal
+        visible={Boolean(curatingSection)}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCuratingSection(null)}
+      >
+        <View style={styles.modalBackdrop}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setCuratingSection(null)}
+          />
+          <View
+            style={[
+              styles.modalCard,
+              { backgroundColor: colors.card, borderColor: colors.border, maxHeight: '92%' },
+            ]}
+          >
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+              <View>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>
+                  Curate: {curatingSection?.title}
+                </Text>
+                <Text style={[styles.modalSubtitle, { color: colors.textMuted }]}>
+                  {curatedItems.length} products selected for this aisle
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.closeCircle, { backgroundColor: colors.cardAlt }]}
+                onPress={() => setCuratingSection(null)}
+              >
+                <Ionicons name="close" size={18} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Product Search */}
+            <View style={[styles.curatorSearchWrap, { borderBottomColor: colors.border }]}>
+              <Ionicons name="search" size={16} color={colors.textMuted} />
               <TextInput
                 style={[styles.searchInput, { color: colors.text }]}
-                placeholder="Search products by name or category..."
+                placeholder="Search catalog to add items..."
                 placeholderTextColor={colors.textMuted}
                 value={productSearch}
                 onChangeText={setProductSearch}
               />
-              {Boolean(productSearch) && (
+              {productSearch.length > 0 && (
                 <TouchableOpacity onPress={() => setProductSearch('')}>
                   <Ionicons name="close-circle" size={16} color={colors.textMuted} />
                 </TouchableOpacity>
               )}
             </View>
 
-            {/* Catalog Grid List */}
+            {/* Catalog Selector FlatList */}
             <FlatList
               data={filteredCatalog}
-              keyExtractor={(item) => String(item.id)}
-              contentContainerStyle={{ paddingBottom: 16 }}
-              numColumns={2}
-              columnWrapperStyle={{ gap: 10 }}
+              keyExtractor={(p) => String(p.id)}
+              contentContainerStyle={{ padding: 12, gap: 8 }}
               renderItem={({ item }) => {
-                const isSelected = curatedItems.some((i) => i.id === item.id);
+                const isSelected = curatedItems.some((p) => p.id === item.id);
                 return (
                   <TouchableOpacity
                     style={[
-                      styles.catalogCard,
+                      styles.productPickerRow,
                       {
                         backgroundColor: isSelected
                           ? isDark
@@ -941,75 +969,67 @@ export default function ShowcaseScreen() {
                         borderColor: isSelected ? '#10b981' : colors.border,
                       },
                     ]}
-                    onPress={() => handleToggleProductInCurated(item)}
                     activeOpacity={0.7}
+                    onPress={() => toggleProductInCurated(item)}
                   >
-                    <View style={styles.catalogThumbWrap}>
-                      {item.image ? (
-                        <Image source={{ uri: item.image }} style={styles.catalogThumb} contentFit="contain" />
-                      ) : (
-                        <View style={[styles.catalogFallback, { backgroundColor: colors.card }]}>
-                          <Text style={[styles.catalogFallbackText, { color: colors.textMuted }]}>
-                            {(item.name || 'P').charAt(0)}
-                          </Text>
-                        </View>
-                      )}
-                      {isSelected && (
-                        <View style={styles.checkBadge}>
-                          <Ionicons name="checkmark" size={14} color="#fff" />
-                        </View>
-                      )}
+                    <View style={styles.productPickerLeft}>
+                      <View style={[styles.pickerThumb, { backgroundColor: colors.card }]}>
+                        {item.image ? (
+                          <Image
+                            source={{ uri: item.image }}
+                            style={styles.curatedThumbImg}
+                            contentFit="cover"
+                          />
+                        ) : (
+                          <Ionicons name="cube-outline" size={16} color={colors.textMuted} />
+                        )}
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.pickerTitle, { color: colors.text }]} numberOfLines={1}>
+                          {item.name}
+                        </Text>
+                        <Text style={[styles.pickerPrice, { color: colors.textMuted }]}>
+                          ₹{item.regular_price} • Stock: {item.stock_quantity ?? 0}
+                        </Text>
+                      </View>
                     </View>
 
-                    <Text style={[styles.catalogName, { color: colors.text }]} numberOfLines={2}>
-                      {item.name}
-                    </Text>
-                    <Text style={[styles.catalogPrice, { color: '#10b981' }]}>
-                      ₹{item.offer_price || item.regular_price}
-                    </Text>
+                    <View
+                      style={[
+                        styles.checkCircle,
+                        {
+                          backgroundColor: isSelected ? '#10b981' : 'transparent',
+                          borderColor: isSelected ? '#10b981' : colors.border,
+                        },
+                      ]}
+                    >
+                      {isSelected && (
+                        <Ionicons name="checkmark" size={14} color="#ffffff" />
+                      )}
+                    </View>
                   </TouchableOpacity>
                 );
               }}
-              ListEmptyComponent={
-                <View style={styles.emptyCatalogBox}>
-                  <Text style={[styles.emptyCatalogText, { color: colors.textMuted }]}>
-                    No products matched your search.
-                  </Text>
-                </View>
-              }
             />
 
-            {/* Bottom action bar */}
-            <View style={[styles.curateBottomBar, { borderTopColor: colors.border }]}>
-              <View style={[styles.curateCountPill, { backgroundColor: colors.cardAlt }]}>
-                <Text style={[styles.curateCountPillText, { color: colors.text }]}>
-                  {curatedItems.length} Selected
-                </Text>
-              </View>
-
-              <View style={styles.modalActionsRow}>
-                <TouchableOpacity
-                  style={[styles.cancelBtn, { borderColor: colors.border }]}
-                  onPress={() => setCuratingSection(null)}
-                >
-                  <Text style={[styles.cancelBtnText, { color: colors.textMuted }]}>Cancel</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.submitBtn, { backgroundColor: '#10b981' }]}
-                  onPress={handleSaveCuratedProducts}
-                  disabled={savingProducts}
-                >
-                  {savingProducts ? (
-                    <ActivityIndicator color="#fff" size="small" />
-                  ) : (
-                    <>
-                      <Ionicons name="save-outline" size={16} color="#fff" />
-                      <Text style={styles.submitBtnText}>Save Section</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
+            {/* Footer with Save */}
+            <View style={[styles.curatorFooter, { borderTopColor: colors.border }]}>
+              <TouchableOpacity
+                style={[styles.saveBtn, { width: '100%', opacity: savingProducts ? 0.7 : 1 }]}
+                onPress={handleSaveCuratedProducts}
+                disabled={savingProducts}
+              >
+                {savingProducts ? (
+                  <ActivityIndicator color="#ffffff" />
+                ) : (
+                  <>
+                    <Ionicons name="checkmark-done" size={18} color="#ffffff" />
+                    <Text style={styles.saveBtnText}>
+                      Save {curatedItems.length} Products in Aisle
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -1022,552 +1042,412 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  content: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  maxContainer: {
-    width: '100%',
-    maxWidth: 960,
-    alignSelf: 'center',
-  },
-  center: {
+  centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 12,
+    padding: 24,
   },
   loadingText: {
+    marginTop: 12,
     fontSize: 14,
-    fontWeight: '500',
-  },
-  header: {
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    letterSpacing: -0.4,
-  },
-  subTitle: {
-    fontSize: 13,
-    marginTop: 4,
-  },
-  card: {
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: 1,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 14,
-  },
-  cardTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  cardSub: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  uploadBannerBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  uploadBannerBtnText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  emptyBox: {
-    padding: 24,
-    borderRadius: 10,
-    borderWidth: 1,
-    alignItems: 'center',
-    gap: 8,
-  },
-  emptyText: {
-    fontSize: 13,
-    textAlign: 'center',
-  },
-  addFirstBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 7,
-    borderRadius: 20,
-    borderWidth: 1,
-    marginTop: 4,
-  },
-  addFirstBtnText: {
-    color: '#10b981',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  bannerList: {
-    gap: 10,
-  },
-  bannerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  bannerThumbWrap: {
-    width: 80,
-    height: 48,
-    borderRadius: 6,
-    overflow: 'hidden',
-  },
-  bannerThumb: {
-    width: '100%',
-    height: '100%',
-  },
-  bannerThumbFallback: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  bannerInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  bannerTitleText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  bannerLinkText: {
-    fontSize: 11,
-  },
-  bannerStatusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginTop: 2,
-  },
-  statusDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-  },
-  bannerStatusText: {
-    fontSize: 11,
     fontWeight: '600',
   },
-  orderBtnsCol: {
-    flexDirection: 'column',
-    gap: 2,
-  },
-  orderBtn: {
-    padding: 3,
-  },
-  trashBtn: {
-    padding: 6,
-  },
-  createRow: {
+  addHeaderBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    padding: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    marginBottom: 14,
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: 8,
+    gap: 4,
+    backgroundColor: '#10b981',
     paddingHorizontal: 12,
-    paddingVertical: 9,
-    fontSize: 14,
-  },
-  addBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 7,
     borderRadius: 8,
   },
-  addBtnText: {
-    color: '#fff',
+  addHeaderBtnText: {
+    color: '#ffffff',
     fontSize: 13,
     fontWeight: '700',
   },
-  sectionsList: {
-    gap: 14,
+  tabBarWrap: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
   },
-  sectionCard: {
-    padding: 14,
+  segmentTrack: {
+    flexDirection: 'row',
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 3,
+    gap: 4,
+  },
+  segmentBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    height: 36,
+    borderRadius: 8,
+  },
+  segmentText: {
+    fontSize: 13,
+  },
+  listContent: {
+    paddingHorizontal: 14,
+    paddingBottom: 24,
+    gap: 12,
+  },
+  bannerCard: {
     borderRadius: 12,
     borderWidth: 1,
+    overflow: 'hidden',
   },
-  secTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  bannerImgWrap: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    position: 'relative',
   },
-  secTitleWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
+  bannerImg: {
+    width: '100%',
+    height: '100%',
   },
-  orderBadge: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
+  bannerBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 6,
-    borderWidth: 1,
   },
-  orderBadgeText: {
+  bannerBadgeText: {
+    color: '#ffffff',
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '700',
   },
-  secTitleText: {
+  bannerMeta: {
+    padding: 12,
+  },
+  bannerTitle: {
     fontSize: 15,
     fontWeight: '700',
   },
-  renameIconBtn: {
+  bannerLink: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+  },
+  reorderArrows: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  arrowBtn: {
     padding: 4,
   },
-  secControlsRow: {
+  footerRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
-  productsArea: {
-    gap: 8,
-  },
-  productsAreaHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  deleteBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  productsCountText: {
+  sectionCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  sectionItemsCount: {
     fontSize: 12,
-    fontWeight: '600',
+    marginTop: 2,
+  },
+  orderPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  orderPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  curatedThumbnailsRow: {
+    flexDirection: 'row',
+    gap: 6,
+    paddingVertical: 10,
+  },
+  curatedThumbBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 8,
+    borderWidth: 1,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  curatedThumbImg: {
+    width: '100%',
+    height: '100%',
+  },
+  morePill: {
+    height: 38,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  morePillText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  emptyAisleBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 10,
+    borderRadius: 8,
+    marginVertical: 8,
+  },
+  emptyAisleText: {
+    fontSize: 12,
+    flex: 1,
   },
   curateBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 6,
     paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 6,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
   },
   curateBtnText: {
-    color: '#fff',
     fontSize: 12,
     fontWeight: '700',
   },
-  noItemsBox: {
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderRadius: 8,
-    padding: 16,
+  emptyContainer: {
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 50,
+    paddingHorizontal: 20,
   },
-  noItemsText: {
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  hScroll: {
-    marginTop: 4,
-  },
-  prodPill: {
-    width: 120,
-    padding: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    marginRight: 10,
-    alignItems: 'center',
-    position: 'relative',
-  },
-  prodThumbWrap: {
-    width: 60,
-    height: 60,
-    marginBottom: 6,
-    position: 'relative',
-  },
-  prodThumb: {
-    width: '100%',
-    height: '100%',
-  },
-  prodThumbFallback: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 6,
+  emptyIconBox: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 14,
   },
-  prodThumbInitial: {
-    fontSize: 22,
-    fontWeight: '800',
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    marginBottom: 6,
   },
-  posBadge: {
-    position: 'absolute',
-    top: -2,
-    left: -2,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    borderRadius: 4,
-  },
-  posBadgeText: {
-    color: '#fff',
-    fontSize: 9,
-    fontWeight: '800',
-  },
-  prodName: {
-    fontSize: 12,
-    fontWeight: '600',
+  emptySubtitle: {
+    fontSize: 13,
     textAlign: 'center',
-    width: '100%',
+    maxWidth: 280,
+    marginBottom: 20,
   },
-  prodPrice: {
-    fontSize: 12,
-    fontWeight: '800',
-    marginTop: 2,
-  },
-  removeProdBtn: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-  },
-  prodShiftRow: {
+  emptyActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginTop: 6,
-    paddingHorizontal: 2,
+    gap: 6,
+    backgroundColor: '#10b981',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
   },
-  prodShiftBtn: {
-    padding: 3,
-    borderRadius: 4,
-  },
-  posBadgeTextSmall: {
-    fontSize: 10,
+  emptyActionBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
     fontWeight: '700',
   },
-  modalOverlay: {
+  modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
   modalCard: {
-    width: '100%',
-    maxWidth: 480,
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 20,
-  },
-  modalCardSmall: {
-    width: '100%',
-    maxWidth: 380,
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 18,
-  },
-  curateModalCard: {
-    width: '100%',
-    maxWidth: 640,
-    height: '85%',
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 18,
-    display: 'flex',
-    flexDirection: 'column',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderTopWidth: 1,
+    maxHeight: '90%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 14,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800',
   },
-  modalSub: {
+  modalSubtitle: {
     fontSize: 12,
     marginTop: 2,
   },
-  bannerPickerBox: {
-    height: 160,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderStyle: 'dashed',
+  closeCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
-    overflow: 'hidden',
-    marginBottom: 10,
   },
-  pickedBannerPreview: {
+  modalBody: {
+    padding: 16,
+  },
+  bannerPickerBox: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bannerPickerImg: {
     width: '100%',
     height: '100%',
   },
-  bannerPickerPlaceholder: {
+  bannerPlaceholder: {
     alignItems: 'center',
-    gap: 4,
+    padding: 16,
+  },
+  bannerPlaceholderTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 8,
+  },
+  bannerPlaceholderSub: {
+    fontSize: 11,
+    marginTop: 4,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  textInput: {
+    height: 44,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    fontSize: 14,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 20,
+    marginBottom: 8,
+  },
+  cancelBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cancelBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  saveBtn: {
+    flex: 2,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: '#10b981',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
+  saveBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  curatorSearchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+  },
+  productPickerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  productPickerLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  pickerThumb: {
+    width: 36,
+    height: 36,
+    borderRadius: 6,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   pickerTitle: {
     fontSize: 14,
     fontWeight: '700',
-    marginTop: 4,
   },
-  pickerSub: {
+  pickerPrice: {
     fontSize: 12,
+    marginTop: 2,
   },
-  repickBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    alignSelf: 'center',
-    marginBottom: 10,
-  },
-  repickBtnText: {
-    color: '#10b981',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  modalActionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 10,
-    marginTop: 16,
-  },
-  cancelBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  cancelBtnText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  submitBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 18,
-    paddingVertical: 9,
-    borderRadius: 8,
-  },
-  submitBtnText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  searchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    marginBottom: 12,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 13,
-  },
-  catalogCard: {
-    flex: 1,
-    borderRadius: 10,
-    borderWidth: 1,
-    padding: 10,
-    marginBottom: 4,
-    alignItems: 'center',
-  },
-  catalogThumbWrap: {
-    width: 70,
-    height: 70,
-    marginBottom: 6,
-    position: 'relative',
-  },
-  catalogThumb: {
-    width: '100%',
-    height: '100%',
-  },
-  catalogFallback: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  catalogFallbackText: {
-    fontSize: 24,
-    fontWeight: '800',
-  },
-  checkBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
+  checkCircle: {
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: '#10b981',
+    borderWidth: 1.5,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
   },
-  catalogName: {
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  catalogPrice: {
-    fontSize: 12,
-    fontWeight: '800',
-    marginTop: 2,
-  },
-  emptyCatalogBox: {
-    padding: 30,
-    alignItems: 'center',
-  },
-  emptyCatalogText: {
-    fontSize: 13,
-  },
-  curateBottomBar: {
+  curatorFooter: {
+    padding: 16,
     borderTopWidth: 1,
-    paddingTop: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  curateCountPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  curateCountPillText: {
-    fontSize: 12,
-    fontWeight: '700',
   },
 });
