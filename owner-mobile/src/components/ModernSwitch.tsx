@@ -7,6 +7,8 @@ interface ModernSwitchProps {
   value: boolean;
   onValueChange: (val: boolean) => void;
   disabled?: boolean;
+  trackColor?: any;
+  activeThumbColor?: any;
 }
 
 const ModernSwitch: React.FC<ModernSwitchProps> = ({ value, onValueChange, disabled }) => {
