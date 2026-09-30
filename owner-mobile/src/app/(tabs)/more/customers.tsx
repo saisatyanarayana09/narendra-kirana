@@ -10,14 +10,18 @@ import {
   RefreshControl,
   ScrollView,
   Modal,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api, { getErrorMessage } from '../../../services/api';
+import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert, showConfirm } from '../../../utils/alerts';
 
 type TabKey = 'all' | 'active' | 'inactive' | 'locked' | 'delete_requested';
 
 export default function CustomersScreen() {
+  const { colors, isDark } = useAppTheme();
+
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -29,6 +33,11 @@ export default function CustomersScreen() {
   const [notifTitle, setNotifTitle] = useState('');
   const [notifMessage, setNotifMessage] = useState('');
   const [sendingNotif, setSendingNotif] = useState(false);
+
+  // Customer Detail Modal
+  const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
+  const [customerDetails, setCustomerDetails] = useState<any | null>(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
 
   const fetchCustomers = useCallback(async () => {
     try {
@@ -49,6 +58,19 @@ export default function CustomersScreen() {
   useEffect(() => {
     fetchCustomers();
   }, [fetchCustomers]);
+
+  const handleOpenDetails = async (cust: any) => {
+    setSelectedCustomer(cust);
+    setDetailsLoading(true);
+    try {
+      const res = await api.get(`/auth/customers/${cust.id}/details/`);
+      setCustomerDetails(res.data);
+    } catch {
+      setCustomerDetails(cust);
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
 
   const displayedCustomers = useMemo(() => {
     const safeList = Array.isArray(customers) ? customers : [];
@@ -124,12 +146,13 @@ export default function CustomersScreen() {
     showConfirm(
       approve ? 'Approve Account Deletion' : 'Reject Deletion Request',
       approve
-        ? 'Permanently anonymize/delete this customer account?'
+        ? 'Permanently delete this customer account?'
         : 'Keep this customer account active?',
       async () => {
         try {
           await api.post(endpoint);
           fetchCustomers();
+          showAlert('Success', approve ? 'Customer deleted.' : 'Deletion rejected.');
         } catch (e: any) {
           showAlert('Error', getErrorMessage(e, 'Action failed.'));
         }
@@ -169,26 +192,40 @@ export default function CustomersScreen() {
   ];
 
   return (
-    <View style={styles.container}>
-      <View style={styles.headerBox}>
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={18} color="#64748b" />
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
+      <View style={[styles.headerBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={[styles.searchBar, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
+          <Ionicons name="search" size={18} color={colors.textMuted} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.text }]}
             placeholder="Search name, phone, email, username..."
-            placeholderTextColor="#64748b"
+            placeholderTextColor={colors.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsRow}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabsRow}
+        >
           {TABS.map((t) => (
             <TouchableOpacity
               key={t.key}
-              style={[styles.tabPill, activeTab === t.key && styles.tabPillActive]}
+              style={[
+                styles.tabPill,
+                { backgroundColor: colors.cardAlt },
+                activeTab === t.key && styles.tabPillActive,
+              ]}
               onPress={() => setActiveTab(t.key)}
             >
-              <Text style={[styles.tabPillText, activeTab === t.key && styles.tabPillTextActive]}>
+              <Text
+                style={[
+                  styles.tabPillText,
+                  { color: colors.textMuted },
+                  activeTab === t.key && styles.tabPillTextActive,
+                ]}
+              >
                 {t.label}
               </Text>
             </TouchableOpacity>
@@ -219,14 +256,22 @@ export default function CustomersScreen() {
             const delReq = Boolean(item?.customer_profile?.delete_requested);
 
             return (
-              <View style={styles.card}>
+              <TouchableOpacity
+                style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
+                activeOpacity={0.8}
+                onPress={() => handleOpenDetails(item)}
+              >
                 <View style={styles.cardTop}>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.name}>{fullName || item?.username || 'Customer'}</Text>
-                    <Text style={styles.subText}>
+                    <Text style={[styles.name, { color: colors.text }]}>
+                      {fullName || item?.username || 'Customer'}
+                    </Text>
+                    <Text style={[styles.subText, { color: colors.textMuted }]}>
                       @{item?.username} • {phone}
                     </Text>
-                    {item?.email ? <Text style={styles.subText}>{item.email}</Text> : null}
+                    {item?.email ? (
+                      <Text style={[styles.subText, { color: colors.textMuted }]}>{item.email}</Text>
+                    ) : null}
                   </View>
                   <View style={styles.badgesCol}>
                     {item?.is_locked ? (
@@ -252,16 +297,24 @@ export default function CustomersScreen() {
 
                 <View style={styles.actionsRow}>
                   <TouchableOpacity
-                    style={styles.actionBtn}
+                    style={[styles.actionBtn, { backgroundColor: colors.cardAlt }]}
                     onPress={() => setNotifyTarget(item)}
                   >
                     <Ionicons name="notifications-outline" size={15} color="#3b82f6" />
                     <Text style={[styles.actionText, { color: '#3b82f6' }]}>Notify</Text>
                   </TouchableOpacity>
 
+                  <TouchableOpacity
+                    style={[styles.actionBtn, { backgroundColor: colors.cardAlt }]}
+                    onPress={() => handleOpenDetails(item)}
+                  >
+                    <Ionicons name="eye-outline" size={15} color="#10b981" />
+                    <Text style={[styles.actionText, { color: '#10b981' }]}>Profile</Text>
+                  </TouchableOpacity>
+
                   {!item?.is_active ? (
                     <TouchableOpacity
-                      style={styles.actionBtn}
+                      style={[styles.actionBtn, { backgroundColor: colors.cardAlt }]}
                       onPress={() => handleActivate(item.id, item.username)}
                     >
                       <Ionicons name="checkmark-circle-outline" size={15} color="#10b981" />
@@ -271,7 +324,7 @@ export default function CustomersScreen() {
 
                   {item?.is_locked ? (
                     <TouchableOpacity
-                      style={styles.actionBtn}
+                      style={[styles.actionBtn, { backgroundColor: colors.cardAlt }]}
                       onPress={() => handleUnlock(item.id, item.username)}
                     >
                       <Ionicons name="lock-open-outline" size={15} color="#10b981" />
@@ -279,7 +332,7 @@ export default function CustomersScreen() {
                     </TouchableOpacity>
                   ) : (
                     <TouchableOpacity
-                      style={styles.actionBtn}
+                      style={[styles.actionBtn, { backgroundColor: colors.cardAlt }]}
                       onPress={() => handleLock(item.id, item.username)}
                     >
                       <Ionicons name="lock-closed-outline" size={15} color="#f59e0b" />
@@ -290,44 +343,161 @@ export default function CustomersScreen() {
                   {delReq ? (
                     <>
                       <TouchableOpacity
-                        style={styles.actionBtn}
+                        style={[styles.actionBtn, { backgroundColor: colors.cardAlt }]}
                         onPress={() => handleDeleteRequest(item.id, true)}
                       >
                         <Text style={[styles.actionText, { color: '#ef4444' }]}>Approve Del</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
-                        style={styles.actionBtn}
+                        style={[styles.actionBtn, { backgroundColor: colors.cardAlt }]}
                         onPress={() => handleDeleteRequest(item.id, false)}
                       >
-                        <Text style={[styles.actionText, { color: '#94a3b8' }]}>Reject Del</Text>
+                        <Text style={[styles.actionText, { color: colors.textMuted }]}>Reject Del</Text>
                       </TouchableOpacity>
                     </>
                   ) : null}
                 </View>
-              </View>
+              </TouchableOpacity>
             );
           }}
-          ListEmptyComponent={<Text style={styles.emptyText}>No customers match this filter.</Text>}
+          ListEmptyComponent={
+            <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+              No customers match this filter.
+            </Text>
+          }
         />
       )}
 
+      {/* Customer Detail Profile Modal */}
+      <Modal visible={Boolean(selectedCustomer)} transparent animationType="slide">
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.profileCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.profileHeader}>
+              <View>
+                <Text style={[styles.profileTitle, { color: colors.text }]}>
+                  {selectedCustomer?.first_name || selectedCustomer?.username || 'Customer Profile'}
+                </Text>
+                <Text style={[styles.profileSub, { color: colors.textMuted }]}>
+                  ID: #{selectedCustomer?.id} • @{selectedCustomer?.username}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setSelectedCustomer(null)}>
+                <Ionicons name="close" size={24} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            {detailsLoading ? (
+              <ActivityIndicator size="large" color="#10b981" style={{ marginVertical: 30 }} />
+            ) : (
+              <ScrollView style={{ maxHeight: 420 }}>
+                {/* Metrics Grid */}
+                <View style={styles.profileMetrics}>
+                  <View style={[styles.profileMetricBox, { backgroundColor: colors.cardAlt }]}>
+                    <Text style={[styles.profileMetricLabel, { color: colors.textMuted }]}>LIFETIME SALES</Text>
+                    <Text style={[styles.profileMetricVal, { color: '#10b981' }]}>
+                      ₹{customerDetails?.total_spent ?? '0.00'}
+                    </Text>
+                  </View>
+                  <View style={[styles.profileMetricBox, { backgroundColor: colors.cardAlt }]}>
+                    <Text style={[styles.profileMetricLabel, { color: colors.textMuted }]}>TOTAL ORDERS</Text>
+                    <Text style={[styles.profileMetricVal, { color: '#3b82f6' }]}>
+                      {customerDetails?.total_orders ?? 0}
+                    </Text>
+                  </View>
+                  <View style={[styles.profileMetricBox, { backgroundColor: colors.cardAlt }]}>
+                    <Text style={[styles.profileMetricLabel, { color: colors.textMuted }]}>WALLET CASH</Text>
+                    <Text style={[styles.profileMetricVal, { color: '#f59e0b' }]}>
+                      ₹{customerDetails?.wallet_balance ?? '0.00'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Contact Shortcuts */}
+                {selectedCustomer?.customer_profile?.mobile_number ? (
+                  <View style={styles.profileActions}>
+                    <TouchableOpacity
+                      style={[styles.contactBtn, { backgroundColor: '#3b82f6' }]}
+                      onPress={() =>
+                        Linking.openURL(`tel:${selectedCustomer.customer_profile.mobile_number}`)
+                      }
+                    >
+                      <Ionicons name="call" size={16} color="#fff" />
+                      <Text style={styles.contactBtnText}>Call Customer</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.contactBtn, { backgroundColor: '#10b981' }]}
+                      onPress={() => {
+                        const cleanDigits = String(
+                          selectedCustomer.customer_profile.mobile_number
+                        ).replace(/\D/g, '');
+                        const num = cleanDigits.length === 10 ? `91${cleanDigits}` : cleanDigits;
+                        Linking.openURL(`https://wa.me/${num}`);
+                      }}
+                    >
+                      <Ionicons name="logo-whatsapp" size={16} color="#fff" />
+                      <Text style={styles.contactBtnText}>WhatsApp</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
+
+                {/* Saved Delivery Addresses */}
+                <Text style={[styles.detailSectionTitle, { color: colors.text }]}>
+                  Saved Delivery Addresses
+                </Text>
+                {Array.isArray(customerDetails?.addresses) && customerDetails.addresses.length > 0 ? (
+                  customerDetails.addresses.map((addr: any, idx: number) => (
+                    <View key={idx} style={[styles.addressBox, { backgroundColor: colors.cardAlt }]}>
+                      <Text style={[styles.addressText, { color: colors.text }]}>
+                        {addr.address_line || addr.address || 'Address'}
+                      </Text>
+                      {addr.pincode ? (
+                        <Text style={[styles.addressPin, { color: colors.textMuted }]}>
+                          Pincode: {addr.pincode}
+                        </Text>
+                      ) : null}
+                    </View>
+                  ))
+                ) : (
+                  <Text style={[styles.noAddressText, { color: colors.textMuted }]}>
+                    No saved addresses recorded.
+                  </Text>
+                )}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Direct Push Notification Modal */}
       <Modal visible={Boolean(notifyTarget)} transparent animationType="fade">
         <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
               Message {notifyTarget?.first_name || notifyTarget?.username}
             </Text>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.modalInput,
+                { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text },
+              ]}
               placeholder="Notification Title"
-              placeholderTextColor="#64748b"
+              placeholderTextColor={colors.textMuted}
               value={notifTitle}
               onChangeText={setNotifTitle}
             />
             <TextInput
-              style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+              style={[
+                styles.modalInput,
+                {
+                  height: 80,
+                  textAlignVertical: 'top',
+                  backgroundColor: colors.cardAlt,
+                  borderColor: colors.border,
+                  color: colors.text,
+                },
+              ]}
               placeholder="Message..."
-              placeholderTextColor="#64748b"
+              placeholderTextColor={colors.textMuted}
               multiline
               value={notifMessage}
               onChangeText={setNotifMessage}
@@ -337,7 +507,7 @@ export default function CustomersScreen() {
                 style={styles.cancelModalBtn}
                 onPress={() => setNotifyTarget(null)}
               >
-                <Text style={{ color: '#cbd5e1', fontWeight: 'bold' }}>Cancel</Text>
+                <Text style={{ color: colors.textMuted, fontWeight: 'bold' }}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.sendModalBtn}
@@ -359,73 +529,65 @@ export default function CustomersScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
   },
   headerBox: {
-    backgroundColor: '#1e293b',
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#334155',
-    marginBottom: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 8,
   },
   searchInput: {
     flex: 1,
-    color: '#f8fafc',
-    paddingVertical: 10,
-    paddingHorizontal: 8,
+    fontSize: 14,
+    padding: 0,
   },
   tabsRow: {
+    flexDirection: 'row',
     gap: 8,
+    marginTop: 10,
   },
   tabPill: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: '#334155',
+    borderRadius: 20,
   },
   tabPillActive: {
     backgroundColor: '#10b981',
   },
   tabPillText: {
-    color: '#cbd5e1',
     fontSize: 12,
     fontWeight: '600',
   },
   tabPillTextActive: {
-    color: '#fff',
+    color: '#ffffff',
   },
   listContent: {
-    padding: 12,
+    padding: 16,
+    paddingBottom: 40,
   },
   card: {
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
     padding: 14,
-    marginBottom: 10,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    marginBottom: 12,
   },
   cardTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    alignItems: 'flex-start',
   },
   name: {
-    color: '#f8fafc',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 15,
+    fontWeight: '700',
   },
   subText: {
-    color: '#94a3b8',
     fontSize: 12,
     marginTop: 2,
   },
@@ -440,79 +602,149 @@ const styles = StyleSheet.create({
   badgeText: {
     color: '#fff',
     fontSize: 10,
-    fontWeight: 'bold',
+    fontWeight: '800',
   },
   actionsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#334155',
-    paddingTop: 10,
+    marginTop: 12,
+    flexWrap: 'wrap',
   },
   actionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#0f172a',
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#334155',
+    borderRadius: 8,
   },
   actionText: {
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   emptyText: {
-    color: '#64748b',
     textAlign: 'center',
-    marginTop: 40,
+    marginTop: 32,
+    fontSize: 13,
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(0,0,0,0.65)',
     justifyContent: 'center',
-    padding: 20,
+    padding: 16,
+  },
+  profileCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+  },
+  profileHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  profileTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  profileSub: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  profileMetrics: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+  },
+  profileMetricBox: {
+    flex: 1,
+    padding: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  profileMetricLabel: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  profileMetricVal: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  profileActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+  },
+  contactBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  contactBtnText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 13,
+  },
+  detailSectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  addressBox: {
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 6,
+  },
+  addressText: {
+    fontSize: 13,
+  },
+  addressPin: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  noAddressText: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    marginBottom: 12,
   },
   modalCard: {
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
-    padding: 20,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    padding: 16,
   },
   modalTitle: {
-    color: '#f8fafc',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 12,
   },
-  input: {
-    backgroundColor: '#0f172a',
+  modalInput: {
     borderWidth: 1,
-    borderColor: '#334155',
     borderRadius: 8,
-    padding: 12,
-    color: '#f8fafc',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontSize: 13,
     marginBottom: 12,
   },
   modalActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: 10,
+    marginTop: 4,
   },
   cancelModalBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: '#334155',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
   },
   sendModalBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#10b981',
   },
 });

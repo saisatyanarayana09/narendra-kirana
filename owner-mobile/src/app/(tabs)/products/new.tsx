@@ -15,10 +15,12 @@ import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import api, { ApiInstance, getErrorMessage } from '../../../services/api';
+import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert } from '../../../utils/alerts';
 
 export default function AddProductScreen() {
   const router = useRouter();
+  const { colors, isDark } = useAppTheme();
   const { id, sku: initialSku } = useLocalSearchParams<{ id?: string; sku?: string }>();
   const isEditing = Boolean(id);
 
@@ -29,16 +31,18 @@ export default function AddProductScreen() {
   const [sku, setSku] = useState(initialSku ? String(initialSku) : '');
   const [price, setPrice] = useState('');
   const [offerPrice, setOfferPrice] = useState('');
+  const [costPrice, setCostPrice] = useState('');
   const [unit, setUnit] = useState('1 kg');
   const [stock, setStock] = useState('10');
   const [maxOrderQty, setMaxOrderQty] = useState('10');
+  const [expiryDate, setExpiryDate] = useState('');
+  const [tags, setTags] = useState('');
   const [description, setDescription] = useState('');
   const [isInStock, setIsInStock] = useState(true);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageChanged, setImageChanged] = useState(false);
   const [loading, setLoading] = useState(false);
   const [lookingUpBarcode, setLookingUpBarcode] = useState(false);
-  const [showScanner, setShowScanner] = useState(false);
 
   const handleBarcodeLookup = async (overrideSku?: string) => {
     const cleanSku = (overrideSku !== undefined ? overrideSku : sku).trim();
@@ -93,9 +97,12 @@ export default function AddProductScreen() {
           setSku(p.sku || '');
           setPrice(String(p.regular_price ?? p.price ?? ''));
           setOfferPrice(p.offer_price ? String(p.offer_price) : '');
+          setCostPrice(p.cost_price ? String(p.cost_price) : '');
           setUnit(p.unit || '1 kg');
           setStock(String(p.stock_quantity ?? '0'));
           setMaxOrderQty(String(p.max_order_quantity ?? '10'));
+          setExpiryDate(p.expiry_date || '');
+          setTags(p.tags || '');
           setDescription(p.description || '');
           setIsInStock(p.is_in_stock ?? true);
           if (p.category) setSelectedCategory(Number(p.category));
@@ -169,11 +176,16 @@ export default function AddProductScreen() {
       if (offerPrice.trim()) {
         formData.append('offer_price', offerPrice.trim());
       }
+      if (costPrice.trim()) {
+        formData.append('cost_price', costPrice.trim());
+      }
       if (selectedCategory) {
         formData.append('category', String(selectedCategory));
       }
       if (brand.trim()) formData.append('brand', brand.trim());
       if (sku.trim()) formData.append('sku', sku.trim());
+      if (expiryDate.trim()) formData.append('expiry_date', expiryDate.trim());
+      if (tags.trim()) formData.append('tags', tags.trim());
       if (description.trim()) formData.append('description', description.trim());
       formData.append('unit', cleanUnit);
       formData.append('stock_quantity', String(parsedStock));
@@ -222,24 +234,43 @@ export default function AddProductScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-      <View style={styles.imageSection}>
-        <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.bg }]}
+      contentContainerStyle={{ paddingBottom: 40 }}
+    >
+      <View
+        style={[
+          styles.imageSection,
+          { backgroundColor: colors.card, borderBottomColor: colors.border },
+        ]}
+      >
+        <TouchableOpacity
+          style={[styles.imagePicker, { backgroundColor: colors.cardAlt }]}
+          onPress={pickImage}
+        >
           {imageUri ? (
             <Image source={{ uri: imageUri }} style={styles.previewImage} />
           ) : (
-            <Text style={styles.imagePlaceholderText}>Tap to add Image</Text>
+            <View style={{ alignItems: 'center' }}>
+              <Ionicons name="camera-outline" size={32} color={colors.textMuted} />
+              <Text style={[styles.imagePlaceholderText, { color: colors.textMuted, marginTop: 4 }]}>
+                Tap to upload photo
+              </Text>
+            </View>
           )}
         </TouchableOpacity>
       </View>
 
       <View style={styles.form}>
-        <Text style={styles.label}>Barcode / SKU (Optional)</Text>
+        <Text style={[styles.label, { color: colors.textMuted }]}>Barcode / SKU (Optional)</Text>
         <View style={styles.row}>
           <TextInput
-            style={[styles.input, { flex: 1, marginBottom: 0 }]}
-            placeholder="Enter barcode or use bottom Scan tab"
-            placeholderTextColor="#64748b"
+            style={[
+              styles.input,
+              { flex: 1, marginBottom: 0, backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
+            ]}
+            placeholder="Enter barcode or scan"
+            placeholderTextColor={colors.textMuted}
             value={sku}
             onChangeText={setSku}
           />
@@ -254,7 +285,7 @@ export default function AddProductScreen() {
           </TouchableOpacity>
         </View>
 
-        <Text style={[styles.label, { marginTop: 16 }]}>Category</Text>
+        <Text style={[styles.label, { color: colors.textMuted, marginTop: 16 }]}>Category</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -265,6 +296,7 @@ export default function AddProductScreen() {
               key={cat.id}
               style={[
                 styles.catChip,
+                { backgroundColor: colors.card, borderColor: colors.border },
                 selectedCategory === cat.id && styles.catChipActive,
               ]}
               onPress={() => setSelectedCategory(cat.id)}
@@ -272,6 +304,7 @@ export default function AddProductScreen() {
               <Text
                 style={[
                   styles.catChipText,
+                  { color: colors.textMuted },
                   selectedCategory === cat.id && { color: '#fff', fontWeight: 'bold' },
                 ]}
               >
@@ -281,32 +314,41 @@ export default function AddProductScreen() {
           ))}
         </ScrollView>
 
-        <Text style={styles.label}>Product Name *</Text>
+        <Text style={[styles.label, { color: colors.textMuted }]}>Product Name *</Text>
         <TextInput
-          style={styles.input}
-          placeholder="e.g. Aashirvaad Atta"
-          placeholderTextColor="#64748b"
+          style={[
+            styles.input,
+            { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
+          ]}
+          placeholder="e.g. Aashirvaad Shudh Chakki Atta"
+          placeholderTextColor={colors.textMuted}
           value={name}
           onChangeText={setName}
         />
 
         <View style={styles.row}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Brand</Text>
+            <Text style={[styles.label, { color: colors.textMuted }]}>Brand</Text>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
+              ]}
               placeholder="e.g. ITC"
-              placeholderTextColor="#64748b"
+              placeholderTextColor={colors.textMuted}
               value={brand}
               onChangeText={setBrand}
             />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Unit *</Text>
+            <Text style={[styles.label, { color: colors.textMuted }]}>Unit *</Text>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
+              ]}
               placeholder="1 kg, 500 ml"
-              placeholderTextColor="#64748b"
+              placeholderTextColor={colors.textMuted}
               value={unit}
               onChangeText={setUnit}
             />
@@ -315,22 +357,28 @@ export default function AddProductScreen() {
 
         <View style={styles.row}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Regular Price (₹) *</Text>
+            <Text style={[styles.label, { color: colors.textMuted }]}>Regular Price (₹) *</Text>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
+              ]}
               placeholder="0.00"
-              placeholderTextColor="#64748b"
+              placeholderTextColor={colors.textMuted}
               keyboardType="numeric"
               value={price}
               onChangeText={setPrice}
             />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Offer Price (₹)</Text>
+            <Text style={[styles.label, { color: colors.textMuted }]}>Offer Price (₹)</Text>
             <TextInput
-              style={styles.input}
-              placeholder="Optional"
-              placeholderTextColor="#64748b"
+              style={[
+                styles.input,
+                { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
+              ]}
+              placeholder="Optional discount"
+              placeholderTextColor={colors.textMuted}
               keyboardType="numeric"
               value={offerPrice}
               onChangeText={setOfferPrice}
@@ -338,24 +386,61 @@ export default function AddProductScreen() {
           </View>
         </View>
 
+        {/* Purchase/Cost Price & Expiry Date */}
         <View style={styles.row}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Stock Quantity</Text>
+            <Text style={[styles.label, { color: colors.textMuted }]}>Cost / Purchase Price (₹)</Text>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
+              ]}
+              placeholder="Cost to store"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="numeric"
+              value={costPrice}
+              onChangeText={setCostPrice}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.label, { color: colors.textMuted }]}>Expiry Date (YYYY-MM-DD)</Text>
+            <TextInput
+              style={[
+                styles.input,
+                { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
+              ]}
+              placeholder="e.g. 2026-12-31"
+              placeholderTextColor={colors.textMuted}
+              value={expiryDate}
+              onChangeText={setExpiryDate}
+            />
+          </View>
+        </View>
+
+        <View style={styles.row}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.label, { color: colors.textMuted }]}>Stock Quantity</Text>
+            <TextInput
+              style={[
+                styles.input,
+                { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
+              ]}
               placeholder="10"
-              placeholderTextColor="#64748b"
+              placeholderTextColor={colors.textMuted}
               keyboardType="numeric"
               value={stock}
               onChangeText={setStock}
             />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Max Order Limit</Text>
+            <Text style={[styles.label, { color: colors.textMuted }]}>Max Order Limit</Text>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
+              ]}
               placeholder="10"
-              placeholderTextColor="#64748b"
+              placeholderTextColor={colors.textMuted}
               keyboardType="numeric"
               value={maxOrderQty}
               onChangeText={setMaxOrderQty}
@@ -363,18 +448,45 @@ export default function AddProductScreen() {
           </View>
         </View>
 
-        <Text style={styles.label}>Description</Text>
+        {/* Product Tags */}
+        <Text style={[styles.label, { color: colors.textMuted }]}>Product Tags / Highlights</Text>
         <TextInput
-          style={[styles.input, { minHeight: 70, textAlignVertical: 'top' }]}
+          style={[
+            styles.input,
+            { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
+          ]}
+          placeholder="e.g. Bestseller, Organic, Snacks, Top Pick (comma separated)"
+          placeholderTextColor={colors.textMuted}
+          value={tags}
+          onChangeText={setTags}
+        />
+
+        <Text style={[styles.label, { color: colors.textMuted }]}>Description</Text>
+        <TextInput
+          style={[
+            styles.input,
+            {
+              minHeight: 70,
+              textAlignVertical: 'top',
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+              color: colors.text,
+            },
+          ]}
           placeholder="Optional product description..."
-          placeholderTextColor="#64748b"
+          placeholderTextColor={colors.textMuted}
           multiline
           value={description}
           onChangeText={setDescription}
         />
 
         <View style={styles.switchRow}>
-          <Text style={styles.label}>Available In Stock</Text>
+          <View>
+            <Text style={[styles.switchLabel, { color: colors.text }]}>Available In Stock</Text>
+            <Text style={[styles.switchSub, { color: colors.textMuted }]}>
+              Show this product as ready to buy in customer app
+            </Text>
+          </View>
           <Switch
             value={isInStock}
             onValueChange={setIsInStock}
@@ -386,7 +498,10 @@ export default function AddProductScreen() {
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.saveBtnText}>{isEditing ? 'Update Product' : 'Save Product'}</Text>
+            <>
+              <Ionicons name="save-outline" size={20} color="#fff" />
+              <Text style={styles.saveBtnText}>{isEditing ? 'Update Product' : 'Save Product'}</Text>
+            </>
           )}
         </TouchableOpacity>
       </View>
@@ -397,67 +512,51 @@ export default function AddProductScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
   },
   imageSection: {
     alignItems: 'center',
-    paddingVertical: 24,
-    backgroundColor: '#1e293b',
+    paddingVertical: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
   },
   imagePicker: {
     width: 130,
     height: 130,
     borderRadius: 16,
-    backgroundColor: '#334155',
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
   },
   imagePlaceholderText: {
-    color: '#94a3b8',
-    fontSize: 13,
+    fontSize: 12,
   },
   previewImage: {
     width: '100%',
     height: '100%',
   },
   form: {
-    padding: 20,
+    padding: 16,
   },
   row: {
     flexDirection: 'row',
     gap: 12,
   },
   label: {
-    color: '#94a3b8',
     marginBottom: 6,
-    fontSize: 13,
+    fontSize: 12,
+    fontWeight: '600',
   },
   input: {
-    backgroundColor: '#1e293b',
     borderWidth: 1,
-    borderColor: '#334155',
-    borderRadius: 8,
-    padding: 14,
-    color: '#f8fafc',
-    fontSize: 15,
-    marginBottom: 16,
-  },
-  scanCamBtn: {
-    backgroundColor: '#10b981',
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    flexDirection: 'row',
-    gap: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    marginBottom: 14,
   },
   lookupBtn: {
     backgroundColor: '#3b82f6',
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -468,40 +567,48 @@ const styles = StyleSheet.create({
   },
   catScroll: {
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   catChip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#1e293b',
     borderWidth: 1,
-    borderColor: '#334155',
   },
   catChipActive: {
     backgroundColor: '#10b981',
     borderColor: '#10b981',
   },
   catChipText: {
-    color: '#cbd5e1',
     fontSize: 13,
   },
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 18,
+  },
+  switchLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  switchSub: {
+    fontSize: 12,
+    marginTop: 2,
   },
   saveBtn: {
-    backgroundColor: '#10b981',
-    padding: 16,
-    borderRadius: 8,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#10b981',
+    paddingVertical: 14,
+    borderRadius: 10,
     marginTop: 8,
   },
   saveBtnText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
   },
 });

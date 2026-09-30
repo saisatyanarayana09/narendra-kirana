@@ -1,7 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text, Platform, ActivityIndicator } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  Text,
+  Platform,
+  ActivityIndicator,
+  TextInput,
+  Switch,
+  ScrollView,
+} from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import api, { ApiInstance, getErrorMessage } from '../../../services/api';
+import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert } from '../../../utils/alerts';
 
 // Safely import maps on native only to prevent NativeModuleError on Web/unsupported environments
@@ -19,16 +31,18 @@ if (Platform.OS !== 'web') {
   }
 }
 
+const RADIUS_PRESETS = [2, 3, 5, 8, 10, 15];
+
 export default function MapScreen() {
   const router = useRouter();
-  const [radius, setRadius] = useState(5000); // 5km default in meters
+  const { colors, isDark } = useAppTheme();
+
+  const [radiusKm, setRadiusKm] = useState(5);
+  const [storeLat, setStoreLat] = useState('17.385044');
+  const [storeLng, setStoreLng] = useState('78.486671');
+  const [enforceRadius, setEnforceRadius] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-
-  const [storeLocation, setStoreLocation] = useState({
-    latitude: 17.385,
-    longitude: 78.4867,
-  });
 
   useEffect(() => {
     let isMounted = true;
@@ -36,14 +50,19 @@ export default function MapScreen() {
       try {
         const response = await api.get('/store/settings/');
         if (isMounted && response?.data) {
-          const km = parseFloat(String(response.data.delivery_radius_km ?? ''));
+          const d = response.data;
+          const km = parseFloat(String(d.delivery_radius_km ?? ''));
           if (!isNaN(km) && km > 0) {
-            setRadius(Math.round(km * 1000));
+            setRadiusKm(km);
           }
-          const lat = parseFloat(String(response.data.store_latitude ?? ''));
-          const lng = parseFloat(String(response.data.store_longitude ?? ''));
-          if (!isNaN(lat) && !isNaN(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
-            setStoreLocation({ latitude: lat, longitude: lng });
+          if (d.store_latitude) {
+            setStoreLat(String(d.store_latitude));
+          }
+          if (d.store_longitude) {
+            setStoreLng(String(d.store_longitude));
+          }
+          if (typeof d.enforce_delivery_radius === 'boolean') {
+            setEnforceRadius(d.enforce_delivery_radius);
           }
         }
       } catch {
@@ -59,13 +78,31 @@ export default function MapScreen() {
   }, []);
 
   const handleSave = async () => {
+    const numLat = parseFloat(storeLat);
+    const numLng = parseFloat(storeLng);
+    if (isNaN(numLat) || Math.abs(numLat) > 90) {
+      showAlert('Validation Error', 'Please enter a valid store latitude between -90 and 90.');
+      return;
+    }
+    if (isNaN(numLng) || Math.abs(numLng) > 180) {
+      showAlert('Validation Error', 'Please enter a valid store longitude between -180 and 180.');
+      return;
+    }
+
     setSaving(true);
     try {
-      await api.patch('/store/settings/', { delivery_radius_km: Number((radius / 1000).toFixed(2)) });
+      await api.patch('/store/settings/', {
+        store_latitude: numLat.toFixed(6),
+        store_longitude: numLng.toFixed(6),
+        delivery_radius_km: Number(radiusKm.toFixed(2)),
+        enforce_delivery_radius: Boolean(enforceRadius),
+      });
       (api as ApiInstance).clearCache();
-      showAlert('Success', 'Delivery radius updated', () => router.back());
+      showAlert('Success', 'Store delivery zone & coordinates saved successfully!', () =>
+        router.back()
+      );
     } catch (e: any) {
-      showAlert('Error', getErrorMessage(e, 'Failed to update radius'));
+      showAlert('Error', getErrorMessage(e, 'Failed to update store radius & location.'));
     } finally {
       setSaving(false);
     }
@@ -73,138 +110,333 @@ export default function MapScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centered]}>
+      <View style={[styles.container, styles.centered, { backgroundColor: colors.bg }]}>
         <ActivityIndicator size="large" color="#10b981" />
       </View>
     );
   }
 
+  const numLat = parseFloat(storeLat) || 17.385044;
+  const numLng = parseFloat(storeLng) || 78.486671;
+  const storeLocation = { latitude: numLat, longitude: numLng };
+
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.bg }]}
+      contentContainerStyle={styles.content}
+    >
+      {/* Map or Web Zone Display */}
       {Platform.OS !== 'web' && MapView ? (
-        <MapView
-          style={styles.map}
-          initialRegion={{
-            ...storeLocation,
-            latitudeDelta: 0.1,
-            longitudeDelta: 0.1,
-          }}
-        >
-          {Marker ? <Marker coordinate={storeLocation} title="Your Store" /> : null}
-          {Circle ? (
-            <Circle
-              center={storeLocation}
-              radius={radius}
-              fillColor="rgba(16, 185, 129, 0.2)"
-              strokeColor="#10b981"
-            />
-          ) : null}
-        </MapView>
+        <View style={styles.mapContainer}>
+          <MapView
+            style={styles.map}
+            initialRegion={{
+              ...storeLocation,
+              latitudeDelta: 0.12,
+              longitudeDelta: 0.12,
+            }}
+          >
+            {Marker ? <Marker coordinate={storeLocation} title="Narendra Kirana" /> : null}
+            {Circle ? (
+              <Circle
+                center={storeLocation}
+                radius={radiusKm * 1000}
+                fillColor="rgba(16, 185, 129, 0.2)"
+                strokeColor="#10b981"
+                strokeWidth={2}
+              />
+            ) : null}
+          </MapView>
+        </View>
       ) : (
-        <View style={[styles.map, styles.webFallback]}>
-          <Text style={styles.infoText}>Delivery Zone Configuration</Text>
-          <Text style={styles.coordText}>
-            Store Coordinates: {storeLocation.latitude.toFixed(4)}, {storeLocation.longitude.toFixed(4)}
+        <View
+          style={[
+            styles.webZoneCard,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <View style={styles.webIconCircle}>
+            <Ionicons name="location" size={28} color="#10b981" />
+          </View>
+          <Text style={[styles.webZoneTitle, { color: colors.text }]}>
+            Store Delivery Radar Zone
           </Text>
-          <Text style={styles.subText}>Adjust your store delivery radius below:</Text>
+          <Text style={[styles.webZoneSub, { color: colors.textMuted }]}>
+            Active Radius: <Text style={{ color: '#10b981', fontWeight: 'bold' }}>{radiusKm} km</Text> around store coordinates
+          </Text>
         </View>
       )}
 
-      <View style={styles.controls}>
-        <Text style={styles.infoText}>Radius: {(radius / 1000).toFixed(1)} km</Text>
-        <View style={styles.btnRow}>
+      {/* Geofence & Location Settings Form */}
+      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          Store Coordinates & Geofence
+        </Text>
+
+        {/* Latitude & Longitude Inputs */}
+        <View style={styles.coordsRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.label, { color: colors.textMuted }]}>Latitude</Text>
+            <TextInput
+              style={[
+                styles.input,
+                { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text },
+              ]}
+              value={storeLat}
+              onChangeText={setStoreLat}
+              placeholder="17.385044"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="numeric"
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.label, { color: colors.textMuted }]}>Longitude</Text>
+            <TextInput
+              style={[
+                styles.input,
+                { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text },
+              ]}
+              value={storeLng}
+              onChangeText={setStoreLng}
+              placeholder="78.486671"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="numeric"
+            />
+          </View>
+        </View>
+
+        {/* Delivery Radius Presets */}
+        <Text style={[styles.label, { color: colors.textMuted, marginTop: 12 }]}>
+          Delivery Radius: <Text style={{ color: '#10b981', fontWeight: 'bold' }}>{radiusKm} km</Text>
+        </Text>
+        <View style={styles.presetsRow}>
+          {RADIUS_PRESETS.map((preset) => {
+            const isSelected = radiusKm === preset;
+            return (
+              <TouchableOpacity
+                key={preset}
+                style={[
+                  styles.presetBtn,
+                  {
+                    borderColor: isSelected ? '#10b981' : colors.border,
+                    backgroundColor: isSelected ? (isDark ? '#064e3b' : '#ecfdf5') : colors.cardAlt,
+                  },
+                ]}
+                onPress={() => setRadiusKm(preset)}
+              >
+                <Text
+                  style={[
+                    styles.presetBtnText,
+                    {
+                      color: isSelected ? '#10b981' : colors.textMuted,
+                      fontWeight: isSelected ? '700' : '500',
+                    },
+                  ]}
+                >
+                  {preset} km
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Fine Adjustment Plus / Minus */}
+        <View style={styles.fineAdjRow}>
           <TouchableOpacity
-            style={styles.adjBtn}
-            onPress={() => setRadius((prev) => Math.max(1000, prev - 1000))}
+            style={[styles.adjBtn, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}
+            onPress={() => setRadiusKm((prev) => Math.max(1, Number((prev - 0.5).toFixed(1))))}
           >
-            <Text style={styles.btnText}>-</Text>
+            <Ionicons name="remove" size={20} color={colors.text} />
           </TouchableOpacity>
+          <Text style={[styles.adjDisplay, { color: colors.text }]}>{radiusKm} km</Text>
           <TouchableOpacity
-            style={styles.adjBtn}
-            onPress={() => setRadius((prev) => Math.min(50000, prev + 1000))}
+            style={[styles.adjBtn, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}
+            onPress={() => setRadiusKm((prev) => Math.min(50, Number((prev + 0.5).toFixed(1))))}
           >
-            <Text style={styles.btnText}>+</Text>
+            <Ionicons name="add" size={20} color={colors.text} />
           </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
+
+        {/* Enforce Delivery Radius Switch */}
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+        <View style={styles.switchRow}>
+          <View style={{ flex: 1, paddingRight: 10 }}>
+            <Text style={[styles.switchTitle, { color: colors.text }]}>Enforce Delivery Radius</Text>
+            <Text style={[styles.switchSub, { color: colors.textMuted }]}>
+              Block checkout if customer delivery GPS is beyond {radiusKm} km of the store.
+            </Text>
+          </View>
+          <Switch
+            value={enforceRadius}
+            onValueChange={setEnforceRadius}
+            trackColor={{ false: '#334155', true: '#10b981' }}
+          />
+        </View>
+
+        {/* Save Button */}
+        <TouchableOpacity
+          style={[styles.saveBtn, { opacity: saving ? 0.7 : 1 }]}
+          onPress={handleSave}
+          disabled={saving}
+        >
           {saving ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.saveText}>Save Area</Text>
+            <>
+              <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
+              <Text style={styles.saveBtnText}>Save Geofence & Location</Text>
+            </>
           )}
         </TouchableOpacity>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
   },
   centered: {
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  content: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  mapContainer: {
+    height: 250,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 16,
   },
   map: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
-  webFallback: {
-    justifyContent: 'center',
+  webZoneCard: {
     alignItems: 'center',
+    justifyContent: 'center',
     padding: 24,
-  },
-  coordText: {
-    color: '#10b981',
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  subText: {
-    color: '#94a3b8',
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  controls: {
-    backgroundColor: '#1e293b',
-    padding: 20,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-  },
-  infoText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    borderRadius: 16,
+    borderWidth: 1,
     marginBottom: 16,
   },
-  btnRow: {
+  webIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  webZoneTitle: {
+    fontSize: 17,
+    fontWeight: 'bold',
+  },
+  webZoneSub: {
+    fontSize: 13,
+    marginTop: 4,
+  },
+  card: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  coordsRow: {
     flexDirection: 'row',
+    gap: 12,
+  },
+  label: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontSize: 13,
+  },
+  presetsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  presetBtn: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  presetBtnText: {
+    fontSize: 12,
+  },
+  fineAdjRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
     gap: 16,
-    marginBottom: 16,
+    marginVertical: 6,
   },
   adjBtn: {
-    backgroundColor: '#334155',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  btnText: {
-    color: '#fff',
-    fontSize: 24,
+  adjDisplay: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    minWidth: 70,
+    textAlign: 'center',
+  },
+  divider: {
+    height: 1,
+    marginVertical: 14,
+  },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  switchTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  switchSub: {
+    fontSize: 12,
+    marginTop: 2,
+    lineHeight: 16,
   },
   saveBtn: {
-    backgroundColor: '#10b981',
-    padding: 16,
-    borderRadius: 8,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#10b981',
+    paddingVertical: 13,
+    borderRadius: 10,
+    marginTop: 6,
   },
-  saveText: {
+  saveBtnText: {
     color: '#fff',
+    fontSize: 14,
     fontWeight: 'bold',
-    fontSize: 16,
   },
 });

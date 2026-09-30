@@ -370,6 +370,24 @@ export default function OrderDetailsScreen() {
                       {order.payment_method || 'COD'}
                     </Text>
                   </View>
+                  <TouchableOpacity
+                    style={[
+                      styles.payBadgePill,
+                      {
+                        backgroundColor: isDark ? '#064e3b' : '#ecfdf5',
+                        borderColor: '#10b981',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 3,
+                      },
+                    ]}
+                    onPress={() => router.push('/(tabs)/more/invoices' as any)}
+                  >
+                    <Ionicons name="document-text-outline" size={12} color="#10b981" />
+                    <Text style={[styles.payBadgeText, { color: '#10b981', fontWeight: 'bold' }]}>
+                      Invoice
+                    </Text>
+                  </TouchableOpacity>
                 </View>
                 {order.upi_transaction_id ? (
                   <Text

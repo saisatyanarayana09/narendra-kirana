@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, memo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, memo } from 'react';
 import {
   View,
   Text,
@@ -10,9 +10,11 @@ import {
   RefreshControl,
   Platform,
   TextInput,
+  ScrollView,
 } from 'react-native';
 import api, { getErrorMessage } from '../../../services/api';
 import { Ionicons } from '@expo/vector-icons';
+import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert } from '../../../utils/alerts';
 
 interface Driver {
@@ -27,65 +29,81 @@ interface Driver {
   active_orders_count?: number;
 }
 
-interface DriverCardProps {
-  item: Driver;
-  onCall: (phone: string) => void;
-  onWhatsapp: (phone: string) => void;
-}
+const VEHICLE_TYPES = ['Bike', 'Scooter', 'Cycle', 'Car'];
 
-const DriverCard = memo(({ item, onCall, onWhatsapp }: DriverCardProps) => {
-  return (
-    <View style={styles.card}>
-      <View style={styles.info}>
-        <View style={styles.nameRow}>
-          <Text style={styles.name}>{item?.name || item?.username || 'Unnamed Driver'}</Text>
-          <View
-            style={[
-              styles.onlinePill,
-              { backgroundColor: item?.is_online ? '#059669' : '#475569' },
-            ]}
-          >
-            <Text style={styles.onlineText}>{item?.is_online ? 'ONLINE' : 'OFFLINE'}</Text>
+const DriverCard = memo(
+  ({
+    item,
+    onCall,
+    onWhatsapp,
+    colors,
+  }: {
+    item: Driver;
+    onCall: (phone: string) => void;
+    onWhatsapp: (phone: string) => void;
+    colors: any;
+  }) => {
+    return (
+      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={styles.info}>
+          <View style={styles.nameRow}>
+            <Text style={[styles.name, { color: colors.text }]}>
+              {item?.name || item?.username || 'Unnamed Driver'}
+            </Text>
+            <View
+              style={[
+                styles.onlinePill,
+                { backgroundColor: item?.is_online ? '#059669' : '#475569' },
+              ]}
+            >
+              <Text style={styles.onlineText}>{item?.is_online ? 'ONLINE' : 'OFFLINE'}</Text>
+            </View>
           </View>
+          <Text style={[styles.phone, { color: colors.textMuted }]}>
+            {item?.phone || 'No phone'}
+            {item?.vehicle_type ? ` • ${item.vehicle_type}` : ''}
+            {item?.vehicle_number ? ` (${item.vehicle_number})` : ''}
+          </Text>
+          <Text style={[styles.meta, { color: colors.textMuted }]}>
+            Active: <Text style={{ color: '#10b981', fontWeight: 'bold' }}>{item?.active_orders_count ?? 0}</Text> •
+            Completed: <Text style={{ color: colors.text, fontWeight: 'bold' }}>{item?.total_deliveries ?? 0}</Text>
+          </Text>
         </View>
-        <Text style={styles.phone}>
-          {item?.phone || 'No phone'}
-          {item?.vehicle_type ? ` • ${item.vehicle_type}` : ''}
-          {item?.vehicle_number ? ` (${item.vehicle_number})` : ''}
-        </Text>
-        <Text style={styles.meta}>
-          Active Orders: {item?.active_orders_count ?? 0} • Completed: {item?.total_deliveries ?? 0}
-        </Text>
+        <View style={styles.actions}>
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: '#3b82f6' }]}
+            onPress={() => onCall(item?.phone)}
+          >
+            <Ionicons name="call" size={17} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: '#10b981' }]}
+            onPress={() => onWhatsapp(item?.phone)}
+          >
+            <Ionicons name="logo-whatsapp" size={17} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </View>
-      <View style={styles.actions}>
-        <TouchableOpacity
-          style={[styles.actionBtn, { backgroundColor: '#3b82f6' }]}
-          onPress={() => onCall(item?.phone)}
-        >
-          <Ionicons name="call" size={18} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.actionBtn, { backgroundColor: '#10b981' }]}
-          onPress={() => onWhatsapp(item?.phone)}
-        >
-          <Ionicons name="logo-whatsapp" size={18} color="#fff" />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-});
+    );
+  }
+);
 
 export default function DeliveryPartnersScreen() {
+  const { colors, isDark } = useAppTheme();
+
   const [partners, setPartners] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // New Rider Form
   const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [vehicleType, setVehicleType] = useState('Bike');
   const [vehicleNumber, setVehicleNumber] = useState('');
   const [creating, setCreating] = useState(false);
 
@@ -122,20 +140,23 @@ export default function DeliveryPartnersScreen() {
     try {
       await api.post('/delivery/partners/', {
         first_name: firstName.trim(),
+        last_name: lastName.trim(),
         username: username.trim(),
         password: password.trim(),
         phone_number: phoneNumber.trim() || username.trim(),
-        vehicle_type: 'Bike',
+        vehicle_type: vehicleType,
         vehicle_number: vehicleNumber.trim(),
       });
       setFirstName('');
+      setLastName('');
       setUsername('');
       setPassword('');
       setPhoneNumber('');
       setVehicleNumber('');
+      setVehicleType('Bike');
       setShowAddForm(false);
       fetchPartners();
-      showAlert('Success', 'Delivery partner account created!');
+      showAlert('Success', 'Delivery partner account created successfully! 🛵');
     } catch (e: any) {
       showAlert('Error', getErrorMessage(e, 'Failed to create delivery partner.'));
     } finally {
@@ -176,106 +197,218 @@ export default function DeliveryPartnersScreen() {
     }
   }, []);
 
-  const renderItem = useCallback(
-    ({ item }: { item: Driver }) => (
-      <DriverCard item={item} onCall={contactDriver} onWhatsapp={whatsappDriver} />
-    ),
-    [contactDriver, whatsappDriver]
-  );
-
-  const keyExtractor = useCallback(
-    (item: Driver, index: number) => (item?.id != null ? String(item.id) : `driver-${index}`),
-    []
-  );
+  const filteredPartners = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return partners;
+    return partners.filter((p) => {
+      const name = (p.name || '').toLowerCase();
+      const user = (p.username || '').toLowerCase();
+      const phone = (p.phone || '').toLowerCase();
+      return name.includes(q) || user.includes(q) || phone.includes(q);
+    });
+  }, [partners, searchTerm]);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.topBar}>
-        <Text style={styles.topTitle}>Registered Riders ({partners.length})</Text>
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
+      {/* Top Header */}
+      <View style={[styles.topBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View>
+          <Text style={[styles.topTitle, { color: colors.text }]}>
+            Delivery Fleet ({partners.length})
+          </Text>
+          <Text style={[styles.topSub, { color: colors.textMuted }]}>
+            Manage drivers & vehicle assignments
+          </Text>
+        </View>
         <TouchableOpacity
-          style={styles.addToggleBtn}
+          style={[styles.addToggleBtn, { backgroundColor: showAddForm ? colors.cardAlt : '#10b981' }]}
           onPress={() => setShowAddForm((prev) => !prev)}
         >
-          <Ionicons name={showAddForm ? 'close' : 'person-add-outline'} size={16} color="#fff" />
-          <Text style={styles.addToggleText}>{showAddForm ? 'Close' : 'Add Rider'}</Text>
+          <Ionicons
+            name={showAddForm ? 'close' : 'person-add-outline'}
+            size={16}
+            color={showAddForm ? colors.text : '#fff'}
+          />
+          <Text
+            style={[
+              styles.addToggleText,
+              { color: showAddForm ? colors.text : '#fff' },
+            ]}
+          >
+            {showAddForm ? 'Close' : 'Add Rider'}
+          </Text>
         </TouchableOpacity>
       </View>
 
-      {showAddForm ? (
-        <View style={styles.formCard}>
-          <View style={styles.row}>
-            <TextInput
-              style={[styles.input, { flex: 1 }]}
-              placeholder="Full Name"
-              placeholderTextColor="#64748b"
-              value={firstName}
-              onChangeText={setFirstName}
-            />
-            <TextInput
-              style={[styles.input, { flex: 1 }]}
-              placeholder="Phone Number"
-              placeholderTextColor="#64748b"
-              keyboardType="phone-pad"
-              value={phoneNumber}
-              onChangeText={setPhoneNumber}
-            />
+      {/* Add Rider Form Collapsible Card */}
+      {showAddForm && (
+        <ScrollView style={[styles.addFormCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={[styles.formHeading, { color: colors.text }]}>Register New Delivery Rider</Text>
+
+          <View style={styles.formRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>First Name</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                placeholder="Ramesh"
+                placeholderTextColor={colors.textMuted}
+                value={firstName}
+                onChangeText={setFirstName}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>Last Name</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                placeholder="Kumar"
+                placeholderTextColor={colors.textMuted}
+                value={lastName}
+                onChangeText={setLastName}
+              />
+            </View>
           </View>
-          <View style={styles.row}>
-            <TextInput
-              style={[styles.input, { flex: 1 }]}
-              placeholder="Login Username *"
-              placeholderTextColor="#64748b"
-              autoCapitalize="none"
-              value={username}
-              onChangeText={setUsername}
-            />
-            <TextInput
-              style={[styles.input, { flex: 1 }]}
-              placeholder="Password *"
-              placeholderTextColor="#64748b"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-            />
+
+          <View style={styles.formRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>Username *</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                placeholder="ramesh_delivery"
+                placeholderTextColor={colors.textMuted}
+                autoCapitalize="none"
+                value={username}
+                onChangeText={setUsername}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>Login Password *</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                placeholder="Secret123"
+                placeholderTextColor={colors.textMuted}
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+              />
+            </View>
           </View>
-          <TextInput
-            style={[styles.input, { marginBottom: 10 }]}
-            placeholder="Vehicle Number (e.g. TS09AB1234)"
-            placeholderTextColor="#64748b"
-            autoCapitalize="characters"
-            value={vehicleNumber}
-            onChangeText={setVehicleNumber}
-          />
+
+          <View style={styles.formRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>Phone Number</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                placeholder="9876543210"
+                placeholderTextColor={colors.textMuted}
+                keyboardType="phone-pad"
+                value={phoneNumber}
+                onChangeText={setPhoneNumber}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>Vehicle Number</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                placeholder="TS 09 AB 1234"
+                placeholderTextColor={colors.textMuted}
+                autoCapitalize="characters"
+                value={vehicleNumber}
+                onChangeText={setVehicleNumber}
+              />
+            </View>
+          </View>
+
+          <Text style={[styles.inputLabel, { color: colors.textMuted }]}>Vehicle Type</Text>
+          <View style={styles.vehicleTypeRow}>
+            {VEHICLE_TYPES.map((v) => (
+              <TouchableOpacity
+                key={v}
+                style={[
+                  styles.vehicleChip,
+                  {
+                    borderColor: vehicleType === v ? '#10b981' : colors.border,
+                    backgroundColor: vehicleType === v ? (isDark ? '#064e3b' : '#ecfdf5') : colors.cardAlt,
+                  },
+                ]}
+                onPress={() => setVehicleType(v)}
+              >
+                <Text
+                  style={[
+                    styles.vehicleChipText,
+                    {
+                      color: vehicleType === v ? '#10b981' : colors.textMuted,
+                      fontWeight: vehicleType === v ? '700' : '500',
+                    },
+                  ]}
+                >
+                  {v}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
           <TouchableOpacity
-            style={styles.createBtn}
+            style={[styles.createBtn, { opacity: creating ? 0.7 : 1 }]}
             onPress={handleCreatePartner}
             disabled={creating}
           >
             {creating ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.createBtnText}>Create Rider Account</Text>
+              <>
+                <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
+                <Text style={styles.createBtnText}>Create Driver Account</Text>
+              </>
             )}
           </TouchableOpacity>
-        </View>
-      ) : null}
+        </ScrollView>
+      )}
 
+      {/* Search Bar */}
+      <View style={[styles.searchBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Ionicons name="search" size={17} color={colors.textMuted} />
+        <TextInput
+          style={[styles.searchInput, { color: colors.text }]}
+          placeholder="Search riders by name or phone..."
+          placeholderTextColor={colors.textMuted}
+          value={searchTerm}
+          onChangeText={setSearchTerm}
+        />
+        {searchTerm ? (
+          <TouchableOpacity onPress={() => setSearchTerm('')}>
+            <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+          </TouchableOpacity>
+        ) : null}
+      </View>
+
+      {/* Driver List */}
       {loading && !refreshing ? (
         <ActivityIndicator size="large" color="#10b981" style={{ marginTop: 40 }} />
       ) : (
         <FlatList
-          data={partners}
-          keyExtractor={keyExtractor}
-          renderItem={renderItem}
-          contentContainerStyle={styles.list}
+          data={filteredPartners}
+          keyExtractor={(item, index) => (item?.id != null ? String(item.id) : `driver-${index}`)}
+          contentContainerStyle={styles.listContent}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#10b981" />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#10b981"
+            />
           }
-          initialNumToRender={10}
-          maxToRenderPerBatch={10}
-          windowSize={5}
-          removeClippedSubviews={false}
-          ListEmptyComponent={<Text style={styles.empty}>No delivery partners found.</Text>}
+          renderItem={({ item }) => (
+            <DriverCard
+              item={item}
+              onCall={contactDriver}
+              onWhatsapp={whatsappDriver}
+              colors={colors}
+            />
+          )}
+          ListEmptyComponent={
+            <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+              No delivery partners found.
+            </Text>
+          }
         />
       )}
     </View>
@@ -285,91 +418,128 @@ export default function DeliveryPartnersScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
   },
   topBar: {
-    backgroundColor: '#1e293b',
     padding: 14,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
   },
   topTitle: {
-    color: '#f8fafc',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  topSub: {
+    fontSize: 12,
+    marginTop: 2,
   },
   addToggleBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#10b981',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 7,
     borderRadius: 8,
   },
   addToggleText: {
-    color: '#fff',
+    fontSize: 12,
     fontWeight: 'bold',
-    fontSize: 13,
   },
-  formCard: {
-    backgroundColor: '#1e293b',
-    padding: 14,
+  addFormCard: {
+    maxHeight: 340,
+    padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
   },
-  row: {
+  formHeading: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  formRow: {
     flexDirection: 'row',
     gap: 10,
     marginBottom: 10,
   },
+  inputLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
   input: {
-    backgroundColor: '#0f172a',
     borderWidth: 1,
-    borderColor: '#334155',
     borderRadius: 8,
-    padding: 10,
-    color: '#f8fafc',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 13,
+  },
+  vehicleTypeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
+  },
+  vehicleChip: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    alignItems: 'center',
+  },
+  vehicleChipText: {
+    fontSize: 12,
   },
   createBtn: {
-    backgroundColor: '#10b981',
-    padding: 12,
-    borderRadius: 8,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#10b981',
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginBottom: 16,
   },
   createBtnText: {
     color: '#fff',
+    fontSize: 13,
     fontWeight: 'bold',
   },
-  list: {
-    padding: 16,
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 13,
+    padding: 0,
+  },
+  listContent: {
+    padding: 14,
+    paddingBottom: 40,
   },
   card: {
-    backgroundColor: '#1e293b',
-    padding: 16,
-    borderRadius: 12,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'space-between',
+    padding: 14,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    marginBottom: 10,
   },
   info: {
     flex: 1,
+    marginRight: 10,
   },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 4,
   },
   name: {
-    color: '#f8fafc',
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: 'bold',
   },
   onlinePill: {
@@ -380,15 +550,14 @@ const styles = StyleSheet.create({
   onlineText: {
     color: '#fff',
     fontSize: 9,
-    fontWeight: 'bold',
+    fontWeight: '800',
   },
   phone: {
-    color: '#94a3b8',
-    fontSize: 13,
+    fontSize: 12,
+    marginTop: 3,
   },
   meta: {
-    color: '#10b981',
-    fontSize: 12,
+    fontSize: 11,
     marginTop: 4,
   },
   actions: {
@@ -396,12 +565,15 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   actionBtn: {
-    padding: 12,
-    borderRadius: 8,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  empty: {
-    color: '#64748b',
+  emptyText: {
     textAlign: 'center',
-    marginTop: 40,
+    marginTop: 32,
+    fontSize: 13,
   },
 });
