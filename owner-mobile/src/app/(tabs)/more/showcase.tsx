@@ -526,7 +526,7 @@ export default function ShowcaseScreen() {
               </View>
               <Text style={[styles.emptyTitle, { color: colors.text }]}>No Hero Banners</Text>
               <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
-                Upload eye-catching 16:9 carousel banners for your customer storefront
+                Upload 16:9 carousel banners.
               </Text>
               <TouchableOpacity
                 style={styles.emptyActionBtn}

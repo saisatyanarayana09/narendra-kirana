@@ -542,7 +542,7 @@ export default function SettingsScreen() {
               <View>
                 <Text style={[styles.cardTitle, { color: colors.text }]}>App Search Ticker</Text>
                 <Text style={[styles.cardSub, { color: colors.textMuted }]}>
-                  Animated placeholder search terms cycling in customer search bar
+                  Animated search placeholders
                 </Text>
               </View>
             </View>

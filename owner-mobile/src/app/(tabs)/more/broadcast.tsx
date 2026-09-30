@@ -94,7 +94,7 @@ export default function BroadcastScreen() {
         contentContainerStyle={styles.content}
       >
       <Text style={[styles.headerSub, { color: colors.textMuted }]}>
-        Dispatch high-conversion push alerts with images, offers, and deep links directly to customer phones.
+        Send push notifications to customers.
       </Text>
 
       {/* Category / Badge Selector */}

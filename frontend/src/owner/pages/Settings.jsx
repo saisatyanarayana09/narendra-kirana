@@ -542,7 +542,7 @@ const Settings = () => {
                   onClick={() => handleSelectProvider(provider)}
                   className={`p-3 rounded-md border text-center text-sm font-medium transition ${emailSettings.provider === provider ? 'border-slate-900 bg-slate-50 text-slate-900' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}
                 >
-                  {provider.capitalize()}
+                  {provider.charAt(0).toUpperCase() + provider.slice(1)}
                 </button>
               ))}
             </div>

@@ -637,7 +637,7 @@ export default function CommonSmartScannerScreen() {
                   Referral Reward #{scanResult.referralId}
                 </Text>
                 <Text style={[styles.referralSub, { color: colors.textMuted }]}>
-                  Cryptographically verified reward token ready to be redeemed.
+                  Valid reward token. Ready to redeem.
                 </Text>
               </View>
             </View>

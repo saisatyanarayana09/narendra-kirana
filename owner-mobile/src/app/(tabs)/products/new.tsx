@@ -748,7 +748,7 @@ export default function AddProductScreen() {
             </View>
 
             <Text style={[styles.aiModalSub, { color: colors.textMuted }]}>
-              Take a photo of the product front or packaging label. AI will extract name, brand, weight/unit, and description automatically.
+              Take a photo to auto-fill product details.
             </Text>
 
             <View style={styles.aiModalOptions}>

@@ -393,8 +393,7 @@ export default function LoginScreen() {
               <Text style={{ color: '#34d399' }}>effortlessly in real-time.</Text>
             </Text>
             <Text style={styles.heroDesc}>
-              Track orders instantly, monitor inventory, manage dynamic homepage banners, and
-              analyze sales performance across all channels.
+              Track orders, manage inventory, and view analytics.
             </Text>
             <View style={styles.heroFeaturesGrid}>
               {[

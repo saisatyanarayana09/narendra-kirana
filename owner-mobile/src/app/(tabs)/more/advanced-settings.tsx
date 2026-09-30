@@ -1545,8 +1545,7 @@ export default function AdvancedSettingsScreen() {
                 )}
               </TouchableOpacity>
               <Text style={[styles.backupNotice, { color: colors.textMuted }]}>
-                The backup file is saved as a complete, encrypted JSON archive containing all products,
-                categories, orders, customers, and store configurations.
+                Store backup saved as an encrypted archive.
               </Text>
             </View>
           )}
