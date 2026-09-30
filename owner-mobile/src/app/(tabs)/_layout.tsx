@@ -9,6 +9,7 @@ import {
   useWindowDimensions,
   Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Tabs, Redirect, useRouter, usePathname } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -188,6 +189,7 @@ export default function TabLayout() {
   const router = useRouter();
   const pathname = usePathname();
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const isDesktop = width >= 1024;
 
   const [isHubOpen, setIsHubOpen] = useState(false);
@@ -367,6 +369,7 @@ export default function TabLayout() {
             {
               backgroundColor: colors.headerBg,
               borderBottomColor: colors.border,
+              paddingTop: insets.top,
             },
           ]}
         >
@@ -426,6 +429,7 @@ export default function TabLayout() {
               {
                 backgroundColor: colors.headerBg,
                 borderTopColor: colors.border,
+                paddingBottom: Math.max(insets.bottom, 6),
               },
             ]}
           >
@@ -1015,7 +1019,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   topHeader: {
-    height: 54,
+    minHeight: 54,
     paddingHorizontal: 14,
     borderBottomWidth: 1,
     flexDirection: 'row',
@@ -1143,7 +1147,6 @@ const styles = StyleSheet.create({
   },
   mobileBottomBarWrap: {
     borderTopWidth: 1,
-    paddingBottom: 6,
     paddingHorizontal: 6,
     boxShadow: '0px -4px 16px rgba(15, 23, 42, 0.08)',
     elevation: 10,
