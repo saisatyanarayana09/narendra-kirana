@@ -13,6 +13,7 @@ import {
 import ModernSwitch from '../../../components/ModernSwitch';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import api, { ApiInstance, getErrorMessage } from '../../../services/api';
@@ -173,13 +174,17 @@ export default function AddProductScreen() {
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        allowsMultipleSelection: true,
+        allowsMultipleSelection: false, allowsEditing: true, aspect: [1, 1],
         quality: 0.8,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const uris = result.assets.map((a) => a.uri);
-        setGalleryImages((prev) => [...prev, ...uris]);
+        let uri = result.assets[0].uri;
+        try {
+          const manip = await ImageManipulator.manipulateAsync(uri, [{ resize: { width: 800 } }], { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG });
+          uri = manip.uri;
+        } catch(e) {}
+        setGalleryImages((prev) => [...prev, uri]);
       }
     } catch (e: any) {
       showAlert('Error', getErrorMessage(e, 'Failed to pick gallery photos.'));
@@ -269,7 +274,12 @@ export default function AddProductScreen() {
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        setImageUri(result.assets[0].uri);
+        let uri = result.assets[0].uri;
+        try {
+          const manip = await ImageManipulator.manipulateAsync(uri, [{ resize: { width: 800 } }], { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG });
+          uri = manip.uri;
+        } catch(e) {}
+        setImageUri(uri);
         setImageChanged(true);
       }
     } catch (e: any) {
