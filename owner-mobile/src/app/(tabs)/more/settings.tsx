@@ -8,49 +8,130 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
+  Platform,
+  Modal,
+  Linking,
 } from 'react-native';
-import api, { ApiInstance, getErrorMessage } from '../../../services/api';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import api, { ApiInstance, getErrorMessage } from '../../../services/api';
+import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert } from '../../../utils/alerts';
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { colors, isDark } = useAppTheme();
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [downloadingBackup, setDownloadingBackup] = useState(false);
 
+  // Core settings form
   const [form, setForm] = useState<any>({
     store_name: '',
     store_phone: '',
     store_email: '',
     store_address: '',
+    store_latitude: '17.385044',
+    store_longitude: '78.486671',
     is_open: true,
     auto_accept_orders: false,
     min_order_amount: '0.00',
     packaging_fee: '0.00',
+    low_stock_threshold: '5',
     is_home_delivery_active: false,
     delivery_fee: '0.00',
     free_delivery_threshold: '0.00',
     min_delivery_order_amount: '150.00',
     allowed_pincodes: '',
+    delivery_radius_km: '5.00',
     enforce_delivery_radius: false,
+    invoice_signature: null,
     show_popular_picks: true,
+    popular_picks_title: 'Popular picks',
     show_great_deals: true,
+    great_deals_title: 'Great Deals',
     show_new_arrivals: true,
+    new_arrivals_title: 'New Arrivals',
   });
+
+  // Digital signature state
+  const [signatureUri, setSignatureUri] = useState<string | null>(null);
+  const [signatureChanged, setSignatureChanged] = useState(false);
+
+  // Email & SMTP configuration state
+  const [emailSettings, setEmailSettings] = useState<any>({
+    provider: 'gmail',
+    sender_name: 'Narendra Kirana',
+    sender_email: '',
+    smtp_host: 'smtp.gmail.com',
+    smtp_port: 587,
+    use_tls: true,
+    use_ssl: false,
+    is_active: false,
+    app_password: '',
+  });
+  const [showAppPassword, setShowAppPassword] = useState(false);
+  const [savingEmail, setSavingEmail] = useState(false);
+
+  // Test email modal state
+  const [testModalOpen, setTestModalOpen] = useState(false);
+  const [testRecipient, setTestRecipient] = useState('');
+  const [testingEmail, setTestingEmail] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
-    api
-      .get('/store/settings/')
-      .then((res) => {
-        if (isMounted && res?.data) {
-          setForm((prev: any) => ({ ...prev, ...res.data }));
+
+    const loadData = async () => {
+      try {
+        const [settingsRes, emailRes] = await Promise.allSettled([
+          api.get('/store/settings/', { params: { t: Date.now() } }),
+          api.get('/store/email-settings/', { params: { t: Date.now() } }),
+        ]);
+
+        if (!isMounted) return;
+
+        if (settingsRes.status === 'fulfilled' && settingsRes.value?.data) {
+          const d = settingsRes.value.data;
+          setForm((prev: any) => ({
+            ...prev,
+            ...d,
+            store_latitude: d.store_latitude ? String(d.store_latitude) : '17.385044',
+            store_longitude: d.store_longitude ? String(d.store_longitude) : '78.486671',
+            low_stock_threshold: String(d.low_stock_threshold ?? '5'),
+            delivery_radius_km: String(d.delivery_radius_km ?? '5.00'),
+          }));
+          if (d.invoice_signature) {
+            setSignatureUri(d.invoice_signature);
+          }
+          if (d.store_email && !testRecipient) {
+            setTestRecipient(d.store_email);
+          }
         }
-      })
-      .catch(() => {})
-      .finally(() => {
+
+        if (emailRes.status === 'fulfilled' && emailRes.value?.data) {
+          const em = emailRes.value.data;
+          setEmailSettings((prev: any) => ({
+            ...prev,
+            ...em,
+            sender_email: em.sender_email || prev.sender_email || '',
+            app_password: em.app_password || '',
+          }));
+          if (em.sender_email && !testRecipient) {
+            setTestRecipient(em.sender_email);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load store settings:', err);
+      } finally {
         if (isMounted) setLoading(false);
-      });
+      }
+    };
+
+    loadData();
+
     return () => {
       isMounted = false;
     };
@@ -60,32 +141,222 @@ export default function SettingsScreen() {
     setForm((prev: any) => ({ ...prev, [key]: val }));
   };
 
-  const handleSave = async () => {
+  const updateEmailField = (key: string, val: any) => {
+    setEmailSettings((prev: any) => ({ ...prev, [key]: val }));
+  };
+
+  const handleSelectEmailProvider = (provider: 'gmail' | 'outlook' | 'custom') => {
+    if (provider === 'gmail') {
+      setEmailSettings((prev: any) => ({
+        ...prev,
+        provider: 'gmail',
+        smtp_host: 'smtp.gmail.com',
+        smtp_port: 587,
+        use_tls: true,
+        use_ssl: false,
+      }));
+    } else if (provider === 'outlook') {
+      setEmailSettings((prev: any) => ({
+        ...prev,
+        provider: 'outlook',
+        smtp_host: 'smtp.office365.com',
+        smtp_port: 587,
+        use_tls: true,
+        use_ssl: false,
+      }));
+    } else {
+      setEmailSettings((prev: any) => ({
+        ...prev,
+        provider: 'custom',
+      }));
+    }
+  };
+
+  const handlePickSignature = async () => {
+    try {
+      if (Platform.OS !== 'web') {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permission.granted) {
+          showAlert('Permission Required', 'Permission to access photo library is required.');
+          return;
+        }
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [5, 2],
+        quality: 0.85,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setSignatureUri(result.assets[0].uri);
+        setSignatureChanged(true);
+      }
+    } catch (err) {
+      console.error('Signature pick error:', err);
+    }
+  };
+
+  const handleRemoveSignature = () => {
+    setSignatureUri(null);
+    setSignatureChanged(true);
+  };
+
+  const handleQuickDownloadBackup = async () => {
+    setDownloadingBackup(true);
+    try {
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        const res = await api.get('/store/backup/export/', { responseType: 'blob' });
+        const blob = new Blob([res.data], { type: 'application/json' });
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        const dateStr = new Date().toISOString().slice(0, 10);
+        link.download = `narendra_kirana_backup_${dateStr}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(downloadUrl);
+        showAlert('Backup Complete', 'Complete store database backup downloaded successfully!');
+      } else {
+        const baseUrl = api.defaults.baseURL || 'https://narendra-kirana.onrender.com/api/v1';
+        const exportUrl = `${baseUrl.replace(/\/+$/, '')}/store/backup/export/`;
+        await Linking.openURL(exportUrl);
+        showAlert('Export Initiated', 'Database backup download opened in device browser.');
+      }
+    } catch (err) {
+      showAlert('Backup Error', getErrorMessage(err, 'Failed to export store database backup.'));
+    } finally {
+      setDownloadingBackup(false);
+    }
+  };
+
+  const handleSaveEmailSettings = async () => {
+    setSavingEmail(true);
+    try {
+      const payload: any = {
+        provider: emailSettings.provider,
+        sender_email: String(emailSettings.sender_email || '').trim(),
+        sender_name: String(emailSettings.sender_name || 'Narendra Kirana').trim(),
+        smtp_host: String(emailSettings.smtp_host || 'smtp.gmail.com').trim(),
+        smtp_port: Number(emailSettings.smtp_port) || 587,
+        use_tls: Boolean(emailSettings.use_tls),
+        use_ssl: Boolean(emailSettings.use_ssl),
+        is_active: Boolean(emailSettings.is_active),
+      };
+      if (emailSettings.app_password !== undefined) {
+        payload.app_password = String(emailSettings.app_password).trim();
+      }
+
+      const res = await api.patch('/store/email-settings/', payload);
+      setEmailSettings((prev: any) => ({
+        ...prev,
+        ...res.data,
+        app_password: res.data?.app_password ?? payload.app_password ?? prev.app_password,
+      }));
+      (api as ApiInstance).clearCache();
+      showAlert('Success', 'Store Email & SMTP credentials saved!');
+    } catch (e: any) {
+      showAlert('Error', getErrorMessage(e, 'Failed to save email settings.'));
+    } finally {
+      setSavingEmail(false);
+    }
+  };
+
+  const handleSendTestEmail = async () => {
+    if (!testRecipient || !testRecipient.includes('@')) {
+      showAlert('Invalid Recipient', 'Please enter a valid recipient email address.');
+      return;
+    }
+    setTestingEmail(true);
+    try {
+      const payload = {
+        test_email: testRecipient.trim(),
+        config_override: {
+          provider: emailSettings.provider,
+          sender_email: String(emailSettings.sender_email || '').trim(),
+          sender_name: String(emailSettings.sender_name || 'Narendra Kirana').trim(),
+          smtp_host: String(emailSettings.smtp_host || 'smtp.gmail.com').trim(),
+          smtp_port: Number(emailSettings.smtp_port) || 587,
+          use_tls: Boolean(emailSettings.use_tls),
+          use_ssl: Boolean(emailSettings.use_ssl),
+          app_password: emailSettings.app_password ? String(emailSettings.app_password).trim() : undefined,
+        },
+      };
+      const res = await api.post('/store/email-settings/test/', payload);
+      setTestModalOpen(false);
+      showAlert('Delivered!', res.data?.message || 'Test email sent successfully!');
+    } catch (e: any) {
+      showAlert('Test Failed', getErrorMessage(e, 'Failed to send test email. Please check credentials.'));
+    } finally {
+      setTestingEmail(false);
+    }
+  };
+
+  const handleSaveAll = async () => {
     setSaving(true);
     try {
-      await api.patch('/store/settings/', {
-        store_name: String(form.store_name || '').trim(),
-        store_phone: String(form.store_phone || '').trim(),
-        store_email: String(form.store_email || '').trim(),
+      const payload: any = {
+        store_name: String(form.store_name || '').trim() || 'Narendra Kirana',
         store_address: String(form.store_address || '').trim(),
+        store_phone: String(form.store_phone || '').trim().slice(0, 20),
+        store_email: String(form.store_email || '').trim(),
         is_open: Boolean(form.is_open),
         auto_accept_orders: Boolean(form.auto_accept_orders),
-        min_order_amount: form.min_order_amount,
-        packaging_fee: form.packaging_fee,
+        min_order_amount: (parseFloat(form.min_order_amount) || 0).toFixed(2),
+        packaging_fee: (parseFloat(form.packaging_fee) || 0).toFixed(2),
+        low_stock_threshold: Math.max(0, parseInt(form.low_stock_threshold, 10) || 5),
         is_home_delivery_active: Boolean(form.is_home_delivery_active),
-        delivery_fee: form.delivery_fee,
-        free_delivery_threshold: form.free_delivery_threshold,
-        min_delivery_order_amount: form.min_delivery_order_amount,
+        delivery_mode: form.is_home_delivery_active ? 'BOTH' : 'PICKUP',
+        delivery_fee: (parseFloat(form.delivery_fee) || 0).toFixed(2),
+        free_delivery_threshold: (parseFloat(form.free_delivery_threshold) || 0).toFixed(2),
+        min_delivery_order_amount: (parseFloat(form.min_delivery_order_amount) || 0).toFixed(2),
         allowed_pincodes: String(form.allowed_pincodes || '').trim(),
+        store_latitude: form.store_latitude ? parseFloat(form.store_latitude).toFixed(6) : '17.385044',
+        store_longitude: form.store_longitude ? parseFloat(form.store_longitude).toFixed(6) : '78.486671',
+        delivery_radius_km: form.delivery_radius_km ? parseFloat(form.delivery_radius_km).toFixed(2) : '5.00',
         enforce_delivery_radius: Boolean(form.enforce_delivery_radius),
         show_popular_picks: Boolean(form.show_popular_picks),
+        popular_picks_title: String(form.popular_picks_title || 'Popular picks').trim(),
         show_great_deals: Boolean(form.show_great_deals),
+        great_deals_title: String(form.great_deals_title || 'Great Deals').trim(),
         show_new_arrivals: Boolean(form.show_new_arrivals),
-      });
+        new_arrivals_title: String(form.new_arrivals_title || 'New Arrivals').trim(),
+      };
+
+      if (signatureChanged && signatureUri) {
+        const formData = new FormData();
+        Object.entries(payload).forEach(([k, v]) => {
+          formData.append(k, String(v));
+        });
+
+        const rawFilename = signatureUri.split('/').pop() || 'signature.png';
+        const match = /\.(\w+)$/.exec(rawFilename);
+        const mimeType = match ? `image/${match[1].toLowerCase()}` : 'image/png';
+
+        if (Platform.OS === 'web') {
+          const res = await fetch(signatureUri);
+          const blob = await res.blob();
+          formData.append('invoice_signature', blob, rawFilename);
+        } else {
+          formData.append('invoice_signature', {
+            uri: signatureUri,
+            name: rawFilename,
+            type: mimeType,
+          } as any);
+        }
+
+        await api.patch('/store/settings/', formData);
+        setSignatureChanged(false);
+      } else {
+        await api.patch('/store/settings/', payload);
+      }
+
       (api as ApiInstance).clearCache();
-      showAlert('Success', 'Store settings saved successfully', () => router.back());
+      showAlert('Success', 'All store settings saved successfully!');
     } catch (e: any) {
-      showAlert('Error', getErrorMessage(e, 'Failed to save settings'));
+      showAlert('Save Error', getErrorMessage(e, 'Failed to save store settings.'));
     } finally {
       setSaving(false);
     }
@@ -93,217 +364,1021 @@ export default function SettingsScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+      <View style={[styles.center, { backgroundColor: colors.bg }]}>
         <ActivityIndicator size="large" color="#10b981" />
+        <Text style={[styles.loadingText, { color: colors.textMuted }]}>
+          Loading store settings...
+        </Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Store Profile & Status</Text>
-
-        <View style={styles.row}>
-          <Text style={styles.switchLabel}>Accepting Orders (Store Open)</Text>
-          <Switch
-            value={Boolean(form.is_open)}
-            onValueChange={(v) => updateField('is_open', v)}
-            trackColor={{ false: '#334155', true: '#10b981' }}
-          />
+    <View style={[styles.screen, { backgroundColor: colors.bg }]}>
+      {/* Top Header */}
+      <View style={[styles.topBar, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        <View style={styles.topBarLeft}>
+          <TouchableOpacity
+            style={[styles.backBtn, { backgroundColor: colors.cardAlt }]}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={20} color={colors.text} />
+          </TouchableOpacity>
+          <View>
+            <Text style={[styles.screenTitle, { color: colors.text }]}>Store Settings</Text>
+            <Text style={[styles.screenSub, { color: colors.textMuted }]}>
+              Core operations, delivery fees & email configuration
+            </Text>
+          </View>
         </View>
 
-        <View style={styles.row}>
-          <Text style={styles.switchLabel}>Auto-Accept Incoming Orders</Text>
-          <Switch
-            value={Boolean(form.auto_accept_orders)}
-            onValueChange={(v) => updateField('auto_accept_orders', v)}
-            trackColor={{ false: '#334155', true: '#10b981' }}
-          />
+        <View style={styles.topActions}>
+          <TouchableOpacity
+            style={[styles.actionPill, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}
+            onPress={handleQuickDownloadBackup}
+            disabled={downloadingBackup}
+          >
+            <Ionicons name="download-outline" size={16} color={colors.text} />
+            <Text style={[styles.actionPillText, { color: colors.text }]}>
+              {downloadingBackup ? 'Exporting...' : 'Backup'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionPillPrimary, { backgroundColor: '#10b981' }]}
+            onPress={() => router.push('/(tabs)/more/advanced-settings' as any)}
+          >
+            <Ionicons name="options-outline" size={16} color="#fff" />
+            <Text style={styles.actionPillPrimaryText}>Advanced</Text>
+          </TouchableOpacity>
         </View>
-
-        <Text style={styles.label}>Store Name</Text>
-        <TextInput
-          style={styles.input}
-          value={String(form.store_name || '')}
-          onChangeText={(v) => updateField('store_name', v)}
-          placeholder="Narendra Kirana"
-          placeholderTextColor="#64748b"
-        />
-
-        <Text style={styles.label}>Store Contact Phone</Text>
-        <TextInput
-          style={styles.input}
-          value={String(form.store_phone || '')}
-          onChangeText={(v) => updateField('store_phone', v)}
-          placeholder="+91 9876543210"
-          placeholderTextColor="#64748b"
-          keyboardType="phone-pad"
-        />
-
-        <Text style={styles.label}>Store Email</Text>
-        <TextInput
-          style={styles.input}
-          value={String(form.store_email || '')}
-          onChangeText={(v) => updateField('store_email', v)}
-          placeholder="owner@example.com"
-          placeholderTextColor="#64748b"
-          keyboardType="email-address"
-        />
-
-        <Text style={styles.label}>Store Address</Text>
-        <TextInput
-          style={styles.input}
-          value={String(form.store_address || '')}
-          onChangeText={(v) => updateField('store_address', v)}
-          placeholder="Full store address"
-          placeholderTextColor="#64748b"
-        />
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Delivery & Order Fees</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.maxContainer}>
 
-        <View style={styles.row}>
-          <Text style={styles.switchLabel}>Enable Home Delivery</Text>
-          <Switch
-            value={Boolean(form.is_home_delivery_active)}
-            onValueChange={(v) => updateField('is_home_delivery_active', v)}
-            trackColor={{ false: '#334155', true: '#10b981' }}
-          />
-        </View>
+          {/* Section 1: Store Profile & Status */}
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
+                <Ionicons name="storefront-outline" size={20} color="#10b981" />
+              </View>
+              <View>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>Store Identity & Operations</Text>
+                <Text style={[styles.cardSub, { color: colors.textMuted }]}>
+                  Basic information and current active status
+                </Text>
+              </View>
+            </View>
 
-        <View style={styles.row}>
-          <Text style={styles.switchLabel}>Enforce Geofence Radius</Text>
-          <Switch
-            value={Boolean(form.enforce_delivery_radius)}
-            onValueChange={(v) => updateField('enforce_delivery_radius', v)}
-            trackColor={{ false: '#334155', true: '#10b981' }}
-          />
-        </View>
+            <View style={[styles.switchCard, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.switchLabel, { color: colors.text }]}>Accepting Orders (Store Open)</Text>
+                <Text style={[styles.switchSub, { color: colors.textMuted }]}>
+                  {form.is_open ? 'Store is open and accepting new customer orders' : 'Store is paused / offline'}
+                </Text>
+              </View>
+              <Switch
+                value={Boolean(form.is_open)}
+                onValueChange={(v) => updateField('is_open', v)}
+                trackColor={{ false: '#334155', true: '#10b981' }}
+              />
+            </View>
 
-        <View style={styles.twoCol}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Min Order (₹)</Text>
+            <View style={[styles.switchCard, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.switchLabel, { color: colors.text }]}>Auto-Accept Incoming Orders</Text>
+                <Text style={[styles.switchSub, { color: colors.textMuted }]}>
+                  Automatically move newly placed orders to 'ACCEPTED' status
+                </Text>
+              </View>
+              <Switch
+                value={Boolean(form.auto_accept_orders)}
+                onValueChange={(v) => updateField('auto_accept_orders', v)}
+                trackColor={{ false: '#334155', true: '#10b981' }}
+              />
+            </View>
+
+            <Text style={[styles.label, { color: colors.textMuted }]}>Store Name</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+              value={String(form.store_name || '')}
+              onChangeText={(v) => updateField('store_name', v)}
+              placeholder="Narendra Kirana"
+              placeholderTextColor={colors.textMuted}
+            />
+
+            <Text style={[styles.label, { color: colors.textMuted }]}>Store Address</Text>
+            <TextInput
+              style={[styles.input, styles.multilineInput, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+              value={String(form.store_address || '')}
+              onChangeText={(v) => updateField('store_address', v)}
+              placeholder="Full physical store address"
+              placeholderTextColor={colors.textMuted}
+              multiline
+              numberOfLines={3}
+            />
+
+            <View style={styles.twoCol}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.label, { color: colors.textMuted }]}>Store Latitude</Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                  keyboardType="numeric"
+                  value={String(form.store_latitude || '')}
+                  onChangeText={(v) => updateField('store_latitude', v)}
+                  placeholder="17.385044"
+                  placeholderTextColor={colors.textMuted}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.label, { color: colors.textMuted }]}>Store Longitude</Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                  keyboardType="numeric"
+                  value={String(form.store_longitude || '')}
+                  onChangeText={(v) => updateField('store_longitude', v)}
+                  placeholder="78.486671"
+                  placeholderTextColor={colors.textMuted}
+                />
+              </View>
+            </View>
+          </View>
+
+          {/* Section 2: Order Constraints & Fees */}
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardIconBox, { backgroundColor: 'rgba(59, 130, 246, 0.15)' }]}>
+                <Ionicons name="receipt-outline" size={20} color="#3b82f6" />
+              </View>
+              <View>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>Order Rules & Inventory</Text>
+                <Text style={[styles.cardSub, { color: colors.textMuted }]}>
+                  Minimum cart totals, packaging fees, and stock warnings
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.twoCol}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.label, { color: colors.textMuted }]}>Min Order Amount (₹)</Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                  keyboardType="numeric"
+                  value={String(form.min_order_amount ?? '0.00')}
+                  onChangeText={(v) => updateField('min_order_amount', v)}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.label, { color: colors.textMuted }]}>Packaging Fee (₹)</Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                  keyboardType="numeric"
+                  value={String(form.packaging_fee ?? '0.00')}
+                  onChangeText={(v) => updateField('packaging_fee', v)}
+                />
+              </View>
+            </View>
+
+            <Text style={[styles.label, { color: colors.textMuted }]}>Low Stock Alert Threshold (Units)</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
               keyboardType="numeric"
-              value={String(form.min_order_amount ?? '0')}
-              onChangeText={(v) => updateField('min_order_amount', v)}
+              value={String(form.low_stock_threshold ?? '5')}
+              onChangeText={(v) => updateField('low_stock_threshold', v)}
+              placeholder="5"
+              placeholderTextColor={colors.textMuted}
             />
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Packaging Fee (₹)</Text>
+
+          {/* Section 3: Delivery Rules & Geofence */}
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardIconBox, { backgroundColor: 'rgba(234, 88, 12, 0.15)' }]}>
+                <Ionicons name="bicycle-outline" size={20} color="#ea580c" />
+              </View>
+              <View>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>Delivery Rules & Geofencing</Text>
+                <Text style={[styles.cardSub, { color: colors.textMuted }]}>
+                  Home delivery pricing, radius limits, and postal zones
+                </Text>
+              </View>
+            </View>
+
+            <View style={[styles.switchCard, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.switchLabel, { color: colors.text }]}>Enable Home Delivery</Text>
+                <Text style={[styles.switchSub, { color: colors.textMuted }]}>
+                  Allow customers to choose door delivery at checkout
+                </Text>
+              </View>
+              <Switch
+                value={Boolean(form.is_home_delivery_active)}
+                onValueChange={(v) => updateField('is_home_delivery_active', v)}
+                trackColor={{ false: '#334155', true: '#10b981' }}
+              />
+            </View>
+
+            {Boolean(form.is_home_delivery_active) && (
+              <>
+                <View style={styles.twoCol}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.label, { color: colors.textMuted }]}>Delivery Fee (₹)</Text>
+                    <TextInput
+                      style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                      keyboardType="numeric"
+                      value={String(form.delivery_fee ?? '0.00')}
+                      onChangeText={(v) => updateField('delivery_fee', v)}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.label, { color: colors.textMuted }]}>Free Delivery Above (₹)</Text>
+                    <TextInput
+                      style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                      keyboardType="numeric"
+                      value={String(form.free_delivery_threshold ?? '0.00')}
+                      onChangeText={(v) => updateField('free_delivery_threshold', v)}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.twoCol}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.label, { color: colors.textMuted }]}>Min Delivery Order (₹)</Text>
+                    <TextInput
+                      style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                      keyboardType="numeric"
+                      value={String(form.min_delivery_order_amount ?? '150.00')}
+                      onChangeText={(v) => updateField('min_delivery_order_amount', v)}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.label, { color: colors.textMuted }]}>Delivery Radius (km)</Text>
+                    <TextInput
+                      style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                      keyboardType="numeric"
+                      value={String(form.delivery_radius_km ?? '5.00')}
+                      onChangeText={(v) => updateField('delivery_radius_km', v)}
+                    />
+                  </View>
+                </View>
+
+                <View style={[styles.switchCard, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.switchLabel, { color: colors.text }]}>Enforce Geofence Radius</Text>
+                    <Text style={[styles.switchSub, { color: colors.textMuted }]}>
+                      Block customer checkout if address is beyond delivery radius
+                    </Text>
+                  </View>
+                  <Switch
+                    value={Boolean(form.enforce_delivery_radius)}
+                    onValueChange={(v) => updateField('enforce_delivery_radius', v)}
+                    trackColor={{ false: '#334155', true: '#10b981' }}
+                  />
+                </View>
+
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  Allowed Pincodes (Comma-separated, leave blank for all)
+                </Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                  placeholder="500001, 500002, 500003"
+                  placeholderTextColor={colors.textMuted}
+                  value={String(form.allowed_pincodes || '')}
+                  onChangeText={(v) => updateField('allowed_pincodes', v)}
+                />
+              </>
+            )}
+          </View>
+
+          {/* Section 4: Store Email & SMTP Configuration */}
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardIconBox, { backgroundColor: 'rgba(99, 102, 241, 0.15)' }]}>
+                <Ionicons name="mail-outline" size={20} color="#6366f1" />
+              </View>
+              <View>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>Email & SMTP Credentials</Text>
+                <Text style={[styles.cardSub, { color: colors.textMuted }]}>
+                  Automated order confirmations & owner email notices
+                </Text>
+              </View>
+            </View>
+
+            <View style={[styles.switchCard, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.switchLabel, { color: colors.text }]}>Enable Custom SMTP Sending</Text>
+                <Text style={[styles.switchSub, { color: colors.textMuted }]}>
+                  Send order receipts directly from your own Gmail or store domain
+                </Text>
+              </View>
+              <Switch
+                value={Boolean(emailSettings.is_active)}
+                onValueChange={(v) => updateEmailField('is_active', v)}
+                trackColor={{ false: '#334155', true: '#10b981' }}
+              />
+            </View>
+
+            <Text style={[styles.label, { color: colors.textMuted, marginTop: 4 }]}>Provider Preset</Text>
+            <View style={styles.providerRow}>
+              {(['gmail', 'outlook', 'custom'] as const).map((prov) => {
+                const isSelected = emailSettings.provider === prov;
+                return (
+                  <TouchableOpacity
+                    key={prov}
+                    style={[
+                      styles.providerPill,
+                      {
+                        backgroundColor: isSelected ? '#10b981' : colors.cardAlt,
+                        borderColor: isSelected ? '#10b981' : colors.border,
+                      },
+                    ]}
+                    onPress={() => handleSelectEmailProvider(prov)}
+                  >
+                    <Text
+                      style={[
+                        styles.providerPillText,
+                        { color: isSelected ? '#fff' : colors.text },
+                      ]}
+                    >
+                      {prov === 'gmail' ? 'Gmail / Workspace' : prov === 'outlook' ? 'Outlook 365' : 'Custom SMTP'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <Text style={[styles.label, { color: colors.textMuted }]}>Sender Display Name</Text>
             <TextInput
-              style={styles.input}
-              keyboardType="numeric"
-              value={String(form.packaging_fee ?? '0')}
-              onChangeText={(v) => updateField('packaging_fee', v)}
+              style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+              value={String(emailSettings.sender_name || '')}
+              onChangeText={(v) => updateEmailField('sender_name', v)}
+              placeholder="Narendra Kirana"
+              placeholderTextColor={colors.textMuted}
             />
+
+            <Text style={[styles.label, { color: colors.textMuted }]}>Sender Email Address</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={String(emailSettings.sender_email || '')}
+              onChangeText={(v) => updateEmailField('sender_email', v)}
+              placeholder="owner@example.com"
+              placeholderTextColor={colors.textMuted}
+            />
+
+            <View style={styles.twoCol}>
+              <View style={{ flex: 2 }}>
+                <Text style={[styles.label, { color: colors.textMuted }]}>SMTP Host</Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                  autoCapitalize="none"
+                  value={String(emailSettings.smtp_host || '')}
+                  onChangeText={(v) => updateEmailField('smtp_host', v)}
+                  placeholder="smtp.gmail.com"
+                  placeholderTextColor={colors.textMuted}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.label, { color: colors.textMuted }]}>SMTP Port</Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                  keyboardType="numeric"
+                  value={String(emailSettings.smtp_port || '587')}
+                  onChangeText={(v) => updateEmailField('smtp_port', v)}
+                  placeholder="587"
+                  placeholderTextColor={colors.textMuted}
+                />
+              </View>
+            </View>
+
+            <View style={styles.twoCol}>
+              <View style={[styles.switchCard, { flex: 1, backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
+                <Text style={[styles.switchLabel, { color: colors.text, fontSize: 13 }]}>Use TLS</Text>
+                <Switch
+                  value={Boolean(emailSettings.use_tls)}
+                  onValueChange={(v) => updateEmailField('use_tls', v)}
+                  trackColor={{ false: '#334155', true: '#10b981' }}
+                />
+              </View>
+              <View style={[styles.switchCard, { flex: 1, backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
+                <Text style={[styles.switchLabel, { color: colors.text, fontSize: 13 }]}>Use SSL</Text>
+                <Switch
+                  value={Boolean(emailSettings.use_ssl)}
+                  onValueChange={(v) => updateEmailField('use_ssl', v)}
+                  trackColor={{ false: '#334155', true: '#10b981' }}
+                />
+              </View>
+            </View>
+
+            <Text style={[styles.label, { color: colors.textMuted }]}>
+              App Password / Secret
+            </Text>
+            <View style={styles.passwordWrap}>
+              <TextInput
+                style={[
+                  styles.input,
+                  { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text, flex: 1, marginBottom: 0 },
+                ]}
+                secureTextEntry={!showAppPassword}
+                value={String(emailSettings.app_password || '')}
+                onChangeText={(v) => updateEmailField('app_password', v)}
+                placeholder="16-character Google App Password"
+                placeholderTextColor={colors.textMuted}
+              />
+              <TouchableOpacity
+                style={styles.eyeBtn}
+                onPress={() => setShowAppPassword((prev) => !prev)}
+              >
+                <Ionicons
+                  name={showAppPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={18}
+                  color={colors.textMuted}
+                />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.emailActionsRow}>
+              <TouchableOpacity
+                style={[styles.outlineBtn, { borderColor: colors.border, backgroundColor: colors.cardAlt }]}
+                onPress={() => setTestModalOpen(true)}
+              >
+                <Ionicons name="paper-plane-outline" size={16} color={colors.text} />
+                <Text style={[styles.outlineBtnText, { color: colors.text }]}>Test Connection</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.primaryBtnSmall, { backgroundColor: '#10b981' }]}
+                onPress={handleSaveEmailSettings}
+                disabled={savingEmail}
+              >
+                {savingEmail ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <>
+                    <Ionicons name="checkmark-circle-outline" size={16} color="#fff" />
+                    <Text style={styles.primaryBtnSmallText}>Save Email Config</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Section 5: Invoicing & Digital Signature */}
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardIconBox, { backgroundColor: 'rgba(236, 72, 153, 0.15)' }]}>
+                <Ionicons name="document-text-outline" size={20} color="#ec4899" />
+              </View>
+              <View>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>Invoicing & Digital Signature</Text>
+                <Text style={[styles.cardSub, { color: colors.textMuted }]}>
+                  Customer receipt contact details and official stamp/signature
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.twoCol}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.label, { color: colors.textMuted }]}>Contact Phone</Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                  keyboardType="phone-pad"
+                  value={String(form.store_phone || '')}
+                  onChangeText={(v) => updateField('store_phone', v)}
+                  placeholder="+91 9876543210"
+                  placeholderTextColor={colors.textMuted}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.label, { color: colors.textMuted }]}>Support Email</Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                  keyboardType="email-address"
+                  value={String(form.store_email || '')}
+                  onChangeText={(v) => updateField('store_email', v)}
+                  placeholder="support@narendrakirana.in"
+                  placeholderTextColor={colors.textMuted}
+                />
+              </View>
+            </View>
+
+            <Text style={[styles.label, { color: colors.textMuted }]}>Store Digital Signature / Stamp</Text>
+            {signatureUri ? (
+              <View style={[styles.signatureBox, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
+                <Image
+                  source={{ uri: signatureUri }}
+                  style={styles.signatureImage}
+                  contentFit="contain"
+                />
+                <View style={styles.signatureBtnRow}>
+                  <TouchableOpacity
+                    style={[styles.smallPickBtn, { backgroundColor: '#10b981' }]}
+                    onPress={handlePickSignature}
+                  >
+                    <Ionicons name="image-outline" size={14} color="#fff" />
+                    <Text style={styles.smallPickBtnText}>Replace Signature</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.smallPickBtn, { backgroundColor: '#ef4444' }]}
+                    onPress={handleRemoveSignature}
+                  >
+                    <Ionicons name="trash-outline" size={14} color="#fff" />
+                    <Text style={styles.smallPickBtnText}>Remove</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={[styles.signaturePlaceholder, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}
+                onPress={handlePickSignature}
+              >
+                <Ionicons name="cloud-upload-outline" size={28} color="#10b981" />
+                <Text style={[styles.signaturePlaceholderText, { color: colors.text }]}>
+                  Upload Store Signature
+                </Text>
+                <Text style={[styles.signaturePlaceholderSub, { color: colors.textMuted }]}>
+                  Select transparent PNG or clear signature image from device
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Section 6: Homepage Section Controls */}
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardIconBox, { backgroundColor: 'rgba(14, 165, 233, 0.15)' }]}>
+                <Ionicons name="layers-outline" size={20} color="#0ea5e9" />
+              </View>
+              <View>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>Customer App Section Visibility</Text>
+                <Text style={[styles.cardSub, { color: colors.textMuted }]}>
+                  Show, hide or rename curated aisles on customer storefront
+                </Text>
+              </View>
+            </View>
+
+            {/* Popular Picks */}
+            <View style={[styles.sectionRow, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={[styles.sectionName, { color: colors.text }]}>Popular Picks Section</Text>
+                <Switch
+                  value={Boolean(form.show_popular_picks)}
+                  onValueChange={(v) => updateField('show_popular_picks', v)}
+                  trackColor={{ false: '#334155', true: '#10b981' }}
+                />
+              </View>
+              {Boolean(form.show_popular_picks) && (
+                <TextInput
+                  style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text, marginTop: 8 }]}
+                  value={String(form.popular_picks_title || '')}
+                  onChangeText={(v) => updateField('popular_picks_title', v)}
+                  placeholder="Section title (e.g. Popular picks)"
+                  placeholderTextColor={colors.textMuted}
+                />
+              )}
+            </View>
+
+            {/* Great Deals */}
+            <View style={[styles.sectionRow, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={[styles.sectionName, { color: colors.text }]}>Great Deals Section</Text>
+                <Switch
+                  value={Boolean(form.show_great_deals)}
+                  onValueChange={(v) => updateField('show_great_deals', v)}
+                  trackColor={{ false: '#334155', true: '#10b981' }}
+                />
+              </View>
+              {Boolean(form.show_great_deals) && (
+                <TextInput
+                  style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text, marginTop: 8 }]}
+                  value={String(form.great_deals_title || '')}
+                  onChangeText={(v) => updateField('great_deals_title', v)}
+                  placeholder="Section title (e.g. Great Deals)"
+                  placeholderTextColor={colors.textMuted}
+                />
+              )}
+            </View>
+
+            {/* New Arrivals */}
+            <View style={[styles.sectionRow, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={[styles.sectionName, { color: colors.text }]}>New Arrivals Section</Text>
+                <Switch
+                  value={Boolean(form.show_new_arrivals)}
+                  onValueChange={(v) => updateField('show_new_arrivals', v)}
+                  trackColor={{ false: '#334155', true: '#10b981' }}
+                />
+              </View>
+              {Boolean(form.show_new_arrivals) && (
+                <TextInput
+                  style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text, marginTop: 8 }]}
+                  value={String(form.new_arrivals_title || '')}
+                  onChangeText={(v) => updateField('new_arrivals_title', v)}
+                  placeholder="Section title (e.g. New Arrivals)"
+                  placeholderTextColor={colors.textMuted}
+                />
+              )}
+            </View>
+          </View>
+
+          {/* Save Button */}
+          <TouchableOpacity
+            style={[styles.saveAllBtn, { backgroundColor: '#10b981' }]}
+            onPress={handleSaveAll}
+            disabled={saving}
+          >
+            {saving ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <Ionicons name="save-outline" size={20} color="#fff" />
+                <Text style={styles.saveAllBtnText}>Save All Store Settings</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+        </View>
+      </ScrollView>
+
+      {/* Test Email Modal */}
+      <Modal visible={testModalOpen} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Send Test Email</Text>
+              <TouchableOpacity onPress={() => setTestModalOpen(false)}>
+                <Ionicons name="close" size={20} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={[styles.label, { color: colors.textMuted }]}>Recipient Email Address</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={testRecipient}
+              onChangeText={setTestRecipient}
+              placeholder="recipient@example.com"
+              placeholderTextColor={colors.textMuted}
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.outlineBtn, { borderColor: colors.border, backgroundColor: colors.cardAlt }]}
+                onPress={() => setTestModalOpen(false)}
+              >
+                <Text style={[styles.outlineBtnText, { color: colors.text }]}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.primaryBtnSmall, { backgroundColor: '#10b981' }]}
+                onPress={handleSendTestEmail}
+                disabled={testingEmail}
+              >
+                {testingEmail ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <>
+                    <Ionicons name="paper-plane" size={16} color="#fff" />
+                    <Text style={styles.primaryBtnSmallText}>Send Test</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-
-        <View style={styles.twoCol}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Delivery Fee (₹)</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="numeric"
-              value={String(form.delivery_fee ?? '0')}
-              onChangeText={(v) => updateField('delivery_fee', v)}
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Free Delivery Above (₹)</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="numeric"
-              value={String(form.free_delivery_threshold ?? '0')}
-              onChangeText={(v) => updateField('free_delivery_threshold', v)}
-            />
-          </View>
-        </View>
-
-        <Text style={styles.label}>Allowed Pincodes (comma-separated, leave blank for all)</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="500001, 500002"
-          placeholderTextColor="#64748b"
-          value={String(form.allowed_pincodes || '')}
-          onChangeText={(v) => updateField('allowed_pincodes', v)}
-        />
-      </View>
-
-      <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
-        {saving ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.saveBtnText}>Save All Store Settings</Text>
-        )}
-      </TouchableOpacity>
-    </ScrollView>
+      </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
-    backgroundColor: '#0f172a',
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  topBar: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  topBarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+    minWidth: 200,
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  screenTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+  },
+  screenSub: {
+    fontSize: 12,
+    marginTop: 1,
+  },
+  topActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  actionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  actionPillText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  actionPillPrimary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  actionPillPrimaryText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  scrollContent: {
     padding: 16,
+    paddingBottom: 60,
+  },
+  maxContainer: {
+    width: '100%',
+    maxWidth: 860,
+    alignSelf: 'center',
+    gap: 16,
   },
   card: {
-    backgroundColor: '#1e293b',
     padding: 18,
-    borderRadius: 12,
-    marginBottom: 16,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    gap: 12,
   },
-  sectionTitle: {
-    color: '#f8fafc',
-    fontSize: 17,
-    fontWeight: 'bold',
-    marginBottom: 14,
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 4,
+  },
+  cardIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  cardSub: {
+    fontSize: 12,
+    marginTop: 2,
   },
   label: {
-    color: '#94a3b8',
-    marginBottom: 6,
     fontSize: 13,
+    fontWeight: '500',
+    marginBottom: 4,
   },
   input: {
-    backgroundColor: '#0f172a',
     borderWidth: 1,
-    borderColor: '#334155',
-    color: '#fff',
-    padding: 12,
     borderRadius: 8,
-    marginBottom: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    marginBottom: 10,
+  },
+  multilineInput: {
+    minHeight: 65,
+    textAlignVertical: 'top',
   },
   twoCol: {
     flexDirection: 'row',
+    gap: 12,
+  },
+  switchCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 8,
     gap: 10,
   },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
   switchLabel: {
-    color: '#cbd5e1',
-    fontSize: 15,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  switchSub: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  providerRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 10,
+  },
+  providerPill: {
     flex: 1,
-    marginRight: 10,
-  },
-  saveBtn: {
-    backgroundColor: '#10b981',
-    padding: 16,
+    paddingVertical: 9,
+    paddingHorizontal: 10,
     borderRadius: 8,
+    borderWidth: 1,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  saveBtnText: {
+  providerPillText: {
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  passwordWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  eyeBtn: {
+    padding: 10,
+  },
+  emailActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 4,
+  },
+  outlineBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  outlineBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  primaryBtnSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 8,
+  },
+  primaryBtnSmallText: {
     color: '#fff',
-    fontWeight: 'bold',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  signatureBox: {
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    gap: 10,
+  },
+  signatureImage: {
+    width: '100%',
+    height: 100,
+    borderRadius: 6,
+  },
+  signatureBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  smallPickBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  smallPickBtnText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  signaturePlaceholder: {
+    padding: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  signaturePlaceholderText: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  signaturePlaceholderSub: {
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  sectionRow: {
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  sectionName: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  saveAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 10,
+    marginTop: 10,
+    shadowColor: '#10b981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  saveAllBtnText: {
+    color: '#fff',
     fontSize: 16,
+    fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 20,
+    gap: 12,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 8,
   },
 });
