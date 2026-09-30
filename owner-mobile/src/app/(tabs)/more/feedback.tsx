@@ -10,9 +10,12 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api, { getErrorMessage } from '../../../services/api';
+import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert, showConfirm } from '../../../utils/alerts';
 
 export default function FeedbackScreen() {
+  const { colors, isDark } = useAppTheme();
+
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -54,7 +57,7 @@ export default function FeedbackScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
       {loading && !refreshing ? (
         <ActivityIndicator size="large" color="#10b981" style={{ marginTop: 40 }} />
       ) : (
@@ -75,13 +78,22 @@ export default function FeedbackScreen() {
           renderItem={({ item }) => {
             const rating = Number(item?.rating) || 0;
             return (
-              <View style={styles.card}>
+              <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <View style={styles.headerRow}>
-                  <View>
-                    <Text style={styles.customerName}>{item?.customer_name || 'Anonymous'}</Text>
-                    <Text style={styles.dateText}>
-                      {item?.created_at ? new Date(item.created_at).toLocaleString() : ''}
-                    </Text>
+                  <View style={styles.customerRow}>
+                    <View style={[styles.avatar, { backgroundColor: colors.cardAlt }]}>
+                      <Text style={[styles.avatarText, { color: colors.text }]}>
+                        {(item?.customer_name || 'A').charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                    <View>
+                      <Text style={[styles.customerName, { color: colors.text }]}>
+                        {item?.customer_name || 'Anonymous Customer'}
+                      </Text>
+                      <Text style={[styles.dateText, { color: colors.textMuted }]}>
+                        {item?.created_at ? new Date(item.created_at).toLocaleString() : ''}
+                      </Text>
+                    </View>
                   </View>
                   <View style={styles.starsRow}>
                     {[1, 2, 3, 4, 5].map((star) => (
@@ -89,23 +101,25 @@ export default function FeedbackScreen() {
                         key={star}
                         name={star <= rating ? 'star' : 'star-outline'}
                         size={16}
-                        color={star <= rating ? '#f59e0b' : '#475569'}
+                        color={star <= rating ? '#f59e0b' : colors.textMuted}
                       />
                     ))}
                   </View>
                 </View>
 
-                <Text style={styles.commentText}>
-                  {item?.comments || 'No additional comments provided.'}
-                </Text>
+                <View style={[styles.commentBox, { backgroundColor: colors.cardAlt }]}>
+                  <Text style={[styles.commentText, { color: colors.text }]}>
+                    {item?.comments || 'No additional comments provided.'}
+                  </Text>
+                </View>
 
                 <View style={styles.footerRow}>
                   <TouchableOpacity
-                    style={styles.deleteBtn}
+                    style={[styles.deleteBtn, { backgroundColor: colors.cardAlt }]}
                     onPress={() => item?.id && handleDelete(item.id)}
                   >
-                    <Ionicons name="trash-outline" size={16} color="#ef4444" />
-                    <Text style={styles.deleteText}>Delete</Text>
+                    <Ionicons name="trash-outline" size={15} color="#ef4444" />
+                    <Text style={styles.deleteText}>Delete Review</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -113,8 +127,8 @@ export default function FeedbackScreen() {
           }}
           ListEmptyComponent={
             <View style={styles.emptyBox}>
-              <Ionicons name="chatbox-ellipses-outline" size={48} color="#475569" />
-              <Text style={styles.emptyText}>No customer feedback yet.</Text>
+              <Ionicons name="chatbox-ellipses-outline" size={48} color={colors.textMuted} />
+              <Text style={[styles.emptyText, { color: colors.textMuted }]}>No customer feedback yet.</Text>
             </View>
           }
         />
@@ -126,69 +140,85 @@ export default function FeedbackScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
   },
   listContent: {
-    padding: 14,
+    padding: 16,
+    paddingBottom: 32,
   },
   card: {
-    backgroundColor: '#1e293b',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#334155',
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 10,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  customerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    fontSize: 15,
+    fontWeight: '800',
   },
   customerName: {
-    color: '#f8fafc',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 15,
+    fontWeight: '700',
   },
   dateText: {
-    color: '#64748b',
-    fontSize: 12,
+    fontSize: 11,
     marginTop: 2,
   },
   starsRow: {
     flexDirection: 'row',
     gap: 2,
   },
-  commentText: {
-    color: '#cbd5e1',
-    fontSize: 14,
-    lineHeight: 20,
-    backgroundColor: '#0f172a',
+  commentBox: {
     padding: 12,
     borderRadius: 8,
+    marginBottom: 10,
+  },
+  commentText: {
+    fontSize: 13,
+    lineHeight: 19,
   },
   footerRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: 10,
   },
   deleteBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
   },
   deleteText: {
     color: '#ef4444',
-    fontSize: 13,
-    fontWeight: 'bold',
+    fontSize: 12,
+    fontWeight: '600',
   },
   emptyBox: {
     alignItems: 'center',
-    marginTop: 60,
+    justifyContent: 'center',
+    padding: 40,
+    marginTop: 20,
+    gap: 12,
   },
   emptyText: {
-    color: '#64748b',
-    marginTop: 12,
-    fontSize: 15,
+    fontSize: 14,
   },
 });

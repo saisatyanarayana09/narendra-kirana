@@ -1113,6 +1113,52 @@ export default function AdvancedSettingsScreen() {
                       />
                     </View>
                   </View>
+
+                  {/* Live Preview Bar */}
+                  <View
+                    style={{
+                      paddingVertical: 10,
+                      paddingHorizontal: 16,
+                      borderRadius: 8,
+                      backgroundColor: settings.announcement_bg_color || '#16a34a',
+                      marginBottom: 12,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: settings.announcement_text_color || '#ffffff',
+                        fontSize: 13,
+                        fontWeight: '600',
+                      }}
+                      numberOfLines={1}
+                    >
+                      {settings.announcement_text || 'Announcement ticker preview text...'}
+                    </Text>
+                  </View>
+
+                  <View style={styles.twoCol}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.label, { color: colors.textMuted }]}>Start Schedule (Optional)</Text>
+                      <TextInput
+                        style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                        value={String(settings.announcement_start_date || '')}
+                        onChangeText={(v) => updateField('announcement_start_date', v)}
+                        placeholder="YYYY-MM-DDTHH:mm"
+                        placeholderTextColor={colors.textMuted}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.label, { color: colors.textMuted }]}>End Schedule (Optional)</Text>
+                      <TextInput
+                        style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                        value={String(settings.announcement_end_date || '')}
+                        onChangeText={(v) => updateField('announcement_end_date', v)}
+                        placeholder="YYYY-MM-DDTHH:mm"
+                        placeholderTextColor={colors.textMuted}
+                      />
+                    </View>
+                  </View>
                 </>
               )}
 
@@ -1314,6 +1360,15 @@ export default function AdvancedSettingsScreen() {
                     placeholderTextColor={colors.textMuted}
                     multiline
                     numberOfLines={2}
+                  />
+
+                  <Text style={[styles.label, { color: colors.textMuted }]}>Estimated Completion Time (Optional)</Text>
+                  <TextInput
+                    style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                    value={String(settings.maintenance_estimated_end || '')}
+                    onChangeText={(v) => updateField('maintenance_estimated_end', v)}
+                    placeholder="YYYY-MM-DDTHH:mm"
+                    placeholderTextColor={colors.textMuted}
                   />
                 </>
               )}

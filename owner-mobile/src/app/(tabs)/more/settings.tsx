@@ -20,6 +20,8 @@ import api, { ApiInstance, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert } from '../../../utils/alerts';
 
+const RADIUS_PRESETS = [2, 3, 5, 8, 10, 15];
+
 export default function SettingsScreen() {
   const router = useRouter();
   const { colors, isDark } = useAppTheme();
@@ -41,6 +43,7 @@ export default function SettingsScreen() {
     min_order_amount: '0.00',
     packaging_fee: '0.00',
     low_stock_threshold: '5',
+    delivery_mode: 'BOTH',
     is_home_delivery_active: false,
     delivery_fee: '0.00',
     free_delivery_threshold: '0.00',
@@ -48,6 +51,7 @@ export default function SettingsScreen() {
     allowed_pincodes: '',
     delivery_radius_km: '5.00',
     enforce_delivery_radius: false,
+    popular_searches: '',
     invoice_signature: null,
     show_popular_picks: true,
     popular_picks_title: 'Popular picks',
@@ -74,6 +78,7 @@ export default function SettingsScreen() {
     app_password: '',
   });
   const [showAppPassword, setShowAppPassword] = useState(false);
+  const [showGoogleGuide, setShowGoogleGuide] = useState(false);
   const [savingEmail, setSavingEmail] = useState(false);
 
   // Test email modal state
@@ -102,6 +107,8 @@ export default function SettingsScreen() {
             store_longitude: d.store_longitude ? String(d.store_longitude) : '78.486671',
             low_stock_threshold: String(d.low_stock_threshold ?? '5'),
             delivery_radius_km: String(d.delivery_radius_km ?? '5.00'),
+            delivery_mode: d.delivery_mode || (d.is_home_delivery_active ? 'BOTH' : 'PICKUP'),
+            popular_searches: d.popular_searches || '',
           }));
           if (d.invoice_signature) {
             setSignatureUri(d.invoice_signature);
@@ -307,8 +314,8 @@ export default function SettingsScreen() {
         min_order_amount: (parseFloat(form.min_order_amount) || 0).toFixed(2),
         packaging_fee: (parseFloat(form.packaging_fee) || 0).toFixed(2),
         low_stock_threshold: Math.max(0, parseInt(form.low_stock_threshold, 10) || 5),
+        delivery_mode: form.delivery_mode || (form.is_home_delivery_active ? 'BOTH' : 'PICKUP'),
         is_home_delivery_active: Boolean(form.is_home_delivery_active),
-        delivery_mode: form.is_home_delivery_active ? 'BOTH' : 'PICKUP',
         delivery_fee: (parseFloat(form.delivery_fee) || 0).toFixed(2),
         free_delivery_threshold: (parseFloat(form.free_delivery_threshold) || 0).toFixed(2),
         min_delivery_order_amount: (parseFloat(form.min_delivery_order_amount) || 0).toFixed(2),
@@ -317,6 +324,7 @@ export default function SettingsScreen() {
         store_longitude: form.store_longitude ? parseFloat(form.store_longitude).toFixed(6) : '78.486671',
         delivery_radius_km: form.delivery_radius_km ? parseFloat(form.delivery_radius_km).toFixed(2) : '5.00',
         enforce_delivery_radius: Boolean(form.enforce_delivery_radius),
+        popular_searches: String(form.popular_searches || '').trim(),
         show_popular_picks: Boolean(form.show_popular_picks),
         popular_picks_title: String(form.popular_picks_title || 'Popular picks').trim(),
         show_great_deals: Boolean(form.show_great_deals),
@@ -426,7 +434,7 @@ export default function SettingsScreen() {
               <View>
                 <Text style={[styles.cardTitle, { color: colors.text }]}>Store Identity & Operations</Text>
                 <Text style={[styles.cardSub, { color: colors.textMuted }]}>
-                  Basic information and current active status
+                  Basic information, GPS coordinates and current active status
                 </Text>
               </View>
             </View>
@@ -505,7 +513,42 @@ export default function SettingsScreen() {
             </View>
           </View>
 
-          {/* Section 2: Order Constraints & Fees */}
+          {/* Section 2: App Search Ticker (Popular Searches) */}
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardIconBox, { backgroundColor: 'rgba(99, 102, 241, 0.15)' }]}>
+                <Ionicons name="search-outline" size={20} color="#6366f1" />
+              </View>
+              <View>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>App Search Ticker</Text>
+                <Text style={[styles.cardSub, { color: colors.textMuted }]}>
+                  Animated placeholder search terms cycling in customer search bar
+                </Text>
+              </View>
+            </View>
+
+            <Text style={[styles.label, { color: colors.textMuted }]}>
+              Popular Searches (One search term per line)
+            </Text>
+            <TextInput
+              style={[
+                styles.input,
+                styles.multilineInput,
+                { minHeight: 95, backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text },
+              ]}
+              multiline
+              numberOfLines={5}
+              value={String(form.popular_searches || '')}
+              onChangeText={(v) => updateField('popular_searches', v)}
+              placeholder={'Aashirvaad Shudh Chakki Atta\nFresh Paneer & Milk\nFortune Sunflower Oil\nBasmati Rice & Dals\nTata Salt & Spices'}
+              placeholderTextColor={colors.textMuted}
+            />
+            <Text style={[styles.hintText, { color: colors.textMuted }]}>
+              💡 These keywords animate automatically inside the top search bar placeholder in both customer mobile and web apps.
+            </Text>
+          </View>
+
+          {/* Section 3: Order Constraints & Fees */}
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.cardHeader}>
               <View style={[styles.cardIconBox, { backgroundColor: 'rgba(59, 130, 246, 0.15)' }]}>
@@ -551,7 +594,7 @@ export default function SettingsScreen() {
             />
           </View>
 
-          {/* Section 3: Delivery Rules & Geofence */}
+          {/* Section 4: Delivery Rules & Geofence */}
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.cardHeader}>
               <View style={[styles.cardIconBox, { backgroundColor: 'rgba(234, 88, 12, 0.15)' }]}>
@@ -565,6 +608,47 @@ export default function SettingsScreen() {
               </View>
             </View>
 
+            {/* Delivery Mode Selector */}
+            <Text style={[styles.label, { color: colors.textMuted }]}>Store Order Fulfillment Mode</Text>
+            <View style={styles.providerRow}>
+              {[
+                { key: 'PICKUP', label: 'Store Pickup Only' },
+                { key: 'DELIVERY', label: 'Delivery Only' },
+                { key: 'BOTH', label: 'Pickup & Delivery' },
+              ].map((mode) => {
+                const isSelected = form.delivery_mode === mode.key;
+                return (
+                  <TouchableOpacity
+                    key={mode.key}
+                    style={[
+                      styles.providerPill,
+                      {
+                        backgroundColor: isSelected ? '#10b981' : colors.cardAlt,
+                        borderColor: isSelected ? '#10b981' : colors.border,
+                      },
+                    ]}
+                    onPress={() => {
+                      updateField('delivery_mode', mode.key);
+                      if (mode.key === 'PICKUP') {
+                        updateField('is_home_delivery_active', false);
+                      } else {
+                        updateField('is_home_delivery_active', true);
+                      }
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.providerPillText,
+                        { color: isSelected ? '#fff' : colors.text },
+                      ]}
+                    >
+                      {mode.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
             <View style={[styles.switchCard, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.switchLabel, { color: colors.text }]}>Enable Home Delivery</Text>
@@ -574,7 +658,10 @@ export default function SettingsScreen() {
               </View>
               <Switch
                 value={Boolean(form.is_home_delivery_active)}
-                onValueChange={(v) => updateField('is_home_delivery_active', v)}
+                onValueChange={(v) => {
+                  updateField('is_home_delivery_active', v);
+                  updateField('delivery_mode', v ? 'BOTH' : 'PICKUP');
+                }}
                 trackColor={{ false: '#334155', true: '#10b981' }}
               />
             </View>
@@ -623,6 +710,31 @@ export default function SettingsScreen() {
                   </View>
                 </View>
 
+                {/* Radius Presets */}
+                <Text style={[styles.label, { color: colors.textMuted }]}>Quick Radius Presets</Text>
+                <View style={styles.presetRow}>
+                  {RADIUS_PRESETS.map((p) => {
+                    const isSelected = Math.round(parseFloat(form.delivery_radius_km) || 0) === p;
+                    return (
+                      <TouchableOpacity
+                        key={p}
+                        style={[
+                          styles.presetPill,
+                          {
+                            backgroundColor: isSelected ? '#10b981' : colors.cardAlt,
+                            borderColor: isSelected ? '#10b981' : colors.border,
+                          },
+                        ]}
+                        onPress={() => updateField('delivery_radius_km', `${p}.00`)}
+                      >
+                        <Text style={[styles.presetText, { color: isSelected ? '#fff' : colors.text }]}>
+                          {p} km
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
                 <View style={[styles.switchCard, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.switchLabel, { color: colors.text }]}>Enforce Geofence Radius</Text>
@@ -636,6 +748,23 @@ export default function SettingsScreen() {
                     trackColor={{ false: '#334155', true: '#10b981' }}
                   />
                 </View>
+
+                {/* Map Navigation Link */}
+                <TouchableOpacity
+                  style={[styles.mapShortcutBtn, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}
+                  onPress={() => router.push('/(tabs)/more/map' as any)}
+                >
+                  <Ionicons name="map-outline" size={18} color="#10b981" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.mapShortcutTitle, { color: colors.text }]}>
+                      Open Live GPS Radar & Geofence Map
+                    </Text>
+                    <Text style={[styles.mapShortcutSub, { color: colors.textMuted }]}>
+                      View live visual circle boundary centered on store coordinates
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+                </TouchableOpacity>
 
                 <Text style={[styles.label, { color: colors.textMuted }]}>
                   Allowed Pincodes (Comma-separated, leave blank for all)
@@ -651,7 +780,7 @@ export default function SettingsScreen() {
             )}
           </View>
 
-          {/* Section 4: Store Email & SMTP Configuration */}
+          {/* Section 5: Store Email & SMTP Configuration */}
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.cardHeader}>
               <View style={[styles.cardIconBox, { backgroundColor: 'rgba(99, 102, 241, 0.15)' }]}>
@@ -799,6 +928,27 @@ export default function SettingsScreen() {
               </TouchableOpacity>
             </View>
 
+            {/* Google Guide Toggle */}
+            <TouchableOpacity
+              style={styles.guideToggleBtn}
+              onPress={() => setShowGoogleGuide(!showGoogleGuide)}
+            >
+              <Ionicons name="help-circle-outline" size={16} color="#10b981" />
+              <Text style={styles.guideToggleText}>
+                {showGoogleGuide ? 'Hide Google App Password setup guide' : 'How to generate a Google App Password?'}
+              </Text>
+            </TouchableOpacity>
+
+            {showGoogleGuide && (
+              <View style={[styles.guideBox, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
+                <Text style={[styles.guideStep, { color: colors.text }]}>1. Go to Google Account Security</Text>
+                <Text style={[styles.guideStep, { color: colors.text }]}>2. Ensure 2-Step Verification is turned ON</Text>
+                <Text style={[styles.guideStep, { color: colors.text }]}>3. Search for "App Passwords" in Google Security</Text>
+                <Text style={[styles.guideStep, { color: colors.text }]}>4. Create a new password named "Narendra Kirana Store"</Text>
+                <Text style={[styles.guideStep, { color: colors.text }]}>5. Copy the 16-character code into the field above</Text>
+              </View>
+            )}
+
             <View style={styles.emailActionsRow}>
               <TouchableOpacity
                 style={[styles.outlineBtn, { borderColor: colors.border, backgroundColor: colors.cardAlt }]}
@@ -825,7 +975,7 @@ export default function SettingsScreen() {
             </View>
           </View>
 
-          {/* Section 5: Invoicing & Digital Signature */}
+          {/* Section 6: Invoicing & Digital Signature */}
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.cardHeader}>
               <View style={[styles.cardIconBox, { backgroundColor: 'rgba(236, 72, 153, 0.15)' }]}>
@@ -905,7 +1055,7 @@ export default function SettingsScreen() {
             )}
           </View>
 
-          {/* Section 6: Homepage Section Controls */}
+          {/* Section 7: Homepage Section Controls */}
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.cardHeader}>
               <View style={[styles.cardIconBox, { backgroundColor: 'rgba(14, 165, 233, 0.15)' }]}>
@@ -1175,6 +1325,10 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginBottom: 4,
   },
+  hintText: {
+    fontSize: 12,
+    lineHeight: 17,
+  },
   input: {
     borderWidth: 1,
     borderRadius: 8,
@@ -1228,14 +1382,70 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
+  presetRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10,
+  },
+  presetPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  presetText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  mapShortcutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 10,
+  },
+  mapShortcutTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  mapShortcutSub: {
+    fontSize: 12,
+    marginTop: 2,
+  },
   passwordWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   eyeBtn: {
     padding: 10,
+  },
+  guideToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 4,
+    marginBottom: 8,
+  },
+  guideToggleText: {
+    fontSize: 13,
+    color: '#10b981',
+    fontWeight: '600',
+  },
+  guideBox: {
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 4,
+    marginBottom: 12,
+  },
+  guideStep: {
+    fontSize: 12,
+    lineHeight: 18,
   },
   emailActionsRow: {
     flexDirection: 'row',
