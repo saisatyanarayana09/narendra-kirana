@@ -233,25 +233,29 @@ const Dashboard = () => {
               <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
                 {recentOrders.map(order => (
                   <div key={order.id} className="p-5 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-                    <div className="flex items-start gap-4 flex-1">
-                      <div className="flex-shrink-0 w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-xl flex flex-col items-center justify-center border border-slate-200 dark:border-slate-700">
-                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase leading-none mb-1">ID</span>
-                        <span className="text-xs font-mono font-semibold text-slate-900 dark:text-white leading-none">{order.id.split('-').pop().slice(0, 4)}</span>
+                    <div className="flex items-start gap-3.5 flex-1 min-w-0">
+                      <div className="flex-shrink-0 w-10 h-10 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center border border-indigo-100 dark:border-indigo-900/50">
+                        <ShoppingBag size={18} />
                       </div>
                       
-                      <div>
-                        <div className="flex items-center gap-3 mb-1">
-                          <Link to={`/owner/orders/${order.id}`} className="font-semibold text-slate-900 dark:text-white hover:underline text-sm">
-                            {order.customer_name || 'Guest User'}
-                          </Link>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <span className="text-xs font-mono font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+                            #{order.id}
+                          </span>
                           {getStatusBadge(order.status)}
                         </div>
-                        <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Link to={`/owner/orders/${order.id}`} className="font-semibold text-slate-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 text-sm truncate">
+                            {order.customer_name || 'Guest User'}
+                          </Link>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2.5 text-xs text-slate-500 dark:text-slate-400">
                           <span>{order.items_count} items</span>
                           <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
                           <span>{new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                           <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
-                          <span className="font-medium text-slate-700 dark:text-slate-300">₹{order.total_amount}</span>
+                          <span className="font-semibold text-slate-900 dark:text-white">₹{order.total_amount}</span>
                         </div>
                       </div>
                     </div>
