@@ -11,6 +11,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import api, { ApiInstance, getErrorMessage } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -97,10 +98,12 @@ export default function DashboardScreen() {
   const isWide = width >= 768;
 
   const [orders, setOrders] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [analytics, setAnalytics] = useState<any>(null);
   const [ownerName, setOwnerName] = useState('Owner');
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [restockingId, setRestockingId] = useState<number | null>(null);
 
   const [orderFilter, setOrderFilter] = useState<OrderQuickFilter>('ALL');
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
@@ -117,14 +120,17 @@ export default function DashboardScreen() {
           (api as ApiInstance).clearCache();
         }
 
-        const [ordersRes, analyticsRes] = await Promise.all([
+        const [ordersRes, analyticsRes, productsRes] = await Promise.all([
           (api as ApiInstance).cachedGet('/orders/', { forceRefresh }),
           (api as ApiInstance).cachedGet('/orders/analytics/', { forceRefresh }),
+          (api as ApiInstance).cachedGet('/products/?limit=100', { forceRefresh }),
         ]);
 
         const rawOrders = ordersRes?.data?.results ?? ordersRes?.data;
         setOrders(Array.isArray(rawOrders) ? rawOrders : []);
         setAnalytics(analyticsRes?.data ?? null);
+        const rawProds = productsRes?.data?.results ?? productsRes?.data;
+        setProducts(Array.isArray(rawProds) ? rawProds : []);
       } catch {
         // Handled gracefully
       } finally {
@@ -235,6 +241,34 @@ export default function DashboardScreen() {
       filteredActiveOrders: filtered,
     };
   }, [orders, orderFilter]);
+
+  const lowStockProducts = useMemo(() => {
+    return products
+      .filter((p) => Number(p?.stock_quantity ?? 0) <= 5)
+      .sort((a, b) => Number(a?.stock_quantity ?? 0) - Number(b?.stock_quantity ?? 0));
+  }, [products]);
+
+  const handleQuickRestock = async (product: any, amount: number) => {
+    const prevStock = Number(product?.stock_quantity ?? 0);
+    const newStock = prevStock + amount;
+    setRestockingId(product.id);
+    setProducts((prev) =>
+      prev.map((p) => (p.id === product.id ? { ...p, stock_quantity: newStock } : p))
+    );
+
+    try {
+      await api.patch(`/products/${product.id}/`, { stock_quantity: newStock });
+      (api as ApiInstance).clearCache();
+      showAlert('Restocked!', `Added +${amount} to "${product.name}". Total in stock: ${newStock}`);
+    } catch (e: any) {
+      setProducts((prev) =>
+        prev.map((p) => (p.id === product.id ? { ...p, stock_quantity: prevStock } : p))
+      );
+      showAlert('Restock Failed', getErrorMessage(e, 'Failed to update stock quantity.'));
+    } finally {
+      setRestockingId(null);
+    }
+  };
 
   const getStatusTheme = (status: string) => {
     switch (status) {
@@ -461,7 +495,178 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {/* 3. Live Order Queue Section */}
+        {/* 3. Low Stock Alerts Section with 1-Tap Quick Restock */}
+        <View style={styles.lowStockSection}>
+          <View style={styles.lowStockHeaderRow}>
+            <View style={styles.lowStockTitleLeft}>
+              <View
+                style={[
+                  styles.alertDotBeacon,
+                  lowStockProducts.length > 0
+                    ? { backgroundColor: '#ef4444' }
+                    : { backgroundColor: '#10b981' },
+                ]}
+              />
+              <Text style={[styles.lowStockTitle, { color: colors.text }]}>
+                Low Stock Alerts
+              </Text>
+              {lowStockProducts.length > 0 ? (
+                <View style={styles.lowStockBadgeRed}>
+                  <Text style={styles.lowStockBadgeRedText}>
+                    {lowStockProducts.length} Needs Restock
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.healthyBadge}>
+                  <Text style={styles.healthyBadgeText}>Inventory Healthy</Text>
+                </View>
+              )}
+            </View>
+
+            <TouchableOpacity
+              style={styles.viewCatalogLink}
+              onPress={() => router.push('/(tabs)/products')}
+            >
+              <Text style={styles.viewCatalogText}>View Catalog</Text>
+              <Ionicons name="arrow-forward" size={13} color="#4f46e5" />
+            </TouchableOpacity>
+          </View>
+
+          {lowStockProducts.length === 0 ? (
+            <View
+              style={[
+                styles.healthyCard,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
+              <View style={styles.healthyIconWrap}>
+                <Ionicons name="shield-checkmark" size={24} color="#10b981" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.healthyTitle, { color: colors.text }]}>
+                  All inventory levels healthy
+                </Text>
+                <Text style={[styles.healthySub, { color: colors.textMuted }]}>
+                  No products are currently low on stock (≤ 5 units).
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <View
+              style={[
+                styles.lowStockCardList,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
+              {lowStockProducts.slice(0, 6).map((item, idx) => {
+                const isOutOfStock = Number(item.stock_quantity ?? 0) === 0;
+                const isBusy = restockingId === item.id;
+
+                return (
+                  <View
+                    key={item.id}
+                    style={[
+                      styles.lowStockItemRow,
+                      idx > 0 && { borderTopWidth: 1, borderTopColor: colors.border },
+                    ]}
+                  >
+                    {/* Item Thumbnail / Initial */}
+                    <View
+                      style={[
+                        styles.lowStockThumbBox,
+                        { backgroundColor: colors.cardAlt, borderColor: colors.border },
+                      ]}
+                    >
+                      {item.image ? (
+                        <Image
+                          source={{ uri: item.image }}
+                          style={styles.lowStockThumbImg}
+                          contentFit="contain"
+                        />
+                      ) : (
+                        <Text style={[styles.lowStockInitial, { color: colors.textMuted }]}>
+                          {item.name?.charAt(0)?.toUpperCase() || 'P'}
+                        </Text>
+                      )}
+                    </View>
+
+                    {/* Item Meta */}
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      style={styles.lowStockItemInfo}
+                      onPress={() => router.push(`/(tabs)/products/new?id=${item.id}` as any)}
+                    >
+                      <Text
+                        style={[styles.lowStockItemName, { color: colors.text }]}
+                        numberOfLines={1}
+                      >
+                        {item.name}
+                      </Text>
+                      <View style={styles.lowStockBadgesRow}>
+                        <View
+                          style={[
+                            styles.stockLevelChip,
+                            isOutOfStock
+                              ? styles.stockLevelChipOut
+                              : styles.stockLevelChipLow,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.stockLevelChipText,
+                              isOutOfStock ? { color: '#ef4444' } : { color: '#d97706' },
+                            ]}
+                          >
+                            {isOutOfStock ? 'OUT' : 'LOW'}
+                          </Text>
+                        </View>
+                        <Text style={[styles.stockLeftText, { color: colors.textMuted }]}>
+                          {item.stock_quantity ?? 0} {item.unit || 'units'} left
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+
+                    {/* Quick Restock Buttons */}
+                    <View style={styles.restockButtonsWrap}>
+                      {isBusy ? (
+                        <ActivityIndicator
+                          size="small"
+                          color="#10b981"
+                          style={{ paddingHorizontal: 16 }}
+                        />
+                      ) : (
+                        <>
+                          <TouchableOpacity
+                            style={[
+                              styles.restockBtn,
+                              { backgroundColor: colors.cardAlt, borderColor: colors.border },
+                            ]}
+                            onPress={() => handleQuickRestock(item, 5)}
+                          >
+                            <Ionicons name="add" size={13} color="#10b981" />
+                            <Text style={[styles.restockBtnText, { color: colors.text }]}>+5</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[
+                              styles.restockBtn,
+                              { backgroundColor: colors.cardAlt, borderColor: colors.border },
+                            ]}
+                            onPress={() => handleQuickRestock(item, 10)}
+                          >
+                            <Ionicons name="add" size={13} color="#10b981" />
+                            <Text style={[styles.restockBtnText, { color: colors.text }]}>+10</Text>
+                          </TouchableOpacity>
+                        </>
+                      )}
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+        </View>
+
+        {/* 4. Live Order Queue Section */}
         <View style={styles.queueSection}>
           <View style={styles.queueHeaderRow}>
             <View style={styles.queueTitleLeft}>
@@ -1295,6 +1500,170 @@ const styles = StyleSheet.create({
   nextStageBtnText: {
     color: '#ffffff',
     fontSize: 13,
+    fontWeight: '800',
+  },
+  // Low Stock Alerts Section Styles
+  lowStockSection: {
+    gap: 12,
+  },
+  lowStockHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 2,
+  },
+  lowStockTitleLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  alertDotBeacon: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  lowStockTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  lowStockBadgeRed: {
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.25)',
+  },
+  lowStockBadgeRedText: {
+    color: '#ef4444',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  healthyBadge: {
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.25)',
+  },
+  healthyBadgeText: {
+    color: '#10b981',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  viewCatalogLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  viewCatalogText: {
+    color: '#4f46e5',
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
+  healthyCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  healthyIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  healthyTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  healthySub: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  lowStockCardList: {
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  lowStockItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    gap: 12,
+  },
+  lowStockThumbBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  lowStockThumbImg: {
+    width: '100%',
+    height: '100%',
+  },
+  lowStockInitial: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  lowStockItemInfo: {
+    flex: 1,
+  },
+  lowStockItemName: {
+    fontSize: 13.5,
+    fontWeight: '700',
+  },
+  lowStockBadgesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  stockLevelChip: {
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 4,
+  },
+  stockLevelChipOut: {
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+  },
+  stockLevelChipLow: {
+    backgroundColor: 'rgba(217, 119, 6, 0.12)',
+  },
+  stockLevelChipText: {
+    fontSize: 9.5,
+    fontWeight: '900',
+    letterSpacing: 0.4,
+  },
+  stockLeftText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+  },
+  restockButtonsWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  restockBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  restockBtnText: {
+    fontSize: 11.5,
     fontWeight: '800',
   },
 });

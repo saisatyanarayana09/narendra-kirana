@@ -8,6 +8,9 @@ import {
   TouchableOpacity,
   TextInput,
   Linking,
+  Modal,
+  Platform,
+  Share,
 } from 'react-native';
 import { useLocalSearchParams as useExpoParams, useRouter as useExpoRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -66,6 +69,8 @@ export default function OrderDetailsScreen() {
   const { isDark, colors } = useAppTheme();
   const [order, setOrder] = useState<Order | null>(null);
   const [partners, setPartners] = useState<any[]>([]);
+  const [storeSettings, setStoreSettings] = useState<any>(null);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [packedItems, setPackedItems] = useState<Record<number, boolean>>({});
   const [ownerNote, setOwnerNote] = useState('');
   const [savingNote, setSavingNote] = useState(false);
@@ -78,9 +83,10 @@ export default function OrderDetailsScreen() {
       return;
     }
     try {
-      const [orderRes, partnersRes] = await Promise.allSettled([
+      const [orderRes, partnersRes, settingsRes] = await Promise.allSettled([
         api.get(`/orders/${id}/`),
         api.get('/delivery/partners/'),
+        api.get('/store/settings/'),
       ]);
 
       if (orderRes.status === 'fulfilled' && orderRes.value?.data) {
@@ -99,10 +105,52 @@ export default function OrderDetailsScreen() {
         const raw = partnersRes.value.data?.results ?? partnersRes.value.data;
         setPartners(Array.isArray(raw) ? raw : []);
       }
+
+      if (settingsRes.status === 'fulfilled' && settingsRes.value?.data) {
+        const rawSettings = settingsRes.value.data;
+        setStoreSettings(Array.isArray(rawSettings) ? rawSettings[0] : rawSettings);
+      }
     } finally {
       setLoading(false);
     }
   }, [id, router]);
+
+  const handlePrintOrShare = async () => {
+    if (!order) return;
+    if (Platform.OS === 'web') {
+      window.print();
+    } else {
+      try {
+        const itemsText = (order.items || [])
+          .map(
+            (it) =>
+              `• ${it.product_name_snapshot} (${it.unit_snapshot || ''}) x${it.quantity} = ₹${it.subtotal}`
+          )
+          .join('\n');
+
+        const message =
+          `TAX INVOICE - ${storeSettings?.store_name || 'Narendra Kirana'}\n` +
+          `Invoice #: INV-${order.id}\n` +
+          `Date: ${order.created_at ? new Date(order.created_at).toLocaleDateString() : ''}\n` +
+          `Customer: ${order.customer_name || 'Walk-in'}\n` +
+          `Phone: ${order.customer_phone || '—'}\n` +
+          `Address: ${order.delivery_address || 'Store Pickup'}\n\n` +
+          `ITEMS:\n${itemsText}\n\n` +
+          `Total Amount: ₹${order.total_amount}\n` +
+          `Payment: ${order.payment_method || 'COD'}\n` +
+          `${storeSettings?.gstin ? `GSTIN: ${storeSettings.gstin}\n` : ''}` +
+          `${storeSettings?.fssai_license_number ? `FSSAI: ${storeSettings.fssai_license_number}\n` : ''}` +
+          `Thank you for shopping with us!`;
+
+        await Share.share({
+          title: `Tax Invoice INV-${order.id}`,
+          message,
+        });
+      } catch (err: any) {
+        showAlert('Share Failed', getErrorMessage(err, 'Could not share invoice.'));
+      }
+    }
+  };
 
   useEffect(() => {
     fetchOrderDetails();
@@ -285,6 +333,20 @@ export default function OrderDetailsScreen() {
             </TouchableOpacity>
 
             <View style={styles.topBadgesRight}>
+              <TouchableOpacity
+                style={[
+                  styles.invoiceNavBtn,
+                  {
+                    backgroundColor: isDark ? 'rgba(5, 150, 105, 0.2)' : '#ecfdf5',
+                    borderColor: '#10b981',
+                  },
+                ]}
+                onPress={() => setShowInvoiceModal(true)}
+              >
+                <Ionicons name="receipt-outline" size={13} color="#10b981" />
+                <Text style={styles.invoiceNavBtnText}>Tax Invoice</Text>
+              </TouchableOpacity>
+
               <View
                 style={[
                   styles.modePill,
@@ -381,7 +443,7 @@ export default function OrderDetailsScreen() {
                         gap: 3,
                       },
                     ]}
-                    onPress={() => router.push('/(tabs)/more/invoices' as any)}
+                    onPress={() => setShowInvoiceModal(true)}
                   >
                     <Ionicons name="document-text-outline" size={12} color="#10b981" />
                     <Text style={[styles.payBadgeText, { color: '#10b981', fontWeight: 'bold' }]}>
@@ -1226,6 +1288,182 @@ export default function OrderDetailsScreen() {
           </View>
         </View>
       )}
+
+      {/* Official In-Place Tax Invoice Modal */}
+      <Modal visible={showInvoiceModal} transparent animationType="slide">
+        <View style={styles.invoiceModalBackdrop}>
+          <View style={[styles.invoiceModalCard, { backgroundColor: '#ffffff' }]}>
+            {/* Modal Controls Header */}
+            <View style={styles.invoiceModalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="document-text" size={20} color="#059669" />
+                <Text style={styles.invoiceModalHeaderTitle}>
+                  Tax Invoice #{order.id}
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <TouchableOpacity
+                  style={styles.modalPrintBtn}
+                  onPress={handlePrintOrShare}
+                >
+                  <Ionicons name="print-outline" size={16} color="#fff" />
+                  <Text style={styles.modalPrintBtnText}>Print / Share</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setShowInvoiceModal(false)}>
+                  <Ionicons name="close" size={24} color="#64748b" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Printable Document Body */}
+            <ScrollView style={styles.invoicePrintScroll}>
+              {/* Store Identity */}
+              <View style={styles.storeDocHeader}>
+                <Text style={styles.docStoreName}>
+                  {storeSettings?.store_name || 'Narendra Kirana Store'}
+                </Text>
+                <Text style={styles.docStoreAddr}>
+                  {storeSettings?.store_address || 'Main Road, Market Center'}
+                </Text>
+                <Text style={styles.docStorePhone}>
+                  Phone: {storeSettings?.store_phone || '+91 9876543210'} • Email:{' '}
+                  {storeSettings?.store_email || 'support@narendrakirana.com'}
+                </Text>
+                {storeSettings?.gstin ? (
+                  <Text style={styles.docStoreTax}>GSTIN: {storeSettings.gstin}</Text>
+                ) : null}
+                {storeSettings?.fssai_license_number ? (
+                  <Text style={styles.docStoreTax}>
+                    FSSAI Lic #: {storeSettings.fssai_license_number}
+                  </Text>
+                ) : null}
+              </View>
+
+              <View style={styles.docDivider} />
+
+              {/* Invoice Meta Grid */}
+              <View style={styles.docMetaGrid}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.docMetaLabel}>BILLED TO:</Text>
+                  <Text style={styles.docMetaVal}>
+                    {order.customer_name || 'Walk-in Customer'}
+                  </Text>
+                  {order.customer_phone ? (
+                    <Text style={styles.docMetaSub}>Phone: {order.customer_phone}</Text>
+                  ) : null}
+                  {order.delivery_address ? (
+                    <Text style={styles.docMetaSub} numberOfLines={2}>
+                      Address: {order.delivery_address}
+                    </Text>
+                  ) : null}
+                </View>
+                <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                  <Text style={styles.docMetaLabel}>INVOICE DETAILS:</Text>
+                  <Text style={styles.docMetaVal}>INV-#{order.id}</Text>
+                  <Text style={styles.docMetaSub}>
+                    Date:{' '}
+                    {order.created_at ? new Date(order.created_at).toLocaleDateString() : ''}
+                  </Text>
+                  <Text style={styles.docMetaSub}>
+                    Payment: {order.payment_method || 'COD'} ({order.status})
+                  </Text>
+                  {order.upi_transaction_id ? (
+                    <Text style={styles.docMetaSub}>
+                      UPI Ref: {order.upi_transaction_id}
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+
+              {/* Itemized Table */}
+              <View style={styles.itemTable}>
+                <View style={styles.tableHeader}>
+                  <Text style={[styles.colHeader, { flex: 2 }]}>ITEM</Text>
+                  <Text style={[styles.colHeader, { flex: 0.8, textAlign: 'center' }]}>QTY</Text>
+                  <Text style={[styles.colHeader, { flex: 1, textAlign: 'right' }]}>PRICE</Text>
+                  <Text style={[styles.colHeader, { flex: 1, textAlign: 'right' }]}>TOTAL</Text>
+                </View>
+                {(order.items || []).map((item: any, idx: number) => {
+                  const qty = Number(item.quantity || 1);
+                  const price = parseFloat(item.price_snapshot) || 0;
+                  const lineTotal = parseFloat(item.subtotal) || price * qty;
+                  return (
+                    <View key={idx} style={styles.tableRow}>
+                      <View style={{ flex: 2 }}>
+                        <Text style={styles.itemName}>
+                          {item.product_name_snapshot || 'Item'}
+                        </Text>
+                        {item.unit_snapshot ? (
+                          <Text style={styles.itemUnit}>{item.unit_snapshot}</Text>
+                        ) : null}
+                      </View>
+                      <Text style={[styles.rowText, { flex: 0.8, textAlign: 'center' }]}>
+                        {qty}
+                      </Text>
+                      <Text style={[styles.rowText, { flex: 1, textAlign: 'right' }]}>
+                        ₹{price.toFixed(2)}
+                      </Text>
+                      <Text style={[styles.rowTextBold, { flex: 1, textAlign: 'right' }]}>
+                        ₹{lineTotal.toFixed(2)}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+
+              {/* Cost Breakdown */}
+              <View style={styles.breakdownBox}>
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.breakdownLabel}>Items Subtotal:</Text>
+                  <Text style={styles.breakdownVal}>₹{itemsSubtotal}</Text>
+                </View>
+                {parseFloat(order.packaging_fee || '0') > 0 ? (
+                  <View style={styles.breakdownRow}>
+                    <Text style={styles.breakdownLabel}>Packaging Fee:</Text>
+                    <Text style={styles.breakdownVal}>₹{order.packaging_fee}</Text>
+                  </View>
+                ) : null}
+                {parseFloat(order.delivery_fee || '0') > 0 ? (
+                  <View style={styles.breakdownRow}>
+                    <Text style={styles.breakdownLabel}>Delivery Fee:</Text>
+                    <Text style={styles.breakdownVal}>₹{order.delivery_fee}</Text>
+                  </View>
+                ) : null}
+                {parseFloat(order.discount_amount || '0') > 0 ? (
+                  <View style={styles.breakdownRow}>
+                    <Text style={[styles.breakdownLabel, { color: '#059669' }]}>Discount:</Text>
+                    <Text style={[styles.breakdownVal, { color: '#059669' }]}>
+                      -₹{order.discount_amount}
+                    </Text>
+                  </View>
+                ) : null}
+                <View style={[styles.breakdownRow, styles.grandTotalRow]}>
+                  <Text style={styles.grandTotalLabel}>Grand Total:</Text>
+                  <Text style={styles.grandTotalVal}>₹{order.total_amount}</Text>
+                </View>
+              </View>
+
+              {/* Digital Signature */}
+              {storeSettings?.invoice_signature ? (
+                <View style={styles.signatureBox}>
+                  <Image
+                    source={{ uri: storeSettings.invoice_signature }}
+                    style={styles.signatureImg}
+                    contentFit="contain"
+                  />
+                  <Text style={styles.signatureLabel}>Authorized Signatory</Text>
+                </View>
+              ) : null}
+
+              {/* Terms & Notice */}
+              <Text style={styles.docFooterNotice}>
+                {storeSettings?.invoice_terms_and_conditions ||
+                  'Thank you for shopping with us! Computer generated tax invoice.'}
+              </Text>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1885,5 +2123,226 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 15,
     fontWeight: '800',
+  },
+  invoiceNavBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  invoiceNavBtnText: {
+    color: '#10b981',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  invoiceModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 14,
+  },
+  invoiceModalCard: {
+    width: '100%',
+    maxWidth: 580,
+    maxHeight: '90%',
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 15,
+    elevation: 10,
+  },
+  invoiceModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
+  },
+  invoiceModalHeaderTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#0f172a',
+  },
+  modalPrintBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#059669',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  modalPrintBtnText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  invoicePrintScroll: {
+    padding: 16,
+  },
+  storeDocHeader: {
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  docStoreName: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#0f172a',
+  },
+  docStoreAddr: {
+    fontSize: 12,
+    color: '#475569',
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  docStorePhone: {
+    fontSize: 11,
+    color: '#64748b',
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  docStoreTax: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#334155',
+    marginTop: 2,
+  },
+  docDivider: {
+    height: 1,
+    backgroundColor: '#cbd5e1',
+    marginVertical: 12,
+  },
+  docMetaGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  docMetaLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#94a3b8',
+    marginBottom: 2,
+  },
+  docMetaVal: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#0f172a',
+  },
+  docMetaSub: {
+    fontSize: 11,
+    color: '#475569',
+    marginTop: 1,
+  },
+  itemTable: {
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#f1f5f9',
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+  },
+  colHeader: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#475569',
+  },
+  tableRow: {
+    flexDirection: 'row',
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+  },
+  itemName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#0f172a',
+  },
+  itemUnit: {
+    fontSize: 10,
+    color: '#64748b',
+  },
+  rowText: {
+    fontSize: 11,
+    color: '#334155',
+  },
+  rowTextBold: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#0f172a',
+  },
+  breakdownBox: {
+    alignItems: 'flex-end',
+    marginBottom: 14,
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: 180,
+    paddingVertical: 2,
+  },
+  breakdownLabel: {
+    fontSize: 11,
+    color: '#64748b',
+  },
+  breakdownVal: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#0f172a',
+  },
+  grandTotalRow: {
+    borderTopWidth: 1,
+    borderTopColor: '#cbd5e1',
+    paddingTop: 4,
+    marginTop: 4,
+  },
+  grandTotalLabel: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#0f172a',
+  },
+  grandTotalVal: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#059669',
+  },
+  signatureBox: {
+    alignItems: 'flex-end',
+    marginTop: 10,
+    marginBottom: 14,
+  },
+  signatureImg: {
+    width: 120,
+    height: 48,
+  },
+  signatureLabel: {
+    fontSize: 10,
+    color: '#64748b',
+    borderTopWidth: 1,
+    borderTopColor: '#94a3b8',
+    paddingTop: 2,
+    marginTop: 2,
+  },
+  docFooterNotice: {
+    fontSize: 10,
+    color: '#94a3b8',
+    textAlign: 'center',
+    fontStyle: 'italic',
+    marginTop: 10,
+    marginBottom: 16,
   },
 });

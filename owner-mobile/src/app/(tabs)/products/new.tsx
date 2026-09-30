@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Platform,
   Switch,
+  Modal,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -43,6 +44,9 @@ export default function AddProductScreen() {
   const [imageChanged, setImageChanged] = useState(false);
   const [loading, setLoading] = useState(false);
   const [lookingUpBarcode, setLookingUpBarcode] = useState(false);
+  const [analyzingPackaging, setAnalyzingPackaging] = useState(false);
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [showAIOptionsModal, setShowAIOptionsModal] = useState(false);
 
   const handleBarcodeLookup = async (overrideSku?: string) => {
     const cleanSku = (overrideSku !== undefined ? overrideSku : sku).trim();
@@ -68,6 +72,122 @@ export default function AddProductScreen() {
     } finally {
       setLookingUpBarcode(false);
     }
+  };
+
+  const handleAIVisionScan = async (source: 'camera' | 'library') => {
+    setShowAIOptionsModal(false);
+    try {
+      if (Platform.OS !== 'web') {
+        const perm =
+          source === 'camera'
+            ? await ImagePicker.requestCameraPermissionsAsync()
+            : await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!perm.granted) {
+          showAlert(
+            'Permission Required',
+            'Camera / Photo library permission is required for AI Packaging Scan.'
+          );
+          return;
+        }
+      }
+
+      const result =
+        source === 'camera'
+          ? await ImagePicker.launchCameraAsync({
+              allowsEditing: true,
+              aspect: [1, 1],
+              quality: 0.8,
+            })
+          : await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ['images'],
+              allowsEditing: true,
+              aspect: [1, 1],
+              quality: 0.8,
+            });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        setAnalyzingPackaging(true);
+
+        const formData = new FormData();
+        const rawFilename = asset.uri.split('/').pop() || 'packaging.jpg';
+        const match = /\.(\w+)$/.exec(rawFilename);
+        const mimeType = match ? `image/${match[1]}` : 'image/jpeg';
+
+        if (Platform.OS === 'web') {
+          const resp = await fetch(asset.uri);
+          const blob = await resp.blob();
+          formData.append('image', blob, rawFilename);
+        } else {
+          formData.append('image', {
+            uri: asset.uri,
+            name: rawFilename,
+            type: mimeType,
+          } as any);
+        }
+
+        const res = await api.post('/products/vision_lookup/', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+
+        if (res?.data?.success && res?.data?.product) {
+          const prod = res.data.product;
+          if (prod.name) setName(prod.name);
+          if (prod.brand) setBrand(prod.brand);
+          if (prod.unit) setUnit(prod.unit);
+          if (prod.description) setDescription(prod.description);
+          // Auto-apply as primary product photo
+          setImageUri(asset.uri);
+          setImageChanged(true);
+          showAlert(
+            'AI Vision Match! ✨',
+            `Successfully extracted "${prod.name || 'details'}" from packaging image.`
+          );
+        } else {
+          showAlert(
+            'AI Vision',
+            res?.data?.error ||
+              'Could not clearly read the product packaging. Please enter details manually.'
+          );
+        }
+      }
+    } catch (e: any) {
+      showAlert(
+        'AI Vision Scan Failed',
+        getErrorMessage(e, 'Could not analyze product packaging. Please try again.')
+      );
+    } finally {
+      setAnalyzingPackaging(false);
+    }
+  };
+
+  const pickGalleryImages = async () => {
+    try {
+      if (Platform.OS !== 'web') {
+        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!perm.granted) {
+          showAlert('Permission Denied', 'Media library permission is required.');
+          return;
+        }
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsMultipleSelection: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const uris = result.assets.map((a) => a.uri);
+        setGalleryImages((prev) => [...prev, ...uris]);
+      }
+    } catch (e: any) {
+      showAlert('Error', getErrorMessage(e, 'Failed to pick gallery photos.'));
+    }
+  };
+
+  const removeGalleryImage = (index: number) => {
+    setGalleryImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   useEffect(() => {
@@ -107,6 +227,13 @@ export default function AddProductScreen() {
           setIsInStock(p.is_in_stock ?? true);
           if (p.category) setSelectedCategory(Number(p.category));
           if (p.image) setImageUri(p.image);
+          if (Array.isArray(p.gallery_images)) {
+            setGalleryImages(
+              p.gallery_images
+                .map((g: any) => (typeof g === 'string' ? g : g?.image))
+                .filter(Boolean)
+            );
+          }
         })
         .catch((err) => {
           if (err?.response?.status !== 401) {
@@ -210,6 +337,25 @@ export default function AddProductScreen() {
         }
       }
 
+      for (let i = 0; i < galleryImages.length; i++) {
+        const gUri = galleryImages[i];
+        if (gUri.startsWith('http://') || gUri.startsWith('https://')) continue;
+        const gFilename = gUri.split('/').pop() || `gallery_${i}.jpg`;
+        const gMatch = /\.(\w+)$/.exec(gFilename);
+        const gMime = gMatch ? `image/${gMatch[1]}` : 'image/jpeg';
+        if (Platform.OS === 'web') {
+          const resp = await fetch(gUri);
+          const blob = await resp.blob();
+          formData.append('gallery_images', blob, gFilename);
+        } else {
+          formData.append('gallery_images', {
+            uri: gUri,
+            name: gFilename,
+            type: gMime,
+          } as any);
+        }
+      }
+
       if (isEditing && id) {
         await api.patch(`/products/${id}/`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
@@ -234,10 +380,11 @@ export default function AddProductScreen() {
   };
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.bg }]}
-      contentContainerStyle={{ paddingBottom: 40 }}
-    >
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.bg }]}
+        contentContainerStyle={{ paddingBottom: 40 }}
+      >
       <View
         style={[
           styles.imageSection,
@@ -262,6 +409,79 @@ export default function AddProductScreen() {
       </View>
 
       <View style={styles.form}>
+        {/* AI Vision Packaging Scan Banner */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={[
+            styles.aiScanBanner,
+            {
+              backgroundColor: isDark ? 'rgba(99, 102, 241, 0.16)' : '#eef2ff',
+              borderColor: isDark ? '#4338ca' : '#c7d2fe',
+            },
+          ]}
+          onPress={() => setShowAIOptionsModal(true)}
+          disabled={analyzingPackaging}
+        >
+          <View style={styles.aiIconBadge}>
+            <Ionicons name="sparkles" size={18} color="#6366f1" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={[styles.aiScanTitle, { color: isDark ? '#a5b4fc' : '#4338ca' }]}>
+                AI Packaging Vision Scan
+              </Text>
+              <View style={styles.aiNewPill}>
+                <Text style={styles.aiNewPillText}>AI VISION</Text>
+              </View>
+            </View>
+            <Text style={[styles.aiScanSub, { color: colors.textMuted }]}>
+              {analyzingPackaging
+                ? 'AI is analyzing packaging photo...'
+                : 'Snap packaging to auto-fill Name, Brand, Unit & Details'}
+            </Text>
+          </View>
+          {analyzingPackaging ? (
+            <ActivityIndicator size="small" color="#6366f1" />
+          ) : (
+            <Ionicons name="camera-outline" size={20} color="#6366f1" />
+          )}
+        </TouchableOpacity>
+
+        {/* Extra Gallery Photos Section */}
+        <View style={styles.gallerySection}>
+          <View style={styles.galleryHeader}>
+            <Text style={[styles.label, { color: colors.textMuted, marginBottom: 0 }]}>
+              Additional Gallery Photos ({galleryImages.length})
+            </Text>
+            <TouchableOpacity
+              style={[
+                styles.addGalleryBtn,
+                { backgroundColor: colors.cardAlt, borderColor: colors.border },
+              ]}
+              onPress={pickGalleryImages}
+            >
+              <Ionicons name="add" size={14} color="#10b981" />
+              <Text style={[styles.addGalleryBtnText, { color: colors.text }]}>Add Photos</Text>
+            </TouchableOpacity>
+          </View>
+
+          {galleryImages.length > 0 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galleryList}>
+              {galleryImages.map((uri, idx) => (
+                <View key={idx} style={[styles.galleryThumbWrap, { borderColor: colors.border }]}>
+                  <Image source={{ uri }} style={styles.galleryThumb} contentFit="cover" />
+                  <TouchableOpacity
+                    style={styles.galleryRemoveBtn}
+                    onPress={() => removeGalleryImage(idx)}
+                  >
+                    <Ionicons name="close" size={12} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+
         <Text style={[styles.label, { color: colors.textMuted }]}>Barcode / SKU (Optional)</Text>
         <View style={styles.row}>
           <TextInput
@@ -506,6 +726,73 @@ export default function AddProductScreen() {
         </TouchableOpacity>
       </View>
     </ScrollView>
+
+      {/* AI Packaging Options Modal */}
+      <Modal visible={showAIOptionsModal} transparent animationType="fade">
+        <View style={styles.aiModalOverlay}>
+          <View
+            style={[
+              styles.aiModalCard,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <View style={styles.aiModalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="sparkles" size={20} color="#6366f1" />
+                <Text style={[styles.aiModalTitle, { color: colors.text }]}>
+                  AI Packaging Scanner
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowAIOptionsModal(false)}>
+                <Ionicons name="close" size={22} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={[styles.aiModalSub, { color: colors.textMuted }]}>
+              Take a photo of the product front or packaging label. AI will extract name, brand, weight/unit, and description automatically.
+            </Text>
+
+            <View style={styles.aiModalOptions}>
+              <TouchableOpacity
+                style={[
+                  styles.aiOptionBtn,
+                  { backgroundColor: colors.cardAlt, borderColor: colors.border },
+                ]}
+                onPress={() => handleAIVisionScan('camera')}
+              >
+                <Ionicons name="camera" size={24} color="#6366f1" />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.aiOptionTitle, { color: colors.text }]}>
+                    Take Photo with Camera
+                  </Text>
+                  <Text style={[styles.aiOptionDesc, { color: colors.textMuted }]}>
+                    Snap product packaging right now
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.aiOptionBtn,
+                  { backgroundColor: colors.cardAlt, borderColor: colors.border },
+                ]}
+                onPress={() => handleAIVisionScan('library')}
+              >
+                <Ionicons name="images" size={24} color="#10b981" />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.aiOptionTitle, { color: colors.text }]}>
+                    Pick from Photo Gallery
+                  </Text>
+                  <Text style={[styles.aiOptionDesc, { color: colors.textMuted }]}>
+                    Select saved packaging photo
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 }
 
@@ -610,5 +897,139 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 15,
     fontWeight: 'bold',
+  },
+  aiScanBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  aiIconBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  aiScanTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  aiNewPill: {
+    backgroundColor: '#6366f1',
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 4,
+  },
+  aiNewPillText: {
+    color: '#ffffff',
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  aiScanSub: {
+    fontSize: 11.5,
+    marginTop: 2,
+  },
+  gallerySection: {
+    marginBottom: 16,
+  },
+  galleryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  addGalleryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  addGalleryBtnText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  galleryList: {
+    flexDirection: 'row',
+  },
+  galleryThumbWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginRight: 8,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  galleryThumb: {
+    width: '100%',
+    height: '100%',
+  },
+  galleryRemoveBtn: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  aiModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  aiModalCard: {
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 20,
+  },
+  aiModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  aiModalTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  aiModalSub: {
+    fontSize: 12.5,
+    lineHeight: 18,
+    marginBottom: 18,
+  },
+  aiModalOptions: {
+    gap: 10,
+  },
+  aiOptionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  aiOptionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  aiOptionDesc: {
+    fontSize: 11.5,
+    marginTop: 1,
   },
 });
