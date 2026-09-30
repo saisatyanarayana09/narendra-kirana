@@ -5,12 +5,12 @@ import {
   StyleSheet,
   ScrollView,
   TextInput,
-  Switch,
   TouchableOpacity,
   ActivityIndicator,
   Platform,
   Linking,
 } from 'react-native';
+import ModernSwitch from '../../../components/ModernSwitch';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -550,10 +550,9 @@ export default function AdvancedSettingsScreen() {
                     Generates exact amount QR code on checkout screen
                   </Text>
                 </View>
-                <Switch
+                <ModernSwitch
                   value={Boolean(settings.enable_dynamic_upi_qr)}
                   onValueChange={(v) => updateField('enable_dynamic_upi_qr', v)}
-                  trackColor={{ false: '#334155', true: '#10b981' }}
                 />
               </View>
 
@@ -650,10 +649,9 @@ export default function AdvancedSettingsScreen() {
                     Break down CGST, SGST & item-level tax in customer receipts
                   </Text>
                 </View>
-                <Switch
+                <ModernSwitch
                   value={Boolean(settings.enable_itemized_tax_invoice)}
                   onValueChange={(v) => updateField('enable_itemized_tax_invoice', v)}
-                  trackColor={{ false: '#334155', true: '#10b981' }}
                 />
               </View>
 
@@ -694,10 +692,11 @@ export default function AdvancedSettingsScreen() {
                     Instantly freeze incoming orders with custom alert message
                   </Text>
                 </View>
-                <Switch
+                <ModernSwitch
                   value={Boolean(settings.is_emergency_paused)}
                   onValueChange={(v) => updateField('is_emergency_paused', v)}
                   trackColor={{ false: '#334155', true: '#ef4444' }}
+                  activeThumbColor="#fca5a5"
                 />
               </View>
 
@@ -721,10 +720,9 @@ export default function AdvancedSettingsScreen() {
                     Automatically close store and prevent orders outside daily schedule
                   </Text>
                 </View>
-                <Switch
+                <ModernSwitch
                   value={Boolean(settings.auto_cutoff_orders)}
                   onValueChange={(v) => updateField('auto_cutoff_orders', v)}
-                  trackColor={{ false: '#334155', true: '#10b981' }}
                 />
               </View>
 
@@ -773,10 +771,11 @@ export default function AdvancedSettingsScreen() {
 
                       <View style={styles.closedSwitchWrap}>
                         <Text style={[styles.closedText, { color: colors.textMuted }]}>Closed</Text>
-                        <Switch
+                        <ModernSwitch
                           value={Boolean(dayData.is_closed)}
                           onValueChange={(val) => handleTimingChange(day, 'is_closed', val)}
                           trackColor={{ false: '#334155', true: '#ef4444' }}
+                          activeThumbColor="#fca5a5"
                         />
                       </View>
                     </View>
@@ -808,10 +807,9 @@ export default function AdvancedSettingsScreen() {
                     Let customers choose preferred delivery/pickup windows
                   </Text>
                 </View>
-                <Switch
+                <ModernSwitch
                   value={Boolean(settings.enable_time_slots)}
                   onValueChange={(v) => updateField('enable_time_slots', v)}
-                  trackColor={{ false: '#334155', true: '#10b981' }}
                 />
               </View>
 
@@ -937,10 +935,9 @@ export default function AdvancedSettingsScreen() {
                     Show floating WhatsApp button on customer app & website
                   </Text>
                 </View>
-                <Switch
+                <ModernSwitch
                   value={Boolean(settings.enable_whatsapp_support)}
                   onValueChange={(v) => updateField('enable_whatsapp_support', v)}
-                  trackColor={{ false: '#334155', true: '#10b981' }}
                 />
               </View>
 
@@ -1071,10 +1068,9 @@ export default function AdvancedSettingsScreen() {
                     Displays a scrolling or sticky announcement at the top of the storefront
                   </Text>
                 </View>
-                <Switch
+                <ModernSwitch
                   value={Boolean(settings.enable_announcement_bar)}
                   onValueChange={(v) => updateField('enable_announcement_bar', v)}
-                  trackColor={{ false: '#334155', true: '#10b981' }}
                 />
               </View>
 
@@ -1171,10 +1167,9 @@ export default function AdvancedSettingsScreen() {
                     Modal greeting popup shown to customers when opening the app
                   </Text>
                 </View>
-                <Switch
+                <ModernSwitch
                   value={Boolean(settings.enable_festive_popup)}
                   onValueChange={(v) => updateField('enable_festive_popup', v)}
-                  trackColor={{ false: '#334155', true: '#10b981' }}
                 />
               </View>
 
@@ -1305,10 +1300,9 @@ export default function AdvancedSettingsScreen() {
                     Block customer app until user upgrades to latest version
                   </Text>
                 </View>
-                <Switch
+                <ModernSwitch
                   value={Boolean(settings.force_app_update)}
                   onValueChange={(v) => updateField('force_app_update', v)}
-                  trackColor={{ false: '#334155', true: '#10b981' }}
                 />
               </View>
 
@@ -1342,10 +1336,11 @@ export default function AdvancedSettingsScreen() {
                     Display maintenance screen to customers while backend undergoes maintenance
                   </Text>
                 </View>
-                <Switch
+                <ModernSwitch
                   value={Boolean(settings.is_maintenance_mode)}
                   onValueChange={(v) => updateField('is_maintenance_mode', v)}
                   trackColor={{ false: '#334155', true: '#f59e0b' }}
+                  activeThumbColor="#fde68a"
                 />
               </View>
 

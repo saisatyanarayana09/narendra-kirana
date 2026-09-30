@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TextInput,
-  Switch,
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
@@ -12,6 +11,7 @@ import {
   Modal,
   Linking,
 } from 'react-native';
+import ModernSwitch from '../../../components/ModernSwitch';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -446,10 +446,9 @@ export default function SettingsScreen() {
                   {form.is_open ? 'Store is open and accepting new customer orders' : 'Store is paused / offline'}
                 </Text>
               </View>
-              <Switch
+              <ModernSwitch
                 value={Boolean(form.is_open)}
                 onValueChange={(v) => updateField('is_open', v)}
-                trackColor={{ false: '#334155', true: '#10b981' }}
               />
             </View>
 
@@ -460,10 +459,9 @@ export default function SettingsScreen() {
                   Automatically move newly placed orders to 'ACCEPTED' status
                 </Text>
               </View>
-              <Switch
+              <ModernSwitch
                 value={Boolean(form.auto_accept_orders)}
                 onValueChange={(v) => updateField('auto_accept_orders', v)}
-                trackColor={{ false: '#334155', true: '#10b981' }}
               />
             </View>
 
@@ -656,13 +654,12 @@ export default function SettingsScreen() {
                   Allow customers to choose door delivery at checkout
                 </Text>
               </View>
-              <Switch
+              <ModernSwitch
                 value={Boolean(form.is_home_delivery_active)}
                 onValueChange={(v) => {
                   updateField('is_home_delivery_active', v);
                   updateField('delivery_mode', v ? 'BOTH' : 'PICKUP');
                 }}
-                trackColor={{ false: '#334155', true: '#10b981' }}
               />
             </View>
 
@@ -742,10 +739,9 @@ export default function SettingsScreen() {
                       Block customer checkout if address is beyond delivery radius
                     </Text>
                   </View>
-                  <Switch
+                  <ModernSwitch
                     value={Boolean(form.enforce_delivery_radius)}
                     onValueChange={(v) => updateField('enforce_delivery_radius', v)}
-                    trackColor={{ false: '#334155', true: '#10b981' }}
                   />
                 </View>
 
@@ -801,10 +797,9 @@ export default function SettingsScreen() {
                   Send order receipts directly from your own Gmail or store domain
                 </Text>
               </View>
-              <Switch
+              <ModernSwitch
                 value={Boolean(emailSettings.is_active)}
                 onValueChange={(v) => updateEmailField('is_active', v)}
-                trackColor={{ false: '#334155', true: '#10b981' }}
               />
             </View>
 
@@ -885,18 +880,16 @@ export default function SettingsScreen() {
             <View style={styles.twoCol}>
               <View style={[styles.switchCard, { flex: 1, backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
                 <Text style={[styles.switchLabel, { color: colors.text, fontSize: 13 }]}>Use TLS</Text>
-                <Switch
+                <ModernSwitch
                   value={Boolean(emailSettings.use_tls)}
                   onValueChange={(v) => updateEmailField('use_tls', v)}
-                  trackColor={{ false: '#334155', true: '#10b981' }}
                 />
               </View>
               <View style={[styles.switchCard, { flex: 1, backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
                 <Text style={[styles.switchLabel, { color: colors.text, fontSize: 13 }]}>Use SSL</Text>
-                <Switch
+                <ModernSwitch
                   value={Boolean(emailSettings.use_ssl)}
                   onValueChange={(v) => updateEmailField('use_ssl', v)}
-                  trackColor={{ false: '#334155', true: '#10b981' }}
                 />
               </View>
             </View>
@@ -1073,10 +1066,9 @@ export default function SettingsScreen() {
             <View style={[styles.sectionRow, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
               <View style={styles.sectionHeaderRow}>
                 <Text style={[styles.sectionName, { color: colors.text }]}>Popular Picks Section</Text>
-                <Switch
+                <ModernSwitch
                   value={Boolean(form.show_popular_picks)}
                   onValueChange={(v) => updateField('show_popular_picks', v)}
-                  trackColor={{ false: '#334155', true: '#10b981' }}
                 />
               </View>
               {Boolean(form.show_popular_picks) && (
@@ -1094,10 +1086,9 @@ export default function SettingsScreen() {
             <View style={[styles.sectionRow, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
               <View style={styles.sectionHeaderRow}>
                 <Text style={[styles.sectionName, { color: colors.text }]}>Great Deals Section</Text>
-                <Switch
+                <ModernSwitch
                   value={Boolean(form.show_great_deals)}
                   onValueChange={(v) => updateField('show_great_deals', v)}
-                  trackColor={{ false: '#334155', true: '#10b981' }}
                 />
               </View>
               {Boolean(form.show_great_deals) && (
@@ -1115,10 +1106,9 @@ export default function SettingsScreen() {
             <View style={[styles.sectionRow, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
               <View style={styles.sectionHeaderRow}>
                 <Text style={[styles.sectionName, { color: colors.text }]}>New Arrivals Section</Text>
-                <Switch
+                <ModernSwitch
                   value={Boolean(form.show_new_arrivals)}
                   onValueChange={(v) => updateField('show_new_arrivals', v)}
-                  trackColor={{ false: '#334155', true: '#10b981' }}
                 />
               </View>
               {Boolean(form.show_new_arrivals) && (

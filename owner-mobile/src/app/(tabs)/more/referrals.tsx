@@ -6,11 +6,11 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Switch,
   ActivityIndicator,
   RefreshControl,
   Modal,
 } from 'react-native';
+import ModernSwitch from '../../../components/ModernSwitch';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import api, { getErrorMessage } from '../../../services/api';
@@ -233,10 +233,9 @@ export default function ReferralsScreen() {
                     Enable or disable the referral program entirely.
                   </Text>
                 </View>
-                <Switch
+                <ModernSwitch
                   value={Boolean(settings?.is_active)}
                   onValueChange={(v) => setSettings({ ...settings, is_active: v })}
-                  trackColor={{ false: '#334155', true: '#10b981' }}
                 />
               </View>
 
@@ -335,10 +334,9 @@ export default function ReferralsScreen() {
                     Require the referrer to spend a minimum threshold before they can unlock referral rewards.
                   </Text>
                 </View>
-                <Switch
+                <ModernSwitch
                   value={Boolean(settings?.require_min_spend)}
                   onValueChange={(v) => setSettings({ ...settings, require_min_spend: v })}
-                  trackColor={{ false: '#334155', true: '#10b981' }}
                 />
               </View>
 

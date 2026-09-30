@@ -7,12 +7,12 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  Switch,
   RefreshControl,
   ScrollView,
   Modal,
   Platform,
 } from 'react-native';
+import ModernSwitch from '../../../components/ModernSwitch';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -431,10 +431,9 @@ export default function OffersScreen() {
 
             <View style={styles.switchRow}>
               <Text style={[styles.label, { color: colors.text }]}>Active Immediately</Text>
-              <Switch
+              <ModernSwitch
                 value={isActive}
                 onValueChange={setIsActive}
-                trackColor={{ false: '#334155', true: '#10b981' }}
               />
             </View>
 
@@ -520,10 +519,9 @@ export default function OffersScreen() {
                   </View>
 
                   <View style={styles.actionsRow}>
-                    <Switch
+                    <ModernSwitch
                       value={Boolean(item.is_active)}
                       onValueChange={() => handleTogglePromo(item)}
-                      trackColor={{ false: '#334155', true: '#10b981' }}
                     />
 
                     <TouchableOpacity
@@ -654,10 +652,9 @@ export default function OffersScreen() {
                   </View>
 
                   {/* Toggle Active Switch */}
-                  <Switch
+                  <ModernSwitch
                     value={Boolean(item.is_active)}
                     onValueChange={() => handleToggleBanner(item)}
-                    trackColor={{ false: '#334155', true: '#10b981' }}
                   />
 
                   {/* Delete Button */}
@@ -747,10 +744,9 @@ export default function OffersScreen() {
 
             <View style={[styles.switchRow, { marginTop: 12 }]}>
               <Text style={[styles.label, { color: colors.text }]}>Active Immediately</Text>
-              <Switch
+              <ModernSwitch
                 value={bannerIsActive}
                 onValueChange={setBannerIsActive}
-                trackColor={{ false: '#334155', true: '#10b981' }}
               />
             </View>
 

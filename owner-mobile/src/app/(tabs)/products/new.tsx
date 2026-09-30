@@ -8,9 +8,9 @@ import {
   ScrollView,
   ActivityIndicator,
   Platform,
-  Switch,
   Modal,
 } from 'react-native';
+import ModernSwitch from '../../../components/ModernSwitch';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
@@ -707,10 +707,9 @@ export default function AddProductScreen() {
               Show this product as ready to buy in customer app
             </Text>
           </View>
-          <Switch
+          <ModernSwitch
             value={isInStock}
             onValueChange={setIsInStock}
-            trackColor={{ false: '#334155', true: '#10b981' }}
           />
         </View>
 

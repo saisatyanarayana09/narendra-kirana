@@ -9,13 +9,13 @@ import {
   TextInput,
   RefreshControl,
   ScrollView,
-  Switch,
   Modal,
   KeyboardAvoidingView,
   Platform,
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
+import ModernSwitch from '../../../components/ModernSwitch';
 import { useRouter } from 'expo-router';
 import api, { ApiInstance, getErrorMessage } from '../../../services/api';
 import { Ionicons } from '@expo/vector-icons';
@@ -1468,10 +1468,9 @@ export default function ProductsListScreen() {
                   Customers can see and order this item
                 </Text>
               </View>
-              <Switch
+              <ModernSwitch
                 value={qeInStock}
                 onValueChange={setQeInStock}
-                trackColor={{ false: colors.border, true: '#10b981' }}
               />
             </View>
 

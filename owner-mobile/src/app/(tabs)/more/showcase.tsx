@@ -6,13 +6,13 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Switch,
   ActivityIndicator,
   RefreshControl,
   Platform,
   Modal,
   FlatList,
 } from 'react-native';
+import ModernSwitch from '../../../components/ModernSwitch';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -525,10 +525,9 @@ export default function ShowcaseScreen() {
                     </View>
 
                     {/* Switch */}
-                    <Switch
+                    <ModernSwitch
                       value={Boolean(ban.is_active)}
                       onValueChange={() => handleToggleBanner(ban)}
-                      trackColor={{ false: '#334155', true: '#10b981' }}
                     />
 
                     {/* Delete */}
@@ -636,10 +635,9 @@ export default function ShowcaseScreen() {
                             </TouchableOpacity>
                           </View>
 
-                          <Switch
+                          <ModernSwitch
                             value={Boolean(sec.is_active)}
                             onValueChange={() => handleToggleSection(sec)}
-                            trackColor={{ false: '#334155', true: '#10b981' }}
                           />
 
                           <TouchableOpacity

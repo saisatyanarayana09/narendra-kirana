@@ -6,11 +6,11 @@ import {
   FlatList,
   TextInput,
   TouchableOpacity,
-  Switch,
   ActivityIndicator,
   RefreshControl,
   Platform,
 } from 'react-native';
+import ModernSwitch from '../../../components/ModernSwitch';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -247,10 +247,9 @@ export default function CategoriesScreen() {
               Show this category and its items on the customer app
             </Text>
           </View>
-          <Switch
+          <ModernSwitch
             value={isActive}
             onValueChange={setIsActive}
-            trackColor={{ false: '#334155', true: '#10b981' }}
           />
         </View>
 

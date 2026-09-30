@@ -7,9 +7,9 @@ import {
   Platform,
   ActivityIndicator,
   TextInput,
-  Switch,
   ScrollView,
 } from 'react-native';
+import ModernSwitch from '../../../components/ModernSwitch';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import api, { ApiInstance, getErrorMessage } from '../../../services/api';
@@ -366,10 +366,9 @@ export default function MapScreen() {
               Block checkout if customer delivery GPS is beyond {radiusKm} km of the store.
             </Text>
           </View>
-          <Switch
+          <ModernSwitch
             value={enforceRadius}
             onValueChange={setEnforceRadius}
-            trackColor={{ false: '#334155', true: '#10b981' }}
           />
         </View>
 
