@@ -243,6 +243,10 @@ if frontend_url and frontend_url not in CORS_ALLOWED_ORIGINS:
     CORS_ALLOWED_ORIGINS.append(frontend_url)
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.vercel\.app$",
+    r"^http://localhost(:\d+)?$",
+    r"^http://127\.0\.0\.1(:\d+)?$",
+    r"^http://192\.168\.\d+\.\d+(:\d+)?$",
+    r"^http://10\.\d+\.\d+\.\d+(:\d+)?$",
 ]
 CSRF_TRUSTED_ORIGINS = ['https://*.vercel.app', 'https://*.onrender.com']
 

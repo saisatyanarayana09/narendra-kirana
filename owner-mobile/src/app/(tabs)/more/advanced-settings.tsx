@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Platform,
   Linking,
+  RefreshControl,
 } from 'react-native';
 import ModernSwitch from '../../../components/ModernSwitch';
 import ScreenHeader from '../../../components/ScreenHeader';
@@ -126,65 +127,77 @@ export default function AdvancedSettingsScreen() {
   const [backupStats, setBackupStats] = useState<any>(null);
   const [loadingBackupStats, setLoadingBackupStats] = useState(false);
   const [downloadingBackup, setDownloadingBackup] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const fetchSettings = useCallback(async (isRefresh = false) => {
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+    setFetchError(null);
+
+    try {
+      const res = await api.get('/store/settings/');
+      const rawData = res?.data;
+      const d = Array.isArray(rawData) ? rawData[0] : rawData;
+
+      if (!d || typeof d !== 'object') {
+        throw new Error('Invalid response structure received from server.');
+      }
+
+      let parsedTimings = d.store_timings_json;
+      if (typeof parsedTimings === 'string') {
+        try {
+          parsedTimings = JSON.parse(parsedTimings);
+        } catch {
+          parsedTimings = {};
+        }
+      }
+
+      let parsedSlots = d.time_slots_json;
+      if (typeof parsedSlots === 'string') {
+        try {
+          parsedSlots = JSON.parse(parsedSlots);
+        } catch {
+          parsedSlots = [];
+        }
+      }
+
+      setSettings((prev: any) => ({
+        ...prev,
+        ...d,
+        preparation_buffer_minutes: String(d.preparation_buffer_minutes ?? '30'),
+        max_orders_per_slot: String(d.max_orders_per_slot ?? '15'),
+        max_wallet_usage_percentage: String(d.max_wallet_usage_percentage ?? '50'),
+        referral_bonus_referrer: String(d.referral_bonus_referrer ?? '50.00'),
+        referral_bonus_referee: String(d.referral_bonus_referee ?? '50.00'),
+        referral_min_order_amount: String(d.referral_min_order_amount ?? '200.00'),
+        order_cashback_percentage: String(d.order_cashback_percentage ?? '2.00'),
+        store_timings_json: parsedTimings || {},
+        time_slots_json: Array.isArray(parsedSlots) ? parsedSlots : [],
+        announcement_start_date: d.announcement_start_date ? d.announcement_start_date.slice(0, 16) : '',
+        announcement_end_date: d.announcement_end_date ? d.announcement_end_date.slice(0, 16) : '',
+        maintenance_estimated_end: d.maintenance_estimated_end ? d.maintenance_estimated_end.slice(0, 16) : '',
+      }));
+
+      if (d.upi_qr_image) setUpiQrUri(d.upi_qr_image);
+      if (d.festive_popup_image) setFestiveImageUri(d.festive_popup_image);
+      if (d.app_icon) setAppIconUri(d.app_icon);
+    } catch (err: any) {
+      console.error('Failed to load advanced settings:', err);
+      const friendlyMsg = getErrorMessage(err, 'Failed to load advanced settings. Please check your connection.');
+      setFetchError(friendlyMsg);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
   useEffect(() => {
-    let isMounted = true;
-    api
-      .get('/store/settings/', { params: { t: Date.now() } })
-      .then((res) => {
-        if (!isMounted || !res?.data) return;
-        const d = res.data;
-
-        let parsedTimings = d.store_timings_json;
-        if (typeof parsedTimings === 'string') {
-          try {
-            parsedTimings = JSON.parse(parsedTimings);
-          } catch {
-            parsedTimings = {};
-          }
-        }
-
-        let parsedSlots = d.time_slots_json;
-        if (typeof parsedSlots === 'string') {
-          try {
-            parsedSlots = JSON.parse(parsedSlots);
-          } catch {
-            parsedSlots = [];
-          }
-        }
-
-        setSettings((prev: any) => ({
-          ...prev,
-          ...d,
-          preparation_buffer_minutes: String(d.preparation_buffer_minutes ?? '30'),
-          max_orders_per_slot: String(d.max_orders_per_slot ?? '15'),
-          max_wallet_usage_percentage: String(d.max_wallet_usage_percentage ?? '50'),
-          referral_bonus_referrer: String(d.referral_bonus_referrer ?? '50.00'),
-          referral_bonus_referee: String(d.referral_bonus_referee ?? '50.00'),
-          referral_min_order_amount: String(d.referral_min_order_amount ?? '200.00'),
-          order_cashback_percentage: String(d.order_cashback_percentage ?? '2.00'),
-          store_timings_json: parsedTimings || {},
-          time_slots_json: Array.isArray(parsedSlots) ? parsedSlots : [],
-          announcement_start_date: d.announcement_start_date ? d.announcement_start_date.slice(0, 16) : '',
-          announcement_end_date: d.announcement_end_date ? d.announcement_end_date.slice(0, 16) : '',
-          maintenance_estimated_end: d.maintenance_estimated_end ? d.maintenance_estimated_end.slice(0, 16) : '',
-        }));
-
-        if (d.upi_qr_image) setUpiQrUri(d.upi_qr_image);
-        if (d.festive_popup_image) setFestiveImageUri(d.festive_popup_image);
-        if (d.app_icon) setAppIconUri(d.app_icon);
-      })
-      .catch((err) => {
-        console.error('Failed to load advanced settings:', err);
-      })
-      .finally(() => {
-        if (isMounted) setLoading(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+    fetchSettings();
+  }, [fetchSettings]);
 
   const fetchBackupStats = async () => {
     setLoadingBackupStats(true);
@@ -305,6 +318,10 @@ export default function AdvancedSettingsScreen() {
   };
 
   const handleSave = async () => {
+    if (fetchError && !settings.id) {
+      showAlert('Notice', 'Cannot save settings because the latest data could not be loaded from the server. Please pull to refresh or retry connection first.');
+      return;
+    }
     setSaving(true);
     try {
       const payload: any = {
@@ -426,11 +443,71 @@ export default function AdvancedSettingsScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.bg }]}>
-        <ActivityIndicator size="large" color="#10b981" />
-        <Text style={[styles.loadingText, { color: colors.textMuted }]}>
-          Loading advanced settings...
-        </Text>
+      <View style={[styles.screen, { backgroundColor: colors.bg }]}>
+        <ScreenHeader title="Advanced Settings" subtitle="UPI, slots, hours & policies" />
+        <View style={[styles.center, { backgroundColor: colors.bg }]}>
+          <ActivityIndicator size="large" color="#10b981" />
+          <Text style={[styles.loadingText, { color: colors.textMuted }]}>
+            Loading advanced settings...
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (fetchError && !settings.id) {
+    return (
+      <View style={[styles.screen, { backgroundColor: colors.bg }]}>
+        <ScreenHeader title="Advanced Settings" subtitle="UPI, slots, hours & policies" />
+        <View style={[styles.center, { backgroundColor: colors.bg, paddingHorizontal: 28 }]}>
+          <View
+            style={{
+              width: 68,
+              height: 68,
+              borderRadius: 34,
+              backgroundColor: 'rgba(239, 68, 68, 0.12)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 16,
+            }}
+          >
+            <Ionicons name="cloud-offline-outline" size={32} color="#ef4444" />
+          </View>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text, marginBottom: 8, textAlign: 'center' }}>
+            Unable to Load Settings
+          </Text>
+          <Text
+            style={{
+              fontSize: 14,
+              color: colors.textMuted,
+              textAlign: 'center',
+              lineHeight: 20,
+              marginBottom: 24,
+            }}
+          >
+            {fetchError}
+          </Text>
+          <TouchableOpacity
+            style={{
+              backgroundColor: '#10b981',
+              paddingHorizontal: 24,
+              paddingVertical: 12,
+              borderRadius: 10,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+              shadowColor: '#10b981',
+              shadowOffset: { width: 0, height: 3 },
+              shadowOpacity: 0.25,
+              shadowRadius: 6,
+              elevation: 3,
+            }}
+            onPress={() => fetchSettings()}
+          >
+            <Ionicons name="reload-outline" size={16} color="#fff" />
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Retry Connection</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -496,8 +573,45 @@ export default function AdvancedSettingsScreen() {
       </View>
 
       {/* Content Container */}
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => fetchSettings(true)}
+            colors={['#10b981']}
+            tintColor="#10b981"
+          />
+        }
+      >
         <View style={styles.maxContainer}>
+          {fetchError ? (
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                borderColor: 'rgba(239, 68, 68, 0.25)',
+                borderWidth: 1,
+                borderRadius: 10,
+                padding: 12,
+                marginBottom: 16,
+                gap: 10,
+              }}
+              onPress={() => fetchSettings(true)}
+            >
+              <Ionicons name="alert-circle-outline" size={20} color="#ef4444" />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: '#ef4444' }}>
+                  Connection Issue
+                </Text>
+                <Text style={{ fontSize: 12, color: colors.textMuted }}>
+                  Tap here to retry refreshing latest settings.
+                </Text>
+              </View>
+              <Ionicons name="reload" size={16} color="#ef4444" />
+            </TouchableOpacity>
+          ) : null}
 
           {/* TAB 1: UPI & PAYMENTS */}
           {activeTab === 'payments' && (
