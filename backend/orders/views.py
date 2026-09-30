@@ -138,14 +138,16 @@ class OrderViewSet(ModelViewSet):
         return [IsAuthenticated()]
 
     def get_queryset(self):
+        from django.db.models import Prefetch
+        from .models import OrderItem
+        
         queryset = Order.objects.select_related(
             'customer',
             'customer__customer_profile',
             'delivery_partner',
             'delivery_partner__delivery_profile'
         ).prefetch_related(
-            'items',
-            'items__product'
+            Prefetch('items', queryset=OrderItem.objects.select_related('product'))
         ).order_by('-created_at')
         if self.request.user.is_owner:
             return queryset
@@ -419,6 +421,8 @@ class OrderViewSet(ModelViewSet):
         created_msg = "Order placed successfully."
         transaction.on_commit(on_commit_tasks)
         
+        # Refetch order with prefetches to avoid N+1 queries during serialization
+        order = self.get_queryset().get(id=order.id)
         return Response(OrderSerializer(order, context=self.get_serializer_context()).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['patch'], permission_classes=[IsOwnerUser])

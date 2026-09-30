@@ -648,13 +648,13 @@ export default function ProductsListScreen() {
   }, [reorderMode, searchQuery, selectedCatId, stockFilter, sortBy]);
 
   // ─── Quick Edit Modal Handlers ───
-  const openQuickEdit = (item: any) => {
+  const openQuickEdit = useCallback((item: any) => {
     setQuickEditProduct(item);
     setQePrice(String(item?.regular_price ?? item?.price ?? ''));
     setQeOfferPrice(item?.offer_price ? String(item.offer_price) : '');
     setQeStock(String(item?.stock_quantity ?? '0'));
     setQeInStock(Boolean(item?.is_in_stock));
-  };
+  }, []);
 
   const handleSaveQuickEdit = async () => {
     if (!quickEditProduct?.id) return;
@@ -1289,20 +1289,23 @@ export default function ProductsListScreen() {
             keyExtractor={(item, idx) =>
               item?.id != null ? String(item.id) : `prod-${idx}`
             }
-            renderItem={({ item, index }) => (
-              <ProductCard
-                item={item}
-                colors={colors}
-                isDark={isDark}
-                onEdit={handleEdit}
-                onQuickEdit={openQuickEdit}
-                onStockDelta={handleStockDelta}
-                onDelete={handleDelete}
-                reorderMode={reorderMode}
-                index={index}
-                totalCount={displayedProducts.length}
-                onMoveProduct={moveProduct}
-              />
+            renderItem={useCallback(
+              ({ item, index }: any) => (
+                <ProductCard
+                  item={item}
+                  colors={colors}
+                  isDark={isDark}
+                  onEdit={handleEdit}
+                  onQuickEdit={openQuickEdit}
+                  onStockDelta={handleStockDelta}
+                  onDelete={handleDelete}
+                  reorderMode={reorderMode}
+                  index={index}
+                  totalCount={displayedProducts.length}
+                  onMoveProduct={moveProduct}
+                />
+              ),
+              [colors, isDark, handleEdit, openQuickEdit, handleStockDelta, handleDelete, reorderMode, displayedProducts.length, moveProduct]
             )}
             contentContainerStyle={styles.listContent}
             onScroll={handleScroll}

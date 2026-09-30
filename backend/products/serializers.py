@@ -19,6 +19,10 @@ class CategorySerializer(serializers.ModelSerializer):
             match = EXTERNAL_URL_RE.search(data['image'])
             if match:
                 data['image'] = match.group(0)
+        
+        if data.get('image') and isinstance(data['image'], str):
+            data['image'] = data['image'].replace('/media/media/', '/media/')
+
         return data
 
 class ProductImageSerializer(serializers.ModelSerializer):
@@ -36,6 +40,10 @@ class ProductImageSerializer(serializers.ModelSerializer):
             match = EXTERNAL_URL_RE.search(data['image'])
             if match:
                 data['image'] = match.group(0)
+        
+        if data.get('image') and isinstance(data['image'], str):
+            data['image'] = data['image'].replace('/media/media/', '/media/')
+
         return data
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -56,6 +64,10 @@ class ProductSerializer(serializers.ModelSerializer):
             match = EXTERNAL_URL_RE.search(data['image'])
             if match:
                 data['image'] = match.group(0)
+        
+        if data.get('image') and isinstance(data['image'], str):
+            data['image'] = data['image'].replace('/media/media/', '/media/')
+
         return data
 
 class FavoriteSerializer(serializers.ModelSerializer):

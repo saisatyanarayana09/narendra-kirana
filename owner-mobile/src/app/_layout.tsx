@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, LogBox, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, LogBox, Platform, UIManager } from 'react-native';
 import { Stack } from 'expo-router';
 import { AuthProvider } from '../context/AuthContext';
 import { AppThemeProvider, useAppTheme } from '../context/ThemeContext';
@@ -81,12 +81,17 @@ function AppContent() {
   return (
     <>
       <StatusBar style={isDark ? 'light' : 'dark'} />
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack>
     </>
   );
+}
+
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
 export default function RootLayout() {

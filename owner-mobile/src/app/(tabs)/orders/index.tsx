@@ -32,6 +32,388 @@ const STATUS_TABS = [
   { key: 'REJECTED', label: 'Rejected', dot: '#64748b' },
 ];
 
+const getStatusMeta = (status: string, orderType: string | undefined, isDark: boolean, colors: any) => {
+  switch (status) {
+    case 'NEW':
+      return {
+        label: 'New Order',
+        dot: '#f43f5e',
+        bg: isDark ? 'rgba(244, 63, 94, 0.14)' : '#fff1f2',
+        text: isDark ? '#fda4af' : '#e11d48',
+        nextLabel: 'Accept',
+        nextStatus: 'ACCEPTED',
+        nextColor: '#10b981',
+      };
+    case 'ACCEPTED':
+      return {
+        label: 'Accepted',
+        dot: '#3b82f6',
+        bg: isDark ? 'rgba(59, 130, 246, 0.14)' : '#eff6ff',
+        text: isDark ? '#93c5fd' : '#2563eb',
+        nextLabel: 'Start Packing',
+        nextStatus: 'PREPARING',
+        nextColor: '#3b82f6',
+      };
+    case 'PREPARING':
+      return {
+        label: 'Packing',
+        dot: '#f59e0b',
+        bg: isDark ? 'rgba(245, 158, 11, 0.14)' : '#fffbeb',
+        text: isDark ? '#fcd34d' : '#d97706',
+        nextLabel: 'Pack Items',
+        nextStatus: null as string | null,
+        routeToDetails: true,
+        nextColor: '#8b5cf6',
+      };
+    case 'READY':
+      return {
+        label: 'Ready',
+        dot: '#8b5cf6',
+        bg: isDark ? 'rgba(139, 92, 246, 0.14)' : '#f5f3ff',
+        text: isDark ? '#c4b5fd' : '#7c3aed',
+        nextLabel: orderType === 'PICKUP' ? 'Complete Pickup' : 'Dispatch',
+        nextStatus: orderType === 'PICKUP' ? 'COMPLETED' : 'OUT_FOR_DELIVERY',
+        nextColor: '#059669',
+      };
+    case 'OUT_FOR_DELIVERY':
+      return {
+        label: 'On the Way',
+        dot: '#06b6d4',
+        bg: isDark ? 'rgba(6, 182, 212, 0.14)' : '#ecfeff',
+        text: isDark ? '#67e8f9' : '#0891b2',
+        nextLabel: 'Complete',
+        nextStatus: 'COMPLETED',
+        nextColor: '#10b981',
+      };
+    case 'COMPLETED':
+      return {
+        label: 'Completed',
+        dot: '#10b981',
+        bg: isDark ? 'rgba(16, 185, 129, 0.12)' : '#f0fdf4',
+        text: isDark ? '#6ee7b7' : '#15803d',
+        nextLabel: null,
+        nextStatus: null,
+        nextColor: '#10b981',
+      };
+    case 'REJECTED':
+      return {
+        label: 'Rejected',
+        dot: '#64748b',
+        bg: isDark ? 'rgba(100, 116, 139, 0.16)' : '#f1f5f9',
+        text: isDark ? '#94a3b8' : '#64748b',
+        nextLabel: null,
+        nextStatus: null,
+        nextColor: '#64748b',
+      };
+    default:
+      return {
+        label: status || 'Pending',
+        dot: '#64748b',
+        bg: colors.cardAlt,
+        text: colors.textMuted,
+        nextLabel: null,
+        nextStatus: null,
+        nextColor: '#64748b',
+      };
+  }
+};
+
+const OrderCard = React.memo(({ 
+  order, 
+  isExpanded, 
+  detailData, 
+  loadingDetailId, 
+  updatingOrderId, 
+  onToggleExpand, 
+  onRejectOrder, 
+  onQuickStatusUpdate 
+}: any) => {
+  const { isDark, colors } = useAppTheme();
+  const router = useRouter();
+  
+  const meta = getStatusMeta(order?.status, order?.order_type, isDark, colors);
+  const timeStr = order?.created_at
+    ? new Date(order.created_at).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : '';
+  const itemsList: any[] = Array.isArray(detailData?.items)
+    ? detailData.items
+    : [];
+  const itemCount =
+    order.items_count ?? (itemsList.length > 0 ? itemsList.length : 0);
+
+  return (
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.card,
+          borderColor: isExpanded ? '#10b981' : colors.border,
+        },
+      ]}
+    >
+      <TouchableOpacity
+        activeOpacity={0.75}
+        style={styles.cardMainTouch}
+        onPress={() => onToggleExpand(order, isExpanded, !!detailData?.items)}
+      >
+        <View style={styles.rowTop}>
+          <View style={styles.customerCol}>
+            <Text
+              style={[styles.orderIdFull, { color: colors.text }]}
+              selectable
+            >
+              #{order.id}
+            </Text>
+            <Text
+              style={[styles.customerName, { color: colors.text }]}
+              numberOfLines={1}
+            >
+              {order.customer_name || 'Guest Customer'}
+            </Text>
+            <Text style={[styles.subMetaLine, { color: colors.textMuted }]}>
+              {itemCount} {itemCount === 1 ? 'item' : 'items'} •{' '}
+              {order.order_type === 'PICKUP' ? 'Pickup' : 'Delivery'} •{' '}
+              {order.payment_method || 'COD'}
+              {timeStr ? ` • ${timeStr}` : ''}
+            </Text>
+          </View>
+
+          <View style={styles.priceRightCol}>
+            <Text style={[styles.priceText, { color: colors.text }]}>
+              ₹{order.total_amount}
+            </Text>
+            <Ionicons
+              name={isExpanded ? 'chevron-up' : 'chevron-down'}
+              size={15}
+              color={colors.textMuted}
+            />
+          </View>
+        </View>
+
+        <View style={styles.rowBottom}>
+          <View style={[styles.statusBadge, { backgroundColor: meta.bg }]}>
+            <View
+              style={[styles.statusDot, { backgroundColor: meta.dot }]}
+            />
+            <Text style={[styles.statusLabel, { color: meta.text }]}>
+              {meta.label}
+            </Text>
+          </View>
+
+          <View style={styles.inlineActionsRight}>
+            {updatingOrderId === order.id ? (
+              <ActivityIndicator size="small" color="#10b981" />
+            ) : (
+              <>
+                {order.status === 'NEW' && (
+                  <TouchableOpacity
+                    style={[
+                      styles.rejectIconBtn,
+                      { borderColor: 'rgba(244, 63, 94, 0.3)' },
+                    ]}
+                    onPress={() => onRejectOrder(order)}
+                  >
+                    <Ionicons name="close" size={15} color="#f43f5e" />
+                  </TouchableOpacity>
+                )}
+
+                {meta.nextLabel && (meta.nextStatus || (meta as any).routeToDetails) ? (
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    style={[
+                      styles.nextStepPillBtn,
+                      { backgroundColor: meta.nextColor },
+                    ]}
+                    onPress={() => {
+                      if ((meta as any).routeToDetails) {
+                        router.push(`/(tabs)/orders/${order.id}`);
+                      } else if (meta.nextStatus) {
+                        onQuickStatusUpdate(order.id, meta.nextStatus);
+                      }
+                    }}
+                  >
+                    <Text style={styles.nextStepPillText}>
+                      {meta.nextLabel}
+                    </Text>
+                    <Ionicons
+                      name={(meta as any).routeToDetails ? 'checkbox-outline' : 'arrow-forward'}
+                      size={13}
+                      color="#ffffff"
+                    />
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    style={[
+                      styles.detailsGhostBtn,
+                      { backgroundColor: colors.cardAlt },
+                    ]}
+                    onPress={() =>
+                      router.push(`/(tabs)/orders/${order.id}`)
+                    }
+                  >
+                    <Text
+                      style={[
+                        styles.detailsGhostText,
+                        { color: colors.text },
+                      ]}
+                    >
+                      Details
+                    </Text>
+                    <Ionicons
+                      name="open-outline"
+                      size={12}
+                      color={colors.textMuted}
+                    />
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
+          </View>
+        </View>
+      </TouchableOpacity>
+
+      {isExpanded && (
+        <View
+          style={[
+            styles.expandedDrawer,
+            {
+              backgroundColor: colors.cardAlt,
+              borderTopColor: colors.border,
+            },
+          ]}
+        >
+          {loadingDetailId === order.id ? (
+            <View style={styles.drawerLoadingRow}>
+              <ActivityIndicator size="small" color="#10b981" />
+              <Text
+                style={[
+                  styles.drawerLoadingText,
+                  { color: colors.textMuted },
+                ]}
+              >
+                Loading items...
+              </Text>
+            </View>
+          ) : itemsList.length > 0 ? (
+            <View style={styles.drawerItemsList}>
+              {itemsList.map((item: any, idx: number) => (
+                <View
+                  key={item?.id ?? idx}
+                  style={styles.drawerItemRow}
+                >
+                  <Text
+                    style={[
+                      styles.drawerItemQty,
+                      { color: '#10b981' },
+                    ]}
+                  >
+                    {item.quantity}×
+                  </Text>
+                  <Text
+                    style={[
+                      styles.drawerItemName,
+                      { color: colors.text },
+                      item.status === 'REJECTED' && {
+                        textDecorationLine: 'line-through',
+                        color: '#f43f5e',
+                      },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {item.product_name_snapshot}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.drawerItemPrice,
+                      { color: colors.textMuted },
+                    ]}
+                  >
+                    ₹{item.subtotal ?? item.price_snapshot}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
+
+          {detailData?.delivery_address &&
+          detailData?.order_type !== 'PICKUP' ? (
+            <View style={styles.drawerAddressRow}>
+              <Ionicons
+                name="location-outline"
+                size={14}
+                color={colors.textMuted}
+              />
+              <Text
+                style={[
+                  styles.drawerAddressText,
+                  { color: colors.textMuted },
+                ]}
+                numberOfLines={2}
+              >
+                {detailData.delivery_address}
+              </Text>
+            </View>
+          ) : null}
+
+          <View style={styles.drawerActionsRow}>
+            {detailData?.customer_phone ? (
+              <TouchableOpacity
+                style={[
+                  styles.drawerChipBtn,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                  },
+                ]}
+                onPress={() =>
+                  Linking.openURL(
+                    `tel:${detailData.customer_phone}`
+                  ).catch(() => {})
+                }
+              >
+                <Ionicons name="call-outline" size={14} color="#10b981" />
+                <Text
+                  style={[styles.drawerChipText, { color: colors.text }]}
+                >
+                  Call
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+
+            <TouchableOpacity
+              style={[
+                styles.drawerPrimaryOpenBtn,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                },
+              ]}
+              onPress={() => router.push(`/(tabs)/orders/${order.id}`)}
+            >
+              <Text
+                style={[
+                  styles.drawerChipText,
+                  { color: colors.text, fontWeight: '700' },
+                ]}
+              >
+                Open Full Checklist & Rider Dispatch
+              </Text>
+              <Ionicons
+                name="arrow-forward"
+                size={14}
+                color="#10b981"
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+});
+
 export default function OrdersListScreen() {
   const { token } = useAuth();
   const { isDark, colors } = useAppTheme();
@@ -97,16 +479,16 @@ export default function OrdersListScreen() {
     fetchOrders(true);
   }, [fetchOrders]);
 
-  const handleToggleExpand = async (order: any) => {
+  const handleToggleExpand = useCallback(async (order: any, isCurrentlyExpanded: boolean, hasDetails: boolean) => {
     const idKey = String(order.id);
-    if (expandedOrderId === order.id) {
+    if (isCurrentlyExpanded) {
       setExpandedOrderId(null);
       return;
     }
     setExpandedOrderId(order.id);
 
     // Lazy-load order items if not already loaded in list payload
-    if (!order.items && !orderDetailsMap[idKey]) {
+    if (!order.items && !hasDetails) {
       setLoadingDetailId(order.id);
       try {
         const res = await api.get(`/orders/${order.id}/`);
@@ -119,9 +501,9 @@ export default function OrdersListScreen() {
         setLoadingDetailId(null);
       }
     }
-  };
+  }, []);
 
-  const handleQuickStatusUpdate = async (orderId: string | number, nextStatus: string) => {
+  const handleQuickStatusUpdate = useCallback(async (orderId: string | number, nextStatus: string) => {
     setUpdatingOrderId(orderId);
     try {
       await api.patch(`/orders/${orderId}/status/`, { status: nextStatus });
@@ -135,9 +517,9 @@ export default function OrdersListScreen() {
     } finally {
       setUpdatingOrderId(null);
     }
-  };
+  }, [fetchOrders]);
 
-  const handleRejectOrder = (order: any) => {
+  const handleRejectOrder = useCallback((order: any) => {
     showConfirm(
       'Reject Order?',
       `Reject Order #${order.id} for ${order.customer_name || 'Customer'} (₹${order.total_amount})?`,
@@ -145,7 +527,7 @@ export default function OrdersListScreen() {
       undefined,
       'Reject Order'
     );
-  };
+  }, [handleQuickStatusUpdate]);
 
   const { statusCounts, filteredOrders } = useMemo(() => {
     const safeOrders = Array.isArray(orders) ? orders : [];
@@ -186,91 +568,7 @@ export default function OrdersListScreen() {
     return { statusCounts: counts, filteredOrders: matched };
   }, [orders, filter, searchTerm]);
 
-  const getStatusMeta = (status: string, orderType?: string) => {
-    switch (status) {
-      case 'NEW':
-        return {
-          label: 'New Order',
-          dot: '#f43f5e',
-          bg: isDark ? 'rgba(244, 63, 94, 0.14)' : '#fff1f2',
-          text: isDark ? '#fda4af' : '#e11d48',
-          nextLabel: 'Accept',
-          nextStatus: 'ACCEPTED',
-          nextColor: '#10b981',
-        };
-      case 'ACCEPTED':
-        return {
-          label: 'Accepted',
-          dot: '#3b82f6',
-          bg: isDark ? 'rgba(59, 130, 246, 0.14)' : '#eff6ff',
-          text: isDark ? '#93c5fd' : '#2563eb',
-          nextLabel: 'Start Packing',
-          nextStatus: 'PREPARING',
-          nextColor: '#3b82f6',
-        };
-      case 'PREPARING':
-        return {
-          label: 'Packing',
-          dot: '#f59e0b',
-          bg: isDark ? 'rgba(245, 158, 11, 0.14)' : '#fffbeb',
-          text: isDark ? '#fcd34d' : '#d97706',
-          nextLabel: 'Pack Items',
-          nextStatus: null as string | null,
-          routeToDetails: true,
-          nextColor: '#8b5cf6',
-        };
-      case 'READY':
-        return {
-          label: 'Ready',
-          dot: '#8b5cf6',
-          bg: isDark ? 'rgba(139, 92, 246, 0.14)' : '#f5f3ff',
-          text: isDark ? '#c4b5fd' : '#7c3aed',
-          nextLabel: orderType === 'PICKUP' ? 'Complete Pickup' : 'Dispatch',
-          nextStatus: orderType === 'PICKUP' ? 'COMPLETED' : 'OUT_FOR_DELIVERY',
-          nextColor: '#059669',
-        };
-      case 'OUT_FOR_DELIVERY':
-        return {
-          label: 'On the Way',
-          dot: '#06b6d4',
-          bg: isDark ? 'rgba(6, 182, 212, 0.14)' : '#ecfeff',
-          text: isDark ? '#67e8f9' : '#0891b2',
-          nextLabel: 'Complete',
-          nextStatus: 'COMPLETED',
-          nextColor: '#10b981',
-        };
-      case 'COMPLETED':
-        return {
-          label: 'Completed',
-          dot: '#10b981',
-          bg: isDark ? 'rgba(16, 185, 129, 0.12)' : '#f0fdf4',
-          text: isDark ? '#6ee7b7' : '#15803d',
-          nextLabel: null,
-          nextStatus: null,
-          nextColor: '#10b981',
-        };
-      case 'REJECTED':
-        return {
-          label: 'Rejected',
-          dot: '#64748b',
-          bg: isDark ? 'rgba(100, 116, 139, 0.16)' : '#f1f5f9',
-          text: isDark ? '#94a3b8' : '#64748b',
-          nextLabel: null,
-          nextStatus: null,
-          nextColor: '#64748b',
-        };
-      default:
-        return {
-          label: status || 'Pending',
-          dot: '#64748b',
-          bg: colors.cardAlt,
-          text: colors.textMuted,
-          nextLabel: null,
-          nextStatus: null,
-          nextColor: '#64748b',
-        };
-    }
-  };
+
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
@@ -486,298 +784,18 @@ export default function OrdersListScreen() {
                 </Text>
               </View>
             }
-            renderItem={({ item: order }) => {
-              const meta = getStatusMeta(order?.status, order?.order_type);
-              const timeStr = order?.created_at
-                ? new Date(order.created_at).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })
-                : '';
-              const isExpanded = expandedOrderId === order.id;
-              const detailData = orderDetailsMap[String(order.id)] || order;
-              const itemsList: any[] = Array.isArray(detailData?.items)
-                ? detailData.items
-                : [];
-              const itemCount =
-                order.items_count ?? (itemsList.length > 0 ? itemsList.length : 0);
-
-              return (
-                <View
-                  style={[
-                    styles.card,
-                    {
-                      backgroundColor: colors.card,
-                      borderColor: isExpanded ? '#10b981' : colors.border,
-                    },
-                  ]}
-                >
-                  {/* Main Tappable Surface (Expands Inline Preview) */}
-                  <TouchableOpacity
-                    activeOpacity={0.75}
-                    style={styles.cardMainTouch}
-                    onPress={() => handleToggleExpand(order)}
-                  >
-                    {/* Row 1: Full Order Number + Smaller Customer Name | Total Amount */}
-                    <View style={styles.rowTop}>
-                      <View style={styles.customerCol}>
-                        <Text
-                          style={[styles.orderIdFull, { color: colors.text }]}
-                          selectable
-                        >
-                          #{order.id}
-                        </Text>
-                        <Text
-                          style={[styles.customerName, { color: colors.text }]}
-                          numberOfLines={1}
-                        >
-                          {order.customer_name || 'Guest Customer'}
-                        </Text>
-                        <Text style={[styles.subMetaLine, { color: colors.textMuted }]}>
-                          {itemCount} {itemCount === 1 ? 'item' : 'items'} •{' '}
-                          {order.order_type === 'PICKUP' ? 'Pickup' : 'Delivery'} •{' '}
-                          {order.payment_method || 'COD'}
-                          {timeStr ? ` • ${timeStr}` : ''}
-                        </Text>
-                      </View>
-
-                      <View style={styles.priceRightCol}>
-                        <Text style={[styles.priceText, { color: colors.text }]}>
-                          ₹{order.total_amount}
-                        </Text>
-                        <Ionicons
-                          name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                          size={15}
-                          color={colors.textMuted}
-                        />
-                      </View>
-                    </View>
-
-                    {/* Row 2: Status Pill (Left) + 1-Tap Action Pill (Right) */}
-                    <View style={styles.rowBottom}>
-                      <View style={[styles.statusBadge, { backgroundColor: meta.bg }]}>
-                        <View
-                          style={[styles.statusDot, { backgroundColor: meta.dot }]}
-                        />
-                        <Text style={[styles.statusLabel, { color: meta.text }]}>
-                          {meta.label}
-                        </Text>
-                      </View>
-
-                      <View style={styles.inlineActionsRight}>
-                        {updatingOrderId === order.id ? (
-                          <ActivityIndicator size="small" color="#10b981" />
-                        ) : (
-                          <>
-                            {order.status === 'NEW' && (
-                              <TouchableOpacity
-                                style={[
-                                  styles.rejectIconBtn,
-                                  { borderColor: 'rgba(244, 63, 94, 0.3)' },
-                                ]}
-                                onPress={() => handleRejectOrder(order)}
-                              >
-                                <Ionicons name="close" size={15} color="#f43f5e" />
-                              </TouchableOpacity>
-                            )}
-
-                            {meta.nextLabel && (meta.nextStatus || (meta as any).routeToDetails) ? (
-                              <TouchableOpacity
-                                activeOpacity={0.85}
-                                style={[
-                                  styles.nextStepPillBtn,
-                                  { backgroundColor: meta.nextColor },
-                                ]}
-                                onPress={() => {
-                                  if ((meta as any).routeToDetails) {
-                                    router.push(`/(tabs)/orders/${order.id}`);
-                                  } else if (meta.nextStatus) {
-                                    handleQuickStatusUpdate(order.id, meta.nextStatus);
-                                  }
-                                }}
-                              >
-                                <Text style={styles.nextStepPillText}>
-                                  {meta.nextLabel}
-                                </Text>
-                                <Ionicons
-                                  name={(meta as any).routeToDetails ? 'checkbox-outline' : 'arrow-forward'}
-                                  size={13}
-                                  color="#ffffff"
-                                />
-                              </TouchableOpacity>
-                            ) : (
-                              <TouchableOpacity
-                                style={[
-                                  styles.detailsGhostBtn,
-                                  { backgroundColor: colors.cardAlt },
-                                ]}
-                                onPress={() =>
-                                  router.push(`/(tabs)/orders/${order.id}`)
-                                }
-                              >
-                                <Text
-                                  style={[
-                                    styles.detailsGhostText,
-                                    { color: colors.text },
-                                  ]}
-                                >
-                                  Details
-                                </Text>
-                                <Ionicons
-                                  name="open-outline"
-                                  size={12}
-                                  color={colors.textMuted}
-                                />
-                              </TouchableOpacity>
-                            )}
-                          </>
-                        )}
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-
-                  {/* Interactive Expandable Drawer (Items, Address & Quick Actions) */}
-                  {isExpanded && (
-                    <View
-                      style={[
-                        styles.expandedDrawer,
-                        {
-                          backgroundColor: colors.cardAlt,
-                          borderTopColor: colors.border,
-                        },
-                      ]}
-                    >
-                      {/* Items List Preview */}
-                      {loadingDetailId === order.id ? (
-                        <View style={styles.drawerLoadingRow}>
-                          <ActivityIndicator size="small" color="#10b981" />
-                          <Text
-                            style={[
-                              styles.drawerLoadingText,
-                              { color: colors.textMuted },
-                            ]}
-                          >
-                            Loading items...
-                          </Text>
-                        </View>
-                      ) : itemsList.length > 0 ? (
-                        <View style={styles.drawerItemsList}>
-                          {itemsList.map((item: any, idx: number) => (
-                            <View
-                              key={item?.id ?? idx}
-                              style={styles.drawerItemRow}
-                            >
-                              <Text
-                                style={[
-                                  styles.drawerItemQty,
-                                  { color: '#10b981' },
-                                ]}
-                              >
-                                {item.quantity}×
-                              </Text>
-                              <Text
-                                style={[
-                                  styles.drawerItemName,
-                                  { color: colors.text },
-                                  item.status === 'REJECTED' && {
-                                    textDecorationLine: 'line-through',
-                                    color: '#f43f5e',
-                                  },
-                                ]}
-                                numberOfLines={1}
-                              >
-                                {item.product_name_snapshot}
-                              </Text>
-                              <Text
-                                style={[
-                                  styles.drawerItemPrice,
-                                  { color: colors.textMuted },
-                                ]}
-                              >
-                                ₹{item.subtotal ?? item.price_snapshot}
-                              </Text>
-                            </View>
-                          ))}
-                        </View>
-                      ) : null}
-
-                      {/* Address if Delivery */}
-                      {detailData?.delivery_address &&
-                      detailData?.order_type !== 'PICKUP' ? (
-                        <View style={styles.drawerAddressRow}>
-                          <Ionicons
-                            name="location-outline"
-                            size={14}
-                            color={colors.textMuted}
-                          />
-                          <Text
-                            style={[
-                              styles.drawerAddressText,
-                              { color: colors.textMuted },
-                            ]}
-                            numberOfLines={2}
-                          >
-                            {detailData.delivery_address}
-                          </Text>
-                        </View>
-                      ) : null}
-
-                      {/* Drawer Bottom Quick Actions */}
-                      <View style={styles.drawerActionsRow}>
-                        {detailData?.customer_phone ? (
-                          <TouchableOpacity
-                            style={[
-                              styles.drawerChipBtn,
-                              {
-                                backgroundColor: colors.card,
-                                borderColor: colors.border,
-                              },
-                            ]}
-                            onPress={() =>
-                              Linking.openURL(
-                                `tel:${detailData.customer_phone}`
-                              ).catch(() => {})
-                            }
-                          >
-                            <Ionicons name="call-outline" size={14} color="#10b981" />
-                            <Text
-                              style={[styles.drawerChipText, { color: colors.text }]}
-                            >
-                              Call
-                            </Text>
-                          </TouchableOpacity>
-                        ) : null}
-
-                        <TouchableOpacity
-                          style={[
-                            styles.drawerPrimaryOpenBtn,
-                            {
-                              backgroundColor: colors.card,
-                              borderColor: colors.border,
-                            },
-                          ]}
-                          onPress={() => router.push(`/(tabs)/orders/${order.id}`)}
-                        >
-                          <Text
-                            style={[
-                              styles.drawerChipText,
-                              { color: colors.text, fontWeight: '700' },
-                            ]}
-                          >
-                            Open Full Checklist & Rider Dispatch
-                          </Text>
-                          <Ionicons
-                            name="arrow-forward"
-                            size={14}
-                            color="#10b981"
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  )}
-                </View>
-              );
-            }}
+            renderItem={({ item: order }) => (
+              <OrderCard
+                order={order}
+                isExpanded={expandedOrderId === order.id}
+                detailData={orderDetailsMap[String(order.id)] || order}
+                loadingDetailId={loadingDetailId}
+                updatingOrderId={updatingOrderId}
+                onToggleExpand={handleToggleExpand}
+                onRejectOrder={handleRejectOrder}
+                onQuickStatusUpdate={handleQuickStatusUpdate}
+              />
+            )}
           />
         )}
       </View>

@@ -155,7 +155,7 @@ export default function DashboardScreen() {
     });
 
     api
-      .get('/accounts/profile/')
+      .get('/auth/profile/')
       .then((res) => {
         if (res?.data) {
           safeStorage.setItem('smart-kirana-owner-user', JSON.stringify(res.data));

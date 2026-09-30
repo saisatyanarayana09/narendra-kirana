@@ -179,6 +179,8 @@ api.interceptors.response.use(
   }
 );
 
+const inFlightRequests = new Map<string, Promise<any>>();
+
 // DSA Application: LRU Cache wrapper for GET requests
 api.cachedGet = async <T = any>(
   url: string,
@@ -188,18 +190,39 @@ api.cachedGet = async <T = any>(
   const forceRefresh = Boolean(clonedConfig.forceRefresh);
   delete clonedConfig.forceRefresh;
 
-  if (!forceRefresh) {
-    const cachedResponse = apiCache.get(url);
-    if (cachedResponse !== null && cachedResponse !== undefined) {
-      return { data: cachedResponse as T, cached: true };
+  const cachedResponse = apiCache.get(url);
+  const hasCache = cachedResponse !== null && cachedResponse !== undefined;
+
+  const fetchFresh = (): Promise<AxiosResponse<T>> => {
+    const request = api.get<T>(url, clonedConfig).then((response) => {
+      if (response && response.data !== undefined) {
+        apiCache.put(url, response.data);
+      }
+      return response;
+    }).finally(() => {
+      if (inFlightRequests.get(url) === request) {
+        inFlightRequests.delete(url);
+      }
+    });
+    return request;
+  };
+
+  if (!forceRefresh && hasCache) {
+    if (!inFlightRequests.has(url)) {
+      const backgroundRequest = fetchFresh();
+      inFlightRequests.set(url, backgroundRequest);
+      backgroundRequest.catch(() => {});
     }
+    return { data: cachedResponse as T, cached: true };
   }
 
-  const response = await api.get<T>(url, clonedConfig);
-  if (response && response.data !== undefined) {
-    apiCache.put(url, response.data);
+  if (inFlightRequests.has(url)) {
+    return inFlightRequests.get(url) as Promise<AxiosResponse<T>>;
   }
-  return response;
+
+  const request = fetchFresh();
+  inFlightRequests.set(url, request);
+  return request;
 };
 
 api.clearCache = () => {
