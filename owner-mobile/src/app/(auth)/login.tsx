@@ -23,11 +23,14 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 const SAVED_USERNAME_KEY = 'smart-kirana-owner-username';
 
-GoogleSignin.configure({
-  webClientId: '729937153109-6e8fivp20b3ri2qsah1d6u2a7oi0uls6.apps.googleusercontent.com',
-  androidClientId: '729937153109-ttrccvleservdcv1k6nilq5jqv9ukog5.apps.googleusercontent.com',
-  iosClientId: '',
-});
+if (Platform.OS !== 'web') {
+  try {
+    GoogleSignin.configure({
+      webClientId: '729937153109-6e8fivp20b3ri2qsah1d6u2a7oi0uls6.apps.googleusercontent.com',
+      iosClientId: '',
+    });
+  } catch {}
+}
 
 
 export default function LoginScreen() {
@@ -70,7 +73,7 @@ export default function LoginScreen() {
     try {
       setGoogleLoading(true);
       await GoogleSignin.hasPlayServices();
-      const userInfo = await GoogleSignin.signIn();
+      const userInfo: any = await GoogleSignin.signIn();
       const idToken = userInfo?.data?.idToken || userInfo?.idToken;
 
       if (!idToken) {

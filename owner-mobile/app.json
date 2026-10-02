@@ -54,7 +54,8 @@
         {
           "photosPermission": "The app needs access to your photos to let you set a profile picture."
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true,
