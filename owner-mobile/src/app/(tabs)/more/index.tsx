@@ -1,22 +1,89 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { useAuth } from '../../../context/AuthContext';
 import { useAppTheme } from '../../../context/ThemeContext';
+import api from '../../../services/api';
+import { showAlert } from '../../../utils/alerts';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { isDark, colors, toggleTheme } = useAppTheme();
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
+
+  const [user, setUser] = useState<any>(null);
+  const [profilePic, setProfilePic] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const fetchProfile = async () => {
+    try {
+      const res = await api.get('/auth/profile/');
+      setUser(res.data);
+      if (res.data?.customer_profile?.profile_picture) {
+        setProfilePic(res.data.customer_profile.profile_picture);
+      }
+    } catch (e) {
+      console.log('Failed to fetch profile', e);
+    }
+  };
+
+  const handlePickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1], // Crop as per profile aspect ratio
+        quality: 1,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setUploading(true);
+        // Compress image before uploading
+        const manipResult = await ImageManipulator.manipulateAsync(
+          result.assets[0].uri,
+          [{ resize: { width: 500, height: 500 } }],
+          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+        );
+
+        const formData = new FormData();
+        formData.append('profile_picture', {
+          uri: manipResult.uri,
+          name: 'profile.jpg',
+          type: 'image/jpeg',
+        } as any);
+
+        const res = await api.patch('/auth/profile/', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+
+        if (res.data?.customer_profile?.profile_picture) {
+          setProfilePic(res.data.customer_profile.profile_picture);
+          showAlert('Success', 'Profile picture updated!');
+        }
+      }
+    } catch (e) {
+      console.error(e);
+      showAlert('Error', 'Failed to upload profile picture.');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const MENU_ITEMS = [
-    { title: 'Advanced Settings', icon: 'settings-outline', route: '/(tabs)/more/advanced-settings', color: '#64748b' },
     { title: 'Product Categories', icon: 'pricetags-outline', route: '/(tabs)/more/categories', color: '#06b6d4' },
     { title: 'Visual Showcase', icon: 'images-outline', route: '/(tabs)/more/showcase', color: '#ec4899' },
-    { title: 'Delivery Fleet Map', icon: 'bicycle-outline', route: '/(tabs)/more/delivery', color: '#059669' },
     { title: 'Push Broadcast', icon: 'notifications-outline', route: '/(tabs)/more/broadcast', color: '#0d9488' },
+    { title: 'Delivery Fleet Map', icon: 'bicycle-outline', route: '/(tabs)/more/delivery', color: '#059669' },
     { title: 'Sales Reports', icon: 'trending-up-outline', route: '/(tabs)/more/reports', color: '#8b5cf6' },
+    { title: 'Advanced Settings', icon: 'settings-outline', route: '/(tabs)/more/advanced-settings', color: '#64748b' },
   ];
 
   return (
@@ -24,10 +91,24 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Profile Header */}
         <View style={styles.header}>
-          <View style={[styles.avatar, { backgroundColor: isDark ? '#1e293b' : '#e2e8f0' }]}>
-            <Ionicons name="person" size={40} color={isDark ? '#94a3b8' : '#64748b'} />
-          </View>
-          <Text style={[styles.name, { color: colors.text }]}>{user?.username || 'Store Owner'}</Text>
+          <TouchableOpacity onPress={handlePickImage} disabled={uploading}>
+            <View style={[styles.avatar, { backgroundColor: isDark ? '#1e293b' : '#e2e8f0' }]}>
+              {profilePic ? (
+                <Image source={{ uri: profilePic }} style={styles.avatarImg} contentFit="cover" />
+              ) : (
+                <Ionicons name="person" size={40} color={isDark ? '#94a3b8' : '#64748b'} />
+              )}
+              {uploading && (
+                <View style={styles.uploadOverlay}>
+                  <ActivityIndicator color="#fff" />
+                </View>
+              )}
+              <View style={styles.editBadge}>
+                <Ionicons name="camera" size={14} color="#fff" />
+              </View>
+            </View>
+          </TouchableOpacity>
+          <Text style={[styles.name, { color: colors.text }]}>{user?.first_name || user?.username || 'Store Owner'}</Text>
           <Text style={[styles.email, { color: colors.textMuted }]}>{user?.email || 'admin@smartkirana.com'}</Text>
         </View>
 
@@ -76,7 +157,10 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { padding: 20, paddingBottom: 100 },
   header: { alignItems: 'center', marginBottom: 30, marginTop: 40 },
-  avatar: { width: 80, height: 80, borderRadius: 40, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
+  avatar: { width: 90, height: 90, borderRadius: 45, justifyContent: 'center', alignItems: 'center', marginBottom: 12, position: 'relative' },
+  avatarImg: { width: '100%', height: '100%', borderRadius: 45 },
+  uploadOverlay: { position: 'absolute', width: '100%', height: '100%', borderRadius: 45, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  editBadge: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#10b981', width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#fff' },
   name: { fontSize: 22, fontWeight: '800', marginBottom: 4 },
   email: { fontSize: 14 },
   section: { borderRadius: 16, borderWidth: 1, overflow: 'hidden', marginBottom: 24 },

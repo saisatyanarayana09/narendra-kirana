@@ -80,7 +80,14 @@ class UserSerializer(serializers.ModelSerializer):
             
         instance.save()
 
-        # Update CustomerProfile fields
+        # Update or Create CustomerProfile for profile picture
+        if 'profile_picture' in validated_data:
+            if not hasattr(instance, 'customer_profile'):
+                from .models import CustomerProfile
+                CustomerProfile.objects.create(user=instance)
+            instance.customer_profile.profile_picture = validated_data.pop('profile_picture')
+            instance.customer_profile.save()
+
         if hasattr(instance, 'customer_profile'):
             profile = instance.customer_profile
             new_dob = profile_data.get('dob', profile.dob)
@@ -88,11 +95,6 @@ class UserSerializer(serializers.ModelSerializer):
                 new_dob = None
             profile.dob = new_dob
             profile.mobile_number = profile_data.get('mobile_number', profile.mobile_number)
-            
-            # Allow top-level profile_picture in multipart form data
-            if 'profile_picture' in validated_data:
-                profile.profile_picture = validated_data.pop('profile_picture')
-                
             profile.save()
             
         return instance
