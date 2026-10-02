@@ -645,7 +645,7 @@ export default function TabLayout() {
                 </View>
                 <Text
                   style={[
-                    styles.tabLabel,
+                    { fontSize: 10, marginTop: 4 },
                     {
                       color: isProfileTab ? '#10b981' : colors.textMuted,
                       fontWeight: isProfileTab ? '800' : '600',

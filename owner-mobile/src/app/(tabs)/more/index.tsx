@@ -30,7 +30,7 @@ export default function ProfileScreen() {
       if (res.data?.customer_profile?.profile_picture) {
         setProfilePic(res.data.customer_profile.profile_picture);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.log('Failed to fetch profile', e);
     }
   };
@@ -73,7 +73,7 @@ export default function ProfileScreen() {
           showAlert('Success', 'Profile picture updated!');
         }
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('Upload Error:', e.response?.data || e.message);
       showAlert('Error', e.response?.data?.detail || e.response?.data?.profile_picture?.[0] || e.message || 'Failed to upload profile picture.');
     } finally {
