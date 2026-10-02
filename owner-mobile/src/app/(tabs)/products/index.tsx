@@ -873,6 +873,35 @@ export default function ProductsListScreen() {
     [router]
   );
 
+  const renderItem = useCallback(
+    ({ item, index }: any) => (
+      <ProductCard
+        item={item}
+        colors={colors}
+        isDark={isDark}
+        onEdit={handleEdit}
+        onQuickEdit={openQuickEdit}
+        onStockDelta={handleStockDelta}
+        onDelete={handleDelete}
+        reorderMode={reorderMode}
+        index={index}
+        totalCount={displayedProducts.length}
+        onMoveProduct={moveProduct}
+      />
+    ),
+    [
+      colors,
+      isDark,
+      handleEdit,
+      openQuickEdit,
+      handleStockDelta,
+      handleDelete,
+      reorderMode,
+      displayedProducts.length,
+      moveProduct,
+    ]
+  );
+
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <View style={styles.maxContainer}>
@@ -1289,24 +1318,7 @@ export default function ProductsListScreen() {
             keyExtractor={(item, idx) =>
               item?.id != null ? String(item.id) : `prod-${idx}`
             }
-            renderItem={useCallback(
-              ({ item, index }: any) => (
-                <ProductCard
-                  item={item}
-                  colors={colors}
-                  isDark={isDark}
-                  onEdit={handleEdit}
-                  onQuickEdit={openQuickEdit}
-                  onStockDelta={handleStockDelta}
-                  onDelete={handleDelete}
-                  reorderMode={reorderMode}
-                  index={index}
-                  totalCount={displayedProducts.length}
-                  onMoveProduct={moveProduct}
-                />
-              ),
-              [colors, isDark, handleEdit, openQuickEdit, handleStockDelta, handleDelete, reorderMode, displayedProducts.length, moveProduct]
-            )}
+            renderItem={renderItem}
             contentContainerStyle={styles.listContent}
             onScroll={handleScroll}
             scrollEventThrottle={16}
