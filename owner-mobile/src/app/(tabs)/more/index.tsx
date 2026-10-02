@@ -70,8 +70,8 @@ export default function ProfileScreen() {
         }
       }
     } catch (e) {
-      console.error(e);
-      showAlert('Error', 'Failed to upload profile picture.');
+      console.error('Upload Error:', e.response?.data || e.message);
+      showAlert('Error', e.response?.data?.detail || e.response?.data?.profile_picture?.[0] || e.message || 'Failed to upload profile picture.');
     } finally {
       setUploading(false);
     }
