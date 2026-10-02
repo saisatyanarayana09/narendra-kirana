@@ -415,7 +415,7 @@ export default function LoginScreen() {
             </Text>
           ) : null}
 
-          <View style={{ flexDirection: \'row\', alignItems: \'center\', marginVertical: 20 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 20 }}>
             <View style={{ flex: 1, height: 1, backgroundColor: isDark ? '#334155' : '#e2e8f0' }} />
             <Text style={{ marginHorizontal: 10, color: '#94a3b8', fontSize: 13, fontWeight: '600' }}>OR CONTINUE WITH</Text>
             <View style={{ flex: 1, height: 1, backgroundColor: isDark ? '#334155' : '#e2e8f0' }} />
