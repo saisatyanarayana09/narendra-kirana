@@ -4,24 +4,26 @@ from rest_framework_simplejwt.exceptions import InvalidToken, AuthenticationFail
 
 class SafeJWTAuthentication(JWTAuthentication):
     """
-    Standard SimpleJWT JWTAuthentication raises InvalidToken (resulting in HTTP 401)
-    immediately during request.user evaluation whenever an Authorization: Bearer <token>
-    header is present but expired, malformed, or invalid.
-
-    In Single-Page Applications and Mobile Apps, clients may send stale/expired tokens
-    while visiting public endpoints (e.g. GET /store/settings/, GET /products/, GET /categories/).
-    Standard DRF aborts the entire request with 401 before checking view permissions,
-    preventing users or the mobile app startup from viewing public store settings or catalogs.
-
     SafeJWTAuthentication catches InvalidToken / AuthenticationFailed and returns None,
-    allowing DRF to treat the caller as an AnonymousUser:
-    - Public views (AllowAny) proceed with HTTP 200 OK.
-    - Protected views (IsAuthenticated, IsOwnerUser, IsCustomerUser) will still correctly
-      reject unauthenticated requests with HTTP 401/403.
+    allowing DRF to treat the caller as an AnonymousUser.
+    
+    However, if a user is actively banned/locked, it will explicitly raise an AuthenticationFailed
+    to instantly sever their active session and kick them to the login screen.
     """
+
+    def get_user(self, validated_token):
+        user = super().get_user(validated_token)
+        if user and getattr(user, 'is_locked', False):
+            raise AuthenticationFailed('This account has been suspended by a store administrator.')
+        return user
 
     def authenticate(self, request):
         try:
             return super().authenticate(request)
-        except (InvalidToken, AuthenticationFailed):
+        except AuthenticationFailed as e:
+            # Propagate the ban error to force a 401 logout
+            if 'suspended' in str(e):
+                raise e
+            return None
+        except InvalidToken:
             return None

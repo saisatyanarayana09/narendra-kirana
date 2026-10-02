@@ -64,10 +64,10 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                 target_user.lockout_reason = ''
                 target_user.save(update_fields=['is_locked', 'failed_login_attempts', 'lockout_until', 'lockout_reason'])
             else:
-                raise exceptions.PermissionDenied(
-                    'Your account has been locked due to excessive failed login attempts. '
-                    'Please reset your password or contact store support.'
-                )
+                if target_user.lockout_until is None:
+                    raise exceptions.PermissionDenied('This account has been suspended by a store administrator. Please contact store support.')
+                else:
+                    raise exceptions.PermissionDenied('Your account has been temporarily locked due to excessive failed login attempts. Please reset your password or wait 30 minutes.')
 
         # Check if account is not activated yet
         if target_user and not target_user.is_active:
@@ -838,11 +838,12 @@ class PasswordResetConfirmView(APIView):
 
         # Update password
         user.set_password(new_password)
-        # Unlock previously locked account upon verified password reset
-        user.is_locked = False
-        user.failed_login_attempts = 0
-        user.lockout_until = None
-        user.lockout_reason = ''
+        # Only unlock if it was a temporary brute-force lock. Do not bypass permanent admin bans.
+        if user.is_locked and user.lockout_until is not None:
+            user.is_locked = False
+            user.failed_login_attempts = 0
+            user.lockout_until = None
+            user.lockout_reason = ''
         user.save()
 
         # Mark token as used immediately (single-use enforcement)
@@ -998,10 +999,11 @@ class PasswordResetOTPConfirmView(APIView):
 
         # Reset user password and clear any brute-force lockout
         user.set_password(new_password)
-        user.is_locked = False
-        user.failed_login_attempts = 0
-        user.lockout_until = None
-        user.lockout_reason = ''
+        if user.is_locked and user.lockout_until is not None:
+            user.is_locked = False
+            user.failed_login_attempts = 0
+            user.lockout_until = None
+            user.lockout_reason = ''
         user.save()
 
         # Revoke all outstanding active JWT refresh tokens across all devices
