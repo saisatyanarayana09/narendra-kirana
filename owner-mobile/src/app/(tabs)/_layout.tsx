@@ -418,7 +418,7 @@ export default function TabLayout() {
             <Tabs.Screen name="index" options={{ title: 'Dashboard' }} />
             <Tabs.Screen name="orders" options={{ title: 'Orders' }} />
             <Tabs.Screen name="products" options={{ title: 'Products' }} />
-            <Tabs.Screen name="more" options={{ title: 'Hub' }} />
+            <Tabs.Screen name="more" options={{ title: 'Profile' }} />
           </Tabs>
         </View>
 

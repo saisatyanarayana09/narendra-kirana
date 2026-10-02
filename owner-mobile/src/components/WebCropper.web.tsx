@@ -14,6 +14,7 @@ export default function WebCropper({ imageSrc, onCropComplete, onCancel }: any) 
 
   const showCroppedImage = useCallback(async () => {
     try {
+      if (!croppedAreaPixels) return;
       const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels);
       onCropComplete(croppedImage);
     } catch (e) {
