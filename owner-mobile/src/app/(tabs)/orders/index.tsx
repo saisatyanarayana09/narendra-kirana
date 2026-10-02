@@ -418,6 +418,8 @@ export default function OrdersListScreen() {
   const { token } = useAuth();
   const { isDark, colors } = useAppTheme();
   const [orders, setOrders] = useState<any[]>([]);
+  const [nextPageUrl, setNextPageUrl] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | number | null>(null);
@@ -455,9 +457,10 @@ export default function OrdersListScreen() {
 
       setErrorMsg(null);
       try {
-        const response = await (api as ApiInstance).cachedGet('/orders/', { forceRefresh });
+        const response = await (api as ApiInstance).cachedGet('/orders/?page_size=100', { forceRefresh });
         const raw = response?.data?.results ?? response?.data;
         setOrders(Array.isArray(raw) ? raw : []);
+        setNextPageUrl(response?.data?.next || null);
       } catch (error: any) {
         if (error?.response?.status !== 401) {
           setErrorMsg(getErrorMessage(error, 'Failed to fetch orders.'));
@@ -469,6 +472,30 @@ export default function OrdersListScreen() {
     },
     [token]
   );
+
+  const loadMoreOrders = useCallback(async () => {
+    if (!nextPageUrl || loadingMore || loading || refreshing) return;
+    setLoadingMore(true);
+    try {
+      const url = nextPageUrl.includes('/api/v1')
+        ? nextPageUrl.split('/api/v1')[1]
+        : nextPageUrl;
+      const res = await api.get(url);
+      const moreRaw = res?.data?.results ?? res?.data;
+      if (Array.isArray(moreRaw)) {
+        setOrders((prev) => {
+          const existingIds = new Set(prev.map((o) => String(o.id)));
+          const uniqueNew = moreRaw.filter((o) => !existingIds.has(String(o.id)));
+          return [...prev, ...uniqueNew];
+        });
+      }
+      setNextPageUrl(res?.data?.next || null);
+    } catch (e) {
+      console.log('Error loading more previous orders:', e);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [nextPageUrl, loadingMore, loading, refreshing]);
 
   useEffect(() => {
     fetchOrders();
@@ -796,6 +823,15 @@ export default function OrdersListScreen() {
                 onQuickStatusUpdate={handleQuickStatusUpdate}
               />
             )}
+            onEndReached={loadMoreOrders}
+            onEndReachedThreshold={0.4}
+            ListFooterComponent={
+              loadingMore ? (
+                <View style={{ paddingVertical: 18, alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color="#10b981" />
+                </View>
+              ) : null
+            }
           />
         )}
       </View>

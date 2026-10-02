@@ -117,9 +117,9 @@ def check_store_operating_hours(timings_json):
 
 
 class OrderPagination(PageNumberPagination):
-    page_size = 5
+    page_size = 50
     page_size_query_param = 'page_size'
-    max_page_size = 50
+    max_page_size = 200
 
 class OrderViewSet(ModelViewSet):
     serializer_class = OrderSerializer
@@ -149,7 +149,7 @@ class OrderViewSet(ModelViewSet):
         ).prefetch_related(
             Prefetch('items', queryset=OrderItem.objects.select_related('product'))
         ).order_by('-created_at')
-        if self.request.user.is_owner:
+        if getattr(self.request.user, 'is_owner', False) or getattr(self.request.user, 'is_staff', False) or getattr(self.request.user, 'is_superuser', False):
             return queryset
         return queryset.filter(customer=self.request.user)
 
