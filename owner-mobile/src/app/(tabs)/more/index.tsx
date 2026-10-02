@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -54,11 +54,17 @@ export default function ProfileScreen() {
         );
 
         const formData = new FormData();
-        formData.append('profile_picture', {
-          uri: manipResult.uri,
-          name: 'profile.jpg',
-          type: 'image/jpeg',
-        } as any);
+        if (Platform.OS === 'web') {
+          const response = await fetch(manipResult.uri);
+          const blob = await response.blob();
+          formData.append('profile_picture', blob, 'profile.jpg');
+        } else {
+          formData.append('profile_picture', {
+            uri: manipResult.uri,
+            name: 'profile.jpg',
+            type: 'image/jpeg',
+          } as any);
+        }
 
         const res = await api.patch('/auth/profile/', formData);
 
