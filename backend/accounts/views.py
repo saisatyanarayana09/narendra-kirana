@@ -1271,3 +1271,70 @@ class ReferralLookupView(APIView):
             import traceback
             return Response({'error': str(e), 'traceback': traceback.format_exc()}, status=500)
 
+from .models import DeliveryPartnerProfile
+
+class AgentManagementView(APIView):
+    permission_classes = [IsOwnerUser]
+
+    def get(self, request, user_id=None, *args, **kwargs):
+        agents = User.objects.filter(
+            models.Q(is_owner=True) | models.Q(is_staff=True) | models.Q(is_delivery_partner=True)
+        ).distinct()
+        serializer = UserSerializer(agents, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, *args, **kwargs):
+        email = request.data.get('email')
+        first_name = request.data.get('first_name', '')
+        last_name = request.data.get('last_name', '')
+        phone_number = request.data.get('phone_number')
+        role = request.data.get('role')
+
+        password = request.data.get('password')
+
+        if not email or not role:
+            return Response({'error': 'Email and role are required.'}, status=status.HTTP_400_BAD_REQUEST)
+        if role not in ['staff', 'delivery']:
+            return Response({'error': 'Role must be staff or delivery.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if User.objects.filter(username__iexact=email).exists() or User.objects.filter(email__iexact=email).exists():
+            return Response({'error': 'User with this email already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User(
+            username=email,
+            email=email,
+            first_name=first_name,
+            last_name=last_name
+        )
+        if password:
+            user.set_password(password)
+        else:
+            user.set_unusable_password()
+        
+        if role == 'staff':
+            user.is_owner = True
+            user.is_staff = True
+        elif role == 'delivery':
+            user.is_delivery_partner = True
+            
+        user.save()
+        
+        if role == 'delivery':
+            DeliveryPartnerProfile.objects.create(
+                user=user,
+                phone_number=phone_number
+            )
+            
+        return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
+
+    def delete(self, request, user_id=None, *args, **kwargs):
+        if not user_id:
+            return Response({'error': 'User ID is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user = User.objects.get(id=user_id)
+            user.is_active = False
+            user.save(update_fields=['is_active'])
+            return Response({'message': 'User deactivated successfully.'}, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+

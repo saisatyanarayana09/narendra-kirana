@@ -15,6 +15,7 @@ import ModernSwitch from '../../../components/ModernSwitch';
 import ScreenHeader from '../../../components/ScreenHeader';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import api, { ApiInstance, getErrorMessage } from '../../../services/api';
