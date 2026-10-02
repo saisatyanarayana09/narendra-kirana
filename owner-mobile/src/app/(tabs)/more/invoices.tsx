@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,10 +12,14 @@ import {
   Modal,
   Platform,
   Share,
+  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import api, { ApiInstance, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert } from '../../../utils/alerts';
@@ -192,152 +196,145 @@ export default function InvoicesScreen() {
     };
   }, [filteredOrders]);
 
-  const handlePrintOrShare = async (inv: any) => {
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      // Build a clean HTML invoice document and open it in a new window for PDF printing
-      const items = inv.items || [];
-      const itemsHtml = items
-        .map((i: any) => {
-          const qty = Number(i.quantity || 1);
-          const price = parseFloat(i.price_snapshot) || 0;
-          const lineTotal = parseFloat(i.subtotal) || price * qty;
-          const isRejected = i.status === 'REJECTED' || i.is_rejected;
-          return `<tr style="${isRejected ? 'color:#e11d48;text-decoration:line-through;' : ''}">
-            <td style="padding:6px 8px;border-bottom:1px solid #e2e8f0;">${i.product_name_snapshot || 'Item'}${i.unit_snapshot ? `<br><small style="color:#64748b">${i.unit_snapshot}</small>` : ''}</td>
-            <td style="padding:6px 8px;border-bottom:1px solid #e2e8f0;text-align:center;">${qty}</td>
-            <td style="padding:6px 8px;border-bottom:1px solid #e2e8f0;text-align:right;">₹${price.toFixed(2)}</td>
-            <td style="padding:6px 8px;border-bottom:1px solid #e2e8f0;text-align:right;font-weight:600;">${isRejected ? '<span style="color:#e11d48">₹0.00</span>' : `₹${lineTotal.toFixed(2)}`}</td>
-          </tr>`;
-        })
-        .join('');
+  // Build clean HTML for the invoice (used for preview + PDF)
+  const buildInvoiceHtml = useCallback((inv: any) => {
+    const items = inv.items || [];
+    const storeName = storeSettings?.store_name || 'Narendra Kirana Store';
+    const storeAddr = storeSettings?.store_address || '';
+    const storePhone = storeSettings?.store_phone || '';
+    const storeEmail = storeSettings?.store_email || '';
+    const gstin = storeSettings?.gstin || '';
+    const fssai = storeSettings?.fssai_license_number || '';
 
-      const storeName = storeSettings?.store_name || 'Narendra Kirana Store';
-      const storeAddr = storeSettings?.store_address || '';
-      const storePhone = storeSettings?.store_phone || '';
-      const storeEmail = storeSettings?.store_email || '';
-      const gstin = storeSettings?.gstin || '';
-      const fssai = storeSettings?.fssai_license_number || '';
+    const itemsHtml = items
+      .map((i: any) => {
+        const qty = Number(i.quantity || 1);
+        const price = parseFloat(i.price_snapshot) || 0;
+        const lineTotal = parseFloat(i.subtotal) || price * qty;
+        const isRejected = i.status === 'REJECTED' || i.is_rejected;
+        return `<tr${isRejected ? ' class="rejected"' : ''}>
+          <td>${i.product_name_snapshot || 'Item'}${i.unit_snapshot ? `<br><small>${i.unit_snapshot}</small>` : ''}</td>
+          <td class="c">${qty}</td>
+          <td class="r">₹${price.toFixed(2)}</td>
+          <td class="r b">${isRejected ? '<span class="red">₹0.00</span>' : `₹${lineTotal.toFixed(2)}`}</td>
+        </tr>`;
+      })
+      .join('');
 
-      let feesHtml = '';
-      if (inv.delivery_fee && parseFloat(inv.delivery_fee) > 0) {
-        feesHtml += `<div style="display:flex;justify-content:space-between;padding:4px 0;"><span>Delivery Fee</span><span>₹${inv.delivery_fee}</span></div>`;
-      }
-      if (inv.packaging_fee && parseFloat(inv.packaging_fee) > 0) {
-        feesHtml += `<div style="display:flex;justify-content:space-between;padding:4px 0;"><span>Packaging Fee</span><span>₹${inv.packaging_fee}</span></div>`;
-      }
-      if (inv.discount_amount && parseFloat(inv.discount_amount) > 0) {
-        feesHtml += `<div style="display:flex;justify-content:space-between;padding:4px 0;"><span>Discount</span><span style="color:#059669">-₹${inv.discount_amount}</span></div>`;
-      }
+    let feesHtml = '';
+    if (inv.delivery_fee && parseFloat(inv.delivery_fee) > 0)
+      feesHtml += `<div class="fr"><span>Delivery Fee</span><span>₹${inv.delivery_fee}</span></div>`;
+    if (inv.packaging_fee && parseFloat(inv.packaging_fee) > 0)
+      feesHtml += `<div class="fr"><span>Packaging Fee</span><span>₹${inv.packaging_fee}</span></div>`;
+    if (inv.discount_amount && parseFloat(inv.discount_amount) > 0)
+      feesHtml += `<div class="fr"><span>Discount</span><span class="grn">-₹${inv.discount_amount}</span></div>`;
 
-      const html = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>Invoice #${inv.id} - ${storeName}</title>
+    return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Invoice #${inv.id}</title>
 <style>
-  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } @page { margin: 12mm; } }
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; color: #0f172a; padding: 24px; max-width: 700px; margin: 0 auto; }
-  .header { text-align: center; margin-bottom: 16px; border-bottom: 2px solid #059669; padding-bottom: 14px; }
-  .header h1 { font-size: 22px; font-weight: 900; color: #059669; }
-  .header p { font-size: 11px; color: #475569; margin-top: 2px; }
-  .header .tax-id { font-size: 11px; font-weight: 700; color: #334155; margin-top: 3px; }
-  .meta { display: flex; justify-content: space-between; margin: 14px 0; font-size: 12px; }
-  .meta .label { font-size: 9px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 2px; }
-  .meta .val { font-weight: 700; font-size: 13px; }
-  .meta .sub { color: #475569; font-size: 11px; }
-  table { width: 100%; border-collapse: collapse; margin: 12px 0; }
-  th { background: #f1f5f9; padding: 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; color: #64748b; border-bottom: 2px solid #e2e8f0; }
-  td { font-size: 12px; }
-  .fees { padding: 8px 0; font-size: 12px; color: #334155; border-top: 1px dashed #cbd5e1; }
-  .grand { display: flex; justify-content: space-between; padding: 10px 0; margin-top: 4px; border-top: 2px solid #0f172a; font-size: 16px; font-weight: 900; }
-  .footer { text-align: center; margin-top: 24px; font-size: 10px; color: #94a3b8; }
+  @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}@page{margin:10mm;size:A4;}}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:-apple-system,'Segoe UI',Roboto,Helvetica,sans-serif;color:#1e293b;padding:28px 32px;background:#fff;}
+  .box{max-width:680px;margin:0 auto;}
+  .hdr{text-align:center;padding-bottom:16px;border-bottom:2.5px solid #059669;margin-bottom:18px;}
+  .hdr h1{font-size:20px;font-weight:900;color:#059669;letter-spacing:.5px;}
+  .hdr p{font-size:11px;color:#475569;margin-top:3px;}
+  .hdr .tx{font-size:10.5px;font-weight:700;color:#334155;margin-top:2px;}
+  .tb{text-align:center;margin-bottom:16px;}
+  .tb h2{font-size:13px;font-weight:800;color:#0f172a;text-transform:uppercase;letter-spacing:1.5px;border-bottom:1px solid #e2e8f0;display:inline-block;padding-bottom:4px;}
+  .meta{display:flex;justify-content:space-between;margin-bottom:18px;gap:12px;}
+  .mb .lb{font-size:9px;font-weight:800;color:#94a3b8;text-transform:uppercase;margin-bottom:3px;}
+  .mb .vl{font-size:13px;font-weight:700;color:#0f172a;}
+  .mb .sb{font-size:11px;color:#475569;margin-top:1px;}
+  table{width:100%;border-collapse:collapse;margin-bottom:14px;}
+  thead{background:#f1f5f9;}
+  th{padding:8px 10px;font-size:9.5px;font-weight:800;color:#64748b;text-transform:uppercase;text-align:left;border-bottom:2px solid #e2e8f0;}
+  th.c{text-align:center;}th.r{text-align:right;}
+  td{padding:7px 10px;font-size:12px;color:#334155;border-bottom:1px solid #f1f5f9;}
+  td.c{text-align:center;}td.r{text-align:right;}td.b{font-weight:600;}
+  td small{color:#94a3b8;font-size:10px;}
+  tr.rejected{text-decoration:line-through;color:#e11d48;opacity:.7;}
+  .red{color:#e11d48;font-weight:700;}
+  .grn{color:#059669;}
+  .fees{border-top:1px dashed #cbd5e1;padding:8px 0;margin-bottom:6px;}
+  .fr{display:flex;justify-content:space-between;padding:3px 0;font-size:12px;color:#334155;}
+  .grand{display:flex;justify-content:space-between;padding:12px 0;border-top:2px solid #0f172a;font-size:17px;font-weight:900;color:#0f172a;}
+  .grand .amt{color:#059669;}
+  .ft{text-align:center;margin-top:28px;padding-top:14px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8;font-style:italic;}
 </style></head><body>
-  <div class="header">
+<div class="box">
+  <div class="hdr">
     <h1>${storeName}</h1>
     ${storeAddr ? `<p>${storeAddr}</p>` : ''}
     ${storePhone || storeEmail ? `<p>${[storePhone, storeEmail].filter(Boolean).join(' • ')}</p>` : ''}
-    ${gstin ? `<p class="tax-id">GSTIN: ${gstin}</p>` : ''}
-    ${fssai ? `<p class="tax-id">FSSAI: ${fssai}</p>` : ''}
+    ${gstin ? `<p class="tx">GSTIN: ${gstin}</p>` : ''}
+    ${fssai ? `<p class="tx">FSSAI: ${fssai}</p>` : ''}
   </div>
+  <div class="tb"><h2>Tax Invoice</h2></div>
   <div class="meta">
-    <div>
-      <div class="label">Billed To</div>
-      <div class="val">${inv.customer_name || 'Walk-in / Guest'}</div>
-      ${inv.customer_phone ? `<div class="sub">Phone: ${inv.customer_phone}</div>` : ''}
-      ${inv.delivery_address ? `<div class="sub">${inv.delivery_address}</div>` : ''}
+    <div class="mb">
+      <div class="lb">Billed To</div>
+      <div class="vl">${inv.customer_name || 'Walk-in / Guest'}</div>
+      ${inv.customer_phone ? `<div class="sb">Phone: ${inv.customer_phone}</div>` : ''}
+      ${inv.delivery_address ? `<div class="sb">${inv.delivery_address}</div>` : ''}
     </div>
-    <div style="text-align:right;">
-      <div class="label">Invoice</div>
-      <div class="val">INV-#${inv.id}</div>
-      <div class="sub">${inv.created_at ? new Date(inv.created_at).toLocaleDateString() : ''}</div>
-      <div class="sub">${inv.payment_method || 'COD'} • ${inv.status}</div>
-      ${inv.upi_transaction_id ? `<div class="sub">UPI Ref: ${inv.upi_transaction_id}</div>` : ''}
+    <div class="mb" style="text-align:right;">
+      <div class="lb">Invoice Details</div>
+      <div class="vl">INV-#${inv.id}</div>
+      <div class="sb">${inv.created_at ? new Date(inv.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}</div>
+      <div class="sb">${inv.payment_method || 'COD'} • ${inv.status}</div>
+      ${inv.upi_transaction_id ? `<div class="sb">UPI Ref: ${inv.upi_transaction_id}</div>` : ''}
     </div>
   </div>
   <table>
-    <thead><tr>
-      <th style="text-align:left;">Item</th>
-      <th style="text-align:center;">Qty</th>
-      <th style="text-align:right;">Price</th>
-      <th style="text-align:right;">Total</th>
-    </tr></thead>
+    <thead><tr><th>Item</th><th class="c">Qty</th><th class="r">Price</th><th class="r">Total</th></tr></thead>
     <tbody>${itemsHtml}</tbody>
   </table>
   ${feesHtml ? `<div class="fees">${feesHtml}</div>` : ''}
-  <div class="grand"><span>Grand Total</span><span>₹${inv.total_amount}</span></div>
-  <div class="footer">This is a computer-generated invoice. Thank you for shopping at ${storeName}!</div>
+  <div class="grand"><span>Grand Total</span><span class="amt">₹${inv.total_amount}</span></div>
+  <div class="ft">Computer-generated invoice. Thank you for shopping at ${storeName}!</div>
+</div>
 </body></html>`;
+  }, [storeSettings]);
 
-      // Use a hidden iframe to print — avoids popup blockers
-      const frameId = 'smart-kirana-invoice-print';
-      let frame = document.getElementById(frameId) as HTMLIFrameElement | null;
-      if (frame) frame.remove();
-      frame = document.createElement('iframe');
-      frame.id = frameId;
-      frame.style.position = 'fixed';
-      frame.style.top = '-10000px';
-      frame.style.left = '-10000px';
-      frame.style.width = '800px';
-      frame.style.height = '900px';
-      document.body.appendChild(frame);
-
-      const doc = frame.contentDocument || frame.contentWindow?.document;
-      if (doc) {
-        doc.open();
-        doc.write(html);
-        doc.close();
-        setTimeout(() => {
-          frame?.contentWindow?.focus();
-          frame?.contentWindow?.print();
-          // Clean up after print dialog closes
-          setTimeout(() => frame?.remove(), 2000);
-        }, 500);
-      }
-      return;
-    }
-
-    // Native: Share as text
-    const itemsSummary = (inv.items || [])
-      .map(
-        (i: any) =>
-          `• ${i.product_name_snapshot} (${i.unit_snapshot || ''}) x${i.quantity} = ₹${i.subtotal || i.price_snapshot}`
-      )
-      .join('\n');
-
-    const msg = `🧾 TAX INVOICE: ${storeSettings?.store_name || 'Narendra Kirana'}\n` +
-      `Invoice #: INV-${inv.id}\n` +
-      `Date: ${inv.created_at ? new Date(inv.created_at).toLocaleString() : ''}\n` +
-      `Customer: ${inv.customer_name || 'Guest'}\n` +
-      `Phone: ${inv.customer_phone || ''}\n` +
-      `Payment: ${inv.payment_method || 'COD'} (Status: ${inv.status})\n\n` +
-      `ITEMS:\n${itemsSummary}\n\n` +
-      `TOTAL AMOUNT: ₹${inv.total_amount}\n` +
-      `Thank you for shopping!`;
-
+  // Download / Print as PDF
+  const handleDownloadPdf = useCallback(async (inv: any) => {
     try {
-      await Share.share({ message: msg });
+      const html = buildInvoiceHtml(inv);
+      if (Platform.OS === 'web') {
+        const frameId = 'sk-inv-print';
+        let frame = document.getElementById(frameId) as HTMLIFrameElement | null;
+        if (frame) frame.remove();
+        frame = document.createElement('iframe');
+        frame.id = frameId;
+        Object.assign(frame.style, { position: 'fixed', top: '-10000px', left: '-10000px', width: '800px', height: '1100px' });
+        document.body.appendChild(frame);
+        const d = frame.contentDocument || frame.contentWindow?.document;
+        if (d) { d.open(); d.write(html); d.close(); }
+        setTimeout(() => { frame?.contentWindow?.focus(); frame?.contentWindow?.print(); setTimeout(() => frame?.remove(), 2000); }, 500);
+        return;
+      }
+      const { uri } = await Print.printToFileAsync({ html, width: 595, height: 842 });
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: `Invoice INV-#${inv.id}` });
+      } else {
+        showAlert('PDF Saved', `Invoice saved to:\n${uri}`);
+      }
     } catch {
-      showAlert('Invoice', msg);
+      showAlert('Error', 'Failed to generate PDF.');
     }
-  };
+  }, [buildInvoiceHtml]);
+
+  // Share as text
+  const handleShareText = useCallback(async (inv: any) => {
+    const itemsSummary = (inv.items || [])
+      .map((i: any) => `• ${i.product_name_snapshot} (${i.unit_snapshot || ''}) x${i.quantity} = ₹${i.subtotal || i.price_snapshot}`)
+      .join('\n');
+    const msg = `🧾 TAX INVOICE: ${storeSettings?.store_name || 'Narendra Kirana'}\nInvoice #: INV-${inv.id}\nDate: ${inv.created_at ? new Date(inv.created_at).toLocaleString() : ''}\nCustomer: ${inv.customer_name || 'Guest'}\nPhone: ${inv.customer_phone || ''}\nPayment: ${inv.payment_method || 'COD'} (${inv.status})\n\nITEMS:\n${itemsSummary}\n\nTOTAL: ₹${inv.total_amount}\nThank you!`;
+    try { await Share.share({ message: msg }); } catch { showAlert('Invoice', msg); }
+  }, [storeSettings]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
@@ -468,173 +465,135 @@ export default function InvoicesScreen() {
         />
       )}
 
-      {/* Official Tax Invoice Modal */}
-      <Modal visible={Boolean(selectedInvoice)} transparent animationType="slide">
-        <View style={styles.modalBackdrop}>
-          <View style={[styles.invoiceModalCard, { backgroundColor: '#ffffff' }]}>
-            {/* Modal Controls Header */}
-            <View style={styles.invoiceModalHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+      {/* A4 Invoice Preview Modal */}
+      <Modal visible={Boolean(selectedInvoice)} transparent animationType="slide" onRequestClose={() => setSelectedInvoice(null)}>
+        <View style={styles.previewBackdrop}>
+          <View style={[styles.previewContainer, { backgroundColor: colors.bg }]}>
+            {/* Header */}
+            <View style={[styles.previewHeader, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Ionicons name="document-text" size={20} color="#059669" />
-                <Text style={styles.invoiceModalHeaderTitle}>
-                  Tax Invoice #{selectedInvoice?.id}
+                <Text style={[styles.previewTitle, { color: colors.text }]}>
+                  Invoice #{selectedInvoice?.id}
                 </Text>
               </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <TouchableOpacity
-                  style={styles.modalPrintBtn}
-                  onPress={() => selectedInvoice && handlePrintOrShare(selectedInvoice)}
-                >
-                  <Ionicons name="print-outline" size={16} color="#fff" />
-                  <Text style={styles.modalPrintBtnText}>Print / Share</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setSelectedInvoice(null)}>
-                  <Ionicons name="close" size={24} color="#64748b" />
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                onPress={() => setSelectedInvoice(null)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close-circle" size={28} color={colors.textMuted} />
+              </TouchableOpacity>
             </View>
 
-            {/* Printable Document Body */}
-            <ScrollView style={styles.invoicePrintScroll}>
-              {/* Store Identity */}
-              <View style={styles.storeDocHeader}>
-                <Text style={styles.docStoreName}>
-                  {storeSettings?.store_name || 'Narendra Kirana Store'}
-                </Text>
-                <Text style={styles.docStoreAddr}>
-                  {storeSettings?.store_address || 'Main Road, Market Center'}
-                </Text>
-                <Text style={styles.docStorePhone}>
-                  Phone: {storeSettings?.store_phone || '+91 9876543210'} • Email:{' '}
-                  {storeSettings?.store_email || 'support@narendrakirana.com'}
-                </Text>
-                {storeSettings?.gstin ? (
-                  <Text style={styles.docStoreTax}>GSTIN: {storeSettings.gstin}</Text>
-                ) : null}
-                {storeSettings?.fssai_license_number ? (
-                  <Text style={styles.docStoreTax}>
-                    FSSAI Lic #: {storeSettings.fssai_license_number}
-                  </Text>
-                ) : null}
-              </View>
-
-              <View style={styles.docDivider} />
-
-              {/* Invoice Meta Grid */}
-              <View style={styles.docMetaGrid}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.docMetaLabel}>BILLED TO:</Text>
-                  <Text style={styles.docMetaVal}>
-                    {selectedInvoice?.customer_name || 'Walk-in / Guest Customer'}
-                  </Text>
-                  {selectedInvoice?.customer_phone ? (
-                    <Text style={styles.docMetaSub}>Phone: {selectedInvoice.customer_phone}</Text>
-                  ) : null}
-                  {selectedInvoice?.delivery_address ? (
-                    <Text style={styles.docMetaSub} numberOfLines={2}>
-                      Address: {selectedInvoice.delivery_address}
-                    </Text>
-                  ) : null}
-                </View>
-                <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                  <Text style={styles.docMetaLabel}>INVOICE DETAILS:</Text>
-                  <Text style={styles.docMetaVal}>INV-#{selectedInvoice?.id}</Text>
-                  <Text style={styles.docMetaSub}>
-                    Date:{' '}
-                    {selectedInvoice?.created_at
-                      ? new Date(selectedInvoice.created_at).toLocaleDateString()
-                      : ''}
-                  </Text>
-                  <Text style={styles.docMetaSub}>
-                    Payment: {selectedInvoice?.payment_method || 'COD'} ({selectedInvoice?.status})
-                  </Text>
-                  {selectedInvoice?.upi_transaction_id ? (
-                    <Text style={styles.docMetaSub}>
-                      UPI Ref: {selectedInvoice.upi_transaction_id}
-                    </Text>
-                  ) : null}
-                </View>
-              </View>
-
-              {/* Itemized Table */}
-              <View style={styles.itemTable}>
-                <View style={styles.tableHeader}>
-                  <Text style={[styles.colHeader, { flex: 2 }]}>ITEM</Text>
-                  <Text style={[styles.colHeader, { flex: 0.8, textAlign: 'center' }]}>QTY</Text>
-                  <Text style={[styles.colHeader, { flex: 1, textAlign: 'right' }]}>PRICE</Text>
-                  <Text style={[styles.colHeader, { flex: 1, textAlign: 'right' }]}>TOTAL</Text>
-                </View>
-                {(selectedInvoice?.items || []).map((item: any, idx: number) => {
-                  const qty = Number(item.quantity || 1);
-                  const price = parseFloat(item.price_snapshot) || 0;
-                  const lineTotal = parseFloat(item.subtotal) || price * qty;
-                  return (
-                    <View key={idx} style={styles.tableRow}>
-                      <View style={{ flex: 2 }}>
-                        <Text style={styles.itemName}>
-                          {item.product_name_snapshot || 'Item'}
-                        </Text>
-                        {item.unit_snapshot ? (
-                          <Text style={styles.itemUnit}>{item.unit_snapshot}</Text>
-                        ) : null}
-                      </View>
-                      <Text style={[styles.rowText, { flex: 0.8, textAlign: 'center' }]}>
-                        {qty}
-                      </Text>
-                      <Text style={[styles.rowText, { flex: 1, textAlign: 'right' }]}>
-                        ₹{price.toFixed(2)}
-                      </Text>
-                      <Text style={[styles.rowTextBold, { flex: 1, textAlign: 'right' }]}>
-                        ₹{lineTotal.toFixed(2)}
-                      </Text>
-                    </View>
-                  );
-                })}
-              </View>
-
-              {/* Fee & Tax Breakdown */}
-              <View style={styles.breakdownBox}>
-                {selectedInvoice?.delivery_fee && parseFloat(selectedInvoice.delivery_fee) > 0 ? (
-                  <View style={styles.breakdownRow}>
-                    <Text style={styles.breakdownLabel}>Delivery Fee</Text>
-                    <Text style={styles.breakdownVal}>₹{selectedInvoice.delivery_fee}</Text>
-                  </View>
-                ) : null}
-                {selectedInvoice?.packaging_fee && parseFloat(selectedInvoice.packaging_fee) > 0 ? (
-                  <View style={styles.breakdownRow}>
-                    <Text style={styles.breakdownLabel}>Packaging Fee</Text>
-                    <Text style={styles.breakdownVal}>₹{selectedInvoice.packaging_fee}</Text>
-                  </View>
-                ) : null}
-                {selectedInvoice?.discount_amount && parseFloat(selectedInvoice.discount_amount) > 0 ? (
-                  <View style={styles.breakdownRow}>
-                    <Text style={styles.breakdownLabel}>Discount</Text>
-                    <Text style={[styles.breakdownVal, { color: '#059669' }]}>
-                      -₹{selectedInvoice.discount_amount}
-                    </Text>
-                  </View>
-                ) : null}
-                <View style={[styles.breakdownRow, styles.grandTotalRow]}>
-                  <Text style={styles.grandTotalLabel}>Grand Total</Text>
-                  <Text style={styles.grandTotalVal}>₹{selectedInvoice?.total_amount}</Text>
-                </View>
-              </View>
-
-              {/* Store Digital Signature */}
-              {storeSettings?.invoice_signature ? (
-                <View style={styles.signatureBox}>
-                  <Image
-                    source={{ uri: storeSettings.invoice_signature }}
-                    style={styles.signatureImg}
+            {/* A4 Paper Preview */}
+            <ScrollView
+              style={styles.previewScrollArea}
+              contentContainerStyle={styles.previewScrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.a4Shadow}>
+                {Platform.OS === 'web' ? (
+                  <iframe
+                    srcDoc={selectedInvoice ? buildInvoiceHtml(selectedInvoice) : ''}
+                    style={{
+                      width: '100%',
+                      height: 800,
+                      border: 'none',
+                      borderRadius: 4,
+                      backgroundColor: '#ffffff',
+                    } as any}
+                    title="Invoice Preview"
                   />
-                  <Text style={styles.signatureLabel}>Authorized Signatory</Text>
-                </View>
-              ) : null}
+                ) : (
+                  /* Native fallback: render items natively */
+                  <View style={styles.a4NativeContent}>
+                    <Text style={styles.a4StoreName}>
+                      {storeSettings?.store_name || 'Narendra Kirana Store'}
+                    </Text>
+                    {storeSettings?.store_address ? (
+                      <Text style={styles.a4StoreDetail}>{storeSettings.store_address}</Text>
+                    ) : null}
+                    {storeSettings?.store_phone ? (
+                      <Text style={styles.a4StoreDetail}>Phone: {storeSettings.store_phone}</Text>
+                    ) : null}
+                    {storeSettings?.gstin ? (
+                      <Text style={styles.a4Tax}>GSTIN: {storeSettings.gstin}</Text>
+                    ) : null}
 
-              <Text style={styles.docFooterNotice}>
-                This is a computer-generated tax invoice issued by Narendra Kirana.
-              </Text>
+                    <View style={styles.a4Divider} />
+                    <Text style={styles.a4InvoiceLabel}>TAX INVOICE</Text>
+                    <View style={styles.a4Divider} />
+
+                    <View style={styles.a4MetaRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.a4MetaLabel}>BILLED TO</Text>
+                        <Text style={styles.a4MetaVal}>{selectedInvoice?.customer_name || 'Walk-in / Guest'}</Text>
+                        {selectedInvoice?.customer_phone ? <Text style={styles.a4MetaSub}>Phone: {selectedInvoice.customer_phone}</Text> : null}
+                      </View>
+                      <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                        <Text style={styles.a4MetaLabel}>INVOICE</Text>
+                        <Text style={styles.a4MetaVal}>INV-#{selectedInvoice?.id}</Text>
+                        <Text style={styles.a4MetaSub}>{selectedInvoice?.created_at ? new Date(selectedInvoice.created_at).toLocaleDateString() : ''}</Text>
+                        <Text style={styles.a4MetaSub}>{selectedInvoice?.payment_method || 'COD'} • {selectedInvoice?.status}</Text>
+                      </View>
+                    </View>
+
+                    {/* Items */}
+                    <View style={styles.a4TableHead}>
+                      <Text style={[styles.a4ColH, { flex: 2, textAlign: 'left' }]}>Item</Text>
+                      <Text style={[styles.a4ColH, { flex: 0.6, textAlign: 'center' }]}>Qty</Text>
+                      <Text style={[styles.a4ColH, { flex: 1, textAlign: 'right' }]}>Price</Text>
+                      <Text style={[styles.a4ColH, { flex: 1, textAlign: 'right' }]}>Total</Text>
+                    </View>
+                    {(selectedInvoice?.items || []).map((item: any, idx: number) => {
+                      const qty = Number(item.quantity || 1);
+                      const price = parseFloat(item.price_snapshot) || 0;
+                      const lineTotal = parseFloat(item.subtotal) || price * qty;
+                      const isRej = item.status === 'REJECTED' || item.is_rejected;
+                      return (
+                        <View key={idx} style={styles.a4TableRow}>
+                          <Text style={[styles.a4Cell, { flex: 2 }, isRej && { textDecorationLine: 'line-through', color: '#e11d48' }]}>
+                            {item.product_name_snapshot || 'Item'}
+                          </Text>
+                          <Text style={[styles.a4Cell, { flex: 0.6, textAlign: 'center' }, isRej && { color: '#e11d48' }]}>{qty}</Text>
+                          <Text style={[styles.a4Cell, { flex: 1, textAlign: 'right' }, isRej && { color: '#e11d48' }]}>₹{price.toFixed(2)}</Text>
+                          <Text style={[styles.a4Cell, { flex: 1, textAlign: 'right', fontWeight: '600' }, isRej && { color: '#e11d48' }]}>
+                            {isRej ? '₹0.00' : `₹${lineTotal.toFixed(2)}`}
+                          </Text>
+                        </View>
+                      );
+                    })}
+
+                    <View style={styles.a4GrandRow}>
+                      <Text style={styles.a4GrandLabel}>Grand Total</Text>
+                      <Text style={styles.a4GrandVal}>₹{selectedInvoice?.total_amount}</Text>
+                    </View>
+
+                    <Text style={styles.a4Footer}>
+                      Computer-generated invoice. Thank you for shopping!
+                    </Text>
+                  </View>
+                )}
+              </View>
             </ScrollView>
+
+            {/* Bottom Action Bar */}
+            <View style={[styles.previewActions, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+              <TouchableOpacity
+                style={styles.actionBtnDownload}
+                onPress={() => selectedInvoice && handleDownloadPdf(selectedInvoice)}
+              >
+                <Ionicons name="download-outline" size={18} color="#fff" />
+                <Text style={styles.actionBtnText}>Download PDF</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.actionBtnShare}
+                onPress={() => selectedInvoice && handleShareText(selectedInvoice)}
+              >
+                <Ionicons name="share-social-outline" size={18} color="#059669" />
+                <Text style={[styles.actionBtnText, { color: '#059669' }]}>Share</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -808,203 +767,192 @@ const styles = StyleSheet.create({
     marginTop: 32,
     fontSize: 13,
   },
-  modalBackdrop: {
+  // A4 Preview Modal
+  previewBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    padding: 14,
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
-  invoiceModalCard: {
-    borderRadius: 16,
-    maxHeight: '90%',
+  previewContainer: {
+    flex: 1,
+    marginTop: 40,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     overflow: 'hidden',
   },
-  invoiceModalHeader: {
+  previewHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-    backgroundColor: '#f8fafc',
   },
-  invoiceModalHeaderTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#0f172a',
+  previewTitle: {
+    fontSize: 16,
+    fontWeight: '800',
   },
-  modalPrintBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#059669',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 6,
+  previewScrollArea: {
+    flex: 1,
   },
-  modalPrintBtnText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
-  invoicePrintScroll: {
+  previewScrollContent: {
     padding: 16,
-  },
-  storeDocHeader: {
+    paddingBottom: 24,
     alignItems: 'center',
-    marginBottom: 10,
   },
-  docStoreName: {
+  a4Shadow: {
+    width: '100%',
+    maxWidth: 600,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    // A4 paper shadow effect
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    overflow: 'hidden',
+  },
+  // Native fallback styles (when not web)
+  a4NativeContent: {
+    padding: 24,
+  },
+  a4StoreName: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#0f172a',
+    color: '#059669',
+    textAlign: 'center',
+    marginBottom: 4,
   },
-  docStoreAddr: {
-    fontSize: 12,
+  a4StoreDetail: {
+    fontSize: 11,
     color: '#475569',
     textAlign: 'center',
     marginTop: 2,
   },
-  docStorePhone: {
-    fontSize: 11,
-    color: '#64748b',
+  a4Tax: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#334155',
     textAlign: 'center',
     marginTop: 2,
   },
-  docStoreTax: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: '#334155',
-    marginTop: 2,
-  },
-  docDivider: {
+  a4Divider: {
     height: 1,
-    backgroundColor: '#cbd5e1',
+    backgroundColor: '#e2e8f0',
     marginVertical: 12,
   },
-  docMetaGrid: {
+  a4InvoiceLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0f172a',
+    textAlign: 'center',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  a4MetaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 16,
   },
-  docMetaLabel: {
-    fontSize: 10,
+  a4MetaLabel: {
+    fontSize: 9,
     fontWeight: '800',
     color: '#94a3b8',
-    marginBottom: 2,
+    textTransform: 'uppercase',
+    marginBottom: 3,
   },
-  docMetaVal: {
+  a4MetaVal: {
     fontSize: 13,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#0f172a',
   },
-  docMetaSub: {
+  a4MetaSub: {
     fontSize: 11,
     color: '#475569',
     marginTop: 1,
   },
-  itemTable: {
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 8,
-    overflow: 'hidden',
-    marginBottom: 12,
-  },
-  tableHeader: {
+  a4TableHead: {
     flexDirection: 'row',
     backgroundColor: '#f1f5f9',
     paddingVertical: 8,
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    marginBottom: 2,
   },
-  colHeader: {
-    fontSize: 10,
+  a4ColH: {
+    fontSize: 9.5,
     fontWeight: '800',
-    color: '#475569',
-  },
-  tableRow: {
-    flexDirection: 'row',
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-  },
-  itemName: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#0f172a',
-  },
-  itemUnit: {
-    fontSize: 10,
     color: '#64748b',
+    textTransform: 'uppercase',
   },
-  rowText: {
-    fontSize: 11,
+  a4TableRow: {
+    flexDirection: 'row',
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  a4Cell: {
+    fontSize: 12,
     color: '#334155',
   },
-  rowTextBold: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: '#0f172a',
-  },
-  breakdownBox: {
-    alignItems: 'flex-end',
-    marginBottom: 14,
-  },
-  breakdownRow: {
+  a4GrandRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    width: 180,
-    paddingVertical: 2,
+    borderTopWidth: 2,
+    borderTopColor: '#0f172a',
+    paddingTop: 12,
+    marginTop: 12,
   },
-  breakdownLabel: {
-    fontSize: 11,
-    color: '#64748b',
-  },
-  breakdownVal: {
-    fontSize: 11,
-    fontWeight: '600',
+  a4GrandLabel: {
+    fontSize: 16,
+    fontWeight: '900',
     color: '#0f172a',
   },
-  grandTotalRow: {
-    borderTopWidth: 1,
-    borderTopColor: '#cbd5e1',
-    paddingTop: 4,
-    marginTop: 4,
-  },
-  grandTotalLabel: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#0f172a',
-  },
-  grandTotalVal: {
-    fontSize: 15,
+  a4GrandVal: {
+    fontSize: 16,
     fontWeight: '900',
     color: '#059669',
   },
-  signatureBox: {
-    alignItems: 'flex-end',
-    marginTop: 10,
-    marginBottom: 14,
-  },
-  signatureImg: {
-    width: 120,
-    height: 48,
-    resizeMode: 'contain',
-  },
-  signatureLabel: {
-    fontSize: 10,
-    color: '#64748b',
-    borderTopWidth: 1,
-    borderTopColor: '#94a3b8',
-    paddingTop: 2,
-    marginTop: 2,
-  },
-  docFooterNotice: {
+  a4Footer: {
     fontSize: 10,
     color: '#94a3b8',
     textAlign: 'center',
     fontStyle: 'italic',
-    marginTop: 10,
-    marginBottom: 16,
+    marginTop: 24,
+  },
+  // Bottom action bar
+  previewActions: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 16,
+    borderTopWidth: 1,
+  },
+  actionBtnDownload: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#059669',
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  actionBtnShare: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(5, 150, 105, 0.1)',
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#059669',
+  },
+  actionBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#ffffff',
   },
 });
