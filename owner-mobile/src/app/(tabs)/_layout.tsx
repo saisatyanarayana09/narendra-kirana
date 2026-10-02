@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useAppTheme } from '../../context/ThemeContext';
 import api from '../../services/api';
+import { safeStorage } from '../../utils/storage';
 
 interface NavSection {
   name: string;
@@ -218,26 +219,45 @@ export default function TabLayout() {
   useEffect(() => {
     if (!token) return;
     let isMounted = true;
-    api
-      .get('/orders/')
-      .then((res) => {
+
+    const SEEN_KEY = 'smart-kirana-orders-last-seen';
+
+    const run = async () => {
+      try {
+        const res = await api.get('/orders/?page_size=100');
         if (!isMounted) return;
         const list = Array.isArray(res?.data?.results)
           ? res.data.results
           : Array.isArray(res?.data)
             ? res.data
             : [];
-        const newCount = list.filter((o: any) => o.status === 'NEW').length;
-        const activeCount = list.filter((o: any) =>
-          ['NEW', 'ACCEPTED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY'].includes(o.status)
-        ).length;
-        setNewOrdersBadge(newCount);
-        setActiveOrdersBadge(activeCount);
-      })
-      .catch(() => {});
-    return () => {
-      isMounted = false;
+
+        const lastSeen = await safeStorage.getItem(SEEN_KEY);
+        const lastSeenTime = lastSeen ? new Date(lastSeen).getTime() : 0;
+
+        // Count NEW orders the owner hasn't seen yet
+        const unseenNewCount = list.filter((o: any) => {
+          if (o.status !== 'NEW') return false;
+          const createdTime = o.created_at ? new Date(o.created_at).getTime() : 0;
+          return createdTime > lastSeenTime;
+        }).length;
+
+        setNewOrdersBadge(unseenNewCount);
+        setActiveOrdersBadge(unseenNewCount);
+
+        // If on the orders tab right now, mark all as seen
+        if (pathname.startsWith('/orders') || pathname === '/(tabs)/orders') {
+          await safeStorage.setItem(SEEN_KEY, new Date().toISOString());
+          if (isMounted) {
+            setNewOrdersBadge(0);
+            setActiveOrdersBadge(0);
+          }
+        }
+      } catch {}
     };
+
+    run();
+    return () => { isMounted = false; };
   }, [token, pathname]);
 
   if (isLoading || (Platform.OS === 'web' && typeof window === 'undefined')) {
