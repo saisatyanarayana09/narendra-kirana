@@ -125,7 +125,7 @@ export default function ForgotPasswordScreen() {
           <Text style={[styles.subtitle, { color: isDark ? '#94a3b8' : '#64748b' }]}>
             {step === 'request'
               ? 'Enter your registered email to receive a one-time verification code.'
-              : Enter the OTP sent to  and choose a new password.}
+              : `Enter the OTP sent to ${email} and choose a new password.`}
           </Text>
 
           {errorMsg ? (
