@@ -38,9 +38,7 @@ export default function LoginScreen() {
 
   useEffect(() => {
     let isMounted = true;
-    safeStorage.getItem(SAVED_USERNAME_KEY).then((saved) => {
-      if (isMounted && saved) setIdentifier(saved);
-    });
+    // Username autofill removed per user request
 
     api
       .get('/store/settings/')
@@ -85,7 +83,7 @@ export default function LoginScreen() {
         return;
       }
 
-      await safeStorage.setItem(SAVED_USERNAME_KEY, cleanId);
+      // await safeStorage.setItem(SAVED_USERNAME_KEY, cleanId);
       if (user) {
         await safeStorage.setItem('smart-kirana-owner-user', JSON.stringify(user));
       }
