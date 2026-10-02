@@ -52,7 +52,7 @@ export function getErrorMessage(error: any, fallback = 'Something went wrong. Pl
   }
 
   if (error?.message === 'Network Error') {
-    return 'Unable to reach the server. Please check your internet connection or wait a moment if the server is waking up.';
+    return `Unable to reach the server at ${error?.config?.baseURL || 'unknown URL'}. Please check your internet connection.`;
   }
 
   if (typeof error?.message === 'string') return error.message;
