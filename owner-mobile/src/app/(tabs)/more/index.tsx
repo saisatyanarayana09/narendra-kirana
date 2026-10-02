@@ -81,7 +81,7 @@ export default function ProfileScreen() {
     { title: 'Push Broadcast', icon: 'notifications-outline', route: '/(tabs)/more/broadcast', color: '#0d9488' },
     { title: 'Delivery Fleet Map', icon: 'bicycle-outline', route: '/(tabs)/more/delivery', color: '#059669' },
     { title: 'Sales Reports', icon: 'trending-up-outline', route: '/(tabs)/more/reports', color: '#8b5cf6' },
-    { title: 'Manage Agents & Staff', icon: 'people-outline', route: '/(tabs)/more/agents', color: '#8b5cf6' },
+    ...(user?.is_owner ? [{ title: 'Manage Agents & Staff', icon: 'people-outline', route: '/(tabs)/more/agents', color: '#8b5cf6' }] : []),
     { title: 'Advanced Settings', icon: 'settings-outline', route: '/(tabs)/more/advanced-settings', color: '#64748b' },
   ];
 
