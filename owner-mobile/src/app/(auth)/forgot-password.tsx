@@ -212,7 +212,7 @@ export default function ForgotPasswordScreen() {
                 disabled={countdown > 0 || resending}
               >
                 <Text style={[styles.resendText, { color: countdown > 0 ? '#94a3b8' : '#10b981' }]}>
-                  {resending ? 'Resending...' : countdown > 0 ? Resend OTP in s : 'Resend OTP Code'}
+                  {resending ? 'Resending...' : countdown > 0 ? `Resend OTP in ${countdown}s` : 'Resend OTP Code'}
                 </Text>
               </TouchableOpacity>
             </>
