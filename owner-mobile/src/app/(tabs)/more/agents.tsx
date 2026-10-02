@@ -13,6 +13,7 @@ type Agent = {
   email?: string;
   phone_number?: string;
   is_owner?: boolean;
+  is_staff?: boolean;
   is_delivery_partner?: boolean;
 };
 
@@ -96,7 +97,7 @@ export default function AgentsScreen() {
 
   const filteredAgents = agents.filter(agent => {
     if (activeTab === 'staff') {
-      return agent.is_owner === true;
+      return agent.is_owner === true || agent.is_staff === true;
     } else {
       return agent.is_delivery_partner === true;
     }
@@ -148,9 +149,9 @@ export default function AgentsScreen() {
                     <Ionicons name="call-outline" size={14} /> {agent.phone_number}
                   </Text>
                 )}
-                <View style={[styles.roleBadge, { backgroundColor: agent.is_owner ? '#8b5cf620' : '#05966920' }]}>
-                  <Text style={[styles.roleText, { color: agent.is_owner ? '#8b5cf6' : '#059669' }]}>
-                    {agent.is_owner ? 'Store Staff' : 'Delivery Partner'}
+                <View style={[styles.roleBadge, { backgroundColor: (agent.is_owner || agent.is_staff) ? '#8b5cf620' : '#05966920' }]}>
+                  <Text style={[styles.roleText, { color: (agent.is_owner || agent.is_staff) ? '#8b5cf6' : '#059669' }]}>
+                    {(agent.is_owner || agent.is_staff) ? 'Store Staff' : 'Delivery Partner'}
                   </Text>
                 </View>
               </View>

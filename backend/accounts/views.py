@@ -1284,6 +1284,8 @@ class AgentManagementView(APIView):
         return Response(serializer.data)
 
     def post(self, request, *args, **kwargs):
+        if not request.user.is_owner:
+            return Response({'error': 'Only store owners can add agents.'}, status=status.HTTP_403_FORBIDDEN)
         email = request.data.get('email')
         first_name = request.data.get('first_name', '')
         last_name = request.data.get('last_name', '')
