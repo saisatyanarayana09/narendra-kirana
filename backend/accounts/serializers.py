@@ -81,21 +81,34 @@ class UserSerializer(serializers.ModelSerializer):
             
         instance.save()
 
-        # Update or Create CustomerProfile for profile picture
-        if 'profile_picture' in validated_data:
+        # Update or Create CustomerProfile for profile picture & profile data
+        if 'profile_picture' in validated_data or profile_data:
             if not hasattr(instance, 'customer_profile'):
                 from .models import CustomerProfile
                 CustomerProfile.objects.create(user=instance)
+
+        if 'profile_picture' in validated_data:
             instance.customer_profile.profile_picture = validated_data.pop('profile_picture')
             instance.customer_profile.save()
 
         if hasattr(instance, 'customer_profile'):
             profile = instance.customer_profile
-            new_dob = profile_data.get('dob', profile.dob)
-            if new_dob == "":
-                new_dob = None
-            profile.dob = new_dob
-            profile.mobile_number = profile_data.get('mobile_number', profile.mobile_number)
+            if 'dob' in profile_data:
+                new_dob = profile_data.get('dob')
+                profile.dob = None if new_dob in ("", None) else new_dob
+
+            if 'mobile_number' in profile_data:
+                raw_mobile = profile_data.get('mobile_number')
+                clean_mobile = None if raw_mobile in ("", None) else str(raw_mobile).strip()
+                if clean_mobile:
+                    from .models import CustomerProfile
+                    conflict = CustomerProfile.objects.filter(mobile_number=clean_mobile).exclude(id=profile.id).first()
+                    if conflict:
+                        raise serializers.ValidationError({
+                            'customer_profile': {'mobile_number': ['This mobile number is already in use by another account.']}
+                        })
+                profile.mobile_number = clean_mobile
+
             profile.save()
             
         return instance

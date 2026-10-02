@@ -22,7 +22,7 @@ import WebCropper from '../../../components/WebCropper';
 import ModernSwitch from '../../../components/ModernSwitch';
 import { useAuth } from '../../../context/AuthContext';
 import { useAppTheme } from '../../../context/ThemeContext';
-import api from '../../../services/api';
+import api, { getErrorMessage } from '../../../services/api';
 import { showAlert, showConfirm } from '../../../utils/alerts';
 
 interface NavItem {
@@ -147,11 +147,12 @@ export default function ProfileScreen() {
   const handleSaveProfile = async () => {
     setSavingProfile(true);
     try {
+      const cleanMobile = editMobile.trim() ? editMobile.trim() : null;
       const payload: any = {
         first_name: editFirstName.trim(),
         last_name: editLastName.trim(),
         customer_profile: {
-          mobile_number: editMobile.trim(),
+          mobile_number: cleanMobile,
         },
       };
 
@@ -161,7 +162,8 @@ export default function ProfileScreen() {
       showAlert('Success', 'Profile details updated.');
     } catch (e: any) {
       console.error('Save Profile Error:', e.response?.data || e.message);
-      showAlert('Update Failed', e.response?.data?.detail || 'Could not update profile details.');
+      const errMsg = getErrorMessage(e, 'Could not update profile details.');
+      showAlert('Update Failed', errMsg);
     } finally {
       setSavingProfile(false);
     }
@@ -445,7 +447,12 @@ export default function ProfileScreen() {
               <TouchableOpacity
                 activeOpacity={0.7}
                 style={[styles.profileActionBtn, { backgroundColor: colors.cardAlt }]}
-                onPress={() => setEditModalVisible(true)}
+                onPress={() => {
+                  setEditFirstName(user?.first_name || '');
+                  setEditLastName(user?.last_name || '');
+                  setEditMobile(user?.customer_profile?.mobile_number || '');
+                  setEditModalVisible(true);
+                }}
               >
                 <Ionicons name="create-outline" size={15} color={colors.text} />
                 <Text style={[styles.profileActionText, { color: colors.text }]}>Edit Details</Text>
