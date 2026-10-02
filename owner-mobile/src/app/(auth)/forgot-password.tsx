@@ -53,7 +53,11 @@ export default function ForgotPasswordScreen() {
     setErrorMsg(null);
     setLoading(true);
     try {
-      await api.post('/auth/password-reset/', { email: cleanEmail });
+      await api.post('/auth/password-reset/', {
+        email: cleanEmail,
+        portal: 'owner',
+        method: 'otp',
+      });
       setStep('verify');
       setCountdown(60); // 60s cooldown for resend
       showAlert('OTP Sent', 'Please check your email for the password reset code.');
@@ -69,7 +73,11 @@ export default function ForgotPasswordScreen() {
     setErrorMsg(null);
     setResending(true);
     try {
-      await api.post('/auth/password-reset/', { email: email.trim() });
+      await api.post('/auth/password-reset/', {
+        email: email.trim(),
+        portal: 'owner',
+        method: 'otp',
+      });
       setCountdown(60);
       showAlert('OTP Resent', 'A new code has been sent to your email.');
     } catch (e: any) {
@@ -103,6 +111,7 @@ export default function ForgotPasswordScreen() {
         email: cleanEmail,
         otp: cleanOtp,
         new_password: newPassword,
+        portal: 'owner',
       });
       showAlert('Password Updated', 'Your password has been successfully reset!', () => {
         router.replace('/(auth)/login');

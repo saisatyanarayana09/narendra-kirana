@@ -920,6 +920,12 @@ class PasswordResetVerifyOTPView(APIView):
             is_used=False
         ).order_by('-created_at').first()
 
+        if not otp_record:
+            otp_record = PasswordResetOTP.objects.filter(
+                user=user,
+                is_used=False
+            ).order_by('-created_at').first()
+
         if not otp_record or not otp_record.is_valid():
             return Response({'valid': False, 'error': 'The OTP code is invalid or has expired (15-minute limit). Please request a new code.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -973,6 +979,12 @@ class PasswordResetOTPConfirmView(APIView):
             portal=portal,
             is_used=False
         ).order_by('-created_at').first()
+
+        if not otp_record:
+            otp_record = PasswordResetOTP.objects.filter(
+                user=user,
+                is_used=False
+            ).order_by('-created_at').first()
 
         if not otp_record or not otp_record.is_valid():
             return Response({'error': 'The OTP code is invalid or has expired (15-minute limit). Please request a new code.'}, status=status.HTTP_400_BAD_REQUEST)
