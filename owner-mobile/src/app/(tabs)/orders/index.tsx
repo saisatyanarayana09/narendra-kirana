@@ -399,7 +399,7 @@ const OrderCard = React.memo(({
                   { color: colors.text, fontWeight: '700' },
                 ]}
               >
-                Open Full Checklist & Rider Dispatch
+                Order Details
               </Text>
               <Ionicons
                 name="arrow-forward"
