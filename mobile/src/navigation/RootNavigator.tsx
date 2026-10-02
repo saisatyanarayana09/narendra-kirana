@@ -152,7 +152,33 @@ export function parseDeepLinkUrl(url: string): ParsedDeepLink | null {
       };
     }
 
-    // 6. Refer & Earn: /refer or /refer-and-earn or /profile/refer-and-earn
+    // 6. Referral Invite & Signup: /signup?ref=CODE, /refer/:code, /refer?ref=CODE, /refer?code=CODE
+    const isSignupUrl = segments[0] === "signup" || segments[0] === "register";
+    const isReferralInvite =
+      (segments[0] === "refer" || segments[0] === "refer-and-earn") &&
+      (Boolean(segments[1]) ||
+        Boolean(parsed.queryParams?.ref) ||
+        Boolean(parsed.queryParams?.code) ||
+        Boolean(parsed.queryParams?.referral_code));
+
+    if (isSignupUrl || isReferralInvite) {
+      const qp = parsed.queryParams || {};
+      const refCode = String(
+        qp.ref ||
+        qp.code ||
+        qp.referral_code ||
+        (segments[0] === "refer" && segments[1] ? segments[1] : "")
+      ).trim();
+
+      return {
+        screen: "Signup",
+        tab: "Auth",
+        params: { referral_code: refCode, ref: refCode },
+        requiresAuth: false,
+      };
+    }
+
+    // Refer & Earn Dashboard (logged in user): /refer or /refer-and-earn or /profile/refer-and-earn
     if (
       segments[0] === "refer" ||
       segments[0] === "refer-and-earn" ||
@@ -256,6 +282,8 @@ const linking = {
     screens: {
       ResetPasswordScreen: "reset-password",
       ForgotPasswordScreen: "forgot-password",
+      Signup: "signup",
+      Login: "login",
       Auth: {
         screens: {
           Welcome: "welcome",
@@ -337,15 +365,32 @@ export function RootNavigator() {
     if (!target) return;
 
     if (user) {
-      // User is logged in: navigate straight to destination
+      // User is logged in: if they tap a referral signup link, take them to Refer & Earn screen
+      if (target.screen === "Signup") {
+        if (navigationRef.isReady()) {
+          (navigationRef as any).navigate("Main", {
+            screen: "ProfileTab",
+            params: {
+              screen: "ReferAndEarnScreen",
+            },
+          });
+        }
+        return;
+      }
+
       if (navigationRef.isReady()) {
-        if (target.tab) {
+        if (target.tab && target.tab !== "Auth") {
           (navigationRef as any).navigate("Main", {
             screen: target.tab,
             params: {
               screen: target.screen,
               params: target.params,
             },
+          });
+        } else if (target.tab === "Auth") {
+          (navigationRef as any).navigate("Auth", {
+            screen: target.screen,
+            params: target.params,
           });
         } else {
           (navigationRef as any).navigate(target.screen, target.params);
@@ -370,20 +415,25 @@ export function RootNavigator() {
           (navigationRef as any).navigate("Auth", { screen: "Login" });
         }
       } else {
-        // Public screen (e.g. ProductDetailScreen, ResetPasswordScreen)
+        // Public screen (e.g. Signup with referral code, ProductDetailScreen, ResetPasswordScreen)
         setPendingRedirect({
           screen: target.screen,
           tab: target.tab,
           params: target.params,
         });
         if (navigationRef.isReady()) {
-          if (target.tab) {
+          if (target.tab && target.tab !== "Auth") {
             (navigationRef as any).navigate("Main", {
               screen: target.tab,
               params: {
                 screen: target.screen,
                 params: target.params,
               },
+            });
+          } else if (target.tab === "Auth") {
+            (navigationRef as any).navigate("Auth", {
+              screen: target.screen,
+              params: target.params,
             });
           } else {
             (navigationRef as any).navigate(target.screen, target.params);
@@ -470,13 +520,18 @@ export function RootNavigator() {
       const timer = setTimeout(() => {
         try {
           if (navigationRef.isReady()) {
-            if (redirect.tab) {
+            if (redirect.tab && redirect.tab !== "Auth") {
               (navigationRef as any).navigate("Main", {
                 screen: redirect.tab,
                 params: {
                   screen: redirect.screen,
                   params: redirect.params,
                 },
+              });
+            } else if (redirect.tab === "Auth") {
+              (navigationRef as any).navigate("Auth", {
+                screen: redirect.screen,
+                params: redirect.params,
               });
             } else {
               (navigationRef as any).navigate(redirect.screen, redirect.params);
@@ -607,13 +662,18 @@ export function RootNavigator() {
             setTimeout(() => {
               try {
                 if (navigationRef.isReady()) {
-                  if (redirect.tab) {
+                  if (redirect.tab && redirect.tab !== "Auth") {
                     (navigationRef as any).navigate("Main", {
                       screen: redirect.tab,
                       params: {
                         screen: redirect.screen,
                         params: redirect.params,
                       },
+                    });
+                  } else if (redirect.tab === "Auth") {
+                    (navigationRef as any).navigate("Auth", {
+                      screen: redirect.screen,
+                      params: redirect.params,
                     });
                   } else {
                     (navigationRef as any).navigate(

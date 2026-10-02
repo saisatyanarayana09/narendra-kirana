@@ -17,30 +17,47 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { apiClient } from "../../api/client";
+import { RouteProp } from "@react-navigation/native";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import type { AuthStackParamList } from "../../navigation/AuthStack";
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "Signup">;
+  route?: RouteProp<AuthStackParamList, "Signup">;
 };
 
-export function SignupScreen({ navigation }: Props) {
+export function SignupScreen({ navigation, route }: Props) {
   const { colors, isDark } = useTheme();
   const { loginWithGoogle, pendingRedirect, clearPendingRedirect } = useAuth();
+  
+  const initialReferralCode = String(
+    route?.params?.referral_code || route?.params?.ref || ""
+  ).trim();
+
   const [form, setForm] = useState({
     first_name: "",
     email: "",
     mobile_number: "",
     password: "",
     confirm_password: "",
-    referral_code: "",
+    referral_code: initialReferralCode,
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [showReferralInput, setShowReferralInput] = useState(false);
+  const [showReferralInput, setShowReferralInput] = useState(Boolean(initialReferralCode));
   const [isLoading, setIsLoading] = useState(false);
+
+  // Sync referral code if it arrives after mount (e.g. runtime deep link)
+  useEffect(() => {
+    const code = route?.params?.referral_code || route?.params?.ref;
+    if (code && typeof code === "string") {
+      const cleanCode = code.trim().toUpperCase();
+      setForm((prev) => ({ ...prev, referral_code: cleanCode }));
+      setShowReferralInput(true);
+    }
+  }, [route?.params?.referral_code, route?.params?.ref]);
 
   // Live password validation criteria
   const pwd = form.password || "";

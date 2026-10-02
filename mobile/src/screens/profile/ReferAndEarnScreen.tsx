@@ -179,18 +179,18 @@ export function ReferAndEarnScreen({
   };
 
   const handleShare = async () => {
-    const storeLink = "https://narendra-kirana.vercel.app";
+    const referralLink = `https://narendra-kirana.vercel.app/signup?ref=${encodeURIComponent(referralCode)}`;
     let shareText = "";
     if (settings?.share_text_template) {
       if (settings.share_text_template.includes("{link}")) {
         shareText = settings.share_text_template
-          .replace("{code}", referralCode)
-          .replace("{link}", storeLink);
+          .replace(/{code}/g, referralCode)
+          .replace(/{link}/g, referralLink);
       } else {
-        shareText = `${settings.share_text_template.replace("{code}", referralCode).trim()}\n${storeLink}`;
+        shareText = `${settings.share_text_template.replace(/{code}/g, referralCode).trim()}\n${referralLink}`;
       }
     } else {
-      shareText = `Shop online at Narendra Kirana and get special discounts! Use my referral code: ${referralCode}\n${storeLink}`;
+      shareText = `Shop online at Narendra Kirana and get special discounts! Use my referral code: ${referralCode}\n${referralLink}`;
     }
     shareText = shareText
       .replace(/[ \t]+/g, " ")
@@ -201,6 +201,7 @@ export function ReferAndEarnScreen({
       await Share.share({
         message: shareText,
         title: "Join me on Narendra Kirana",
+        url: referralLink,
       });
     } catch (error: any) {
       console.error(error);

@@ -64,6 +64,16 @@
             },
             {
               "scheme": "https",
+              "host": "narendra-kirana.vercel.app",
+              "pathPrefix": "/signup"
+            },
+            {
+              "scheme": "https",
+              "host": "narendra-kirana.vercel.app",
+              "pathPrefix": "/refer"
+            },
+            {
+              "scheme": "https",
               "host": "narendra-kirana.onrender.com",
               "pathPrefix": "/orders"
             },
@@ -81,6 +91,16 @@
               "scheme": "https",
               "host": "narendra-kirana.onrender.com",
               "pathPrefix": "/offers"
+            },
+            {
+              "scheme": "https",
+              "host": "narendra-kirana.onrender.com",
+              "pathPrefix": "/signup"
+            },
+            {
+              "scheme": "https",
+              "host": "narendra-kirana.onrender.com",
+              "pathPrefix": "/refer"
             }
           ],
           "category": [

@@ -60,10 +60,13 @@ export default function ReferAndEarn() {
   const handleShare = () => {
     if (!settings || !referralCode) return;
     
-    const referralUrl = `${window.location.origin}/signup?ref=${referralCode}`;
-    let text = settings.share_text_template
-      .replace('{code}', referralCode)
-      .replace('{link}', referralUrl);
+    const referralUrl = `${window.location.origin}/signup?ref=${encodeURIComponent(referralCode)}`;
+    let text = settings.share_text_template || 'Join Narendra Kirana with my referral code {code}! {link}';
+    if (text.includes('{link}')) {
+      text = text.replace(/{code}/g, referralCode).replace(/{link}/g, referralUrl);
+    } else {
+      text = `${text.replace(/{code}/g, referralCode).trim()}\n${referralUrl}`;
+    }
       
     if (navigator.share) {
       navigator.share({
