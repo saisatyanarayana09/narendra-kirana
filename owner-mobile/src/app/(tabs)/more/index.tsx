@@ -274,9 +274,16 @@ export default function ProfileScreen() {
             ]
           : []),
         {
-          id: 'advanced',
+          id: 'settings',
           title: 'Store Settings',
-          subtitle: 'UPI QR, timings, delivery slots & policies',
+          subtitle: 'Store status, hours, delivery radius & contact info',
+          icon: 'storefront-outline',
+          route: '/(tabs)/more/settings',
+        },
+        {
+          id: 'advanced',
+          title: 'Advanced Settings',
+          subtitle: 'UPI QR, GST/FSSAI tax, WhatsApp & cloud backups',
           icon: 'settings-outline',
           route: '/(tabs)/more/advanced-settings',
         },
