@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
+import WebCropper from '../../../components/WebCropper';
 import { useAuth } from '../../../context/AuthContext';
 import { useAppTheme } from '../../../context/ThemeContext';
 import api from '../../../services/api';
@@ -18,6 +19,7 @@ export default function ProfileScreen() {
   const [user, setUser] = useState<any>(null);
   const [profilePic, setProfilePic] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [webImage, setWebImage] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProfile();
@@ -45,33 +47,52 @@ export default function ProfileScreen() {
       });
 
       if (!result.canceled && result.assets[0]) {
-        setUploading(true);
-        // Compress image before uploading
-        const manipResult = await ImageManipulator.manipulateAsync(
-          result.assets[0].uri,
-          [{ resize: { width: 500, height: 500 } }],
-          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
-        );
-
-        const formData = new FormData();
         if (Platform.OS === 'web') {
-          const response = await fetch(manipResult.uri);
-          const blob = await response.blob();
-          formData.append('profile_picture', blob, 'profile.jpg');
+          // Pass to our custom web cropper
+          setWebImage(result.assets[0].uri);
         } else {
+          setUploading(true);
+          // Compress image before uploading
+          const manipResult = await ImageManipulator.manipulateAsync(
+            result.assets[0].uri,
+            [{ resize: { width: 500, height: 500 } }],
+            { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+          );
+
+          const formData = new FormData();
           formData.append('profile_picture', {
             uri: manipResult.uri,
             name: 'profile.jpg',
             type: 'image/jpeg',
           } as any);
-        }
 
-        const res = await api.patch('/auth/profile/', formData);
+          const res = await api.patch('/auth/profile/', formData);
 
-        if (res.data?.customer_profile?.profile_picture) {
-          setProfilePic(res.data.customer_profile.profile_picture);
-          showAlert('Success', 'Profile picture updated!');
+          if (res.data?.customer_profile?.profile_picture) {
+            setProfilePic(res.data.customer_profile.profile_picture);
+            showAlert('Success', 'Profile picture updated!');
+          }
         }
+      }
+    } catch (e: any) {
+      console.error('Upload Error:', e.response?.data || e.message);
+      showAlert('Error', e.response?.data?.detail || e.response?.data?.profile_picture?.[0] || e.message || 'Failed to upload profile picture.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  
+  const handleWebCropComplete = async (blob: any) => {
+    setWebImage(null);
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('profile_picture', blob, 'profile.jpg');
+      const res = await api.patch('/auth/profile/', formData);
+      if (res.data?.customer_profile?.profile_picture) {
+        setProfilePic(res.data.customer_profile.profile_picture);
+        showAlert('Success', 'Profile picture updated!');
       }
     } catch (e: any) {
       console.error('Upload Error:', e.response?.data || e.message);
@@ -154,6 +175,7 @@ export default function ProfileScreen() {
           <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
       </ScrollView>
+      {Platform.OS === 'web' && webImage && <WebCropper imageSrc={webImage} onCropComplete={handleWebCropComplete} onCancel={() => setWebImage(null)} />}
     </View>
   );
 }
