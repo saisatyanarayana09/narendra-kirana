@@ -833,14 +833,12 @@ export default function OrderDetailsScreen() {
                       <Text
                         style={[
                           styles.itemSubtotalBold,
-                          { color: colors.text },
-                          isRejected && {
-                            textDecorationLine: 'line-through',
-                            color: colors.textMuted,
-                          },
+                          isRejected
+                            ? { color: '#e11d48' }
+                            : { color: colors.text },
                         ]}
                       >
-                        ₹{item.subtotal}
+                        {isRejected ? '₹0.00' : `₹${item.subtotal}`}
                       </Text>
 
                       {canRejectItems && !isRejected && item?.id ? (
