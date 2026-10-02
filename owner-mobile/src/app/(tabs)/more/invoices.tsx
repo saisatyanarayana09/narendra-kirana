@@ -286,12 +286,30 @@ export default function InvoicesScreen() {
   <div class="footer">This is a computer-generated invoice. Thank you for shopping at ${storeName}!</div>
 </body></html>`;
 
-      const printWin = window.open('', '_blank', 'width=800,height=900');
-      if (printWin) {
-        printWin.document.write(html);
-        printWin.document.close();
-        printWin.focus();
-        setTimeout(() => printWin.print(), 400);
+      // Use a hidden iframe to print — avoids popup blockers
+      const frameId = 'smart-kirana-invoice-print';
+      let frame = document.getElementById(frameId) as HTMLIFrameElement | null;
+      if (frame) frame.remove();
+      frame = document.createElement('iframe');
+      frame.id = frameId;
+      frame.style.position = 'fixed';
+      frame.style.top = '-10000px';
+      frame.style.left = '-10000px';
+      frame.style.width = '800px';
+      frame.style.height = '900px';
+      document.body.appendChild(frame);
+
+      const doc = frame.contentDocument || frame.contentWindow?.document;
+      if (doc) {
+        doc.open();
+        doc.write(html);
+        doc.close();
+        setTimeout(() => {
+          frame?.contentWindow?.focus();
+          frame?.contentWindow?.print();
+          // Clean up after print dialog closes
+          setTimeout(() => frame?.remove(), 2000);
+        }, 500);
       }
       return;
     }
