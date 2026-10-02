@@ -5,8 +5,7 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  Modal,
-  useWindowDimensions,
+    useWindowDimensions,
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -192,8 +191,7 @@ export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const isDesktop = width >= 1024;
 
-  const [isHubOpen, setIsHubOpen] = useState(false);
-  const [storeOpen, setStoreOpen] = useState(true);
+    const [storeOpen, setStoreOpen] = useState(true);
   const [storeLoaded, setStoreLoaded] = useState(false);
   const [newOrdersBadge, setNewOrdersBadge] = useState(0);
   const [activeOrdersBadge, setActiveOrdersBadge] = useState(0);
@@ -264,14 +262,14 @@ export default function TabLayout() {
   const currentSection =
     OWNER_NAVIGATION.find((item) => isSectionActive(item)) || OWNER_NAVIGATION[0];
 
-  const isHomeTab = !isHubOpen && currentSection.matchKey === 'index';
-  const isOrdersTab = !isHubOpen && currentSection.matchKey === '/orders';
-  const isScanTab = !isHubOpen && currentSection.matchKey === '/scanner';
-  const isProductsTab = !isHubOpen && currentSection.matchKey === '/products';
+  const isHomeTab = currentSection.matchKey === 'index';
+  const isOrdersTab = currentSection.matchKey === '/orders';
+  const isScanTab = currentSection.matchKey === '/scanner';
+  const isProductsTab = currentSection.matchKey === '/products';
   const isMoreSection = !['index', '/orders', '/products', '/scanner'].includes(
     currentSection.matchKey
   );
-  const isHubTab = isHubOpen || isMoreSection;
+  const isProfileTab = isMoreSection;
   const isSubScreen =
     !isDesktop && isMoreSection && pathname !== '/(tabs)/more' && pathname !== '/more';
 
@@ -286,7 +284,6 @@ export default function TabLayout() {
   };
 
   const navigateTo = (route: string) => {
-    setIsHubOpen(false);
     router.push(route as any);
   };
 
@@ -618,22 +615,22 @@ export default function TabLayout() {
                 </Text>
               </TouchableOpacity>
 
-              {/* 5. ALL HUB TAB (HIGHLIGHTS WHEN OPEN OR ON ANY SUB-SECTION) */}
+              {/* 5. PROFILE TAB */}
               <TouchableOpacity
                 activeOpacity={0.75}
                 style={styles.bottomTabBtn}
-                onPress={() => setIsHubOpen((prev) => !prev)}
+                onPress={() => navigateTo('/(tabs)/more')}
               >
                 <View
                   style={[
                     styles.tabActiveTopBar,
-                    { backgroundColor: isHubTab ? '#10b981' : 'transparent' },
+                    { backgroundColor: isProfileTab ? '#10b981' : 'transparent' },
                   ]}
                 />
                 <View
                   style={[
                     styles.tabIconPill,
-                    isHubTab && {
+                    isProfileTab && {
                       backgroundColor: isDark
                         ? 'rgba(16, 185, 129, 0.16)'
                         : '#ecfdf5',
@@ -641,30 +638,22 @@ export default function TabLayout() {
                   ]}
                 >
                   <Ionicons
-                    name={isHubTab ? 'apps' : 'apps-outline'}
-                    size={20}
-                    color={isHubTab ? '#10b981' : colors.textMuted}
+                    name={isProfileTab ? 'person' : 'person-outline'}
+                    size={22}
+                    color={isProfileTab ? '#10b981' : colors.textMuted}
                   />
-                  {isMoreSection && !isHubOpen && (
-                    <View
-                      style={[
-                        styles.hubActiveDot,
-                        { borderColor: colors.headerBg },
-                      ]}
-                    />
-                  )}
                 </View>
                 <Text
                   style={[
-                    styles.bottomTabText,
+                    styles.tabLabel,
                     {
-                      color: isHubTab ? '#10b981' : colors.textMuted,
-                      fontWeight: isHubTab ? '800' : '600',
+                      color: isProfileTab ? '#10b981' : colors.textMuted,
+                      fontWeight: isProfileTab ? '800' : '600',
                     },
                   ]}
                   numberOfLines={1}
                 >
-                  {isMoreSection && !isHubOpen ? currentSection.name : 'All Hub'}
+                  Profile
                 </Text>
               </TouchableOpacity>
             </View>
@@ -672,251 +661,7 @@ export default function TabLayout() {
         )}
       </View>
 
-      {/* All-Sections Hub Bottom Sheet Modal */}
-      <Modal
-        visible={isHubOpen}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setIsHubOpen(false)}
-      >
-        <View style={styles.hubBackdrop}>
-          <TouchableOpacity
-            style={StyleSheet.absoluteFill}
-            activeOpacity={1}
-            onPress={() => setIsHubOpen(false)}
-          />
-          <View
-            style={[
-              styles.hubSheet,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-              },
-            ]}
-          >
-            {/* Bottom Sheet Drag Handle */}
-            <View
-              style={[
-                styles.hubDragHandleWrap,
-                { backgroundColor: colors.cardAlt },
-              ]}
-            >
-              <View
-                style={[
-                  styles.hubDragPill,
-                  { backgroundColor: isDark ? '#475569' : '#cbd5e1' },
-                ]}
-              />
-            </View>
-
-            {/* Hub Header */}
-            <View
-              style={[
-                styles.hubHeader,
-                {
-                  backgroundColor: colors.cardAlt,
-                  borderBottomColor: colors.border,
-                },
-              ]}
-            >
-              <View style={styles.hubHeaderLeft}>
-                <View style={styles.hubHeaderIcon}>
-                  <Ionicons name="apps" size={18} color="#10b981" />
-                </View>
-                <View>
-                  <Text style={[styles.hubTitle, { color: colors.text }]}>
-                    Store Sections Hub
-                  </Text>
-                  <Text style={[styles.hubSubtitle, { color: colors.textMuted }]}>
-                    Jump to any of the 17 store tools in 1 tap
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                style={[styles.hubCloseCircle, { backgroundColor: colors.border }]}
-                onPress={() => setIsHubOpen(false)}
-              >
-                <Ionicons name="close" size={16} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Quick Controls Bar: Store Live & Theme Switcher */}
-            <View
-              style={[
-                styles.hubControlsBar,
-                {
-                  backgroundColor: colors.card,
-                  borderBottomColor: colors.border,
-                },
-              ]}
-            >
-              {/* Store Live / Closed Button */}
-              {storeLoaded && (
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={handleToggleStore}
-                  style={[
-                    styles.hubStorePill,
-                    storeOpen
-                      ? isDark
-                        ? styles.storeOpenDark
-                        : styles.storeOpenLight
-                      : isDark
-                        ? styles.storeClosedDark
-                        : styles.storeClosedLight,
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.storeDot,
-                      { backgroundColor: storeOpen ? '#10b981' : '#f43f5e' },
-                    ]}
-                  />
-                  <View style={styles.hubStoreInfo}>
-                    <Text
-                      style={[
-                        styles.hubStoreTitle,
-                        {
-                          color: storeOpen
-                            ? isDark
-                              ? '#6ee7b7'
-                              : '#047857'
-                            : isDark
-                              ? '#fda4af'
-                              : '#be123c',
-                        },
-                      ]}
-                    >
-                      {storeOpen ? 'Store Live' : 'Store Closed'}
-                    </Text>
-                    <Text style={[styles.hubStoreSub, { color: colors.textMuted }]}>
-                      {storeOpen ? 'Taking Orders' : 'Offline'}
-                    </Text>
-                  </View>
-                  <Ionicons
-                    name="swap-horizontal"
-                    size={14}
-                    color={
-                      storeOpen
-                        ? isDark
-                          ? '#6ee7b7'
-                          : '#047857'
-                        : isDark
-                          ? '#fda4af'
-                          : '#be123c'
-                    }
-                  />
-                </TouchableOpacity>
-              )}
-
-              {/* Theme Toggle Button */}
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={toggleTheme}
-                style={[
-                  styles.hubThemeBtn,
-                  {
-                    backgroundColor: colors.cardAlt,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <Ionicons
-                  name={isDark ? 'sunny' : 'moon'}
-                  size={16}
-                  color={isDark ? '#fbbf24' : '#4f46e5'}
-                />
-                <View style={styles.hubThemeInfo}>
-                  <Text style={[styles.hubThemeTitle, { color: colors.text }]}>
-                    {isDark ? 'Light' : 'Dark'} Mode
-                  </Text>
-                  <Text style={[styles.hubThemeSub, { color: colors.textMuted }]}>
-                    Appearance
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-
-            {/* 2-Column Sections Grid */}
-            <ScrollView contentContainerStyle={styles.hubGrid}>
-              {OWNER_NAVIGATION.map((item) => {
-                const active = isSectionActive(item);
-                return (
-                  <TouchableOpacity
-                    key={item.name}
-                    onPress={() => navigateTo(item.route)}
-                    style={[
-                      styles.hubCard,
-                      {
-                        backgroundColor: active
-                          ? isDark
-                            ? 'rgba(6, 78, 59, 0.35)'
-                            : '#ecfdf5'
-                          : colors.cardAlt,
-                        borderColor: active ? '#10b981' : colors.border,
-                      },
-                    ]}
-                  >
-                    <View style={styles.hubCardTop}>
-                      <View style={[styles.hubCardIconBox, { backgroundColor: item.color }]}>
-                        <Ionicons name={item.icon} size={16} color="#ffffff" />
-                      </View>
-                      <View
-                        style={[
-                          styles.hubCardBadge,
-                          {
-                            backgroundColor: active ? '#059669' : colors.border,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.hubCardBadgeText,
-                            { color: active ? '#ffffff' : colors.textMuted },
-                          ]}
-                        >
-                          {item.badge}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={[styles.hubCardName, { color: colors.text }]}>
-                      {item.name}
-                    </Text>
-                    <Text
-                      style={[styles.hubCardDesc, { color: colors.textMuted }]}
-                      numberOfLines={1}
-                    >
-                      {item.desc}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-
-            {/* Bottom Logout Bar */}
-            <View
-              style={[
-                styles.hubFooter,
-                {
-                  backgroundColor: colors.cardAlt,
-                  borderTopColor: colors.border,
-                },
-              ]}
-            >
-              <TouchableOpacity
-                style={styles.hubLogoutBtn}
-                onPress={() => {
-                  setIsHubOpen(false);
-                  logout();
-                }}
-              >
-                <Ionicons name="log-out-outline" size={16} color="#e11d48" />
-                <Text style={styles.hubLogoutText}>Log Out of Owner Portal</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      
     </View>
   );
 }
