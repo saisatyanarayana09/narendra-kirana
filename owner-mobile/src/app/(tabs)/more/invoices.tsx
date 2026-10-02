@@ -194,10 +194,109 @@ export default function InvoicesScreen() {
 
   const handlePrintOrShare = async (inv: any) => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      window.print();
+      // Build a clean HTML invoice document and open it in a new window for PDF printing
+      const items = inv.items || [];
+      const itemsHtml = items
+        .map((i: any) => {
+          const qty = Number(i.quantity || 1);
+          const price = parseFloat(i.price_snapshot) || 0;
+          const lineTotal = parseFloat(i.subtotal) || price * qty;
+          const isRejected = i.status === 'REJECTED' || i.is_rejected;
+          return `<tr style="${isRejected ? 'color:#e11d48;text-decoration:line-through;' : ''}">
+            <td style="padding:6px 8px;border-bottom:1px solid #e2e8f0;">${i.product_name_snapshot || 'Item'}${i.unit_snapshot ? `<br><small style="color:#64748b">${i.unit_snapshot}</small>` : ''}</td>
+            <td style="padding:6px 8px;border-bottom:1px solid #e2e8f0;text-align:center;">${qty}</td>
+            <td style="padding:6px 8px;border-bottom:1px solid #e2e8f0;text-align:right;">₹${price.toFixed(2)}</td>
+            <td style="padding:6px 8px;border-bottom:1px solid #e2e8f0;text-align:right;font-weight:600;">${isRejected ? '<span style="color:#e11d48">₹0.00</span>' : `₹${lineTotal.toFixed(2)}`}</td>
+          </tr>`;
+        })
+        .join('');
+
+      const storeName = storeSettings?.store_name || 'Narendra Kirana Store';
+      const storeAddr = storeSettings?.store_address || '';
+      const storePhone = storeSettings?.store_phone || '';
+      const storeEmail = storeSettings?.store_email || '';
+      const gstin = storeSettings?.gstin || '';
+      const fssai = storeSettings?.fssai_license_number || '';
+
+      let feesHtml = '';
+      if (inv.delivery_fee && parseFloat(inv.delivery_fee) > 0) {
+        feesHtml += `<div style="display:flex;justify-content:space-between;padding:4px 0;"><span>Delivery Fee</span><span>₹${inv.delivery_fee}</span></div>`;
+      }
+      if (inv.packaging_fee && parseFloat(inv.packaging_fee) > 0) {
+        feesHtml += `<div style="display:flex;justify-content:space-between;padding:4px 0;"><span>Packaging Fee</span><span>₹${inv.packaging_fee}</span></div>`;
+      }
+      if (inv.discount_amount && parseFloat(inv.discount_amount) > 0) {
+        feesHtml += `<div style="display:flex;justify-content:space-between;padding:4px 0;"><span>Discount</span><span style="color:#059669">-₹${inv.discount_amount}</span></div>`;
+      }
+
+      const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Invoice #${inv.id} - ${storeName}</title>
+<style>
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } @page { margin: 12mm; } }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; color: #0f172a; padding: 24px; max-width: 700px; margin: 0 auto; }
+  .header { text-align: center; margin-bottom: 16px; border-bottom: 2px solid #059669; padding-bottom: 14px; }
+  .header h1 { font-size: 22px; font-weight: 900; color: #059669; }
+  .header p { font-size: 11px; color: #475569; margin-top: 2px; }
+  .header .tax-id { font-size: 11px; font-weight: 700; color: #334155; margin-top: 3px; }
+  .meta { display: flex; justify-content: space-between; margin: 14px 0; font-size: 12px; }
+  .meta .label { font-size: 9px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 2px; }
+  .meta .val { font-weight: 700; font-size: 13px; }
+  .meta .sub { color: #475569; font-size: 11px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+  th { background: #f1f5f9; padding: 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; color: #64748b; border-bottom: 2px solid #e2e8f0; }
+  td { font-size: 12px; }
+  .fees { padding: 8px 0; font-size: 12px; color: #334155; border-top: 1px dashed #cbd5e1; }
+  .grand { display: flex; justify-content: space-between; padding: 10px 0; margin-top: 4px; border-top: 2px solid #0f172a; font-size: 16px; font-weight: 900; }
+  .footer { text-align: center; margin-top: 24px; font-size: 10px; color: #94a3b8; }
+</style></head><body>
+  <div class="header">
+    <h1>${storeName}</h1>
+    ${storeAddr ? `<p>${storeAddr}</p>` : ''}
+    ${storePhone || storeEmail ? `<p>${[storePhone, storeEmail].filter(Boolean).join(' • ')}</p>` : ''}
+    ${gstin ? `<p class="tax-id">GSTIN: ${gstin}</p>` : ''}
+    ${fssai ? `<p class="tax-id">FSSAI: ${fssai}</p>` : ''}
+  </div>
+  <div class="meta">
+    <div>
+      <div class="label">Billed To</div>
+      <div class="val">${inv.customer_name || 'Walk-in / Guest'}</div>
+      ${inv.customer_phone ? `<div class="sub">Phone: ${inv.customer_phone}</div>` : ''}
+      ${inv.delivery_address ? `<div class="sub">${inv.delivery_address}</div>` : ''}
+    </div>
+    <div style="text-align:right;">
+      <div class="label">Invoice</div>
+      <div class="val">INV-#${inv.id}</div>
+      <div class="sub">${inv.created_at ? new Date(inv.created_at).toLocaleDateString() : ''}</div>
+      <div class="sub">${inv.payment_method || 'COD'} • ${inv.status}</div>
+      ${inv.upi_transaction_id ? `<div class="sub">UPI Ref: ${inv.upi_transaction_id}</div>` : ''}
+    </div>
+  </div>
+  <table>
+    <thead><tr>
+      <th style="text-align:left;">Item</th>
+      <th style="text-align:center;">Qty</th>
+      <th style="text-align:right;">Price</th>
+      <th style="text-align:right;">Total</th>
+    </tr></thead>
+    <tbody>${itemsHtml}</tbody>
+  </table>
+  ${feesHtml ? `<div class="fees">${feesHtml}</div>` : ''}
+  <div class="grand"><span>Grand Total</span><span>₹${inv.total_amount}</span></div>
+  <div class="footer">This is a computer-generated invoice. Thank you for shopping at ${storeName}!</div>
+</body></html>`;
+
+      const printWin = window.open('', '_blank', 'width=800,height=900');
+      if (printWin) {
+        printWin.document.write(html);
+        printWin.document.close();
+        printWin.focus();
+        setTimeout(() => printWin.print(), 400);
+      }
       return;
     }
 
+    // Native: Share as text
     const itemsSummary = (inv.items || [])
       .map(
         (i: any) =>
@@ -205,7 +304,7 @@ export default function InvoicesScreen() {
       )
       .join('\n');
 
-    const msg = `🧾 TAX INVOICE: Narendra Kirana\n` +
+    const msg = `🧾 TAX INVOICE: ${storeSettings?.store_name || 'Narendra Kirana'}\n` +
       `Invoice #: INV-${inv.id}\n` +
       `Date: ${inv.created_at ? new Date(inv.created_at).toLocaleString() : ''}\n` +
       `Customer: ${inv.customer_name || 'Guest'}\n` +
@@ -213,7 +312,7 @@ export default function InvoicesScreen() {
       `Payment: ${inv.payment_method || 'COD'} (Status: ${inv.status})\n\n` +
       `ITEMS:\n${itemsSummary}\n\n` +
       `TOTAL AMOUNT: ₹${inv.total_amount}\n` +
-      `Thank you for shopping at Narendra Kirana!`;
+      `Thank you for shopping!`;
 
     try {
       await Share.share({ message: msg });
