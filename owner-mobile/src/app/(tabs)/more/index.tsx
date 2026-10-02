@@ -282,9 +282,9 @@ export default function ProfileScreen() {
         },
         {
           id: 'advanced',
-          title: 'Advanced Settings',
+          title: 'Configurations',
           subtitle: 'UPI QR, GST/FSSAI tax, WhatsApp & cloud backups',
-          icon: 'settings-outline',
+          icon: 'options-outline',
           route: '/(tabs)/more/advanced-settings',
         },
       ],

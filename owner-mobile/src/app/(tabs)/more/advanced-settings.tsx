@@ -445,7 +445,7 @@ export default function AdvancedSettingsScreen() {
   if (loading) {
     return (
       <View style={[styles.screen, { backgroundColor: colors.bg }]}>
-        <ScreenHeader title="Advanced Settings" subtitle="UPI, slots, hours & policies" />
+        <ScreenHeader title="Configurations" subtitle="UPI, slots, compliance & backups" />
         <View style={[styles.center, { backgroundColor: colors.bg }]}>
           <ActivityIndicator size="large" color="#10b981" />
           <Text style={[styles.loadingText, { color: colors.textMuted }]}>
@@ -459,7 +459,7 @@ export default function AdvancedSettingsScreen() {
   if (fetchError && !settings.id) {
     return (
       <View style={[styles.screen, { backgroundColor: colors.bg }]}>
-        <ScreenHeader title="Advanced Settings" subtitle="UPI, slots, hours & policies" />
+        <ScreenHeader title="Configurations" subtitle="UPI, slots, compliance & backups" />
         <View style={[styles.center, { backgroundColor: colors.bg, paddingHorizontal: 28 }]}>
           <View
             style={{
@@ -517,8 +517,8 @@ export default function AdvancedSettingsScreen() {
     <View style={[styles.screen, { backgroundColor: colors.bg }]}>
       {/* Universal Screen Header */}
       <ScreenHeader
-        title="Advanced Settings"
-        subtitle="UPI, slots, hours & policies"
+        title="Configurations"
+        subtitle="UPI, slots, compliance & backups"
         rightAction={
           <TouchableOpacity
             style={[styles.saveHeaderBtn, { backgroundColor: '#10b981', opacity: saving ? 0.7 : 1 }]}
