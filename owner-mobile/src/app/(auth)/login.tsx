@@ -19,17 +19,11 @@ import { useAuth } from '../../context/AuthContext';
 import { useAppTheme } from '../../context/ThemeContext';
 import api, { getErrorMessage } from '../../services/api';
 import { safeStorage } from '../../utils/storage';
-let GoogleSignin: any = null;
-try {
-  const gModule = require('@react-native-google-signin/google-signin');
-  GoogleSignin = gModule?.GoogleSignin || null;
-} catch {
-  // RNGoogleSignin native module is not registered in this binary (e.g. Expo Go, Web)
-}
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 const SAVED_USERNAME_KEY = 'smart-kirana-owner-username';
 
-if (GoogleSignin && Platform.OS !== 'web') {
+if (Platform.OS !== 'web') {
   try {
     GoogleSignin.configure({
       webClientId: '729937153109-6e8fivp20b3ri2qsah1d6u2a7oi0uls6.apps.googleusercontent.com',
@@ -76,15 +70,11 @@ export default function LoginScreen() {
 
 
   const handleGoogleLogin = async () => {
-    if (!GoogleSignin) {
-      setErrorMsg('Google Sign-In requires the installed Android APK build with Play Services.');
-      return;
-    }
     try {
       setGoogleLoading(true);
       await GoogleSignin.hasPlayServices();
       const userInfo: any = await GoogleSignin.signIn();
-      const idToken = userInfo?.data?.idToken || userInfo?.idToken;
+      const idToken = userInfo.idToken;
 
       if (!idToken) {
         throw new Error('No ID token found');
