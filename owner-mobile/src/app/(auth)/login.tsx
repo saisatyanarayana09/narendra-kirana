@@ -17,8 +17,16 @@ import { useAuth } from '../../context/AuthContext';
 import { useAppTheme } from '../../context/ThemeContext';
 import api, { getErrorMessage } from '../../services/api';
 import { safeStorage } from '../../utils/storage';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 const SAVED_USERNAME_KEY = 'smart-kirana-owner-username';
+
+GoogleSignin.configure({
+  webClientId: '729937153109-6e8fivp20b3ri2qsah1d6u2a7oi0uls6.apps.googleusercontent.com',
+  androidClientId: '729937153109-ttrccvleservdcv1k6nilq5jqv9ukog5.apps.googleusercontent.com',
+  iosClientId: '',
+});
+
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -53,6 +61,43 @@ export default function LoginScreen() {
       isMounted = false;
     };
   }, []);
+
+
+  const handleGoogleLogin = async () => {
+    try {
+      setLoading(true);
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      const idToken = userInfo?.data?.idToken || userInfo?.idToken;
+
+      if (!idToken) {
+        throw new Error('No ID token found');
+      }
+
+      const response = await api.post('/auth/google-login/', {
+        credential: idToken,
+        token_type: 'id_token'
+      });
+
+      const data = response?.data || {};
+      const { access, refresh, user } = data;
+
+      if (user) {
+        await safeStorage.setItem('smart-kirana-owner-user', JSON.stringify(user));
+      }
+      if (access && refresh) {
+        await login(access, refresh);
+      }
+    } catch (error: any) {
+      if (error.code === 'SIGN_IN_CANCELLED' || error.code === '12501') {
+        // user cancelled the login flow
+      } else {
+        setErrorMsg(error?.response?.data?.detail || 'Google Sign-In failed. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogin = async () => {
     const cleanId = identifier.trim();
@@ -359,6 +404,26 @@ export default function LoginScreen() {
                 <Ionicons name="arrow-forward" size={16} color="#ffffff" />
               </View>
             )}
+          </TouchableOpacity>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 20 }}>
+            <View style={{ flex: 1, height: 1, backgroundColor: isDark ? '#334155' : '#e2e8f0' }} />
+            <Text style={{ marginHorizontal: 10, color: '#94a3b8', fontSize: 13, fontWeight: '600' }}>OR CONTINUE WITH</Text>
+            <View style={{ flex: 1, height: 1, backgroundColor: isDark ? '#334155' : '#e2e8f0' }} />
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.submitBtn, 
+              { backgroundColor: isDark ? '#1e293b' : '#ffffff', borderWidth: 1, borderColor: isDark ? '#334155' : '#cbd5e1', marginTop: 0, boxShadow: 'none', elevation: 0 }
+            ]}
+            onPress={handleGoogleLogin}
+            disabled={loading}
+          >
+            <View style={styles.btnContent}>
+              <Ionicons name="logo-google" size={18} color={isDark ? '#e2e8f0' : '#475569'} />
+              <Text style={[styles.submitBtnText, { color: isDark ? '#e2e8f0' : '#475569' }]}>Sign in with Google</Text>
+            </View>
           </TouchableOpacity>
 
           {/* Footer Customer Storefront Link */}
