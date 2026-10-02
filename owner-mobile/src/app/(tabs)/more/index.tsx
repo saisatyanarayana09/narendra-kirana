@@ -60,9 +60,7 @@ export default function ProfileScreen() {
           type: 'image/jpeg',
         } as any);
 
-        const res = await api.patch('/auth/profile/', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        const res = await api.patch('/auth/profile/', formData);
 
         if (res.data?.customer_profile?.profile_picture) {
           setProfilePic(res.data.customer_profile.profile_picture);
