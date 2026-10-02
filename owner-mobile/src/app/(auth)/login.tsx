@@ -7,6 +7,8 @@ import {
   StyleSheet,
   ActivityIndicator,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
   useWindowDimensions,
   Linking,
 } from 'react-native';
@@ -39,10 +41,11 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [backendStatus, setBackendStatus] = useState<'checking' | 'online' | 'waking'>('checking');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const { login } = useAuth();
 
-  const isEmail = identifier.includes('@');
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier.trim());
 
   useEffect(() => {
     let isMounted = true;
@@ -65,7 +68,7 @@ export default function LoginScreen() {
 
   const handleGoogleLogin = async () => {
     try {
-      setLoading(true);
+      setGoogleLoading(true);
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
       const idToken = userInfo?.data?.idToken || userInfo?.idToken;
@@ -95,7 +98,7 @@ export default function LoginScreen() {
         setErrorMsg(error?.response?.data?.detail || 'Google Sign-In failed. Please try again.');
       }
     } finally {
-      setLoading(false);
+      setGoogleLoading(false);
     }
   };
 
@@ -149,7 +152,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={[styles.main, { backgroundColor: isDark ? '#020617' : '#ffffff' }]}>
+    <KeyboardAvoidingView style={[styles.main, { backgroundColor: isDark ? '#020617' : '#ffffff' }]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {/* Left Column: Form & Brand Console */}
       <ScrollView
         style={styles.leftCol}
@@ -391,7 +394,7 @@ export default function LoginScreen() {
           <TouchableOpacity
             style={[styles.submitBtn, loading && { opacity: 0.75 }]}
             onPress={handleLogin}
-            disabled={loading}
+            disabled={loading || googleLoading}
           >
             {loading ? (
               <View style={styles.btnContent}>
@@ -406,25 +409,40 @@ export default function LoginScreen() {
             )}
           </TouchableOpacity>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 20 }}>
+          {backendStatus === 'waking' && loading && !googleLoading ? (
+            <Text style={{ textAlign: 'center', marginTop: 12, color: '#f59e0b', fontSize: 12, fontWeight: '600' }}>
+              The server is waking up from sleep. This may take up to 45 seconds...
+            </Text>
+          ) : null}
+
+          <View style={{ flexDirection: \'row\', alignItems: \'center\', marginVertical: 20 }}>
             <View style={{ flex: 1, height: 1, backgroundColor: isDark ? '#334155' : '#e2e8f0' }} />
             <Text style={{ marginHorizontal: 10, color: '#94a3b8', fontSize: 13, fontWeight: '600' }}>OR CONTINUE WITH</Text>
             <View style={{ flex: 1, height: 1, backgroundColor: isDark ? '#334155' : '#e2e8f0' }} />
           </View>
 
+          
           <TouchableOpacity
             style={[
               styles.submitBtn, 
               { backgroundColor: isDark ? '#1e293b' : '#ffffff', borderWidth: 1, borderColor: isDark ? '#334155' : '#cbd5e1', marginTop: 0, boxShadow: 'none', elevation: 0 }
             ]}
             onPress={handleGoogleLogin}
-            disabled={loading}
+            disabled={loading || googleLoading}
           >
-            <View style={styles.btnContent}>
-              <Ionicons name="logo-google" size={18} color={isDark ? '#e2e8f0' : '#475569'} />
-              <Text style={[styles.submitBtnText, { color: isDark ? '#e2e8f0' : '#475569' }]}>Sign in with Google</Text>
-            </View>
+            {googleLoading ? (
+              <View style={styles.btnContent}>
+                <ActivityIndicator color={isDark ? '#e2e8f0' : '#475569'} size="small" />
+                <Text style={[styles.submitBtnText, { color: isDark ? '#e2e8f0' : '#475569' }]}>Connecting...</Text>
+              </View>
+            ) : (
+              <View style={styles.btnContent}>
+                <Ionicons name="logo-google" size={18} color={isDark ? '#e2e8f0' : '#475569'} />
+                <Text style={[styles.submitBtnText, { color: isDark ? '#e2e8f0' : '#475569' }]}>Sign in with Google</Text>
+              </View>
+            )}
           </TouchableOpacity>
+
 
           {/* Footer Customer Storefront Link */}
           <View style={[styles.footerBox, { borderTopColor: isDark ? '#1e293b' : '#f1f5f9' }]}>
@@ -474,7 +492,7 @@ export default function LoginScreen() {
           </View>
         </View>
       )}
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
