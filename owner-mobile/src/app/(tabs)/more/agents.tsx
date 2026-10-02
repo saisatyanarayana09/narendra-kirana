@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, TextInput, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAppTheme } from '../../../../context/ThemeContext';
-import api from '../../../../services/api';
-import { showAlert } from '../../../../utils/alerts';
+import { useAppTheme } from '../../../context/ThemeContext';
+import api from '../../../services/api';
+import { showAlert } from '../../../utils/alerts';
 
 type Agent = {
   id: number;
