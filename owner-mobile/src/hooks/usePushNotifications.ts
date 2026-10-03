@@ -1,35 +1,52 @@
 import { useState, useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
+import { isRunningInExpoGo } from 'expo';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import type * as NotificationsType from 'expo-notifications';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
-function getNativeNotifications(): typeof NotificationsType | null {
-  if (Platform.OS === 'web') return null;
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    return require('expo-notifications');
-  } catch {
+/**
+ * Detect if currently running inside the Expo Go client app.
+ * Expo SDK 53+ removed remote push notifications from Expo Go on Android.
+ * Running require('expo-notifications') inside Expo Go on Android throws an uncatchable fatal error.
+ */
+export const isExpoGo =
+  isRunningInExpoGo?.() ||
+  Constants?.appOwnership === 'expo' ||
+  Constants?.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+export const isExpoGoAndroid = Boolean(isExpoGo && Platform.OS === 'android');
+
+type NotificationsModuleType = typeof NotificationsType;
+let cachedNotifications: NotificationsModuleType | null = null;
+let hasAttemptedLoad = false;
+
+function getNativeNotifications(): NotificationsModuleType | null {
+  if (isExpoGoAndroid || Platform.OS === 'web') {
     return null;
   }
-}
-
-if (Platform.OS !== 'web') {
-  try {
-    const Notifications = getNativeNotifications();
-    Notifications?.setNotificationHandler({
-      handleNotification: async (): Promise<NotificationsType.NotificationBehavior> =>
-        ({
-          shouldShowAlert: true,
-          shouldPlaySound: true,
-          shouldSetBadge: true,
-          shouldShowBanner: true,
-          shouldShowList: true,
-        } as any),
-    });
-  } catch {
-    // Ignore native module initialization errors on unsupported environments
+  if (!hasAttemptedLoad) {
+    hasAttemptedLoad = true;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const mod = require('expo-notifications');
+      mod?.setNotificationHandler?.({
+        handleNotification: async (): Promise<NotificationsType.NotificationBehavior> =>
+          ({
+            shouldShowAlert: true,
+            shouldPlaySound: true,
+            shouldSetBadge: true,
+            shouldShowBanner: true,
+            shouldShowList: true,
+          } as any),
+      });
+      cachedNotifications = mod;
+    } catch {
+      cachedNotifications = null;
+    }
   }
+  return cachedNotifications;
 }
 
 export function usePushNotifications() {
@@ -40,7 +57,7 @@ export function usePushNotifications() {
   const responseListener = useRef<any>(null);
 
   useEffect(() => {
-    if (Platform.OS === 'web' || !authToken) {
+    if (Platform.OS === 'web' || !authToken || isExpoGoAndroid) {
       return;
     }
 
@@ -89,7 +106,7 @@ export function usePushNotifications() {
 async function registerForPushNotificationsAsync(
   Notifications: typeof NotificationsType
 ): Promise<string | undefined> {
-  if (Platform.OS === 'web') return undefined;
+  if (Platform.OS === 'web' || isExpoGoAndroid) return undefined;
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports

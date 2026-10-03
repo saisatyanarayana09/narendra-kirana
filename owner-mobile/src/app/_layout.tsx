@@ -13,6 +13,7 @@ try {
     'props.pointerEvents is deprecated',
     '"shadow*" style props are deprecated',
     'expo-notifications',
+    'setLayoutAnimationEnabledExperimental is currently a no-op in the New Architecture.',
   ]);
 } catch {
   // Ignore on environments where LogBox is unavailable
@@ -99,8 +100,16 @@ function AppContent() {
 }
 
 
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
+if (
+  Platform.OS === 'android' &&
+  !(globalThis as any).nativeFabricUIManager &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  try {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  } catch {
+    // No-op on New Architecture
+  }
 }
 
 export default function RootLayout() {
