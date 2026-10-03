@@ -10,7 +10,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   useWindowDimensions,
-  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,8 +20,6 @@ import api, { getErrorMessage } from '../../services/api';
 import { safeStorage } from '../../utils/storage';
 import { GoogleSignin } from '../../utils/GoogleSigninWrapper';
 
-const SAVED_USERNAME_KEY = 'smart-kirana-owner-username';
-
 if (Platform.OS !== 'web') {
   try {
     GoogleSignin.configure({
@@ -31,7 +28,6 @@ if (Platform.OS !== 'web') {
     });
   } catch {}
 }
-
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -42,6 +38,8 @@ export default function LoginScreen() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [focusedField, setFocusedField] = useState<'identifier' | 'password' | null>(null);
+
   const [backendStatus, setBackendStatus] = useState<'checking' | 'online' | 'waking'>('checking');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -52,8 +50,6 @@ export default function LoginScreen() {
 
   useEffect(() => {
     let isMounted = true;
-    // Username autofill removed per user request
-
     api
       .get('/store/settings/')
       .then(() => {
@@ -68,21 +64,20 @@ export default function LoginScreen() {
     };
   }, []);
 
-
   const handleGoogleLogin = async () => {
     try {
       setGoogleLoading(true);
       await GoogleSignin.hasPlayServices();
       const userInfo: any = await GoogleSignin.signIn();
-      const idToken = userInfo.idToken;
+      const idToken = userInfo?.idToken;
 
       if (!idToken) {
-        throw new Error('No ID token found');
+        throw new Error('No Google ID token received');
       }
 
       const response = await api.post('/auth/google-login/', {
         credential: idToken,
-        token_type: 'id_token'
+        token_type: 'id_token',
       });
 
       const data = response?.data || {};
@@ -95,8 +90,8 @@ export default function LoginScreen() {
         await login(access, refresh);
       }
     } catch (error: any) {
-      if (error.code === 'SIGN_IN_CANCELLED' || error.code === '12501') {
-        // user cancelled the login flow
+      if (error?.code === 'SIGN_IN_CANCELLED' || error?.code === '12501') {
+        // User cancelled login modal
       } else {
         setErrorMsg(error?.response?.data?.detail || 'Google Sign-In failed. Please try again.');
       }
@@ -134,7 +129,6 @@ export default function LoginScreen() {
         return;
       }
 
-      // await safeStorage.setItem(SAVED_USERNAME_KEY, cleanId);
       if (user) {
         await safeStorage.setItem('smart-kirana-owner-user', JSON.stringify(user));
       }
@@ -144,7 +138,7 @@ export default function LoginScreen() {
       if (status === 401) {
         setErrorMsg(
           err?.response?.data?.detail ||
-            'Unable to sign in. Please verify your owner credentials.'
+            'Unable to sign in. Please check your owner credentials.'
         );
       } else {
         setErrorMsg(getErrorMessage(err, 'Unable to sign in. Please verify your credentials.'));
@@ -155,310 +149,287 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={[styles.main, { backgroundColor: isDark ? '#020617' : '#ffffff' }]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      {/* Left Column: Form & Brand Console */}
+    <KeyboardAvoidingView
+      style={[styles.main, { backgroundColor: isDark ? '#090d16' : '#f8fafc' }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       <ScrollView
-        style={styles.leftCol}
-        contentContainerStyle={styles.leftContent}
+        style={styles.scrollCol}
+        contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <View style={styles.formBox}>
-          {/* Top Status & Switcher Header */}
-          <View style={styles.topHeaderRow}>
+        <View style={styles.formContainer}>
+          {/* Top Bar: Theme Toggle & Background Wake Status */}
+          <View style={styles.topBar}>
+            {backendStatus === 'waking' ? (
+              <View style={[styles.wakingPill, { backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#fffbeb' }]}>
+                <View style={styles.wakingDot} />
+                <Text style={styles.wakingText}>Server waking up...</Text>
+              </View>
+            ) : <View />}
+
+            <TouchableOpacity
+              style={[
+                styles.themeButton,
+                {
+                  backgroundColor: isDark ? '#0f172a' : '#ffffff',
+                  borderColor: isDark ? '#1e293b' : '#e2e8f0',
+                },
+              ]}
+              onPress={toggleTheme}
+              accessibilityLabel="Toggle dark/light theme"
+            >
+              <Ionicons
+                name={isDark ? 'sunny' : 'moon'}
+                size={16}
+                color={isDark ? '#fbbf24' : '#10b981'}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* Clean Brand Header */}
+          <View style={styles.brandContainer}>
             <View
               style={[
-                styles.statusPill,
-                backendStatus === 'online'
-                  ? isDark
-                    ? styles.statusOnlineDark
-                    : styles.statusOnlineLight
-                  : isDark
-                    ? styles.statusWakingDark
-                    : styles.statusWakingLight,
+                styles.logoWrapper,
+                {
+                  backgroundColor: isDark ? 'rgba(16, 185, 129, 0.12)' : '#ecfdf5',
+                  borderColor: isDark ? 'rgba(52, 211, 153, 0.3)' : '#a7f3d0',
+                },
               ]}
             >
+              <Image
+                source={require('../../../assets/images/narendra-logo.png')}
+                style={styles.logoImage}
+                contentFit="contain"
+              />
+            </View>
+
+            <Text style={[styles.brandTitle, { color: colors.text }]}>
+              NARENDRA <Text style={{ color: colors.primary }}>KIRANA</Text>
+            </Text>
+            <Text style={[styles.brandSubtitle, { color: colors.textMuted }]}>
+              Store Owner & Management Portal
+            </Text>
+          </View>
+
+          {/* Form Card */}
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: isDark ? '#0f172a' : '#ffffff',
+                borderColor: isDark ? '#1e293b' : '#e2e8f0',
+              },
+            ]}
+          >
+            {/* Error Banner */}
+            {errorMsg ? (
               <View
                 style={[
-                  styles.statusDot,
-                  { backgroundColor: backendStatus === 'online' ? '#10b981' : '#f59e0b' },
-                ]}
-              />
-              <Text
-                style={[
-                  styles.statusText,
+                  styles.errorAlert,
                   {
-                    color:
-                      backendStatus === 'online'
-                        ? isDark
-                          ? '#6ee7b7'
-                          : '#065f46'
-                        : isDark
-                          ? '#fcd34d'
-                          : '#92400e',
+                    backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#fef2f2',
+                    borderColor: isDark ? 'rgba(239, 68, 68, 0.3)' : '#fecaca',
                   },
                 ]}
               >
-                {backendStatus === 'online'
-                  ? 'Render Server Online'
-                  : backendStatus === 'waking'
-                    ? 'Waking Up Server...'
-                    : 'Connecting...'}
-              </Text>
-            </View>
-
-            <View style={styles.topRightActions}>
-              <TouchableOpacity
-                style={[
-                  styles.themeToggle,
-                  {
-                    backgroundColor: isDark ? '#0f172a' : '#f8fafc',
-                    borderColor: colors.border,
-                  },
-                ]}
-                onPress={toggleTheme}
-              >
-                <Ionicons
-                  name={isDark ? 'sunny' : 'moon'}
-                  size={14}
-                  color={isDark ? '#fbbf24' : '#4f46e5'}
-                />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.vaultLink}
-                onPress={() => Linking.openURL('https://narendra-kirana.onrender.com/')}
-              >
-                <Text style={[styles.vaultLinkText, { color: isDark ? '#818cf8' : '#4f46e5' }]}>
-                  Backend Vault
-                </Text>
-                <Ionicons
-                  name="arrow-up-outline"
-                  size={13}
-                  color={isDark ? '#818cf8' : '#4f46e5'}
-                  style={{ transform: [{ rotate: '45deg' }] }}
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Brand Header */}
-          <View style={styles.brandSection}>
-            <View style={styles.brandRow}>
-              <View style={styles.logoBadge}>
-                <Image
-                  source={require('../../../assets/images/narendra-logo.png')}
-                  style={styles.brandLogoImg}
-                  contentFit="contain"
-                />
+                <Ionicons name="alert-circle" size={18} color="#ef4444" style={{ marginTop: 1 }} />
+                <Text style={styles.errorText}>{errorMsg}</Text>
               </View>
-              <View>
-                <Text
-                  style={[
-                    styles.brandTagline,
-                    { color: isDark ? '#34d399' : '#064e3b' },
-                  ]}
-                >
-                  NARENDRA{' '}
-                  <Text style={{ color: isDark ? '#818cf8' : '#4f46e5' }}>KIRANA</Text>
-                </Text>
-                <Text style={[styles.portalTitle, { color: colors.text }]}>Owner Portal</Text>
-              </View>
-            </View>
-            <Text style={[styles.portalSubtitle, { color: colors.textMuted }]}>
-              Sign in with your registered{' '}
-              <Text style={{ fontWeight: '700', color: colors.text }}>Owner Email</Text> or
-              username to manage orders, inventory, and sales.
-            </Text>
-          </View>
+            ) : null}
 
-          {/* Error Banner */}
-          {errorMsg ? (
-            <View
-              style={[
-                styles.errorBox,
-                {
-                  backgroundColor: isDark ? 'rgba(127, 29, 29, 0.35)' : '#fef2f2',
-                  borderColor: isDark ? '#991b1b' : '#fecaca',
-                },
-              ]}
-            >
-              <Text style={{ fontSize: 14 }}>⚠️</Text>
-              <Text
-                style={[
-                  styles.errorBoxText,
-                  { color: isDark ? '#fca5a5' : '#b91c1c' },
-                ]}
-              >
-                {errorMsg}
-              </Text>
-            </View>
-          ) : null}
-
-          {/* Dynamic Email or Username Field */}
-          <View style={styles.fieldGroup}>
-            <View style={styles.labelRow}>
-              <Text style={[styles.fieldLabel, { color: isDark ? '#e2e8f0' : '#334155' }]}>
+            {/* Email / Username Field */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: isDark ? '#cbd5e1' : '#334155' }]}>
                 Email or Username
               </Text>
-              <Text
+              <View
                 style={[
-                  styles.fieldBadge,
-                  { color: isEmail ? (isDark ? '#818cf8' : '#4f46e5') : '#94a3b8' },
+                  styles.inputField,
+                  {
+                    backgroundColor: isDark ? '#090d16' : '#f8fafc',
+                    borderColor:
+                      focusedField === 'identifier'
+                        ? colors.primary
+                        : isDark
+                        ? '#1e293b'
+                        : '#cbd5e1',
+                  },
                 ]}
               >
-                {isEmail ? '✓ EMAIL' : 'EMAIL OR USERNAME'}
-              </Text>
+                <Ionicons
+                  name={isEmail ? 'mail-outline' : 'person-outline'}
+                  size={18}
+                  color={focusedField === 'identifier' ? colors.primary : '#94a3b8'}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={[styles.textInput, { color: colors.text }]}
+                  placeholder="owner@store.com or username"
+                  placeholderTextColor="#94a3b8"
+                  value={identifier}
+                  onChangeText={(text) => {
+                    setIdentifier(text);
+                    if (errorMsg) setErrorMsg(null);
+                  }}
+                  onFocus={() => setFocusedField('identifier')}
+                  onBlur={() => setFocusedField(null)}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  returnKeyType="next"
+                />
+              </View>
             </View>
 
-            <View
-              style={[
-                styles.inputWrapper,
-                {
-                  backgroundColor: isDark ? '#0f172a' : '#f8fafc',
-                  borderColor: isDark ? '#1e293b' : '#e2e8f0',
-                },
-              ]}
-            >
-              <Ionicons
-                name={isEmail ? 'mail-outline' : 'person-outline'}
-                size={18}
-                color={isEmail ? (isDark ? '#818cf8' : '#4f46e5') : '#94a3b8'}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={[styles.textInput, { color: colors.text }]}
-                placeholder="perali.narendra@gmail.com or username"
-                placeholderTextColor="#94a3b8"
-                value={identifier}
-                onChangeText={(text) => {
-                  setIdentifier(text);
-                  if (errorMsg) setErrorMsg(null);
-                }}
-                autoCapitalize="none"
-                keyboardType="email-address"
-              />
-            </View>
-          </View>
-
-          {/* Password Field */}
-          <View style={styles.fieldGroup}>
-            <View style={styles.labelRow}>
-              <Text style={[styles.fieldLabel, { color: isDark ? '#e2e8f0' : '#334155' }]}>
-                Password
-              </Text>
-              <TouchableOpacity onPress={() => router.push('/(auth)/forgot-password')}>
-                <Text style={[styles.forgotLinkText, { color: isDark ? '#818cf8' : '#4f46e5' }]}>
-                  Forgot password?
+            {/* Password Field */}
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <Text style={[styles.label, { color: isDark ? '#cbd5e1' : '#334155' }]}>
+                  Password
                 </Text>
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity
+                  onPress={() => router.push('/(auth)/forgot-password')}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={[styles.forgotLink, { color: colors.primary }]}>
+                    Forgot password?
+                  </Text>
+                </TouchableOpacity>
+              </View>
 
-            <View
-              style={[
-                styles.inputWrapper,
-                {
-                  backgroundColor: isDark ? '#0f172a' : '#f8fafc',
-                  borderColor: isDark ? '#1e293b' : '#e2e8f0',
-                },
-              ]}
-            >
-              <Ionicons
-                name="lock-closed-outline"
-                size={18}
-                color="#94a3b8"
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={[styles.textInput, { color: colors.text }]}
-                placeholder="Enter owner account password"
-                placeholderTextColor="#94a3b8"
-                value={password}
-                onChangeText={(text) => {
-                  setPassword(text);
-                  if (errorMsg) setErrorMsg(null);
-                }}
-                secureTextEntry={!showPassword}
-                onSubmitEditing={handleLogin}
-              />
-              <TouchableOpacity
-                style={styles.eyeButton}
-                onPress={() => setShowPassword((prev) => !prev)}
+              <View
+                style={[
+                  styles.inputField,
+                  {
+                    backgroundColor: isDark ? '#090d16' : '#f8fafc',
+                    borderColor:
+                      focusedField === 'password'
+                        ? colors.primary
+                        : isDark
+                        ? '#1e293b'
+                        : '#cbd5e1',
+                  },
+                ]}
               >
                 <Ionicons
-                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  name="lock-closed-outline"
                   size={18}
-                  color="#94a3b8"
+                  color={focusedField === 'password' ? colors.primary : '#94a3b8'}
+                  style={styles.inputIcon}
                 />
-              </TouchableOpacity>
+                <TextInput
+                  style={[styles.textInput, { color: colors.text }]}
+                  placeholder="Enter your password"
+                  placeholderTextColor="#94a3b8"
+                  value={password}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    if (errorMsg) setErrorMsg(null);
+                  }}
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => setFocusedField(null)}
+                  secureTextEntry={!showPassword}
+                  returnKeyType="done"
+                  onSubmitEditing={handleLogin}
+                />
+                <TouchableOpacity
+                  style={styles.eyeBtn}
+                  onPress={() => setShowPassword((prev) => !prev)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={18}
+                    color="#94a3b8"
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
+
+            {/* Primary Sign In Button */}
+            <TouchableOpacity
+              style={[
+                styles.primaryBtn,
+                { backgroundColor: colors.primary },
+                loading && { opacity: 0.8 },
+              ]}
+              onPress={handleLogin}
+              disabled={loading || googleLoading}
+              activeOpacity={0.88}
+            >
+              {loading ? (
+                <View style={styles.btnRow}>
+                  <ActivityIndicator color="#ffffff" size="small" />
+                  <Text style={styles.primaryBtnText}>Authenticating...</Text>
+                </View>
+              ) : (
+                <View style={styles.btnRow}>
+                  <Text style={styles.primaryBtnText}>Sign in to Dashboard</Text>
+                  <Ionicons name="arrow-forward" size={17} color="#ffffff" />
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* Waking Server Helper Notice */}
+            {backendStatus === 'waking' && loading ? (
+              <Text style={styles.wakingNotice}>
+                The server is booting from sleep. Please allow up to 30 seconds...
+              </Text>
+            ) : null}
+
+            {/* Divider */}
+            <View style={styles.dividerRow}>
+              <View style={[styles.dividerLine, { backgroundColor: isDark ? '#1e293b' : '#e2e8f0' }]} />
+              <Text style={styles.dividerText}>OR CONTINUE WITH</Text>
+              <View style={[styles.dividerLine, { backgroundColor: isDark ? '#1e293b' : '#e2e8f0' }]} />
+            </View>
+
+            {/* Google Sign In Button */}
+            <TouchableOpacity
+              style={[
+                styles.googleBtn,
+                {
+                  backgroundColor: isDark ? '#090d16' : '#ffffff',
+                  borderColor: isDark ? '#1e293b' : '#cbd5e1',
+                },
+              ]}
+              onPress={handleGoogleLogin}
+              disabled={loading || googleLoading}
+              activeOpacity={0.88}
+            >
+              {googleLoading ? (
+                <View style={styles.btnRow}>
+                  <ActivityIndicator color={isDark ? '#e2e8f0' : '#475569'} size="small" />
+                  <Text style={[styles.googleBtnText, { color: isDark ? '#e2e8f0' : '#475569' }]}>
+                    Connecting to Google...
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.btnRow}>
+                  <Ionicons name="logo-google" size={18} color="#ea4335" />
+                  <Text style={[styles.googleBtnText, { color: isDark ? '#f8fafc' : '#1e293b' }]}>
+                    Sign in with Google
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
           </View>
 
-          {/* Submit CTA Button */}
-          <TouchableOpacity
-            style={[styles.submitBtn, loading && { opacity: 0.75 }]}
-            onPress={handleLogin}
-            disabled={loading || googleLoading}
-          >
-            {loading ? (
-              <View style={styles.btnContent}>
-                <ActivityIndicator color="#ffffff" size="small" />
-                <Text style={styles.submitBtnText}>Authenticating...</Text>
-              </View>
-            ) : (
-              <View style={styles.btnContent}>
-                <Text style={styles.submitBtnText}>Sign in to Dashboard</Text>
-                <Ionicons name="arrow-forward" size={16} color="#ffffff" />
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {backendStatus === 'waking' && loading && !googleLoading ? (
-            <Text style={{ textAlign: 'center', marginTop: 12, color: '#f59e0b', fontSize: 12, fontWeight: '600' }}>
-              The server is waking up from sleep. This may take up to 45 seconds...
-            </Text>
-          ) : null}
-
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 20 }}>
-            <View style={{ flex: 1, height: 1, backgroundColor: isDark ? '#334155' : '#e2e8f0' }} />
-            <Text style={{ marginHorizontal: 10, color: '#94a3b8', fontSize: 13, fontWeight: '600' }}>OR CONTINUE WITH</Text>
-            <View style={{ flex: 1, height: 1, backgroundColor: isDark ? '#334155' : '#e2e8f0' }} />
-          </View>
-
-          
-          <TouchableOpacity
-            style={[
-              styles.submitBtn, 
-              { backgroundColor: isDark ? '#1e293b' : '#ffffff', borderWidth: 1, borderColor: isDark ? '#334155' : '#cbd5e1', marginTop: 0, boxShadow: 'none', elevation: 0 }
-            ]}
-            onPress={handleGoogleLogin}
-            disabled={loading || googleLoading}
-          >
-            {googleLoading ? (
-              <View style={styles.btnContent}>
-                <ActivityIndicator color={isDark ? '#e2e8f0' : '#475569'} size="small" />
-                <Text style={[styles.submitBtnText, { color: isDark ? '#e2e8f0' : '#475569' }]}>Connecting...</Text>
-              </View>
-            ) : (
-              <View style={styles.btnContent}>
-                <Ionicons name="logo-google" size={18} color={isDark ? '#e2e8f0' : '#475569'} />
-                <Text style={[styles.submitBtnText, { color: isDark ? '#e2e8f0' : '#475569' }]}>Sign in with Google</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-
-          {/* Footer Customer Storefront Link */}
-          <View style={[styles.footerBox, { borderTopColor: isDark ? '#1e293b' : '#f1f5f9' }]}>
-            <Text style={[styles.footerText, { color: colors.textMuted }]}>
-              Manage orders, inventory, delivery fleet & analytics in real-time.
+          {/* Security Badge Footer */}
+          <View style={styles.securityFooter}>
+            <Ionicons name="shield-checkmark-outline" size={14} color="#10b981" />
+            <Text style={[styles.securityText, { color: colors.textMuted }]}>
+              Secure 256-Bit Encrypted Owner Console
             </Text>
           </View>
         </View>
       </ScrollView>
 
-      {/* Right Column: Hero Showcase (Wide/Desktop Screens) */}
+      {/* Desktop / Tablet Showcase Column */}
       {isWide && (
-        <View style={styles.rightHero}>
+        <View style={styles.heroColumn}>
           <Image
             source={{
               uri: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1920',
@@ -466,29 +437,32 @@ export default function LoginScreen() {
             style={StyleSheet.absoluteFill}
             contentFit="cover"
           />
-          <View style={styles.heroOverlay} />
+          <View style={styles.heroBackdrop} />
           <View style={styles.heroContent}>
             <View style={styles.heroBadge}>
-              <Ionicons name="shield-checkmark" size={14} color="#34d399" />
-              <Text style={styles.heroBadgeText}>Retail Management & Cloud Sync</Text>
+              <Ionicons name="storefront" size={14} color="#34d399" />
+              <Text style={styles.heroBadgeText}>Smart Kirana Enterprise</Text>
             </View>
-            <Text style={styles.heroTitle}>
+
+            <Text style={styles.heroHeading}>
               Manage your store{'\n'}
-              <Text style={{ color: '#34d399' }}>effortlessly in real-time.</Text>
+              <Text style={{ color: '#34d399' }}>with ease and precision.</Text>
             </Text>
-            <Text style={styles.heroDesc}>
-              Track orders, manage inventory, and view analytics.
+
+            <Text style={styles.heroSubheading}>
+              Real-time analytics, barcode inventory, order dispatch, and instant digital billing.
             </Text>
-            <View style={styles.heroFeaturesGrid}>
+
+            <View style={styles.featuresList}>
               {[
-                'Unified Email Authentication',
-                'Automatic Role Sync',
-                'Dedicated Password Recovery',
-                'Direct Render Vault Access',
-              ].map((feat) => (
-                <View key={feat} style={styles.heroFeatureItem}>
-                  <View style={styles.heroFeatureDot} />
-                  <Text style={styles.heroFeatureText}>{feat}</Text>
+                'Live Order Tracking & Push Alerts',
+                'Fast Barcode & Stock Manager',
+                'Instant Thermal & PDF Invoicing',
+                'Delivery Fleet & Agent Dispatch',
+              ].map((feature) => (
+                <View key={feature} style={styles.featureItem}>
+                  <View style={styles.featureBullet} />
+                  <Text style={styles.featureText}>{feature}</Text>
                 </View>
               ))}
             </View>
@@ -504,168 +478,138 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
   },
-  leftCol: {
+  scrollCol: {
     flex: 1,
   },
-  leftContent: {
+  scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 40,
+    paddingHorizontal: 20,
+    paddingVertical: 28,
   },
-  formBox: {
+  formContainer: {
     width: '100%',
-    maxWidth: 430,
+    maxWidth: 420,
   },
-  topHeaderRow: {
+  topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 28,
+    marginBottom: 16,
   },
-  statusPill: {
+  wakingPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 20,
-    borderWidth: 1,
-    gap: 7,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 16,
+    gap: 6,
   },
-  statusOnlineLight: {
-    backgroundColor: '#ecfdf5',
-    borderColor: '#a7f3d0',
+  wakingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#f59e0b',
   },
-  statusOnlineDark: {
-    backgroundColor: 'rgba(6, 78, 59, 0.45)',
-    borderColor: '#065f46',
-  },
-  statusWakingLight: {
-    backgroundColor: '#fffbeb',
-    borderColor: '#fde68a',
-  },
-  statusWakingDark: {
-    backgroundColor: 'rgba(120, 53, 15, 0.45)',
-    borderColor: '#92400e',
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  statusText: {
+  wakingText: {
     fontSize: 11,
     fontWeight: '700',
+    color: '#d97706',
   },
-  topRightActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  themeToggle: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
+  themeButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    marginLeft: 'auto',
   },
-  vaultLink: {
-    flexDirection: 'row',
+  brandContainer: {
     alignItems: 'center',
-    gap: 3,
+    marginBottom: 22,
   },
-  vaultLinkText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  brandSection: {
-    marginBottom: 28,
-  },
-  brandRow: {
-    flexDirection: 'row',
+  logoWrapper: {
+    width: 60,
+    height: 60,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 14,
     marginBottom: 12,
   },
-  logoBadge: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+  logoImage: {
+    width: 44,
+    height: 44,
+  },
+  brandTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  brandSubtitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  card: {
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.28)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
+    borderRadius: 20,
+    padding: 22,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
   },
-  brandLogoImg: {
-    width: 42,
-    height: 42,
-  },
-  brandTagline: {
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 2.2,
-    textTransform: 'uppercase',
-  },
-  portalTitle: {
-    fontSize: 28,
-    fontWeight: '900',
-    letterSpacing: -0.5,
-  },
-  portalSubtitle: {
-    fontSize: 14,
-    lineHeight: 21,
-  },
-  errorBox: {
+  errorAlert: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 10,
-    padding: 14,
+    gap: 8,
+    padding: 12,
     borderRadius: 12,
     borderWidth: 1,
-    marginBottom: 20,
+    marginBottom: 16,
   },
-  errorBoxText: {
+  errorText: {
     flex: 1,
+    color: '#ef4444',
     fontSize: 13,
-    fontWeight: '700',
-    lineHeight: 19,
+    fontWeight: '600',
+    lineHeight: 18,
   },
-  fieldGroup: {
-    marginBottom: 18,
+  inputGroup: {
+    marginBottom: 16,
   },
   labelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 7,
+    marginBottom: 6,
   },
-  fieldLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  fieldBadge: {
-    fontSize: 10,
+  label: {
+    fontSize: 12,
     fontWeight: '800',
-    letterSpacing: 0.8,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    marginBottom: 6,
   },
-  forgotLinkText: {
+  forgotLink: {
     fontSize: 12,
     fontWeight: '700',
   },
-  inputWrapper: {
+  inputField: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
+    height: 48,
     borderRadius: 12,
-    height: 50,
+    borderWidth: 1.5,
   },
   inputIcon: {
-    marginLeft: 14,
-    marginRight: 10,
+    marginLeft: 12,
+    marginRight: 8,
   },
   textInput: {
     flex: 1,
@@ -673,58 +617,95 @@ const styles = StyleSheet.create({
     fontSize: 14,
     paddingRight: 12,
   },
-  eyeButton: {
-    paddingHorizontal: 14,
+  eyeBtn: {
+    paddingHorizontal: 12,
     height: '100%',
     justifyContent: 'center',
   },
-  submitBtn: {
-    backgroundColor: '#4f46e5',
-    height: 52,
+  primaryBtn: {
+    height: 48,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 6,
-    boxShadow: '0px 6px 14px rgba(79, 70, 229, 0.35)',
-    elevation: 5,
+    marginTop: 4,
+    shadowColor: '#10b981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  btnContent: {
+  primaryBtnText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  btnRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  submitBtnText: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '700',
+  wakingNotice: {
+    textAlign: 'center',
+    marginTop: 10,
+    color: '#f59e0b',
+    fontSize: 12,
+    fontWeight: '600',
   },
-  footerBox: {
-    marginTop: 32,
-    paddingTop: 22,
-    borderTopWidth: 1,
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 18,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    marginHorizontal: 10,
+    color: '#94a3b8',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  googleBtn: {
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  footerText: {
-    fontSize: 12,
-    textAlign: 'center',
+  googleBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
   },
-  rightHero: {
+  securityFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 20,
+  },
+  securityText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  heroColumn: {
     flex: 1,
     backgroundColor: '#020617',
     position: 'relative',
     justifyContent: 'flex-end',
   },
-  heroOverlay: {
+  heroBackdrop: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(9, 13, 22, 0.72)',
+    backgroundColor: 'rgba(9, 13, 22, 0.76)',
   },
   heroContent: {
     padding: 56,
-    maxWidth: 640,
+    maxWidth: 600,
     zIndex: 10,
   },
   heroBadge: {
@@ -732,52 +713,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'flex-start',
     gap: 6,
-    backgroundColor: 'rgba(16, 185, 129, 0.14)',
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
     borderColor: 'rgba(52, 211, 153, 0.3)',
     borderWidth: 1,
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 5,
     borderRadius: 20,
     marginBottom: 16,
   },
   heroBadgeText: {
     color: '#6ee7b7',
     fontSize: 12,
-    fontWeight: '700',
-  },
-  heroTitle: {
-    color: '#ffffff',
-    fontSize: 36,
     fontWeight: '800',
-    lineHeight: 44,
-    marginBottom: 14,
   },
-  heroDesc: {
+  heroHeading: {
+    color: '#ffffff',
+    fontSize: 34,
+    fontWeight: '900',
+    lineHeight: 42,
+    marginBottom: 12,
+  },
+  heroSubheading: {
     color: '#cbd5e1',
-    fontSize: 15,
-    lineHeight: 23,
+    fontSize: 14,
+    lineHeight: 22,
     marginBottom: 24,
   },
-  heroFeaturesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  featuresList: {
     gap: 12,
   },
-  heroFeatureItem: {
-    width: '47%',
+  featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
-  heroFeatureDot: {
+  featureBullet: {
     width: 6,
     height: 6,
     borderRadius: 3,
     backgroundColor: '#34d399',
   },
-  heroFeatureText: {
-    color: '#e2e8f0',
-    fontSize: 12,
+  featureText: {
+    color: '#f1f5f9',
+    fontSize: 13,
     fontWeight: '600',
   },
 });
