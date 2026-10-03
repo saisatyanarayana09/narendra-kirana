@@ -49,6 +49,8 @@
   },
   "scripts": {
     "start": "expo start",
+    "tunnel": "expo start --tunnel --clear",
+    "lan": "expo start --lan --clear",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "ios": "expo run:ios",

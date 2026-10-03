@@ -19,7 +19,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useAppTheme } from '../../context/ThemeContext';
 import api, { getErrorMessage } from '../../services/api';
 import { safeStorage } from '../../utils/storage';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { GoogleSignin } from '../../utils/GoogleSigninWrapper';
 
 const SAVED_USERNAME_KEY = 'smart-kirana-owner-username';
 
