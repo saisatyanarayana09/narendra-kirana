@@ -2,11 +2,20 @@
   "expo": {
     "name": "Narendra Kirana Store",
     "slug": "owner-mobile",
+    "owner": "narendra-kirana",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "ownermobile",
     "userInterfaceStyle": "automatic",
+    "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "ios": {
       "icon": "./assets/expo.icon"
     },
@@ -33,6 +42,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "expo-updates",
       "expo-router",
       [
         "expo-camera",

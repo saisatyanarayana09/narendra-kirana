@@ -5,6 +5,7 @@ import { AuthProvider } from '../context/AuthContext';
 import { AppThemeProvider, useAppTheme } from '../context/ThemeContext';
 import { StatusBar } from 'expo-status-bar';
 import { usePushNotifications } from '../hooks/usePushNotifications';
+import { checkAndDownloadOtaUpdateSilently } from '../services/otaService';
 
 // Suppress React Native Web internal deprecation warnings & noisy LogBox banners
 try {
@@ -77,6 +78,14 @@ class GlobalErrorBoundary extends React.Component<{ children: React.ReactNode },
 function AppContent() {
   usePushNotifications();
   const { isDark } = useAppTheme();
+
+  React.useEffect(() => {
+    // Non-blocking silent background OTA check
+    const timer = setTimeout(() => {
+      checkAndDownloadOtaUpdateSilently().catch(() => {});
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <>

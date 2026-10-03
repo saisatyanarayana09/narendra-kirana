@@ -1,0 +1,67 @@
+name: Publish Owner OTA Update
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'owner-mobile/src/**'
+      - 'owner-mobile/assets/**'
+      - 'owner-mobile/app.json'
+
+jobs:
+  update:
+    name: Publish Owner EAS Update
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Verify EXPO_TOKEN is configured
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::EXPO_TOKEN secret is missing or empty."
+            echo "Add EXPO_TOKEN under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          echo "EXPO_TOKEN is configured."
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: 'owner-mobile/package.json'
+
+      - name: Install Dependencies
+        working-directory: owner-mobile
+        run: npm install --legacy-peer-deps
+
+      - name: Setup Expo & EAS
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Verify Expo Authentication
+        working-directory: owner-mobile
+        run: eas whoami
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Initialize or Link EAS Project
+        working-directory: owner-mobile
+        run: |
+          npx eas-cli project:init --account narendra-kirana --force --non-interactive || true
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Publish Owner OTA Update
+        working-directory: owner-mobile
+        run: eas update --branch main --message "Auto Owner OTA Update from GitHub" --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}

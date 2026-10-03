@@ -24,6 +24,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useAppTheme } from '../../../context/ThemeContext';
 import api, { getErrorMessage } from '../../../services/api';
 import { showAlert, showConfirm } from '../../../utils/alerts';
+import { checkAndDownloadOtaUpdateSilently, applyOtaUpdate } from '../../../services/otaService';
 
 interface NavItem {
   id: string;
@@ -59,6 +60,30 @@ export default function ProfileScreen() {
   const [editLastName, setEditLastName] = useState('');
   const [editMobile, setEditMobile] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
+  const [checkingUpdates, setCheckingUpdates] = useState(false);
+
+  const handleCheckUpdate = async () => {
+    if (checkingUpdates) return;
+    setCheckingUpdates(true);
+    try {
+      const res = await checkAndDownloadOtaUpdateSilently();
+      if (res.isDownloaded) {
+        showConfirm(
+          'Update Ready',
+          'A new update was downloaded! Would you like to restart the app now to apply it?',
+          () => applyOtaUpdate(),
+          undefined,
+          'Restart Now'
+        );
+      } else {
+        showAlert('Up to Date', 'You are running the latest version of Narendra Kirana Store.');
+      }
+    } catch {
+      showAlert('Check Failed', 'Could not check for updates. Please verify your internet connection.');
+    } finally {
+      setCheckingUpdates(false);
+    }
+  };
 
   const fetchProfile = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -599,6 +624,31 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Check for Updates Section */}
+          <View style={styles.updateCheckSection}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              disabled={checkingUpdates}
+              style={[
+                styles.updateCheckButton,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                },
+              ]}
+              onPress={handleCheckUpdate}
+            >
+              {checkingUpdates ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Ionicons name="cloud-download-outline" size={17} color={colors.primary} />
+              )}
+              <Text style={[styles.updateCheckText, { color: colors.text }]}>
+                {checkingUpdates ? 'Checking for updates...' : 'Check for App Updates'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Footer Metadata */}
           <View style={styles.footerWrap}>
             <Text style={[styles.footerText, { color: colors.textMuted }]}>
@@ -1122,5 +1172,23 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '700',
+  },
+  updateCheckSection: {
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  updateCheckButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 8,
+  },
+  updateCheckText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
 });
