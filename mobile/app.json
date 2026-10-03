@@ -37,70 +37,29 @@
       "intentFilters": [
         {
           "action": "VIEW",
-          "autoVerify": true,
           "data": [
             {
               "scheme": "smartkirana"
-            },
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        },
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
             {
               "scheme": "https",
               "host": "narendra-kirana.vercel.app",
-              "pathPrefix": "/orders"
-            },
-            {
-              "scheme": "https",
-              "host": "narendra-kirana.vercel.app",
-              "pathPrefix": "/product"
-            },
-            {
-              "scheme": "https",
-              "host": "narendra-kirana.vercel.app",
-              "pathPrefix": "/profile"
-            },
-            {
-              "scheme": "https",
-              "host": "narendra-kirana.vercel.app",
-              "pathPrefix": "/offers"
-            },
-            {
-              "scheme": "https",
-              "host": "narendra-kirana.vercel.app",
-              "pathPrefix": "/signup"
-            },
-            {
-              "scheme": "https",
-              "host": "narendra-kirana.vercel.app",
-              "pathPrefix": "/refer"
+              "pathPrefix": "/"
             },
             {
               "scheme": "https",
               "host": "narendra-kirana.onrender.com",
-              "pathPrefix": "/orders"
-            },
-            {
-              "scheme": "https",
-              "host": "narendra-kirana.onrender.com",
-              "pathPrefix": "/product"
-            },
-            {
-              "scheme": "https",
-              "host": "narendra-kirana.onrender.com",
-              "pathPrefix": "/profile"
-            },
-            {
-              "scheme": "https",
-              "host": "narendra-kirana.onrender.com",
-              "pathPrefix": "/offers"
-            },
-            {
-              "scheme": "https",
-              "host": "narendra-kirana.onrender.com",
-              "pathPrefix": "/signup"
-            },
-            {
-              "scheme": "https",
-              "host": "narendra-kirana.onrender.com",
-              "pathPrefix": "/refer"
+              "pathPrefix": "/"
             }
           ],
           "category": [

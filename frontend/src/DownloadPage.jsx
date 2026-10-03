@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Package } from 'lucide-react';
+import { Download, Package, Smartphone } from 'lucide-react';
 import api from './services/api';
+import { openAppOrFallback } from './components/SmartAppBanner';
 
 export default function DownloadPage() {
   const [storeSettings, setStoreSettings] = useState(null);
@@ -66,16 +67,27 @@ export default function DownloadPage() {
         {loading ? (
           <div className="h-14 w-full bg-slate-900 rounded-2xl animate-pulse" />
         ) : (
-          <a
-            href={downloadUrl}
-            download="narendra-kirana.apk"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-base flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-600/30 transition-all duration-200 cursor-pointer ring-1 ring-emerald-400/25"
-          >
-            <Download size={20} className="stroke-[2.5]" />
-            <span>{buttonText}</span>
-          </a>
+          <div className="w-full space-y-3">
+            <a
+              href={downloadUrl}
+              download="narendra-kirana.apk"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-base flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-600/30 transition-all duration-200 cursor-pointer ring-1 ring-emerald-400/25"
+            >
+              <Download size={20} className="stroke-[2.5]" />
+              <span>{buttonText}</span>
+            </a>
+
+            <button
+              type="button"
+              onClick={() => openAppOrFallback('')}
+              className="w-full py-3 px-6 rounded-2xl bg-slate-900/90 hover:bg-slate-800 active:scale-95 text-emerald-400 font-bold text-sm flex items-center justify-center gap-2 border border-slate-800 transition-all cursor-pointer"
+            >
+              <Smartphone size={18} />
+              <span>Already installed? Open App</span>
+            </button>
+          </div>
         )}
       </div>
     </div>

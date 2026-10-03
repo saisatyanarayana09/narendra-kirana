@@ -1,12 +1,13 @@
 import React, { useEffect, useState, lazy, Suspense } from 'react'
 import { Link, useNavigate, useParams, useLocation } from 'react-router-dom'
-import { Minus, Plus, Trash2, ShoppingBasket, ArrowLeft, Eye, EyeOff, CheckCircle2, Package, PackageSearch, Truck, Store, XCircle, MapPin, Edit2, RefreshCw, Gift, Lock, Sparkles, Check, AlertCircle, ShieldCheck, MailCheck, Copy, AlertTriangle, Clock, Calendar, QrCode } from 'lucide-react'
+import { Minus, Plus, Trash2, ShoppingBasket, ArrowLeft, Eye, EyeOff, CheckCircle2, Package, PackageSearch, Truck, Store, XCircle, MapPin, Edit2, RefreshCw, Gift, Lock, Sparkles, Check, AlertCircle, ShieldCheck, MailCheck, Copy, AlertTriangle, Clock, Calendar, QrCode, Smartphone } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useGoogleLogin } from '@react-oauth/google'
 import api from './services/api'
 import { CustomerLayout } from './customer-layout'
 import { useCart } from './cart-context'
 import { QRCodeSVG } from 'qrcode.react'
+import { openAppOrFallback } from './components/SmartAppBanner'
 const MapLocationPicker = lazy(() => import('./components/MapLocationPicker'))
 const OrderTrackingMap = lazy(() => import('./components/OrderTrackingMap'))
 
@@ -415,6 +416,12 @@ export function CustomerSignupPage() {
     setShowWelcomeModal(false);
   }
 
+  function handleOpenInApp() {
+    const code = form.referral_code?.trim().toUpperCase();
+    const query = code ? `signup?ref=${encodeURIComponent(code)}` : 'signup';
+    openAppOrFallback(query);
+  }
+
   // 1-Tap Password Generator: eliminates confusion for customers
   function handleSuggestPassword() {
     const suggested = generateFriendlyPassword();
@@ -758,6 +765,16 @@ export function CustomerSignupPage() {
                   <XCircle size={13} /> {inlineReferrer.error}
                 </p>
               )}
+              {Boolean(form.referral_code) && (
+                <button
+                  type="button"
+                  onClick={handleOpenInApp}
+                  className="mt-2.5 w-full py-2 px-3 rounded-xl bg-slate-900 text-white text-xs font-bold flex items-center justify-center gap-2 hover:bg-slate-800 active:scale-98 transition-all cursor-pointer"
+                >
+                  <Smartphone size={14} className="text-emerald-400" />
+                  <span>Have Mobile App? Open with Code in App &rarr;</span>
+                </button>
+              )}
             </div>
           </div>
           
@@ -791,18 +808,26 @@ export function CustomerSignupPage() {
               <p className="text-slate-600 mb-8 text-base leading-relaxed">
                 <b>{referrerName}</b> has invited you. Accept this referral to claim your welcome rewards when you sign up!
               </p>
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2.5">
                 <button
                   type="button"
                   onClick={handleAcceptReferral}
-                  className="w-full py-3.5 rounded-xl bg-emerald-600 text-white font-black text-lg hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all active:scale-95"
+                  className="w-full py-3.5 rounded-xl bg-emerald-600 text-white font-black text-base hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all active:scale-95 cursor-pointer"
                 >
-                  ✅ Accept Referral
+                  ✅ Continue on Web
+                </button>
+                <button
+                  type="button"
+                  onClick={handleOpenInApp}
+                  className="w-full py-3 rounded-xl bg-slate-900 text-white font-black text-sm flex items-center justify-center gap-2 hover:bg-slate-800 transition-all shadow-md active:scale-95 cursor-pointer"
+                >
+                  <Smartphone size={18} className="text-emerald-400" />
+                  <span>Open in Mobile App</span>
                 </button>
                 <button
                   type="button"
                   onClick={handleRejectReferral}
-                  className="w-full py-3 rounded-xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200 transition-all hover:text-slate-900"
+                  className="w-full py-2.5 rounded-xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200 transition-all hover:text-slate-900 text-xs cursor-pointer"
                 >
                   ❌ Reject
                 </button>

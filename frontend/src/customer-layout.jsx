@@ -8,8 +8,6 @@ import { useLanguage } from './context/LanguageContext'
 import { useSpeechRecognition, useTextToSpeech } from './hooks/useVoice'
 import api from './services/api'
 
-import { SmartAppBanner } from './components/SmartAppBanner'
-
 function GlobalSearchBar({ settings }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
@@ -809,7 +807,6 @@ export function CustomerLayout({ children }) {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#090d16] flex flex-col justify-start text-slate-900 dark:text-slate-100 transition-colors duration-200 antialiased pb-20 md:pb-0">
       <TopAnnouncementMarquee settings={storeSettings} />
-      <SmartAppBanner />
       <WelcomeScreen />
       <FestivePopupModal settings={storeSettings} />
       <WhatsAppSupportWidget settings={storeSettings} />

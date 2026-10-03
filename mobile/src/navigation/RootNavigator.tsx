@@ -88,6 +88,16 @@ export function parseDeepLinkUrl(url: string): ParsedDeepLink | null {
     const path = rawPath.replace(/^\/+|\/+$/g, "");
     const segments = path.split("/").filter(Boolean);
 
+    // 0. Root home / empty: /
+    if (segments.length === 0) {
+      return {
+        screen: "HomeScreen",
+        tab: "HomeTab",
+        params: {},
+        requiresAuth: false,
+      };
+    }
+
     // 1. Invoice: /orders/:id/invoice or /invoice/:id
     if (
       (segments[0] === "orders" && segments[2] === "invoice" && segments[1]) ||

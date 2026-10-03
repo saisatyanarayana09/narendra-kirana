@@ -1,6 +1,37 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Smartphone, X, ExternalLink } from 'lucide-react';
+
+/**
+ * Launches the native mobile app if installed, or gracefully falls back to the download page.
+ * Uses Android Intent URI on Android Chrome to avoid popup blockers and ERR_UNKNOWN_URL_SCHEME errors.
+ */
+export function openAppOrFallback(pathAndQuery = '') {
+  if (typeof window === 'undefined') return;
+
+  const raw = (pathAndQuery || '').replace(/^\/+/, '');
+  const ua = navigator.userAgent || navigator.vendor || window.opera || '';
+  const isAndroid = /Android/i.test(ua);
+  const fallbackUrl = encodeURIComponent(`${window.location.origin}/download`);
+
+  if (isAndroid) {
+    // Android Chrome Intent URI
+    // If com.narendrakirana.app is installed, Android launches it immediately.
+    // If not installed, Chrome falls back cleanly to the web download page.
+    const intentUrl = `intent://${raw}#Intent;scheme=smartkirana;package=com.narendrakirana.app;S.browser_fallback_url=${fallbackUrl};end`;
+    window.location.href = intentUrl;
+  } else {
+    // iOS and other platforms
+    const appSchemeUrl = raw ? `smartkirana://${raw}` : 'smartkirana://';
+    const start = Date.now();
+    window.location.href = appSchemeUrl;
+    setTimeout(() => {
+      if (Date.now() - start < 2000 && !document.hidden) {
+        window.location.href = '/download';
+      }
+    }, 1500);
+  }
+}
 
 export function SmartAppBanner() {
   const [isMobileDevice] = useState(() => {
@@ -8,6 +39,7 @@ export function SmartAppBanner() {
     const ua = navigator.userAgent || navigator.vendor || window.opera || '';
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
   });
+
   const [dismissed, setDismissed] = useState(() => {
     if (typeof window === 'undefined') return false;
     try {
@@ -16,33 +48,27 @@ export function SmartAppBanner() {
       return false;
     }
   });
+
   const location = useLocation();
 
   if (!isMobileDevice || dismissed) {
     return null;
   }
 
-  // Construct the smartkirana:// deep link URL corresponding to the current web route
+  // Current route with query parameters
   const currentPath = location.pathname.replace(/^\/+|\/+$/g, '');
   const search = location.search || '';
-  const appSchemeUrl = currentPath
-    ? `smartkirana://${currentPath}${search}`
-    : `smartkirana://`;
+  const currentRoute = currentPath ? `${currentPath}${search}` : (search ? `${search}` : '');
 
   const handleDismiss = () => {
     setDismissed(true);
-    sessionStorage.setItem('smart_kirana_app_banner_dismissed', 'true');
+    try {
+      sessionStorage.setItem('smart_kirana_app_banner_dismissed', 'true');
+    } catch {}
   };
 
   const handleOpenApp = () => {
-    // Attempt to launch the mobile app via custom URI scheme with graceful fallback to /download
-    const start = Date.now();
-    window.location.href = appSchemeUrl;
-    setTimeout(() => {
-      if (Date.now() - start < 2000 && !document.hidden) {
-        window.location.href = '/download';
-      }
-    }, 1500);
+    openAppOrFallback(currentRoute);
   };
 
   return (
@@ -62,13 +88,13 @@ export function SmartAppBanner() {
       <div className="flex items-center gap-2 flex-shrink-0 ml-2">
         <button
           onClick={handleOpenApp}
-          className="px-3 py-1.5 bg-white text-emerald-800 font-extrabold rounded-lg shadow-sm hover:bg-emerald-50 active:scale-95 transition-all text-xs flex items-center gap-1"
+          className="px-3 py-1.5 bg-white text-emerald-800 font-extrabold rounded-lg shadow-sm hover:bg-emerald-50 active:scale-95 transition-all text-xs flex items-center gap-1 cursor-pointer"
         >
           Open App <ExternalLink size={12} />
         </button>
         <button
           onClick={handleDismiss}
-          className="p-1 text-emerald-200 hover:text-white transition-colors"
+          className="p-1 text-emerald-200 hover:text-white transition-colors cursor-pointer"
           title="Dismiss banner"
         >
           <X size={16} />

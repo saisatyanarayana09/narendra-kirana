@@ -36,6 +36,7 @@ export default defineConfig({
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [
           /^\/api\//,
+          /^\/\.well-known\//,
           /^\/reset-password/,
           /^\/owner\/reset-password/,
           /^\/forgot-password/,
