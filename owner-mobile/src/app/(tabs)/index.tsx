@@ -213,7 +213,12 @@ export default function DashboardScreen() {
     month: 'short',
   });
 
-  const { newOrdersCount, activeOrders, filteredActiveOrders } = useMemo(() => {
+  const {
+    newOrdersCount,
+    activeOrders,
+    filteredActiveOrders,
+    displayedActiveOrders,
+  } = useMemo(() => {
     let newCnt = 0;
     const liveList: any[] = [];
 
@@ -239,6 +244,7 @@ export default function DashboardScreen() {
       newOrdersCount: newCnt,
       activeOrders: liveList,
       filteredActiveOrders: filtered,
+      displayedActiveOrders: filtered.slice(0, 3),
     };
   }, [orders, orderFilter]);
 
@@ -495,70 +501,42 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {/* 3. Low Stock Alerts Section with 1-Tap Quick Restock */}
-        <View style={styles.lowStockSection}>
-          <View style={styles.lowStockHeaderRow}>
-            <View style={styles.lowStockTitleLeft}>
-              <View
-                style={[
-                  styles.alertDotBeacon,
-                  lowStockProducts.length > 0
-                    ? { backgroundColor: '#ef4444' }
-                    : { backgroundColor: '#10b981' },
-                ]}
-              />
-              <Text style={[styles.lowStockTitle, { color: colors.text }]}>
-                Low Stock Alerts
-              </Text>
-              {lowStockProducts.length > 0 ? (
+        {/* 3. Compact Low Stock Alert (Only shown when items actually need restock) */}
+        {lowStockProducts.length > 0 && (
+          <View
+            style={[
+              styles.lowStockCompactCard,
+              {
+                backgroundColor: isDark ? 'rgba(239, 68, 68, 0.06)' : '#fff8f6',
+                borderColor: isDark ? 'rgba(239, 68, 68, 0.25)' : '#fed7aa',
+              },
+            ]}
+          >
+            {/* Alert Header */}
+            <View style={styles.lowStockCompactHeader}>
+              <View style={styles.lowStockTitleLeft}>
+                <Ionicons name="warning-outline" size={16} color="#ef4444" />
+                <Text style={[styles.lowStockCompactTitle, { color: colors.text }]}>
+                  Low Stock Alerts
+                </Text>
                 <View style={styles.lowStockBadgeRed}>
                   <Text style={styles.lowStockBadgeRedText}>
                     {lowStockProducts.length} Needs Restock
                   </Text>
                 </View>
-              ) : (
-                <View style={styles.healthyBadge}>
-                  <Text style={styles.healthyBadgeText}>Inventory Healthy</Text>
-                </View>
-              )}
+              </View>
+              <TouchableOpacity
+                style={styles.viewCatalogLink}
+                onPress={() => router.push('/(tabs)/products')}
+              >
+                <Text style={styles.viewCatalogText}>View All</Text>
+                <Ionicons name="arrow-forward" size={12} color="#4f46e5" />
+              </TouchableOpacity>
             </View>
 
-            <TouchableOpacity
-              style={styles.viewCatalogLink}
-              onPress={() => router.push('/(tabs)/products')}
-            >
-              <Text style={styles.viewCatalogText}>View Catalog</Text>
-              <Ionicons name="arrow-forward" size={13} color="#4f46e5" />
-            </TouchableOpacity>
-          </View>
-
-          {lowStockProducts.length === 0 ? (
-            <View
-              style={[
-                styles.healthyCard,
-                { backgroundColor: colors.card, borderColor: colors.border },
-              ]}
-            >
-              <View style={styles.healthyIconWrap}>
-                <Ionicons name="shield-checkmark" size={24} color="#10b981" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.healthyTitle, { color: colors.text }]}>
-                  All inventory levels healthy
-                </Text>
-                <Text style={[styles.healthySub, { color: colors.textMuted }]}>
-                  No products are currently low on stock (≤ 5 units).
-                </Text>
-              </View>
-            </View>
-          ) : (
-            <View
-              style={[
-                styles.lowStockCardList,
-                { backgroundColor: colors.card, borderColor: colors.border },
-              ]}
-            >
-              {lowStockProducts.slice(0, 6).map((item, idx) => {
+            {/* Compact Items (Top 2 most critical) */}
+            <View style={styles.lowStockCompactList}>
+              {lowStockProducts.slice(0, 2).map((item, idx) => {
                 const isOutOfStock = Number(item.stock_quantity ?? 0) === 0;
                 const isBusy = restockingId === item.id;
 
@@ -566,35 +544,21 @@ export default function DashboardScreen() {
                   <View
                     key={item.id}
                     style={[
-                      styles.lowStockItemRow,
-                      idx > 0 && { borderTopWidth: 1, borderTopColor: colors.border },
+                      styles.lowStockCompactItemRow,
+                      idx > 0 && {
+                        borderTopWidth: 1,
+                        borderTopColor: isDark
+                          ? 'rgba(255, 255, 255, 0.06)'
+                          : 'rgba(0, 0, 0, 0.05)',
+                      },
                     ]}
                   >
-                    {/* Item Thumbnail / Initial */}
-                    <View
-                      style={[
-                        styles.lowStockThumbBox,
-                        { backgroundColor: colors.cardAlt, borderColor: colors.border },
-                      ]}
-                    >
-                      {item.image ? (
-                        <Image
-                          source={{ uri: item.image }}
-                          style={styles.lowStockThumbImg}
-                          contentFit="contain"
-                        />
-                      ) : (
-                        <Text style={[styles.lowStockInitial, { color: colors.textMuted }]}>
-                          {item.name?.charAt(0)?.toUpperCase() || 'P'}
-                        </Text>
-                      )}
-                    </View>
-
-                    {/* Item Meta */}
                     <TouchableOpacity
                       activeOpacity={0.7}
-                      style={styles.lowStockItemInfo}
-                      onPress={() => router.push(`/(tabs)/products/new?id=${item.id}` as any)}
+                      style={styles.lowStockCompactItemInfo}
+                      onPress={() =>
+                        router.push(`/(tabs)/products/new?id=${item.id}` as any)
+                      }
                     >
                       <Text
                         style={[styles.lowStockItemName, { color: colors.text }]}
@@ -620,13 +584,17 @@ export default function DashboardScreen() {
                             {isOutOfStock ? 'OUT' : 'LOW'}
                           </Text>
                         </View>
-                        <Text style={[styles.stockLeftText, { color: colors.textMuted }]}>
+                        <Text
+                          style={[
+                            styles.stockLeftText,
+                            { color: colors.textMuted },
+                          ]}
+                        >
                           {item.stock_quantity ?? 0} {item.unit || 'units'} left
                         </Text>
                       </View>
                     </TouchableOpacity>
 
-                    {/* Quick Restock Buttons */}
                     <View style={styles.restockButtonsWrap}>
                       {isBusy ? (
                         <ActivityIndicator
@@ -639,22 +607,42 @@ export default function DashboardScreen() {
                           <TouchableOpacity
                             style={[
                               styles.restockBtn,
-                              { backgroundColor: colors.cardAlt, borderColor: colors.border },
+                              {
+                                backgroundColor: colors.card,
+                                borderColor: colors.border,
+                              },
                             ]}
                             onPress={() => handleQuickRestock(item, 5)}
                           >
                             <Ionicons name="add" size={13} color="#10b981" />
-                            <Text style={[styles.restockBtnText, { color: colors.text }]}>+5</Text>
+                            <Text
+                              style={[
+                                styles.restockBtnText,
+                                { color: colors.text },
+                              ]}
+                            >
+                              +5
+                            </Text>
                           </TouchableOpacity>
                           <TouchableOpacity
                             style={[
                               styles.restockBtn,
-                              { backgroundColor: colors.cardAlt, borderColor: colors.border },
+                              {
+                                backgroundColor: colors.card,
+                                borderColor: colors.border,
+                              },
                             ]}
                             onPress={() => handleQuickRestock(item, 10)}
                           >
                             <Ionicons name="add" size={13} color="#10b981" />
-                            <Text style={[styles.restockBtnText, { color: colors.text }]}>+10</Text>
+                            <Text
+                              style={[
+                                styles.restockBtnText,
+                                { color: colors.text },
+                              ]}
+                            >
+                              +10
+                            </Text>
                           </TouchableOpacity>
                         </>
                       )}
@@ -663,8 +651,26 @@ export default function DashboardScreen() {
                 );
               })}
             </View>
-          )}
-        </View>
+
+            {lowStockProducts.length > 2 && (
+              <TouchableOpacity
+                style={[
+                  styles.lowStockFooterLink,
+                  {
+                    borderTopColor: isDark
+                      ? 'rgba(255, 255, 255, 0.06)'
+                      : 'rgba(0, 0, 0, 0.05)',
+                  },
+                ]}
+                onPress={() => router.push('/(tabs)/products')}
+              >
+                <Text style={styles.lowStockFooterLinkText}>
+                  +{lowStockProducts.length - 2} more items need restock • Manage in Products →
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
         {/* 4. Live Order Queue Section */}
         <View style={styles.queueSection}>
@@ -784,8 +790,9 @@ export default function DashboardScreen() {
               )}
             </View>
           ) : (
-            <View style={styles.orderList}>
-              {filteredActiveOrders.map((order) => {
+            <>
+              <View style={styles.orderList}>
+              {displayedActiveOrders.map((order) => {
                 const st = getStatusTheme(order.status);
                 const timeStr = order.created_at
                   ? new Date(order.created_at).toLocaleTimeString([], {
@@ -1085,6 +1092,32 @@ export default function DashboardScreen() {
                 );
               })}
             </View>
+
+            {filteredActiveOrders.length > 3 && (
+              <TouchableOpacity
+                style={[
+                  styles.viewAllOrdersQueueBtn,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                ]}
+                onPress={() => router.push('/(tabs)/orders')}
+              >
+                <View style={styles.viewAllOrdersQueueLeft}>
+                  <Ionicons name="receipt-outline" size={16} color="#10b981" />
+                  <Text style={[styles.viewAllOrdersQueueText, { color: colors.text }]}>
+                    View All Active Orders ({filteredActiveOrders.length})
+                  </Text>
+                </View>
+                <View style={styles.viewAllOrdersQueueRight}>
+                  <View style={styles.moreOrdersPill}>
+                    <Text style={styles.moreOrdersPillText}>
+                      +{filteredActiveOrders.length - 3} more
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={15} color="#10b981" />
+                </View>
+              </TouchableOpacity>
+            )}
+          </>
           )}
         </View>
       </View>
@@ -1502,168 +1535,156 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
   },
-  // Low Stock Alerts Section Styles
-  lowStockSection: {
-    gap: 12,
+  // Compact Low Stock Alerts Section Styles
+  lowStockCompactCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    overflow: 'hidden',
+    padding: 12,
+    gap: 10,
   },
-  lowStockHeaderRow: {
+  lowStockCompactHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 2,
   },
   lowStockTitleLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
-  alertDotBeacon: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  lowStockTitle: {
-    fontSize: 17,
+  lowStockCompactTitle: {
+    fontSize: 13.5,
     fontWeight: '800',
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
   },
   lowStockBadgeRed: {
     backgroundColor: 'rgba(239, 68, 68, 0.12)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: 'rgba(239, 68, 68, 0.25)',
   },
   lowStockBadgeRedText: {
     color: '#ef4444',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  healthyBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
-  },
-  healthyBadgeText: {
-    color: '#10b981',
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '700',
   },
   viewCatalogLink: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
   },
   viewCatalogText: {
     color: '#4f46e5',
-    fontSize: 12.5,
-    fontWeight: '700',
-  },
-  healthyCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
-  healthyIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  healthyTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  healthySub: {
     fontSize: 12,
-    marginTop: 2,
+    fontWeight: '700',
   },
-  lowStockCardList: {
-    borderRadius: 16,
-    borderWidth: 1,
-    overflow: 'hidden',
+  lowStockCompactList: {
+    gap: 8,
   },
-  lowStockItemRow: {
+  lowStockCompactItemRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
-    gap: 12,
+    paddingTop: 8,
   },
-  lowStockThumbBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    borderWidth: 1,
-    overflow: 'hidden',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  lowStockThumbImg: {
-    width: '100%',
-    height: '100%',
-  },
-  lowStockInitial: {
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  lowStockItemInfo: {
+  lowStockCompactItemInfo: {
     flex: 1,
+    marginRight: 10,
   },
   lowStockItemName: {
-    fontSize: 13.5,
+    fontSize: 13,
     fontWeight: '700',
   },
   lowStockBadgesRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 4,
+    gap: 6,
+    marginTop: 3,
   },
   stockLevelChip: {
-    paddingHorizontal: 6,
-    paddingVertical: 1.5,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
     borderRadius: 4,
   },
   stockLevelChipOut: {
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    backgroundColor: 'rgba(239, 68, 68, 0.14)',
   },
   stockLevelChipLow: {
-    backgroundColor: 'rgba(217, 119, 6, 0.12)',
+    backgroundColor: 'rgba(217, 119, 6, 0.14)',
   },
   stockLevelChipText: {
-    fontSize: 9.5,
+    fontSize: 9,
     fontWeight: '900',
-    letterSpacing: 0.4,
+    letterSpacing: 0.3,
   },
   stockLeftText: {
-    fontSize: 11.5,
+    fontSize: 11,
     fontWeight: '600',
   },
   restockButtonsWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
   },
   restockBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 5,
+    borderRadius: 6,
     borderWidth: 1,
   },
   restockBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  lowStockFooterLink: {
+    paddingTop: 8,
+    borderTopWidth: 1,
+    alignItems: 'center',
+  },
+  lowStockFooterLinkText: {
     fontSize: 11.5,
+    fontWeight: '700',
+    color: '#d97706',
+  },
+  viewAllOrdersQueueBtn: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 6,
+  },
+  viewAllOrdersQueueLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  viewAllOrdersQueueText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  viewAllOrdersQueueRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  moreOrdersPill: {
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  moreOrdersPillText: {
+    color: '#10b981',
+    fontSize: 11,
     fontWeight: '800',
   },
 });

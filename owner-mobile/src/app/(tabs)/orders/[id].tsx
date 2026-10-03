@@ -16,6 +16,8 @@ import { useLocalSearchParams as useExpoParams, useRouter as useExpoRouter } fro
 import { Image } from 'expo-image';
 import api, { ApiInstance, getErrorMessage } from '../../../services/api';
 import { Ionicons } from '@expo/vector-icons';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert, showConfirm } from '../../../utils/alerts';
 
@@ -115,39 +117,155 @@ export default function OrderDetailsScreen() {
     }
   }, [id, router]);
 
+  const buildInvoiceHtml = useCallback(
+    (o: Order) => {
+      const storeName = storeSettings?.store_name || 'Narendra Kirana Store';
+      const storeAddr = storeSettings?.store_address || 'Main Road, Market Center';
+      const storePhone = storeSettings?.store_phone || '+91 9876543210';
+      const storeEmail = storeSettings?.store_email || 'support@narendrakirana.com';
+      const gstin = storeSettings?.gstin || '';
+      const fssai = storeSettings?.fssai_license_number || '';
+
+      const itemsHtml = (o.items || [])
+        .map((it) => {
+          const qty = Number(it.quantity || 1);
+          const price = parseFloat(it.price_snapshot) || 0;
+          const total = parseFloat(it.subtotal) || price * qty;
+          const isRejected = it.status === 'REJECTED';
+          return `
+            <tr style="${isRejected ? 'text-decoration:line-through;color:#e11d48;opacity:0.7;' : ''}">
+              <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;">
+                <strong>${it.product_name_snapshot}</strong>
+                ${it.unit_snapshot ? `<br><small style="color:#64748b;">${it.unit_snapshot}</small>` : ''}
+              </td>
+              <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;text-align:center;">${qty}</td>
+              <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;text-align:right;">₹${price.toFixed(2)}</td>
+              <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:bold;">${isRejected ? 'REJECTED' : `₹${total.toFixed(2)}`}</td>
+            </tr>
+          `;
+        })
+        .join('');
+
+    const subtotal = (o.items || [])
+      .filter((i) => i?.status !== 'REJECTED')
+      .reduce(
+        (sum, item) =>
+          sum +
+          (parseFloat(item?.subtotal) ||
+            (parseFloat(item?.price_snapshot) || 0) * (item?.quantity || 1)),
+        0
+      )
+      .toFixed(2);
+
+    return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; margin: 0; padding: 20px; font-size: 13px; }
+  .box { max-width: 620px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; padding: 22px; }
+  .hdr { text-align: center; border-bottom: 2px solid #059669; padding-bottom: 12px; margin-bottom: 14px; }
+  .hdr h1 { margin: 0 0 4px; font-size: 20px; color: #059669; }
+  .hdr p { margin: 2px 0; color: #475569; font-size: 11px; }
+  .tb { text-align: center; margin-bottom: 14px; }
+  .tb span { background: #ecfdf5; color: #059669; padding: 4px 12px; border-radius: 12px; font-weight: 800; font-size: 11px; }
+  .meta { display: flex; justify-content: space-between; margin-bottom: 14px; font-size: 12px; }
+  .meta-col { flex: 1; }
+  .meta-col.r { text-align: right; }
+  .lb { font-weight: 800; color: #64748b; font-size: 10px; text-transform: uppercase; margin-bottom: 2px; }
+  .vl { font-weight: bold; font-size: 13px; color: #0f172a; }
+  .sb { color: #475569; margin-top: 1px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+  th { background: #f8fafc; padding: 8px 10px; text-align: left; font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; border-bottom: 2px solid #e2e8f0; }
+  .fees { border-top: 1px dashed #cbd5e1; padding-top: 8px; margin-bottom: 8px; }
+  .fr { display: flex; justify-content: space-between; padding: 2px 0; font-size: 12px; color: #475569; }
+  .grand { display: flex; justify-content: space-between; border-top: 2px solid #0f172a; padding-top: 8px; margin-top: 6px; font-size: 16px; font-weight: 900; }
+  .grand .amt { color: #059669; }
+  .ft { text-align: center; margin-top: 20px; padding-top: 10px; border-top: 1px solid #e2e8f0; font-size: 10px; color: #94a3b8; font-style: italic; }
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="hdr">
+    <h1>${storeName}</h1>
+    <p>${storeAddr}</p>
+    <p>Phone: ${storePhone} • Email: ${storeEmail}</p>
+    ${gstin ? `<p><strong>GSTIN:</strong> ${gstin}</p>` : ''}
+    ${fssai ? `<p><strong>FSSAI Lic #:</strong> ${fssai}</p>` : ''}
+  </div>
+  <div class="tb"><span>TAX INVOICE</span></div>
+  <div class="meta">
+    <div class="meta-col">
+      <div class="lb">BILLED TO</div>
+      <div class="vl">${o.customer_name || 'Walk-in / Guest'}</div>
+      ${o.customer_phone ? `<div class="sb">Phone: ${o.customer_phone}</div>` : ''}
+      ${o.delivery_address ? `<div class="sb">${o.delivery_address}</div>` : ''}
+    </div>
+    <div class="meta-col r">
+      <div class="lb">INVOICE DETAILS</div>
+      <div class="vl">INV-${String(o.id).replace(/^#/, '')}</div>
+      <div class="sb">${o.created_at ? new Date(o.created_at).toLocaleDateString('en-IN') : ''}</div>
+      <div class="sb">${o.payment_method || 'COD'} (${o.status})</div>
+      ${o.upi_transaction_id ? `<div class="sb">UPI Ref: ${o.upi_transaction_id}</div>` : ''}
+    </div>
+  </div>
+  <table>
+    <thead><tr><th>ITEM</th><th style="text-align:center;">QTY</th><th style="text-align:right;">PRICE</th><th style="text-align:right;">TOTAL</th></tr></thead>
+    <tbody>${itemsHtml}</tbody>
+  </table>
+  <div class="fees">
+    <div class="fr"><span>Items Subtotal:</span><span>₹${subtotal}</span></div>
+    ${parseFloat(o.packaging_fee || '0') > 0 ? `<div class="fr"><span>Packaging Fee:</span><span>₹${o.packaging_fee}</span></div>` : ''}
+    ${parseFloat(o.delivery_fee || '0') > 0 ? `<div class="fr"><span>Delivery Fee:</span><span>₹${o.delivery_fee}</span></div>` : ''}
+    ${parseFloat(o.discount_amount || '0') > 0 ? `<div class="fr" style="color:#059669;"><span>Discount:</span><span>-₹${o.discount_amount}</span></div>` : ''}
+    <div class="grand"><span>Grand Total</span><span class="amt">₹${o.total_amount}</span></div>
+  </div>
+  <div class="ft">Thank you for shopping at ${storeName}! Computer generated tax invoice.</div>
+</div>
+</body>
+</html>`;
+    },
+    [storeSettings]
+  );
+
   const handlePrintOrShare = async () => {
     if (!order) return;
     if (Platform.OS === 'web') {
       window.print();
-    } else {
+      return;
+    }
+    try {
+      const html = buildInvoiceHtml(order);
+      await Print.printAsync({ html });
+    } catch {
       try {
+        const cleanId = String(order.id).replace(/^#/, '');
+        const html = buildInvoiceHtml(order);
+        const { uri } = await Print.printToFileAsync({ html, width: 595, height: 842 });
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(uri, {
+            mimeType: 'application/pdf',
+            dialogTitle: `Tax Invoice INV-${cleanId}`,
+          });
+          return;
+        }
+      } catch {
+        // Fallback to text share
         const itemsText = (order.items || [])
           .map(
             (it) =>
               `• ${it.product_name_snapshot} (${it.unit_snapshot || ''}) x${it.quantity} = ₹${it.subtotal}`
           )
           .join('\n');
-
         const message =
           `TAX INVOICE - ${storeSettings?.store_name || 'Narendra Kirana'}\n` +
           `Invoice #: INV-${order.id}\n` +
-          `Date: ${order.created_at ? new Date(order.created_at).toLocaleDateString() : ''}\n` +
           `Customer: ${order.customer_name || 'Walk-in'}\n` +
-          `Phone: ${order.customer_phone || '—'}\n` +
-          `Address: ${order.delivery_address || 'Store Pickup'}\n\n` +
+          `Total: ₹${order.total_amount}\n\n` +
           `ITEMS:\n${itemsText}\n\n` +
-          `Total Amount: ₹${order.total_amount}\n` +
-          `Payment: ${order.payment_method || 'COD'}\n` +
-          `${storeSettings?.gstin ? `GSTIN: ${storeSettings.gstin}\n` : ''}` +
-          `${storeSettings?.fssai_license_number ? `FSSAI: ${storeSettings.fssai_license_number}\n` : ''}` +
           `Thank you for shopping with us!`;
-
-        await Share.share({
-          title: `Tax Invoice INV-${order.id}`,
-          message,
-        });
-      } catch (err: any) {
-        showAlert('Share Failed', getErrorMessage(err, 'Could not share invoice.'));
+        Share.share({ message }).catch(() => {});
       }
     }
   };
@@ -333,20 +451,6 @@ export default function OrderDetailsScreen() {
             </TouchableOpacity>
 
             <View style={styles.topBadgesRight}>
-              <TouchableOpacity
-                style={[
-                  styles.invoiceNavBtn,
-                  {
-                    backgroundColor: isDark ? 'rgba(5, 150, 105, 0.2)' : '#ecfdf5',
-                    borderColor: '#10b981',
-                  },
-                ]}
-                onPress={() => setShowInvoiceModal(true)}
-              >
-                <Ionicons name="receipt-outline" size={13} color="#10b981" />
-                <Text style={styles.invoiceNavBtnText}>Tax Invoice</Text>
-              </TouchableOpacity>
-
               <View
                 style={[
                   styles.modePill,
@@ -412,45 +516,12 @@ export default function OrderDetailsScreen() {
               { backgroundColor: colors.card, borderColor: colors.border },
             ]}
           >
-            {/* Top row: Order # & Payment on left, Amount on right */}
+            {/* Row 1: Order # on left, Amount on right */}
             <View style={styles.compactOrderHeaderRow}>
-              <View style={styles.compactOrderLeftCol}>
-                <View style={styles.compactOrderIdRow}>
-                  <Text style={[styles.compactOrderId, { color: colors.text }]} selectable>
-                    Order #{order.id}
-                  </Text>
-                  <View
-                    style={[
-                      styles.payBadgePill,
-                      {
-                        backgroundColor: colors.cardAlt,
-                        borderColor: colors.border,
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.payBadgeText, { color: colors.textMuted }]}>
-                      {order.payment_method || 'COD'}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    style={[
-                      styles.payBadgePill,
-                      {
-                        backgroundColor: isDark ? '#064e3b' : '#ecfdf5',
-                        borderColor: '#10b981',
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: 3,
-                      },
-                    ]}
-                    onPress={() => setShowInvoiceModal(true)}
-                  >
-                    <Ionicons name="document-text-outline" size={12} color="#10b981" />
-                    <Text style={[styles.payBadgeText, { color: '#10b981', fontWeight: 'bold' }]}>
-                      Invoice
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+              <View style={styles.compactOrderIdCol}>
+                <Text style={[styles.compactOrderId, { color: colors.text }]} selectable>
+                  Order #{order.id}
+                </Text>
                 {order.upi_transaction_id ? (
                   <Text
                     style={[styles.upiSubText, { color: colors.textMuted }]}
@@ -462,6 +533,47 @@ export default function OrderDetailsScreen() {
               </View>
 
               <Text style={styles.compactTotalAmount}>₹{order.total_amount}</Text>
+            </View>
+
+            {/* Row 2: Badges & Time on left, Tax Invoice Action on right */}
+            <View style={styles.compactOrderSubRow}>
+              <View style={styles.compactSubBadgesLeft}>
+                <View
+                  style={[
+                    styles.payBadgePill,
+                    {
+                      backgroundColor: colors.cardAlt,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.payBadgeText, { color: colors.textMuted }]}>
+                    {order.payment_method || 'COD'}
+                  </Text>
+                </View>
+                {order.created_at ? (
+                  <Text style={[styles.orderCreatedTime, { color: colors.textMuted }]}>
+                    {new Date(order.created_at).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </Text>
+                ) : null}
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  styles.invoiceNavBtn,
+                  {
+                    backgroundColor: isDark ? 'rgba(5, 150, 105, 0.2)' : '#ecfdf5',
+                    borderColor: '#10b981',
+                  },
+                ]}
+                onPress={() => setShowInvoiceModal(true)}
+              >
+                <Ionicons name="receipt-outline" size={13} color="#10b981" />
+                <Text style={styles.invoiceNavBtnText}>Tax Invoice</Text>
+              </TouchableOpacity>
             </View>
 
             {/* Slim 4-Stage Stepper */}
@@ -1293,22 +1405,30 @@ export default function OrderDetailsScreen() {
           <View style={[styles.invoiceModalCard, { backgroundColor: '#ffffff' }]}>
             {/* Modal Controls Header */}
             <View style={styles.invoiceModalHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Ionicons name="document-text" size={20} color="#059669" />
-                <Text style={styles.invoiceModalHeaderTitle}>
+              <View style={styles.invoiceModalHeaderLeft}>
+                <Ionicons name="document-text" size={18} color="#059669" />
+                <Text
+                  style={styles.invoiceModalHeaderTitle}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
                   Tax Invoice #{order.id}
                 </Text>
               </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={styles.invoiceModalHeaderActions}>
                 <TouchableOpacity
                   style={styles.modalPrintBtn}
                   onPress={handlePrintOrShare}
                 >
-                  <Ionicons name="print-outline" size={16} color="#fff" />
-                  <Text style={styles.modalPrintBtnText}>Print / Share</Text>
+                  <Ionicons name="print-outline" size={14} color="#fff" />
+                  <Text style={styles.modalPrintBtnText}>Print</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => setShowInvoiceModal(false)}>
-                  <Ionicons name="close" size={24} color="#64748b" />
+                <TouchableOpacity
+                  style={styles.modalCloseBtn}
+                  onPress={() => setShowInvoiceModal(false)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="close" size={22} color="#64748b" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -1341,9 +1461,9 @@ export default function OrderDetailsScreen() {
 
               {/* Invoice Meta Grid */}
               <View style={styles.docMetaGrid}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.docMetaLabel}>BILLED TO:</Text>
-                  <Text style={styles.docMetaVal}>
+                <View style={styles.docMetaColLeft}>
+                  <Text style={styles.docMetaLabel}>BILLED TO</Text>
+                  <Text style={styles.docMetaVal} numberOfLines={1}>
                     {order.customer_name || 'Walk-in Customer'}
                   </Text>
                   {order.customer_phone ? (
@@ -1355,18 +1475,31 @@ export default function OrderDetailsScreen() {
                     </Text>
                   ) : null}
                 </View>
-                <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                  <Text style={styles.docMetaLabel}>INVOICE DETAILS:</Text>
-                  <Text style={styles.docMetaVal}>INV-#{order.id}</Text>
+                <View style={styles.docMetaColRight}>
+                  <Text style={styles.docMetaLabel}>INVOICE DETAILS</Text>
+                  <Text
+                    style={styles.docMetaVal}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.75}
+                  >
+                    INV-{String(order.id).replace(/^#/, '')}
+                  </Text>
                   <Text style={styles.docMetaSub}>
                     Date:{' '}
-                    {order.created_at ? new Date(order.created_at).toLocaleDateString() : ''}
+                    {order.created_at
+                      ? new Date(order.created_at).toLocaleDateString('en-IN', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                        })
+                      : ''}
                   </Text>
                   <Text style={styles.docMetaSub}>
                     Payment: {order.payment_method || 'COD'} ({order.status})
                   </Text>
                   {order.upi_transaction_id ? (
-                    <Text style={styles.docMetaSub}>
+                    <Text style={styles.docMetaSub} numberOfLines={1}>
                       UPI Ref: {order.upi_transaction_id}
                     </Text>
                   ) : null}
@@ -1520,19 +1653,34 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  compactOrderLeftCol: {
+  compactOrderIdCol: {
     flex: 1,
     gap: 2,
-  },
-  compactOrderIdRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
   },
   compactOrderId: {
     fontSize: 16,
     fontWeight: '900',
     letterSpacing: -0.3,
+  },
+  compactTotalAmount: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#10b981',
+  },
+  compactOrderSubRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  compactSubBadgesLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  orderCreatedTime: {
+    fontSize: 11,
+    fontWeight: '600',
   },
   payBadgePill: {
     paddingHorizontal: 7,
@@ -1546,11 +1694,6 @@ const styles = StyleSheet.create({
   },
   upiSubText: {
     fontSize: 11,
-  },
-  compactTotalAmount: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#10b981',
   },
   slimStepperRow: {
     flexDirection: 'row',
@@ -2165,10 +2308,24 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e2e8f0',
     backgroundColor: '#f8fafc',
   },
+  invoiceModalHeaderLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginRight: 8,
+  },
   invoiceModalHeaderTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontWeight: '700',
     color: '#0f172a',
+    flexShrink: 1,
+  },
+  invoiceModalHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 0,
   },
   modalPrintBtn: {
     flexDirection: 'row',
@@ -2183,6 +2340,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 11,
     fontWeight: 'bold',
+  },
+  modalCloseBtn: {
+    padding: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   invoicePrintScroll: {
     padding: 16,
@@ -2222,21 +2384,34 @@ const styles = StyleSheet.create({
   docMetaGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    backgroundColor: '#f8fafc',
+    borderRadius: 8,
+    padding: 10,
     marginBottom: 14,
+    gap: 12,
+  },
+  docMetaColLeft: {
+    flex: 1.1,
+  },
+  docMetaColRight: {
+    flex: 1.1,
+    alignItems: 'flex-end',
   },
   docMetaLabel: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '800',
-    color: '#94a3b8',
+    color: '#64748b',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
     marginBottom: 2,
   },
   docMetaVal: {
-    fontSize: 13,
-    fontWeight: 'bold',
+    fontSize: 12,
+    fontWeight: '700',
     color: '#0f172a',
   },
   docMetaSub: {
-    fontSize: 11,
+    fontSize: 10.5,
     color: '#475569',
     marginTop: 1,
   },
