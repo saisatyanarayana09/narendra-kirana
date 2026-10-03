@@ -68,7 +68,12 @@ export default function LoginScreen() {
     try {
       setGoogleLoading(true);
       setErrorMsg(null);
-      await GoogleSignin.hasPlayServices();
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      try {
+        await GoogleSignin.signOut();
+      } catch {
+        // Ignore if no prior account was cached
+      }
       const userInfo: any = await GoogleSignin.signIn();
       const idToken = userInfo?.data?.idToken || userInfo?.idToken;
 

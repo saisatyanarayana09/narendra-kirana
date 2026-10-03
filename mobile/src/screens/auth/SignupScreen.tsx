@@ -238,7 +238,12 @@ export function SignupScreen({ navigation, route }: Props) {
   const handleGoogleSignup = async () => {
     try {
       setIsGoogleLoading(true);
-      await GoogleSignin.hasPlayServices();
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      try {
+        await GoogleSignin.signOut();
+      } catch {
+        // Ignore if no prior account was cached
+      }
       const response = await GoogleSignin.signIn();
       const idToken =
         (response as any).data?.idToken || (response as any).idToken;
