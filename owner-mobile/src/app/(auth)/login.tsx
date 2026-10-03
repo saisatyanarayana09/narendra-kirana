@@ -67,12 +67,13 @@ export default function LoginScreen() {
   const handleGoogleLogin = async () => {
     try {
       setGoogleLoading(true);
+      setErrorMsg(null);
       await GoogleSignin.hasPlayServices();
       const userInfo: any = await GoogleSignin.signIn();
-      const idToken = userInfo?.idToken;
+      const idToken = userInfo?.data?.idToken || userInfo?.idToken;
 
       if (!idToken) {
-        throw new Error('No Google ID token received');
+        throw new Error('No Google ID token received from Play Services');
       }
 
       const response = await api.post('/auth/google-login/', {
@@ -92,9 +93,15 @@ export default function LoginScreen() {
     } catch (error: any) {
       if (error?.code === 'SIGN_IN_CANCELLED' || error?.code === '12501') {
         // User cancelled login modal
-      } else {
-        setErrorMsg(error?.response?.data?.detail || 'Google Sign-In failed. Please try again.');
+        return;
       }
+      const backendDetail = error?.response?.data?.detail || error?.response?.data?.error;
+      const errorText = backendDetail
+        ? backendDetail
+        : error?.code === '10' || String(error?.message).includes('DEVELOPER_ERROR')
+        ? 'Google Sign-In configuration error (Code 10). The APK SHA-1 fingerprint needs to be registered in Google Cloud Console.'
+        : error?.message || 'Google Sign-In failed. Please try again.';
+      setErrorMsg(errorText);
     } finally {
       setGoogleLoading(false);
     }

@@ -35,10 +35,20 @@ import { OtaLaunchScreen } from './src/components/OtaLaunchScreen';
 import { OtaUpdateBanner } from './src/components/OtaUpdateBanner';
 import { runStartupOtaFlow, subscribeOtaState } from './src/services/otaService';
 import { getNotifications } from './src/services/notificationService';
+import { GoogleSignin } from './src/utils/GoogleSigninWrapper';
 
 // Initialize global notification handler outside of React component lifecycle
 // This ensures notifications are processed even when app is in background/killed state
 getNotifications();
+
+if (Platform.OS !== 'web') {
+  try {
+    GoogleSignin.configure({
+      webClientId: '729937153109-6e8fivp20b3ri2qsah1d6u2a7oi0uls6.apps.googleusercontent.com',
+      offlineAccess: false,
+    });
+  } catch {}
+}
 
 class TopLevelErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: any }> {
   state: { hasError: boolean; error: any } = { hasError: false, error: null };

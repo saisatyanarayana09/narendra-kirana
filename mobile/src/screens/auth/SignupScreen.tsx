@@ -249,11 +249,19 @@ export function SignupScreen({ navigation, route }: Props) {
         throw new Error("No ID token present!");
       }
     } catch (error: any) {
+      if (error?.code === "SIGN_IN_CANCELLED" || error?.code === "12501") {
+        return;
+      }
       console.error("Google Signin Error:", error);
-      Alert.alert(
-        "Google Sign-In Failed",
-        error.message || "Something went wrong.",
-      );
+      const backendDetail =
+        error.response?.data?.detail || error.response?.data?.error;
+      const errorMsg = backendDetail
+        ? backendDetail
+        : error.code === "10" || String(error.message).includes("DEVELOPER_ERROR")
+        ? "Google Sign-In configuration error (Code 10). The APK SHA-1 fingerprint needs to be registered in Google Cloud Console."
+        : error.message || "Something went wrong.";
+
+      Alert.alert("Google Sign-In Failed", errorMsg);
     } finally {
       setIsGoogleLoading(false);
     }
