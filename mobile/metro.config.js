@@ -15,7 +15,7 @@ config.transformer = {
 };
 
 // Enable fast sourcemaps and optimal asset resolution
-config.resolver.sourceExts = [...config.resolver.sourceExts, 'mjs', 'cjs'];
+config.resolver.sourceExts = Array.from(new Set([...config.resolver.sourceExts, 'mjs', 'cjs']));
 
 module.exports = config;
 
