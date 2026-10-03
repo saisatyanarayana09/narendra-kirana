@@ -7,19 +7,15 @@ import {
   RefreshControl,
   TouchableOpacity,
   ActivityIndicator,
-  Linking,
   useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import api, { ApiInstance, getErrorMessage } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useAppTheme } from '../../context/ThemeContext';
-import { showAlert, showConfirm } from '../../utils/alerts';
+import { showAlert } from '../../utils/alerts';
 import { safeStorage } from '../../utils/storage';
-
-type OrderQuickFilter = 'ALL' | 'NEW';
 
 interface BentoAction {
   label: string;
@@ -88,8 +84,6 @@ const BENTO_ACTIONS: BentoAction[] = [
   },
 ];
 
-const PIPELINE_STEPS = ['NEW', 'ACCEPTED', 'PREPARING', 'READY'];
-
 export default function DashboardScreen() {
   const router = useRouter();
   const { token, isLoading: authLoading } = useAuth();
@@ -104,9 +98,6 @@ export default function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [restockingId, setRestockingId] = useState<number | null>(null);
-
-  const [orderFilter, setOrderFilter] = useState<OrderQuickFilter>('ALL');
-  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
 
   const fetchDashboardData = useCallback(
     async (forceRefresh = false) => {
@@ -176,33 +167,6 @@ export default function DashboardScreen() {
     fetchDashboardData(true);
   }, [fetchDashboardData]);
 
-  const handleQuickOrderAction = async (orderId: string, newStatus: string) => {
-    const runUpdate = async () => {
-      setUpdatingOrderId(orderId);
-      try {
-        await api.patch(`/orders/${orderId}/status/`, { status: newStatus });
-        (api as ApiInstance).clearCache();
-        await fetchDashboardData(true);
-      } catch (e: any) {
-        showAlert('Update Failed', getErrorMessage(e, 'Could not update order status.'));
-      } finally {
-        setUpdatingOrderId(null);
-      }
-    };
-
-    if (newStatus === 'REJECTED') {
-      showConfirm(
-        'Reject Order',
-        'Are you sure you want to reject this order?',
-        runUpdate,
-        undefined,
-        'Reject'
-      );
-    } else {
-      runUpdate();
-    }
-  };
-
   const now = new Date();
   const hour = now.getHours();
   const greeting =
@@ -213,12 +177,7 @@ export default function DashboardScreen() {
     month: 'short',
   });
 
-  const {
-    newOrdersCount,
-    activeOrders,
-    filteredActiveOrders,
-    displayedActiveOrders,
-  } = useMemo(() => {
+  const { newOrdersCount, activeOrders } = useMemo(() => {
     let newCnt = 0;
     const liveList: any[] = [];
 
@@ -235,18 +194,11 @@ export default function DashboardScreen() {
       }
     }
 
-    const filtered = liveList.filter((o) => {
-      if (orderFilter === 'NEW') return o.status === 'NEW';
-      return true;
-    });
-
     return {
       newOrdersCount: newCnt,
       activeOrders: liveList,
-      filteredActiveOrders: filtered,
-      displayedActiveOrders: filtered.slice(0, 3),
     };
-  }, [orders, orderFilter]);
+  }, [orders]);
 
   const lowStockProducts = useMemo(() => {
     return products
@@ -273,65 +225,6 @@ export default function DashboardScreen() {
       showAlert('Restock Failed', getErrorMessage(e, 'Failed to update stock quantity.'));
     } finally {
       setRestockingId(null);
-    }
-  };
-
-  const getStatusTheme = (status: string) => {
-    switch (status) {
-      case 'NEW':
-        return {
-          accent: '#e11d48',
-          bg: isDark ? 'rgba(225, 29, 72, 0.16)' : '#fff1f2',
-          text: isDark ? '#fda4af' : '#be123c',
-          border: isDark ? 'rgba(225, 29, 72, 0.35)' : '#fecdd3',
-          label: 'NEW • NEEDS APPROVAL',
-          stepIndex: 0,
-        };
-      case 'ACCEPTED':
-        return {
-          accent: '#2563eb',
-          bg: isDark ? 'rgba(37, 99, 235, 0.16)' : '#eff6ff',
-          text: isDark ? '#93c5fd' : '#1d4ed8',
-          border: isDark ? 'rgba(37, 99, 235, 0.35)' : '#bfdbfe',
-          label: 'ACCEPTED',
-          stepIndex: 1,
-        };
-      case 'PREPARING':
-        return {
-          accent: '#d97706',
-          bg: isDark ? 'rgba(217, 119, 6, 0.16)' : '#fffbeb',
-          text: isDark ? '#fcd34d' : '#b45309',
-          border: isDark ? 'rgba(217, 119, 6, 0.35)' : '#fde68a',
-          label: 'PACKING ITEMS',
-          stepIndex: 2,
-        };
-      case 'READY':
-        return {
-          accent: '#7c3aed',
-          bg: isDark ? 'rgba(124, 58, 237, 0.16)' : '#f5f3ff',
-          text: isDark ? '#c4b5fd' : '#6d28d9',
-          border: isDark ? 'rgba(124, 58, 237, 0.35)' : '#ddd6fe',
-          label: 'READY FOR DISPATCH',
-          stepIndex: 3,
-        };
-      case 'OUT_FOR_DELIVERY':
-        return {
-          accent: '#059669',
-          bg: isDark ? 'rgba(5, 150, 105, 0.16)' : '#ecfdf5',
-          text: isDark ? '#6ee7b7' : '#047857',
-          border: isDark ? 'rgba(5, 150, 105, 0.35)' : '#a7f3d0',
-          label: 'OUT FOR DELIVERY',
-          stepIndex: 3,
-        };
-      default:
-        return {
-          accent: '#64748b',
-          bg: colors.cardAlt,
-          text: colors.textMuted,
-          border: colors.border,
-          label: status,
-          stepIndex: 0,
-        };
     }
   };
 
@@ -375,11 +268,8 @@ export default function DashboardScreen() {
             {/* Card A: Needs Approval */}
             <TouchableOpacity
               activeOpacity={0.85}
-              style={[
-                styles.heroMetricBox,
-                orderFilter === 'NEW' && styles.heroMetricBoxSelectedRose,
-              ]}
-              onPress={() => setOrderFilter((prev) => (prev === 'NEW' ? 'ALL' : 'NEW'))}
+              style={styles.heroMetricBox}
+              onPress={() => router.push('/(tabs)/orders')}
             >
               <View style={styles.heroMetricTop}>
                 <View style={[styles.heroIconCircle, { backgroundColor: 'rgba(244, 63, 94, 0.2)' }]}>
@@ -402,7 +292,7 @@ export default function DashboardScreen() {
                       { color: newOrdersCount > 0 ? '#fda4af' : '#94a3b8' },
                     ]}
                   >
-                    {orderFilter === 'NEW' ? 'FILTERED' : 'TAP TO FILTER'}
+                    {newOrdersCount > 0 ? 'VIEW ORDERS ↗' : 'ALL CAUGHT UP'}
                   </Text>
                 </View>
               </View>
@@ -412,7 +302,7 @@ export default function DashboardScreen() {
               </Text>
               <Text style={styles.heroMetricLabel}>Needs Approval</Text>
               <Text style={styles.heroMetricSub}>
-                {activeOrders.length} active in queue
+                {activeOrders.length} active in store
               </Text>
             </TouchableOpacity>
 
@@ -672,454 +562,6 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* 4. Live Order Queue Section */}
-        <View style={styles.queueSection}>
-          <View style={styles.queueHeaderRow}>
-            <View style={styles.queueTitleLeft}>
-              <View style={styles.livePulseDot} />
-              <Text style={[styles.queueTitle, { color: colors.text }]}>
-                Live Order Queue
-              </Text>
-              <View
-                style={[
-                  styles.queueCountBadge,
-                  { backgroundColor: colors.cardAlt, borderColor: colors.border },
-                ]}
-              >
-                <Text style={[styles.queueCountText, { color: colors.text }]}>
-                  {filteredActiveOrders.length}
-                </Text>
-              </View>
-            </View>
-
-            {/* Clean 2-Pill Filter Switcher */}
-            <View
-              style={[
-                styles.miniSegmented,
-                { backgroundColor: colors.cardAlt, borderColor: colors.border },
-              ]}
-            >
-              <TouchableOpacity
-                style={[
-                  styles.miniSegBtn,
-                  orderFilter === 'ALL' && {
-                    backgroundColor: colors.card,
-                  },
-                ]}
-                onPress={() => setOrderFilter('ALL')}
-              >
-                <Text
-                  style={[
-                    styles.miniSegText,
-                    {
-                      color:
-                        orderFilter === 'ALL' ? colors.text : colors.textMuted,
-                    },
-                  ]}
-                >
-                  All ({activeOrders.length})
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.miniSegBtn,
-                  orderFilter === 'NEW' && {
-                    backgroundColor: colors.card,
-                  },
-                ]}
-                onPress={() => setOrderFilter('NEW')}
-              >
-                <Text
-                  style={[
-                    styles.miniSegText,
-                    {
-                      color:
-                        orderFilter === 'NEW' ? '#e11d48' : colors.textMuted,
-                    },
-                  ]}
-                >
-                  New ({newOrdersCount})
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {loading && orders.length === 0 ? (
-            <View
-              style={[
-                styles.emptyCard,
-                { backgroundColor: colors.card, borderColor: colors.border },
-              ]}
-            >
-              <ActivityIndicator size="large" color="#10b981" />
-              <Text style={[styles.emptySubText, { color: colors.textMuted }]}>
-                Syncing live orders...
-              </Text>
-            </View>
-          ) : filteredActiveOrders.length === 0 ? (
-            <View
-              style={[
-                styles.emptyCard,
-                { backgroundColor: colors.card, borderColor: colors.border },
-              ]}
-            >
-              <View style={styles.emptyBadgeCircle}>
-                <Ionicons name="checkmark-done" size={28} color="#10b981" />
-              </View>
-              <Text style={[styles.emptyTitleText, { color: colors.text }]}>
-                {orderFilter === 'NEW'
-                  ? 'No orders waiting for approval'
-                  : 'All active orders fulfilled!'}
-              </Text>
-              <Text style={[styles.emptySubText, { color: colors.textMuted }]}>
-                New incoming customer orders will appear here automatically.
-              </Text>
-              {orderFilter === 'NEW' && activeOrders.length > 0 && (
-                <TouchableOpacity
-                  style={[
-                    styles.showAllQueueBtn,
-                    { backgroundColor: colors.cardAlt, borderColor: colors.border },
-                  ]}
-                  onPress={() => setOrderFilter('ALL')}
-                >
-                  <Text style={[styles.showAllQueueText, { color: colors.text }]}>
-                    Show {activeOrders.length} Active Orders
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          ) : (
-            <>
-              <View style={styles.orderList}>
-              {displayedActiveOrders.map((order) => {
-                const st = getStatusTheme(order.status);
-                const timeStr = order.created_at
-                  ? new Date(order.created_at).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })
-                  : '';
-                const customerInitial = String(order.customer_name || 'G')
-                  .trim()
-                  .charAt(0)
-                  .toUpperCase();
-
-                return (
-                  <View
-                    key={order.id}
-                    style={[
-                      styles.orderCard,
-                      {
-                        backgroundColor: colors.card,
-                        borderColor: colors.border,
-                        borderLeftColor: st.accent,
-                      },
-                    ]}
-                  >
-                    {/* Tappable Body -> Order Details */}
-                    <TouchableOpacity
-                      activeOpacity={0.75}
-                      style={styles.orderCardBody}
-                      onPress={() => router.push(`/(tabs)/orders/${order.id}`)}
-                    >
-                      {/* Row 1: #ID + Status Badge + Fulfillment Type + Time */}
-                      <View style={styles.orderTopMetaRow}>
-                        <View style={styles.orderBadgesLeft}>
-                          <View
-                            style={[
-                              styles.idChip,
-                              { backgroundColor: colors.cardAlt },
-                            ]}
-                          >
-                            <Text style={[styles.idChipText, { color: colors.text }]}>
-                              #{order.id}
-                            </Text>
-                          </View>
-
-                          <View
-                            style={[
-                              styles.statusChip,
-                              {
-                                backgroundColor: st.bg,
-                                borderColor: st.border,
-                              },
-                            ]}
-                          >
-                            <Text style={[styles.statusChipText, { color: st.text }]}>
-                              {st.label}
-                            </Text>
-                          </View>
-
-                          <View
-                            style={[
-                              styles.modeChip,
-                              { backgroundColor: colors.cardAlt },
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.modeChipText,
-                                { color: colors.textMuted },
-                              ]}
-                            >
-                              {order.order_type === 'PICKUP'
-                                ? '🏪 Pickup'
-                                : '🛵 Delivery'}
-                            </Text>
-                          </View>
-                        </View>
-
-                        <Text style={[styles.timeLabel, { color: colors.textMuted }]}>
-                          {timeStr}
-                        </Text>
-                      </View>
-
-                      {/* Row 2: Customer Avatar + Name/Items + Price & Call */}
-                      <View style={styles.customerMainRow}>
-                        <View
-                          style={[
-                            styles.avatarCircle,
-                            { backgroundColor: colors.cardAlt },
-                          ]}
-                        >
-                          <Text style={[styles.avatarLetter, { color: colors.text }]}>
-                            {customerInitial}
-                          </Text>
-                        </View>
-
-                        <View style={{ flex: 1 }}>
-                          <Text
-                            style={[styles.customerNameText, { color: colors.text }]}
-                            numberOfLines={1}
-                          >
-                            {order.customer_name || 'Guest Customer'}
-                          </Text>
-                          <Text
-                            style={[styles.itemsMetaText, { color: colors.textMuted }]}
-                          >
-                            {order.items_count ?? order.items?.length ?? 0} items •{' '}
-                            {order.payment_method || 'COD'}
-                          </Text>
-                        </View>
-
-                        <View style={styles.priceAndCallRight}>
-                          {order.customer_phone ? (
-                            <TouchableOpacity
-                              style={[
-                                styles.callIconBtn,
-                                {
-                                  backgroundColor: isDark
-                                    ? 'rgba(16, 185, 129, 0.16)'
-                                    : '#ecfdf5',
-                                },
-                              ]}
-                              onPress={() =>
-                                Linking.openURL(`tel:${order.customer_phone}`)
-                              }
-                            >
-                              <Ionicons name="call" size={15} color="#10b981" />
-                            </TouchableOpacity>
-                          ) : null}
-
-                          <View style={styles.priceWrap}>
-                            <Text style={[styles.orderTotalText, { color: colors.text }]}>
-                              ₹{order.total_amount}
-                            </Text>
-                            <Ionicons
-                              name="chevron-forward"
-                              size={16}
-                              color={colors.textMuted}
-                            />
-                          </View>
-                        </View>
-                      </View>
-
-                      {/* Row 3: 4-Stage Visual Order Progress Bar */}
-                      <View style={styles.stepperTrack}>
-                        {PIPELINE_STEPS.map((stepKey, idx) => {
-                          const completed = idx <= st.stepIndex;
-                          return (
-                            <View
-                              key={stepKey}
-                              style={[
-                                styles.stepperSegment,
-                                {
-                                  backgroundColor: completed
-                                    ? st.accent
-                                    : colors.cardAlt,
-                                },
-                              ]}
-                            />
-                          );
-                        })}
-                      </View>
-                    </TouchableOpacity>
-
-                    {/* Row 4: Full-Width Action Bar */}
-                    <View
-                      style={[
-                        styles.orderActionFooter,
-                        { borderTopColor: colors.border },
-                      ]}
-                    >
-                      {updatingOrderId === order.id ? (
-                        <ActivityIndicator
-                          size="small"
-                          color="#10b981"
-                          style={{ flex: 1, paddingVertical: 8 }}
-                        />
-                      ) : (
-                        <>
-                          {order.status === 'NEW' && (
-                            <>
-                              <TouchableOpacity
-                                style={styles.rejectActionBtn}
-                                onPress={() =>
-                                  handleQuickOrderAction(order.id, 'REJECTED')
-                                }
-                              >
-                                <Ionicons name="close" size={16} color="#e11d48" />
-                                <Text style={styles.rejectActionText}>Reject</Text>
-                              </TouchableOpacity>
-
-                              <TouchableOpacity
-                                style={styles.acceptActionBtn}
-                                onPress={() =>
-                                  handleQuickOrderAction(order.id, 'ACCEPTED')
-                                }
-                              >
-                                <Ionicons name="checkmark" size={18} color="#ffffff" />
-                                <Text style={styles.acceptActionText}>
-                                  Accept Order
-                                </Text>
-                              </TouchableOpacity>
-                            </>
-                          )}
-
-                          {order.status === 'ACCEPTED' && (
-                            <TouchableOpacity
-                              style={[
-                                styles.nextStageBtn,
-                                { backgroundColor: '#2563eb' },
-                              ]}
-                              onPress={() =>
-                                handleQuickOrderAction(order.id, 'PREPARING')
-                              }
-                            >
-                              <Ionicons name="cube-outline" size={17} color="#ffffff" />
-                              <Text style={styles.nextStageBtnText}>
-                                Start Packing Items
-                              </Text>
-                            </TouchableOpacity>
-                          )}
-
-                          {order.status === 'PREPARING' && (
-                            <TouchableOpacity
-                              style={[
-                                styles.nextStageBtn,
-                                { backgroundColor: '#7c3aed' },
-                              ]}
-                              onPress={() => handleQuickOrderAction(order.id, 'READY')}
-                            >
-                              <Ionicons
-                                name="checkmark-circle-outline"
-                                size={17}
-                                color="#ffffff"
-                              />
-                              <Text style={styles.nextStageBtnText}>
-                                Mark Order Ready
-                              </Text>
-                            </TouchableOpacity>
-                          )}
-
-                          {order.status === 'READY' && (
-                            <TouchableOpacity
-                              style={[
-                                styles.nextStageBtn,
-                                { backgroundColor: '#059669' },
-                              ]}
-                              onPress={() =>
-                                handleQuickOrderAction(
-                                  order.id,
-                                  order.order_type === 'PICKUP'
-                                    ? 'COMPLETED'
-                                    : 'OUT_FOR_DELIVERY'
-                                )
-                              }
-                            >
-                              <Ionicons
-                                name={
-                                  order.order_type === 'PICKUP'
-                                    ? 'bag-check-outline'
-                                    : 'bicycle-outline'
-                                }
-                                size={17}
-                                color="#ffffff"
-                              />
-                              <Text style={styles.nextStageBtnText}>
-                                {order.order_type === 'PICKUP'
-                                  ? 'Complete Customer Pickup'
-                                  : 'Dispatch for Delivery'}
-                              </Text>
-                            </TouchableOpacity>
-                          )}
-
-                          {order.status === 'OUT_FOR_DELIVERY' && (
-                            <TouchableOpacity
-                              style={[
-                                styles.nextStageBtn,
-                                { backgroundColor: '#10b981' },
-                              ]}
-                              onPress={() =>
-                                router.push(`/(tabs)/orders/${order.id}`)
-                              }
-                            >
-                              <Ionicons
-                                name="shield-checkmark-outline"
-                                size={17}
-                                color="#ffffff"
-                              />
-                              <Text style={styles.nextStageBtnText}>
-                                Enter Delivery OTP & Complete
-                              </Text>
-                            </TouchableOpacity>
-                          )}
-                        </>
-                      )}
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
-
-            {filteredActiveOrders.length > 3 && (
-              <TouchableOpacity
-                style={[
-                  styles.viewAllOrdersQueueBtn,
-                  { backgroundColor: colors.card, borderColor: colors.border },
-                ]}
-                onPress={() => router.push('/(tabs)/orders')}
-              >
-                <View style={styles.viewAllOrdersQueueLeft}>
-                  <Ionicons name="receipt-outline" size={16} color="#10b981" />
-                  <Text style={[styles.viewAllOrdersQueueText, { color: colors.text }]}>
-                    View All Active Orders ({filteredActiveOrders.length})
-                  </Text>
-                </View>
-                <View style={styles.viewAllOrdersQueueRight}>
-                  <View style={styles.moreOrdersPill}>
-                    <Text style={styles.moreOrdersPillText}>
-                      +{filteredActiveOrders.length - 3} more
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={15} color="#10b981" />
-                </View>
-              </TouchableOpacity>
-            )}
-          </>
-          )}
-        </View>
       </View>
     </ScrollView>
   );
@@ -1284,257 +726,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 1,
   },
-  queueSection: {
-    gap: 12,
-  },
-  queueHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  queueTitleLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  livePulseDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#10b981',
-  },
-  queueTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    letterSpacing: -0.3,
-  },
-  queueCountBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  queueCountText: {
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  miniSegmented: {
-    flexDirection: 'row',
-    padding: 3,
-    borderRadius: 10,
-    borderWidth: 1,
-    gap: 3,
-  },
-  miniSegBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 7,
-  },
-  miniSegText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  emptyCard: {
-    padding: 36,
-    borderRadius: 20,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyBadgeCircle: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: 'rgba(16, 185, 129, 0.14)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  emptyTitleText: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  emptySubText: {
-    fontSize: 13,
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  showAllQueueBtn: {
-    marginTop: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  showAllQueueText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  orderList: {
-    gap: 12,
-  },
-  orderCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    borderLeftWidth: 4,
-    overflow: 'hidden',
-  },
-  orderCardBody: {
-    padding: 14,
-    gap: 12,
-  },
-  orderTopMetaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  orderBadgesLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  idChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  idChipText: {
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  statusChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-  statusChipText: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.3,
-  },
-  modeChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  modeChipText: {
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  timeLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  customerMainRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  avatarCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarLetter: {
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  customerNameText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  itemsMetaText: {
-    fontSize: 12,
-    marginTop: 1,
-  },
-  priceAndCallRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  callIconBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  priceWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  orderTotalText: {
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  stepperTrack: {
-    flexDirection: 'row',
-    gap: 5,
-  },
-  stepperSegment: {
-    flex: 1,
-    height: 4,
-    borderRadius: 2,
-  },
-  orderActionFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderTopWidth: 1,
-  },
-  rejectActionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: '#fff1f2',
-    borderWidth: 1,
-    borderColor: '#fecdd3',
-  },
-  rejectActionText: {
-    color: '#e11d48',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  acceptActionBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: '#10b981',
-  },
-  acceptActionText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  nextStageBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: 10,
-  },
-  nextStageBtnText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '800',
-  },
   // Compact Low Stock Alerts Section Styles
   lowStockCompactCard: {
     borderRadius: 14,
@@ -1651,40 +842,5 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     fontWeight: '700',
     color: '#d97706',
-  },
-  viewAllOrdersQueueBtn: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginTop: 6,
-  },
-  viewAllOrdersQueueLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  viewAllOrdersQueueText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  viewAllOrdersQueueRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  moreOrdersPill: {
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  moreOrdersPillText: {
-    color: '#10b981',
-    fontSize: 11,
-    fontWeight: '800',
   },
 });

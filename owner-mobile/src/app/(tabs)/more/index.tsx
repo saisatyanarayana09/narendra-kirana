@@ -326,30 +326,29 @@ export default function ProfileScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.bg }]}>
-      {/* Top App Bar */}
+      {/* Sleek Compact Top Bar */}
       <View
         style={[
           styles.topBar,
           {
-            paddingTop: Math.max(insets.top, 14),
+            paddingTop: Math.max(insets.top + 6, 12),
             backgroundColor: colors.card,
             borderBottomColor: colors.border,
           },
         ]}
       >
         <View style={styles.topBarInner}>
-          <View>
+          <View style={styles.topBarTitleRow}>
             <Text style={[styles.topBarTitle, { color: colors.text }]}>Store Account</Text>
-            <Text style={[styles.topBarSubtitle, { color: colors.textMuted }]}>
+            <Text style={[styles.topBarDot, { color: colors.textMuted }]}>•</Text>
+            <Text style={[styles.topBarSubtitle, { color: colors.textMuted }]} numberOfLines={1}>
               Narendra Kirana Store
             </Text>
           </View>
 
-          <View style={styles.topBarPills}>
-            <View style={[styles.statusPip, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
-              <View style={styles.statusDot} />
-              <Text style={styles.statusPipText}>Live</Text>
-            </View>
+          <View style={[styles.statusPip, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
+            <View style={styles.statusDot} />
+            <Text style={styles.statusPipText}>Live</Text>
           </View>
         </View>
       </View>
@@ -790,8 +789,8 @@ const styles = StyleSheet.create({
   },
   topBar: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 20,
-    paddingBottom: 14,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
     zIndex: 10,
   },
   topBarInner: {
@@ -802,44 +801,50 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  topBarTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    letterSpacing: -0.4,
-  },
-  topBarSubtitle: {
-    fontSize: 12,
-    fontWeight: '500',
-    marginTop: 2,
-  },
-  topBarPills: {
+  topBarTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+    flexShrink: 1,
+    marginRight: 8,
+  },
+  topBarTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  topBarDot: {
+    fontSize: 12,
+    opacity: 0.6,
+  },
+  topBarSubtitle: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    flexShrink: 1,
   },
   statusPip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    gap: 4,
   },
   statusDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: '#10b981',
   },
   statusPipText: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 10.5,
+    fontWeight: '800',
     color: '#10b981',
     letterSpacing: 0.2,
   },
   scrollContainer: {
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 12,
   },
   contentBounded: {
     maxWidth: 600,

@@ -12,8 +12,6 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
 } from 'react-native';
 import ModernSwitch from '../../../components/ModernSwitch';
 import { useRouter } from 'expo-router';
@@ -489,21 +487,8 @@ export default function ProductsListScreen() {
   // Barcode Scanner Modal State
   const [showScanner, setShowScanner] = useState(false);
 
-  // ─── Sticky Header Scroll Tracking ───
+  // ─── List Reference ───
   const listRef = useRef<FlatList>(null);
-  const [isScrolled, setIsScrolled] = useState(false);
-
-  const handleScroll = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const offsetY = event.nativeEvent.contentOffset.y;
-      if (offsetY > 10 && !isScrolled) {
-        setIsScrolled(true);
-      } else if (offsetY <= 10 && isScrolled) {
-        setIsScrolled(false);
-      }
-    },
-    [isScrolled]
-  );
 
   // ─── Fetch Products & Categories ───
   const fetchProducts = useCallback(
@@ -902,408 +887,337 @@ export default function ProductsListScreen() {
     ]
   );
 
-  return (
-    <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      <View style={styles.maxContainer}>
-        {/* 1 & 2. Top Header & The Four KPI Boxes (Visible at top, collapses on scroll) */}
-        {!isScrolled && (
-          <View style={styles.topSectionWrap}>
-            {/* Header with Title & Add Product Action */}
-            <View style={styles.topHeader}>
-              <TouchableOpacity
-                activeOpacity={0.75}
-                onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
-                style={styles.titleCol}
-              >
-                <View style={styles.titleRow}>
-                  <Text style={[styles.pageTitle, { color: colors.text }]}>Products</Text>
-                  <View
-                    style={[
-                      styles.countBadge,
-                      { backgroundColor: colors.cardAlt, borderColor: colors.border },
-                    ]}
-                  >
-                    <Text style={[styles.countBadgeText, { color: colors.textMuted }]}>
-                      {products.length} SKUs
-                    </Text>
-                  </View>
-                </View>
-                <Text style={[styles.pageSubtitle, { color: colors.textMuted }]}>
-                  Manage inventory, pricing & live stock
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.primaryAddBtn, { backgroundColor: '#10b981' }]}
-                onPress={() => router.push('/(tabs)/products/new')}
-                accessibilityLabel="Add New Product"
-              >
-                <Ionicons name="add" size={18} color="#ffffff" />
-                <Text style={styles.primaryAddBtnText}>Add Product</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Interactive KPI Stats Bar (Four Boxes with Dynamic Glow & Visual Effects) */}
-            <View style={styles.kpiRow}>
-              {kpiCards.map((card) => {
-                const active = stockFilter === card.key;
-                return (
-                  <TouchableOpacity
-                    key={card.key}
-                    activeOpacity={0.7}
-                    style={[
-                      styles.kpiCard,
-                      {
-                        backgroundColor: active ? card.activeBg : colors.card,
-                        borderColor: active ? card.activeBorder : colors.border,
-                        borderWidth: active ? 1.5 : 1,
-                      },
-                      active && [
-                        styles.kpiCardActive,
-                        {
-                          shadowColor: card.color,
-                          ...Platform.select({
-                            web: {
-                              boxShadow: `0 4px 14px ${card.color}35`,
-                            } as any,
-                          }),
-                        },
-                      ],
-                    ]}
-                    onPress={() =>
-                      setStockFilter(active && card.key !== 'ALL' ? 'ALL' : card.key)
-                    }
-                    accessibilityLabel={`${card.label} filter, ${card.count} items`}
-                  >
-                    <View style={styles.kpiTopRow}>
-                      <Ionicons
-                        name={card.icon}
-                        size={13}
-                        color={active ? card.color : colors.textMuted}
-                      />
-                      <Text
-                        style={[
-                          styles.kpiValue,
-                          {
-                            color: active
-                              ? card.color
-                              : card.key === 'ALL'
-                                ? colors.text
-                                : card.color,
-                          },
-                        ]}
-                      >
-                        {card.count}
-                      </Text>
-                    </View>
-                    <Text
-                      style={[
-                        styles.kpiLabel,
-                        {
-                          color: active ? card.color : colors.textMuted,
-                          fontWeight: active ? '800' : '700',
-                        },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {card.label}
-                    </Text>
-                    {active && (
-                      <View
-                        style={[styles.kpiActiveDot, { backgroundColor: card.color }]}
-                      />
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-        )}
-
-        {/* ─── 3. Sticky Search Bar (Sticky Effect Applied Directly to Search Bar) ─── */}
-        <View
-          style={[
-            styles.stickySearchBarWrap,
-            {
-              backgroundColor: colors.bg,
-              borderBottomColor: isScrolled ? colors.border : 'transparent',
-            },
-            isScrolled && styles.stickySearchBarScrolled,
-            isScrolled && isDark && styles.stickySearchBarScrolledDark,
-            isScrolled && {
-              ...Platform.select({
-                web: {
-                  boxShadow: isDark
-                    ? '0 6px 20px rgba(0, 0, 0, 0.5)'
-                    : '0 4px 16px rgba(15, 23, 42, 0.08)',
-                } as any,
-              }),
-            },
-          ]}
+  const listHeader = useMemo(() => (
+    <View style={styles.topSectionWrap}>
+      {/* 1. Header with Title & Add Product Action */}
+      <View style={styles.topHeader}>
+        <TouchableOpacity
+          activeOpacity={0.75}
+          onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
+          style={styles.titleCol}
         >
-          <View style={styles.searchBarRow}>
+          <View style={styles.titleRow}>
+            <Text style={[styles.pageTitle, { color: colors.text }]}>Products</Text>
             <View
               style={[
-                styles.searchBarPill,
-                { backgroundColor: colors.card, borderColor: colors.border },
+                styles.countBadge,
+                { backgroundColor: colors.cardAlt, borderColor: colors.border },
               ]}
             >
-              <Ionicons name="search-outline" size={17} color={colors.textMuted} />
-              <TextInput
-                style={[styles.searchInput, { color: colors.text }]}
-                placeholder="Search by name, SKU, brand, category..."
-                placeholderTextColor={colors.textMuted}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-              {searchQuery ? (
-                <TouchableOpacity
-                  onPress={() => setSearchQuery('')}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Ionicons name="close-circle" size={17} color={colors.textMuted} />
-                </TouchableOpacity>
-              ) : null}
-
-              <TouchableOpacity
-                style={styles.searchScanIconBtn}
-                onPress={() => setShowScanner(true)}
-                accessibilityLabel="Scan Barcode"
-              >
-                <Ionicons name="barcode-outline" size={20} color="#10b981" />
-              </TouchableOpacity>
+              <Text style={[styles.countBadgeText, { color: colors.textMuted }]}>
+                {products.length} SKUs
+              </Text>
             </View>
-
-            {/* Sort Selector Button */}
-            <TouchableOpacity
-              style={[
-                styles.sortBtn,
-                { backgroundColor: colors.card, borderColor: colors.border },
-              ]}
-              onPress={() => {
-                const modes: Array<'DEFAULT' | 'NAME' | 'PRICE_ASC' | 'PRICE_DESC' | 'STOCK_LOW'> = [
-                  'DEFAULT',
-                  'NAME',
-                  'PRICE_ASC',
-                  'PRICE_DESC',
-                  'STOCK_LOW',
-                ];
-                const nextIdx = (modes.indexOf(sortBy) + 1) % modes.length;
-                setSortBy(modes[nextIdx]);
-              }}
-            >
-              <Ionicons name="swap-vertical" size={16} color={colors.text} />
-              <Text style={[styles.sortBtnText, { color: colors.text }]}>
-                {sortBy === 'NAME'
-                  ? 'Name'
-                  : sortBy === 'PRICE_ASC'
-                    ? 'Price ↑'
-                    : sortBy === 'PRICE_DESC'
-                      ? 'Price ↓'
-                      : sortBy === 'STOCK_LOW'
-                        ? 'Stock ↑'
-                        : 'Sort'}
-              </Text>
-            </TouchableOpacity>
-
-            {/* Reorder Catalog Button */}
-            <TouchableOpacity
-              style={[
-                styles.reorderToggleBtn,
-                {
-                  backgroundColor: reorderMode ? '#10b981' : colors.card,
-                  borderColor: reorderMode ? '#10b981' : colors.border,
-                },
-              ]}
-              onPress={toggleReorderMode}
-              accessibilityLabel="Toggle Reorder Mode"
-            >
-              <Ionicons
-                name={reorderMode ? 'checkmark-done' : 'reorder-three-outline'}
-                size={16}
-                color={reorderMode ? '#ffffff' : colors.text}
-              />
-              <Text
-                style={[
-                  styles.reorderToggleBtnText,
-                  { color: reorderMode ? '#ffffff' : colors.text },
-                ]}
-              >
-                {reorderMode ? 'Done' : 'Reorder'}
-              </Text>
-            </TouchableOpacity>
-
-            {/* Quick Add Button when scrolled so Add Product is always 1-tap accessible */}
-            {isScrolled && (
-              <TouchableOpacity
-                style={[styles.compactAddBtn, { backgroundColor: '#10b981' }]}
-                onPress={() => router.push('/(tabs)/products/new')}
-                accessibilityLabel="Add New Product"
-              >
-                <Ionicons name="add" size={18} color="#ffffff" />
-              </TouchableOpacity>
-            )}
           </View>
+          <Text style={[styles.pageSubtitle, { color: colors.textMuted }]}>
+            Manage inventory, pricing & live stock
+          </Text>
+        </TouchableOpacity>
 
-          {/* Active Filter Chip (Visible when scrolled and filter is active) */}
-          {isScrolled && stockFilter !== 'ALL' && (
-            <View style={styles.activeFilterChipRow}>
-              <TouchableOpacity
-                style={[
-                  styles.activeFilterChip,
+        <TouchableOpacity
+          style={[styles.primaryAddBtn, { backgroundColor: '#10b981' }]}
+          onPress={() => router.push('/(tabs)/products/new')}
+          accessibilityLabel="Add New Product"
+        >
+          <Ionicons name="add" size={18} color="#ffffff" />
+          <Text style={styles.primaryAddBtnText}>Add Product</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* 2. Interactive KPI Stats Bar */}
+      <View style={styles.kpiRow}>
+        {kpiCards.map((card) => {
+          const active = stockFilter === card.key;
+          return (
+            <TouchableOpacity
+              key={card.key}
+              activeOpacity={0.7}
+              style={[
+                styles.kpiCard,
+                {
+                  backgroundColor: active ? card.activeBg : colors.card,
+                  borderColor: active ? card.activeBorder : colors.border,
+                  borderWidth: active ? 1.5 : 1,
+                },
+                active && [
+                  styles.kpiCardActive,
                   {
-                    backgroundColor:
-                      stockFilter === 'IN_STOCK'
-                        ? isDark ? 'rgba(16, 185, 129, 0.2)' : '#ecfdf5'
-                        : stockFilter === 'LOW_STOCK'
-                          ? isDark ? 'rgba(245, 158, 11, 0.2)' : '#fffbeb'
-                          : isDark ? 'rgba(244, 63, 94, 0.2)' : '#fff1f2',
-                    borderColor:
-                      stockFilter === 'IN_STOCK'
-                        ? '#10b981'
-                        : stockFilter === 'LOW_STOCK'
-                          ? '#f59e0b'
-                          : '#f43f5e',
+                    shadowColor: card.color,
+                    ...Platform.select({
+                      web: {
+                        boxShadow: `0 4px 14px ${card.color}35`,
+                      } as any,
+                    }),
                   },
-                ]}
-                onPress={() => setStockFilter('ALL')}
-              >
+                ],
+              ]}
+              onPress={() =>
+                setStockFilter(active && card.key !== 'ALL' ? 'ALL' : card.key)
+              }
+              accessibilityLabel={`${card.label} filter, ${card.count} items`}
+            >
+              <View style={styles.kpiTopRow}>
+                <Ionicons
+                  name={card.icon}
+                  size={13}
+                  color={active ? card.color : colors.textMuted}
+                />
                 <Text
                   style={[
-                    styles.activeFilterChipText,
+                    styles.kpiValue,
                     {
-                      color:
-                        stockFilter === 'IN_STOCK'
-                          ? '#10b981'
-                          : stockFilter === 'LOW_STOCK'
-                            ? '#f59e0b'
-                            : '#f43f5e',
+                      color: active
+                        ? card.color
+                        : card.key === 'ALL'
+                          ? colors.text
+                          : card.color,
                     },
                   ]}
                 >
-                  Filter: {stockFilter === 'IN_STOCK' ? 'In Stock' : stockFilter === 'LOW_STOCK' ? 'Low Stock' : 'Out of Stock'}
+                  {card.count}
                 </Text>
-                <Ionicons
-                  name="close-circle"
-                  size={14}
-                  color={
-                    stockFilter === 'IN_STOCK'
-                      ? '#10b981'
-                      : stockFilter === 'LOW_STOCK'
-                        ? '#f59e0b'
-                        : '#f43f5e'
-                  }
+              </View>
+              <Text
+                style={[
+                  styles.kpiLabel,
+                  {
+                    color: active ? card.color : colors.textMuted,
+                    fontWeight: active ? '800' : '700',
+                  },
+                ]}
+                numberOfLines={1}
+              >
+                {card.label}
+              </Text>
+              {active && (
+                <View
+                  style={[styles.kpiActiveDot, { backgroundColor: card.color }]}
                 />
-              </TouchableOpacity>
-            </View>
-          )}
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* 3. Search & Control Bar */}
+      <View style={styles.searchBarRow}>
+        <View
+          style={[
+            styles.searchBarPill,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <Ionicons name="search-outline" size={17} color={colors.textMuted} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.text }]}
+            placeholder="Search by name, SKU, brand, category..."
+            placeholderTextColor={colors.textMuted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery ? (
+            <TouchableOpacity
+              onPress={() => setSearchQuery('')}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="close-circle" size={17} color={colors.textMuted} />
+            </TouchableOpacity>
+          ) : null}
+
+          <TouchableOpacity
+            style={styles.searchScanIconBtn}
+            onPress={() => setShowScanner(true)}
+            accessibilityLabel="Scan Barcode"
+          >
+            <Ionicons name="barcode-outline" size={20} color="#10b981" />
+          </TouchableOpacity>
         </View>
 
-        {/* 4. Horizontal Category Filter Pills (Disappears on Scroll as Requested!) */}
-        {!isScrolled && categories.length > 0 && (
-          <View style={styles.categoriesScrollWrap}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.categoriesScroll}
+        {/* Sort Selector Button */}
+        <TouchableOpacity
+          style={[
+            styles.sortBtn,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+          onPress={() => {
+            const modes: Array<'DEFAULT' | 'NAME' | 'PRICE_ASC' | 'PRICE_DESC' | 'STOCK_LOW'> = [
+              'DEFAULT',
+              'NAME',
+              'PRICE_ASC',
+              'PRICE_DESC',
+              'STOCK_LOW',
+            ];
+            const nextIdx = (modes.indexOf(sortBy) + 1) % modes.length;
+            setSortBy(modes[nextIdx]);
+          }}
+        >
+          <Ionicons name="swap-vertical" size={16} color={colors.text} />
+          <Text style={[styles.sortBtnText, { color: colors.text }]}>
+            {sortBy === 'NAME'
+              ? 'Name'
+              : sortBy === 'PRICE_ASC'
+                ? 'Price ↑'
+                : sortBy === 'PRICE_DESC'
+                  ? 'Price ↓'
+                  : sortBy === 'STOCK_LOW'
+                    ? 'Stock ↑'
+                    : 'Sort'}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Reorder Catalog Button */}
+        <TouchableOpacity
+          style={[
+            styles.reorderToggleBtn,
+            {
+              backgroundColor: reorderMode ? '#10b981' : colors.card,
+              borderColor: reorderMode ? '#10b981' : colors.border,
+            },
+          ]}
+          onPress={toggleReorderMode}
+          accessibilityLabel="Toggle Reorder Mode"
+        >
+          <Ionicons
+            name={reorderMode ? 'checkmark-done' : 'reorder-three-outline'}
+            size={16}
+            color={reorderMode ? '#ffffff' : colors.text}
+          />
+          <Text
+            style={[
+              styles.reorderToggleBtnText,
+              { color: reorderMode ? '#ffffff' : colors.text },
+            ]}
+          >
+            {reorderMode ? 'Done' : 'Reorder'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* 4. Horizontal Category Filter Pills */}
+      {categories.length > 0 && (
+        <View style={styles.categoriesScrollWrap}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoriesScroll}
+          >
+            <TouchableOpacity
+              style={[
+                styles.categoryPill,
+                selectedCatId === 'ALL'
+                  ? { backgroundColor: isDark ? '#ffffff' : '#0f172a' }
+                  : { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
+              ]}
+              onPress={() => setSelectedCatId('ALL')}
             >
-              <TouchableOpacity
+              <Text
                 style={[
-                  styles.categoryPill,
-                  selectedCatId === 'ALL'
-                    ? { backgroundColor: isDark ? '#ffffff' : '#0f172a' }
-                    : { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
+                  styles.categoryPillText,
+                  {
+                    color:
+                      selectedCatId === 'ALL'
+                        ? isDark
+                          ? '#0f172a'
+                          : '#ffffff'
+                        : colors.textMuted,
+                    fontWeight: selectedCatId === 'ALL' ? '800' : '600',
+                  },
                 ]}
-                onPress={() => setSelectedCatId('ALL')}
               >
-                <Text
+                All Categories
+              </Text>
+            </TouchableOpacity>
+
+            {categories.map((cat) => {
+              const active = selectedCatId === cat.id;
+              return (
+                <TouchableOpacity
+                  key={cat.id}
                   style={[
-                    styles.categoryPillText,
-                    {
-                      color:
-                        selectedCatId === 'ALL'
+                    styles.categoryPill,
+                    active
+                      ? { backgroundColor: isDark ? '#ffffff' : '#0f172a' }
+                      : { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
+                  ]}
+                  onPress={() => setSelectedCatId(active ? 'ALL' : cat.id)}
+                >
+                  <Text
+                    style={[
+                      styles.categoryPillText,
+                      {
+                        color: active
                           ? isDark
                             ? '#0f172a'
                             : '#ffffff'
                           : colors.textMuted,
-                      fontWeight: selectedCatId === 'ALL' ? '800' : '600',
-                    },
-                  ]}
-                >
-                  All Categories
-                </Text>
-              </TouchableOpacity>
-
-              {categories.map((cat) => {
-                const active = selectedCatId === cat.id;
-                return (
-                  <TouchableOpacity
-                    key={cat.id}
-                    style={[
-                      styles.categoryPill,
-                      active
-                        ? { backgroundColor: isDark ? '#ffffff' : '#0f172a' }
-                        : { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
+                        fontWeight: active ? '800' : '600',
+                      },
                     ]}
-                    onPress={() => setSelectedCatId(active ? 'ALL' : cat.id)}
                   >
-                    <Text
-                      style={[
-                        styles.categoryPillText,
-                        {
-                          color: active
-                            ? isDark
-                              ? '#0f172a'
-                              : '#ffffff'
-                            : colors.textMuted,
-                          fontWeight: active ? '800' : '600',
-                        },
-                      ]}
-                    >
-                      {cat.name}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
-        )}
+                    {cat.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
 
-        {/* Error Banner */}
-        {errorMsg ? (
-          <View style={styles.errorBannerWrap}>
-            <View style={styles.errorBanner}>
-              <Text style={styles.errorText}>{errorMsg}</Text>
-              <TouchableOpacity onPress={() => fetchProducts(true)}>
-                <Text style={styles.retryText}>Retry</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        ) : null}
-
-        {/* 5. Products List */}
-        {reorderMode && (
-          <View
-            style={[
-              styles.reorderActiveBanner,
-              {
-                backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ecfdf5',
-                borderColor: '#10b981',
-              },
-            ]}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-              <Ionicons name="swap-vertical" size={18} color="#10b981" />
-              <Text style={{ fontSize: 13, color: isDark ? '#a7f3d0' : '#065f46', fontWeight: '600', flex: 1 }}>
-                Catalog Reordering: Tap Up or Down to rearrange products.
-              </Text>
-            </View>
-            <TouchableOpacity onPress={toggleReorderMode} style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
-              <Text style={{ color: '#10b981', fontWeight: '700', fontSize: 13 }}>Done</Text>
+      {/* Error Banner */}
+      {errorMsg ? (
+        <View style={styles.errorBannerWrap}>
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorText}>{errorMsg}</Text>
+            <TouchableOpacity onPress={() => fetchProducts(true)}>
+              <Text style={styles.retryText}>Retry</Text>
             </TouchableOpacity>
           </View>
-        )}
+        </View>
+      ) : null}
 
+      {/* Reorder Mode Banner */}
+      {reorderMode && (
+        <View
+          style={[
+            styles.reorderActiveBanner,
+            {
+              backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ecfdf5',
+              borderColor: '#10b981',
+            },
+          ]}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+            <Ionicons name="swap-vertical" size={18} color="#10b981" />
+            <Text style={{ fontSize: 13, color: isDark ? '#a7f3d0' : '#065f46', fontWeight: '600', flex: 1 }}>
+              Catalog Reordering: Tap Up or Down to rearrange products.
+            </Text>
+          </View>
+          <TouchableOpacity onPress={toggleReorderMode} style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
+            <Text style={{ color: '#10b981', fontWeight: '700', fontSize: 13 }}>Done</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
+  ), [
+    colors,
+    isDark,
+    products.length,
+    kpiCards,
+    stockFilter,
+    searchQuery,
+    sortBy,
+    reorderMode,
+    categories,
+    selectedCatId,
+    errorMsg,
+    fetchProducts,
+    toggleReorderMode,
+    router,
+  ]);
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
+      <View style={styles.maxContainer}>
         {loading && !refreshing ? (
           <View style={styles.centered}>
             <ActivityIndicator size="large" color="#10b981" />
@@ -1319,9 +1233,8 @@ export default function ProductsListScreen() {
               item?.id != null ? String(item.id) : `prod-${idx}`
             }
             renderItem={renderItem}
+            ListHeaderComponent={listHeader}
             contentContainerStyle={styles.listContent}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
@@ -1569,37 +1482,8 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   topSectionWrap: {
-    paddingHorizontal: 14,
     paddingTop: 10,
-  },
-  stickySearchBarWrap: {
-    width: '100%',
-    zIndex: 100,
-    paddingHorizontal: 14,
-    paddingTop: 6,
     paddingBottom: 6,
-    borderBottomWidth: 1,
-    ...Platform.select({
-      web: {
-        position: 'sticky' as any,
-        top: 0,
-      },
-    }),
-  },
-  stickySearchBarScrolled: {
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 5,
-    paddingTop: 8,
-    paddingBottom: 8,
-  },
-  stickySearchBarScrolledDark: {
-    shadowColor: '#000000',
-    shadowOpacity: 0.45,
-    shadowRadius: 12,
-    elevation: 6,
   },
   titleCol: {
     justifyContent: 'center',
@@ -1699,37 +1583,12 @@ const styles = StyleSheet.create({
     height: 2.5,
     borderRadius: 2,
   },
-  compactAddBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   searchBarRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 0,
-  },
-  activeFilterChipRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 6,
-    marginBottom: 2,
-  },
-  activeFilterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  activeFilterChipText: {
-    fontSize: 11,
-    fontWeight: '800',
+    marginTop: 4,
+    marginBottom: 4,
   },
   searchBarPill: {
     flex: 1,
@@ -1763,7 +1622,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   categoriesScrollWrap: {
-    paddingHorizontal: 14,
     marginTop: 8,
     marginBottom: 6,
   },
@@ -1779,7 +1637,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   errorBannerWrap: {
-    paddingHorizontal: 14,
     marginTop: 6,
   },
   errorBanner: {
