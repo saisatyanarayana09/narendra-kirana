@@ -701,6 +701,10 @@ export default function OrderDetailsScreen() {
                 </View>
                 {order.created_at ? (
                   <Text style={[styles.orderCreatedTime, { color: colors.textMuted }]}>
+                    {new Date(order.created_at).toLocaleDateString('en-IN', {
+                      day: '2-digit',
+                      month: 'short',
+                    })},{' '}
                     {new Date(order.created_at).toLocaleTimeString([], {
                       hour: '2-digit',
                       minute: '2-digit',

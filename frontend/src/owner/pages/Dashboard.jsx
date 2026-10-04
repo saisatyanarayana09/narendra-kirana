@@ -253,7 +253,7 @@ const Dashboard = () => {
                         <div className="flex flex-wrap items-center gap-2.5 text-xs text-slate-500 dark:text-slate-400">
                           <span>{order.items_count} items</span>
                           <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
-                          <span>{new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                          <span>{order.created_at ? `${new Date(order.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}, ${new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` : ''}</span>
                           <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
                           <span className="font-semibold text-slate-900 dark:text-white">₹{order.total_amount}</span>
                         </div>

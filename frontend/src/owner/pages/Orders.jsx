@@ -186,7 +186,7 @@ const Orders = () => {
                   <th className="font-medium px-4 py-3">Customer</th>
                   <th className="font-medium px-4 py-3">Status</th>
                   <th className="font-medium px-4 py-3">Amount</th>
-                  <th className="font-medium px-4 py-3">Time</th>
+                  <th className="font-medium px-4 py-3">Date & Time</th>
                   <th className="font-medium px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
@@ -215,9 +215,14 @@ const Orders = () => {
                           <span className="ml-2 text-[10px] font-medium text-slate-500 border border-slate-200 dark:border-slate-700 px-1 py-0.5 rounded">UPI</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-slate-500 text-xs">
-                        {new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                        {order.pickup_time && <span className="ml-1 text-slate-400">({order.pickup_time})</span>}
+                      <td className="px-4 py-3 text-xs">
+                        <div className="font-medium text-slate-900 dark:text-slate-100">
+                          {order.created_at ? new Date(order.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                        </div>
+                        <div className="text-slate-400 dark:text-slate-500 text-[11px]">
+                          {order.created_at ? new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                          {order.pickup_time && <span className="ml-1 text-slate-400">({order.pickup_time})</span>}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-right space-x-2">
                         {order.status === 'NEW' && (

@@ -138,6 +138,12 @@ const OrderCard = React.memo(({
         minute: '2-digit',
       })
     : '';
+  const dateStr = order?.created_at
+    ? new Date(order.created_at).toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+      })
+    : '';
   const itemsList: any[] = Array.isArray(detailData?.items)
     ? detailData.items
     : [];
@@ -177,7 +183,7 @@ const OrderCard = React.memo(({
               {itemCount} {itemCount === 1 ? 'item' : 'items'} •{' '}
               {order.order_type === 'PICKUP' ? 'Pickup' : 'Delivery'} •{' '}
               {order.payment_method || 'COD'}
-              {timeStr ? ` • ${timeStr}` : ''}
+              {dateStr ? ` • ${dateStr}` : ''}{timeStr ? `, ${timeStr}` : ''}
             </Text>
           </View>
 
