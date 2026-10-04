@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import {
   View,
   Text,
@@ -12,8 +12,6 @@ import {
   Modal,
   Platform,
   Share,
-  Dimensions,
-  useWindowDimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -26,62 +24,264 @@ import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert } from '../../../utils/alerts';
 import ScreenHeader from '../../../components/ScreenHeader';
 
-const InvoiceRow = memo(
+// ─── Formatters & Helpers ───
+const formatInvoiceNumber = (order: any) => {
+  const d = order?.created_at ? new Date(order.created_at) : new Date();
+  const year = !isNaN(d.getFullYear()) ? d.getFullYear() : new Date().getFullYear();
+  return `INV-${year}-${String(order?.id ?? 0).padStart(5, '0')}`;
+};
+
+const formatOrderDateTime = (dateStr: string) => {
+  if (!dateStr) return { date: '—', time: '—' };
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return { date: '—', time: '—' };
+  return {
+    date: d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }),
+    time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+  };
+};
+
+// ─── 1. Invoice Card Component (Matches Web App Invoices Table Row) ───
+const InvoiceCard = memo(
   ({
-    item,
+    order,
     onViewInvoice,
     onOpenOrder,
     colors,
+    isDark,
   }: {
-    item: any;
-    onViewInvoice: (item: any) => void;
+    order: any;
+    onViewInvoice: (order: any) => void;
     onOpenOrder: (id: number) => void;
     colors: any;
+    isDark: boolean;
   }) => {
-    const method = String(item?.payment_method || 'COD').toUpperCase();
-    const isCompleted = item?.status === 'COMPLETED';
+    const method = String(order?.payment_method || 'COD').toUpperCase();
+    const isCompleted = order?.status === 'COMPLETED';
+    const isReady = order?.status === 'READY';
+    const isPreparing = order?.status === 'PREPARING';
+    const isRejected = order?.status === 'REJECTED';
+    const isDelivery = order?.order_type === 'DELIVERY';
+
+    const { date, time } = formatOrderDateTime(order?.created_at);
+    const invoiceNum = formatInvoiceNumber(order);
+
+    const handleCopyUtr = async (utr: string) => {
+      await Clipboard.setStringAsync(utr);
+      showAlert('Copied', `UTR reference "${utr}" copied to clipboard.`);
+    };
 
     return (
-      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <View style={styles.cardHeader}>
-          <View>
-            <Text style={[styles.invoiceId, { color: '#10b981' }]}>INV-#{item?.id ?? '—'}</Text>
-            <Text style={[styles.customerName, { color: colors.text }]}>
-              {item?.customer_name || 'Walk-in / Guest'}
-            </Text>
+      <View
+        style={[
+          styles.invoiceCard,
+          {
+            backgroundColor: colors.card,
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+          },
+        ]}
+      >
+        {/* Top Header Row: Invoice ID, Order Type Pill & Date/Time */}
+        <View style={styles.cardHeaderRow}>
+          <View style={styles.cardHeaderLeft}>
+            <View style={styles.invoiceIdBadge}>
+              <Ionicons name="document-text" size={13} color="#6366f1" />
+              <Text style={styles.invoiceIdText}>#{order?.id}</Text>
+            </View>
+
+            <View
+              style={[
+                styles.orderTypePill,
+                {
+                  backgroundColor: isDelivery
+                    ? isDark
+                      ? 'rgba(99, 102, 241, 0.15)'
+                      : '#e0e7ff'
+                    : isDark
+                      ? 'rgba(16, 185, 129, 0.15)'
+                      : '#ecfdf5',
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.orderTypeText,
+                  { color: isDelivery ? '#6366f1' : '#10b981' },
+                ]}
+              >
+                {isDelivery ? 'HOME DELIVERY' : 'STORE PICKUP'}
+              </Text>
+            </View>
+
+            {order?.delivery_slot_label ? (
+              <Text style={[styles.slotLabelText, { color: colors.textMuted }]} numberOfLines={1}>
+                • {order.delivery_slot_label}
+              </Text>
+            ) : null}
           </View>
-          <View style={styles.rightCol}>
-            <Text style={[styles.amount, { color: colors.text }]}>₹{item?.total_amount ?? '0.00'}</Text>
-            <View style={styles.badgeRow}>
-              <View style={[styles.badge, method === 'UPI' ? styles.upiBadge : styles.codBadge]}>
-                <Text style={styles.badgeText}>{method}</Text>
-              </View>
-              <View style={[styles.badge, isCompleted ? styles.doneBadge : styles.activeBadge]}>
-                <Text style={styles.badgeText}>{item?.status || 'NEW'}</Text>
-              </View>
+
+          <View style={styles.cardHeaderRight}>
+            <Text style={[styles.dateText, { color: colors.text }]}>{date}</Text>
+            <View style={styles.timeRow}>
+              <Ionicons name="time-outline" size={11} color={colors.textMuted} />
+              <Text style={[styles.timeText, { color: colors.textMuted }]}>{time}</Text>
             </View>
           </View>
         </View>
 
-        <View style={[styles.cardFooter, { borderTopColor: colors.border }]}>
-          <Text style={[styles.dateText, { color: colors.textMuted }]}>
-            {item?.created_at ? new Date(item.created_at).toLocaleString() : '—'}
-          </Text>
-          <View style={styles.actionButtonsRow}>
+        {/* Middle Row: Customer Info & Status Badges */}
+        <View style={styles.cardBodyRow}>
+          <View style={styles.customerCol}>
+            <Text style={[styles.customerName, { color: colors.text }]} numberOfLines={1}>
+              {order?.customer_name || `Customer #${order?.customer ?? '—'}`}
+            </Text>
+            {order?.customer_phone ? (
+              <View style={styles.customerMetaRow}>
+                <Ionicons name="call-outline" size={11} color={colors.textMuted} />
+                <Text style={[styles.customerPhone, { color: colors.textMuted }]}>
+                  {order.customer_phone}
+                </Text>
+              </View>
+            ) : null}
+            {order?.delivery_pincode ? (
+              <Text style={[styles.pincodeText, { color: colors.textMuted }]}>
+                PIN: {order.delivery_pincode}
+              </Text>
+            ) : null}
+          </View>
+
+          <View style={styles.badgesCol}>
+            {/* Payment Method Badge */}
+            <View style={styles.paymentBadgeRow}>
+              {method === 'UPI' ? (
+                <View
+                  style={[
+                    styles.methodBadge,
+                    {
+                      backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ecfdf5',
+                      borderColor: isDark ? 'rgba(16, 185, 129, 0.35)' : '#a7f3d0',
+                    },
+                  ]}
+                >
+                  <Ionicons name="card-outline" size={11} color="#10b981" />
+                  <Text style={[styles.methodBadgeText, { color: '#10b981' }]}>UPI</Text>
+                </View>
+              ) : (
+                <View
+                  style={[
+                    styles.methodBadge,
+                    {
+                      backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#fffbeb',
+                      borderColor: isDark ? 'rgba(245, 158, 11, 0.35)' : '#fde68a',
+                    },
+                  ]}
+                >
+                  <Ionicons name="cash-outline" size={11} color="#f59e0b" />
+                  <Text style={[styles.methodBadgeText, { color: '#f59e0b' }]}>COD</Text>
+                </View>
+              )}
+
+              {/* Order Status Badge */}
+              <View
+                style={[
+                  styles.statusBadge,
+                  {
+                    backgroundColor: isCompleted
+                      ? isDark
+                        ? 'rgba(16, 185, 129, 0.18)'
+                        : '#ecfdf5'
+                      : isReady
+                        ? isDark
+                          ? 'rgba(59, 130, 246, 0.18)'
+                          : '#eff6ff'
+                        : isPreparing
+                          ? isDark
+                            ? 'rgba(245, 158, 11, 0.18)'
+                            : '#fffbeb'
+                          : isRejected
+                            ? isDark
+                              ? 'rgba(244, 63, 94, 0.18)'
+                              : '#fff1f2'
+                            : isDark
+                              ? 'rgba(99, 102, 241, 0.18)'
+                              : '#e0e7ff',
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.statusBadgeText,
+                    {
+                      color: isCompleted
+                        ? '#10b981'
+                        : isReady
+                          ? '#3b82f6'
+                          : isPreparing
+                            ? '#f59e0b'
+                            : isRejected
+                              ? '#f43f5e'
+                              : '#6366f1',
+                    },
+                  ]}
+                >
+                  {order?.status || 'NEW'}
+                </Text>
+              </View>
+            </View>
+
+            {/* Clickable UTR Copy Pill */}
+            {order?.upi_transaction_id ? (
+              <TouchableOpacity
+                activeOpacity={0.7}
+                style={styles.utrCopyBtn}
+                onPress={() => handleCopyUtr(order.upi_transaction_id)}
+              >
+                <Text style={styles.utrText}>
+                  UTR: {order.upi_transaction_id.slice(0, 8)}...
+                </Text>
+                <Ionicons name="copy-outline" size={10} color="#6366f1" />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        </View>
+
+        {/* Bottom Amount & Actions Row */}
+        <View style={[styles.cardFooterRow, { borderTopColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#f1f5f9' }]}>
+          <View style={styles.amountCol}>
+            <Text style={[styles.amountText, { color: colors.text }]}>
+              ₹{parseFloat(order?.total_amount || 0).toFixed(2)}
+            </Text>
+            {parseFloat(order?.wallet_discount || 0) > 0 ? (
+              <Text style={styles.walletDiscountText}>
+                -₹{parseFloat(order.wallet_discount).toFixed(2)} wallet
+              </Text>
+            ) : null}
+          </View>
+
+          <View style={styles.actionBtnsGroup}>
+            {/* Print / View Tax Invoice Button */}
             <TouchableOpacity
-              style={[styles.invoiceActionBtn, { backgroundColor: colors.cardAlt }]}
-              onPress={() => onViewInvoice(item)}
+              activeOpacity={0.8}
+              style={styles.printActionBtn}
+              onPress={() => onViewInvoice(order)}
             >
-              <Ionicons name="document-text-outline" size={14} color="#10b981" />
-              <Text style={[styles.invoiceActionText, { color: '#10b981' }]}>Tax Invoice</Text>
+              <Ionicons name="print-outline" size={14} color="#6366f1" />
+              <Text style={styles.printActionBtnText}>Tax Invoice</Text>
             </TouchableOpacity>
 
+            {/* Order Details Navigation Button */}
             <TouchableOpacity
-              style={[styles.invoiceActionBtn, { backgroundColor: colors.cardAlt }]}
-              onPress={() => item?.id && onOpenOrder(item.id)}
+              activeOpacity={0.8}
+              style={[
+                styles.orderNavBtn,
+                {
+                  backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : '#f1f5f9',
+                },
+              ]}
+              onPress={() => order?.id && onOpenOrder(order.id)}
             >
-              <Text style={[styles.invoiceActionText, { color: colors.textMuted }]}>Order</Text>
-              <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+              <Text style={[styles.orderNavBtnText, { color: colors.text }]}>Order</Text>
+              <Ionicons name="chevron-forward" size={13} color={colors.textMuted} />
             </TouchableOpacity>
           </View>
         </View>
@@ -104,14 +304,14 @@ export default function InvoicesScreen() {
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'COMPLETED' | 'ACTIVE'>('ALL');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Selected Invoice Modal State
+  // Selected Invoice Preview Modal
   const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
 
-  const fetchInvoices = useCallback(async (forceRefresh = false) => {
-    setErrorMsg(null);
+  const fetchInvoices = useCallback(async (isPoll = false) => {
+    if (!isPoll) setErrorMsg(null);
     try {
       const [ordersRes, settingsRes] = await Promise.allSettled([
-        (api as ApiInstance).cachedGet('/orders/', { forceRefresh }),
+        (api as ApiInstance).cachedGet('/orders/', { forceRefresh: true }),
         api.get('/store/settings/'),
       ]);
 
@@ -123,29 +323,27 @@ export default function InvoicesScreen() {
         setStoreSettings(settingsRes.value.data);
       }
     } catch (e: any) {
-      if (e?.response?.status !== 401) {
+      if (!isPoll && e?.response?.status !== 401) {
         setErrorMsg(getErrorMessage(e, 'Failed to load store invoices.'));
       }
     } finally {
-      setLoading(false);
+      if (!isPoll) setLoading(false);
       setRefreshing(false);
     }
   }, []);
 
   useEffect(() => {
     fetchInvoices();
+    const interval = setInterval(() => fetchInvoices(true), 12000);
+    return () => clearInterval(interval);
   }, [fetchInvoices]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchInvoices(true);
+    fetchInvoices();
   }, [fetchInvoices]);
 
-  const totalRevenue = useMemo(() => {
-    const safeOrders = Array.isArray(orders) ? orders : [];
-    return safeOrders.reduce((sum: number, o: any) => sum + (parseFloat(o?.total_amount) || 0), 0);
-  }, [orders]);
-
+  // Filtered Orders
   const filteredOrders = useMemo(() => {
     const safeOrders = Array.isArray(orders) ? orders : [];
     const q = searchTerm.trim().toLowerCase();
@@ -158,6 +356,8 @@ export default function InvoicesScreen() {
 
     return safeOrders.filter((order) => {
       if (!order) return false;
+
+      // 1. Search Query
       if (q) {
         const idMatch = String(order.id || '').toLowerCase().includes(q);
         const nameMatch = String(order.customer_name || '').toLowerCase().includes(q);
@@ -166,6 +366,7 @@ export default function InvoicesScreen() {
         if (!idMatch && !nameMatch && !addrMatch && !upiMatch) return false;
       }
 
+      // 2. Date Filter
       if (dateFilter !== 'ALL' && order.created_at) {
         const orderDate = new Date(order.created_at);
         if (dateFilter === 'TODAY' && orderDate < startOfToday) return false;
@@ -173,11 +374,13 @@ export default function InvoicesScreen() {
         if (dateFilter === 'MONTH' && orderDate < startOfMonth) return false;
       }
 
+      // 3. Payment Filter
       if (paymentFilter !== 'ALL') {
         const method = String(order.payment_method || 'COD').toUpperCase();
         if (paymentFilter !== method) return false;
       }
 
+      // 4. Status Filter
       if (statusFilter === 'COMPLETED' && order.status !== 'COMPLETED') return false;
       if (
         statusFilter === 'ACTIVE' &&
@@ -190,6 +393,7 @@ export default function InvoicesScreen() {
     });
   }, [orders, searchTerm, dateFilter, paymentFilter, statusFilter]);
 
+  // 4 Financial Metrics
   const metrics = useMemo(() => {
     let totalBilled = 0;
     let upiTotal = 0;
@@ -210,17 +414,26 @@ export default function InvoicesScreen() {
       upiTotal: upiTotal.toFixed(2),
       codTotal: codTotal.toFixed(2),
       completedCount,
-      count: filteredOrders.length,
+      totalInvoices: filteredOrders.length,
     };
   }, [filteredOrders]);
 
+  // Export CSV
   const handleExportCSV = useCallback(async () => {
     if (filteredOrders.length === 0) {
       showAlert('Export Invoices', 'No invoices match the current filter.');
       return;
     }
 
-    const headers = ['Invoice / Order ID', 'Date', 'Customer', 'Payment Method', 'UTR Ref', 'Status', 'Total Amount (Rs.)'];
+    const headers = [
+      'Invoice / Order ID',
+      'Date',
+      'Customer',
+      'Payment Method',
+      'UTR Ref',
+      'Status',
+      'Total Amount (Rs.)',
+    ];
     const rows = filteredOrders.map((o) => [
       `#${o.id}`,
       new Date(o.created_at).toLocaleString('en-IN'),
@@ -256,446 +469,1129 @@ export default function InvoicesScreen() {
     }
   }, [filteredOrders]);
 
-  // Build clean HTML for the invoice (used for preview + PDF)
-  const buildInvoiceHtml = useCallback((inv: any) => {
-    const items = inv.items || [];
-    const storeName = storeSettings?.store_name || 'Narendra Kirana Store';
-    const storeAddr = storeSettings?.store_address || '';
-    const storePhone = storeSettings?.store_phone || '';
-    const storeEmail = storeSettings?.store_email || '';
-    const gstin = storeSettings?.gstin || '';
-    const fssai = storeSettings?.fssai_license_number || '';
+  // Build 1:1 Matching Official A4 Tax Invoice HTML for PDF / Print
+  const buildOfficialInvoiceHtml = useCallback(
+    (inv: any) => {
+      const items = inv.items || [];
+      const storeName = storeSettings?.store_name || 'Narendra Kirana Store';
+      const storeAddr = storeSettings?.store_address || '';
+      const storePhone = storeSettings?.store_phone || '';
+      const storeEmail = storeSettings?.store_email || '';
+      const gstin = storeSettings?.gstin || '';
+      const fssai = storeSettings?.fssai_license_number || '';
+      const signatureImg = storeSettings?.invoice_signature || '';
+      const terms =
+        storeSettings?.invoice_terms_and_conditions ||
+        storeSettings?.terms_and_conditions ||
+        '1. Goods once sold will not be taken back without original bill.\n2. Report any damaged or missing items within 24 hours of delivery.\n3. This is a computer-generated tax invoice and requires no physical signature.';
 
-    const itemsHtml = items
-      .map((i: any) => {
-        const qty = Number(i.quantity || 1);
-        const price = parseFloat(i.price_snapshot) || 0;
-        const lineTotal = parseFloat(i.subtotal) || price * qty;
-        const isRejected = i.status === 'REJECTED' || i.is_rejected;
-        return `<tr${isRejected ? ' class="rejected"' : ''}>
-          <td>${i.product_name_snapshot || 'Item'}${i.unit_snapshot ? `<br><small>${i.unit_snapshot}</small>` : ''}</td>
-          <td class="c">${qty}</td>
-          <td class="r">₹${price.toFixed(2)}</td>
-          <td class="r b">${isRejected ? '<span class="red">₹0.00</span>' : `₹${lineTotal.toFixed(2)}`}</td>
-        </tr>`;
-      })
-      .join('');
+      const orderDateObj = new Date(inv.created_at);
+      const isOrderDateValid = !isNaN(orderDateObj.getTime());
+      const orderDate = isOrderDateValid
+        ? orderDateObj.toLocaleString('en-IN', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true,
+          })
+        : 'N/A';
 
-    let feesHtml = '';
-    if (inv.delivery_fee && parseFloat(inv.delivery_fee) > 0)
-      feesHtml += `<div class="fr"><span>Delivery Fee</span><span>₹${inv.delivery_fee}</span></div>`;
-    if (inv.packaging_fee && parseFloat(inv.packaging_fee) > 0)
-      feesHtml += `<div class="fr"><span>Packaging Fee</span><span>₹${inv.packaging_fee}</span></div>`;
-    if (inv.discount_amount && parseFloat(inv.discount_amount) > 0)
-      feesHtml += `<div class="fr"><span>Discount</span><span class="grn">-₹${inv.discount_amount}</span></div>`;
+      const invoiceDate = new Date().toLocaleString('en-IN', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      });
 
-    return `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Invoice #${inv.id}</title>
-<style>
-  @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}@page{margin:10mm;size:A4;}}
-  *{margin:0;padding:0;box-sizing:border-box;}
-  body{font-family:-apple-system,'Segoe UI',Roboto,Helvetica,sans-serif;color:#1e293b;padding:28px 32px;background:#fff;}
-  .box{max-width:680px;margin:0 auto;}
-  .hdr{text-align:center;padding-bottom:16px;border-bottom:2.5px solid #059669;margin-bottom:18px;}
-  .hdr h1{font-size:20px;font-weight:900;color:#059669;letter-spacing:.5px;}
-  .hdr p{font-size:11px;color:#475569;margin-top:3px;}
-  .hdr .tx{font-size:10.5px;font-weight:700;color:#334155;margin-top:2px;}
-  .tb{text-align:center;margin-bottom:16px;}
-  .tb h2{font-size:13px;font-weight:800;color:#0f172a;text-transform:uppercase;letter-spacing:1.5px;border-bottom:1px solid #e2e8f0;display:inline-block;padding-bottom:4px;}
-  .meta{display:flex;justify-content:space-between;margin-bottom:18px;gap:12px;}
-  .mb .lb{font-size:9px;font-weight:800;color:#94a3b8;text-transform:uppercase;margin-bottom:3px;}
-  .mb .vl{font-size:13px;font-weight:700;color:#0f172a;}
-  .mb .sb{font-size:11px;color:#475569;margin-top:1px;}
-  table{width:100%;border-collapse:collapse;margin-bottom:14px;}
-  thead{background:#f1f5f9;}
-  th{padding:8px 10px;font-size:9.5px;font-weight:800;color:#64748b;text-transform:uppercase;text-align:left;border-bottom:2px solid #e2e8f0;}
-  th.c{text-align:center;}th.r{text-align:right;}
-  td{padding:7px 10px;font-size:12px;color:#334155;border-bottom:1px solid #f1f5f9;}
-  td.c{text-align:center;}td.r{text-align:right;}td.b{font-weight:600;}
-  td small{color:#94a3b8;font-size:10px;}
-  tr.rejected{text-decoration:line-through;color:#e11d48;opacity:.7;}
-  .red{color:#e11d48;font-weight:700;}
-  .grn{color:#059669;}
-  .fees{border-top:1px dashed #cbd5e1;padding:8px 0;margin-bottom:6px;}
-  .fr{display:flex;justify-content:space-between;padding:3px 0;font-size:12px;color:#334155;}
-  .grand{display:flex;justify-content:space-between;padding:12px 0;border-top:2px solid #0f172a;font-size:17px;font-weight:900;color:#0f172a;}
-  .grand .amt{color:#059669;}
-  .ft{text-align:center;margin-top:28px;padding-top:14px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8;font-style:italic;}
-</style></head><body>
-<div class="box">
-  <div class="hdr">
-    <h1>${storeName}</h1>
-    ${storeAddr ? `<p>${storeAddr}</p>` : ''}
-    ${storePhone || storeEmail ? `<p>${[storePhone, storeEmail].filter(Boolean).join(' • ')}</p>` : ''}
-    ${gstin ? `<p class="tx">GSTIN: ${gstin}</p>` : ''}
-    ${fssai ? `<p class="tx">FSSAI: ${fssai}</p>` : ''}
-  </div>
-  <div class="tb"><h2>Tax Invoice</h2></div>
-  <div class="meta">
-    <div class="mb">
-      <div class="lb">Billed To</div>
-      <div class="vl">${inv.customer_name || 'Walk-in / Guest'}</div>
-      ${inv.customer_phone ? `<div class="sb">Phone: ${inv.customer_phone}</div>` : ''}
-      ${inv.delivery_address ? `<div class="sb">${inv.delivery_address}</div>` : ''}
-    </div>
-    <div class="mb" style="text-align:right;">
-      <div class="lb">Invoice Details</div>
-      <div class="vl">INV-#${inv.id}</div>
-      <div class="sb">${inv.created_at ? new Date(inv.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}</div>
-      <div class="sb">${inv.payment_method || 'COD'} • ${inv.status}</div>
-      ${inv.upi_transaction_id ? `<div class="sb">UPI Ref: ${inv.upi_transaction_id}</div>` : ''}
-    </div>
-  </div>
-  <table>
-    <thead><tr><th>Item</th><th class="c">Qty</th><th class="r">Price</th><th class="r">Total</th></tr></thead>
-    <tbody>${itemsHtml}</tbody>
-  </table>
-  ${feesHtml ? `<div class="fees">${feesHtml}</div>` : ''}
-  <div class="grand"><span>Grand Total</span><span class="amt">₹${inv.total_amount}</span></div>
-  <div class="ft">Computer-generated invoice. Thank you for shopping at ${storeName}!</div>
-</div>
-</body></html>`;
-  }, [storeSettings]);
+      const orderYear = isOrderDateValid ? orderDateObj.getFullYear() : new Date().getFullYear();
+      const invoiceNumber = `INV-${orderYear}-${String(inv.id).padStart(5, '0')}`;
 
-  // Download / Print as PDF
-  const handleDownloadPdf = useCallback(async (inv: any) => {
-    try {
-      const html = buildInvoiceHtml(inv);
-      if (Platform.OS === 'web') {
-        const frameId = 'sk-inv-print';
-        let frame = document.getElementById(frameId) as HTMLIFrameElement | null;
-        if (frame) frame.remove();
-        frame = document.createElement('iframe');
-        frame.id = frameId;
-        Object.assign(frame.style, { position: 'fixed', top: '-10000px', left: '-10000px', width: '800px', height: '1100px' });
-        document.body.appendChild(frame);
-        const d = frame.contentDocument || frame.contentWindow?.document;
-        if (d) { d.open(); d.write(html); d.close(); }
-        setTimeout(() => { frame?.contentWindow?.focus(); frame?.contentWindow?.print(); setTimeout(() => frame?.remove(), 2000); }, 500);
-        return;
+      // Payment method display
+      const total = parseFloat(inv.total_amount) || 0;
+      const wallet = parseFloat(inv.wallet_discount) || 0;
+      const rawMethod = (inv.payment_method || 'COD').toUpperCase();
+      let methodText = 'Cash on Delivery (COD)';
+      if (rawMethod === 'UPI') {
+        methodText = inv.upi_transaction_id ? `UPI (Ref: ${inv.upi_transaction_id})` : 'UPI Instant Payment';
+      } else if (inv.order_type === 'PICKUP' && rawMethod === 'COD') {
+        methodText = 'Cash at Store Counter';
       }
-      const { uri } = await Print.printToFileAsync({ html, width: 595, height: 842 });
-      const canShare = await Sharing.isAvailableAsync();
-      if (canShare) {
-        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: `Invoice INV-#${inv.id}` });
-      } else {
-        showAlert('PDF Saved', `Invoice saved to:\n${uri}`);
-      }
-    } catch {
-      showAlert('Error', 'Failed to generate PDF.');
+      if (total === 0 && wallet > 0) methodText = 'Wallet Balance (Full)';
+      else if (wallet > 0) methodText = `Hybrid (Wallet + ${methodText})`;
+
+      const itemsHtml = items
+        .map((i: any, idx: number) => {
+          const qty = Number(i.quantity || 1);
+          const price = parseFloat(i.price_snapshot) || 0;
+          const lineTotal = parseFloat(i.subtotal) || price * qty;
+          const isRejected = i.status === 'REJECTED' || i.is_rejected;
+          return `<tr class="${isRejected ? 'rejected' : ''}">
+            <td style="text-align:center;color:${isRejected ? '#94a3b8' : '#64748b'};">${idx + 1}</td>
+            <td>
+              <div style="font-weight:700;color:${isRejected ? '#94a3b8;text-decoration:line-through;' : '#0f172a;'}">${i.product_name_snapshot || 'Item'}</div>
+              ${i.unit_snapshot ? `<div style="font-size:10px;color:#64748b;">${i.unit_snapshot}</div>` : ''}
+              ${isRejected ? `<span style="font-size:8px;font-weight:800;color:#e11d48;background:#ffe4e6;padding:1px 4px;border-radius:3px;">UNAVAILABLE</span>` : ''}
+            </td>
+            <td style="text-align:center;">${qty}</td>
+            <td style="text-align:right;">₹${price.toFixed(2)}</td>
+            <td style="text-align:right;font-weight:700;">${isRejected ? '₹0.00' : `₹${lineTotal.toFixed(2)}`}</td>
+          </tr>`;
+        })
+        .join('');
+
+      const termsHtml = terms
+        .split('\n')
+        .map((l: string) => l.trim())
+        .filter(Boolean)
+        .map((l: string) => `<p style="margin:2px 0;color:#475569;">${l}</p>`)
+        .join('');
+
+      return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tax Invoice ${invoiceNumber}</title>
+  <style>
+    @media print {
+      @page { size: A4 portrait; margin: 10mm; }
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: #fff !important; }
     }
-  }, [buildInvoiceHtml]);
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0f172a; background: #f8fafc; padding: 20px; font-size: 11px; }
+    .paper { max-width: 800px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 28px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); position: relative; }
+    .cancelled-stamp { position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%) rotate(-15deg); border: 6px solid #e11d48; color: #e11d48; font-size: 54px; font-weight: 900; letter-spacing: 6px; padding: 10px 30px; border-radius: 12px; opacity: 0.25; pointer-events: none; }
+    .hdr { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px; margin-bottom: 14px; gap: 16px; }
+    .store-info h1 { font-size: 19px; font-weight: 900; color: #0f172a; line-height: 1.2; }
+    .store-info .tag { font-size: 9.5px; font-weight: 800; color: #047857; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+    .store-info p { font-size: 10.5px; color:#475569; margin-top: 3px; line-height: 1.4; }
+    .meta-box { text-align: right; }
+    .meta-box h2 { font-size: 22px; font-weight: 900; color: #0f172a; letter-spacing: -0.5px; }
+    .meta-box .orig { display: inline-block; font-size: 8.5px; font-weight: 800; text-transform: uppercase; color: #065f46; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 2px 6px; border-radius: 4px; margin-top: 2px; }
+    .meta-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 12px; margin-top: 6px; text-align: right; }
+    .meta-row { display: flex; justify-content: flex-end; gap: 8px; margin: 2px 0; font-size: 10.5px; }
+    .meta-lbl { color: #64748b; }
+    .meta-val { font-weight: 700; color: #0f172a; font-family: monospace; }
+    .compliance { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 12px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; font-size: 10px; }
+    .compliance b { color: #334155; }
+    .grid { display: flex; gap: 12px; margin-bottom: 14px; }
+    .grid-col { flex: 1; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; background: #ffffff; }
+    .grid-hdr { font-size: 9px; font-weight: 900; text-transform: uppercase; color: #94a3b8; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; margin-bottom: 6px; letter-spacing: 0.5px; }
+    .grid-name { font-size: 12px; font-weight: 800; color: #0f172a; }
+    .grid-row { display: flex; justify-content: space-between; font-size: 10px; margin: 2px 0; color: #475569; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 14px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+    th { background: #f1f5f9; color: #475569; font-size: 9.5px; font-weight: 800; text-transform: uppercase; padding: 8px 10px; border-bottom: 1px solid #e2e8f0; }
+    td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; font-size: 10.5px; color: #1e293b; }
+    .totals-wrap { display: flex; justify-content: flex-end; margin-bottom: 16px; }
+    .totals-box { width: 280px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #ffffff; }
+    .tot-row { display: flex; justify-content: space-between; padding: 5px 10px; font-size: 10.5px; color: #475569; }
+    .tot-grand { background: #ecfdf5; border-top: 2px solid #10b981; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; color: #065f46; font-size: 11px; font-weight: 800; }
+    .tot-grand .big { font-size: 16px; font-weight: 900; color: #047857; }
+    .ftr { border-top: 1px solid #e2e8f0; padding-top: 12px; display: flex; justify-content: space-between; align-items: flex-end; font-size: 10px; }
+    .ftr-terms { max-width: 420px; color: #64748b; }
+    .ftr-sig { text-align: right; }
+    .sig-img { max-height: 44px; object-fit: contain; margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+  <div class="paper">
+    ${inv.status === 'REJECTED' ? '<div class="cancelled-stamp">CANCELLED</div>' : ''}
+    <div class="hdr">
+      <div class="store-info">
+        <h1>${storeName}</h1>
+        <div class="tag">Grocery & Daily Essentials</div>
+        ${storeAddr ? `<p>📍 ${storeAddr}</p>` : ''}
+        ${storePhone || storeEmail ? `<p>📞 ${[storePhone, storeEmail].filter(Boolean).join(' • ')}</p>` : ''}
+      </div>
+      <div class="meta-box">
+        <h2>TAX INVOICE</h2>
+        <div class="orig">Original for Recipient</div>
+        <div class="meta-card">
+          <div class="meta-row"><span class="meta-lbl">Invoice No:</span><span class="meta-val">${invoiceNumber}</span></div>
+          <div class="meta-row"><span class="meta-lbl">Invoice Date:</span><span>${invoiceDate}</span></div>
+          <div class="meta-row"><span class="meta-lbl">Order Ref:</span><span class="meta-val">#${inv.id}</span></div>
+          <div class="meta-row"><span class="meta-lbl">Order Date:</span><span>${orderDate}</span></div>
+        </div>
+      </div>
+    </div>
 
-  // Share as text
-  const handleShareText = useCallback(async (inv: any) => {
-    const itemsSummary = (inv.items || [])
-      .map((i: any) => `• ${i.product_name_snapshot} (${i.unit_snapshot || ''}) x${i.quantity} = ₹${i.subtotal || i.price_snapshot}`)
-      .join('\n');
-    const msg = `🧾 TAX INVOICE: ${storeSettings?.store_name || 'Narendra Kirana'}\nInvoice #: INV-${inv.id}\nDate: ${inv.created_at ? new Date(inv.created_at).toLocaleString() : ''}\nCustomer: ${inv.customer_name || 'Guest'}\nPhone: ${inv.customer_phone || ''}\nPayment: ${inv.payment_method || 'COD'} (${inv.status})\n\nITEMS:\n${itemsSummary}\n\nTOTAL: ₹${inv.total_amount}\nThank you!`;
-    try { await Share.share({ message: msg }); } catch { showAlert('Invoice', msg); }
-  }, [storeSettings]);
+    ${
+      gstin || fssai
+        ? `<div class="compliance">
+        ${gstin ? `<div><b>GSTIN:</b> <span style="font-family:monospace;font-weight:700;">${gstin}</span></div>` : ''}
+        ${fssai ? `<div><b>FSSAI Lic. No:</b> <span style="font-family:monospace;font-weight:700;">${fssai}</span> <span style="background:#d1fae5;color:#065f46;font-size:8px;font-weight:800;padding:1px 4px;border-radius:3px;">Govt Reg.</span></div>` : ''}
+        <div style="color:#64748b;">Place of Supply: <b>State Code (09)</b></div>
+      </div>`
+        : ''
+    }
+
+    <div class="grid">
+      <div class="grid-col">
+        <div class="grid-hdr">Billed / Shipped To</div>
+        <div class="grid-name">${inv.customer_name || `Customer #${inv.customer ?? '—'}`}</div>
+        ${inv.customer_phone ? `<div class="grid-row"><span>Phone:</span><b>${inv.customer_phone}</b></div>` : ''}
+        <div class="grid-row">
+          <span>Address:</span>
+          <b>${inv.order_type === 'DELIVERY' ? inv.delivery_address || 'Home Delivery' : 'Store Counter Pickup'}</b>
+        </div>
+        ${inv.delivery_pincode ? `<div class="grid-row"><span>PIN Code:</span><b>${inv.delivery_pincode}</b></div>` : ''}
+      </div>
+
+      <div class="grid-col">
+        <div class="grid-hdr">Fulfillment Details</div>
+        <div class="grid-row"><span>Mode:</span><b>${inv.order_type === 'DELIVERY' ? 'Home Delivery' : 'Store Pickup'}</b></div>
+        ${inv.delivery_slot_label ? `<div class="grid-row"><span>Slot:</span><b style="color:#4f46e5;">${inv.delivery_slot_date || ''} (${inv.delivery_slot_label})</b></div>` : ''}
+        <div class="grid-row"><span>Order Status:</span><b style="color:${inv.status === 'COMPLETED' ? '#059669' : inv.status === 'REJECTED' ? '#e11d48' : '#334155'};">${inv.status}</b></div>
+        <div class="grid-row"><span>Payment Status:</span><b style="color:#059669;">${inv.status === 'COMPLETED' ? 'PAID' : inv.status === 'REJECTED' ? 'CANCELLED' : 'DUE AT DELIVERY'}</b></div>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width:5%;text-align:center;">#</th>
+          <th style="width:55%;">Item Description</th>
+          <th style="width:12%;text-align:center;">Qty</th>
+          <th style="width:14%;text-align:right;">Rate (₹)</th>
+          <th style="width:14%;text-align:right;">Amount (₹)</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${itemsHtml}
+      </tbody>
+    </table>
+
+    <div class="totals-wrap">
+      <div class="totals-box">
+        <div class="tot-row">
+          <span>Subtotal (${items.filter((i: any) => i.status !== 'REJECTED').length} items)</span>
+          <b>₹${items.filter((i: any) => i.status !== 'REJECTED').reduce((acc: number, item: any) => acc + (parseFloat(item.subtotal) || 0), 0).toFixed(2)}</b>
+        </div>
+        ${parseFloat(inv.discount_applied || '0') > 0 ? `<div class="tot-row" style="color:#4f46e5;"><span>Product Savings</span><b>-₹${parseFloat(inv.discount_applied).toFixed(2)}</b></div>` : ''}
+        ${parseFloat(inv.promo_discount || '0') > 0 ? `<div class="tot-row" style="color:#059669;"><span>Promo Code Discount</span><b>-₹${parseFloat(inv.promo_discount).toFixed(2)}</b></div>` : ''}
+        ${parseFloat(inv.packaging_fee || '0') > 0 ? `<div class="tot-row"><span>Packaging Charges</span><b>₹${parseFloat(inv.packaging_fee).toFixed(2)}</b></div>` : ''}
+        ${inv.order_type === 'DELIVERY' ? `<div class="tot-row"><span>Delivery Charges</span><b>${parseFloat(inv.delivery_fee || '0') > 0 ? `₹${parseFloat(inv.delivery_fee).toFixed(2)}` : 'FREE'}</b></div>` : ''}
+        ${parseFloat(inv.wallet_discount || '0') > 0 ? `<div class="tot-row" style="color:#059669;font-weight:700;"><span>Wallet Applied</span><b>-₹${parseFloat(inv.wallet_discount).toFixed(2)}</b></div>` : ''}
+        <div class="tot-row" style="border-top:1px solid #f1f5f9;padding-top:6px;">
+          <span>Payment Mode</span>
+          <b style="text-align:right;">${methodText}</b>
+        </div>
+        <div class="tot-grand">
+          <span>${inv.status === 'COMPLETED' ? 'TOTAL AMOUNT PAID' : 'TOTAL AMOUNT DUE'}</span>
+          <span class="big">₹${parseFloat(inv.total_amount).toFixed(2)}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ftr">
+      <div class="ftr-terms">
+        <div style="font-weight:900;text-transform:uppercase;margin-bottom:3px;color:#334155;">Terms & Conditions</div>
+        ${termsHtml}
+        <div style="margin-top:4px;font-weight:700;color:#047857;">Thank you for shopping with ${storeName}!</div>
+      </div>
+      <div class="ftr-sig">
+        <div style="font-weight:700;color:#64748b;margin-bottom:2px;">For ${storeName}</div>
+        ${signatureImg ? `<img src="${signatureImg}" class="sig-img" alt="Authorized Signature" />` : '<div style="width:140px;border-bottom:1px dashed #94a3b8;margin:18px 0 4px auto;"></div>'}
+        <div style="font-weight:900;color:#0f172a;">Authorized Signatory</div>
+        <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;">Computer Generated Invoice</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+    },
+    [storeSettings]
+  );
+
+  // Print / PDF Handler
+  const handlePrintPdf = useCallback(
+    async (inv: any) => {
+      try {
+        const html = buildOfficialInvoiceHtml(inv);
+        if (Platform.OS === 'web') {
+          const frameId = 'sk-inv-print-frame';
+          let frame = document.getElementById(frameId) as HTMLIFrameElement | null;
+          if (frame) frame.remove();
+          frame = document.createElement('iframe');
+          frame.id = frameId;
+          Object.assign(frame.style, {
+            position: 'fixed',
+            top: '-10000px',
+            left: '-10000px',
+            width: '800px',
+            height: '1100px',
+          });
+          document.body.appendChild(frame);
+          const d = frame.contentDocument || frame.contentWindow?.document;
+          if (d) {
+            d.open();
+            d.write(html);
+            d.close();
+          }
+          setTimeout(() => {
+            frame?.contentWindow?.focus();
+            frame?.contentWindow?.print();
+            setTimeout(() => frame?.remove(), 2500);
+          }, 500);
+          return;
+        }
+
+        const { uri } = await Print.printToFileAsync({ html, width: 595, height: 842 });
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(uri, {
+            mimeType: 'application/pdf',
+            dialogTitle: `Tax Invoice INV-${inv.id}`,
+          });
+        } else {
+          showAlert('PDF Generated', `Invoice PDF saved at:\n${uri}`);
+        }
+      } catch (err: any) {
+        showAlert('Print Error', getErrorMessage(err, 'Failed to generate invoice PDF.'));
+      }
+    },
+    [buildOfficialInvoiceHtml]
+  );
+
+  // Share Text / WhatsApp
+  const handleShareText = useCallback(
+    async (inv: any) => {
+      const itemsSummary = (inv.items || [])
+        .map(
+          (i: any) =>
+            `• ${i.product_name_snapshot} (${i.unit_snapshot || ''}) x${i.quantity} = ₹${i.subtotal || i.price_snapshot}`
+        )
+        .join('\n');
+      const msg = `🧾 *TAX INVOICE - ${storeSettings?.store_name || 'Narendra Kirana Store'}*\nInvoice #: INV-${inv.id}\nDate: ${inv.created_at ? new Date(inv.created_at).toLocaleString() : ''}\nCustomer: ${inv.customer_name || 'Customer'}\nPayment: ${inv.payment_method || 'COD'} (${inv.status})\n\n*ITEMS:*\n${itemsSummary}\n\n*TOTAL AMOUNT:* ₹${inv.total_amount}\n\nThank you for shopping with us!`;
+
+      try {
+        await Share.share({ message: msg });
+      } catch {
+        await Clipboard.setStringAsync(msg);
+        showAlert('Copied', 'Invoice text copied to clipboard.');
+      }
+    },
+    [storeSettings]
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      {/* Universal Screen Header */}
+      {/* ─── Screen Header ─── */}
       <ScreenHeader
-        title="Tax Invoices & Billing"
-        subtitle={`${filteredOrders.length} invoices • ₹${totalRevenue.toFixed(0)} billed`}
+        title="Billing & Invoices"
+        subtitle="Search, review, print, and export official GST customer tax invoices."
         rightAction={
-          <TouchableOpacity
-            style={styles.exportHeaderBtn}
-            onPress={handleExportCSV}
-          >
-            <Ionicons name="download-outline" size={14} color="#fff" />
-            <Text style={styles.exportHeaderBtnText}>Export CSV</Text>
-          </TouchableOpacity>
+          <View style={styles.headerRightActions}>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={[
+                styles.headerBrandingBtn,
+                {
+                  backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#e2e8f0',
+                },
+              ]}
+              onPress={() => router.push('/(tabs)/more/store' as any)}
+            >
+              <Ionicons name="options-outline" size={14} color="#6366f1" />
+              <Text style={[styles.headerBrandingBtnText, { color: colors.text }]}>
+                Branding
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={styles.headerExportBtn}
+              onPress={handleExportCSV}
+            >
+              <Ionicons name="download-outline" size={14} color="#ffffff" />
+              <Text style={styles.headerExportBtnText}>Export CSV</Text>
+            </TouchableOpacity>
+          </View>
         }
       />
 
-      {/* Top Filter and Search Header */}
-      <View style={[styles.filterHeader, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <View style={[styles.searchRow, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
-          <Ionicons name="search" size={17} color={colors.textMuted} />
-          <TextInput
-            style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Search invoice #, customer, address..."
-            placeholderTextColor={colors.textMuted}
-            value={searchTerm}
-            onChangeText={setSearchTerm}
-          />
-          {searchTerm ? (
-            <TouchableOpacity onPress={() => setSearchTerm('')}>
-              <Ionicons name="close-circle" size={18} color={colors.textMuted} />
-            </TouchableOpacity>
-          ) : null}
-        </View>
-
-        {/* Date Filter Range Pills */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.dateFilterRow}
-        >
-          {(['ALL', 'TODAY', 'WEEK', 'MONTH'] as const).map((d) => (
-            <TouchableOpacity
-              key={d}
+      <ScrollView
+        style={styles.mainScroll}
+        contentContainerStyle={styles.mainScrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366f1" />
+        }
+      >
+        <View style={styles.maxContainer}>
+          {/* ─── 2. Financial Metrics Grid (4 Cards Exactly Like Web App) ─── */}
+          <View style={styles.metricsGrid}>
+            {/* Total Invoiced Value */}
+            <View
               style={[
-                styles.datePill,
-                { backgroundColor: colors.cardAlt },
-                dateFilter === d && styles.datePillActive,
+                styles.metricCard,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+                },
               ]}
-              onPress={() => setDateFilter(d)}
             >
-              <Text
-                style={[
-                  styles.datePillText,
-                  { color: colors.textMuted },
-                  dateFilter === d && styles.datePillTextActive,
-                ]}
-              >
-                {d === 'ALL' ? 'All Dates' : d === 'TODAY' ? 'Today' : d === 'WEEK' ? 'Past 7 Days' : 'This Month'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        <View style={styles.pillRow}>
-          {(['ALL', 'UPI', 'COD'] as const).map((method) => (
-            <TouchableOpacity
-              key={method}
-              style={[
-                styles.pill,
-                { backgroundColor: colors.cardAlt },
-                paymentFilter === method && styles.pillActive,
-              ]}
-              onPress={() => setPaymentFilter(method)}
-            >
-              <Text
-                style={[
-                  styles.pillText,
-                  { color: colors.textMuted },
-                  paymentFilter === method && styles.pillTextActive,
-                ]}
-              >
-                {method}
-              </Text>
-            </TouchableOpacity>
-          ))}
-
-          <View style={styles.pipeDivider} />
-
-          {(['ALL', 'COMPLETED', 'ACTIVE'] as const).map((status) => (
-            <TouchableOpacity
-              key={status}
-              style={[
-                styles.pill,
-                { backgroundColor: colors.cardAlt },
-                statusFilter === status && styles.pillActive,
-              ]}
-              onPress={() => setStatusFilter(status)}
-            >
-              <Text
-                style={[
-                  styles.pillText,
-                  { color: colors.textMuted },
-                  statusFilter === status && styles.pillTextActive,
-                ]}
-              >
-                {status}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      {/* 4 Financial Metrics Banner Cards */}
-      <View style={[styles.metricsBanner, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <View style={styles.metricItem}>
-          <Text style={[styles.metricLabel, { color: colors.textMuted }]}>TOTAL BILLED</Text>
-          <Text style={[styles.metricVal, { color: '#10b981' }]}>₹{metrics.totalBilled}</Text>
-        </View>
-        <View style={styles.metricItem}>
-          <Text style={[styles.metricLabel, { color: colors.textMuted }]}>UPI / ONLINE</Text>
-          <Text style={[styles.metricVal, { color: '#6366f1' }]}>₹{metrics.upiTotal}</Text>
-        </View>
-        <View style={styles.metricItem}>
-          <Text style={[styles.metricLabel, { color: colors.textMuted }]}>CASH ON DEL</Text>
-          <Text style={[styles.metricVal, { color: '#f59e0b' }]}>₹{metrics.codTotal}</Text>
-        </View>
-        <View style={styles.metricItem}>
-          <Text style={[styles.metricLabel, { color: colors.textMuted }]}>COMPLETED</Text>
-          <Text style={[styles.metricVal, { color: '#059669' }]}>{metrics.completedCount}</Text>
-        </View>
-      </View>
-
-      {/* Error Message */}
-      {errorMsg ? (
-        <View style={styles.errorBox}>
-          <Text style={styles.errorText}>{errorMsg}</Text>
-        </View>
-      ) : null}
-
-      {/* Invoice List */}
-      {loading && !refreshing ? (
-        <ActivityIndicator size="large" color="#10b981" style={{ marginTop: 40 }} />
-      ) : (
-        <FlatList
-          data={filteredOrders}
-          keyExtractor={(item, index) => (item?.id != null ? String(item.id) : `inv-${index}`)}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#10b981"
-            />
-          }
-          renderItem={({ item }) => (
-            <InvoiceRow
-              item={item}
-              onViewInvoice={(inv) => setSelectedInvoice(inv)}
-              onOpenOrder={(id) => router.push(`/(tabs)/orders/${id}` as any)}
-              colors={colors}
-            />
-          )}
-          ListEmptyComponent={
-            <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-              No invoices match this filter criteria.
-            </Text>
-          }
-        />
-      )}
-
-      {/* A4 Invoice Preview Modal */}
-      <Modal visible={Boolean(selectedInvoice)} transparent animationType="slide" onRequestClose={() => setSelectedInvoice(null)}>
-        <View style={styles.previewBackdrop}>
-          <View style={[styles.previewContainer, { backgroundColor: colors.bg }]}>
-            {/* Header */}
-            <View style={[styles.previewHeader, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Ionicons name="document-text" size={20} color="#059669" />
-                <Text style={[styles.previewTitle, { color: colors.text }]}>
-                  Invoice #{selectedInvoice?.id}
-                </Text>
+              <View style={styles.metricCardHead}>
+                <Text style={styles.metricCardLabel}>TOTAL INVOICED VALUE</Text>
+                <Ionicons name="document-text" size={16} color="#6366f1" />
               </View>
-              <TouchableOpacity
-                onPress={() => setSelectedInvoice(null)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Ionicons name="close-circle" size={28} color={colors.textMuted} />
-              </TouchableOpacity>
+              <Text style={[styles.metricCardVal, { color: colors.text }]}>
+                ₹{metrics.totalBilled}
+              </Text>
+              <Text style={[styles.metricCardSub, { color: colors.textMuted }]}>
+                Across {metrics.totalInvoices} invoices
+              </Text>
             </View>
 
-            {/* A4 Paper Preview */}
+            {/* Settled via UPI */}
+            <View
+              style={[
+                styles.metricCard,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+                },
+              ]}
+            >
+              <View style={styles.metricCardHead}>
+                <Text style={styles.metricCardLabel}>SETTLED VIA UPI</Text>
+                <Ionicons name="card" size={16} color="#10b981" />
+              </View>
+              <Text style={[styles.metricCardVal, { color: '#10b981' }]}>
+                ₹{metrics.upiTotal}
+              </Text>
+              <Text style={[styles.metricCardSub, { color: colors.textMuted }]}>
+                Instant digital receipts
+              </Text>
+            </View>
+
+            {/* Cash on Delivery (COD) */}
+            <View
+              style={[
+                styles.metricCard,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+                },
+              ]}
+            >
+              <View style={styles.metricCardHead}>
+                <Text style={styles.metricCardLabel}>CASH ON DELIVERY (COD)</Text>
+                <Ionicons name="cash" size={16} color="#f59e0b" />
+              </View>
+              <Text style={[styles.metricCardVal, { color: '#f59e0b' }]}>
+                ₹{metrics.codTotal}
+              </Text>
+              <Text style={[styles.metricCardSub, { color: colors.textMuted }]}>
+                Collected at counter/door
+              </Text>
+            </View>
+
+            {/* Completed Orders */}
+            <View
+              style={[
+                styles.metricCard,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+                },
+              ]}
+            >
+              <View style={styles.metricCardHead}>
+                <Text style={styles.metricCardLabel}>COMPLETED ORDERS</Text>
+                <Ionicons name="checkmark-circle" size={16} color="#3b82f6" />
+              </View>
+              <Text style={[styles.metricCardVal, { color: '#3b82f6' }]}>
+                {metrics.completedCount} / {metrics.totalInvoices}
+              </Text>
+              <Text style={[styles.metricCardSub, { color: colors.textMuted }]}>
+                Fully fulfilled & invoiced
+              </Text>
+            </View>
+          </View>
+
+          {/* ─── 3. Filter & Search Hub ─── */}
+          <View
+            style={[
+              styles.filterCard,
+              {
+                backgroundColor: colors.card,
+                borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+              },
+            ]}
+          >
+            {/* Search Input Bar */}
+            <View
+              style={[
+                styles.searchBar,
+                {
+                  backgroundColor: colors.cardAlt,
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.06)' : '#e2e8f0',
+                },
+              ]}
+            >
+              <Ionicons name="search" size={16} color={colors.textMuted} />
+              <TextInput
+                style={[styles.searchInput, { color: colors.text }]}
+                placeholder="Search by Order ID, Customer, UTR..."
+                placeholderTextColor={colors.textMuted}
+                value={searchTerm}
+                onChangeText={setSearchTerm}
+              />
+              {searchTerm ? (
+                <TouchableOpacity onPress={() => setSearchTerm('')}>
+                  <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+
+            {/* Date Range Selector Pills */}
             <ScrollView
-              style={styles.previewScrollArea}
-              contentContainerStyle={styles.previewScrollContent}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterPillsRow}
+            >
+              {(
+                [
+                  { key: 'ALL', label: 'All Time' },
+                  { key: 'TODAY', label: 'Today' },
+                  { key: 'WEEK', label: '7 Days' },
+                  { key: 'MONTH', label: 'This Month' },
+                ] as const
+              ).map((d) => (
+                <TouchableOpacity
+                  key={d.key}
+                  style={[
+                    styles.datePill,
+                    {
+                      backgroundColor:
+                        dateFilter === d.key
+                          ? isDark
+                            ? '#334155'
+                            : '#ffffff'
+                          : colors.cardAlt,
+                      borderColor:
+                        dateFilter === d.key
+                          ? '#6366f1'
+                          : isDark
+                            ? 'rgba(255, 255, 255, 0.06)'
+                            : '#e2e8f0',
+                    },
+                  ]}
+                  onPress={() => setDateFilter(d.key)}
+                >
+                  <Text
+                    style={[
+                      styles.datePillText,
+                      {
+                        color: dateFilter === d.key ? '#6366f1' : colors.textMuted,
+                        fontWeight: dateFilter === d.key ? '800' : '600',
+                      },
+                    ]}
+                  >
+                    {d.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {/* Payment & Status Filter Pills */}
+            <View style={styles.pillDropdownsRow}>
+              {/* Payment Filter */}
+              <View style={styles.subPillsGroup}>
+                {(['ALL', 'UPI', 'COD'] as const).map((m) => (
+                  <TouchableOpacity
+                    key={m}
+                    style={[
+                      styles.subPill,
+                      {
+                        backgroundColor:
+                          paymentFilter === m
+                            ? isDark
+                              ? '#334155'
+                              : '#ffffff'
+                            : colors.cardAlt,
+                        borderColor:
+                          paymentFilter === m
+                            ? '#6366f1'
+                            : isDark
+                              ? 'rgba(255, 255, 255, 0.06)'
+                              : '#e2e8f0',
+                      },
+                    ]}
+                    onPress={() => setPaymentFilter(m)}
+                  >
+                    <Text
+                      style={[
+                        styles.subPillText,
+                        {
+                          color: paymentFilter === m ? '#6366f1' : colors.textMuted,
+                          fontWeight: paymentFilter === m ? '800' : '600',
+                        },
+                      ]}
+                    >
+                      {m === 'ALL' ? 'All Pay' : m}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <View style={styles.subPillDivider} />
+
+              {/* Status Filter */}
+              <View style={styles.subPillsGroup}>
+                {(['ALL', 'COMPLETED', 'ACTIVE'] as const).map((s) => (
+                  <TouchableOpacity
+                    key={s}
+                    style={[
+                      styles.subPill,
+                      {
+                        backgroundColor:
+                          statusFilter === s
+                            ? isDark
+                              ? '#334155'
+                              : '#ffffff'
+                            : colors.cardAlt,
+                        borderColor:
+                          statusFilter === s
+                            ? '#6366f1'
+                            : isDark
+                              ? 'rgba(255, 255, 255, 0.06)'
+                              : '#e2e8f0',
+                      },
+                    ]}
+                    onPress={() => setStatusFilter(s)}
+                  >
+                    <Text
+                      style={[
+                        styles.subPillText,
+                        {
+                          color: statusFilter === s ? '#6366f1' : colors.textMuted,
+                          fontWeight: statusFilter === s ? '800' : '600',
+                        },
+                      ]}
+                    >
+                      {s === 'ALL' ? 'All Status' : s === 'COMPLETED' ? 'Done' : 'Active'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Refresh Button */}
+              <TouchableOpacity
+                style={[
+                  styles.refreshIconBtn,
+                  {
+                    backgroundColor: colors.cardAlt,
+                    borderColor: isDark ? 'rgba(255, 255, 255, 0.06)' : '#e2e8f0',
+                  },
+                ]}
+                onPress={() => fetchInvoices()}
+              >
+                <Ionicons
+                  name="refresh"
+                  size={14}
+                  color={colors.textMuted}
+                  style={refreshing ? { transform: [{ rotate: '45deg' }] } : undefined}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Error Banner */}
+          {errorMsg ? (
+            <View style={styles.errorBanner}>
+              <Ionicons name="alert-circle" size={16} color="#ef4444" />
+              <Text style={styles.errorBannerText}>{errorMsg}</Text>
+            </View>
+          ) : null}
+
+          {/* ─── 4. Invoices List ─── */}
+          {loading && !refreshing ? (
+            <View style={styles.loadingBox}>
+              <ActivityIndicator size="large" color="#6366f1" />
+              <Text style={[styles.loadingText, { color: colors.textMuted }]}>
+                Loading store invoices...
+              </Text>
+            </View>
+          ) : filteredOrders.length === 0 ? (
+            <View
+              style={[
+                styles.emptyCard,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+                },
+              ]}
+            >
+              <Ionicons name="document-text-outline" size={44} color={colors.textMuted} />
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                No invoices matching filters
+              </Text>
+              <Text style={[styles.emptySub, { color: colors.textMuted }]}>
+                Try clearing your search query or changing date range filters.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.invoicesListCol}>
+              {filteredOrders.map((order) => (
+                <InvoiceCard
+                  key={order.id}
+                  order={order}
+                  onViewInvoice={(inv) => setSelectedInvoice(inv)}
+                  onOpenOrder={(id) => router.push(`/(tabs)/orders/${id}` as any)}
+                  colors={colors}
+                  isDark={isDark}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+      </ScrollView>
+
+      {/* ─── 5. Official Tax Invoice Modal (Matches Web App Invoice.jsx & InvoiceModal.jsx) ─── */}
+      <Modal
+        visible={Boolean(selectedInvoice)}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSelectedInvoice(null)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalSheet, { backgroundColor: '#f1f5f9' }]}>
+            {/* Modal Header */}
+            <View style={styles.modalHeaderBar}>
+              <View style={styles.modalHeaderLeft}>
+                <View style={styles.modalIconBadge}>
+                  <Ionicons name="document-text" size={16} color="#10b981" />
+                </View>
+                <View>
+                  <View style={styles.modalTitleRow}>
+                    <Text style={styles.modalTitleText}>Tax Invoice</Text>
+                    <View style={styles.modalOrderIdPill}>
+                      <Text style={styles.modalOrderIdText}>#{selectedInvoice?.id}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.modalSubText}>
+                    Print preview & official invoice document
+                  </Text>
+                </View>
+              </View>
+
+              {/* Header Action Buttons */}
+              <View style={styles.modalHeaderActions}>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={styles.modalPrintBtn}
+                  onPress={() => selectedInvoice && handlePrintPdf(selectedInvoice)}
+                >
+                  <Ionicons name="print" size={14} color="#ffffff" />
+                  <Text style={styles.modalPrintBtnText}>Print / PDF</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={styles.modalShareBtn}
+                  onPress={() => selectedInvoice && handleShareText(selectedInvoice)}
+                >
+                  <Ionicons name="share-social-outline" size={16} color="#1e293b" />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={styles.modalCloseBtn}
+                  onPress={() => setSelectedInvoice(null)}
+                >
+                  <Ionicons name="close" size={20} color="#64748b" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Document Scroll Content */}
+            <ScrollView
+              style={styles.docScroll}
+              contentContainerStyle={styles.docScrollContent}
               showsVerticalScrollIndicator={false}
             >
-              <View style={styles.a4Shadow}>
-                {Platform.OS === 'web' ? (
-                  <iframe
-                    srcDoc={selectedInvoice ? buildInvoiceHtml(selectedInvoice) : ''}
-                    style={{
-                      width: '100%',
-                      height: 800,
-                      border: 'none',
-                      borderRadius: 4,
-                      backgroundColor: '#ffffff',
-                    } as any}
-                    title="Invoice Preview"
-                  />
-                ) : (
-                  /* Native fallback: render items natively */
-                  <View style={styles.a4NativeContent}>
-                    <Text style={styles.a4StoreName}>
-                      {storeSettings?.store_name || 'Narendra Kirana Store'}
-                    </Text>
-                    {storeSettings?.store_address ? (
-                      <Text style={styles.a4StoreDetail}>{storeSettings.store_address}</Text>
-                    ) : null}
-                    {storeSettings?.store_phone ? (
-                      <Text style={styles.a4StoreDetail}>Phone: {storeSettings.store_phone}</Text>
-                    ) : null}
-                    {storeSettings?.gstin ? (
-                      <Text style={styles.a4Tax}>GSTIN: {storeSettings.gstin}</Text>
-                    ) : null}
-
-                    <View style={styles.a4Divider} />
-                    <Text style={styles.a4InvoiceLabel}>TAX INVOICE</Text>
-                    <View style={styles.a4Divider} />
-
-                    <View style={styles.a4MetaRow}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.a4MetaLabel}>BILLED TO</Text>
-                        <Text style={styles.a4MetaVal}>{selectedInvoice?.customer_name || 'Walk-in / Guest'}</Text>
-                        {selectedInvoice?.customer_phone ? <Text style={styles.a4MetaSub}>Phone: {selectedInvoice.customer_phone}</Text> : null}
-                      </View>
-                      <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                        <Text style={styles.a4MetaLabel}>INVOICE</Text>
-                        <Text style={styles.a4MetaVal}>INV-#{selectedInvoice?.id}</Text>
-                        <Text style={styles.a4MetaSub}>{selectedInvoice?.created_at ? new Date(selectedInvoice.created_at).toLocaleDateString() : ''}</Text>
-                        <Text style={styles.a4MetaSub}>{selectedInvoice?.payment_method || 'COD'} • {selectedInvoice?.status}</Text>
+              {selectedInvoice && (
+                <View style={styles.paperContainer}>
+                  {/* Cancelled Stamp (if rejected) */}
+                  {selectedInvoice.status === 'REJECTED' && (
+                    <View style={styles.cancelledStampWrap}>
+                      <View style={styles.cancelledStampBox}>
+                        <Text style={styles.cancelledStampText}>CANCELLED</Text>
                       </View>
                     </View>
+                  )}
 
-                    {/* Items */}
-                    <View style={styles.a4TableHead}>
-                      <Text style={[styles.a4ColH, { flex: 2, textAlign: 'left' }]}>Item</Text>
-                      <Text style={[styles.a4ColH, { flex: 0.6, textAlign: 'center' }]}>Qty</Text>
-                      <Text style={[styles.a4ColH, { flex: 1, textAlign: 'right' }]}>Price</Text>
-                      <Text style={[styles.a4ColH, { flex: 1, textAlign: 'right' }]}>Total</Text>
+                  {/* Top Store Header & Document Meta */}
+                  <View style={styles.docTopHeader}>
+                    {/* Store Brand Left */}
+                    <View style={styles.docStoreCol}>
+                      <View style={styles.docStoreRow}>
+                        <View style={styles.docLogoBox}>
+                          <Ionicons name="storefront" size={20} color="#10b981" />
+                        </View>
+                        <View>
+                          <Text style={styles.docStoreName}>
+                            {storeSettings?.store_name || 'Narendra Kirana Store'}
+                          </Text>
+                          <Text style={styles.docStoreTag}>GROCERY & DAILY ESSENTIALS</Text>
+                        </View>
+                      </View>
+
+                      {storeSettings?.store_address ? (
+                        <View style={styles.docContactRow}>
+                          <Ionicons name="location-outline" size={12} color="#64748b" />
+                          <Text style={styles.docContactText}>
+                            {storeSettings.store_address}
+                          </Text>
+                        </View>
+                      ) : null}
+
+                      {storeSettings?.store_phone || storeSettings?.store_email ? (
+                        <View style={styles.docContactRow}>
+                          <Ionicons name="call-outline" size={12} color="#64748b" />
+                          <Text style={styles.docContactText}>
+                            {[storeSettings?.store_phone, storeSettings?.store_email]
+                              .filter(Boolean)
+                              .join(' • ')}
+                          </Text>
+                        </View>
+                      ) : null}
                     </View>
-                    {(selectedInvoice?.items || []).map((item: any, idx: number) => {
+
+                    {/* Invoice Official Meta Right */}
+                    <View style={styles.docMetaCol}>
+                      <Text style={styles.docTaxInvoiceHeading}>TAX INVOICE</Text>
+                      <View style={styles.docOriginalBadge}>
+                        <Text style={styles.docOriginalBadgeText}>ORIGINAL FOR RECIPIENT</Text>
+                      </View>
+
+                      <View style={styles.docMetaCard}>
+                        <View style={styles.docMetaRow}>
+                          <Text style={styles.docMetaLabel}>Invoice No:</Text>
+                          <Text style={styles.docMetaVal}>
+                            {formatInvoiceNumber(selectedInvoice)}
+                          </Text>
+                        </View>
+                        <View style={styles.docMetaRow}>
+                          <Text style={styles.docMetaLabel}>Invoice Date:</Text>
+                          <Text style={styles.docMetaValSimple}>
+                            {formatOrderDateTime(selectedInvoice.created_at).date}
+                          </Text>
+                        </View>
+                        <View style={styles.docMetaRow}>
+                          <Text style={styles.docMetaLabel}>Order Ref:</Text>
+                          <Text style={styles.docMetaVal}>#{selectedInvoice.id}</Text>
+                        </View>
+                        <View style={styles.docMetaRow}>
+                          <Text style={styles.docMetaLabel}>Order Date:</Text>
+                          <Text style={styles.docMetaValSimple}>
+                            {formatOrderDateTime(selectedInvoice.created_at).date}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Compliance Strip (GSTIN & FSSAI) */}
+                  {(storeSettings?.gstin || storeSettings?.fssai_license_number) && (
+                    <View style={styles.complianceStrip}>
+                      {storeSettings?.gstin ? (
+                        <View style={styles.complianceItem}>
+                          <Text style={styles.complianceLabel}>GSTIN:</Text>
+                          <Text style={styles.complianceVal}>{storeSettings.gstin}</Text>
+                        </View>
+                      ) : null}
+                      {storeSettings?.fssai_license_number ? (
+                        <View style={styles.complianceItem}>
+                          <Text style={styles.complianceLabel}>FSSAI Lic. No:</Text>
+                          <Text style={styles.complianceVal}>
+                            {storeSettings.fssai_license_number}
+                          </Text>
+                          <View style={styles.govtRegPill}>
+                            <Text style={styles.govtRegText}>GOVT REG.</Text>
+                          </View>
+                        </View>
+                      ) : null}
+                      <Text style={styles.placeOfSupplyText}>
+                        Place of Supply: <Text style={{ fontWeight: '800' }}>State Code (09)</Text>
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Customer & Fulfillment Info Grid */}
+                  <View style={styles.infoGridRow}>
+                    {/* Billed / Shipped To */}
+                    <View style={styles.infoGridCard}>
+                      <Text style={styles.infoGridHeader}>BILLED / SHIPPED TO</Text>
+                      <Text style={styles.infoGridName}>
+                        {selectedInvoice.customer_name ||
+                          `Customer ID: ${selectedInvoice.customer ?? '—'}`}
+                      </Text>
+                      {selectedInvoice.customer_phone ? (
+                        <View style={styles.infoSubRow}>
+                          <Ionicons name="call-outline" size={11} color="#64748b" />
+                          <Text style={styles.infoSubText}>{selectedInvoice.customer_phone}</Text>
+                        </View>
+                      ) : null}
+                      <Text style={styles.infoSubText}>
+                        {selectedInvoice.order_type === 'DELIVERY'
+                          ? selectedInvoice.delivery_address || 'Home Delivery'
+                          : 'Store Counter Pickup'}
+                      </Text>
+                      {selectedInvoice.delivery_pincode ? (
+                        <Text style={styles.infoPinText}>PIN: {selectedInvoice.delivery_pincode}</Text>
+                      ) : null}
+                    </View>
+
+                    {/* Fulfillment Details */}
+                    <View style={styles.infoGridCard}>
+                      <Text style={styles.infoGridHeader}>FULFILLMENT DETAILS</Text>
+                      <View style={styles.infoDetailLine}>
+                        <Text style={styles.infoDetailLabel}>Fulfillment Mode:</Text>
+                        <Text style={styles.infoDetailVal}>
+                          {selectedInvoice.order_type === 'DELIVERY'
+                            ? 'Home Delivery'
+                            : 'Store Pickup'}
+                        </Text>
+                      </View>
+                      {selectedInvoice.delivery_slot_label ? (
+                        <View style={styles.infoDetailLine}>
+                          <Text style={styles.infoDetailLabel}>Scheduled Slot:</Text>
+                          <Text style={[styles.infoDetailVal, { color: '#6366f1' }]}>
+                            {selectedInvoice.delivery_slot_label}
+                          </Text>
+                        </View>
+                      ) : null}
+                      <View style={styles.infoDetailLine}>
+                        <Text style={styles.infoDetailLabel}>Order Status:</Text>
+                        <Text
+                          style={[
+                            styles.infoDetailVal,
+                            {
+                              color:
+                                selectedInvoice.status === 'COMPLETED'
+                                  ? '#10b981'
+                                  : selectedInvoice.status === 'REJECTED'
+                                    ? '#e11d48'
+                                    : '#1e293b',
+                            },
+                          ]}
+                        >
+                          {selectedInvoice.status}
+                        </Text>
+                      </View>
+                      <View style={styles.infoDetailLine}>
+                        <Text style={styles.infoDetailLabel}>Payment Status:</Text>
+                        <Text style={[styles.infoDetailVal, { color: '#10b981' }]}>
+                          {selectedInvoice.status === 'COMPLETED'
+                            ? 'PAID'
+                            : selectedInvoice.status === 'REJECTED'
+                              ? 'CANCELLED'
+                              : 'DUE AT DELIVERY'}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Items Table */}
+                  <View style={styles.itemsTableCard}>
+                    <View style={styles.tableHeaderRow}>
+                      <Text style={[styles.tableColHead, { width: 24, textAlign: 'center' }]}>#</Text>
+                      <Text style={[styles.tableColHead, { flex: 2 }]}>ITEM DESCRIPTION</Text>
+                      <Text style={[styles.tableColHead, { width: 36, textAlign: 'center' }]}>QTY</Text>
+                      <Text style={[styles.tableColHead, { width: 64, textAlign: 'right' }]}>RATE (₹)</Text>
+                      <Text style={[styles.tableColHead, { width: 68, textAlign: 'right' }]}>AMOUNT (₹)</Text>
+                    </View>
+
+                    {(selectedInvoice.items || []).map((item: any, idx: number) => {
                       const qty = Number(item.quantity || 1);
                       const price = parseFloat(item.price_snapshot) || 0;
                       const lineTotal = parseFloat(item.subtotal) || price * qty;
                       const isRej = item.status === 'REJECTED' || item.is_rejected;
+
                       return (
-                        <View key={idx} style={styles.a4TableRow}>
-                          <Text style={[styles.a4Cell, { flex: 2 }, isRej && { textDecorationLine: 'line-through', color: '#e11d48' }]}>
-                            {item.product_name_snapshot || 'Item'}
+                        <View key={idx} style={[styles.tableBodyRow, isRej && styles.tableBodyRowRejected]}>
+                          <Text style={[styles.tableCellNum, isRej && { color: '#94a3b8' }]}>
+                            {idx + 1}
                           </Text>
-                          <Text style={[styles.a4Cell, { flex: 0.6, textAlign: 'center' }, isRej && { color: '#e11d48' }]}>{qty}</Text>
-                          <Text style={[styles.a4Cell, { flex: 1, textAlign: 'right' }, isRej && { color: '#e11d48' }]}>₹{price.toFixed(2)}</Text>
-                          <Text style={[styles.a4Cell, { flex: 1, textAlign: 'right', fontWeight: '600' }, isRej && { color: '#e11d48' }]}>
-                            {isRej ? '₹0.00' : `₹${lineTotal.toFixed(2)}`}
+                          <View style={{ flex: 2 }}>
+                            <Text
+                              style={[
+                                styles.tableCellItemName,
+                                isRej && { textDecorationLine: 'line-through', color: '#94a3b8' },
+                              ]}
+                            >
+                              {item.product_name_snapshot || 'Item'}
+                            </Text>
+                            {item.unit_snapshot ? (
+                              <Text style={styles.tableCellItemUnit}>{item.unit_snapshot}</Text>
+                            ) : null}
+                            {isRej ? (
+                              <View style={styles.unavailableBadge}>
+                                <Text style={styles.unavailableBadgeText}>UNAVAILABLE</Text>
+                              </View>
+                            ) : null}
+                          </View>
+                          <Text style={[styles.tableCellQty, isRej && { color: '#94a3b8' }]}>
+                            {qty}
+                          </Text>
+                          <Text style={[styles.tableCellRate, isRej && { color: '#94a3b8' }]}>
+                            {price.toFixed(2)}
+                          </Text>
+                          <Text style={[styles.tableCellTotal, isRej && { color: '#e11d48' }]}>
+                            {isRej ? '0.00' : lineTotal.toFixed(2)}
                           </Text>
                         </View>
                       );
                     })}
+                  </View>
 
-                    <View style={styles.a4GrandRow}>
-                      <Text style={styles.a4GrandLabel}>Grand Total</Text>
-                      <Text style={styles.a4GrandVal}>₹{selectedInvoice?.total_amount}</Text>
+                  {/* Cost Breakdown & Grand Total Box */}
+                  <View style={styles.totalsSection}>
+                    <View style={styles.totalsCard}>
+                      <View style={styles.totalLineRow}>
+                        <Text style={styles.totalLineLabel}>
+                          Subtotal (
+                          {(selectedInvoice.items || []).filter((i: any) => i.status !== 'REJECTED').length}{' '}
+                          items)
+                        </Text>
+                        <Text style={styles.totalLineVal}>
+                          ₹
+                          {(selectedInvoice.items || [])
+                            .filter((i: any) => i.status !== 'REJECTED')
+                            .reduce(
+                              (acc: number, item: any) => acc + (parseFloat(item.subtotal) || 0),
+                              0
+                            )
+                            .toFixed(2)}
+                        </Text>
+                      </View>
+
+                      {parseFloat(selectedInvoice.discount_applied || '0') > 0 ? (
+                        <View style={styles.totalLineRow}>
+                          <Text style={[styles.totalLineLabel, { color: '#6366f1' }]}>
+                            Product Savings
+                          </Text>
+                          <Text style={[styles.totalLineVal, { color: '#6366f1', fontWeight: '800' }]}>
+                            -₹{parseFloat(selectedInvoice.discount_applied).toFixed(2)}
+                          </Text>
+                        </View>
+                      ) : null}
+
+                      {parseFloat(selectedInvoice.promo_discount || '0') > 0 ? (
+                        <View style={styles.totalLineRow}>
+                          <Text style={[styles.totalLineLabel, { color: '#10b981' }]}>
+                            Promo Code Discount
+                          </Text>
+                          <Text style={[styles.totalLineVal, { color: '#10b981', fontWeight: '800' }]}>
+                            -₹{parseFloat(selectedInvoice.promo_discount).toFixed(2)}
+                          </Text>
+                        </View>
+                      ) : null}
+
+                      {parseFloat(selectedInvoice.packaging_fee || '0') > 0 ? (
+                        <View style={styles.totalLineRow}>
+                          <Text style={styles.totalLineLabel}>Packaging Charges</Text>
+                          <Text style={styles.totalLineVal}>
+                            ₹{parseFloat(selectedInvoice.packaging_fee).toFixed(2)}
+                          </Text>
+                        </View>
+                      ) : null}
+
+                      {selectedInvoice.order_type === 'DELIVERY' ? (
+                        <View style={styles.totalLineRow}>
+                          <Text style={styles.totalLineLabel}>Delivery Charges</Text>
+                          <Text style={styles.totalLineVal}>
+                            {parseFloat(selectedInvoice.delivery_fee || '0') > 0
+                              ? `₹${parseFloat(selectedInvoice.delivery_fee).toFixed(2)}`
+                              : 'FREE'}
+                          </Text>
+                        </View>
+                      ) : null}
+
+                      {parseFloat(selectedInvoice.wallet_discount || '0') > 0 ? (
+                        <View style={[styles.totalLineRow, { borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 6 }]}>
+                          <Text style={[styles.totalLineLabel, { color: '#059669', fontWeight: '800' }]}>
+                            Wallet Applied
+                          </Text>
+                          <Text style={[styles.totalLineVal, { color: '#059669', fontWeight: '800' }]}>
+                            -₹{parseFloat(selectedInvoice.wallet_discount).toFixed(2)}
+                          </Text>
+                        </View>
+                      ) : null}
+
+                      <View style={[styles.totalLineRow, { borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 6 }]}>
+                        <Text style={styles.totalLineLabel}>Payment Mode</Text>
+                        <Text style={[styles.totalLineVal, { fontWeight: '700' }]}>
+                          {selectedInvoice.payment_method === 'UPI'
+                            ? selectedInvoice.upi_transaction_id
+                              ? `UPI (Ref: ${selectedInvoice.upi_transaction_id})`
+                              : 'UPI Instant'
+                            : 'Cash on Delivery'}
+                        </Text>
+                      </View>
+
+                      {/* Total Amount Paid / Due Highlighted Banner */}
+                      <View style={styles.grandTotalBanner}>
+                        <Text style={styles.grandTotalLabel}>
+                          {selectedInvoice.status === 'COMPLETED'
+                            ? 'TOTAL AMOUNT PAID'
+                            : 'TOTAL AMOUNT DUE'}
+                        </Text>
+                        <Text style={styles.grandTotalVal}>
+                          ₹{parseFloat(selectedInvoice.total_amount).toFixed(2)}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Footer: Terms & Conditions and Authorized Signatory */}
+                  <View style={styles.docFooterRow}>
+                    <View style={styles.termsCol}>
+                      <View style={styles.termsHeadRow}>
+                        <Ionicons name="checkmark-circle" size={12} color="#10b981" />
+                        <Text style={styles.termsHeadText}>TERMS & CONDITIONS</Text>
+                      </View>
+                      <Text style={styles.termsText}>
+                        1. Goods once sold will not be taken back without original bill.{'\n'}
+                        2. Report any damaged or missing items within 24 hours of delivery.{'\n'}
+                        3. This is a computer-generated tax invoice and requires no physical signature.
+                      </Text>
+                      <Text style={styles.termsGreeting}>
+                        Thank you for shopping with {storeSettings?.store_name || 'Narendra Kirana'}!
+                      </Text>
                     </View>
 
-                    <Text style={styles.a4Footer}>
-                      Computer-generated invoice. Thank you for shopping!
-                    </Text>
+                    <View style={styles.signatureCol}>
+                      <Text style={styles.sigStoreName}>
+                        For {storeSettings?.store_name || 'Narendra Kirana Store'}
+                      </Text>
+                      <View style={styles.sigImageContainer}>
+                        {storeSettings?.invoice_signature ? (
+                          <Image
+                            source={{ uri: storeSettings.invoice_signature }}
+                            style={styles.sigImage}
+                            contentFit="contain"
+                          />
+                        ) : (
+                          <View style={styles.sigDashedLine} />
+                        )}
+                      </View>
+                      <Text style={styles.sigTitle}>Authorized Signatory</Text>
+                      <Text style={styles.sigSub}>Computer Generated Invoice</Text>
+                    </View>
                   </View>
-                )}
-              </View>
+                </View>
+              )}
             </ScrollView>
-
-            {/* Bottom Action Bar */}
-            <View style={[styles.previewActions, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-              <TouchableOpacity
-                style={styles.actionBtnDownload}
-                onPress={() => selectedInvoice && handleDownloadPdf(selectedInvoice)}
-              >
-                <Ionicons name="download-outline" size={18} color="#fff" />
-                <Text style={styles.actionBtnText}>Download PDF</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.actionBtnShare}
-                onPress={() => selectedInvoice && handleShareText(selectedInvoice)}
-              >
-                <Ionicons name="share-social-outline" size={18} color="#059669" />
-                <Text style={[styles.actionBtnText, { color: '#059669' }]}>Share</Text>
-              </TouchableOpacity>
-            </View>
           </View>
         </View>
       </Modal>
@@ -703,392 +1599,948 @@ export default function InvoicesScreen() {
   );
 }
 
+// ─── Executive Styles (Matching Web App Invoices.jsx & Invoice.jsx) ───
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  exportHeaderBtn: {
+  headerRightActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#059669',
+    gap: 8,
+  },
+  headerBrandingBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 8,
-  },
-  exportHeaderBtnText: {
-    color: '#ffffff',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  filterHeader: {
-    padding: 12,
-    borderBottomWidth: 1,
-  },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
     borderRadius: 10,
     borderWidth: 1,
+  },
+  headerBrandingBtnText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  headerExportBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#6366f1',
     paddingHorizontal: 12,
     paddingVertical: 7,
-    gap: 8,
-    marginBottom: 10,
+    borderRadius: 10,
   },
-  dateFilterRow: {
-    flexDirection: 'row',
-    gap: 6,
-    marginBottom: 8,
-  },
-  datePill: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 14,
-  },
-  datePillActive: {
-    backgroundColor: '#059669',
-  },
-  datePillText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  datePillTextActive: {
+  headerExportBtnText: {
     color: '#ffffff',
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 13,
-    padding: 0,
-  },
-  pillRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  pill: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 14,
-  },
-  pillActive: {
-    backgroundColor: '#10b981',
-  },
-  pillText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  pillTextActive: {
-    color: '#ffffff',
-  },
-  pipeDivider: {
-    width: 1,
-    height: 16,
-    backgroundColor: '#64748b',
-    marginHorizontal: 4,
-  },
-  metricsBanner: {
-    flexDirection: 'row',
-    padding: 12,
-    borderBottomWidth: 1,
-  },
-  metricItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  metricLabel: {
-    fontSize: 9,
+    fontSize: 11.5,
     fontWeight: '800',
-    marginBottom: 2,
   },
-  metricVal: {
-    fontSize: 15,
-    fontWeight: 'bold',
+  mainScroll: {
+    flex: 1,
   },
-  errorBox: {
-    padding: 10,
-    backgroundColor: '#dc2626',
-  },
-  errorText: {
-    color: '#fff',
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  listContent: {
+  mainScrollContent: {
     padding: 14,
     paddingBottom: 40,
   },
-  card: {
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 14,
-    marginBottom: 10,
+  maxContainer: {
+    maxWidth: 700,
+    width: '100%',
+    alignSelf: 'center',
+    gap: 14,
   },
-  cardHeader: {
+
+  // Metrics Grid
+  metricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  metricCard: {
+    flex: 1,
+    minWidth: 140,
+    borderRadius: 16,
+    padding: 13,
+    borderWidth: 1,
+    gap: 4,
+  },
+  metricCardHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  metricCardLabel: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    color: '#94a3b8',
+  },
+  metricCardVal: {
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: -0.3,
+  },
+  metricCardSub: {
+    fontSize: 10.5,
+  },
+
+  // Filter & Search Hub
+  filterCard: {
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    gap: 10,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    height: 42,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 12.5,
+    height: '100%',
+  },
+  filterPillsRow: {
+    gap: 6,
+  },
+  datePill: {
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 9,
+    borderWidth: 1,
+  },
+  datePillText: {
+    fontSize: 11.5,
+  },
+  pillDropdownsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  subPillsGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  subPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  subPillText: {
+    fontSize: 11,
+  },
+  subPillDivider: {
+    width: 1,
+    height: 16,
+    backgroundColor: '#cbd5e1',
+  },
+  refreshIconBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Invoices List Col & Cards
+  invoicesListCol: {
+    gap: 10,
+  },
+  invoiceCard: {
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    gap: 10,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  cardHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  invoiceIdBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(99, 102, 241, 0.12)',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  invoiceIdText: {
+    color: '#6366f1',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  orderTypePill: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 5,
+  },
+  orderTypeText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+  },
+  slotLabelText: {
+    fontSize: 10.5,
+    fontWeight: '600',
+  },
+  cardHeaderRight: {
+    alignItems: 'flex-end',
+    gap: 1,
+  },
+  dateText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  timeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  timeText: {
+    fontSize: 10,
+  },
+  cardBodyRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 10,
+    gap: 10,
   },
-  invoiceId: {
-    fontSize: 15,
-    fontWeight: 'bold',
+  customerCol: {
+    flex: 1,
+    gap: 2,
   },
   customerName: {
-    fontSize: 13,
-    marginTop: 2,
-    fontWeight: '500',
-  },
-  rightCol: {
-    alignItems: 'flex-end',
-  },
-  amount: {
-    fontSize: 16,
+    fontSize: 13.5,
     fontWeight: '800',
   },
-  badgeRow: {
+  customerMetaRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 4,
-    marginTop: 4,
   },
-  badge: {
+  customerPhone: {
+    fontSize: 11,
+  },
+  pincodeText: {
+    fontSize: 10.5,
+  },
+  badgesCol: {
+    alignItems: 'flex-end',
+    gap: 4,
+  },
+  paymentBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  methodBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  methodBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  statusBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    borderRadius: 6,
+  },
+  statusBadgeText: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+  },
+  utrCopyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
+    backgroundColor: 'rgba(99, 102, 241, 0.08)',
   },
-  badgeText: {
-    color: '#fff',
-    fontSize: 9,
-    fontWeight: '800',
+  utrText: {
+    fontSize: 9.5,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    color: '#6366f1',
+    fontWeight: '700',
   },
-  upiBadge: {
-    backgroundColor: '#6366f1',
-  },
-  codBadge: {
-    backgroundColor: '#f59e0b',
-  },
-  doneBadge: {
-    backgroundColor: '#059669',
-  },
-  activeBadge: {
-    backgroundColor: '#3b82f6',
-  },
-  cardFooter: {
+  cardFooterRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingTop: 10,
     borderTopWidth: 1,
   },
-  dateText: {
-    fontSize: 11,
+  amountCol: {
+    gap: 1,
   },
-  actionButtonsRow: {
+  amountText: {
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: -0.3,
+  },
+  walletDiscountText: {
+    color: '#10b981',
+    fontSize: 10.5,
+    fontWeight: '700',
+  },
+  actionBtnsGroup: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
-  invoiceActionBtn: {
+  printActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(99, 102, 241, 0.12)',
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    borderRadius: 9,
+  },
+  printActionBtnText: {
+    color: '#6366f1',
+    fontSize: 11.5,
+    fontWeight: '800',
+  },
+  orderNavBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+    borderRadius: 9,
+  },
+  orderNavBtnText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+
+  // Empty & Loading States
+  emptyCard: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 36,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 8,
+  },
+  emptyTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  emptySub: {
+    fontSize: 11.5,
+    textAlign: 'center',
+  },
+  loadingBox: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  loadingText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#fef2f2',
+    padding: 12,
+    borderRadius: 12,
+  },
+  errorBannerText: {
+    color: '#ef4444',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+
+  // ─── Modal Styles ───
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Platform.OS === 'web' ? 24 : 10,
+  },
+  modalSheet: {
+    width: '100%',
+    maxWidth: 820,
+    maxHeight: '94%',
+    borderRadius: 18,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.35,
+    shadowRadius: 25,
+    elevation: 10,
+  },
+  modalHeaderBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  modalHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  modalIconBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#ecfdf5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  modalTitleText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#0f172a',
+  },
+  modalOrderIdPill: {
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  modalOrderIdText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#475569',
+  },
+  modalSubText: {
+    fontSize: 10.5,
+    color: '#64748b',
+  },
+  modalHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  modalPrintBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#059669',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 9,
+  },
+  modalPrintBtnText: {
+    color: '#ffffff',
+    fontSize: 11.5,
+    fontWeight: '800',
+  },
+  modalShareBtn: {
+    padding: 7,
+    borderRadius: 9,
+    backgroundColor: '#f1f5f9',
+  },
+  modalCloseBtn: {
+    padding: 4,
+  },
+
+  // Document Paper View
+  docScroll: {
+    flex: 1,
+  },
+  docScrollContent: {
+    padding: 14,
+    paddingBottom: 24,
+  },
+  paperContainer: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    padding: 18,
+    position: 'relative',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  cancelledStampWrap: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 50,
+  },
+  cancelledStampBox: {
+    borderWidth: 6,
+    borderColor: '#e11d48',
+    paddingHorizontal: 24,
+    paddingVertical: 8,
+    borderRadius: 10,
+    transform: [{ rotate: '-14deg' }],
+    opacity: 0.25,
+  },
+  cancelledStampText: {
+    color: '#e11d48',
+    fontSize: 42,
+    fontWeight: '900',
+    letterSpacing: 4,
+  },
+  docTopHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+    paddingBottom: 14,
+    marginBottom: 12,
+    gap: 12,
+  },
+  docStoreCol: {
+    flex: 1,
+    gap: 4,
+  },
+  docStoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  docLogoBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  docStoreName: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0f172a',
+    letterSpacing: -0.2,
+  },
+  docStoreTag: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#059669',
+    letterSpacing: 0.5,
+  },
+  docContactRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
   },
-  invoiceActionText: {
-    fontSize: 11,
-    fontWeight: '700',
+  docContactText: {
+    fontSize: 10.5,
+    color: '#475569',
   },
-  emptyText: {
-    textAlign: 'center',
-    marginTop: 32,
-    fontSize: 13,
+  docMetaCol: {
+    alignItems: 'flex-end',
+    gap: 2,
   },
-  // A4 Preview Modal
-  previewBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-  },
-  previewContainer: {
-    flex: 1,
-    marginTop: 40,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    overflow: 'hidden',
-  },
-  previewHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-  },
-  previewTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  previewScrollArea: {
-    flex: 1,
-  },
-  previewScrollContent: {
-    padding: 16,
-    paddingBottom: 24,
-    alignItems: 'center',
-  },
-  a4Shadow: {
-    width: '100%',
-    maxWidth: 600,
-    backgroundColor: '#ffffff',
-    borderRadius: 8,
-    // A4 paper shadow effect
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-    overflow: 'hidden',
-  },
-  // Native fallback styles (when not web)
-  a4NativeContent: {
-    padding: 24,
-  },
-  a4StoreName: {
+  docTaxInvoiceHeading: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#059669',
-    textAlign: 'center',
+    color: '#0f172a',
+    letterSpacing: -0.3,
+  },
+  docOriginalBadge: {
+    backgroundColor: '#ecfdf5',
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 4,
     marginBottom: 4,
   },
-  a4StoreDetail: {
-    fontSize: 11,
-    color: '#475569',
-    textAlign: 'center',
-    marginTop: 2,
-  },
-  a4Tax: {
-    fontSize: 10.5,
-    fontWeight: '700',
-    color: '#334155',
-    textAlign: 'center',
-    marginTop: 2,
-  },
-  a4Divider: {
-    height: 1,
-    backgroundColor: '#e2e8f0',
-    marginVertical: 12,
-  },
-  a4InvoiceLabel: {
-    fontSize: 13,
+  docOriginalBadgeText: {
+    color: '#065f46',
+    fontSize: 8,
     fontWeight: '800',
-    color: '#0f172a',
-    textAlign: 'center',
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
   },
-  a4MetaRow: {
+  docMetaCard: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 6,
+    padding: 6,
+    gap: 2,
+    minWidth: 160,
+  },
+  docMetaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    gap: 8,
   },
-  a4MetaLabel: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#94a3b8',
-    textTransform: 'uppercase',
-    marginBottom: 3,
+  docMetaLabel: {
+    fontSize: 9.5,
+    color: '#64748b',
+    fontWeight: '600',
   },
-  a4MetaVal: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  a4MetaSub: {
-    fontSize: 11,
-    color: '#475569',
-    marginTop: 1,
-  },
-  a4TableHead: {
-    flexDirection: 'row',
-    backgroundColor: '#f1f5f9',
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 6,
-    marginBottom: 2,
-  },
-  a4ColH: {
+  docMetaVal: {
     fontSize: 9.5,
     fontWeight: '800',
-    color: '#64748b',
-    textTransform: 'uppercase',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    color: '#0f172a',
   },
-  a4TableRow: {
-    flexDirection: 'row',
-    paddingVertical: 7,
+  docMetaValSimple: {
+    fontSize: 9.5,
+    fontWeight: '600',
+    color: '#0f172a',
+  },
+
+  // Compliance Strip
+  complianceStrip: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 6,
     paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: 12,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  complianceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  complianceLabel: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  complianceVal: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    color: '#0f172a',
+  },
+  govtRegPill: {
+    backgroundColor: '#d1fae5',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 3,
+  },
+  govtRegText: {
+    fontSize: 7.5,
+    fontWeight: '800',
+    color: '#065f46',
+  },
+  placeOfSupplyText: {
+    fontSize: 9.5,
+    color: '#64748b',
+  },
+
+  // Customer & Fulfillment Grid
+  infoGridRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12,
+  },
+  infoGridCard: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    padding: 10,
+    backgroundColor: '#ffffff',
+    gap: 2,
+  },
+  infoGridHeader: {
+    fontSize: 8.5,
+    fontWeight: '900',
+    color: '#94a3b8',
+    letterSpacing: 0.5,
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
+    paddingBottom: 3,
+    marginBottom: 3,
   },
-  a4Cell: {
-    fontSize: 12,
-    color: '#334155',
+  infoGridName: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#0f172a',
   },
-  a4GrandRow: {
+  infoSubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  infoSubText: {
+    fontSize: 10,
+    color: '#475569',
+  },
+  infoPinText: {
+    fontSize: 9.5,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    color: '#64748b',
+  },
+  infoDetailLine: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    borderTopWidth: 2,
-    borderTopColor: '#0f172a',
-    paddingTop: 12,
-    marginTop: 12,
+    alignItems: 'center',
   },
-  a4GrandLabel: {
-    fontSize: 16,
+  infoDetailLabel: {
+    fontSize: 9.5,
+    color: '#64748b',
+  },
+  infoDetailVal: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+
+  // Items Table
+  itemsTableCard: {
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  tableHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  tableColHead: {
+    fontSize: 8.5,
+    fontWeight: '800',
+    color: '#475569',
+    letterSpacing: 0.3,
+  },
+  tableBodyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f8fafc',
+  },
+  tableBodyRowRejected: {
+    backgroundColor: '#fff1f2',
+  },
+  tableCellNum: {
+    width: 24,
+    textAlign: 'center',
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748b',
+  },
+  tableCellItemName: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  tableCellItemUnit: {
+    fontSize: 9,
+    color: '#64748b',
+  },
+  unavailableBadge: {
+    backgroundColor: '#ffe4e6',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 3,
+    alignSelf: 'flex-start',
+    marginTop: 1,
+  },
+  unavailableBadgeText: {
+    fontSize: 7.5,
+    fontWeight: '800',
+    color: '#e11d48',
+  },
+  tableCellQty: {
+    width: 36,
+    textAlign: 'center',
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  tableCellRate: {
+    width: 64,
+    textAlign: 'right',
+    fontSize: 10,
+    color: '#334155',
+  },
+  tableCellTotal: {
+    width: 68,
+    textAlign: 'right',
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+
+  // Totals Section
+  totalsSection: {
+    alignItems: 'flex-end',
+    marginBottom: 14,
+  },
+  totalsCard: {
+    width: '100%',
+    maxWidth: 280,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#ffffff',
+  },
+  totalLineRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  totalLineLabel: {
+    fontSize: 10,
+    color: '#64748b',
+  },
+  totalLineVal: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  grandTotalBanner: {
+    backgroundColor: '#ecfdf5',
+    borderTopWidth: 2,
+    borderTopColor: '#10b981',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    marginTop: 4,
+  },
+  grandTotalLabel: {
+    fontSize: 9.5,
+    fontWeight: '900',
+    color: '#065f46',
+    letterSpacing: 0.3,
+  },
+  grandTotalVal: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#047857',
+  },
+
+  // Footer: Terms & Signature
+  docFooterRow: {
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+    paddingTop: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    gap: 14,
+  },
+  termsCol: {
+    flex: 1,
+    gap: 2,
+  },
+  termsHeadRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 1,
+  },
+  termsHeadText: {
+    fontSize: 8.5,
+    fontWeight: '900',
+    color: '#334155',
+    letterSpacing: 0.5,
+  },
+  termsText: {
+    fontSize: 9,
+    color: '#64748b',
+    lineHeight: 12,
+  },
+  termsGreeting: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#047857',
+    marginTop: 3,
+  },
+  signatureCol: {
+    alignItems: 'flex-end',
+    gap: 1,
+  },
+  sigStoreName: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#64748b',
+  },
+  sigImageContainer: {
+    height: 38,
+    justifyContent: 'flex-end',
+    marginVertical: 2,
+  },
+  sigImage: {
+    width: 120,
+    height: 34,
+  },
+  sigDashedLine: {
+    width: 120,
+    borderBottomWidth: 1,
+    borderBottomColor: '#94a3b8',
+    borderStyle: 'dashed',
+    marginBottom: 2,
+  },
+  sigTitle: {
+    fontSize: 9.5,
     fontWeight: '900',
     color: '#0f172a',
   },
-  a4GrandVal: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#059669',
-  },
-  a4Footer: {
-    fontSize: 10,
+  sigSub: {
+    fontSize: 7.5,
     color: '#94a3b8',
-    textAlign: 'center',
-    fontStyle: 'italic',
-    marginTop: 24,
-  },
-  // Bottom action bar
-  previewActions: {
-    flexDirection: 'row',
-    gap: 12,
-    padding: 16,
-    borderTopWidth: 1,
-  },
-  actionBtnDownload: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#059669',
-    paddingVertical: 14,
-    borderRadius: 12,
-  },
-  actionBtnShare: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(5, 150, 105, 0.1)',
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#059669',
-  },
-  actionBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#ffffff',
+    textTransform: 'uppercase',
   },
 });

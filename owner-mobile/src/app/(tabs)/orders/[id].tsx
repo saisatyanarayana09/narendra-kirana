@@ -35,6 +35,7 @@ interface OrderItem {
 
 interface Order {
   id: number;
+  customer?: number | null;
   customer_name: string;
   customer_phone: string;
   delivery_address: string;
@@ -49,7 +50,11 @@ interface Order {
   delivery_fee?: string;
   packaging_fee?: string;
   discount_amount?: string;
+  discount_applied?: string;
+  promo_discount?: string;
   wallet_discount?: string;
+  delivery_slot_date?: string;
+  delivery_slot_label?: string;
   delivery_otp?: string;
   delivery_partner?: number | null;
   customer_note?: string;
@@ -120,108 +125,231 @@ export default function OrderDetailsScreen() {
   const buildInvoiceHtml = useCallback(
     (o: Order) => {
       const storeName = storeSettings?.store_name || 'Narendra Kirana Store';
-      const storeAddr = storeSettings?.store_address || 'Main Road, Market Center';
-      const storePhone = storeSettings?.store_phone || '+91 9876543210';
-      const storeEmail = storeSettings?.store_email || 'support@narendrakirana.com';
+      const storeAddr = storeSettings?.store_address || '';
+      const storePhone = storeSettings?.store_phone || '';
+      const storeEmail = storeSettings?.store_email || '';
       const gstin = storeSettings?.gstin || '';
       const fssai = storeSettings?.fssai_license_number || '';
+      const signatureImg = storeSettings?.invoice_signature || '';
+      const terms =
+        storeSettings?.invoice_terms_and_conditions ||
+        storeSettings?.terms_and_conditions ||
+        '1. Goods once sold will not be taken back without original bill.\n2. Report any damaged or missing items within 24 hours of delivery.\n3. This is a computer-generated tax invoice and requires no physical signature.';
 
-      const itemsHtml = (o.items || [])
-        .map((it) => {
+      const orderDateObj = new Date(o.created_at || '');
+      const isOrderDateValid = !isNaN(orderDateObj.getTime());
+      const orderDate = isOrderDateValid
+        ? orderDateObj.toLocaleString('en-IN', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true,
+          })
+        : 'N/A';
+
+      const invoiceDate = new Date().toLocaleString('en-IN', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      });
+
+      const orderYear = isOrderDateValid ? orderDateObj.getFullYear() : new Date().getFullYear();
+      const invoiceNumber = `INV-${orderYear}-${String(o.id).padStart(5, '0')}`;
+
+      const rawMethod = (o.payment_method || 'COD').toUpperCase();
+      let methodText = 'Cash on Delivery (COD)';
+      if (rawMethod === 'UPI') {
+        methodText = o.upi_transaction_id ? `UPI (Ref: ${o.upi_transaction_id})` : 'UPI Instant Payment';
+      } else if (o.order_type === 'PICKUP' && rawMethod === 'COD') {
+        methodText = 'Cash at Store Counter';
+      }
+
+      const items = o.items || [];
+      const itemsHtml = items
+        .map((it, idx) => {
           const qty = Number(it.quantity || 1);
           const price = parseFloat(it.price_snapshot) || 0;
           const total = parseFloat(it.subtotal) || price * qty;
           const isRejected = it.status === 'REJECTED';
           return `
-            <tr style="${isRejected ? 'text-decoration:line-through;color:#e11d48;opacity:0.7;' : ''}">
-              <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;">
-                <strong>${it.product_name_snapshot}</strong>
-                ${it.unit_snapshot ? `<br><small style="color:#64748b;">${it.unit_snapshot}</small>` : ''}
+            <tr class="${isRejected ? 'rejected' : ''}">
+              <td style="text-align:center;color:${isRejected ? '#94a3b8' : '#64748b'};">${idx + 1}</td>
+              <td>
+                <div style="font-weight:700;color:${isRejected ? '#94a3b8;text-decoration:line-through;' : '#0f172a;'}">${it.product_name_snapshot}</div>
+                ${it.unit_snapshot ? `<div style="font-size:10px;color:#64748b;">${it.unit_snapshot}</div>` : ''}
+                ${isRejected ? `<span style="font-size:8px;font-weight:800;color:#e11d48;background:#ffe4e6;padding:1px 4px;border-radius:3px;">UNAVAILABLE</span>` : ''}
               </td>
-              <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;text-align:center;">${qty}</td>
-              <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;text-align:right;">₹${price.toFixed(2)}</td>
-              <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:bold;">${isRejected ? 'REJECTED' : `₹${total.toFixed(2)}`}</td>
+              <td style="text-align:center;">${qty}</td>
+              <td style="text-align:right;">₹${price.toFixed(2)}</td>
+              <td style="text-align:right;font-weight:700;">${isRejected ? '₹0.00' : `₹${total.toFixed(2)}`}</td>
             </tr>
           `;
         })
         .join('');
 
-    const subtotal = (o.items || [])
-      .filter((i) => i?.status !== 'REJECTED')
-      .reduce(
-        (sum, item) =>
-          sum +
-          (parseFloat(item?.subtotal) ||
-            (parseFloat(item?.price_snapshot) || 0) * (item?.quantity || 1)),
-        0
-      )
-      .toFixed(2);
+      const termsHtml = terms
+        .split('\n')
+        .map((l: string) => l.trim())
+        .filter(Boolean)
+        .map((l: string) => `<p style="margin:2px 0;color:#475569;">${l}</p>`)
+        .join('');
 
-    return `<!DOCTYPE html>
+      return `<!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8">
-<style>
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; margin: 0; padding: 20px; font-size: 13px; }
-  .box { max-width: 620px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; padding: 22px; }
-  .hdr { text-align: center; border-bottom: 2px solid #059669; padding-bottom: 12px; margin-bottom: 14px; }
-  .hdr h1 { margin: 0 0 4px; font-size: 20px; color: #059669; }
-  .hdr p { margin: 2px 0; color: #475569; font-size: 11px; }
-  .tb { text-align: center; margin-bottom: 14px; }
-  .tb span { background: #ecfdf5; color: #059669; padding: 4px 12px; border-radius: 12px; font-weight: 800; font-size: 11px; }
-  .meta { display: flex; justify-content: space-between; margin-bottom: 14px; font-size: 12px; }
-  .meta-col { flex: 1; }
-  .meta-col.r { text-align: right; }
-  .lb { font-weight: 800; color: #64748b; font-size: 10px; text-transform: uppercase; margin-bottom: 2px; }
-  .vl { font-weight: bold; font-size: 13px; color: #0f172a; }
-  .sb { color: #475569; margin-top: 1px; }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
-  th { background: #f8fafc; padding: 8px 10px; text-align: left; font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; border-bottom: 2px solid #e2e8f0; }
-  .fees { border-top: 1px dashed #cbd5e1; padding-top: 8px; margin-bottom: 8px; }
-  .fr { display: flex; justify-content: space-between; padding: 2px 0; font-size: 12px; color: #475569; }
-  .grand { display: flex; justify-content: space-between; border-top: 2px solid #0f172a; padding-top: 8px; margin-top: 6px; font-size: 16px; font-weight: 900; }
-  .grand .amt { color: #059669; }
-  .ft { text-align: center; margin-top: 20px; padding-top: 10px; border-top: 1px solid #e2e8f0; font-size: 10px; color: #94a3b8; font-style: italic; }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tax Invoice ${invoiceNumber}</title>
+  <style>
+    @media print {
+      @page { size: A4 portrait; margin: 10mm; }
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: #fff !important; }
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0f172a; background: #f8fafc; padding: 20px; font-size: 11px; }
+    .paper { max-width: 800px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 28px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); position: relative; }
+    .cancelled-stamp { position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%) rotate(-15deg); border: 6px solid #e11d48; color: #e11d48; font-size: 54px; font-weight: 900; letter-spacing: 6px; padding: 10px 30px; border-radius: 12px; opacity: 0.25; pointer-events: none; }
+    .hdr { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px; margin-bottom: 14px; gap: 16px; }
+    .store-info h1 { font-size: 19px; font-weight: 900; color: #0f172a; line-height: 1.2; }
+    .store-info .tag { font-size: 9.5px; font-weight: 800; color: #047857; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+    .store-info p { font-size: 10.5px; color:#475569; margin-top: 3px; line-height: 1.4; }
+    .meta-box { text-align: right; }
+    .meta-box h2 { font-size: 22px; font-weight: 900; color: #0f172a; letter-spacing: -0.5px; }
+    .meta-box .orig { display: inline-block; font-size: 8.5px; font-weight: 800; text-transform: uppercase; color: #065f46; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 2px 6px; border-radius: 4px; margin-top: 2px; }
+    .meta-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 12px; margin-top: 6px; text-align: right; }
+    .meta-row { display: flex; justify-content: flex-end; gap: 8px; margin: 2px 0; font-size: 10.5px; }
+    .meta-lbl { color: #64748b; }
+    .meta-val { font-weight: 700; color: #0f172a; font-family: monospace; }
+    .compliance { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 12px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; font-size: 10px; }
+    .compliance b { color: #334155; }
+    .grid { display: flex; gap: 12px; margin-bottom: 14px; }
+    .grid-col { flex: 1; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; background: #ffffff; }
+    .grid-hdr { font-size: 9px; font-weight: 900; text-transform: uppercase; color: #94a3b8; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; margin-bottom: 6px; letter-spacing: 0.5px; }
+    .grid-name { font-size: 12px; font-weight: 800; color: #0f172a; }
+    .grid-row { display: flex; justify-content: space-between; font-size: 10px; margin: 2px 0; color: #475569; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 14px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+    th { background: #f1f5f9; color: #475569; font-size: 9.5px; font-weight: 800; text-transform: uppercase; padding: 8px 10px; border-bottom: 1px solid #e2e8f0; }
+    td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; font-size: 10.5px; color: #1e293b; }
+    .totals-wrap { display: flex; justify-content: flex-end; margin-bottom: 16px; }
+    .totals-box { width: 280px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #ffffff; }
+    .tot-row { display: flex; justify-content: space-between; padding: 5px 10px; font-size: 10.5px; color: #475569; }
+    .tot-grand { background: #ecfdf5; border-top: 2px solid #10b981; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; color: #065f46; font-size: 11px; font-weight: 800; }
+    .tot-grand .big { font-size: 16px; font-weight: 900; color: #047857; }
+    .ftr { border-top: 1px solid #e2e8f0; padding-top: 12px; display: flex; justify-content: space-between; align-items: flex-end; font-size: 10px; }
+    .ftr-terms { max-width: 420px; color: #64748b; }
+    .ftr-sig { text-align: right; }
+    .sig-img { max-height: 44px; object-fit: contain; margin-bottom: 4px; }
+  </style>
 </head>
 <body>
-<div class="box">
-  <div class="hdr">
-    <h1>${storeName}</h1>
-    <p>${storeAddr}</p>
-    <p>Phone: ${storePhone} • Email: ${storeEmail}</p>
-    ${gstin ? `<p><strong>GSTIN:</strong> ${gstin}</p>` : ''}
-    ${fssai ? `<p><strong>FSSAI Lic #:</strong> ${fssai}</p>` : ''}
-  </div>
-  <div class="tb"><span>TAX INVOICE</span></div>
-  <div class="meta">
-    <div class="meta-col">
-      <div class="lb">BILLED TO</div>
-      <div class="vl">${o.customer_name || 'Walk-in / Guest'}</div>
-      ${o.customer_phone ? `<div class="sb">Phone: ${o.customer_phone}</div>` : ''}
-      ${o.delivery_address ? `<div class="sb">${o.delivery_address}</div>` : ''}
+  <div class="paper">
+    ${o.status === 'REJECTED' ? '<div class="cancelled-stamp">CANCELLED</div>' : ''}
+    <div class="hdr">
+      <div class="store-info">
+        <h1>${storeName}</h1>
+        <div class="tag">Grocery & Daily Essentials</div>
+        ${storeAddr ? `<p>📍 ${storeAddr}</p>` : ''}
+        ${storePhone || storeEmail ? `<p>📞 ${[storePhone, storeEmail].filter(Boolean).join(' • ')}</p>` : ''}
+      </div>
+      <div class="meta-box">
+        <h2>TAX INVOICE</h2>
+        <div class="orig">Original for Recipient</div>
+        <div class="meta-card">
+          <div class="meta-row"><span class="meta-lbl">Invoice No:</span><span class="meta-val">${invoiceNumber}</span></div>
+          <div class="meta-row"><span class="meta-lbl">Invoice Date:</span><span>${invoiceDate}</span></div>
+          <div class="meta-row"><span class="meta-lbl">Order Ref:</span><span class="meta-val">#${o.id}</span></div>
+          <div class="meta-row"><span class="meta-lbl">Order Date:</span><span>${orderDate}</span></div>
+        </div>
+      </div>
     </div>
-    <div class="meta-col r">
-      <div class="lb">INVOICE DETAILS</div>
-      <div class="vl">INV-${String(o.id).replace(/^#/, '')}</div>
-      <div class="sb">${o.created_at ? new Date(o.created_at).toLocaleDateString('en-IN') : ''}</div>
-      <div class="sb">${o.payment_method || 'COD'} (${o.status})</div>
-      ${o.upi_transaction_id ? `<div class="sb">UPI Ref: ${o.upi_transaction_id}</div>` : ''}
+
+    ${
+      gstin || fssai
+        ? `<div class="compliance">
+        ${gstin ? `<div><b>GSTIN:</b> <span style="font-family:monospace;font-weight:700;">${gstin}</span></div>` : ''}
+        ${fssai ? `<div><b>FSSAI Lic. No:</b> <span style="font-family:monospace;font-weight:700;">${fssai}</span> <span style="background:#d1fae5;color:#065f46;font-size:8px;font-weight:800;padding:1px 4px;border-radius:3px;">Govt Reg.</span></div>` : ''}
+        <div style="color:#64748b;">Place of Supply: <b>State Code (09)</b></div>
+      </div>`
+        : ''
+    }
+
+    <div class="grid">
+      <div class="grid-col">
+        <div class="grid-hdr">Billed / Shipped To</div>
+        <div class="grid-name">${o.customer_name || `Customer #${o.customer ?? '—'}`}</div>
+        ${o.customer_phone ? `<div class="grid-row"><span>Phone:</span><b>${o.customer_phone}</b></div>` : ''}
+        <div class="grid-row">
+          <span>Address:</span>
+          <b>${o.order_type === 'DELIVERY' ? o.delivery_address || 'Home Delivery' : 'Store Counter Pickup'}</b>
+        </div>
+        ${o.delivery_pincode ? `<div class="grid-row"><span>PIN Code:</span><b>${o.delivery_pincode}</b></div>` : ''}
+      </div>
+
+      <div class="grid-col">
+        <div class="grid-hdr">Fulfillment Details</div>
+        <div class="grid-row"><span>Mode:</span><b>${o.order_type === 'DELIVERY' ? 'Home Delivery' : 'Store Pickup'}</b></div>
+        ${o.delivery_slot_label ? `<div class="grid-row"><span>Slot:</span><b style="color:#4f46e5;">${o.delivery_slot_date || ''} (${o.delivery_slot_label})</b></div>` : ''}
+        <div class="grid-row"><span>Order Status:</span><b style="color:${o.status === 'COMPLETED' ? '#059669' : o.status === 'REJECTED' ? '#e11d48' : '#334155'};">${o.status}</b></div>
+        <div class="grid-row"><span>Payment Status:</span><b style="color:#059669;">${o.status === 'COMPLETED' ? 'PAID' : o.status === 'REJECTED' ? 'CANCELLED' : 'DUE AT DELIVERY'}</b></div>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width:5%;text-align:center;">#</th>
+          <th style="width:55%;">Item Description</th>
+          <th style="width:12%;text-align:center;">Qty</th>
+          <th style="width:14%;text-align:right;">Rate (₹)</th>
+          <th style="width:14%;text-align:right;">Amount (₹)</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${itemsHtml}
+      </tbody>
+    </table>
+
+    <div class="totals-wrap">
+      <div class="totals-box">
+        <div class="tot-row">
+          <span>Subtotal (${items.filter((i) => i.status !== 'REJECTED').length} items)</span>
+          <b>₹${items.filter((i) => i.status !== 'REJECTED').reduce((acc, item) => acc + (parseFloat(item.subtotal) || 0), 0).toFixed(2)}</b>
+        </div>
+        ${parseFloat(o.discount_applied || '0') > 0 ? `<div class="tot-row" style="color:#4f46e5;"><span>Product Savings</span><b>-₹${parseFloat(o.discount_applied || '0').toFixed(2)}</b></div>` : ''}
+        ${parseFloat(o.promo_discount || '0') > 0 ? `<div class="tot-row" style="color:#059669;"><span>Promo Code Discount</span><b>-₹${parseFloat(o.promo_discount || '0').toFixed(2)}</b></div>` : ''}
+        ${parseFloat(o.packaging_fee || '0') > 0 ? `<div class="tot-row"><span>Packaging Charges</span><b>₹${parseFloat(o.packaging_fee || '0').toFixed(2)}</b></div>` : ''}
+        ${o.order_type === 'DELIVERY' ? `<div class="tot-row"><span>Delivery Charges</span><b>${parseFloat(o.delivery_fee || '0') > 0 ? `₹${parseFloat(o.delivery_fee || '0').toFixed(2)}` : 'FREE'}</b></div>` : ''}
+        ${parseFloat(o.wallet_discount || '0') > 0 ? `<div class="tot-row" style="color:#059669;font-weight:700;"><span>Wallet Applied</span><b>-₹${parseFloat(o.wallet_discount || '0').toFixed(2)}</b></div>` : ''}
+        <div class="tot-row" style="border-top:1px solid #f1f5f9;padding-top:6px;">
+          <span>Payment Mode</span>
+          <b style="text-align:right;">${methodText}</b>
+        </div>
+        <div class="tot-grand">
+          <span>${o.status === 'COMPLETED' ? 'TOTAL AMOUNT PAID' : 'TOTAL AMOUNT DUE'}</span>
+          <span class="big">₹${parseFloat(o.total_amount).toFixed(2)}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ftr">
+      <div class="ftr-terms">
+        <div style="font-weight:900;text-transform:uppercase;margin-bottom:3px;color:#334155;">Terms & Conditions</div>
+        ${termsHtml}
+        <div style="margin-top:4px;font-weight:700;color:#047857;">Thank you for shopping with ${storeName}!</div>
+      </div>
+      <div class="ftr-sig">
+        <div style="font-weight:700;color:#64748b;margin-bottom:2px;">For ${storeName}</div>
+        ${signatureImg ? `<img src="${signatureImg}" class="sig-img" alt="Authorized Signature" />` : '<div style="width:140px;border-bottom:1px dashed #94a3b8;margin:18px 0 4px auto;"></div>'}
+        <div style="font-weight:900;color:#0f172a;">Authorized Signatory</div>
+        <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;">Computer Generated Invoice</div>
+      </div>
     </div>
   </div>
-  <table>
-    <thead><tr><th>ITEM</th><th style="text-align:center;">QTY</th><th style="text-align:right;">PRICE</th><th style="text-align:right;">TOTAL</th></tr></thead>
-    <tbody>${itemsHtml}</tbody>
-  </table>
-  <div class="fees">
-    <div class="fr"><span>Items Subtotal:</span><span>₹${subtotal}</span></div>
-    ${parseFloat(o.packaging_fee || '0') > 0 ? `<div class="fr"><span>Packaging Fee:</span><span>₹${o.packaging_fee}</span></div>` : ''}
-    ${parseFloat(o.delivery_fee || '0') > 0 ? `<div class="fr"><span>Delivery Fee:</span><span>₹${o.delivery_fee}</span></div>` : ''}
-    ${parseFloat(o.discount_amount || '0') > 0 ? `<div class="fr" style="color:#059669;"><span>Discount:</span><span>-₹${o.discount_amount}</span></div>` : ''}
-    <div class="grand"><span>Grand Total</span><span class="amt">₹${o.total_amount}</span></div>
-  </div>
-  <div class="ft">Thank you for shopping at ${storeName}! Computer generated tax invoice.</div>
-</div>
 </body>
 </html>`;
     },
