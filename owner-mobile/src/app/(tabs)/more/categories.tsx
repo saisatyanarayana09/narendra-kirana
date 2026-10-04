@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -22,6 +22,7 @@ import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert, showConfirm } from '../../../utils/alerts';
 import ScreenHeader from '../../../components/ScreenHeader';
 import ModernSwitch from '../../../components/ModernSwitch';
+import { DraggableItem } from '../../../components/DraggableItem';
 
 export default function CategoriesScreen() {
   const { colors, isDark } = useAppTheme();
@@ -39,6 +40,12 @@ export default function CategoriesScreen() {
   const [categoryImageUri, setCategoryImageUri] = useState<string | null>(null);
   const [imageChanged, setImageChanged] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Drag & drop reorder state
+  const listRef = useRef<FlatList>(null);
+  const scrollOffsetRef = useRef<number>(0);
+  const [activeDragIndex, setActiveDragIndex] = useState<number | null>(null);
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -202,13 +209,20 @@ export default function CategoriesScreen() {
     );
   };
 
-  const moveCategory = async (index: number, direction: -1 | 1) => {
-    const targetIndex = index + direction;
-    if (targetIndex < 0 || targetIndex >= filteredCategories.length) return;
+  const reorderCategory = async (fromIndex: number, toIndex: number) => {
+    if (
+      fromIndex === toIndex ||
+      fromIndex < 0 ||
+      toIndex < 0 ||
+      fromIndex >= filteredCategories.length ||
+      toIndex >= filteredCategories.length
+    ) {
+      return;
+    }
 
     const updated = [...categories];
-    const itemA = filteredCategories[index];
-    const itemB = filteredCategories[targetIndex];
+    const itemA = filteredCategories[fromIndex];
+    const itemB = filteredCategories[toIndex];
 
     const idxA = updated.findIndex((c) => c.id === itemA.id);
     const idxB = updated.findIndex((c) => c.id === itemB.id);
@@ -227,6 +241,10 @@ export default function CategoriesScreen() {
       // Revert silently if reorder fails
       fetchCategories();
     }
+  };
+
+  const moveCategory = (index: number, direction: -1 | 1) => {
+    reorderCategory(index, index + direction);
   };
 
   const filteredCategories = useMemo(() => {
@@ -294,9 +312,14 @@ export default function CategoriesScreen() {
         </View>
       ) : (
         <FlatList
+          ref={listRef}
           data={filteredCategories}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.listContent}
+          onScroll={(e) => {
+            scrollOffsetRef.current = e.nativeEvent.contentOffset.y;
+          }}
+          scrollEventThrottle={16}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -305,110 +328,162 @@ export default function CategoriesScreen() {
             />
           }
           renderItem={({ item, index }) => (
-            <View
-              style={[
-                styles.categoryCard,
-                { backgroundColor: colors.card, borderColor: colors.border },
-              ]}
+            <DraggableItem
+              index={index}
+              totalCount={filteredCategories.length}
+              itemHeight={76}
+              listRef={listRef}
+              scrollOffsetRef={scrollOffsetRef}
+              activeDragIndex={activeDragIndex}
+              hoverIndex={hoverIndex}
+              onDragStart={(idx) => setActiveDragIndex(idx)}
+              onHoverChange={(idx) => setHoverIndex(idx)}
+              onDrop={(fromIdx, toIdx) => {
+                setActiveDragIndex(null);
+                setHoverIndex(null);
+                if (fromIdx !== toIdx) {
+                  reorderCategory(fromIdx, toIdx);
+                }
+              }}
             >
-              {/* Image & Title */}
-              <TouchableOpacity
-                style={styles.cardMain}
-                activeOpacity={0.7}
-                onPress={() => openEditModal(item)}
-              >
+              {({ dragHandleProps, isDragging, isHoveredTarget }) => (
                 <View
                   style={[
-                    styles.thumbnailBox,
-                    { backgroundColor: colors.cardAlt, borderColor: colors.border },
+                    styles.categoryCard,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: isDragging || isHoveredTarget ? '#10b981' : colors.border,
+                      borderWidth: isDragging || isHoveredTarget ? 2 : 1,
+                    },
                   ]}
                 >
-                  {item.image ? (
-                    <Image
-                      source={{ uri: item.image }}
-                      style={styles.thumbnailImg}
-                      contentFit="cover"
-                    />
-                  ) : (
-                    <Ionicons name="pricetag-outline" size={20} color="#10b981" />
-                  )}
-                </View>
-
-                <View style={styles.cardInfo}>
-                  <Text style={[styles.categoryName, { color: colors.text }]} numberOfLines={1}>
-                    {item.name}
-                  </Text>
-                  <View style={styles.metaRow}>
+                  {/* Image & Title */}
+                  <TouchableOpacity
+                    style={styles.cardMain}
+                    activeOpacity={0.7}
+                    onPress={() => openEditModal(item)}
+                  >
                     <View
                       style={[
-                        styles.statusDot,
-                        { backgroundColor: item.is_active ? '#10b981' : '#64748b' },
+                        styles.thumbnailBox,
+                        { backgroundColor: colors.cardAlt, borderColor: colors.border },
                       ]}
-                    />
-                    <Text style={[styles.statusText, { color: colors.textMuted }]}>
-                      {item.is_active ? 'Active & Visible' : 'Hidden'}
-                    </Text>
-                    {item.products_count !== undefined && (
-                      <Text style={[styles.productCount, { color: colors.textMuted }]}>
-                        • {item.products_count} products
+                    >
+                      {item.image ? (
+                        <Image
+                          source={{ uri: item.image }}
+                          style={styles.thumbnailImg}
+                          contentFit="cover"
+                        />
+                      ) : (
+                        <Ionicons name="pricetag-outline" size={20} color="#10b981" />
+                      )}
+                    </View>
+
+                    <View style={styles.cardInfo}>
+                      <Text style={[styles.categoryName, { color: colors.text }]} numberOfLines={1}>
+                        {item.name}
                       </Text>
-                    )}
+                      <View style={styles.metaRow}>
+                        <View
+                          style={[
+                            styles.statusDot,
+                            { backgroundColor: item.is_active ? '#10b981' : '#64748b' },
+                          ]}
+                        />
+                        <Text style={[styles.statusText, { color: colors.textMuted }]}>
+                          {item.is_active ? 'Active & Visible' : 'Hidden'}
+                        </Text>
+                        {item.products_count !== undefined && (
+                          <Text style={[styles.productCount, { color: colors.textMuted }]}>
+                            • {item.products_count} products
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Actions Right Col */}
+                  <View style={styles.cardActions}>
+                    {/* Drag Handle Grip */}
+                    <View
+                      {...dragHandleProps}
+                      style={[
+                        styles.dragHandleGrip,
+                        {
+                          backgroundColor: isDragging
+                            ? '#10b981'
+                            : isDark
+                              ? 'rgba(16, 185, 129, 0.15)'
+                              : '#ecfdf5',
+                          borderColor: isDragging
+                            ? '#059669'
+                            : isDark
+                              ? 'rgba(16, 185, 129, 0.3)'
+                              : '#a7f3d0',
+                        },
+                      ]}
+                      accessibilityLabel={`Drag handle for ${item.name}`}
+                    >
+                      <Ionicons
+                        name="reorder-two-outline"
+                        size={18}
+                        color={isDragging ? '#ffffff' : '#10b981'}
+                      />
+                    </View>
+
+                    {/* Reorder Arrows */}
+                    <View style={styles.reorderArrows}>
+                      <TouchableOpacity
+                        style={[
+                          styles.arrowBtn,
+                          { opacity: index === 0 ? 0.3 : 1 },
+                        ]}
+                        onPress={() => moveCategory(index, -1)}
+                        disabled={index === 0}
+                        accessibilityLabel="Move category up"
+                      >
+                        <Ionicons name="chevron-up" size={15} color={colors.text} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.arrowBtn,
+                          { opacity: index === filteredCategories.length - 1 ? 0.3 : 1 },
+                        ]}
+                        onPress={() => moveCategory(index, 1)}
+                        disabled={index === filteredCategories.length - 1}
+                        accessibilityLabel="Move category down"
+                      >
+                        <Ionicons name="chevron-down" size={15} color={colors.text} />
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Modern Switch */}
+                    <ModernSwitch
+                      value={Boolean(item.is_active)}
+                      onValueChange={() => handleToggleActive(item)}
+                    />
+
+                    {/* Edit & Delete Action Icons */}
+                    <TouchableOpacity
+                      style={[styles.iconBtn, { backgroundColor: colors.cardAlt }]}
+                      onPress={() => openEditModal(item)}
+                      accessibilityLabel="Edit category"
+                    >
+                      <Ionicons name="create-outline" size={16} color={colors.text} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.iconBtn, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}
+                      onPress={() => handleDelete(item.id, item.name)}
+                      accessibilityLabel="Delete category"
+                    >
+                      <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                    </TouchableOpacity>
                   </View>
                 </View>
-              </TouchableOpacity>
-
-              {/* Actions Right Col */}
-              <View style={styles.cardActions}>
-                {/* Reorder Arrows */}
-                <View style={styles.reorderArrows}>
-                  <TouchableOpacity
-                    style={[
-                      styles.arrowBtn,
-                      { opacity: index === 0 ? 0.3 : 1 },
-                    ]}
-                    onPress={() => moveCategory(index, -1)}
-                    disabled={index === 0}
-                    accessibilityLabel="Move category up"
-                  >
-                    <Ionicons name="chevron-up" size={15} color={colors.text} />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.arrowBtn,
-                      { opacity: index === filteredCategories.length - 1 ? 0.3 : 1 },
-                    ]}
-                    onPress={() => moveCategory(index, 1)}
-                    disabled={index === filteredCategories.length - 1}
-                    accessibilityLabel="Move category down"
-                  >
-                    <Ionicons name="chevron-down" size={15} color={colors.text} />
-                  </TouchableOpacity>
-                </View>
-
-                {/* Modern Switch */}
-                <ModernSwitch
-                  value={Boolean(item.is_active)}
-                  onValueChange={() => handleToggleActive(item)}
-                />
-
-                {/* Edit & Delete Action Icons */}
-                <TouchableOpacity
-                  style={[styles.iconBtn, { backgroundColor: colors.cardAlt }]}
-                  onPress={() => openEditModal(item)}
-                  accessibilityLabel="Edit category"
-                >
-                  <Ionicons name="create-outline" size={16} color={colors.text} />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.iconBtn, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}
-                  onPress={() => handleDelete(item.id, item.name)}
-                  accessibilityLabel="Delete category"
-                >
-                  <Ionicons name="trash-outline" size={16} color="#ef4444" />
-                </TouchableOpacity>
-              </View>
-            </View>
+              )}
+            </DraggableItem>
           )}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
@@ -702,6 +777,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+  },
+  dragHandleGrip: {
+    width: 28,
+    height: 28,
+    borderRadius: 7,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 2,
   },
   reorderArrows: {
     flexDirection: 'column',

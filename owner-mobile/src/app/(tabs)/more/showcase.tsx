@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -22,6 +22,7 @@ import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert, showConfirm } from '../../../utils/alerts';
 import ScreenHeader from '../../../components/ScreenHeader';
 import ModernSwitch from '../../../components/ModernSwitch';
+import { DraggableItem } from '../../../components/DraggableItem';
 
 export default function ShowcaseScreen() {
   const { colors, isDark } = useAppTheme();
@@ -44,6 +45,17 @@ export default function ShowcaseScreen() {
   const [bannerTitle, setBannerTitle] = useState('');
   const [bannerLink, setBannerLink] = useState('');
   const [uploadingBanner, setUploadingBanner] = useState(false);
+
+  // Drag & drop reorder states
+  const bannerListRef = useRef<FlatList>(null);
+  const bannerScrollOffsetRef = useRef<number>(0);
+  const [activeBannerDragIndex, setActiveBannerDragIndex] = useState<number | null>(null);
+  const [hoverBannerIndex, setHoverBannerIndex] = useState<number | null>(null);
+
+  const sectionListRef = useRef<FlatList>(null);
+  const sectionScrollOffsetRef = useRef<number>(0);
+  const [activeSectionDragIndex, setActiveSectionDragIndex] = useState<number | null>(null);
+  const [hoverSectionIndex, setHoverSectionIndex] = useState<number | null>(null);
 
   // Curate products modal state
   const [curatingSection, setCuratingSection] = useState<any | null>(null);
@@ -180,13 +192,20 @@ export default function ShowcaseScreen() {
     }
   };
 
-  const handleMoveBanner = async (index: number, direction: -1 | 1) => {
-    const targetIndex = index + direction;
-    if (targetIndex < 0 || targetIndex >= banners.length) return;
+  const handleReorderBanner = async (fromIndex: number, toIndex: number) => {
+    if (
+      fromIndex === toIndex ||
+      fromIndex < 0 ||
+      toIndex < 0 ||
+      fromIndex >= banners.length ||
+      toIndex >= banners.length
+    ) {
+      return;
+    }
 
     const updated = [...banners];
-    const [moved] = updated.splice(index, 1);
-    updated.splice(targetIndex, 0, moved);
+    const [moved] = updated.splice(fromIndex, 1);
+    updated.splice(toIndex, 0, moved);
     const reordered = updated.map((b, idx) => ({ ...b, display_order: idx }));
     setBanners(reordered);
 
@@ -199,6 +218,10 @@ export default function ShowcaseScreen() {
     } catch {
       fetchData();
     }
+  };
+
+  const handleMoveBanner = (index: number, direction: -1 | 1) => {
+    handleReorderBanner(index, index + direction);
   };
 
   const handleDeleteBanner = (id: number, title: string) => {
@@ -260,13 +283,20 @@ export default function ShowcaseScreen() {
     }
   };
 
-  const handleMoveSection = async (index: number, direction: -1 | 1) => {
-    const targetIndex = index + direction;
-    if (targetIndex < 0 || targetIndex >= sections.length) return;
+  const handleReorderSection = async (fromIndex: number, toIndex: number) => {
+    if (
+      fromIndex === toIndex ||
+      fromIndex < 0 ||
+      toIndex < 0 ||
+      fromIndex >= sections.length ||
+      toIndex >= sections.length
+    ) {
+      return;
+    }
 
     const updated = [...sections];
-    const [moved] = updated.splice(index, 1);
-    updated.splice(targetIndex, 0, moved);
+    const [moved] = updated.splice(fromIndex, 1);
+    updated.splice(toIndex, 0, moved);
     const reordered = updated.map((s, idx) => ({ ...s, display_order: idx }));
     setSections(reordered);
 
@@ -279,6 +309,10 @@ export default function ShowcaseScreen() {
     } catch {
       fetchData();
     }
+  };
+
+  const handleMoveSection = (index: number, direction: -1 | 1) => {
+    handleReorderSection(index, index + direction);
   };
 
   const handleDeleteSection = (id: number, title: string) => {
@@ -440,9 +474,14 @@ export default function ShowcaseScreen() {
       ) : activeTab === 'banners' ? (
         /* TAB 1: BANNERS LIST */
         <FlatList
+          ref={bannerListRef}
           data={banners}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.listContent}
+          onScroll={(e) => {
+            bannerScrollOffsetRef.current = e.nativeEvent.contentOffset.y;
+          }}
+          scrollEventThrottle={16}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -451,74 +490,126 @@ export default function ShowcaseScreen() {
             />
           }
           renderItem={({ item, index }) => (
-            <View
-              style={[
-                styles.bannerCard,
-                { backgroundColor: colors.card, borderColor: colors.border },
-              ]}
+            <DraggableItem
+              index={index}
+              totalCount={banners.length}
+              itemHeight={260}
+              listRef={bannerListRef}
+              scrollOffsetRef={bannerScrollOffsetRef}
+              activeDragIndex={activeBannerDragIndex}
+              hoverIndex={hoverBannerIndex}
+              onDragStart={(idx) => setActiveBannerDragIndex(idx)}
+              onHoverChange={(idx) => setHoverBannerIndex(idx)}
+              onDrop={(fromIdx, toIdx) => {
+                setActiveBannerDragIndex(null);
+                setHoverBannerIndex(null);
+                if (fromIdx !== toIdx) {
+                  handleReorderBanner(fromIdx, toIdx);
+                }
+              }}
             >
-              {/* 16:9 Banner Image Preview */}
-              <View style={[styles.bannerImgWrap, { backgroundColor: colors.cardAlt }]}>
-                {item.image ? (
-                  <Image
-                    source={{ uri: item.image }}
-                    style={styles.bannerImg}
-                    contentFit="cover"
-                  />
-                ) : (
-                  <Ionicons name="image-outline" size={32} color={colors.textMuted} />
-                )}
-                <View style={styles.bannerBadge}>
-                  <Text style={styles.bannerBadgeText}>Slide #{index + 1}</Text>
+              {({ dragHandleProps, isDragging, isHoveredTarget }) => (
+                <View
+                  style={[
+                    styles.bannerCard,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: isDragging || isHoveredTarget ? '#10b981' : colors.border,
+                      borderWidth: isDragging || isHoveredTarget ? 2 : 1,
+                    },
+                  ]}
+                >
+                  {/* 16:9 Banner Image Preview */}
+                  <View style={[styles.bannerImgWrap, { backgroundColor: colors.cardAlt }]}>
+                    {item.image ? (
+                      <Image
+                        source={{ uri: item.image }}
+                        style={styles.bannerImg}
+                        contentFit="cover"
+                      />
+                    ) : (
+                      <Ionicons name="image-outline" size={32} color={colors.textMuted} />
+                    )}
+                    <View style={styles.bannerBadge}>
+                      <Text style={styles.bannerBadgeText}>Slide #{index + 1}</Text>
+                    </View>
+                  </View>
+
+                  {/* Title & Link */}
+                  <View style={styles.bannerMeta}>
+                    <Text style={[styles.bannerTitle, { color: colors.text }]} numberOfLines={1}>
+                      {item.title || `Banner #${item.id}`}
+                    </Text>
+                    {Boolean(item.link) && (
+                      <Text style={[styles.bannerLink, { color: colors.textMuted }]} numberOfLines={1}>
+                        🔗 {item.link}
+                      </Text>
+                    )}
+                  </View>
+
+                  {/* Card Footer with ModernSwitch & Reorder */}
+                  <View style={[styles.cardFooter, { borderTopColor: colors.border }]}>
+                    <View style={styles.reorderArrows}>
+                      {/* Drag Handle Grip */}
+                      <View
+                        {...dragHandleProps}
+                        style={[
+                          styles.dragHandleGrip,
+                          {
+                            backgroundColor: isDragging
+                              ? '#10b981'
+                              : isDark
+                                ? 'rgba(16, 185, 129, 0.15)'
+                                : '#ecfdf5',
+                            borderColor: isDragging
+                              ? '#059669'
+                              : isDark
+                                ? 'rgba(16, 185, 129, 0.3)'
+                                : '#a7f3d0',
+                          },
+                        ]}
+                        accessibilityLabel={`Drag handle for banner ${item.title || item.id}`}
+                      >
+                        <Ionicons
+                          name="reorder-two-outline"
+                          size={18}
+                          color={isDragging ? '#ffffff' : '#10b981'}
+                        />
+                      </View>
+
+                      <TouchableOpacity
+                        style={[styles.arrowBtn, { opacity: index === 0 ? 0.3 : 1 }]}
+                        onPress={() => handleMoveBanner(index, -1)}
+                        disabled={index === 0}
+                      >
+                        <Ionicons name="chevron-up" size={16} color={colors.text} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.arrowBtn, { opacity: index === banners.length - 1 ? 0.3 : 1 }]}
+                        onPress={() => handleMoveBanner(index, 1)}
+                        disabled={index === banners.length - 1}
+                      >
+                        <Ionicons name="chevron-down" size={16} color={colors.text} />
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.footerRight}>
+                      <ModernSwitch
+                        value={Boolean(item.is_active)}
+                        onValueChange={() => handleToggleBanner(item)}
+                      />
+
+                      <TouchableOpacity
+                        style={[styles.deleteBtn, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}
+                        onPress={() => handleDeleteBanner(item.id, item.title || `Banner #${item.id}`)}
+                      >
+                        <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
                 </View>
-              </View>
-
-              {/* Title & Link */}
-              <View style={styles.bannerMeta}>
-                <Text style={[styles.bannerTitle, { color: colors.text }]} numberOfLines={1}>
-                  {item.title || `Banner #${item.id}`}
-                </Text>
-                {Boolean(item.link) && (
-                  <Text style={[styles.bannerLink, { color: colors.textMuted }]} numberOfLines={1}>
-                    🔗 {item.link}
-                  </Text>
-                )}
-              </View>
-
-              {/* Card Footer with ModernSwitch & Reorder */}
-              <View style={[styles.cardFooter, { borderTopColor: colors.border }]}>
-                <View style={styles.reorderArrows}>
-                  <TouchableOpacity
-                    style={[styles.arrowBtn, { opacity: index === 0 ? 0.3 : 1 }]}
-                    onPress={() => handleMoveBanner(index, -1)}
-                    disabled={index === 0}
-                  >
-                    <Ionicons name="chevron-up" size={16} color={colors.text} />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.arrowBtn, { opacity: index === banners.length - 1 ? 0.3 : 1 }]}
-                    onPress={() => handleMoveBanner(index, 1)}
-                    disabled={index === banners.length - 1}
-                  >
-                    <Ionicons name="chevron-down" size={16} color={colors.text} />
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.footerRight}>
-                  <ModernSwitch
-                    value={Boolean(item.is_active)}
-                    onValueChange={() => handleToggleBanner(item)}
-                  />
-
-                  <TouchableOpacity
-                    style={[styles.deleteBtn, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}
-                    onPress={() => handleDeleteBanner(item.id, item.title || `Banner #${item.id}`)}
-                  >
-                    <Ionicons name="trash-outline" size={16} color="#ef4444" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
+              )}
+            </DraggableItem>
           )}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
@@ -542,9 +633,14 @@ export default function ShowcaseScreen() {
       ) : (
         /* TAB 2: HOMEPAGE SECTIONS / AISLES LIST */
         <FlatList
+          ref={sectionListRef}
           data={sections}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.listContent}
+          onScroll={(e) => {
+            sectionScrollOffsetRef.current = e.nativeEvent.contentOffset.y;
+          }}
+          scrollEventThrottle={16}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -553,128 +649,180 @@ export default function ShowcaseScreen() {
             />
           }
           renderItem={({ item, index }) => (
-            <View
-              style={[
-                styles.sectionCard,
-                { backgroundColor: colors.card, borderColor: colors.border },
-              ]}
+            <DraggableItem
+              index={index}
+              totalCount={sections.length}
+              itemHeight={170}
+              listRef={sectionListRef}
+              scrollOffsetRef={sectionScrollOffsetRef}
+              activeDragIndex={activeSectionDragIndex}
+              hoverIndex={hoverSectionIndex}
+              onDragStart={(idx) => setActiveSectionDragIndex(idx)}
+              onHoverChange={(idx) => setHoverSectionIndex(idx)}
+              onDrop={(fromIdx, toIdx) => {
+                setActiveSectionDragIndex(null);
+                setHoverSectionIndex(null);
+                if (fromIdx !== toIdx) {
+                  handleReorderSection(fromIdx, toIdx);
+                }
+              }}
             >
-              {/* Header with Title & Item Count */}
-              <View style={styles.sectionHeaderRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                    {item.title}
-                  </Text>
-                  <Text style={[styles.sectionItemsCount, { color: colors.textMuted }]}>
-                    {item.items?.length ?? 0} products curated in this aisle
-                  </Text>
-                </View>
-
+              {({ dragHandleProps, isDragging, isHoveredTarget }) => (
                 <View
                   style={[
-                    styles.orderPill,
-                    { backgroundColor: colors.cardAlt, borderColor: colors.border },
+                    styles.sectionCard,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: isDragging || isHoveredTarget ? '#10b981' : colors.border,
+                      borderWidth: isDragging || isHoveredTarget ? 2 : 1,
+                    },
                   ]}
                 >
-                  <Text style={[styles.orderPillText, { color: colors.textMuted }]}>
-                    #{index + 1}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Curated Product Thumbnails Row */}
-              {item.items && item.items.length > 0 ? (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.curatedThumbnailsRow}
-                >
-                  {item.items.slice(0, 10).map((p: any) => (
-                    <View
-                      key={p.id}
-                      style={[
-                        styles.curatedThumbBox,
-                        { backgroundColor: colors.cardAlt, borderColor: colors.border },
-                      ]}
-                    >
-                      {p.image ? (
-                        <Image
-                          source={{ uri: p.image }}
-                          style={styles.curatedThumbImg}
-                          contentFit="cover"
-                        />
-                      ) : (
-                        <Ionicons name="cube-outline" size={16} color={colors.textMuted} />
-                      )}
+                  {/* Header with Title & Item Count */}
+                  <View style={styles.sectionHeaderRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                        {item.title}
+                      </Text>
+                      <Text style={[styles.sectionItemsCount, { color: colors.textMuted }]}>
+                        {item.items?.length ?? 0} products curated in this aisle
+                      </Text>
                     </View>
-                  ))}
-                  {item.items.length > 10 && (
+
                     <View
                       style={[
-                        styles.morePill,
+                        styles.orderPill,
                         { backgroundColor: colors.cardAlt, borderColor: colors.border },
                       ]}
                     >
-                      <Text style={[styles.morePillText, { color: colors.textMuted }]}>
-                        +{item.items.length - 10}
+                      <Text style={[styles.orderPillText, { color: colors.textMuted }]}>
+                        #{index + 1}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Curated Product Thumbnails Row */}
+                  {item.items && item.items.length > 0 ? (
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.curatedThumbnailsRow}
+                    >
+                      {item.items.slice(0, 10).map((p: any) => (
+                        <View
+                          key={p.id}
+                          style={[
+                            styles.curatedThumbBox,
+                            { backgroundColor: colors.cardAlt, borderColor: colors.border },
+                          ]}
+                        >
+                          {p.image ? (
+                            <Image
+                              source={{ uri: p.image }}
+                              style={styles.curatedThumbImg}
+                              contentFit="cover"
+                            />
+                          ) : (
+                            <Ionicons name="cube-outline" size={16} color={colors.textMuted} />
+                          )}
+                        </View>
+                      ))}
+                      {item.items.length > 10 && (
+                        <View
+                          style={[
+                            styles.morePill,
+                            { backgroundColor: colors.cardAlt, borderColor: colors.border },
+                          ]}
+                        >
+                          <Text style={[styles.morePillText, { color: colors.textMuted }]}>
+                            +{item.items.length - 10}
+                          </Text>
+                        </View>
+                      )}
+                    </ScrollView>
+                  ) : (
+                    <View style={[styles.emptyAisleBox, { backgroundColor: colors.cardAlt }]}>
+                      <Ionicons name="basket-outline" size={18} color={colors.textMuted} />
+                      <Text style={[styles.emptyAisleText, { color: colors.textMuted }]}>
+                        No products added yet. Tap "Curate Products" below.
                       </Text>
                     </View>
                   )}
-                </ScrollView>
-              ) : (
-                <View style={[styles.emptyAisleBox, { backgroundColor: colors.cardAlt }]}>
-                  <Ionicons name="basket-outline" size={18} color={colors.textMuted} />
-                  <Text style={[styles.emptyAisleText, { color: colors.textMuted }]}>
-                    No products added yet. Tap "Curate Products" below.
-                  </Text>
+
+                  {/* Card Footer with Curate Button, Switch & Reorder */}
+                  <View style={[styles.cardFooter, { borderTopColor: colors.border }]}>
+                    <TouchableOpacity
+                      style={[styles.curateBtn, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}
+                      onPress={() => openCurator(item)}
+                    >
+                      <Ionicons name="layers-outline" size={15} color="#10b981" />
+                      <Text style={[styles.curateBtnText, { color: colors.text }]}>
+                        Curate Products
+                      </Text>
+                    </TouchableOpacity>
+
+                    <View style={styles.footerRight}>
+                      {/* Reorder Arrows with Drag Handle */}
+                      <View style={styles.reorderArrows}>
+                        {/* Drag Handle Grip */}
+                        <View
+                          {...dragHandleProps}
+                          style={[
+                            styles.dragHandleGrip,
+                            {
+                              backgroundColor: isDragging
+                                ? '#10b981'
+                                : isDark
+                                  ? 'rgba(16, 185, 129, 0.15)'
+                                  : '#ecfdf5',
+                              borderColor: isDragging
+                                ? '#059669'
+                                : isDark
+                                  ? 'rgba(16, 185, 129, 0.3)'
+                                  : '#a7f3d0',
+                            },
+                          ]}
+                          accessibilityLabel={`Drag handle for section ${item.title}`}
+                        >
+                          <Ionicons
+                            name="reorder-two-outline"
+                            size={18}
+                            color={isDragging ? '#ffffff' : '#10b981'}
+                          />
+                        </View>
+
+                        <TouchableOpacity
+                          style={[styles.arrowBtn, { opacity: index === 0 ? 0.3 : 1 }]}
+                          onPress={() => handleMoveSection(index, -1)}
+                          disabled={index === 0}
+                        >
+                          <Ionicons name="chevron-up" size={15} color={colors.text} />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.arrowBtn, { opacity: index === sections.length - 1 ? 0.3 : 1 }]}
+                          onPress={() => handleMoveSection(index, 1)}
+                          disabled={index === sections.length - 1}
+                        >
+                          <Ionicons name="chevron-down" size={15} color={colors.text} />
+                        </TouchableOpacity>
+                      </View>
+
+                      <ModernSwitch
+                        value={Boolean(item.is_active)}
+                        onValueChange={() => handleToggleSection(item)}
+                      />
+
+                      <TouchableOpacity
+                        style={[styles.deleteBtn, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}
+                        onPress={() => handleDeleteSection(item.id, item.title)}
+                      >
+                        <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
                 </View>
               )}
-
-              {/* Card Footer with Curate Button, Switch & Reorder */}
-              <View style={[styles.cardFooter, { borderTopColor: colors.border }]}>
-                <TouchableOpacity
-                  style={[styles.curateBtn, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}
-                  onPress={() => openCurator(item)}
-                >
-                  <Ionicons name="layers-outline" size={15} color="#10b981" />
-                  <Text style={[styles.curateBtnText, { color: colors.text }]}>
-                    Curate Products
-                  </Text>
-                </TouchableOpacity>
-
-                <View style={styles.footerRight}>
-                  {/* Reorder Arrows */}
-                  <View style={styles.reorderArrows}>
-                    <TouchableOpacity
-                      style={[styles.arrowBtn, { opacity: index === 0 ? 0.3 : 1 }]}
-                      onPress={() => handleMoveSection(index, -1)}
-                      disabled={index === 0}
-                    >
-                      <Ionicons name="chevron-up" size={15} color={colors.text} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.arrowBtn, { opacity: index === sections.length - 1 ? 0.3 : 1 }]}
-                      onPress={() => handleMoveSection(index, 1)}
-                      disabled={index === sections.length - 1}
-                    >
-                      <Ionicons name="chevron-down" size={15} color={colors.text} />
-                    </TouchableOpacity>
-                  </View>
-
-                  <ModernSwitch
-                    value={Boolean(item.is_active)}
-                    onValueChange={() => handleToggleSection(item)}
-                  />
-
-                  <TouchableOpacity
-                    style={[styles.deleteBtn, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}
-                    onPress={() => handleDeleteSection(item.id, item.title)}
-                  >
-                    <Ionicons name="trash-outline" size={16} color="#ef4444" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
+            </DraggableItem>
           )}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
@@ -1147,7 +1295,17 @@ const styles = StyleSheet.create({
   },
   reorderArrows: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 4,
+  },
+  dragHandleGrip: {
+    width: 28,
+    height: 28,
+    borderRadius: 7,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 4,
   },
   arrowBtn: {
     padding: 4,

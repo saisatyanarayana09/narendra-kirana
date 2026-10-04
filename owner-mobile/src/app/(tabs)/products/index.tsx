@@ -22,6 +22,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert, showConfirm } from '../../../utils/alerts';
 import UniversalCameraScanner from '../../../components/UniversalCameraScanner';
+import { DraggableItem } from '../../../components/DraggableItem';
 
 // ─── Search Trie for 0ms Prefix Search ───
 class TrieNode {
@@ -86,6 +87,9 @@ interface ProductCardProps {
   index?: number;
   totalCount?: number;
   onMoveProduct?: (index: number, direction: -1 | 1) => void;
+  dragHandleProps?: any;
+  isDragging?: boolean;
+  isHoveredTarget?: boolean;
 }
 
 const ProductCard = memo(
@@ -101,6 +105,9 @@ const ProductCard = memo(
     index,
     totalCount,
     onMoveProduct,
+    dragHandleProps,
+    isDragging,
+    isHoveredTarget,
   }: ProductCardProps) => {
     const qty = Number(item?.stock_quantity ?? 0);
     const inStock = Boolean(item?.is_in_stock) && qty > 0;
@@ -119,15 +126,20 @@ const ProductCard = memo(
           styles.productCard,
           {
             backgroundColor: colors.card,
-            borderColor: isLowStock
-              ? isDark
-                ? 'rgba(245, 158, 11, 0.4)'
-                : '#fde68a'
-              : !inStock
-                ? isDark
-                  ? 'rgba(244, 63, 94, 0.35)'
-                  : '#fecdd3'
-                : colors.border,
+            borderColor: isDragging
+              ? '#10b981'
+              : isHoveredTarget
+                ? '#10b981'
+                : isLowStock
+                  ? isDark
+                    ? 'rgba(245, 158, 11, 0.4)'
+                    : '#fde68a'
+                  : !inStock
+                    ? isDark
+                      ? 'rgba(244, 63, 94, 0.35)'
+                      : '#fecdd3'
+                    : colors.border,
+            borderWidth: isDragging || isHoveredTarget ? 2 : 1,
           },
         ]}
       >
@@ -374,7 +386,7 @@ const ProductCard = memo(
         </View>
 
         {/* Reorder Controls Strip (Active when catalog reordering is toggled) */}
-        {reorderMode && onMoveProduct !== undefined && typeof index === 'number' && (
+        {reorderMode && (
           <View
             style={[
               styles.reorderStrip,
@@ -384,13 +396,50 @@ const ProductCard = memo(
               },
             ]}
           >
-            <View style={styles.reorderRankBox}>
-              <Ionicons name="reorder-two-outline" size={18} color="#10b981" />
-              <Text style={[styles.reorderRankText, { color: colors.text }]}>
-                Order #{index + 1}
+            {/* Interactive Drag Handle */}
+            <View
+              {...(dragHandleProps || {})}
+              style={[
+                styles.reorderRankBox,
+                {
+                  backgroundColor: isDragging
+                    ? '#10b981'
+                    : isDark
+                      ? 'rgba(16, 185, 129, 0.2)'
+                      : '#dcfce7',
+                  borderColor: isDragging
+                    ? '#059669'
+                    : isDark
+                      ? 'rgba(16, 185, 129, 0.35)'
+                      : '#bbf7d0',
+                },
+              ]}
+              accessibilityLabel={`Drag handle for item order ${typeof index === 'number' ? index + 1 : 1}`}
+            >
+              <Ionicons
+                name="reorder-two-outline"
+                size={20}
+                color={isDragging ? '#ffffff' : '#10b981'}
+              />
+              <Text
+                style={[
+                  styles.reorderRankText,
+                  { color: isDragging ? '#ffffff' : colors.text },
+                ]}
+              >
+                #{typeof index === 'number' ? index + 1 : 1}
+              </Text>
+              <Text
+                style={[
+                  styles.dragGripLabel,
+                  { color: isDragging ? '#ffffff' : '#10b981' },
+                ]}
+              >
+                Hold & Drag ☰
               </Text>
             </View>
 
+            {/* Quick 1-step nudge buttons */}
             <View style={styles.reorderBtnsRow}>
               <TouchableOpacity
                 style={[
@@ -401,7 +450,7 @@ const ProductCard = memo(
                     opacity: index === 0 ? 0.35 : 1,
                   },
                 ]}
-                onPress={() => onMoveProduct(index, -1)}
+                onPress={() => onMoveProduct && typeof index === 'number' && onMoveProduct(index, -1)}
                 disabled={index === 0}
                 accessibilityLabel="Move Product Up"
               >
@@ -429,7 +478,7 @@ const ProductCard = memo(
                     opacity: index === (totalCount ?? 0) - 1 ? 0.35 : 1,
                   },
                 ]}
-                onPress={() => onMoveProduct(index, 1)}
+                onPress={() => onMoveProduct && typeof index === 'number' && onMoveProduct(index, 1)}
                 disabled={index === (totalCount ?? 0) - 1}
                 accessibilityLabel="Move Product Down"
               >
@@ -486,6 +535,11 @@ export default function ProductsListScreen() {
 
   // Barcode Scanner Modal State
   const [showScanner, setShowScanner] = useState(false);
+
+  // Drag and Drop Catalog Reorder State
+  const [activeDragIndex, setActiveDragIndex] = useState<number | null>(null);
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const scrollOffsetRef = useRef<number>(0);
 
   // ─── List Reference ───
   const listRef = useRef<FlatList>(null);
@@ -593,15 +647,22 @@ export default function ProductsListScreen() {
     []
   );
 
-  // ─── Catalog Products Reorder Handler ───
-  const moveProduct = useCallback(
-    async (index: number, direction: -1 | 1) => {
-      const targetIndex = index + direction;
-      if (targetIndex < 0 || targetIndex >= products.length) return;
+  // ─── Catalog Products Reorder Handler (Drag & Drop + Quick Nudge) ───
+  const reorderProduct = useCallback(
+    async (fromIndex: number, toIndex: number) => {
+      if (
+        fromIndex === toIndex ||
+        fromIndex < 0 ||
+        toIndex < 0 ||
+        fromIndex >= products.length ||
+        toIndex >= products.length
+      ) {
+        return;
+      }
 
       const updated = [...products];
-      const [moved] = updated.splice(index, 1);
-      updated.splice(targetIndex, 0, moved);
+      const [moved] = updated.splice(fromIndex, 1);
+      updated.splice(toIndex, 0, moved);
       setProducts(updated);
 
       try {
@@ -616,6 +677,13 @@ export default function ProductsListScreen() {
     [products, fetchProducts]
   );
 
+  const moveProduct = useCallback(
+    (index: number, direction: -1 | 1) => {
+      reorderProduct(index, index + direction);
+    },
+    [reorderProduct]
+  );
+
   const toggleReorderMode = useCallback(() => {
     if (!reorderMode) {
       if (searchQuery || selectedCatId !== 'ALL' || stockFilter !== 'ALL' || sortBy !== 'DEFAULT') {
@@ -625,7 +693,7 @@ export default function ProductsListScreen() {
         setSortBy('DEFAULT');
         showAlert(
           'Reorder Mode',
-          'Catalog filters cleared to show master display order. Use Up/Down arrows to position products.'
+          'Catalog filters cleared to show master display order. Hold and drag items by ☰ to rearrange products.'
         );
       }
     }
@@ -859,21 +927,69 @@ export default function ProductsListScreen() {
   );
 
   const renderItem = useCallback(
-    ({ item, index }: any) => (
-      <ProductCard
-        item={item}
-        colors={colors}
-        isDark={isDark}
-        onEdit={handleEdit}
-        onQuickEdit={openQuickEdit}
-        onStockDelta={handleStockDelta}
-        onDelete={handleDelete}
-        reorderMode={reorderMode}
-        index={index}
-        totalCount={displayedProducts.length}
-        onMoveProduct={moveProduct}
-      />
-    ),
+    ({ item, index }: any) => {
+      if (reorderMode) {
+        return (
+          <DraggableItem
+            index={index}
+            totalCount={displayedProducts.length}
+            enabled={reorderMode}
+            itemHeight={170}
+            listRef={listRef}
+            scrollOffsetRef={scrollOffsetRef}
+            activeDragIndex={activeDragIndex}
+            hoverIndex={hoverIndex}
+            onDragStart={(idx) => {
+              setActiveDragIndex(idx);
+            }}
+            onHoverChange={(idx) => {
+              setHoverIndex(idx);
+            }}
+            onDrop={(fromIdx, toIdx) => {
+              setActiveDragIndex(null);
+              setHoverIndex(null);
+              if (fromIdx !== toIdx) {
+                reorderProduct(fromIdx, toIdx);
+              }
+            }}
+          >
+            {({ dragHandleProps, isDragging, isHoveredTarget }) => (
+              <ProductCard
+                item={item}
+                colors={colors}
+                isDark={isDark}
+                onEdit={handleEdit}
+                onQuickEdit={openQuickEdit}
+                onStockDelta={handleStockDelta}
+                onDelete={handleDelete}
+                reorderMode={reorderMode}
+                index={index}
+                totalCount={displayedProducts.length}
+                onMoveProduct={moveProduct}
+                dragHandleProps={dragHandleProps}
+                isDragging={isDragging}
+                isHoveredTarget={isHoveredTarget}
+              />
+            )}
+          </DraggableItem>
+        );
+      }
+
+      return (
+        <ProductCard
+          item={item}
+          colors={colors}
+          isDark={isDark}
+          onEdit={handleEdit}
+          onQuickEdit={openQuickEdit}
+          onStockDelta={handleStockDelta}
+          onDelete={handleDelete}
+          reorderMode={false}
+          index={index}
+          totalCount={displayedProducts.length}
+        />
+      );
+    },
     [
       colors,
       isDark,
@@ -884,6 +1000,9 @@ export default function ProductsListScreen() {
       reorderMode,
       displayedProducts.length,
       moveProduct,
+      activeDragIndex,
+      hoverIndex,
+      reorderProduct,
     ]
   );
 
@@ -1189,7 +1308,7 @@ export default function ProductsListScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
             <Ionicons name="swap-vertical" size={18} color="#10b981" />
             <Text style={{ fontSize: 13, color: isDark ? '#a7f3d0' : '#065f46', fontWeight: '600', flex: 1 }}>
-              Catalog Reordering: Tap Up or Down to rearrange products.
+              Catalog Drag & Drop: Hold & drag ☰ to reposition products, or tap Up/Down.
             </Text>
           </View>
           <TouchableOpacity onPress={toggleReorderMode} style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
@@ -1235,6 +1354,10 @@ export default function ProductsListScreen() {
             renderItem={renderItem}
             ListHeaderComponent={listHeader}
             contentContainerStyle={styles.listContent}
+            onScroll={(e) => {
+              scrollOffsetRef.current = e.nativeEvent.contentOffset.y;
+            }}
+            scrollEventThrottle={16}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
@@ -2013,6 +2136,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  dragGripLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    marginLeft: 2,
   },
   reorderRankText: {
     fontSize: 13,
