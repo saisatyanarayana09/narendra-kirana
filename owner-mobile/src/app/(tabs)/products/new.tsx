@@ -22,6 +22,7 @@ import api, { ApiInstance, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert } from '../../../utils/alerts';
 import UniversalCameraScanner from '../../../components/UniversalCameraScanner';
+import WebCropper from '../../../components/WebCropper';
 
 export default function AddProductScreen() {
   const router = useRouter();
@@ -53,6 +54,8 @@ export default function AddProductScreen() {
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [showAIOptionsModal, setShowAIOptionsModal] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [webCropQueue, setWebCropQueue] = useState<{ uri: string; type: 'primary' | 'gallery' }[]>([]);
+  const webCroppingImage = webCropQueue.length > 0 ? webCropQueue[0] : null;
 
   // Barcode Lookup by Text/SKU
   const handleBarcodeLookup = async (overrideSku?: string) => {
@@ -170,12 +173,26 @@ export default function AddProductScreen() {
   // Gallery Photos Picker
   const pickGalleryImages = async () => {
     try {
-      if (Platform.OS !== 'web') {
-        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!perm.granted) {
-          showAlert('Permission Denied', 'Photo access is required.');
-          return;
+      if (Platform.OS === 'web') {
+        // Web: pick (multiple) without built-in edit, then crop + compress each one
+        const webResult = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          allowsMultipleSelection: true,
+          quality: 1,
+        });
+        if (!webResult.canceled && webResult.assets && webResult.assets.length > 0) {
+          setWebCropQueue((prev) => [
+            ...prev,
+            ...webResult.assets.map((a) => ({ uri: a.uri, type: 'gallery' as const })),
+          ]);
         }
+        return;
+      }
+
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        showAlert('Permission Denied', 'Photo access is required.');
+        return;
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -272,12 +289,22 @@ export default function AddProductScreen() {
   // Primary Image Picker
   const pickImage = async () => {
     try {
-      if (Platform.OS !== 'web') {
-        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!permissionResult.granted) {
-          showAlert('Permission Required', 'Permission to access camera roll is required.');
-          return;
+      if (Platform.OS === 'web') {
+        // Web: pick without built-in edit, then crop + compress via WebCropper
+        const webResult = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          quality: 1,
+        });
+        if (!webResult.canceled && webResult.assets && webResult.assets.length > 0) {
+          setWebCropQueue((prev) => [...prev, { uri: webResult.assets[0].uri, type: 'primary' }]);
         }
+        return;
+      }
+
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        showAlert('Permission Required', 'Permission to access camera roll is required.');
+        return;
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -303,6 +330,34 @@ export default function AddProductScreen() {
     } catch (e: any) {
       showAlert('Error', getErrorMessage(e, 'Unable to pick image.'));
     }
+  };
+
+  // Web crop handlers (crop + compress, then advance queue)
+  const handleWebCropComplete = (blob: Blob | null) => {
+    const current = webCroppingImage;
+    if (blob && current) {
+      const croppedUri = URL.createObjectURL(blob);
+      if (current.type === 'primary') {
+        setImageUri(croppedUri);
+        setImageChanged(true);
+      } else {
+        setGalleryImages((prev) => [...prev, croppedUri]);
+      }
+    }
+    setWebCropQueue((prev) => prev.slice(1));
+  };
+
+  const handleWebCropCancel = () => {
+    setWebCropQueue((prev) => prev.slice(1));
+  };
+
+  const getUploadFileInfo = (uri: string, fallback: string) => {
+    const isInline = uri.startsWith('blob:') || uri.startsWith('data:');
+    const raw = isInline ? '' : uri.split('/').pop()?.split('?')[0] || '';
+    const match = /\.(\w+)$/.exec(raw);
+    if (!match) return { name: `${fallback}.jpg`, type: 'image/jpeg' };
+    const ext = match[1].toLowerCase();
+    return { name: raw, type: `image/${ext === 'jpg' ? 'jpeg' : ext}` };
   };
 
   // Save Handler
@@ -349,9 +404,7 @@ export default function AddProductScreen() {
       formData.append('is_in_stock', isInStock && parsedStock > 0 ? 'true' : 'false');
 
       if (imageUri && imageChanged) {
-        const rawFilename = imageUri.split('/').pop() || 'product.jpg';
-        const match = /\.(\w+)$/.exec(rawFilename);
-        const mimeType = match ? `image/${match[1]}` : 'image/jpeg';
+        const { name: rawFilename, type: mimeType } = getUploadFileInfo(imageUri, 'product');
 
         if (Platform.OS === 'web') {
           const response = await fetch(imageUri);
@@ -369,9 +422,7 @@ export default function AddProductScreen() {
       for (let i = 0; i < galleryImages.length; i++) {
         const gUri = galleryImages[i];
         if (gUri.startsWith('http://') || gUri.startsWith('https://')) continue;
-        const gFilename = gUri.split('/').pop() || `gallery_${i}.jpg`;
-        const gMatch = /\.(\w+)$/.exec(gFilename);
-        const gMime = gMatch ? `image/${gMatch[1]}` : 'image/jpeg';
+        const { name: gFilename, type: gMime } = getUploadFileInfo(gUri, `gallery_${i}`);
         if (Platform.OS === 'web') {
           const resp = await fetch(gUri);
           const blob = await resp.blob();
@@ -825,6 +876,17 @@ export default function AddProductScreen() {
           />
         )}
       </Modal>
+
+      {/* ─── Web Crop + Compress (one image at a time) ─── */}
+      {Platform.OS === 'web' && webCroppingImage && (
+        <WebCropper
+          key={`${webCroppingImage.uri}-${webCropQueue.length}`}
+          imageSrc={webCroppingImage.uri}
+          initialAspect={1}
+          onCropComplete={handleWebCropComplete}
+          onCancel={handleWebCropCancel}
+        />
+      )}
     </View>
   );
 }

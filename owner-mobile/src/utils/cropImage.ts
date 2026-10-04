@@ -1,6 +1,6 @@
 export const createImage = (url: string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
-    const image = new Image();
+    const image = new window.Image();
     image.addEventListener('load', () => resolve(image));
     image.addEventListener('error', (error) => reject(error));
     image.setAttribute('crossOrigin', 'anonymous');
@@ -17,8 +17,24 @@ export async function getCroppedImg(
   
   if (!ctx) return null;
 
-  canvas.width = pixelCrop.width;
-  canvas.height = pixelCrop.height;
+  // Max dimension 1200px to ensure compressed file size
+  const maxDim = 1200;
+  let targetWidth = pixelCrop.width;
+  let targetHeight = pixelCrop.height;
+
+  if (targetWidth > maxDim || targetHeight > maxDim) {
+    if (targetWidth > targetHeight) {
+      targetHeight = Math.round((targetHeight * maxDim) / targetWidth);
+      targetWidth = maxDim;
+    } else {
+      targetWidth = Math.round((targetWidth * maxDim) / targetHeight);
+      targetHeight = maxDim;
+    }
+  }
+
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  ctx.imageSmoothingQuality = 'high';
 
   ctx.drawImage(
     image,
@@ -28,13 +44,13 @@ export async function getCroppedImg(
     pixelCrop.height,
     0,
     0,
-    pixelCrop.width,
-    pixelCrop.height
+    targetWidth,
+    targetHeight
   );
 
   return new Promise((resolve) => {
     canvas.toBlob((file) => {
       resolve(file);
-    }, 'image/jpeg');
+    }, 'image/jpeg', 0.82);
   });
 }

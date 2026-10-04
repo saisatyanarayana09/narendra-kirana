@@ -16,7 +16,8 @@ export default function ImageCropper({
   label = "Upload Image",
   className = ""
 }) {
-  const effectiveAspect = aspectRatio !== undefined ? aspectRatio : aspect;
+  const defaultAspect = aspectRatio !== undefined ? aspectRatio : aspect;
+  const [selectedAspect, setSelectedAspect] = useState(defaultAspect);
   const [modalOpen, setModalOpen] = useState(false);
   const [imgSrc, setImgSrc] = useState('');
   const [crop, setCrop] = useState();
@@ -31,10 +32,11 @@ export default function ImageCropper({
     setPreviewUrl(currentImageUrl);
   }, [currentImageUrl]);
 
-  // Handle external file prop (e.g. MidPageBannerEditor)
+  // Handle external file prop (e.g. Gallery Queue or Direct File)
   React.useEffect(() => {
     if (file) {
       setCrop(undefined);
+      setSelectedAspect(defaultAspect);
       const reader = new FileReader();
       reader.addEventListener('load', () => {
         setImgSrc(reader.result?.toString() || '');
@@ -42,7 +44,7 @@ export default function ImageCropper({
       });
       reader.readAsDataURL(file);
     }
-  }, [file]);
+  }, [file, defaultAspect]);
 
   const handleClose = () => {
     setModalOpen(false);
@@ -66,6 +68,7 @@ export default function ImageCropper({
   function onSelectFile(e) {
     if (e.target.files && e.target.files.length > 0) {
       setCrop(undefined); // Reset crop
+      setSelectedAspect(defaultAspect);
       const reader = new FileReader();
       reader.addEventListener('load', () => {
         setImgSrc(reader.result?.toString() || '');
@@ -79,20 +82,40 @@ export default function ImageCropper({
 
   function onImageLoad(e) {
     const { width, height } = e.currentTarget;
-    let initialCrop = centerCrop(
-      makeAspectCrop({ unit: '%', width: 90 }, effectiveAspect, width, height),
-      width,
-      height
-    );
-    setCrop(initialCrop);
-    setCompletedCrop(initialCrop);
+    applyAspectRatio(selectedAspect, width, height);
   }
+
+  const applyAspectRatio = (newAspect, imgW, imgH) => {
+    const width = imgW || imgRef.current?.width;
+    const height = imgH || imgRef.current?.height;
+    if (!width || !height) return;
+
+    if (newAspect) {
+      const initialCrop = centerCrop(
+        makeAspectCrop({ unit: '%', width: 90 }, newAspect, width, height),
+        width,
+        height
+      );
+      setCrop(initialCrop);
+      setCompletedCrop(initialCrop);
+    } else {
+      // Freeform crop
+      const freeCrop = { unit: '%', width: 90, height: 90, x: 5, y: 5 };
+      setCrop(freeCrop);
+      setCompletedCrop(freeCrop);
+    }
+  };
+
+  const handleAspectChange = (newAspect) => {
+    setSelectedAspect(newAspect);
+    applyAspectRatio(newAspect);
+  };
 
   const handleApplyCrop = async () => {
     if (!completedCrop || !imgRef.current) return;
     
     setIsCompressing(true);
-    const loadingToast = toast.loading('Compressing...');
+    const loadingToast = toast.loading('Compressing image...');
 
     try {
       const image = imgRef.current;
@@ -127,18 +150,24 @@ export default function ImageCropper({
 
       // Convert to blob
       const blob = await new Promise((resolve) => {
-        canvas.toBlob(resolve, 'image/jpeg', 1);
+        canvas.toBlob(resolve, 'image/jpeg', 0.9);
       });
 
       if (!blob) throw new Error("Canvas is empty");
 
-      // Compress it
-      const file = new File([blob], "cropped_image.jpg", { type: "image/jpeg" });
-      const compressedFile = await imageCompression(file, {
-        maxSizeMB: 1,
-        maxWidthOrHeight: 1200,
-        useWebWorker: true,
-      });
+      // Compress it with target size and dimension
+      const fileObj = new File([blob], "product_image.jpg", { type: "image/jpeg" });
+      let compressedFile = fileObj;
+      try {
+        compressedFile = await imageCompression(fileObj, {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1200,
+          useWebWorker: true,
+          fileType: "image/jpeg",
+        });
+      } catch (compErr) {
+        console.warn('browser-image-compression fallback to canvas blob:', compErr);
+      }
 
       // Show preview
       const objectUrl = URL.createObjectURL(compressedFile);
@@ -160,6 +189,24 @@ export default function ImageCropper({
     }
   };
 
+  const baseAspectOptions = [
+    { label: '1:1', val: 1 },
+    { label: '4:3', val: 4 / 3 },
+    { label: '3:4', val: 3 / 4 },
+    { label: '16:9', val: 16 / 9 },
+  ];
+  // Surface the screen's recommended ratio (e.g. 3:1 or 4:1 banners) if it isn't a preset
+  const hasDefaultPreset =
+    defaultAspect === undefined ||
+    baseAspectOptions.some((o) => Math.abs(o.val - defaultAspect) < 0.01);
+  const aspectOptions = [
+    ...(hasDefaultPreset
+      ? []
+      : [{ label: `${Number(defaultAspect.toFixed(2))}:1`, val: defaultAspect }]),
+    ...baseAspectOptions,
+    { label: 'Free', val: undefined },
+  ];
+
   const renderModal = () => {
     if (!modalOpen) return null;
     return createPortal(
@@ -175,10 +222,11 @@ export default function ImageCropper({
           className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] relative z-10"
           onClick={(e) => e.stopPropagation()}
         >
+          {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-slate-100">
             <div className="flex items-center gap-2 text-slate-800 font-bold">
               <Crop className="w-5 h-5 text-indigo-600" />
-              <h2>Crop Image</h2>
+              <h2>Crop & Compress Image</h2>
             </div>
             <button 
               type="button"
@@ -189,19 +237,43 @@ export default function ImageCropper({
               <X size={20} />
             </button>
           </div>
+
+          {/* Aspect Ratio Toolbar */}
+          <div className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-50 border-b border-slate-100 overflow-x-auto">
+            <span className="text-xs font-semibold text-slate-500 mr-1 shrink-0">Ratio:</span>
+            {aspectOptions.map((opt, idx) => {
+              const isActive = (selectedAspect === undefined && opt.val === undefined) ||
+                (selectedAspect !== undefined && opt.val !== undefined && Math.abs(selectedAspect - opt.val) < 0.01);
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleAspectChange(opt.val)}
+                  className={`px-3 py-1 text-xs rounded-lg font-bold shrink-0 transition-all ${
+                    isActive
+                      ? 'bg-indigo-600 text-white shadow-sm'
+                      : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
           
+          {/* Canvas Area */}
           <div className="p-4 bg-slate-900 flex-1 overflow-auto flex items-center justify-center min-h-[300px]">
             {imgSrc && (
               <ReactCrop
                 crop={crop}
                 onChange={(c) => setCrop(c)}
                 onComplete={(c) => setCompletedCrop(c)}
-                aspect={effectiveAspect}
+                aspect={selectedAspect}
                 className="max-h-[60vh] object-contain rounded shadow-sm"
               >
                 <img
                   ref={imgRef}
-                  alt="Crop me"
+                  alt="Crop preview"
                   src={imgSrc}
                   onLoad={onImageLoad}
                   className="max-h-[60vh] max-w-full"
@@ -210,6 +282,7 @@ export default function ImageCropper({
             )}
           </div>
 
+          {/* Footer Actions */}
           <div className="p-4 border-t border-slate-100 bg-white flex justify-end gap-3">
             <button
               type="button"
@@ -229,7 +302,7 @@ export default function ImageCropper({
                 <>Compressing...</>
               ) : (
                 <>
-                  <Check size={18} /> Apply Crop
+                  <Check size={18} /> Apply & Compress
                 </>
               )}
             </button>
@@ -248,7 +321,7 @@ export default function ImageCropper({
     <div className={className}>
       <input 
         type="file" 
-        accept="image/*" 
+        accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.bmp,.heic,.heif,.svg" 
         ref={fileInputRef}
         onChange={onSelectFile}
         className="hidden"
@@ -260,8 +333,8 @@ export default function ImageCropper({
           className={`shrink-0 rounded-xl overflow-hidden border-2 border-dashed flex items-center justify-center bg-slate-50 transition-colors
             ${previewUrl ? 'border-indigo-200' : 'border-slate-300'}`}
           style={{ 
-            width: effectiveAspect >= 1 ? '120px' : '80px', 
-            height: effectiveAspect >= 1 ? `${120 / effectiveAspect}px` : '120px',
+            width: defaultAspect >= 1 ? '120px' : '80px', 
+            height: defaultAspect >= 1 ? `${120 / defaultAspect}px` : '120px',
             minHeight: '80px'
           }}
         >
@@ -282,7 +355,7 @@ export default function ImageCropper({
             <Upload size={16} />
             {previewUrl ? "Replace Image" : label}
           </button>
-          <p className="text-xs text-slate-500 font-medium">JPG, PNG up to 5MB (auto-compressed)</p>
+          <p className="text-xs text-slate-500 font-medium">All image types (JPG, PNG, WebP, HEIC) auto-compressed</p>
         </div>
       </div>
 

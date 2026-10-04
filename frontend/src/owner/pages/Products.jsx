@@ -24,6 +24,8 @@ const Products = () => {
  stock_quantity: 0, sku: '', cost_price: '', expiry_date: '', tags: '',
  max_order_quantity: 10, image: null, gallery_images: [], imageBack: null
  });
+ const [galleryCropQueue, setGalleryCropQueue] = useState([]);
+ const [activeGalleryCropFile, setActiveGalleryCropFile] = useState(null);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -170,11 +172,35 @@ const Products = () => {
 
  
    const handleGalleryUpload = (e) => {
-     const files = Array.from(e.target.files);
+     const files = Array.from(e.target.files || []);
+     if (!files.length) return;
+     setGalleryCropQueue(files.slice(1));
+     setActiveGalleryCropFile(files[0]);
+     e.target.value = '';
+   };
+
+   const handleGalleryCropComplete = (croppedFile) => {
      setFormData(prev => ({
        ...prev,
-       gallery_images: [...prev.gallery_images, ...files]
+       gallery_images: [...prev.gallery_images, croppedFile]
      }));
+     if (galleryCropQueue.length > 0) {
+       const nextFile = galleryCropQueue[0];
+       setGalleryCropQueue(prev => prev.slice(1));
+       setActiveGalleryCropFile(nextFile);
+     } else {
+       setActiveGalleryCropFile(null);
+     }
+   };
+
+   const handleGalleryCropCancel = () => {
+     if (galleryCropQueue.length > 0) {
+       const nextFile = galleryCropQueue[0];
+       setGalleryCropQueue(prev => prev.slice(1));
+       setActiveGalleryCropFile(nextFile);
+     } else {
+       setActiveGalleryCropFile(null);
+     }
    };
  
    const handleRemoveGalleryImage = async (index, imageObj) => {
@@ -423,9 +449,23 @@ const Products = () => {
         <label className="aspect-square rounded-lg border border-dashed border-slate-300 hover:border-slate-400 bg-slate-50 hover:bg-slate-100 transition-colors flex flex-col items-center justify-center cursor-pointer text-slate-400 hover:text-slate-600">
             <Plus className="w-5 h-5 mb-1"/>
             <span className="text-[10px] font-medium">Add Photos</span>
-            <input type="file" multiple accept="image/*" onChange={handleGalleryUpload} className="hidden" />
+            <input 
+              type="file" 
+              multiple 
+              accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.bmp,.heic,.heif,.svg" 
+              onChange={handleGalleryUpload} 
+              className="hidden" 
+            />
         </label>
     </div>
+    {activeGalleryCropFile && (
+      <ImageCropper
+        file={activeGalleryCropFile}
+        aspect={1}
+        onCropComplete={handleGalleryCropComplete}
+        onCancel={handleGalleryCropCancel}
+      />
+    )}
  </div>
 
 <div className="flex items-center space-x-6 pt-2 md:col-span-2">
