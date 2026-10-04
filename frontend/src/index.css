@@ -57,6 +57,21 @@ vercel-live-feedback {
   animation-play-state: paused;
 }
 
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-page-fade {
+  animation: pageFadeIn 0.22s cubic-bezier(0, 0, 0.2, 1) forwards;
+}
+
 /* =========================================================================
    PREMIUM MODERN DARK THEME DESIGN SYSTEM
    ========================================================================= */

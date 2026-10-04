@@ -1,199 +1,49 @@
-import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import api from '../../services/api';
+import React from 'react';
+import { Link } from 'react-router-dom';
 import { Store, Lock, Eye, EyeOff, Loader2, CheckCircle2, ShieldAlert, ShieldCheck, ArrowLeft, ArrowRight, KeyRound, Mail, RefreshCw } from 'lucide-react';
+import { usePasswordReset } from '../../hooks/usePasswordReset';
 
 export default function OwnerResetPassword() {
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-
-  const uid = searchParams.get('uid');
-  const token = searchParams.get('token');
-  const emailParam = searchParams.get('email') || '';
-  const initialMode = searchParams.get('mode') === 'otp' ? 'otp' : 'link';
-
-  const [mode, setMode] = useState(initialMode); // 'link' (default) | 'otp'
-  const [email, setEmail] = useState(emailParam);
-  const [otpStep, setOtpStep] = useState('verify'); // 'verify' | 'set_password'
-  const [otp, setOtp] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'success' | 'error'
-  const [message, setMessage] = useState('');
-  const [isEditingEmail, setIsEditingEmail] = useState(!emailParam);
-  const [resendCooldown, setResendCooldown] = useState(0);
-  const [isResending, setIsResending] = useState(false);
-  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
-
-  // Proactive token check state
-  const [tokenStatus, setTokenStatus] = useState(uid && token ? 'checking' : 'none');
-  const [tokenError, setTokenError] = useState('');
-
-  // Countdown timer for OTP resend cooldown
-  useEffect(() => {
-    let timer;
-    if (resendCooldown > 0) {
-      timer = setTimeout(() => setResendCooldown(c => c - 1), 1000);
-    }
-    return () => clearTimeout(timer);
-  }, [resendCooldown]);
-
-  useEffect(() => {
-    if (uid && token) {
-      let isMounted = true;
-      setTokenStatus('checking');
-      api.post('/auth/password-reset/validate-token/', { uid, token, portal: 'owner' })
-        .then((res) => {
-          if (!isMounted) return;
-          setTokenStatus('valid');
-          if (res.data?.email && !email) {
-            setEmail(res.data.email);
-          }
-        })
-        .catch((err) => {
-          if (!isMounted) return;
-          setTokenStatus('invalid');
-          const errData = err.response?.data;
-          const errMsg = typeof errData === 'string' ? errData : (errData?.error || 'This reset link has expired or has already been used.');
-          setTokenError(String(errMsg));
-        });
-      return () => { isMounted = false; };
-    }
-  }, [uid, token]);
+  const {
+    mode,
+    setMode,
+    email,
+    setEmail,
+    isEditingEmail,
+    setIsEditingEmail,
+    otp,
+    otpStep,
+    setOtpStep,
+    otpRefs,
+    otpVerified,
+    isVerifyingOtp,
+    password,
+    setPassword,
+    confirmPassword,
+    setConfirmPassword,
+    showPassword,
+    setShowPassword,
+    showConfirmPassword,
+    setShowConfirmPassword,
+    status,
+    message,
+    resendCooldown,
+    isResending,
+    tokenStatus,
+    tokenError,
+    uid,
+    token,
+    handleSendOtp,
+    handleVerifyOtp,
+    handleOtpChange,
+    handleKeyDown,
+    handlePaste,
+    submit,
+  } = usePasswordReset({ portal: 'owner', loginRedirect: '/owner/login' });
 
   const isLinkInvalid = mode === 'link' && (!uid || !token || tokenStatus === 'invalid');
 
-  async function handleSendOtp() {
-    if (!email.trim()) {
-      setStatus('error');
-      setMessage('Please enter your registered owner email address.');
-      return;
-    }
-    setIsResending(true);
-    setStatus('idle');
-    setMessage('');
-    try {
-      const res = await api.post('/auth/password-reset/', {
-        email: email.trim(),
-        method: 'otp',
-        portal: 'owner'
-      });
-      setMessage(res.data?.message || 'A 6-digit verification code has been sent to your email.');
-      setResendCooldown(60);
-      setIsEditingEmail(false);
-    } catch (err) {
-      setStatus('error');
-      const errData = err.response?.data;
-      const errMsg = typeof errData === 'string' ? errData : (errData?.error || errData?.detail || 'Failed to send OTP code.');
-      setMessage(String(errMsg));
-    } finally {
-      setIsResending(false);
-    }
-  }
-
-  // Step 1: Verify OTP code only
-  async function handleVerifyOtp(e) {
-    if (e) e.preventDefault();
-    if (!email.trim()) {
-      setStatus('error');
-      setMessage('Please enter your registered owner email address.');
-      return;
-    }
-    const cleanOtp = otp.trim().replace(/[^0-9]/g, '');
-    if (cleanOtp.length !== 6) {
-      setStatus('error');
-      setMessage('Please enter the valid 6-digit verification code.');
-      return;
-    }
-
-    setIsVerifyingOtp(true);
-    setStatus('idle');
-    setMessage('');
-    try {
-      const res = await api.post('/auth/password-reset/verify-otp/', {
-        email: email.trim(),
-        otp: cleanOtp,
-        portal: 'owner'
-      });
-      if (res.data?.valid) {
-        setOtpStep('set_password');
-        setStatus('idle');
-        setMessage('');
-      } else {
-        setStatus('error');
-        setMessage(res.data?.error || 'Invalid verification code.');
-      }
-    } catch (err) {
-      setStatus('error');
-      const errData = err.response?.data;
-      const errMsg = typeof errData === 'string' ? errData : (errData?.error || errData?.detail || 'Incorrect or expired verification code.');
-      setMessage(String(errMsg));
-    } finally {
-      setIsVerifyingOtp(false);
-    }
-  }
-
-  // Step 2 (or Link mode): Save New Password
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (password.length < 8) {
-      setStatus('error');
-      setMessage('Password must be at least 8 characters long.');
-      return;
-    }
-    if (password !== confirmPassword) {
-      setStatus('error');
-      setMessage('Passwords do not match. Please verify both fields.');
-      return;
-    }
-
-    setStatus('loading');
-    setMessage('');
-
-    try {
-      if (mode === 'otp') {
-        const res = await api.post('/auth/password-reset/otp-confirm/', {
-          email: email.trim(),
-          otp: otp.trim(),
-          new_password: password,
-          portal: 'owner'
-        });
-        setStatus('success');
-        setMessage(res.data?.message || 'Owner password has been reset successfully!');
-        setTimeout(() => {
-          navigate('/owner/login', { replace: true });
-        }, 3000);
-      } else {
-        if (isLinkInvalid) {
-          setStatus('error');
-          setMessage('The reset link is invalid or incomplete. Please use the 6-Digit OTP tab or request a new one.');
-          return;
-        }
-
-        const res = await api.post('/auth/password-reset-confirm/', {
-          uid,
-          token,
-          new_password: password,
-          portal: 'owner'
-        });
-        setStatus('success');
-        setMessage(res.data?.message || 'Owner password has been reset successfully!');
-        setTimeout(() => {
-          navigate('/owner/login', { replace: true });
-        }, 3000);
-      }
-    } catch (err) {
-      setStatus('error');
-      const errData = err.response?.data;
-      const errMsg = typeof errData === 'string'
-        ? errData
-        : (errData?.error || errData?.detail || errData?.message || '');
-      setMessage(String(errMsg || (err.response ? `Server error (${err.response.status})` : 'Failed to reset password. Link or OTP may be expired.')));
-    }
-  };
+  const handleSubmit = submit;
 
   return (
     <main className="min-h-screen flex bg-white dark:bg-slate-950">

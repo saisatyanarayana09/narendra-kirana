@@ -131,19 +131,10 @@ export default defineConfig({
           if (normalized.includes('/node_modules/gsap/') || normalized.includes('/node_modules/@gsap/')) {
             return 'vendor-gsap';
           }
-          if (normalized.includes('/node_modules/framer-motion/')) {
-            return 'vendor-framer';
-          }
-          if (
-            normalized.includes('/node_modules/html5-qrcode/') ||
-            normalized.includes('/node_modules/@zxing/')
-          ) {
+          if (normalized.includes('/node_modules/html5-qrcode/')) {
             return 'vendor-scanner';
           }
-          if (
-            normalized.includes('/node_modules/jsqr/') ||
-            normalized.includes('/node_modules/qrcode.react/')
-          ) {
+          if (normalized.includes('/node_modules/qrcode.react/')) {
             return 'vendor-qrcode';
           }
           if (normalized.includes('/node_modules/@hello-pangea/')) {

@@ -1,76 +1,57 @@
 import React, { useEffect, useRef, useState } from 'react';
-import jsQR from 'jsqr';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { X, Camera } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
 export default function QRScanner({ onScan, onClose }) {
-  const videoRef = useRef(null);
-  const canvasRef = useRef(null);
   const [error, setError] = useState(null);
-
-  const streamRef = useRef(null);
+  const scannerRef = useRef(null);
 
   useEffect(() => {
-    let animationFrameId;
     let isMounted = true;
+    const scannerId = "qr-reader-target";
+    const html5QrCode = new Html5Qrcode(scannerId);
+    scannerRef.current = html5QrCode;
 
-    const startVideo = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        
-        if (!isMounted) {
-          // The user clicked "Close" while we were waiting for the camera to start!
-          stream.getTracks().forEach(track => track.stop());
-          return;
-        }
+    const config = {
+      fps: 15,
+      qrbox: { width: 240, height: 240 },
+      formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE]
+    };
 
-        streamRef.current = stream; // Store in ref immediately
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.setAttribute("playsinline", true);
-          videoRef.current.play();
-          requestAnimationFrame(tick);
-        }
-      } catch (err) {
+    html5QrCode.start(
+      { facingMode: 'environment' },
+      config,
+      (decodedText) => {
         if (isMounted) {
-          setError('Please grant camera permission to scan QR codes.');
+          html5QrCode.stop().then(() => {
+            html5QrCode.clear();
+            onScan(decodedText);
+          }).catch(() => {
+            onScan(decodedText);
+          });
         }
+      },
+      () => {
+        // Frame scanning attempt; ignore individual frame misses
       }
-    };
-
-    const tick = () => {
-      if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
-        if (!canvasRef.current) return;
-        const canvas = canvasRef.current;
-        const video = videoRef.current;
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height, {
-          inversionAttempts: "dontInvert",
-        });
-        
-        if (code) {
-          onScan(code.data);
-          return; // stop scanning after success
-        }
+    ).catch(() => {
+      if (isMounted) {
+        setError('Please grant camera permission to scan QR codes.');
       }
-      animationFrameId = requestAnimationFrame(tick);
-    };
-
-    startVideo();
+    });
 
     return () => {
-      isMounted = false; // Prevent orphaned streams from starting!
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => {
-          track.stop();
-        });
-        streamRef.current = null;
+      isMounted = false;
+      try {
+        if (html5QrCode.isScanning) {
+          html5QrCode.stop().catch(() => {}).then(() => html5QrCode.clear().catch(() => {}));
+        } else {
+          html5QrCode.clear().catch(() => {});
+        }
+      } catch {
+        // ignore cleanup error on unmount
       }
-      cancelAnimationFrame(animationFrameId);
     };
   }, [onScan]);
 
@@ -82,33 +63,19 @@ export default function QRScanner({ onScan, onClose }) {
             <Camera size={20} className="text-indigo-600" />
             Scan Customer QR
           </h3>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors">
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors cursor-pointer">
             <X size={20} />
           </button>
         </div>
         
-        <div className="relative bg-black aspect-square flex items-center justify-center">
+        <div className="relative bg-black min-h-[300px] flex items-center justify-center overflow-hidden">
           {error ? (
             <div className="text-white text-center p-6">
               <Camera size={48} className="mx-auto mb-4 text-red-400 opacity-50" />
               <p className="text-sm">{error}</p>
             </div>
           ) : (
-            <>
-              <video ref={videoRef} className="absolute inset-0 w-full h-full object-cover" />
-              <canvas ref={canvasRef} className="hidden" />
-              
-              {/* Scanner Overlay UI */}
-              <div className="absolute inset-0 z-10 pointer-events-none">
-                <div className="w-full h-full border-[40px] border-black/40"></div>
-                <div className="absolute top-10 left-10 w-16 h-16 border-t-4 border-l-4 border-emerald-400 rounded-tl-xl"></div>
-                <div className="absolute top-10 right-10 w-16 h-16 border-t-4 border-r-4 border-emerald-400 rounded-tr-xl"></div>
-                <div className="absolute bottom-10 left-10 w-16 h-16 border-b-4 border-l-4 border-emerald-400 rounded-bl-xl"></div>
-                <div className="absolute bottom-10 right-10 w-16 h-16 border-b-4 border-r-4 border-emerald-400 rounded-br-xl"></div>
-                
-                <div className="absolute top-1/2 left-10 right-10 h-0.5 bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)] animate-[scan_2s_ease-in-out_infinite] pointer-events-none"></div>
-              </div>
-            </>
+            <div id="qr-reader-target" className="w-full h-full min-h-[300px]"></div>
           )}
         </div>
         
@@ -116,14 +83,6 @@ export default function QRScanner({ onScan, onClose }) {
           <p className="text-sm text-gray-500">Position the QR code within the frame to automatically scan and approve the referral reward.</p>
         </div>
       </div>
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes scan {
-          0% { transform: translateY(-100px); opacity: 0; }
-          10% { opacity: 1; }
-          90% { opacity: 1; }
-          100% { transform: translateY(100px); opacity: 0; }
-        }
-      `}} />
     </div>
   , document.body);
 }

@@ -20,11 +20,11 @@ const ProductDetailPage = lazyWithRetry(() => import('./customer').then(m => ({ 
 const ProductsPage = lazyWithRetry(() => import('./customer').then(m => ({ default: m?.ProductsPage || (() => null) })));
 const CategoriesPage = lazyWithRetry(() => import('./customer').then(m => ({ default: m?.CategoriesPage || (() => null) })));
 
-const CartPage = lazyWithRetry(() => import('./cart').then(m => ({ default: m?.CartPage || (() => null) })));
-const CheckoutPage = lazyWithRetry(() => import('./cart').then(m => ({ default: m?.CheckoutPage || (() => null) })));
-const CustomerLoginPage = lazyWithRetry(() => import('./cart').then(m => ({ default: m?.CustomerLoginPage || (() => null) })));
-const CustomerSignupPage = lazyWithRetry(() => import('./cart').then(m => ({ default: m?.CustomerSignupPage || (() => null) })));
-const OrderDetailPage = lazyWithRetry(() => import('./cart').then(m => ({ default: m?.OrderDetailPage || (() => null) })));
+const CartPage = lazyWithRetry(() => import('./pages/cart/CartPage'));
+const CheckoutPage = lazyWithRetry(() => import('./pages/cart/CheckoutPage'));
+const CustomerLoginPage = lazyWithRetry(() => import('./pages/auth/LoginPage'));
+const CustomerSignupPage = lazyWithRetry(() => import('./pages/auth/SignupPage'));
+const OrderDetailPage = lazyWithRetry(() => import('./pages/order/OrderDetailPage'));
 const CustomerLayout = lazyWithRetry(() => import('./customer-layout'));
 
 const ProfileLayout = lazyWithRetry(() => import('./profile/layouts/ProfileLayout'));
@@ -446,7 +446,7 @@ function App() {
                     <Route path="/product/:id" element={<ProductDetailPage />} />
                     <Route path="/cart" element={<CartPage />} />
                     <Route path="/download" element={<DownloadPage />} />
-                    <Route path="/downloads" element={<DownloadPage />} />
+                    <Route path="/downloads" element={<Navigate to="/download" replace />} />
                     <Route path="/checkout" element={<CustomerGuard><CheckoutPage /></CustomerGuard>} />
                     <Route path="/orders/:id" element={<CustomerGuard><OrderDetailPage /></CustomerGuard>} />
                     <Route path="/order/:id" element={<CustomerGuard><OrderDetailPage /></CustomerGuard>} />

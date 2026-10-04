@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { Plus, Edit2, Trash2, X, Image as ImageIcon, Package, GripVertical, Camera, Sparkles, Wand2, FileText, ScanLine, Search } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import toast from 'react-hot-toast';
@@ -46,37 +45,6 @@ const Products = () => {
  } catch { toast.error('Failed to load data.'); }
  finally { setLoading(false); }
  };
-  useEffect(() => {
-    if (showScanner) {
-      let scanner = null;
-      try {
-          scanner = new Html5QrcodeScanner('reader', {
-            qrbox: { width: 250, height: 100 },
-            fps: 10,
-            formatsToSupport: [ Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8, Html5QrcodeSupportedFormats.UPC_A, Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.QR_CODE ]
-          }, false);
-          
-          scanner.render(
-            (decodedText) => {
-              setFormData(prev => ({...prev, sku: decodedText}));
-              toast.success('Barcode scanned successfully!');
-              setShowScanner(false);
-              scanner.clear().catch(e => console.log(e));
-            },
-            (error) => {}
-          );
-      } catch(err) {
-          console.warn('Scanner init error', err);
-      }
-      
-      return () => {
-        if (scanner) {
-            scanner.clear().catch(e => console.log('Failed to clear scanner', e));
-        }
-      };
-    }
-  }, [showScanner]);
-
 
   useEffect(() => { fetchData(); }, []);
 
@@ -392,10 +360,14 @@ const Products = () => {
  </label>
  <input type="text" value={formData.sku} onChange={e => setFormData({...formData, sku: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-all shadow-sm" placeholder="Optional"/>
  {showScanner && (
-    <div className="mt-2 p-2 border border-slate-200 rounded-lg overflow-hidden bg-white">
-        <div id="reader" className="w-full"></div>
-        <button type="button" onClick={() => setShowScanner(false)} className="w-full mt-2 text-xs text-center text-red-600 font-medium py-1">Close Scanner</button>
-    </div>
+    <BarcodeScanner
+      onScan={(decodedText) => {
+        setFormData(prev => ({...prev, sku: decodedText}));
+        toast.success('Barcode scanned successfully!');
+        setShowScanner(false);
+      }}
+      onClose={() => setShowScanner(false)}
+    />
  )}
  </div>
  <div>
