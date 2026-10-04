@@ -324,7 +324,7 @@ const ProductCard = memo(
         >
           {/* Quick Stock +/- Stepper */}
           <View style={styles.stepperContainer}>
-            <Text style={[styles.stepperLabel, { color: colors.textMuted }]}>Stock:</Text>
+            
             <View
               style={[
                 styles.stepperPill,
@@ -362,14 +362,13 @@ const ProductCard = memo(
           <View style={styles.cardActionsRight}>
             <TouchableOpacity
               style={[
-                styles.quickActionBtn,
-                { backgroundColor: colors.cardAlt, borderColor: colors.border },
+                styles.iconMiniBtn,
+                { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.12)' : '#eff6ff' },
               ]}
               onPress={() => onQuickEdit(item)}
               accessibilityLabel="Edit Product"
             >
               <Ionicons name="create-outline" size={14} color="#3b82f6" />
-              <Text style={[styles.quickActionText, { color: colors.text }]}>Edit</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -1048,7 +1047,7 @@ export default function ProductsListScreen() {
           accessibilityLabel="Add New Product"
         >
           <Ionicons name="add" size={18} color="#ffffff" />
-          <Text style={styles.primaryAddBtnText}>Add Product</Text>
+          <Text style={styles.primaryAddBtnText}>New</Text>
         </TouchableOpacity>
       </View>
 
@@ -1216,25 +1215,7 @@ export default function ProductsListScreen() {
         </View>
       )}
 
-      {/* Active Filter Indicator Pill (when filtered) */}
-      {stockFilter !== 'ALL' && (
-        <View style={styles.activeFilterChipRow}>
-          <TouchableOpacity
-            style={[
-              styles.activeFilterChip,
-              {
-                backgroundColor: isDark ? 'rgba(59, 130, 246, 0.18)' : '#eff6ff',
-                borderColor: isDark ? 'rgba(59, 130, 246, 0.35)' : '#bfdbfe',
-              },
-            ]}
-            onPress={() => setStockFilter('ALL')}
-          >
-            <Text style={[styles.activeFilterChipText, { color: isDark ? '#93c5fd' : '#2563eb' }]}>
-              Filter: {kpiCards.find((c) => c.key === stockFilter)?.label} ✕
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      
     </View>
   ), [
     colors,
