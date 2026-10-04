@@ -163,12 +163,12 @@ const ProductCard = memo(
           },
         ]}
       >
-        {/* Main Tappable Info Area (Tap to Quick Edit) */}
+        {/* Main Tappable Info Area (Tap to Open Full Editor) */}
         <TouchableOpacity
           style={styles.cardMainRow}
           activeOpacity={0.75}
-          onPress={() => onQuickEdit(item)}
-          accessibilityLabel={`Quick edit ${item?.name || 'Product'}`}
+          onPress={() => item?.id && onEdit(item.id)}
+          accessibilityLabel={`Edit ${item?.name || 'Product'}`}
         >
           {/* Thumbnail Box */}
           <View
@@ -274,19 +274,8 @@ const ProductCard = memo(
             </TouchableOpacity>
           </View>
 
-          {/* Action Buttons: Quick Edit & Delete */}
+          {/* Delete Action */}
           <View style={styles.cardActionsGroup}>
-            <TouchableOpacity
-              style={[
-                styles.miniActionBtn,
-                { backgroundColor: colors.cardAlt, borderColor: colors.border },
-              ]}
-              onPress={() => onQuickEdit(item)}
-              accessibilityLabel="Edit Product"
-            >
-              <Ionicons name="create-outline" size={15} color="#3b82f6" />
-            </TouchableOpacity>
-
             <TouchableOpacity
               style={[
                 styles.miniActionBtn,
