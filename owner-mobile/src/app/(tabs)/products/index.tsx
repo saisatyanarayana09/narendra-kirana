@@ -223,22 +223,7 @@ const ProductCard = memo(
                 </View>
               ) : null}
 
-              {item?.sku ? (
-                <View
-                  style={[
-                    styles.tagPill,
-                    {
-                      backgroundColor: colors.cardAlt,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  <Ionicons name="barcode-outline" size={10} color={colors.textMuted} />
-                  <Text style={[styles.tagPillText, { color: colors.textMuted }]}>
-                    {item.sku}
-                  </Text>
-                </View>
-              ) : null}
+
             </View>
 
             {/* Pricing Line */}
@@ -303,8 +288,8 @@ const ProductCard = memo(
                 >
                   {inStock
                     ? isLowStock
-                      ? `Low: ${qty} left`
-                      : `${qty} in stock`
+                      ? 'Low Stock'
+                      : 'In Stock'
                     : 'Out of Stock'}
                 </Text>
               </View>
