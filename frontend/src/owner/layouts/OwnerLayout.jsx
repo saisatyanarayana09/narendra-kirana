@@ -1,19 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, Package, Tags, ShoppingCart, Users, Settings, 
   Menu, X, LogOut, PercentCircle, MessageSquare, Layout, Gift, 
   TrendingUp, Sun, Moon, FileText, SlidersHorizontal,
-  Truck, Bell
+  Truck, Bell, BellRing
 } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { useTheme } from '../../context/ThemeContext';
+import { useWebSocket } from '../../hooks/useWebSocket';
+import { playOrderChime } from '../../utils/sound';
 
 const OwnerLayout = () => {
   const { theme, toggleTheme } = useTheme();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [storeStatus, setStoreStatus] = useState({ is_open: true, loaded: false });
+  const [notificationPermission, setNotificationPermission] = useState(() => {
+    return typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'denied';
+  });
   const location = useLocation();
 
   const navGroups = [
@@ -74,6 +79,77 @@ const OwnerLayout = () => {
   };
 
   const currentSection = allNavItems.find(item => isActive(item.href)) || allNavItems[0];
+
+  const requestNotificationPermission = async () => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      try {
+        const perm = await Notification.requestPermission();
+        setNotificationPermission(perm);
+        if (perm === 'granted') {
+          toast.success('Live order alerts enabled! 🔔');
+          playOrderChime();
+        } else {
+          toast.error('Notification permission was blocked in browser settings.');
+        }
+      } catch {
+        toast.error('Could not request notification permission.');
+      }
+    }
+  };
+
+  const handleWsMessage = useCallback((data) => {
+    if (!data || !data.type) return;
+
+    if (data.type === 'NEW_ORDER') {
+      playOrderChime();
+      const order = data.order || {};
+      toast.custom(
+        (t) => (
+          <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-sm w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-2xl rounded-2xl pointer-events-auto flex items-center p-3.5 border border-emerald-500 gap-3`}>
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 dark:text-emerald-600 flex items-center justify-center font-bold shrink-0 text-lg">
+              🛒
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-white dark:text-slate-900 truncate">
+                New Order #{order.id}!
+              </p>
+              <p className="text-[11px] text-slate-300 dark:text-slate-600 truncate mt-0.5">
+                ₹{order.total_amount} • {order.customer_name || 'Customer'}
+              </p>
+            </div>
+            <Link
+              to={`/owner/orders/${order.id}`}
+              onClick={() => toast.dismiss(t.id)}
+              className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs rounded-lg transition shrink-0"
+            >
+              View
+            </Link>
+          </div>
+        ),
+        { duration: 10000, id: `new-order-${order.id}` }
+      );
+
+      // Trigger native browser notification
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        try {
+          const n = new Notification(`New Order #${order.id} Received! 🛒`, {
+            body: `₹${order.total_amount} placed by ${order.customer_name || 'Customer'}.`,
+            icon: '/favicon.png',
+            tag: `order-${order.id}`,
+          });
+          n.onclick = () => {
+            window.focus();
+            window.location.href = `/owner/orders/${order.id}`;
+          };
+        } catch {}
+      }
+    }
+  }, []);
+
+  useWebSocket({
+    path: '/ws/owner/orders/',
+    onMessage: handleWsMessage,
+  });
 
   const handleLogout = async () => {
     const refresh = localStorage.getItem('smart-kirana-owner-refresh');
@@ -198,6 +274,19 @@ const OwnerLayout = () => {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Push Notifications Enable Prompt */}
+            {notificationPermission === 'default' && (
+              <button
+                type="button"
+                onClick={requestNotificationPermission}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold hover:bg-emerald-500/20 transition-all shadow-sm"
+                title="Enable live order sound and push alerts in your browser"
+              >
+                <BellRing size={14} className="animate-pulse" />
+                <span>Enable Alerts</span>
+              </button>
+            )}
+
             {/* Store Status Toggle for Desktop */}
             {storeStatus.loaded && (
               <button
@@ -258,6 +347,18 @@ const OwnerLayout = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Push Notifications Enable Prompt Mobile */}
+            {notificationPermission === 'default' && (
+              <button
+                type="button"
+                onClick={requestNotificationPermission}
+                className="p-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs"
+                title="Enable live order sound and push alerts"
+              >
+                <BellRing size={15} className="animate-pulse" />
+              </button>
+            )}
+
             {/* Theme Toggle Button */}
             <button
               type="button"

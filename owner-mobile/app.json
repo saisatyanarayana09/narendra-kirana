@@ -33,7 +33,8 @@
         "android.permission.INTERNET",
         "android.permission.ACCESS_NETWORK_STATE",
         "android.permission.CAMERA",
-        "android.permission.VIBRATE"
+        "android.permission.VIBRATE",
+        "android.permission.POST_NOTIFICATIONS"
       ],
       "usesCleartextTraffic": true
     },
@@ -44,6 +45,13 @@
     "plugins": [
       "expo-updates",
       "expo-router",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#10b981"
+        }
+      ],
       [
         "expo-camera",
         {
@@ -65,11 +73,31 @@
           "photosPermission": "The app needs access to your photos to let you set a profile picture."
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "OrderWidget",
+              "label": "Recent Orders",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "description": "Quickly accept or reject new orders",
+              "previewImage": "./assets/images/icon.png"
+            }
+          ]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": false
+    },
+    "extra": {
+      "eas": {
+        "projectId": "f9d70244-0cb5-46bb-afee-248399d310de"
+      }
     }
   }
 }

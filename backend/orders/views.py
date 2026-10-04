@@ -396,12 +396,40 @@ class OrderViewSet(ModelViewSet):
                     data={'order_id': str(order.id), 'status': order.status, 'type': 'ORDER_PLACED'}
                 )
                 from accounts.models import User
-                for owner in User.objects.filter(is_owner=True, is_active=True):
+                from django.db.models import Q
+                cust_name = request.user.get_full_name() or request.user.username
+                owner_users = User.objects.filter(
+                    Q(is_owner=True) | Q(is_staff=True) | Q(is_superuser=True),
+                    is_active=True
+                ).distinct()
+
+                owner_title = f"New Order #{order.id} Received! 🛒"
+                owner_body = f"₹{order.total_amount} ({order.payment_method}) placed by {cust_name}."
+
+                for owner in owner_users:
+                    try:
+                        Notification.objects.create(
+                            user=owner,
+                            title=owner_title,
+                            message=owner_body,
+                            category='ORDER',
+                            action_url=f"/orders/{order.id}"
+                        )
+                    except Exception:
+                        pass
+
                     send_push_notification(
                         user=owner,
-                        title=f"New Order #{order.id} Received! 🛒",
-                        body=f"New order for ₹{order.total_amount} placed by {request.user.get_full_name() or request.user.username}.",
-                        data={'order_id': str(order.id), 'type': 'NEW_ORDER'}
+                        title=owner_title,
+                        body=owner_body,
+                        data={
+                            'order_id': str(order.id),
+                            'type': 'NEW_ORDER',
+                            'total_amount': str(order.total_amount),
+                            'status': order.status,
+                            'payment_method': order.payment_method
+                        },
+                        channel_id='orders'
                     )
             except Exception as e:
                 logger.error("Error dispatching post-order notifications: %s", e)
