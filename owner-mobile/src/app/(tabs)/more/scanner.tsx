@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -21,9 +21,6 @@ import { showAlert } from '../../../utils/alerts';
 import UniversalCameraScanner from '../../../components/UniversalCameraScanner';
 
 // ─── Data Types ───
-type ScannerWorkflow = 'inspect' | 'batch';
-type ScannerBarcodeFilter = 'all' | 'barcode' | 'qr';
-
 type ScanResultState =
   | {
       type: 'REFERRAL';
@@ -51,47 +48,26 @@ interface RecentScanItem {
   payload: any;
 }
 
-interface BatchScanItem {
-  id: string;
-  code: string;
-  name: string;
-  sku: string;
-  price: number;
-  currentStock: number;
-  batchQty: number;
-  image?: string;
-  productRef?: any;
-  isRegistered: boolean;
-}
-
 export default function CommonSmartScannerScreen() {
   const { isDark, colors } = useAppTheme();
   const router = useRouter();
 
   // Scanner Hardware State
   const [torchOn, setTorchOn] = useState(false);
-  const [barcodeFilter, setBarcodeFilter] = useState<ScannerBarcodeFilter>('all');
-  const [workflow, setWorkflow] = useState<ScannerWorkflow>('inspect');
 
   // Async Execution States
   const [processing, setProcessing] = useState(false);
   const [updatingStock, setUpdatingStock] = useState(false);
-  const [committingBatch, setCommittingBatch] = useState(false);
 
-  // Results & Batch State
+  // Scan Results State
   const [scanResult, setScanResult] = useState<ScanResultState>(null);
   const [recentScans, setRecentScans] = useState<RecentScanItem[]>([]);
-  const [batchManifest, setBatchManifest] = useState<BatchScanItem[]>([]);
-  const [batchFlashBanner, setBatchFlashBanner] = useState<string | null>(null);
-  const [showBatchModal, setShowBatchModal] = useState(false);
 
   // Manual Entry Modal
   const [showManualModal, setShowManualModal] = useState(false);
   const [manualCode, setManualCode] = useState('');
   const [manualSearchResults, setManualSearchResults] = useState<any[]>([]);
   const [searchingManual, setSearchingManual] = useState(false);
-
-  const bannerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const triggerHaptic = () => {
     try {
@@ -168,235 +144,130 @@ export default function CommonSmartScannerScreen() {
     }
   };
 
-  // ─── Batch Mode: Add to Manifest ───
-  const addToBatchManifest = (product: any, rawCode: string) => {
-    triggerHaptic();
-    const isRegistered = Boolean(product?.id);
-    const code = rawCode.trim();
-    const itemId = isRegistered ? String(product.id) : `unreg-${code}`;
-    const name = isRegistered ? product.name : `Unregistered #${code}`;
-    const price = Number(product?.offer_price || product?.regular_price || product?.price || 0);
-    const currentStock = Number(product?.stock_quantity ?? 0);
-
-    setBatchManifest((prev) => {
-      const existingIndex = prev.findIndex((item) => item.id === itemId);
-      if (existingIndex > -1) {
-        const updated = [...prev];
-        const nextQty = updated[existingIndex].batchQty + 1;
-        updated[existingIndex] = {
-          ...updated[existingIndex],
-          batchQty: nextQty,
-        };
-        showFlashBanner(`+1 ${name} (Batch: ${nextQty})`);
-        return updated;
-      } else {
-        showFlashBanner(`Added ${name} to batch`);
-        return [
-          {
-            id: itemId,
-            code,
-            name,
-            sku: product?.sku || code,
-            price,
-            currentStock,
-            batchQty: 1,
-            image: product?.image,
-            productRef: product,
-            isRegistered,
-          },
-          ...prev,
-        ];
-      }
-    });
-  };
-
-  const showFlashBanner = (message: string) => {
-    if (bannerTimeoutRef.current) {
-      clearTimeout(bannerTimeoutRef.current);
-    }
-    setBatchFlashBanner(message);
-    bannerTimeoutRef.current = setTimeout(() => {
-      setBatchFlashBanner(null);
-    }, 2400);
-  };
-
-  // ─── Commit Batch Stock Additions to Database ───
-  const handleCommitBatchStock = async () => {
-    const registeredItems = batchManifest.filter((item) => item.isRegistered && item.productRef?.id);
-    if (registeredItems.length === 0) {
-      showAlert('Batch Empty', 'No registered catalog products found in this batch.');
+  // ─── Unified Auto-Detection Engine ───
+  const processScannedCode = useCallback(async (rawData: string) => {
+    const cleanData = String(rawData || '').trim();
+    if (!cleanData) {
+      showAlert('Empty Code', 'Please scan or enter a valid QR code or product barcode.');
       return;
     }
 
-    setCommittingBatch(true);
+    setProcessing(true);
     triggerHaptic();
-    let successCount = 0;
+    const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
     try {
-      for (const item of registeredItems) {
-        try {
-          const newQty = Math.max(0, item.currentStock + item.batchQty);
-          await api.patch(`/products/${item.productRef.id}/`, {
-            stock_quantity: newQty,
-            is_in_stock: newQty > 0,
-          });
-          successCount++;
-        } catch {}
-      }
-      (api as ApiInstance).clearCache();
-      showAlert(
-        'Batch Restocked',
-        `Successfully updated inventory stock for ${successCount} products!`
-      );
-      setBatchManifest([]);
-      setShowBatchModal(false);
-    } catch (error: any) {
-      showAlert('Batch Error', getErrorMessage(error, 'Failed to update some batch products.'));
-    } finally {
-      setCommittingBatch(false);
-    }
-  };
-
-  // ─── Core Barcode & QR Code Processing Engine ───
-  const processScannedCode = useCallback(
-    async (rawData: string) => {
-      const cleanData = String(rawData || '').trim();
-      if (!cleanData) {
-        showAlert('Empty Code', 'Please scan or enter a valid QR code or product barcode.');
-        return;
-      }
-
-      setProcessing(true);
-      const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-      try {
-        // 1. Customer Referral QR Code Check (secure_qr:ID:SIGNATURE)
-        const parts = cleanData.split(':');
-        if (parts.length === 3 && parts[0] === 'secure_qr' && parts[1]) {
-          const referralPayload = {
-            referralId: parts[1],
-            rawToken: cleanData,
-          };
-
-          if (workflow === 'inspect') {
-            setScanResult({
-              type: 'REFERRAL',
-              ...referralPayload,
-            });
-          } else {
-            showFlashBanner(`Customer Referral #${parts[1]} detected!`);
-          }
-
-          setRecentScans((prev) => [
-            {
-              id: `scan-${Date.now()}`,
-              code: cleanData,
-              type: 'REFERRAL',
-              title: `Referral #${parts[1]}`,
-              subtitle: 'Customer Reward Token',
-              time: nowTime,
-              payload: referralPayload,
-            },
-            ...prev.filter((i) => i.code !== cleanData).slice(0, 8),
-          ]);
-          return;
-        }
-
-        // 2. Query Store Catalog by SKU / Barcode
-        const response = await (api as ApiInstance).cachedGet('/products/');
-        const rawList = response?.data?.results ?? response?.data;
-        const products = Array.isArray(rawList) ? rawList : [];
-        const matchedProduct = products.find(
-          (p: any) =>
-            String(p?.sku || '')
-              .trim()
-              .toLowerCase() === cleanData.toLowerCase()
-        );
-
-        if (matchedProduct) {
-          if (workflow === 'batch') {
-            addToBatchManifest(matchedProduct, cleanData);
-          } else {
-            setScanResult({
-              type: 'EXISTING_PRODUCT',
-              product: matchedProduct,
-            });
-          }
-
-          setRecentScans((prev) => [
-            {
-              id: `scan-${Date.now()}`,
-              code: cleanData,
-              type: 'EXISTING_PRODUCT',
-              title: matchedProduct.name || 'Catalog Product',
-              subtitle: `Stock: ${matchedProduct.stock_quantity ?? 0} • ₹${matchedProduct.offer_price || matchedProduct.regular_price || 0}`,
-              time: nowTime,
-              payload: matchedProduct,
-            },
-            ...prev.filter((i) => i.code !== cleanData).slice(0, 8),
-          ]);
-          return;
-        }
-
-        // 3. New / Unregistered Barcode: Check Open Food Facts Registry
-        let suggestion: any = null;
-        if (/^\d{8,14}$/.test(cleanData)) {
-          try {
-            const offRes = await fetch(
-              `https://world.openfoodfacts.org/api/v0/product/${cleanData}.json`
-            );
-            if (offRes.ok) {
-              const offData = await offRes.json();
-              if (offData.status === 1 && offData.product) {
-                suggestion = {
-                  name: offData.product.product_name || offData.product.generic_name || '',
-                  brand: offData.product.brands || '',
-                  category: offData.product.categories_tags?.[0]?.replace('en:', '') || '',
-                  image: offData.product.image_front_small_url || offData.product.image_url || '',
-                };
-              }
-            }
-          } catch {}
-        }
-
-        const newBarcodePayload = {
-          sku: cleanData,
-          globalSuggestion: suggestion,
+      // 1. Auto-Detect: Customer Referral QR Token (secure_qr:ID:SIGNATURE)
+      const parts = cleanData.split(':');
+      if (parts.length === 3 && parts[0] === 'secure_qr' && parts[1]) {
+        const referralPayload = {
+          referralId: parts[1],
+          rawToken: cleanData,
         };
 
-        if (workflow === 'batch') {
-          addToBatchManifest(
-            suggestion ? { name: suggestion.name, sku: cleanData, image: suggestion.image } : null,
-            cleanData
-          );
-        } else {
-          setScanResult({
-            type: 'NEW_BARCODE',
-            ...newBarcodePayload,
-          });
-        }
+        setScanResult({
+          type: 'REFERRAL',
+          ...referralPayload,
+        });
 
         setRecentScans((prev) => [
           {
             id: `scan-${Date.now()}`,
             code: cleanData,
-            type: 'NEW_BARCODE',
-            title: suggestion?.name || `Barcode: ${cleanData}`,
-            subtitle: 'New Item (Not in Catalog)',
+            type: 'REFERRAL',
+            title: `Referral #${parts[1]}`,
+            subtitle: 'Customer Reward Voucher',
             time: nowTime,
-            payload: newBarcodePayload,
+            payload: referralPayload,
           },
           ...prev.filter((i) => i.code !== cleanData).slice(0, 8),
         ]);
-      } catch (error: any) {
-        showAlert('Scan Error', getErrorMessage(error, 'Failed to process scanned code.'));
-      } finally {
-        setProcessing(false);
+        return;
       }
-    },
-    [workflow]
-  );
 
-  // ─── Live Manual Search in Catalog ───
+      // 2. Auto-Detect: Existing Catalog Product by Barcode / SKU
+      const response = await (api as ApiInstance).cachedGet('/products/');
+      const rawList = response?.data?.results ?? response?.data;
+      const products = Array.isArray(rawList) ? rawList : [];
+      const matchedProduct = products.find(
+        (p: any) =>
+          String(p?.sku || '')
+            .trim()
+            .toLowerCase() === cleanData.toLowerCase()
+      );
+
+      if (matchedProduct) {
+        setScanResult({
+          type: 'EXISTING_PRODUCT',
+          product: matchedProduct,
+        });
+
+        setRecentScans((prev) => [
+          {
+            id: `scan-${Date.now()}`,
+            code: cleanData,
+            type: 'EXISTING_PRODUCT',
+            title: matchedProduct.name || 'Catalog Product',
+            subtitle: `Stock: ${matchedProduct.stock_quantity ?? 0} • ₹${matchedProduct.offer_price || matchedProduct.regular_price || 0}`,
+            time: nowTime,
+            payload: matchedProduct,
+          },
+          ...prev.filter((i) => i.code !== cleanData).slice(0, 8),
+        ]);
+        return;
+      }
+
+      // 3. Auto-Detect: New / Unregistered Barcode (Open Food Facts Database)
+      let suggestion: any = null;
+      if (/^\d{8,14}$/.test(cleanData)) {
+        try {
+          const offRes = await fetch(
+            `https://world.openfoodfacts.org/api/v0/product/${cleanData}.json`
+          );
+          if (offRes.ok) {
+            const offData = await offRes.json();
+            if (offData.status === 1 && offData.product) {
+              suggestion = {
+                name: offData.product.product_name || offData.product.generic_name || '',
+                brand: offData.product.brands || '',
+                category: offData.product.categories_tags?.[0]?.replace('en:', '') || '',
+                image: offData.product.image_front_small_url || offData.product.image_url || '',
+              };
+            }
+          }
+        } catch {}
+      }
+
+      const newBarcodePayload = {
+        sku: cleanData,
+        globalSuggestion: suggestion,
+      };
+
+      setScanResult({
+        type: 'NEW_BARCODE',
+        ...newBarcodePayload,
+      });
+
+      setRecentScans((prev) => [
+        {
+          id: `scan-${Date.now()}`,
+          code: cleanData,
+          type: 'NEW_BARCODE',
+          title: suggestion?.name || `Barcode: ${cleanData}`,
+          subtitle: 'New Item (Not in Catalog)',
+          time: nowTime,
+          payload: newBarcodePayload,
+        },
+        ...prev.filter((i) => i.code !== cleanData).slice(0, 8),
+      ]);
+    } catch (error: any) {
+      showAlert('Scan Error', getErrorMessage(error, 'Failed to process scanned code.'));
+    } finally {
+      setProcessing(false);
+    }
+  }, []);
+
+  // ─── Manual Search in Catalog ───
   const handleManualSearch = async (text: string) => {
     setManualCode(text);
     if (!text.trim()) {
@@ -423,8 +294,6 @@ export default function CommonSmartScannerScreen() {
       setSearchingManual(false);
     }
   };
-
-  const totalBatchUnits = batchManifest.reduce((acc, curr) => acc + curr.batchQty, 0);
 
   return (
     <View style={[styles.root, { backgroundColor: colors.bg }]}>
@@ -455,7 +324,7 @@ export default function CommonSmartScannerScreen() {
 
         <View style={styles.topHeaderCenter}>
           <View style={styles.titleRow}>
-            <Text style={[styles.screenTitle, { color: colors.text }]}>Optical Scanner</Text>
+            <Text style={[styles.screenTitle, { color: colors.text }]}>Universal Scanner</Text>
             <View
               style={[
                 styles.livePulsePill,
@@ -466,12 +335,12 @@ export default function CommonSmartScannerScreen() {
               ]}
             >
               <View style={styles.livePulseDot} />
-              <Text style={styles.livePulseText}>Live HUD</Text>
+              <Text style={styles.livePulseText}>Auto-Detecting</Text>
             </View>
           </View>
         </View>
 
-        {/* Header Right Action: Flashlight Toggle */}
+        {/* Flashlight Toggle */}
         <TouchableOpacity
           activeOpacity={0.75}
           style={[
@@ -509,75 +378,7 @@ export default function CommonSmartScannerScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.maxContainer}>
-          {/* ─── 2. Workflow Selector Pill (Inspect vs Rapid Batch) ─── */}
-          <View
-            style={[
-              styles.workflowSelectorCard,
-              {
-                backgroundColor: isDark ? '#1e293b' : '#f1f5f9',
-                borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
-              },
-            ]}
-          >
-            <TouchableOpacity
-              activeOpacity={0.8}
-              style={[
-                styles.workflowTab,
-                workflow === 'inspect' && [
-                  styles.workflowTabActive,
-                  { backgroundColor: isDark ? '#0f172a' : '#ffffff' },
-                ],
-              ]}
-              onPress={() => setWorkflow('inspect')}
-            >
-              <Ionicons
-                name="eye-outline"
-                size={16}
-                color={workflow === 'inspect' ? '#10b981' : colors.textMuted}
-              />
-              <Text
-                style={[
-                  styles.workflowTabText,
-                  { color: workflow === 'inspect' ? colors.text : colors.textMuted },
-                ]}
-              >
-                Inspect & Restock
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.8}
-              style={[
-                styles.workflowTab,
-                workflow === 'batch' && [
-                  styles.workflowTabActive,
-                  { backgroundColor: isDark ? '#0f172a' : '#ffffff' },
-                ],
-              ]}
-              onPress={() => setWorkflow('batch')}
-            >
-              <Ionicons
-                name="layers-outline"
-                size={16}
-                color={workflow === 'batch' ? '#10b981' : colors.textMuted}
-              />
-              <Text
-                style={[
-                  styles.workflowTabText,
-                  { color: workflow === 'batch' ? colors.text : colors.textMuted },
-                ]}
-              >
-                Continuous Batch
-              </Text>
-              {batchManifest.length > 0 && (
-                <View style={styles.batchCountBadge}>
-                  <Text style={styles.batchCountBadgeText}>{batchManifest.length}</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          </View>
-
-          {/* ─── 3. Precision Camera Viewfinder ─── */}
+          {/* ─── 2. Single Unified Universal Camera Viewfinder ─── */}
           <View
             style={[
               styles.cameraFrameCard,
@@ -589,95 +390,26 @@ export default function CommonSmartScannerScreen() {
           >
             <UniversalCameraScanner
               minimal
-              mode={barcodeFilter}
+              mode="all"
               torch={torchOn}
               hideFloatingTorch={true}
-              showModeSelector={true}
-              onModeChange={(m) => setBarcodeFilter(m)}
-              continuous={workflow === 'batch'}
-              isScanned={workflow === 'inspect' ? !!scanResult : false}
-              height={320}
+              showModeSelector={false}
+              isScanned={!!scanResult}
+              height={340}
               onScan={processScannedCode}
             />
 
-            {/* Non-intrusive Rapid Batch Toast */}
-            {batchFlashBanner && (
-              <View style={styles.batchFlashToast}>
-                <Ionicons name="checkmark-circle" size={16} color="#34d399" />
-                <Text style={styles.batchFlashToastText} numberOfLines={1}>
-                  {batchFlashBanner}
-                </Text>
-              </View>
-            )}
-
-            {/* In-Flight Decoding Spinner */}
+            {/* In-Flight Auto-Decoding Indicator */}
             {processing && (
               <View style={styles.cameraDecodingPill}>
                 <ActivityIndicator size="small" color="#10b981" />
-                <Text style={styles.cameraDecodingText}>Decoding code...</Text>
+                <Text style={styles.cameraDecodingText}>Auto-identifying code...</Text>
               </View>
             )}
           </View>
 
-          {/* ─── 4. Batch Mode Manifest Bar (Visible during Batch Mode) ─── */}
-          {workflow === 'batch' && (
-            <View
-              style={[
-                styles.batchActiveBar,
-                {
-                  backgroundColor: isDark ? '#1e293b' : '#ffffff',
-                  borderColor: isDark ? 'rgba(16, 185, 129, 0.3)' : '#a7f3d0',
-                },
-              ]}
-            >
-              <View style={styles.batchActiveBarLeft}>
-                <Ionicons name="cube" size={20} color="#10b981" />
-                <View>
-                  <Text style={[styles.batchActiveTitle, { color: colors.text }]}>
-                    {batchManifest.length} Items ({totalBatchUnits} Units)
-                  </Text>
-                  <Text style={[styles.batchActiveSub, { color: colors.textMuted }]}>
-                    Continuous scan active • Point at next item
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.batchActiveActions}>
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  style={[styles.batchBtnOutline, { borderColor: colors.border }]}
-                  onPress={() => setShowBatchModal(true)}
-                  disabled={batchManifest.length === 0}
-                >
-                  <Text style={[styles.batchBtnOutlineText, { color: colors.text }]}>
-                    Manifest
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  style={[
-                    styles.batchBtnPrimary,
-                    { opacity: batchManifest.length === 0 ? 0.6 : 1 },
-                  ]}
-                  onPress={handleCommitBatchStock}
-                  disabled={batchManifest.length === 0 || committingBatch}
-                >
-                  {committingBatch ? (
-                    <ActivityIndicator size="small" color="#ffffff" />
-                  ) : (
-                    <>
-                      <Ionicons name="arrow-up-circle" size={15} color="#ffffff" />
-                      <Text style={styles.batchBtnPrimaryText}>Apply Stock</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-
-          {/* ─── 5. Single Inspect Mode Result Sheet ─── */}
-          {workflow === 'inspect' && scanResult?.type === 'EXISTING_PRODUCT' && (
+          {/* ─── 3. Auto-Detected Product Result Card ─── */}
+          {scanResult?.type === 'EXISTING_PRODUCT' && (
             <View
               style={[
                 styles.resultCard,
@@ -805,7 +537,7 @@ export default function CommonSmartScannerScreen() {
                 </View>
               </View>
 
-              {/* 1-Tap Instant Stock Adjustment Stepper */}
+              {/* 1-Tap Live Stock Adjustment Stepper */}
               <View
                 style={[
                   styles.stockStepperBox,
@@ -818,7 +550,7 @@ export default function CommonSmartScannerScreen() {
                 <View style={styles.stepperHead}>
                   <Ionicons name="cube-outline" size={15} color={colors.textMuted} />
                   <Text style={[styles.stepperLabel, { color: colors.textMuted }]}>
-                    Live Restock Stepper:
+                    Quick Restock:
                   </Text>
                   {updatingStock && (
                     <ActivityIndicator size="small" color="#10b981" style={{ marginLeft: 6 }} />
@@ -875,7 +607,7 @@ export default function CommonSmartScannerScreen() {
                 >
                   <Ionicons name="scan-outline" size={16} color={colors.text} />
                   <Text style={[styles.actionBtnOutlineText, { color: colors.text }]}>
-                    Scan Next
+                    Scan Next Item
                   </Text>
                 </TouchableOpacity>
 
@@ -896,8 +628,8 @@ export default function CommonSmartScannerScreen() {
             </View>
           )}
 
-          {/* Referral Reward Sheet */}
-          {workflow === 'inspect' && scanResult?.type === 'REFERRAL' && (
+          {/* ─── 4. Auto-Detected Customer Referral Voucher Card ─── */}
+          {scanResult?.type === 'REFERRAL' && (
             <View
               style={[
                 styles.resultCard,
@@ -941,7 +673,7 @@ export default function CommonSmartScannerScreen() {
                     Referral Voucher #{scanResult.referralId}
                   </Text>
                   <Text style={[styles.referralSub, { color: colors.textMuted }]}>
-                    Legitimate token verified. Ready to redeem customer benefit.
+                    Verified reward token. Ready to redeem customer benefit.
                   </Text>
                 </View>
               </View>
@@ -982,8 +714,8 @@ export default function CommonSmartScannerScreen() {
             </View>
           )}
 
-          {/* Unregistered Barcode Intake Sheet */}
-          {workflow === 'inspect' && scanResult?.type === 'NEW_BARCODE' && (
+          {/* ─── 5. Auto-Detected Unregistered Barcode Card ─── */}
+          {scanResult?.type === 'NEW_BARCODE' && (
             <View
               style={[
                 styles.resultCard,
@@ -1005,7 +737,7 @@ export default function CommonSmartScannerScreen() {
                 >
                   <Ionicons name="barcode-outline" size={13} color="#f59e0b" />
                   <Text style={[styles.catalogPillText, { color: '#f59e0b' }]}>
-                    UNREGISTERED BARCODE
+                    NEW BARCODE (NOT IN CATALOG)
                   </Text>
                 </View>
                 <TouchableOpacity onPress={() => setScanResult(null)}>
@@ -1019,8 +751,8 @@ export default function CommonSmartScannerScreen() {
                 </Text>
                 <Text style={[styles.newBarcodeDesc, { color: colors.textMuted }]}>
                   {scanResult.globalSuggestion?.name
-                    ? `Matched "${scanResult.globalSuggestion.name}" in global registry. Add to catalog with pre-filled details.`
-                    : `Barcode "${scanResult.sku}" is not yet in your inventory.`}
+                    ? `Matched "${scanResult.globalSuggestion.name}" in database. Tap below to add to catalog with pre-filled details.`
+                    : `Barcode "${scanResult.sku}" is ready to be registered in your catalog.`}
                 </Text>
               </View>
 
@@ -1061,7 +793,7 @@ export default function CommonSmartScannerScreen() {
             </View>
           )}
 
-          {/* ─── 6. Bottom Utility Actions (Manual Entry & Session History) ─── */}
+          {/* ─── 6. Bottom Utility Actions (Manual Entry Fallback) ─── */}
           <View style={styles.bottomUtilitiesRow}>
             <TouchableOpacity
               activeOpacity={0.75}
@@ -1076,19 +808,19 @@ export default function CommonSmartScannerScreen() {
             >
               <Ionicons name="keypad-outline" size={17} color="#10b981" />
               <Text style={[styles.manualTriggerText, { color: colors.text }]}>
-                Enter Barcode Manually
+                Can't scan? Enter Barcode or SKU Manually
               </Text>
             </TouchableOpacity>
           </View>
 
-          {/* ─── 7. Recent Scans Horizontal Carousel ─── */}
+          {/* ─── 7. Recent Session Scans Carousel ─── */}
           {recentScans.length > 0 && (
             <View style={styles.recentTray}>
               <View style={styles.recentHead}>
                 <View style={styles.recentHeadTitleGroup}>
                   <Ionicons name="time-outline" size={15} color={colors.textMuted} />
                   <Text style={[styles.recentHeadTitle, { color: colors.text }]}>
-                    Session Scans ({recentScans.length})
+                    Recent Scans ({recentScans.length})
                   </Text>
                 </View>
                 <TouchableOpacity onPress={() => setRecentScans([])}>
@@ -1167,152 +899,13 @@ export default function CommonSmartScannerScreen() {
           >
             <Ionicons name="sparkles-outline" size={15} color="#10b981" />
             <Text style={[styles.guideText, { color: colors.textMuted }]}>
-              Fastest Capture: Align code horizontally inside the reticle under steady light.
+              Auto-Detector active: Point at any 1D product barcode or 2D customer QR code to scan.
             </Text>
           </View>
         </View>
       </ScrollView>
 
-      {/* ─── MODAL 1: Batch Session Manifest Sheet ─── */}
-      <Modal
-        visible={showBatchModal}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setShowBatchModal(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View
-            style={[
-              styles.manifestModalCard,
-              { backgroundColor: isDark ? '#0f172a' : '#ffffff' },
-            ]}
-          >
-            <View style={styles.modalHeader}>
-              <View>
-                <Text style={[styles.modalTitle, { color: colors.text }]}>Batch Manifest</Text>
-                <Text style={[styles.modalSub, { color: colors.textMuted }]}>
-                  {batchManifest.length} distinct items • {totalBatchUnits} total units
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => setShowBatchModal(false)}
-                style={styles.modalCloseBtn}
-              >
-                <Ionicons name="close" size={20} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
-              {batchManifest.length === 0 ? (
-                <View style={styles.emptyManifest}>
-                  <Ionicons name="cube-outline" size={40} color={colors.textMuted} />
-                  <Text style={[styles.emptyManifestText, { color: colors.textMuted }]}>
-                    No items in current batch session.
-                  </Text>
-                </View>
-              ) : (
-                batchManifest.map((item) => (
-                  <View
-                    key={item.id}
-                    style={[
-                      styles.manifestItemRow,
-                      {
-                        borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#f1f5f9',
-                      },
-                    ]}
-                  >
-                    <View style={{ flex: 1, paddingRight: 8 }}>
-                      <Text
-                        style={[styles.manifestItemName, { color: colors.text }]}
-                        numberOfLines={1}
-                      >
-                        {item.name}
-                      </Text>
-                      <Text style={[styles.manifestItemSub, { color: colors.textMuted }]}>
-                        SKU: {item.sku} • Stock: {item.currentStock}
-                      </Text>
-                    </View>
-
-                    {/* Stepper for Batch Qty */}
-                    <View style={styles.manifestStepper}>
-                      <TouchableOpacity
-                        style={[
-                          styles.manifestStepBtn,
-                          {
-                            backgroundColor: isDark ? '#1e293b' : '#f1f5f9',
-                          },
-                        ]}
-                        onPress={() => {
-                          setBatchManifest((prev) =>
-                            prev
-                              .map((i) =>
-                                i.id === item.id ? { ...i, batchQty: i.batchQty - 1 } : i
-                              )
-                              .filter((i) => i.batchQty > 0)
-                          );
-                        }}
-                      >
-                        <Text style={[styles.manifestStepBtnText, { color: colors.text }]}>-</Text>
-                      </TouchableOpacity>
-                      <Text style={[styles.manifestQtyText, { color: colors.text }]}>
-                        {item.batchQty}
-                      </Text>
-                      <TouchableOpacity
-                        style={[
-                          styles.manifestStepBtn,
-                          {
-                            backgroundColor: isDark ? '#1e293b' : '#f1f5f9',
-                          },
-                        ]}
-                        onPress={() => {
-                          setBatchManifest((prev) =>
-                            prev.map((i) =>
-                              i.id === item.id ? { ...i, batchQty: i.batchQty + 1 } : i
-                            )
-                          );
-                        }}
-                      >
-                        <Text style={[styles.manifestStepBtnText, { color: '#10b981' }]}>+</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ))
-              )}
-            </ScrollView>
-
-            <View style={styles.manifestActions}>
-              <TouchableOpacity
-                style={[
-                  styles.manifestClearBtn,
-                  { borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#e2e8f0' },
-                ]}
-                onPress={() => {
-                  setBatchManifest([]);
-                  setShowBatchModal(false);
-                }}
-              >
-                <Text style={[styles.manifestClearBtnText, { color: colors.textMuted }]}>
-                  Clear Batch
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.manifestCommitBtn, { backgroundColor: '#10b981' }]}
-                disabled={committingBatch || batchManifest.length === 0}
-                onPress={handleCommitBatchStock}
-              >
-                {committingBatch ? (
-                  <ActivityIndicator size="small" color="#ffffff" />
-                ) : (
-                  <Text style={styles.manifestCommitBtnText}>Apply Stock (+{totalBatchUnits})</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* ─── MODAL 2: Direct Manual Barcode Lookup ─── */}
+      {/* ─── MODAL: Direct Manual Barcode Lookup ─── */}
       <Modal
         visible={showManualModal}
         animationType="fade"
@@ -1516,45 +1109,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     gap: 14,
   },
-  workflowSelectorCard: {
-    flexDirection: 'row',
-    padding: 4,
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: 4,
-  },
-  workflowTab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-    borderRadius: 10,
-    gap: 6,
-  },
-  workflowTabActive: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.12,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  workflowTabText: {
-    fontSize: 12.5,
-    fontWeight: '700',
-  },
-  batchCountBadge: {
-    backgroundColor: '#10b981',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 10,
-    marginLeft: 2,
-  },
-  batchCountBadgeText: {
-    color: '#ffffff',
-    fontSize: 10.5,
-    fontWeight: '800',
-  },
   cameraFrameCard: {
     borderRadius: 22,
     borderWidth: 1,
@@ -1565,27 +1119,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 10,
     elevation: 5,
-  },
-  batchFlashToast: {
-    position: 'absolute',
-    bottom: 12,
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(15, 23, 42, 0.92)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.5)',
-    zIndex: 30,
-  },
-  batchFlashToastText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '700',
-    maxWidth: 240,
   },
   cameraDecodingPill: {
     position: 'absolute',
@@ -1604,57 +1137,6 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 11.5,
     fontWeight: '700',
-  },
-  batchActiveBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
-  batchActiveBarLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flex: 1,
-  },
-  batchActiveTitle: {
-    fontSize: 13.5,
-    fontWeight: '800',
-  },
-  batchActiveSub: {
-    fontSize: 11,
-    marginTop: 1,
-  },
-  batchActiveActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  batchBtnOutline: {
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  batchBtnOutlineText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  batchBtnPrimary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#10b981',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 10,
-  },
-  batchBtnPrimaryText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '800',
   },
   resultCard: {
     borderRadius: 20,
@@ -1951,13 +1433,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.65)',
     justifyContent: 'flex-end',
   },
-  manifestModalCard: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    maxHeight: '80%',
-    gap: 14,
-  },
   manualModalCard: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
@@ -1980,83 +1455,6 @@ const styles = StyleSheet.create({
   },
   modalCloseBtn: {
     padding: 4,
-  },
-  emptyManifest: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 36,
-    gap: 8,
-  },
-  emptyManifestText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  manifestItemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-  },
-  manifestItemName: {
-    fontSize: 13.5,
-    fontWeight: '700',
-  },
-  manifestItemSub: {
-    fontSize: 11,
-    marginTop: 2,
-  },
-  manifestStepper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  manifestStepBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  manifestStepBtnText: {
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  manifestQtyText: {
-    fontSize: 13.5,
-    fontWeight: '800',
-    minWidth: 20,
-    textAlign: 'center',
-  },
-  manifestActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 8,
-  },
-  manifestClearBtn: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  manifestClearBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  manifestCommitBtn: {
-    flex: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  manifestCommitBtnText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '800',
   },
   manualInputContainer: {
     flexDirection: 'row',

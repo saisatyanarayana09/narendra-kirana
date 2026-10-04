@@ -1626,10 +1626,9 @@ export default function ProductsListScreen() {
         onRequestClose={() => setShowScanner(false)}
       >
         <UniversalCameraScanner
-          mode="barcode"
-          showModeSelector={true}
-          title="Product Barcode Scanner"
-          subtitle="Point at any product barcode to locate or update stock"
+          mode="all"
+          title="Universal Scanner"
+          subtitle="Point at any barcode or QR code to locate product"
           onScan={handleBarcodeScan}
           onClose={() => setShowScanner(false)}
         />
