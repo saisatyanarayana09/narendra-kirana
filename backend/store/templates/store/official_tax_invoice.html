@@ -422,8 +422,13 @@
       <!-- Header -->
       <div class="hdr">
         <div class="brand-wrap">
-          <div class="brand-name">{{ store_name }}</div>
-          <div class="brand-sub">Grocery & Daily Essentials</div>
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+            <img src="/logo.jpg" alt="Store Logo" style="width: 40px; height: 40px; object-fit: contain; border-radius: 8px; border: 1px solid #e2e8f0;" onerror="this.style.display='none';" />
+            <div>
+              <div class="brand-name">{{ store_name }}</div>
+              <div class="brand-sub">Grocery & Daily Essentials</div>
+            </div>
+          </div>
           <div class="brand-contact">
             {% if store_address %}<div>{{ store_address }}</div>{% endif %}
             <div>
