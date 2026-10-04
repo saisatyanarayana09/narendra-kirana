@@ -74,7 +74,7 @@ class ProductTrie {
   }
 }
 
-// ─── Interactive Product Card Component ───
+// ─── Minimalist Executive Product Card ───
 interface ProductCardProps {
   item: any;
   colors: any;
@@ -120,37 +120,57 @@ const ProductCard = memo(
       ? Math.round(((regular - offer) / regular) * 100)
       : 0;
 
+    const stockStatusLabel = !inStock
+      ? 'Out of Stock'
+      : isLowStock
+        ? `Low (${qty})`
+        : `${qty} in stock`;
+
+    const stockDotColor = !inStock ? '#f43f5e' : isLowStock ? '#f59e0b' : '#10b981';
+
+    const stockBadgeBg = !inStock
+      ? isDark
+        ? 'rgba(244, 63, 94, 0.16)'
+        : '#fff1f2'
+      : isLowStock
+        ? isDark
+          ? 'rgba(245, 158, 11, 0.16)'
+          : '#fffbeb'
+        : isDark
+          ? 'rgba(16, 185, 129, 0.16)'
+          : '#ecfdf5';
+
+    const stockBadgeText = !inStock
+      ? isDark
+        ? '#fda4af'
+        : '#be123c'
+      : isLowStock
+        ? isDark
+          ? '#fcd34d'
+          : '#b45309'
+        : isDark
+          ? '#6ee7b7'
+          : '#047857';
+
     return (
       <View
         style={[
           styles.productCard,
           {
             backgroundColor: colors.card,
-            borderColor: isDragging
-              ? '#10b981'
-              : isHoveredTarget
-                ? '#10b981'
-                : isLowStock
-                  ? isDark
-                    ? 'rgba(245, 158, 11, 0.4)'
-                    : '#fde68a'
-                  : !inStock
-                    ? isDark
-                      ? 'rgba(244, 63, 94, 0.35)'
-                      : '#fecdd3'
-                    : colors.border,
+            borderColor: isDragging || isHoveredTarget ? '#10b981' : colors.border,
             borderWidth: isDragging || isHoveredTarget ? 2 : 1,
           },
         ]}
       >
-        {/* Card Main Row: Thumbnail + Details (Tap to Open Full Editor) */}
+        {/* Main Tappable Info Area (Tap to Quick Edit) */}
         <TouchableOpacity
           style={styles.cardMainRow}
-          activeOpacity={0.7}
-          onPress={() => item?.id && onEdit(item.id)}
-          accessibilityLabel={`Edit ${item?.name || 'Product'}`}
+          activeOpacity={0.75}
+          onPress={() => onQuickEdit(item)}
+          accessibilityLabel={`Quick edit ${item?.name || 'Product'}`}
         >
-          {/* Thumbnail Box with Discount Ribbon */}
+          {/* Thumbnail Box */}
           <View
             style={[
               styles.cardThumbBox,
@@ -168,7 +188,7 @@ const ProductCard = memo(
                 cachePolicy="memory-disk"
               />
             ) : (
-              <Ionicons name="cube-outline" size={26} color={colors.textMuted} />
+              <Ionicons name="cube-outline" size={24} color={colors.textMuted} />
             )}
 
             {hasDiscount ? (
@@ -178,198 +198,112 @@ const ProductCard = memo(
             ) : null}
           </View>
 
-          {/* Product Info Block */}
+          {/* Central Information */}
           <View style={styles.cardInfoBlock}>
-            <View style={styles.titleRowWrap}>
-              <Text
-                style={[styles.productName, { color: colors.text }]}
-                numberOfLines={2}
-              >
-                {item?.name || 'Unnamed Product'}
-              </Text>
-            </View>
+            <Text
+              style={[styles.productName, { color: colors.text }]}
+              numberOfLines={2}
+            >
+              {item?.name || 'Unnamed Product'}
+            </Text>
 
-            {/* Badges: Category, Unit, SKU */}
-            <View style={styles.tagsRow}>
-              {item?.category_name ? (
-                <View
-                  style={[
-                    styles.tagPill,
-                    {
-                      backgroundColor: isDark ? 'rgba(59, 130, 246, 0.14)' : '#eff6ff',
-                      borderColor: isDark ? 'rgba(59, 130, 246, 0.3)' : '#bfdbfe',
-                    },
-                  ]}
-                >
-                  <Text style={[styles.tagPillText, { color: isDark ? '#93c5fd' : '#2563eb' }]}>
-                    {item.category_name}
-                  </Text>
-                </View>
-              ) : null}
+            <Text
+              style={[styles.productMetaText, { color: colors.textMuted }]}
+              numberOfLines={1}
+            >
+              {[item?.unit, item?.category_name].filter(Boolean).join(' · ') || 'General item'}
+            </Text>
 
-              {item?.unit ? (
-                <View
-                  style={[
-                    styles.tagPill,
-                    {
-                      backgroundColor: colors.cardAlt,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  <Text style={[styles.tagPillText, { color: colors.textMuted }]}>
-                    {item.unit}
-                  </Text>
-                </View>
-              ) : null}
-
-
-            </View>
-
-            {/* Pricing Line */}
             <View style={styles.cardPriceRow}>
               <Text style={styles.offerPriceText}>
-                ₹{item?.offer_price ? item.offer_price : item?.regular_price ?? item?.price ?? '0.00'}
+                ₹{item?.offer_price ? item.offer_price : (item?.regular_price ?? item?.price ?? '0.00')}
               </Text>
               {hasDiscount ? (
                 <Text style={[styles.strikeThroughPrice, { color: colors.textMuted }]}>
                   ₹{item.regular_price}
                 </Text>
               ) : null}
+            </View>
+          </View>
 
-              {/* Status Pill */}
-              <View
-                style={[
-                  styles.stockStatusBadge,
-                  {
-                    backgroundColor: inStock
-                      ? isLowStock
-                        ? isDark
-                          ? 'rgba(245, 158, 11, 0.16)'
-                          : '#fef3c7'
-                        : isDark
-                          ? 'rgba(16, 185, 129, 0.16)'
-                          : '#ecfdf5'
-                      : isDark
-                        ? 'rgba(244, 63, 94, 0.16)'
-                        : '#fff1f2',
-                  },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.stockDot,
-                    {
-                      backgroundColor: inStock
-                        ? isLowStock
-                          ? '#f59e0b'
-                          : '#10b981'
-                        : '#f43f5e',
-                    },
-                  ]}
-                />
-                <Text
-                  style={[
-                    styles.stockStatusText,
-                    {
-                      color: inStock
-                        ? isLowStock
-                          ? isDark
-                            ? '#fcd34d'
-                            : '#b45309'
-                          : isDark
-                            ? '#6ee7b7'
-                            : '#047857'
-                        : isDark
-                          ? '#fda4af'
-                          : '#be123c',
-                    },
-                  ]}
-                >
-                  {inStock
-                    ? isLowStock
-                      ? 'Low Stock'
-                      : 'In Stock'
-                    : 'Out of Stock'}
-                </Text>
-              </View>
+          {/* Right Status Badge */}
+          <View style={styles.cardRightBadgeCol}>
+            <View style={[styles.stockStatusBadge, { backgroundColor: stockBadgeBg }]}>
+              <View style={[styles.stockDot, { backgroundColor: stockDotColor }]} />
+              <Text style={[styles.stockStatusText, { color: stockBadgeText }]}>
+                {stockStatusLabel}
+              </Text>
             </View>
           </View>
         </TouchableOpacity>
 
-        {/* Card Interactive Footer Bar: Stepper & Clean Actions */}
-        <View
-          style={[
-            styles.cardFooterBar,
-            {
-              borderTopColor: colors.border,
-              backgroundColor: isDark ? 'rgba(15, 23, 42, 0.4)' : 'rgba(248, 250, 252, 0.8)',
-            },
-          ]}
-        >
-          {/* Quick Stock +/- Stepper */}
-          <View style={styles.stepperContainer}>
-            
-            <View
-              style={[
-                styles.stepperPill,
-                { backgroundColor: colors.cardAlt, borderColor: colors.border },
-              ]}
+        {/* Card Controls Row: Quick Stepper & Symmetrical Action Buttons */}
+        <View style={[styles.cardControlsRow, { borderTopColor: colors.border }]}>
+          {/* Tactile Stock Stepper */}
+          <View
+            style={[
+              styles.stepperPill,
+              { backgroundColor: colors.cardAlt, borderColor: colors.border },
+            ]}
+          >
+            <TouchableOpacity
+              style={styles.stepperBtn}
+              onPress={() => onStockDelta(item, -1)}
+              disabled={qty <= 0}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityLabel="Decrease stock by 1"
             >
-              <TouchableOpacity
-                style={styles.stepperBtn}
-                onPress={() => onStockDelta(item, -1)}
-                disabled={qty <= 0}
-                accessibilityLabel="Decrease stock"
-              >
-                <Ionicons
-                  name="remove"
-                  size={14}
-                  color={qty > 0 ? colors.text : colors.textMuted}
-                />
-              </TouchableOpacity>
+              <Ionicons
+                name="remove"
+                size={14}
+                color={qty > 0 ? colors.text : colors.textMuted}
+              />
+            </TouchableOpacity>
 
-              <Text style={[styles.stepperValText, { color: colors.text }]}>
-                {qty}
-              </Text>
+            <Text style={[styles.stepperValText, { color: colors.text }]}>
+              {qty}
+            </Text>
 
-              <TouchableOpacity
-                style={styles.stepperBtn}
-                onPress={() => onStockDelta(item, +1)}
-                accessibilityLabel="Increase stock"
-              >
-                <Ionicons name="add" size={14} color="#10b981" />
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={styles.stepperBtn}
+              onPress={() => onStockDelta(item, 1)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityLabel="Increase stock by 1"
+            >
+              <Ionicons name="add" size={14} color="#10b981" />
+            </TouchableOpacity>
           </View>
 
-          {/* Actions Right: Single Edit Button + Delete */}
-          <View style={styles.cardActionsRight}>
+          {/* Action Buttons: Quick Edit & Delete */}
+          <View style={styles.cardActionsGroup}>
             <TouchableOpacity
               style={[
-                styles.iconMiniBtn,
-                { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.12)' : '#eff6ff' },
+                styles.miniActionBtn,
+                { backgroundColor: colors.cardAlt, borderColor: colors.border },
               ]}
               onPress={() => onQuickEdit(item)}
               accessibilityLabel="Edit Product"
             >
-              <Ionicons name="create-outline" size={14} color="#3b82f6" />
+              <Ionicons name="create-outline" size={15} color="#3b82f6" />
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[
-                styles.iconMiniBtn,
-                { backgroundColor: isDark ? 'rgba(244, 63, 94, 0.12)' : '#fff1f2' },
+                styles.miniActionBtn,
+                {
+                  backgroundColor: isDark ? 'rgba(244, 63, 94, 0.12)' : '#fff1f2',
+                  borderColor: isDark ? 'rgba(244, 63, 94, 0.25)' : '#fecdd3',
+                },
               ]}
               onPress={() => item?.id && onDelete(item.id, item?.name || 'Product')}
               accessibilityLabel="Delete Product"
             >
-              <Ionicons name="trash-outline" size={14} color="#f43f5e" />
+              <Ionicons name="trash-outline" size={15} color="#f43f5e" />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Reorder Controls Strip (Active when catalog reordering is toggled) */}
+        {/* Reorder Mode Controls (Visible only when catalog reordering is enabled) */}
         {reorderMode && (
           <View
             style={[
@@ -380,7 +314,6 @@ const ProductCard = memo(
               },
             ]}
           >
-            {/* Interactive Drag Handle */}
             <View
               {...(dragHandleProps || {})}
               style={[
@@ -402,7 +335,7 @@ const ProductCard = memo(
             >
               <Ionicons
                 name="reorder-two-outline"
-                size={20}
+                size={18}
                 color={isDragging ? '#ffffff' : '#10b981'}
               />
               <Text
@@ -419,11 +352,10 @@ const ProductCard = memo(
                   { color: isDragging ? '#ffffff' : '#10b981' },
                 ]}
               >
-                Hold & Drag ☰
+                Drag
               </Text>
             </View>
 
-            {/* Quick 1-step nudge buttons */}
             <View style={styles.reorderBtnsRow}>
               <TouchableOpacity
                 style={[
@@ -443,14 +375,6 @@ const ProductCard = memo(
                   size={14}
                   color={index === 0 ? colors.textMuted : '#10b981'}
                 />
-                <Text
-                  style={[
-                    styles.reorderBtnLabel,
-                    { color: index === 0 ? colors.textMuted : '#10b981' },
-                  ]}
-                >
-                  Up
-                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -459,29 +383,33 @@ const ProductCard = memo(
                   {
                     backgroundColor: colors.card,
                     borderColor: colors.border,
-                    opacity: index === (totalCount ?? 0) - 1 ? 0.35 : 1,
+                    opacity:
+                      typeof index === 'number' &&
+                      typeof totalCount === 'number' &&
+                      index >= totalCount - 1
+                        ? 0.35
+                        : 1,
                   },
                 ]}
                 onPress={() => onMoveProduct && typeof index === 'number' && onMoveProduct(index, 1)}
-                disabled={index === (totalCount ?? 0) - 1}
+                disabled={
+                  typeof index === 'number' &&
+                  typeof totalCount === 'number' &&
+                  index >= totalCount - 1
+                }
                 accessibilityLabel="Move Product Down"
               >
                 <Ionicons
                   name="arrow-down"
                   size={14}
-                  color={index === (totalCount ?? 0) - 1 ? colors.textMuted : '#10b981'}
+                  color={
+                    typeof index === 'number' &&
+                    typeof totalCount === 'number' &&
+                    index >= totalCount - 1
+                      ? colors.textMuted
+                      : '#10b981'
+                  }
                 />
-                <Text
-                  style={[
-                    styles.reorderBtnLabel,
-                    {
-                      color:
-                        index === (totalCount ?? 0) - 1 ? colors.textMuted : '#10b981',
-                    },
-                  ]}
-                >
-                  Down
-                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -509,7 +437,7 @@ export default function ProductsListScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Quick Edit Modal State
+  // Quick Edit Bottom Sheet State
   const [quickEditProduct, setQuickEditProduct] = useState<any | null>(null);
   const [qePrice, setQePrice] = useState('');
   const [qeOfferPrice, setQeOfferPrice] = useState('');
@@ -520,15 +448,13 @@ export default function ProductsListScreen() {
   // Barcode Scanner Modal State
   const [showScanner, setShowScanner] = useState(false);
 
-  // Drag and Drop Catalog Reorder State
+  // Drag & Drop Catalog Reorder State
   const [activeDragIndex, setActiveDragIndex] = useState<number | null>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const scrollOffsetRef = useRef<number>(0);
-
-  // ─── List Reference ───
   const listRef = useRef<FlatList>(null);
 
-  // ─── Fetch Products & Categories ───
+  // Fetch Products & Categories
   const fetchProducts = useCallback(
     async (forceRefresh = false) => {
       if (!token) {
@@ -545,19 +471,22 @@ export default function ProductsListScreen() {
         ]);
 
         if (prodRes.status === 'fulfilled' && prodRes.value?.data) {
-          const raw = prodRes.value.data?.results ?? prodRes.value.data;
-          setProducts(Array.isArray(raw) ? raw : []);
+          const list = Array.isArray(prodRes.value.data)
+            ? prodRes.value.data
+            : prodRes.value.data.results || [];
+          setProducts(list);
         } else if (prodRes.status === 'rejected') {
-          const err = prodRes.reason;
-          if (err?.response?.status !== 401) {
-            setErrorMsg(getErrorMessage(err, 'Failed to fetch products.'));
-          }
+          setErrorMsg(getErrorMessage(prodRes.reason, 'Failed to load products.'));
         }
 
         if (catRes.status === 'fulfilled' && catRes.value?.data) {
-          const rawCats = catRes.value.data?.results ?? catRes.value.data;
-          setCategories(Array.isArray(rawCats) ? rawCats : []);
+          const catList = Array.isArray(catRes.value.data)
+            ? catRes.value.data
+            : catRes.value.data.results || [];
+          setCategories(catList);
         }
+      } catch (err: any) {
+        setErrorMsg(getErrorMessage(err, 'Failed to fetch inventory.'));
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -575,14 +504,14 @@ export default function ProductsListScreen() {
     fetchProducts(true);
   }, [fetchProducts]);
 
-  // ─── Fast In-Line Stock Adjustments ───
+  // Fast In-Line Stock Adjustments
   const handleStockDelta = useCallback(
     async (item: any, delta: number) => {
       const currentQty = Number(item?.stock_quantity ?? 0);
       const newQty = Math.max(0, currentQty + delta);
       const newInStock = newQty > 0;
 
-      // Optimistic state update for instant UI feedback
+      // Optimistic update
       setProducts((prev) =>
         prev.map((p) =>
           p.id === item.id
@@ -608,7 +537,6 @@ export default function ProductsListScreen() {
     []
   );
 
-
   const handleDelete = useCallback(
     (id: number, name: string) => {
       showConfirm(
@@ -631,7 +559,7 @@ export default function ProductsListScreen() {
     []
   );
 
-  // ─── Catalog Products Reorder Handler (Drag & Drop + Quick Nudge) ───
+  // Reorder Handler
   const reorderProduct = useCallback(
     async (fromIndex: number, toIndex: number) => {
       if (
@@ -677,14 +605,14 @@ export default function ProductsListScreen() {
         setSortBy('DEFAULT');
         showAlert(
           'Reorder Mode',
-          'Catalog filters cleared to show master display order. Hold and drag items by ☰ to rearrange products.'
+          'Catalog filters cleared to show master display order. Hold and drag items to rearrange.'
         );
       }
     }
     setReorderMode((prev) => !prev);
   }, [reorderMode, searchQuery, selectedCatId, stockFilter, sortBy]);
 
-  // ─── Quick Edit Modal Handlers ───
+  // Quick Edit Bottom Sheet Handlers
   const openQuickEdit = useCallback((item: any) => {
     setQuickEditProduct(item);
     setQePrice(String(item?.regular_price ?? item?.price ?? ''));
@@ -721,13 +649,12 @@ export default function ProductsListScreen() {
     }
   };
 
-  // ─── Barcode Scanner Handler ───
+  // Barcode Scanner Handler
   const handleBarcodeScan = (scannedSku: string) => {
     setShowScanner(false);
     const clean = scannedSku.trim();
     if (!clean) return;
 
-    // Search in current product list
     const found = products.find(
       (p) => String(p?.sku || '').trim().toLowerCase() === clean.toLowerCase()
     );
@@ -751,7 +678,7 @@ export default function ProductsListScreen() {
     }
   };
 
-  // ─── Search Trie & Indexing ───
+  // Search Trie & Indexing
   const { productMap, searchTrie } = useMemo(() => {
     const safeProducts = Array.isArray(products) ? products : [];
     const map = new Map<number, any>();
@@ -770,7 +697,7 @@ export default function ProductsListScreen() {
     return { productMap: map, searchTrie: trie };
   }, [products]);
 
-  // ─── Metrics / KPIs ───
+  // Real-time Inventory Metrics
   const stats = useMemo(() => {
     const safe = Array.isArray(products) ? products : [];
     let inStock = 0;
@@ -797,67 +724,29 @@ export default function ProductsListScreen() {
     };
   }, [products]);
 
-  // ─── 4 Interactive KPI Cards Configuration with Effects ───
-  const kpiCards = useMemo(
-    () => [
-      {
-        key: 'ALL' as const,
-        label: 'Total',
-        icon: 'cube-outline' as const,
-        color: '#3b82f6',
-        activeBg: isDark ? 'rgba(59, 130, 246, 0.18)' : '#eff6ff',
-        activeBorder: '#3b82f6',
-        count: stats.total,
-      },
-      {
-        key: 'IN_STOCK' as const,
-        label: 'In Stock',
-        icon: 'checkmark-circle-outline' as const,
-        color: '#10b981',
-        activeBg: isDark ? 'rgba(16, 185, 129, 0.18)' : '#ecfdf5',
-        activeBorder: '#10b981',
-        count: stats.inStock,
-      },
-      {
-        key: 'LOW_STOCK' as const,
-        label: 'Low (≤5)',
-        icon: 'alert-circle-outline' as const,
-        color: '#f59e0b',
-        activeBg: isDark ? 'rgba(245, 158, 11, 0.18)' : '#fffbeb',
-        activeBorder: '#f59e0b',
-        count: stats.lowStock,
-      },
-      {
-        key: 'OUT' as const,
-        label: 'Out',
-        icon: 'close-circle-outline' as const,
-        color: '#f43f5e',
-        activeBg: isDark ? 'rgba(244, 63, 94, 0.18)' : '#fff1f2',
-        activeBorder: '#f43f5e',
-        count: stats.outOfStock,
-      },
-    ],
-    [isDark, stats]
-  );
-
-  // ─── Filtered & Sorted Products ───
+  // Filtered & Sorted Product List
   const displayedProducts = useMemo(() => {
     const safeProducts = Array.isArray(products) ? products : [];
-    if (reorderMode) {
-      return safeProducts;
-    }
     let baseList = safeProducts;
 
-    // Search filter
+    // Search query matching via Trie
     if (searchQuery.trim()) {
       const matchedIds = searchTrie.searchPrefix(searchQuery);
       if (matchedIds) {
-        const results: any[] = [];
-        matchedIds.forEach((id) => {
-          const p = productMap.get(id);
-          if (p) results.push(p);
+        baseList = Array.from(matchedIds)
+          .map((id) => productMap.get(id))
+          .filter(Boolean);
+      } else {
+        const q = searchQuery.toLowerCase().trim();
+        baseList = baseList.filter((p) => {
+          if (!p) return false;
+          return (
+            String(p.name || '').toLowerCase().includes(q) ||
+            String(p.sku || '').toLowerCase().includes(q) ||
+            String(p.brand || '').toLowerCase().includes(q) ||
+            String(p.category_name || '').toLowerCase().includes(q)
+          );
         });
-        baseList = results;
       }
     }
 
@@ -866,7 +755,7 @@ export default function ProductsListScreen() {
       baseList = baseList.filter((p) => p?.category === selectedCatId);
     }
 
-    // Stock state filter
+    // Stock status filter
     baseList = baseList.filter((p) => {
       if (!p) return false;
       const qty = Number(p.stock_quantity ?? 0);
@@ -910,6 +799,341 @@ export default function ProductsListScreen() {
     [router]
   );
 
+  // ─── Compact Executive Header ───
+  const stickyHeader = useMemo(
+    () => (
+      <View
+        style={[
+          styles.stickyHeaderWrap,
+          {
+            backgroundColor: colors.bg,
+            borderBottomColor: colors.border,
+          },
+        ]}
+      >
+        {/* 1. Header Bar: Title, Count & Action Buttons */}
+        <View style={styles.topHeader}>
+          <TouchableOpacity
+            activeOpacity={0.75}
+            onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
+            style={styles.titleRow}
+          >
+            <Text style={[styles.pageTitle, { color: colors.text }]}>Inventory</Text>
+            <View
+              style={[
+                styles.countBadge,
+                { backgroundColor: colors.cardAlt, borderColor: colors.border },
+              ]}
+            >
+              <Text style={[styles.countBadgeText, { color: colors.textMuted }]}>
+                {products.length} SKUs
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.headerRightActions}>
+            <TouchableOpacity
+              style={[
+                styles.reorderToggleBtn,
+                {
+                  backgroundColor: reorderMode ? '#10b981' : colors.card,
+                  borderColor: reorderMode ? '#10b981' : colors.border,
+                },
+              ]}
+              onPress={toggleReorderMode}
+              accessibilityLabel="Toggle Reorder Mode"
+            >
+              <Ionicons
+                name={reorderMode ? 'checkmark-done' : 'swap-vertical-outline'}
+                size={16}
+                color={reorderMode ? '#ffffff' : colors.text}
+              />
+              <Text
+                style={[
+                  styles.reorderToggleBtnText,
+                  { color: reorderMode ? '#ffffff' : colors.text },
+                ]}
+              >
+                {reorderMode ? 'Done' : 'Reorder'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.primaryAddBtn, { backgroundColor: '#10b981' }]}
+              onPress={() => router.push('/(tabs)/products/new')}
+              accessibilityLabel="Add New Product"
+            >
+              <Ionicons name="add" size={18} color="#ffffff" />
+              <Text style={styles.primaryAddBtnText}>New</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* 2. Unified Search & Sort Command Bar */}
+        <View style={styles.searchBarRow}>
+          <View
+            style={[
+              styles.searchBarPill,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <Ionicons name="search-outline" size={17} color={colors.textMuted} />
+            <TextInput
+              style={[styles.searchInput, { color: colors.text }]}
+              placeholder="Search by name, brand, or SKU..."
+              placeholderTextColor={colors.textMuted}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery ? (
+              <TouchableOpacity
+                onPress={() => setSearchQuery('')}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+              </TouchableOpacity>
+            ) : null}
+
+            <TouchableOpacity
+              style={styles.searchScanIconBtn}
+              onPress={() => setShowScanner(true)}
+              accessibilityLabel="Scan Barcode"
+            >
+              <Ionicons name="barcode-outline" size={20} color="#10b981" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Cycle Sort Button */}
+          <TouchableOpacity
+            style={[
+              styles.sortBtn,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+            onPress={() => {
+              const modes: Array<'DEFAULT' | 'NAME' | 'PRICE_ASC' | 'PRICE_DESC' | 'STOCK_LOW'> = [
+                'DEFAULT',
+                'NAME',
+                'PRICE_ASC',
+                'PRICE_DESC',
+                'STOCK_LOW',
+              ];
+              const nextIdx = (modes.indexOf(sortBy) + 1) % modes.length;
+              setSortBy(modes[nextIdx]);
+            }}
+          >
+            <Ionicons name="filter-outline" size={15} color={colors.text} />
+            <Text style={[styles.sortBtnText, { color: colors.text }]}>
+              {sortBy === 'NAME'
+                ? 'A-Z'
+                : sortBy === 'PRICE_ASC'
+                  ? 'Price ↑'
+                  : sortBy === 'PRICE_DESC'
+                    ? 'Price ↓'
+                    : sortBy === 'STOCK_LOW'
+                      ? 'Stock ↑'
+                      : 'Sort'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 3. Streamlined Status & Category Capsule Strip */}
+        <View style={styles.filterScrollWrap}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterScroll}
+          >
+            {/* Quick Status Filter Pills with Live Item Counts */}
+            <TouchableOpacity
+              style={[
+                styles.filterPill,
+                stockFilter === 'ALL' && selectedCatId === 'ALL'
+                  ? { backgroundColor: isDark ? '#ffffff' : '#0f172a' }
+                  : { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
+              ]}
+              onPress={() => {
+                setStockFilter('ALL');
+                setSelectedCatId('ALL');
+              }}
+            >
+              <Text
+                style={[
+                  styles.filterPillText,
+                  {
+                    color:
+                      stockFilter === 'ALL' && selectedCatId === 'ALL'
+                        ? isDark
+                          ? '#0f172a'
+                          : '#ffffff'
+                        : colors.textMuted,
+                    fontWeight: stockFilter === 'ALL' && selectedCatId === 'ALL' ? '800' : '600',
+                  },
+                ]}
+              >
+                All ({stats.total})
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.filterPill,
+                stockFilter === 'LOW_STOCK'
+                  ? { backgroundColor: '#f59e0b' }
+                  : { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
+              ]}
+              onPress={() => setStockFilter(stockFilter === 'LOW_STOCK' ? 'ALL' : 'LOW_STOCK')}
+            >
+              <View style={styles.pillWithDot}>
+                <View
+                  style={[
+                    styles.miniDot,
+                    { backgroundColor: stockFilter === 'LOW_STOCK' ? '#ffffff' : '#f59e0b' },
+                  ]}
+                />
+                <Text
+                  style={[
+                    styles.filterPillText,
+                    {
+                      color: stockFilter === 'LOW_STOCK' ? '#ffffff' : colors.textMuted,
+                      fontWeight: stockFilter === 'LOW_STOCK' ? '800' : '600',
+                    },
+                  ]}
+                >
+                  Low ({stats.lowStock})
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.filterPill,
+                stockFilter === 'OUT'
+                  ? { backgroundColor: '#f43f5e' }
+                  : { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
+              ]}
+              onPress={() => setStockFilter(stockFilter === 'OUT' ? 'ALL' : 'OUT')}
+            >
+              <View style={styles.pillWithDot}>
+                <View
+                  style={[
+                    styles.miniDot,
+                    { backgroundColor: stockFilter === 'OUT' ? '#ffffff' : '#f43f5e' },
+                  ]}
+                />
+                <Text
+                  style={[
+                    styles.filterPillText,
+                    {
+                      color: stockFilter === 'OUT' ? '#ffffff' : colors.textMuted,
+                      fontWeight: stockFilter === 'OUT' ? '800' : '600',
+                    },
+                  ]}
+                >
+                  Out ({stats.outOfStock})
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <View style={[styles.filterStripDivider, { backgroundColor: colors.border }]} />
+
+            {/* Categories */}
+            {categories.map((cat) => {
+              const active = selectedCatId === cat.id;
+              return (
+                <TouchableOpacity
+                  key={cat.id}
+                  style={[
+                    styles.filterPill,
+                    active
+                      ? { backgroundColor: isDark ? '#ffffff' : '#0f172a' }
+                      : { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
+                  ]}
+                  onPress={() => setSelectedCatId(active ? 'ALL' : cat.id)}
+                >
+                  <Text
+                    style={[
+                      styles.filterPillText,
+                      {
+                        color: active
+                          ? isDark
+                            ? '#0f172a'
+                            : '#ffffff'
+                          : colors.textMuted,
+                        fontWeight: active ? '800' : '600',
+                      },
+                    ]}
+                  >
+                    {cat.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      </View>
+    ),
+    [
+      colors,
+      isDark,
+      products.length,
+      searchQuery,
+      sortBy,
+      reorderMode,
+      categories,
+      selectedCatId,
+      stockFilter,
+      stats,
+      toggleReorderMode,
+      router,
+    ]
+  );
+
+  // ─── Compact List Header (Banners Only) ───
+  const listHeader = useMemo(
+    () => (
+      <View style={styles.topSectionWrap}>
+        {errorMsg ? (
+          <View style={styles.errorBannerWrap}>
+            <View style={styles.errorBanner}>
+              <Text style={styles.errorText}>{errorMsg}</Text>
+              <TouchableOpacity onPress={() => fetchProducts(true)}>
+                <Text style={styles.retryText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : null}
+
+        {reorderMode && (
+          <View
+            style={[
+              styles.reorderActiveBanner,
+              {
+                backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ecfdf5',
+                borderColor: '#10b981',
+              },
+            ]}
+          >
+            <Ionicons name="swap-vertical" size={18} color="#10b981" />
+            <Text
+              style={{
+                fontSize: 13,
+                color: isDark ? '#a7f3d0' : '#065f46',
+                fontWeight: '600',
+                flex: 1,
+              }}
+            >
+              Reorder Mode: Hold & drag items to arrange, or tap arrows.
+            </Text>
+            <TouchableOpacity onPress={toggleReorderMode} style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
+              <Text style={{ color: '#10b981', fontWeight: '700', fontSize: 13 }}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    ),
+    [colors, isDark, errorMsg, reorderMode, fetchProducts, toggleReorderMode]
+  );
+
   const renderItem = useCallback(
     ({ item, index }: any) => {
       if (reorderMode) {
@@ -918,7 +1142,7 @@ export default function ProductsListScreen() {
             index={index}
             totalCount={displayedProducts.length}
             enabled={reorderMode}
-            itemHeight={170}
+            itemHeight={150}
             listRef={listRef}
             scrollOffsetRef={scrollOffsetRef}
             activeDragIndex={activeDragIndex}
@@ -983,368 +1207,17 @@ export default function ProductsListScreen() {
       handleDelete,
       reorderMode,
       displayedProducts.length,
-      moveProduct,
       activeDragIndex,
       hoverIndex,
       reorderProduct,
+      moveProduct,
     ]
   );
-
-  // ─── Sticky Controls Hub (Search, Scanner, Sort, Reorder & Categories) ───
-  const stickyHeader = useMemo(() => (
-    <View
-      style={[
-        styles.stickyControlsWrap,
-        {
-          backgroundColor: colors.bg,
-          borderBottomColor: colors.border,
-        },
-      ]}
-    >
-      {/* 1. Header with Title & Add Product Action */}
-      <View style={styles.topHeader}>
-        <TouchableOpacity
-          activeOpacity={0.75}
-          onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
-          style={styles.titleCol}
-        >
-          <View style={styles.titleRow}>
-            <Text style={[styles.pageTitle, { color: colors.text }]}>Products</Text>
-            <View
-              style={[
-                styles.countBadge,
-                { backgroundColor: colors.cardAlt, borderColor: colors.border },
-              ]}
-            >
-              <Text style={[styles.countBadgeText, { color: colors.textMuted }]}>
-                {products.length} SKUs
-              </Text>
-            </View>
-          </View>
-          <Text style={[styles.pageSubtitle, { color: colors.textMuted }]}>
-            Manage inventory, pricing & live stock
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.primaryAddBtn, { backgroundColor: '#10b981' }]}
-          onPress={() => router.push('/(tabs)/products/new')}
-          accessibilityLabel="Add New Product"
-        >
-          <Ionicons name="add" size={18} color="#ffffff" />
-          <Text style={styles.primaryAddBtnText}>New</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* 2. Search & Control Bar */}
-      <View style={styles.searchBarRow}>
-        <View
-          style={[
-            styles.searchBarPill,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-        >
-          <Ionicons name="search-outline" size={17} color={colors.textMuted} />
-          <TextInput
-            style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Search by name, SKU, brand, category..."
-            placeholderTextColor={colors.textMuted}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery ? (
-            <TouchableOpacity
-              onPress={() => setSearchQuery('')}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons name="close-circle" size={17} color={colors.textMuted} />
-            </TouchableOpacity>
-          ) : null}
-
-          <TouchableOpacity
-            style={styles.searchScanIconBtn}
-            onPress={() => setShowScanner(true)}
-            accessibilityLabel="Scan Barcode"
-          >
-            <Ionicons name="barcode-outline" size={20} color="#10b981" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Sort Selector Button */}
-        <TouchableOpacity
-          style={[
-            styles.sortBtn,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-          onPress={() => {
-            const modes: Array<'DEFAULT' | 'NAME' | 'PRICE_ASC' | 'PRICE_DESC' | 'STOCK_LOW'> = [
-              'DEFAULT',
-              'NAME',
-              'PRICE_ASC',
-              'PRICE_DESC',
-              'STOCK_LOW',
-            ];
-            const nextIdx = (modes.indexOf(sortBy) + 1) % modes.length;
-            setSortBy(modes[nextIdx]);
-          }}
-        >
-          <Ionicons name="swap-vertical" size={16} color={colors.text} />
-          <Text style={[styles.sortBtnText, { color: colors.text }]}>
-            {sortBy === 'NAME'
-              ? 'Name'
-              : sortBy === 'PRICE_ASC'
-                ? 'Price ↑'
-                : sortBy === 'PRICE_DESC'
-                  ? 'Price ↓'
-                  : sortBy === 'STOCK_LOW'
-                    ? 'Stock ↑'
-                    : 'Sort'}
-          </Text>
-        </TouchableOpacity>
-
-        {/* Reorder Catalog Button */}
-        <TouchableOpacity
-          style={[
-            styles.reorderToggleBtn,
-            {
-              backgroundColor: reorderMode ? '#10b981' : colors.card,
-              borderColor: reorderMode ? '#10b981' : colors.border,
-            },
-          ]}
-          onPress={toggleReorderMode}
-          accessibilityLabel="Toggle Reorder Mode"
-        >
-          <Ionicons
-            name={reorderMode ? 'checkmark-done' : 'reorder-three-outline'}
-            size={16}
-            color={reorderMode ? '#ffffff' : colors.text}
-          />
-          <Text
-            style={[
-              styles.reorderToggleBtnText,
-              { color: reorderMode ? '#ffffff' : colors.text },
-            ]}
-          >
-            {reorderMode ? 'Done' : 'Reorder'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* 3. Horizontal Category Filter Pills */}
-      {categories.length > 0 && (
-        <View style={styles.categoriesScrollWrap}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoriesScroll}
-          >
-            <TouchableOpacity
-              style={[
-                styles.categoryPill,
-                selectedCatId === 'ALL'
-                  ? { backgroundColor: isDark ? '#ffffff' : '#0f172a' }
-                  : { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
-              ]}
-              onPress={() => setSelectedCatId('ALL')}
-            >
-              <Text
-                style={[
-                  styles.categoryPillText,
-                  {
-                    color:
-                      selectedCatId === 'ALL'
-                        ? isDark
-                          ? '#0f172a'
-                          : '#ffffff'
-                        : colors.textMuted,
-                    fontWeight: selectedCatId === 'ALL' ? '800' : '600',
-                  },
-                ]}
-              >
-                All Categories
-              </Text>
-            </TouchableOpacity>
-
-            {categories.map((cat) => {
-              const active = selectedCatId === cat.id;
-              return (
-                <TouchableOpacity
-                  key={cat.id}
-                  style={[
-                    styles.categoryPill,
-                    active
-                      ? { backgroundColor: isDark ? '#ffffff' : '#0f172a' }
-                      : { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
-                  ]}
-                  onPress={() => setSelectedCatId(active ? 'ALL' : cat.id)}
-                >
-                  <Text
-                    style={[
-                      styles.categoryPillText,
-                      {
-                        color: active
-                          ? isDark
-                            ? '#0f172a'
-                            : '#ffffff'
-                          : colors.textMuted,
-                        fontWeight: active ? '800' : '600',
-                      },
-                    ]}
-                  >
-                    {cat.name}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
-      )}
-
-      
-    </View>
-  ), [
-    colors,
-    isDark,
-    products.length,
-    searchQuery,
-    sortBy,
-    reorderMode,
-    categories,
-    selectedCatId,
-    stockFilter,
-    kpiCards,
-    toggleReorderMode,
-    router,
-  ]);
-
-  // ─── Scrollable Header (KPI Cards & Alert Banners) ───
-  const listHeader = useMemo(() => (
-    <View style={styles.topSectionWrap}>
-      {/* Interactive KPI Stats Bar */}
-      <View style={styles.kpiRow}>
-        {kpiCards.map((card) => {
-          const active = stockFilter === card.key;
-          return (
-            <TouchableOpacity
-              key={card.key}
-              activeOpacity={0.7}
-              style={[
-                styles.kpiCard,
-                {
-                  backgroundColor: active ? card.activeBg : colors.card,
-                  borderColor: active ? card.activeBorder : colors.border,
-                  borderWidth: active ? 1.5 : 1,
-                },
-                active && [
-                  styles.kpiCardActive,
-                  {
-                    shadowColor: card.color,
-                    ...Platform.select({
-                      web: {
-                        boxShadow: `0 4px 14px ${card.color}35`,
-                      } as any,
-                    }),
-                  },
-                ],
-              ]}
-              onPress={() =>
-                setStockFilter(active && card.key !== 'ALL' ? 'ALL' : card.key)
-              }
-              accessibilityLabel={`${card.label} filter, ${card.count} items`}
-            >
-              <View style={styles.kpiTopRow}>
-                <Ionicons
-                  name={card.icon}
-                  size={13}
-                  color={active ? card.color : colors.textMuted}
-                />
-                <Text
-                  style={[
-                    styles.kpiValue,
-                    {
-                      color: active
-                        ? card.color
-                        : card.key === 'ALL'
-                          ? colors.text
-                          : card.color,
-                    },
-                  ]}
-                >
-                  {card.count}
-                </Text>
-              </View>
-              <Text
-                style={[
-                  styles.kpiLabel,
-                  {
-                    color: active ? card.color : colors.textMuted,
-                    fontWeight: active ? '800' : '700',
-                  },
-                ]}
-                numberOfLines={1}
-              >
-                {card.label}
-              </Text>
-              {active && (
-                <View
-                  style={[styles.kpiActiveDot, { backgroundColor: card.color }]}
-                />
-              )}
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {/* Error Banner */}
-      {errorMsg ? (
-        <View style={styles.errorBannerWrap}>
-          <View style={styles.errorBanner}>
-            <Text style={styles.errorText}>{errorMsg}</Text>
-            <TouchableOpacity onPress={() => fetchProducts(true)}>
-              <Text style={styles.retryText}>Retry</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      ) : null}
-
-      {/* Reorder Mode Banner */}
-      {reorderMode && (
-        <View
-          style={[
-            styles.reorderActiveBanner,
-            {
-              backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ecfdf5',
-              borderColor: '#10b981',
-            },
-          ]}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-            <Ionicons name="swap-vertical" size={18} color="#10b981" />
-            <Text style={{ fontSize: 13, color: isDark ? '#a7f3d0' : '#065f46', fontWeight: '600', flex: 1 }}>
-              Catalog Drag & Drop: Hold & drag ☰ to reposition products, or tap Up/Down.
-            </Text>
-          </View>
-          <TouchableOpacity onPress={toggleReorderMode} style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
-            <Text style={{ color: '#10b981', fontWeight: '700', fontSize: 13 }}>Done</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </View>
-  ), [
-    colors,
-    isDark,
-    kpiCards,
-    stockFilter,
-    errorMsg,
-    reorderMode,
-    fetchProducts,
-    toggleReorderMode,
-  ]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <View style={styles.maxContainer}>
-        {/* Sticky Controls Hub */}
+        {/* Sticky Executive Command Bar */}
         {stickyHeader}
 
         {loading && !refreshing ? (
@@ -1378,214 +1251,260 @@ export default function ProductsListScreen() {
             initialNumToRender={10}
             maxToRenderPerBatch={10}
             windowSize={5}
+            removeClippedSubviews={Platform.OS === 'android'}
             ListEmptyComponent={
-              <View style={[styles.emptyBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <Ionicons name="search-outline" size={44} color={colors.textMuted} />
-                <Text style={[styles.emptyTitle, { color: colors.text }]}>No products found</Text>
-                <Text style={[styles.emptySub, { color: colors.textMuted }]}>
-                  {searchQuery
-                    ? `No matches for "${searchQuery}". Try a different keyword or scan.`
-                    : 'Your catalog is empty. Tap below to add your first product!'}
+              <View style={styles.emptyContainer}>
+                <Ionicons name="cube-outline" size={44} color={colors.textMuted} />
+                <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                  No products found
                 </Text>
-                <TouchableOpacity
-                  style={[styles.emptyAddBtn, { backgroundColor: '#10b981' }]}
-                  onPress={() => router.push('/(tabs)/products/new')}
-                >
-                  <Ionicons name="add-circle-outline" size={18} color="#ffffff" />
-                  <Text style={styles.emptyAddBtnText}>Add New Product</Text>
-                </TouchableOpacity>
+                <Text style={[styles.emptySub, { color: colors.textMuted }]}>
+                  {searchQuery || stockFilter !== 'ALL' || selectedCatId !== 'ALL'
+                    ? 'Try clearing active filters or search terms.'
+                    : 'Tap "+ New" above to add your first product.'}
+                </Text>
+                {(searchQuery || stockFilter !== 'ALL' || selectedCatId !== 'ALL') && (
+                  <TouchableOpacity
+                    style={[styles.clearFilterBtn, { borderColor: colors.border }]}
+                    onPress={() => {
+                      setSearchQuery('');
+                      setStockFilter('ALL');
+                      setSelectedCatId('ALL');
+                    }}
+                  >
+                    <Text style={{ color: '#10b981', fontWeight: '700', fontSize: 13 }}>
+                      Reset All Filters
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             }
           />
         )}
       </View>
 
-      {/* ─── 7. Quick Edit Price & Stock Modal ─── */}
+      {/* ─── Modern iOS-Style Slide-Up Quick Edit Bottom Sheet ─── */}
       <Modal
         visible={Boolean(quickEditProduct)}
         transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setQuickEditProduct(null)}
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalBackdrop}
+          style={styles.sheetBackdrop}
         >
+          <TouchableOpacity
+            style={styles.sheetBackdropDismiss}
+            activeOpacity={1}
+            onPress={() => setQuickEditProduct(null)}
+          />
           <View
             style={[
-              styles.quickEditModalCard,
-              { backgroundColor: colors.card, borderColor: colors.border },
+              styles.bottomSheetCard,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
             ]}
           >
-            <View style={styles.modalHeaderRow}>
+            {/* Top Indicator Capsule */}
+            <View style={[styles.sheetDragPill, { backgroundColor: colors.border }]} />
+
+            {/* Sheet Header */}
+            <View style={styles.sheetHeaderRow}>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.modalTitle, { color: colors.text }]}>
-                  Quick Edit Product
+                <Text style={[styles.sheetTitle, { color: colors.text }]} numberOfLines={1}>
+                  {quickEditProduct?.name || 'Quick Edit'}
                 </Text>
-                <Text
-                  style={[styles.modalSub, { color: colors.textMuted }]}
-                  numberOfLines={1}
-                >
-                  {quickEditProduct?.name}
+                <Text style={[styles.sheetSub, { color: colors.textMuted }]}>
+                  {quickEditProduct?.category_name || 'Inventory item'}
                 </Text>
               </View>
-              <TouchableOpacity
-                onPress={() => setQuickEditProduct(null)}
-                style={[styles.modalCloseBtn, { backgroundColor: colors.cardAlt }]}
-              >
-                <Ionicons name="close" size={18} color={colors.text} />
-              </TouchableOpacity>
-            </View>
 
-            {/* Inputs: Regular Price, Offer Price */}
-            <View style={styles.modalInputsRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.inputLabel, { color: colors.textMuted }]}>
-                  Regular Price (₹)
-                </Text>
-                <TextInput
-                  style={[
-                    styles.modalInput,
-                    {
-                      backgroundColor: colors.cardAlt,
-                      borderColor: colors.border,
-                      color: colors.text,
-                    },
-                  ]}
-                  keyboardType="numeric"
-                  value={qePrice}
-                  onChangeText={setQePrice}
-                />
-              </View>
-
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.inputLabel, { color: colors.textMuted }]}>
-                  Offer Price (₹)
-                </Text>
-                <TextInput
-                  style={[
-                    styles.modalInput,
-                    {
-                      backgroundColor: colors.cardAlt,
-                      borderColor: colors.border,
-                      color: colors.text,
-                    },
-                  ]}
-                  keyboardType="numeric"
-                  placeholder="Optional"
-                  placeholderTextColor={colors.textMuted}
-                  value={qeOfferPrice}
-                  onChangeText={setQeOfferPrice}
-                />
-              </View>
-            </View>
-
-            {/* Stock Quantity + Quick Add Chips */}
-            <View style={{ gap: 6 }}>
-              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>
-                Stock Quantity (Units)
-              </Text>
-              <TextInput
-                style={[
-                  styles.modalInput,
-                  {
-                    backgroundColor: colors.cardAlt,
-                    borderColor: colors.border,
-                    color: colors.text,
-                  },
-                ]}
-                keyboardType="numeric"
-                value={qeStock}
-                onChangeText={setQeStock}
-              />
-              <View style={styles.quickAddChipsRow}>
-                {[5, 10, 25, 50].map((addAmount) => (
-                  <TouchableOpacity
-                    key={addAmount}
-                    style={[
-                      styles.quickAddChip,
-                      { backgroundColor: colors.cardAlt, borderColor: colors.border },
-                    ]}
-                    onPress={() => {
-                      const cur = parseInt(qeStock, 10) || 0;
-                      setQeStock(String(cur + addAmount));
-                    }}
-                  >
-                    <Text style={[styles.quickAddChipText, { color: colors.text }]}>
-                      +{addAmount}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* In-Stock Switch */}
-            <View style={styles.modalSwitchRow}>
-              <View>
-                <Text style={[styles.switchTitle, { color: colors.text }]}>
-                  Available in Store
-                </Text>
-                <Text style={[styles.switchSub, { color: colors.textMuted }]}>
-                  Customers can see and order this item
-                </Text>
-              </View>
-              <ModernSwitch
-                value={qeInStock}
-                onValueChange={setQeInStock}
-              />
-            </View>
-
-            {/* Modal Actions */}
-            <View style={styles.modalBtnsRow}>
               <TouchableOpacity
                 style={[
-                  styles.modalCancelBtn,
+                  styles.sheetCloseBtn,
                   { backgroundColor: colors.cardAlt, borderColor: colors.border },
                 ]}
                 onPress={() => setQuickEditProduct(null)}
               >
-                <Text style={[styles.modalCancelBtnText, { color: colors.text }]}>
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.modalSaveBtn, { backgroundColor: '#10b981' }]}
-                onPress={handleSaveQuickEdit}
-                disabled={savingQuickEdit}
-              >
-                {savingQuickEdit ? (
-                  <ActivityIndicator size="small" color="#ffffff" />
-                ) : (
-                  <>
-                    <Ionicons name="checkmark-circle" size={16} color="#ffffff" />
-                    <Text style={styles.modalSaveBtnText}>Save Changes</Text>
-                  </>
-                )}
+                <Ionicons name="close" size={16} color={colors.text} />
               </TouchableOpacity>
             </View>
 
-            {/* Direct Link to Full Product Editor */}
-            <TouchableOpacity
-              style={styles.modalFullEditLink}
-              onPress={() => {
-                const id = quickEditProduct?.id;
-                setQuickEditProduct(null);
-                if (id) {
-                  router.push({ pathname: '/(tabs)/products/new', params: { id: String(id) } });
-                }
-              }}
-            >
-              <Ionicons name="open-outline" size={14} color="#3b82f6" />
-              <Text style={styles.modalFullEditLinkText}>
-                Open full product editor (photos, description, SKU) →
-              </Text>
-            </TouchableOpacity>
+            {/* Sheet Form Body */}
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetBody}>
+              {/* Stock Quantity Stepper */}
+              <View style={styles.sheetSection}>
+                <Text style={[styles.sheetSectionLabel, { color: colors.textMuted }]}>
+                  Stock Quantity (Units)
+                </Text>
+                <View style={styles.sheetStockRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.sheetStockStepBtn,
+                      { backgroundColor: colors.cardAlt, borderColor: colors.border },
+                    ]}
+                    onPress={() => {
+                      const cur = parseInt(qeStock, 10) || 0;
+                      setQeStock(String(Math.max(0, cur - 1)));
+                    }}
+                  >
+                    <Ionicons name="remove" size={18} color={colors.text} />
+                  </TouchableOpacity>
+
+                  <TextInput
+                    style={[
+                      styles.sheetStockInput,
+                      {
+                        backgroundColor: colors.cardAlt,
+                        borderColor: colors.border,
+                        color: colors.text,
+                      },
+                    ]}
+                    keyboardType="numeric"
+                    value={qeStock}
+                    onChangeText={setQeStock}
+                  />
+
+                  <TouchableOpacity
+                    style={[
+                      styles.sheetStockStepBtn,
+                      { backgroundColor: colors.cardAlt, borderColor: colors.border },
+                    ]}
+                    onPress={() => {
+                      const cur = parseInt(qeStock, 10) || 0;
+                      setQeStock(String(cur + 1));
+                    }}
+                  >
+                    <Ionicons name="add" size={18} color="#10b981" />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Quick Add Chips */}
+                <View style={styles.sheetQuickChipsRow}>
+                  {[5, 10, 25, 50].map((addAmount) => (
+                    <TouchableOpacity
+                      key={addAmount}
+                      style={[
+                        styles.sheetQuickChip,
+                        { backgroundColor: colors.cardAlt, borderColor: colors.border },
+                      ]}
+                      onPress={() => {
+                        const cur = parseInt(qeStock, 10) || 0;
+                        setQeStock(String(cur + addAmount));
+                      }}
+                    >
+                      <Text style={[styles.sheetQuickChipText, { color: colors.text }]}>
+                        +{addAmount}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Price & Offer Price in a 2-Column Grid */}
+              <View style={styles.sheetInputsGrid}>
+                <View style={{ flex: 1, gap: 6 }}>
+                  <Text style={[styles.sheetSectionLabel, { color: colors.textMuted }]}>
+                    Regular Price (₹)
+                  </Text>
+                  <TextInput
+                    style={[
+                      styles.sheetTextInput,
+                      {
+                        backgroundColor: colors.cardAlt,
+                        borderColor: colors.border,
+                        color: colors.text,
+                      },
+                    ]}
+                    keyboardType="decimal-pad"
+                    value={qePrice}
+                    onChangeText={setQePrice}
+                    placeholder="0.00"
+                    placeholderTextColor={colors.textMuted}
+                  />
+                </View>
+
+                <View style={{ flex: 1, gap: 6 }}>
+                  <Text style={[styles.sheetSectionLabel, { color: colors.textMuted }]}>
+                    Offer Price (₹)
+                  </Text>
+                  <TextInput
+                    style={[
+                      styles.sheetTextInput,
+                      {
+                        backgroundColor: colors.cardAlt,
+                        borderColor: colors.border,
+                        color: colors.text,
+                      },
+                    ]}
+                    keyboardType="decimal-pad"
+                    value={qeOfferPrice}
+                    onChangeText={setQeOfferPrice}
+                    placeholder="Optional"
+                    placeholderTextColor={colors.textMuted}
+                  />
+                </View>
+              </View>
+
+              {/* In-Stock Switch */}
+              <View style={[styles.sheetSwitchRow, { borderColor: colors.border }]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.sheetSwitchTitle, { color: colors.text }]}>
+                    Available in Store
+                  </Text>
+                  <Text style={[styles.sheetSwitchSub, { color: colors.textMuted }]}>
+                    Customers can see and order this item
+                  </Text>
+                </View>
+                <ModernSwitch value={qeInStock} onValueChange={setQeInStock} />
+              </View>
+
+              {/* Primary Action Button */}
+              <View style={styles.sheetBtnsRow}>
+                <TouchableOpacity
+                  style={[styles.sheetSaveBtn, { backgroundColor: '#10b981' }]}
+                  onPress={handleSaveQuickEdit}
+                  disabled={savingQuickEdit}
+                >
+                  {savingQuickEdit ? (
+                    <ActivityIndicator size="small" color="#ffffff" />
+                  ) : (
+                    <>
+                      <Ionicons name="checkmark-circle" size={17} color="#ffffff" />
+                      <Text style={styles.sheetSaveBtnText}>Save Changes</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              {/* Direct Link to Full Editor */}
+              <TouchableOpacity
+                style={styles.sheetFullEditLink}
+                onPress={() => {
+                  const id = quickEditProduct?.id;
+                  setQuickEditProduct(null);
+                  if (id) {
+                    router.push({
+                      pathname: '/(tabs)/products/new',
+                      params: { id: String(id) },
+                    });
+                  }
+                }}
+              >
+                <Ionicons name="open-outline" size={14} color="#3b82f6" />
+                <Text style={styles.sheetFullEditLinkText}>
+                  Open full product editor (photos, description, SKU)
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
           </View>
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* ─── 8. Barcode Scanner Modal ─── */}
+      {/* ─── Barcode Scanner Modal ─── */}
       <Modal
         visible={showScanner}
         animationType="slide"
@@ -1593,10 +1512,8 @@ export default function ProductsListScreen() {
       >
         {showScanner && (
           <UniversalCameraScanner
-            mode="all"
-            isActive={showScanner}
-            title="Universal Scanner"
-            subtitle="Point at any barcode or QR code to locate product"
+            title="Scan Product Barcode"
+            subtitle="Align barcode within frame to find or add item"
             onScan={handleBarcodeScan}
             onClose={() => setShowScanner(false)}
           />
@@ -1606,7 +1523,7 @@ export default function ProductsListScreen() {
   );
 }
 
-// ─── Styles ───
+// ─── Stylesheet ───
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -1614,54 +1531,34 @@ const styles = StyleSheet.create({
   maxContainer: {
     flex: 1,
     width: '100%',
-    maxWidth: 960,
+    maxWidth: 900,
     alignSelf: 'center',
   },
-  stickyControlsWrap: {
-    paddingHorizontal: 14,
-    paddingTop: 8,
-    paddingBottom: 4,
+  centered: {
+    flex: 1,
+    padding: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  // Sticky Header
+  stickyHeaderWrap: {
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'ios' ? 10 : 8,
+    paddingBottom: 8,
     borderBottomWidth: 1,
     zIndex: 10,
-    ...Platform.select({
-      web: {
-        position: 'sticky' as any,
-        top: 0,
-      },
-    }),
-  },
-  activeFilterChipRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-    marginBottom: 4,
-  },
-  activeFilterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  activeFilterChipText: {
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  topSectionWrap: {
-    paddingTop: 6,
-    paddingBottom: 2,
-  },
-  titleCol: {
-    justifyContent: 'center',
+    gap: 8,
   },
   topHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
-    gap: 10,
   },
   titleRow: {
     flexDirection: 'row',
@@ -1670,190 +1567,197 @@ const styles = StyleSheet.create({
   },
   pageTitle: {
     fontSize: 22,
-    fontWeight: '900',
+    fontWeight: '800',
     letterSpacing: -0.4,
   },
   countBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
     borderRadius: 8,
     borderWidth: 1,
   },
   countBadgeText: {
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '700',
   },
-  pageSubtitle: {
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  reorderToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6.5,
+    borderRadius: 9,
+    borderWidth: 1,
+  },
+  reorderToggleBtnText: {
     fontSize: 12,
-    marginTop: 2,
+    fontWeight: '700',
   },
   primaryAddBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6.5,
+    borderRadius: 9,
   },
   primaryAddBtnText: {
     color: '#ffffff',
     fontSize: 13,
     fontWeight: '800',
   },
-  kpiRow: {
-    flexDirection: 'row',
-    gap: 7,
-    marginBottom: 10,
-  },
-  kpiRowScrolled: {
-    marginBottom: 8,
-  },
-  kpiCard: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  kpiCardActive: {
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  kpiTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    justifyContent: 'center',
-  },
-  kpiValue: {
-    fontSize: 15.5,
-    fontWeight: '900',
-  },
-  kpiLabel: {
-    fontSize: 10.5,
-    fontWeight: '700',
-    marginTop: 2,
-    textAlign: 'center',
-  },
-  kpiActiveDot: {
-    position: 'absolute',
-    bottom: 2,
-    width: 14,
-    height: 2.5,
-    borderRadius: 2,
-  },
+
+  // Search & Tool Bar
   searchBarRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginTop: 4,
-    marginBottom: 4,
   },
   searchBarPill: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    height: 42,
-    borderRadius: 12,
+    paddingHorizontal: 11,
+    height: 38,
+    borderRadius: 10,
     borderWidth: 1,
-    paddingHorizontal: 12,
+    gap: 8,
   },
   searchInput: {
     flex: 1,
     fontSize: 13,
+    paddingVertical: 0,
     height: '100%',
   },
   searchScanIconBtn: {
-    padding: 4,
+    padding: 3,
   },
   sortBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    height: 42,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    height: 38,
+    borderRadius: 10,
     borderWidth: 1,
   },
   sortBtnText: {
     fontSize: 12,
     fontWeight: '700',
   },
-  categoriesScrollWrap: {
-    marginTop: 8,
-    marginBottom: 6,
+
+  // Filter Strip
+  filterScrollWrap: {
+    marginHorizontal: -16,
   },
-  categoriesScroll: {
+  filterScroll: {
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 7,
+    paddingBottom: 2,
   },
-  categoryPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 10,
+  filterPill: {
+    paddingHorizontal: 11,
+    paddingVertical: 5,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  categoryPillText: {
-    fontSize: 12,
+  filterPillText: {
+    fontSize: 11.5,
+  },
+  pillWithDot: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  miniDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  filterStripDivider: {
+    width: 1,
+    height: 14,
+    marginHorizontal: 3,
+  },
+
+  // Banners
+  topSectionWrap: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
   },
   errorBannerWrap: {
-    marginTop: 6,
+    marginBottom: 8,
   },
   errorBanner: {
-    backgroundColor: '#fef2f2',
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#fecaca',
-    marginBottom: 10,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#fff1f2',
+    borderColor: '#fecdd3',
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
   },
   errorText: {
-    color: '#b91c1c',
+    color: '#be123c',
     fontSize: 12,
+    fontWeight: '600',
     flex: 1,
   },
   retryText: {
-    color: '#b91c1c',
-    fontWeight: '800',
+    color: '#be123c',
     fontSize: 12,
-    marginLeft: 10,
+    fontWeight: '800',
+    marginLeft: 8,
   },
+  reorderActiveBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+
+  // List Content
   listContent: {
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    gap: 10,
+    paddingHorizontal: 16,
+    paddingTop: 8,
     paddingBottom: 90,
   },
+
+  // ─── Product Card ───
   productCard: {
     borderRadius: 14,
-    borderWidth: 1,
+    marginBottom: 10,
     overflow: 'hidden',
   },
   cardMainRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     padding: 12,
     gap: 12,
   },
   cardThumbBox: {
-    width: 64,
-    height: 64,
-    borderRadius: 12,
+    width: 58,
+    height: 58,
+    borderRadius: 11,
     borderWidth: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative',
+    justifyContent: 'center',
     overflow: 'hidden',
+    position: 'relative',
   },
   cardImg: {
     width: '100%',
@@ -1862,100 +1766,75 @@ const styles = StyleSheet.create({
   discountBadge: {
     position: 'absolute',
     top: 0,
-    right: 0,
-    backgroundColor: '#e11d48',
+    left: 0,
+    backgroundColor: '#f43f5e',
     paddingHorizontal: 4,
     paddingVertical: 1,
-    borderBottomLeftRadius: 6,
+    borderBottomRightRadius: 6,
   },
   discountBadgeText: {
     color: '#ffffff',
-    fontSize: 9,
+    fontSize: 8.5,
     fontWeight: '900',
   },
   cardInfoBlock: {
     flex: 1,
-    gap: 4,
-  },
-  titleRowWrap: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
+    gap: 2,
   },
   productName: {
-    fontSize: 14.5,
-    fontWeight: '800',
-    lineHeight: 19,
-  },
-  tagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 5,
-  },
-  tagPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 6,
-    paddingVertical: 1.5,
-    borderRadius: 5,
-    borderWidth: 1,
-  },
-  tagPillText: {
-    fontSize: 10,
+    fontSize: 14,
     fontWeight: '700',
+    lineHeight: 18,
+  },
+  productMetaText: {
+    fontSize: 11.5,
+    fontWeight: '500',
   },
   cardPriceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
-    marginTop: 2,
+    gap: 6,
+    marginTop: 1,
   },
   offerPriceText: {
-    fontSize: 16,
-    fontWeight: '900',
+    fontSize: 15,
+    fontWeight: '800',
     color: '#10b981',
   },
   strikeThroughPrice: {
-    fontSize: 12,
+    fontSize: 11.5,
     textDecorationLine: 'line-through',
+  },
+  cardRightBadgeCol: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
   },
   stockStatusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginLeft: 'auto',
+    gap: 4.5,
+    paddingHorizontal: 7.5,
+    paddingVertical: 3.5,
+    borderRadius: 8,
   },
   stockDot: {
-    width: 6,
-    height: 6,
+    width: 5.5,
+    height: 5.5,
     borderRadius: 3,
   },
   stockStatusText: {
     fontSize: 10.5,
     fontWeight: '800',
   },
-  cardFooterBar: {
+
+  // Card Controls Row
+  cardControlsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderTopWidth: 1,
-    gap: 8,
-  },
-  stepperContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  stepperLabel: {
-    fontSize: 11,
-    fontWeight: '700',
   },
   stepperPill: {
     flexDirection: 'row',
@@ -1977,264 +1856,236 @@ const styles = StyleSheet.create({
     minWidth: 26,
     textAlign: 'center',
   },
-  cardActionsRight: {
+  cardActionsGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 7,
   },
-  quickActionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  quickActionText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  iconMiniBtn: {
+  miniActionBtn: {
     width: 28,
     height: 28,
     borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  centered: {
-    flex: 1,
-    padding: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  loadingText: {
-    fontSize: 13,
-  },
-  emptyBox: {
-    padding: 32,
-    borderRadius: 16,
     borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: 20,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    marginTop: 4,
-  },
-  emptySub: {
-    fontSize: 12,
-    textAlign: 'center',
-    maxWidth: 280,
-    lineHeight: 18,
-  },
-  emptyAddBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
-    marginTop: 6,
-  },
-  emptyAddBtnText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
-  },
-  quickEditModalCard: {
-    width: '100%',
-    maxWidth: 440,
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 18,
-    gap: 14,
-  },
-  modalHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  modalSub: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  modalCloseBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalInputsRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  inputLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  modalInput: {
-    height: 40,
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  quickAddChipsRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 2,
-  },
-  quickAddChip: {
-    flex: 1,
-    paddingVertical: 5,
-    borderRadius: 7,
-    borderWidth: 1,
-    alignItems: 'center',
-  },
-  quickAddChipText: {
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  modalSwitchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 4,
-  },
-  switchTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  switchSub: {
-    fontSize: 11,
-  },
-  modalBtnsRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 10,
-    paddingTop: 6,
-  },
-  modalCancelBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  modalCancelBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  modalSaveBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 10,
-  },
-  modalSaveBtnText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  modalFullEditLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    marginTop: -2,
-  },
-  modalFullEditLinkText: {
-    fontSize: 12.5,
-    fontWeight: '700',
-    color: '#3b82f6',
-  },
+
+  // Reorder Controls
   reorderStrip: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderTopWidth: 1,
   },
   reorderRankBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
     borderWidth: 1,
   },
-  dragGripLabel: {
+  reorderRankText: {
     fontSize: 11,
     fontWeight: '800',
-    marginLeft: 2,
   },
-  reorderRankText: {
-    fontSize: 13,
+  dragGripLabel: {
+    fontSize: 10,
     fontWeight: '700',
+    marginLeft: 2,
   },
   reorderBtnsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 5,
   },
   reorderArrowBtn: {
-    flexDirection: 'row',
+    width: 26,
+    height: 26,
+    borderRadius: 6,
+    borderWidth: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  },
+
+  // Empty State
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 24,
+    gap: 8,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    marginTop: 6,
+  },
+  emptySub: {
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  clearFilterBtn: {
+    marginTop: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
     borderRadius: 8,
     borderWidth: 1,
   },
-  reorderBtnLabel: {
+
+  // ─── Modern Slide-Up Bottom Sheet ───
+  sheetBackdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+  },
+  sheetBackdropDismiss: {
+    flex: 1,
+  },
+  bottomSheetCard: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderTopWidth: 1,
+    paddingTop: 10,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+    paddingHorizontal: 18,
+    maxHeight: '85%',
+  },
+  sheetDragPill: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 12,
+  },
+  sheetHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 14,
+  },
+  sheetTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  sheetSub: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  sheetCloseBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetBody: {
+    gap: 16,
+    paddingBottom: 10,
+  },
+  sheetSection: {
+    gap: 8,
+  },
+  sheetSectionLabel: {
     fontSize: 12,
     fontWeight: '700',
   },
-  reorderToggleBtn: {
+  sheetStockRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    borderWidth: 1,
+    gap: 10,
   },
-  reorderToggleBtnText: {
-    fontSize: 13,
+  sheetStockStepBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 11,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetStockInput: {
+    flex: 1,
+    height: 44,
+    borderRadius: 11,
+    borderWidth: 1,
+    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  sheetQuickChipsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  sheetQuickChip: {
+    flex: 1,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  sheetQuickChipText: {
+    fontSize: 12,
     fontWeight: '700',
   },
-  reorderActiveBanner: {
+  sheetInputsGrid: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  sheetTextInput: {
+    height: 42,
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  sheetSwitchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+  },
+  sheetSwitchTitle: {
+    fontSize: 13.5,
+    fontWeight: '700',
+  },
+  sheetSwitchSub: {
+    fontSize: 11.5,
+    marginTop: 1,
+  },
+  sheetBtnsRow: {
+    paddingTop: 4,
+  },
+  sheetSaveBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    justifyContent: 'center',
+    gap: 6,
+    height: 46,
     borderRadius: 12,
-    marginHorizontal: 16,
-    marginBottom: 8,
-    borderWidth: 1,
+  },
+  sheetSaveBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  sheetFullEditLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 6,
+  },
+  sheetFullEditLinkText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#3b82f6',
   },
 });
