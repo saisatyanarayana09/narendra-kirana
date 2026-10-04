@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -29,11 +29,10 @@ import { checkAndDownloadOtaUpdateSilently, applyOtaUpdate } from '../../../serv
 interface NavItem {
   id: string;
   title: string;
-  subtitle: string;
   icon: keyof typeof Ionicons.glyphMap;
   route: string;
+  color: string;
   ownerOnly?: boolean;
-  color?: string;
 }
 
 interface NavGroup {
@@ -207,8 +206,8 @@ export default function ProfileScreen() {
     );
   };
 
-  // Structured, Human-Engineered Settings Groups
-  const NAV_GROUPS: NavGroup[] = [
+  // Human-engineered, uncluttered navigation groups inspired by Apple HIG & Stripe Mobile
+  const NAV_GROUPS: NavGroup[] = useMemo(() => [
     {
       id: 'catalog',
       title: 'CATALOG & MERCHANDISING',
@@ -216,7 +215,6 @@ export default function ProfileScreen() {
         {
           id: 'categories',
           title: 'Product Categories',
-          subtitle: 'Aisles, store departments & hierarchy',
           icon: 'pricetags-outline',
           route: '/(tabs)/more/categories',
           color: '#10b981',
@@ -224,7 +222,6 @@ export default function ProfileScreen() {
         {
           id: 'showcase',
           title: 'Visual Showcase',
-          subtitle: 'Curate hero banners & seasonal aisles',
           icon: 'images-outline',
           route: '/(tabs)/more/showcase',
           color: '#059669',
@@ -232,10 +229,9 @@ export default function ProfileScreen() {
         {
           id: 'offers',
           title: 'Offers & Discounts',
-          subtitle: 'Store coupons, rules & cashback deals',
           icon: 'ticket-outline',
           route: '/(tabs)/more/offers',
-          color: '#d97706',
+          color: '#f59e0b',
         },
       ],
     },
@@ -246,15 +242,13 @@ export default function ProfileScreen() {
         {
           id: 'delivery',
           title: 'Delivery Fleet',
-          subtitle: 'Live rider tracking & active orders',
           icon: 'bicycle-outline',
           route: '/(tabs)/more/delivery',
           color: '#0284c7',
         },
         {
           id: 'customers',
-          title: 'Customer Directory',
-          subtitle: 'Directory of registered shoppers & CRM',
+          title: 'Customers CRM',
           icon: 'people-outline',
           route: '/(tabs)/more/customers',
           color: '#6366f1',
@@ -262,7 +256,6 @@ export default function ProfileScreen() {
         {
           id: 'invoices',
           title: 'Invoices & Billing',
-          subtitle: 'GST invoices, tax logs & receipts',
           icon: 'receipt-outline',
           route: '/(tabs)/more/invoices',
           color: '#2563eb',
@@ -270,21 +263,19 @@ export default function ProfileScreen() {
       ],
     },
     {
-      id: 'insights',
-      title: 'GROWTH & NOTIFICATIONS',
+      id: 'growth',
+      title: 'GROWTH & ANALYTICS',
       items: [
         {
           id: 'broadcast',
           title: 'Push Broadcast',
-          subtitle: 'Rich push announcements & images',
           icon: 'megaphone-outline',
           route: '/(tabs)/more/broadcast',
           color: '#ec4899',
         },
         {
           id: 'reports',
-          title: 'Sales & Analytics',
-          subtitle: 'Revenue, performance & financial graphs',
+          title: 'Sales Analytics',
           icon: 'stats-chart-outline',
           route: '/(tabs)/more/reports',
           color: '#8b5cf6',
@@ -293,14 +284,13 @@ export default function ProfileScreen() {
     },
     {
       id: 'admin',
-      title: 'ADMINISTRATION & SECURITY',
+      title: 'STORE ADMINISTRATION',
       items: [
         ...(user?.is_owner
           ? [
               {
                 id: 'agents',
-                title: 'Manage Team & Agents',
-                subtitle: 'Store staff, co-owners & delivery riders',
+                title: 'Manage Team & Staff',
                 icon: 'shield-checkmark-outline' as const,
                 route: '/(tabs)/more/agents',
                 ownerOnly: true,
@@ -311,27 +301,36 @@ export default function ProfileScreen() {
         {
           id: 'settings',
           title: 'Store Settings',
-          subtitle: 'Store status, hours, delivery radius & contact info',
           icon: 'storefront-outline',
           route: '/(tabs)/more/settings',
           color: '#f59e0b',
         },
         {
           id: 'advanced',
-          title: 'Configurations',
-          subtitle: 'UPI QR, GST/FSSAI tax, WhatsApp & cloud backups',
+          title: 'Advanced Configurations',
           icon: 'options-outline',
           route: '/(tabs)/more/advanced-settings',
           color: '#64748b',
         },
       ],
     },
-  ];
+  ], [user?.is_owner]);
 
-  const displayName =
-    user?.first_name || user?.last_name
-      ? `${user?.first_name || ''} ${user?.last_name || ''}`.trim()
-      : user?.username || 'Store Owner';
+  const displayName = useMemo(() => {
+    if (user?.first_name || user?.last_name) {
+      return `${user?.first_name || ''} ${user?.last_name || ''}`.trim();
+    }
+    return user?.username || 'Store Owner';
+  }, [user]);
+
+  const initials = useMemo(() => {
+    const f = (user?.first_name || '').trim();
+    const l = (user?.last_name || '').trim();
+    if (f && l) return `${f[0]}${l[0]}`.toUpperCase();
+    if (f) return f.slice(0, 2).toUpperCase();
+    if (user?.username) return user.username.slice(0, 2).toUpperCase();
+    return 'NK';
+  }, [user]);
 
   const userPhone = user?.customer_profile?.mobile_number;
   const isOwner = Boolean(user?.is_owner);
@@ -357,20 +356,20 @@ export default function ProfileScreen() {
         }
       >
         <View style={styles.contentBounded}>
-          {/* Hero Profile Card */}
+          {/* Executive Operator Identity Card */}
           <View
             style={[
-              styles.profileCard,
+              styles.identityCard,
               {
                 backgroundColor: colors.card,
-                borderColor: colors.border,
+                borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
               },
             ]}
           >
-            <View style={styles.profileMainRow}>
-              {/* Avatar with Camera Trigger */}
+            <View style={styles.identityTopRow}>
+              {/* 80px Polished Avatar with Camera Trigger Overlay */}
               <TouchableOpacity
-                activeOpacity={0.8}
+                activeOpacity={0.82}
                 onPress={handlePickImage}
                 disabled={uploading}
                 style={styles.avatarTouchable}
@@ -380,14 +379,23 @@ export default function ProfileScreen() {
                     styles.avatarFrame,
                     {
                       backgroundColor: colors.cardAlt,
-                      borderColor: colors.border,
+                      borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
                     },
                   ]}
                 >
                   {profilePic ? (
-                    <Image source={{ uri: profilePic }} style={styles.avatarImg} contentFit="cover" />
+                    <Image
+                      source={{ uri: profilePic }}
+                      style={styles.avatarImg}
+                      contentFit="cover"
+                      transition={200}
+                    />
                   ) : (
-                    <Ionicons name="person" size={34} color={colors.textMuted} />
+                    <View style={styles.initialsWrap}>
+                      <Text style={[styles.initialsText, { color: colors.primary }]}>
+                        {initials}
+                      </Text>
+                    </View>
                   )}
 
                   {uploading && (
@@ -411,49 +419,55 @@ export default function ProfileScreen() {
                 </View>
               </TouchableOpacity>
 
-              {/* Name & Details */}
-              <View style={styles.profileInfo}>
-                <View style={styles.nameRow}>
-                  <Text style={[styles.profileName, { color: colors.text }]} numberOfLines={1}>
-                    {loading ? 'Loading...' : displayName}
-                  </Text>
-                </View>
+              {/* Operator Info & Typography */}
+              <View style={styles.identityInfo}>
+                <Text style={[styles.operatorName, { color: colors.text }]} numberOfLines={1}>
+                  {loading ? 'Loading...' : displayName}
+                </Text>
 
-                <View style={styles.badgeRow}>
+                {/* Executive Role Pill */}
+                <View style={styles.rolePillRow}>
                   <View
                     style={[
-                      styles.roleBadge,
+                      styles.rolePill,
                       {
                         backgroundColor: isOwner
                           ? 'rgba(16, 185, 129, 0.12)'
                           : 'rgba(99, 102, 241, 0.12)',
+                        borderColor: isOwner
+                          ? 'rgba(16, 185, 129, 0.28)'
+                          : 'rgba(99, 102, 241, 0.28)',
                       },
                     ]}
                   >
                     <Ionicons
                       name={isOwner ? 'shield-checkmark' : 'person-circle'}
-                      size={12}
+                      size={11.5}
                       color={isOwner ? '#10b981' : '#6366f1'}
                     />
                     <Text
                       style={[
-                        styles.roleBadgeText,
+                        styles.rolePillText,
                         { color: isOwner ? '#10b981' : '#6366f1' },
                       ]}
                     >
-                      {isOwner ? 'Store Owner' : 'Store Staff'}
+                      {isOwner ? 'STORE OWNER' : 'STAFF OPERATOR'}
                     </Text>
                   </View>
                 </View>
 
-                <Text style={[styles.profileEmail, { color: colors.textMuted }]} numberOfLines={1}>
-                  {user?.email || user?.username || '-'}
-                </Text>
+                {/* Contact Micro-Lines */}
+                <View style={styles.contactRow}>
+                  <Ionicons name="mail-outline" size={12} color={colors.textMuted} />
+                  <Text style={[styles.contactText, { color: colors.textMuted }]} numberOfLines={1}>
+                    {user?.email || user?.username || '—'}
+                  </Text>
+                </View>
 
                 {Boolean(userPhone) && (
-                  <View style={styles.phoneRow}>
+                  <View style={[styles.contactRow, { marginTop: 3 }]}>
                     <Ionicons name="call-outline" size={12} color={colors.textMuted} />
-                    <Text style={[styles.profilePhone, { color: colors.textMuted }]}>
+                    <Text style={[styles.contactText, { color: colors.textMuted }]} numberOfLines={1}>
                       {userPhone}
                     </Text>
                   </View>
@@ -461,11 +475,22 @@ export default function ProfileScreen() {
               </View>
             </View>
 
-            {/* Quick Action Buttons */}
-            <View style={[styles.profileActionsRow, { borderTopColor: colors.border }]}>
+            {/* Refined Capsule Action Row */}
+            <View
+              style={[
+                styles.capsuleActionsRow,
+                { borderTopColor: isDark ? 'rgba(255, 255, 255, 0.07)' : 'rgba(0, 0, 0, 0.06)' },
+              ]}
+            >
               <TouchableOpacity
                 activeOpacity={0.7}
-                style={[styles.profileActionBtn, { backgroundColor: colors.cardAlt }]}
+                style={[
+                  styles.capsuleBtn,
+                  {
+                    backgroundColor: colors.cardAlt,
+                    borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
+                  },
+                ]}
                 onPress={() => {
                   setEditFirstName(user?.first_name || '');
                   setEditLastName(user?.last_name || '');
@@ -473,51 +498,86 @@ export default function ProfileScreen() {
                   setEditModalVisible(true);
                 }}
               >
-                <Ionicons name="create-outline" size={15} color={colors.text} />
-                <Text style={[styles.profileActionText, { color: colors.text }]}>Edit Profile</Text>
+                <Ionicons name="create-outline" size={14} color={colors.text} />
+                <Text style={[styles.capsuleBtnText, { color: colors.text }]}>Edit Profile</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 activeOpacity={0.7}
-                style={[styles.profileActionBtn, { backgroundColor: colors.cardAlt }]}
+                style={[
+                  styles.capsuleBtn,
+                  {
+                    backgroundColor: colors.cardAlt,
+                    borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
+                  },
+                ]}
                 onPress={() => router.push('/(tabs)/more/settings')}
               >
-                <Ionicons name="storefront-outline" size={15} color={colors.text} />
-                <Text style={[styles.profileActionText, { color: colors.text }]}>Store Settings</Text>
+                <Ionicons name="storefront-outline" size={14} color={colors.text} />
+                <Text style={[styles.capsuleBtnText, { color: colors.text }]}>Storefront</Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Preferences Section: Theme Switcher */}
+          {/* Integrated Executive Control Bar (Compact, bespoke dual-pill status row) */}
           <View
             style={[
-              styles.preferencesCard,
+              styles.controlBar,
               {
                 backgroundColor: colors.card,
-                borderColor: colors.border,
+                borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
               },
             ]}
           >
-            <View style={styles.prefLeft}>
-              <View style={[styles.prefIconWrap, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
+            {/* Dark Appearance Toggle Pill */}
+            <View style={styles.controlBarItem}>
+              <View
+                style={[
+                  styles.controlIconBox,
+                  {
+                    backgroundColor: isDark
+                      ? 'rgba(234, 179, 8, 0.15)'
+                      : 'rgba(245, 158, 11, 0.12)',
+                    borderColor: isDark
+                      ? 'rgba(234, 179, 8, 0.3)'
+                      : 'rgba(245, 158, 11, 0.2)',
+                  },
+                ]}
+              >
                 <Ionicons
                   name={isDark ? 'moon' : 'sunny'}
-                  size={18}
-                  color={isDark ? '#eab308' : '#f59e0b'}
+                  size={15}
+                  color={isDark ? '#eab308' : '#d97706'}
                 />
               </View>
-              <View style={styles.prefTextBox}>
-                <Text style={[styles.prefTitle, { color: colors.text }]}>Dark Appearance</Text>
-                <Text style={[styles.prefSubtitle, { color: colors.textMuted }]}>
-                  {isDark ? 'Night mode enabled' : 'Clean light theme'}
+              <View style={styles.controlTextCol}>
+                <Text style={[styles.controlLabel, { color: colors.text }]}>Dark Mode</Text>
+                <Text style={[styles.controlSub, { color: colors.textMuted }]}>
+                  {isDark ? 'Night theme' : 'Light theme'}
                 </Text>
               </View>
+              <ModernSwitch value={isDark} onValueChange={toggleTheme} />
             </View>
 
-            <ModernSwitch value={isDark} onValueChange={toggleTheme} />
+            {/* Vertical Hairline Separator */}
+            <View
+              style={[
+                styles.controlBarSeparator,
+                { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)' },
+              ]}
+            />
+
+            {/* Live Store Status Pill */}
+            <View style={styles.controlStatusCol}>
+              <View style={styles.statusDotRow}>
+                <View style={styles.livePulseDot} />
+                <Text style={[styles.statusTitle, { color: colors.text }]}>Store Live</Text>
+              </View>
+              <Text style={[styles.statusSubtitle, { color: colors.textMuted }]}>Portal Active</Text>
+            </View>
           </View>
 
-          {/* Grouped Settings Lists */}
+          {/* Inset-Grouped Navigation Hub (Apple HIG / Stripe Mobile) */}
           {NAV_GROUPS.map((group) => (
             <View key={group.id} style={styles.groupSection}>
               <Text style={[styles.groupTitle, { color: colors.textMuted }]}>
@@ -529,7 +589,7 @@ export default function ProfileScreen() {
                   styles.groupCard,
                   {
                     backgroundColor: colors.card,
-                    borderColor: colors.border,
+                    borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
                   },
                 ]}
               >
@@ -537,36 +597,29 @@ export default function ProfileScreen() {
                   const isLast = index === group.items.length - 1;
 
                   return (
-                    <TouchableOpacity
-                      key={item.id}
-                      activeOpacity={0.65}
-                      style={[
-                        styles.menuRow,
-                        !isLast && {
-                          borderBottomWidth: StyleSheet.hairlineWidth,
-                          borderBottomColor: colors.border,
-                        },
-                      ]}
-                      onPress={() => router.push(item.route as any)}
-                    >
-                      <View
-                        style={[
-                          styles.menuIconBox,
-                          {
-                            backgroundColor: isDark
-                              ? `${item.color || '#6366f1'}22`
-                              : `${item.color || '#6366f1'}14`,
-                            borderColor: isDark
-                              ? `${item.color || '#6366f1'}44`
-                              : `${item.color || '#6366f1'}28`,
-                          },
-                        ]}
+                    <React.Fragment key={item.id}>
+                      <TouchableOpacity
+                        activeOpacity={0.65}
+                        style={styles.menuRow}
+                        onPress={() => router.push(item.route as any)}
                       >
-                        <Ionicons name={item.icon} size={19} color={item.color || colors.text} />
-                      </View>
+                        <View
+                          style={[
+                            styles.menuIconBox,
+                            {
+                              backgroundColor: isDark
+                                ? `${item.color}22`
+                                : `${item.color}14`,
+                              borderColor: isDark
+                                ? `${item.color}44`
+                                : `${item.color}28`,
+                            },
+                          ]}
+                        >
+                          <Ionicons name={item.icon} size={18} color={item.color} />
+                        </View>
 
-                      <View style={styles.menuTextContainer}>
-                        <View style={styles.menuTitleRow}>
+                        <View style={styles.menuTextContainer}>
                           <Text style={[styles.menuTitle, { color: colors.text }]}>
                             {item.title}
                           </Text>
@@ -576,83 +629,169 @@ export default function ProfileScreen() {
                             </View>
                           )}
                         </View>
-                        <Text
-                          style={[styles.menuSubtitle, { color: colors.textMuted }]}
-                          numberOfLines={1}
-                        >
-                          {item.subtitle}
-                        </Text>
-                      </View>
 
-                      <Ionicons
-                        name="chevron-forward"
-                        size={17}
-                        color={colors.textMuted}
-                        style={styles.menuChevron}
-                      />
-                    </TouchableOpacity>
+                        <Ionicons
+                          name="chevron-forward"
+                          size={15}
+                          color={isDark ? '#475569' : '#cbd5e1'}
+                          style={styles.menuChevron}
+                        />
+                      </TouchableOpacity>
+
+                      {/* Inset Hairline Divider (Stops precisely at icon gutter) */}
+                      {!isLast && (
+                        <View
+                          style={[
+                            styles.insetDivider,
+                            {
+                              backgroundColor: isDark
+                                ? 'rgba(255, 255, 255, 0.07)'
+                                : 'rgba(0, 0, 0, 0.06)',
+                            },
+                          ]}
+                        />
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </View>
             </View>
           ))}
 
-          {/* Check for Updates Section (Utility above destructive logout) */}
-          <View style={styles.updateCheckSection}>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              disabled={checkingUpdates}
+          {/* Dedicated System & Session Group (Apple HIG Unified Card) */}
+          <View style={styles.groupSection}>
+            <Text style={[styles.groupTitle, { color: colors.textMuted }]}>
+              SYSTEM & SESSION
+            </Text>
+
+            <View
               style={[
-                styles.updateCheckButton,
+                styles.groupCard,
                 {
                   backgroundColor: colors.card,
-                  borderColor: colors.border,
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
                 },
               ]}
-              onPress={handleCheckUpdate}
             >
-              {checkingUpdates ? (
-                <ActivityIndicator size="small" color={colors.primary} />
-              ) : (
-                <Ionicons name="cloud-download-outline" size={17} color={colors.primary} />
-              )}
-              <Text style={[styles.updateCheckText, { color: colors.text }]}>
-                {checkingUpdates ? 'Checking for updates...' : 'Check for App Updates'}
-              </Text>
-            </TouchableOpacity>
+              {/* Check for App Updates Row */}
+              <TouchableOpacity
+                activeOpacity={0.65}
+                disabled={checkingUpdates}
+                style={styles.menuRow}
+                onPress={handleCheckUpdate}
+              >
+                <View
+                  style={[
+                    styles.menuIconBox,
+                    {
+                      backgroundColor: isDark ? 'rgba(2, 132, 199, 0.18)' : 'rgba(2, 132, 199, 0.12)',
+                      borderColor: isDark ? 'rgba(2, 132, 199, 0.35)' : 'rgba(2, 132, 199, 0.22)',
+                    },
+                  ]}
+                >
+                  <Ionicons name="cloud-download-outline" size={18} color="#0284c7" />
+                </View>
+
+                <View style={styles.menuTextContainer}>
+                  <Text style={[styles.menuTitle, { color: colors.text }]}>
+                    Software Updates
+                  </Text>
+                </View>
+
+                <View style={styles.systemAccessoryRow}>
+                  {checkingUpdates ? (
+                    <View style={styles.checkingUpdatesRow}>
+                      <ActivityIndicator size="small" color={colors.primary} />
+                      <Text style={[styles.checkingUpdatesText, { color: colors.textMuted }]}>
+                        Checking...
+                      </Text>
+                    </View>
+                  ) : (
+                    <View
+                      style={[
+                        styles.versionPill,
+                        {
+                          backgroundColor: colors.cardAlt,
+                          borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.versionPillText, { color: colors.textMuted }]}>
+                        v1.2.0
+                      </Text>
+                    </View>
+                  )}
+                  <Ionicons
+                    name="chevron-forward"
+                    size={15}
+                    color={isDark ? '#475569' : '#cbd5e1'}
+                    style={styles.menuChevron}
+                  />
+                </View>
+              </TouchableOpacity>
+
+              {/* Inset Hairline Divider */}
+              <View
+                style={[
+                  styles.insetDivider,
+                  {
+                    backgroundColor: isDark
+                      ? 'rgba(255, 255, 255, 0.07)'
+                      : 'rgba(0, 0, 0, 0.06)',
+                  },
+                ]}
+              />
+
+              {/* Sign Out Row (Dignified Destructive Styling) */}
+              <TouchableOpacity
+                activeOpacity={0.65}
+                style={styles.menuRow}
+                onPress={handleSignOut}
+              >
+                <View
+                  style={[
+                    styles.menuIconBox,
+                    {
+                      backgroundColor: isDark ? 'rgba(239, 68, 68, 0.16)' : 'rgba(239, 68, 68, 0.1)',
+                      borderColor: isDark ? 'rgba(239, 68, 68, 0.32)' : 'rgba(239, 68, 68, 0.2)',
+                    },
+                  ]}
+                >
+                  <Ionicons name="log-out-outline" size={18} color="#ef4444" />
+                </View>
+
+                <View style={styles.menuTextContainer}>
+                  <Text style={[styles.menuTitle, { color: '#ef4444', fontWeight: '600' }]}>
+                    Sign Out
+                  </Text>
+                </View>
+
+                <Ionicons
+                  name="chevron-forward"
+                  size={15}
+                  color={isDark ? '#475569' : '#cbd5e1'}
+                  style={styles.menuChevron}
+                />
+              </TouchableOpacity>
+            </View>
           </View>
 
-          {/* Safe Sign Out Section (Pinned at bottom of list) */}
-          <View style={styles.signOutSection}>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={[
-                styles.signOutButton,
-                {
-                  backgroundColor: isDark ? 'rgba(239, 68, 68, 0.08)' : '#fef2f2',
-                  borderColor: isDark ? 'rgba(239, 68, 68, 0.22)' : '#fecaca',
-                },
-              ]}
-              onPress={handleSignOut}
-            >
-              <Ionicons name="log-out-outline" size={18} color="#ef4444" />
-              <Text style={styles.signOutText}>Sign Out of Store Account</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Footer Metadata */}
+          {/* Refined Brand Footer Seal */}
           <View style={styles.footerWrap}>
-            <Text style={[styles.footerText, { color: colors.textMuted }]}>
-              Narendra Kirana Store  Owner Portal
-            </Text>
+            <View style={styles.footerBrandRow}>
+              <Ionicons name="shield-checkmark" size={13} color={colors.primary} />
+              <Text style={[styles.footerText, { color: colors.textMuted }]}>
+                Narendra Kirana Store • Owner Portal
+              </Text>
+            </View>
             <Text style={[styles.footerSub, { color: colors.textMuted }]}>
-              Version 1.2.0  Secured JWT Session
+              Version 1.2.0 • Secured JWT Session
             </Text>
           </View>
         </View>
       </ScrollView>
 
-      {/* Edit Profile Modal */}
+      {/* Polish Edit Profile Modal (Sleek, iOS Keyboard-Safe Sheet) */}
       <Modal
         visible={editModalVisible}
         transparent={true}
@@ -668,12 +807,18 @@ export default function ProfileScreen() {
               styles.modalCard,
               {
                 backgroundColor: colors.card,
-                borderColor: colors.border,
+                borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
               },
             ]}
           >
-            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <View>
+            {/* Modal Header */}
+            <View
+              style={[
+                styles.modalHeader,
+                { borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)' },
+              ]}
+            >
+              <View style={styles.modalHeaderTitleCol}>
                 <Text style={[styles.modalTitle, { color: colors.text }]}>Edit Profile Details</Text>
                 <Text style={[styles.modalSubtitle, { color: colors.textMuted }]}>
                   Update store operator credentials
@@ -681,12 +826,14 @@ export default function ProfileScreen() {
               </View>
               <TouchableOpacity
                 onPress={() => setEditModalVisible(false)}
+                activeOpacity={0.7}
                 style={[styles.modalCloseBtn, { backgroundColor: colors.cardAlt }]}
               >
-                <Ionicons name="close" size={18} color={colors.text} />
+                <Ionicons name="close" size={17} color={colors.text} />
               </TouchableOpacity>
             </View>
 
+            {/* Modal Body Form */}
             <ScrollView
               style={styles.modalBodyScroll}
               contentContainerStyle={styles.modalBody}
@@ -707,6 +854,7 @@ export default function ProfileScreen() {
                 placeholderTextColor={colors.textMuted}
                 value={editFirstName}
                 onChangeText={setEditFirstName}
+                autoCapitalize="words"
               />
 
               <Text style={[styles.inputLabel, { color: colors.textMuted }]}>LAST NAME</Text>
@@ -723,6 +871,7 @@ export default function ProfileScreen() {
                 placeholderTextColor={colors.textMuted}
                 value={editLastName}
                 onChangeText={setEditLastName}
+                autoCapitalize="words"
               />
 
               <Text style={[styles.inputLabel, { color: colors.textMuted }]}>MOBILE NUMBER</Text>
@@ -743,11 +892,24 @@ export default function ProfileScreen() {
               />
             </ScrollView>
 
-            <View style={[styles.modalFooter, { borderTopColor: colors.border }]}>
+            {/* Modal Actions Footer */}
+            <View
+              style={[
+                styles.modalFooter,
+                { borderTopColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)' },
+              ]}
+            >
               <TouchableOpacity
-                style={[styles.modalCancelBtn, { borderColor: colors.border }]}
+                style={[
+                  styles.modalCancelBtn,
+                  {
+                    backgroundColor: colors.cardAlt,
+                    borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
+                  },
+                ]}
                 onPress={() => setEditModalVisible(false)}
                 disabled={savingProfile}
+                activeOpacity={0.7}
               >
                 <Text style={[styles.modalCancelText, { color: colors.text }]}>Cancel</Text>
               </TouchableOpacity>
@@ -756,6 +918,7 @@ export default function ProfileScreen() {
                 style={[styles.modalSaveBtn, { backgroundColor: colors.primary }]}
                 onPress={handleSaveProfile}
                 disabled={savingProfile}
+                activeOpacity={0.8}
               >
                 {savingProfile ? (
                   <ActivityIndicator size="small" color="#ffffff" />
@@ -793,18 +956,20 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
   },
-  profileCard: {
-    borderRadius: 18,
+
+  // 1. Executive Operator Identity Card
+  identityCard: {
+    borderRadius: 22,
     borderWidth: 1,
     overflow: 'hidden',
-    marginBottom: 16,
-    elevation: 1,
+    marginBottom: 12,
+    elevation: 2,
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
   },
-  profileMainRow: {
+  identityTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 18,
@@ -814,9 +979,9 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   avatarFrame: {
-    width: 74,
-    height: 74,
-    borderRadius: 37,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
@@ -826,142 +991,204 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  initialsWrap: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  initialsText: {
+    fontSize: 26,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
   avatarOverlay: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   cameraBadge: {
     position: 'absolute',
-    bottom: -1,
-    right: -1,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    bottom: 0,
+    right: 0,
+    width: 27,
+    height: 27,
+    borderRadius: 14,
     borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 3,
+    elevation: 4,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
-  profileInfo: {
+  identityInfo: {
     flex: 1,
     justifyContent: 'center',
   },
-  nameRow: {
+  operatorName: {
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: -0.4,
+  },
+  rolePillRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-  },
-  profileName: {
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: -0.3,
-  },
-  badgeRow: {
-    flexDirection: 'row',
     marginTop: 4,
     marginBottom: 6,
   },
-  roleBadge: {
+  rolePill: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
-    gap: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 4.5,
   },
-  roleBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.3,
+  rolePillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.6,
   },
-  profileEmail: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  phoneRow: {
+  contactRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    marginTop: 3,
+    gap: 5.5,
   },
-  profilePhone: {
-    fontSize: 12,
+  contactText: {
+    fontSize: 12.5,
     fontWeight: '500',
   },
-  profileActionsRow: {
+  capsuleActionsRow: {
     flexDirection: 'row',
     borderTopWidth: StyleSheet.hairlineWidth,
-    padding: 10,
-    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 10,
   },
-  profileActionBtn: {
+  capsuleBtn: {
     flex: 1,
+    height: 38,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 9,
-    borderRadius: 10,
+    borderRadius: 19,
+    borderWidth: 1,
     gap: 6,
   },
-  profileActionText: {
+  capsuleBtnText: {
     fontSize: 13,
     fontWeight: '600',
+    letterSpacing: -0.1,
   },
-  preferencesCard: {
+
+  // 2. Integrated Executive Control Bar
+  controlBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     borderRadius: 16,
     borderWidth: 1,
-    marginBottom: 20,
+    marginBottom: 18,
+    elevation: 1,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
   },
-  prefLeft: {
+  controlBarItem: {
+    flex: 1.3,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 9,
   },
-  prefIconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
+  controlIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  prefTextBox: {},
-  prefTitle: {
-    fontSize: 14,
+  controlTextCol: {
+    flex: 1,
+  },
+  controlLabel: {
+    fontSize: 13,
     fontWeight: '700',
+    letterSpacing: -0.2,
   },
-  prefSubtitle: {
-    fontSize: 12,
+  controlSub: {
+    fontSize: 10.5,
     fontWeight: '500',
-    marginTop: 1,
   },
+  controlBarSeparator: {
+    width: StyleSheet.hairlineWidth,
+    height: 26,
+    marginHorizontal: 10,
+  },
+  controlStatusCol: {
+    flex: 0.85,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  statusDotRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5.5,
+  },
+  livePulseDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#10b981',
+  },
+  statusTitle: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    letterSpacing: -0.1,
+  },
+  statusSubtitle: {
+    fontSize: 10.5,
+    fontWeight: '500',
+    marginTop: 0.5,
+  },
+
+  // 3. Inset-Grouped Navigation Hub
   groupSection: {
-    marginBottom: 20,
+    marginBottom: 18,
   },
   groupTitle: {
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '700',
     letterSpacing: 0.8,
-    marginBottom: 8,
-    paddingHorizontal: 4,
+    marginBottom: 7,
+    paddingHorizontal: 10,
   },
   groupCard: {
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
     overflow: 'hidden',
+    elevation: 1,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
   },
   menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   menuIconBox: {
     width: 38,
@@ -970,24 +1197,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 14,
+    marginRight: 12,
   },
   menuTextContainer: {
     flex: 1,
-  },
-  menuTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
   menuTitle: {
-    fontSize: 14.5,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '600',
     letterSpacing: -0.2,
   },
   ownerBadgePill: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    paddingHorizontal: 6,
+    backgroundColor: 'rgba(16, 185, 129, 0.14)',
+    paddingHorizontal: 5.5,
     paddingVertical: 2,
     borderRadius: 4,
   },
@@ -997,35 +1222,51 @@ const styles = StyleSheet.create({
     color: '#10b981',
     letterSpacing: 0.5,
   },
-  menuSubtitle: {
-    fontSize: 12,
-    fontWeight: '400',
-    marginTop: 2,
-  },
   menuChevron: {
-    marginLeft: 10,
+    marginLeft: 6,
   },
-  signOutSection: {
-    marginTop: 4,
-    marginBottom: 20,
+  insetDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 64, // Stops cleanly at icon gutter
   },
-  signOutButton: {
+
+  // 4. Dedicated System & Session Accessories
+  systemAccessoryRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 14,
+    gap: 6,
+  },
+  checkingUpdatesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  checkingUpdatesText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  versionPill: {
+    paddingHorizontal: 7.5,
+    paddingVertical: 2.5,
+    borderRadius: 10,
     borderWidth: 1,
-    gap: 8,
   },
-  signOutText: {
-    color: '#ef4444',
-    fontSize: 15,
-    fontWeight: '700',
+  versionPillText: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
+
+  // 5. Brand Footer
   footerWrap: {
     alignItems: 'center',
-    paddingBottom: 24,
+    paddingTop: 8,
+    paddingBottom: 28,
+  },
+  footerBrandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
   footerText: {
     fontSize: 12,
@@ -1034,11 +1275,15 @@ const styles = StyleSheet.create({
   },
   footerSub: {
     fontSize: 11,
+    fontWeight: '500',
     marginTop: 3,
+    opacity: 0.75,
   },
+
+  // 6. Polish Edit Profile Modal
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -1046,24 +1291,35 @@ const styles = StyleSheet.create({
   modalCard: {
     width: '100%',
     maxWidth: 440,
-    borderRadius: 18,
+    borderRadius: 22,
     borderWidth: 1,
     overflow: 'hidden',
+    elevation: 8,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 18,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  modalHeaderTitleCol: {
+    flex: 1,
+  },
   modalTitle: {
-    fontSize: 17,
+    fontSize: 17.5,
     fontWeight: '800',
+    letterSpacing: -0.3,
   },
   modalSubtitle: {
     fontSize: 12,
     marginTop: 2,
+    fontWeight: '500',
   },
   modalCloseBtn: {
     width: 32,
@@ -1071,39 +1327,42 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
+    marginLeft: 12,
   },
   modalBodyScroll: {
-    maxHeight: 360,
+    maxHeight: 380,
   },
   modalBody: {
-    padding: 18,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
   inputLabel: {
     fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.8,
+    fontWeight: '700',
+    letterSpacing: 0.7,
     marginBottom: 6,
     marginTop: 10,
   },
   textInput: {
+    height: 48,
     borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    fontSize: 14.5,
     fontWeight: '500',
   },
   modalFooter: {
     flexDirection: 'row',
     borderTopWidth: StyleSheet.hairlineWidth,
-    padding: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
     gap: 10,
   },
   modalCancelBtn: {
     flex: 1,
+    height: 46,
     borderWidth: 1,
-    borderRadius: 10,
-    paddingVertical: 12,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1112,9 +1371,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   modalSaveBtn: {
-    flex: 1.5,
-    borderRadius: 10,
-    paddingVertical: 12,
+    flex: 1.4,
+    height: 46,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1122,23 +1381,5 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '700',
-  },
-  updateCheckSection: {
-    marginTop: 10,
-    marginBottom: 10,
-  },
-  updateCheckButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 8,
-  },
-  updateCheckText: {
-    fontSize: 13,
-    fontWeight: '600',
   },
 });
