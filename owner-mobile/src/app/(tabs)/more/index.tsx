@@ -33,6 +33,7 @@ interface NavItem {
   icon: keyof typeof Ionicons.glyphMap;
   route: string;
   ownerOnly?: boolean;
+  color?: string;
 }
 
 interface NavGroup {
@@ -218,6 +219,7 @@ export default function ProfileScreen() {
           subtitle: 'Aisles, store departments & hierarchy',
           icon: 'pricetags-outline',
           route: '/(tabs)/more/categories',
+          color: '#10b981',
         },
         {
           id: 'showcase',
@@ -225,6 +227,7 @@ export default function ProfileScreen() {
           subtitle: 'Curate hero banners & seasonal aisles',
           icon: 'images-outline',
           route: '/(tabs)/more/showcase',
+          color: '#059669',
         },
         {
           id: 'offers',
@@ -232,6 +235,7 @@ export default function ProfileScreen() {
           subtitle: 'Store coupons, rules & cashback deals',
           icon: 'ticket-outline',
           route: '/(tabs)/more/offers',
+          color: '#d97706',
         },
       ],
     },
@@ -245,6 +249,7 @@ export default function ProfileScreen() {
           subtitle: 'Live rider tracking & active orders',
           icon: 'bicycle-outline',
           route: '/(tabs)/more/delivery',
+          color: '#0284c7',
         },
         {
           id: 'customers',
@@ -252,6 +257,7 @@ export default function ProfileScreen() {
           subtitle: 'Directory of registered shoppers & CRM',
           icon: 'people-outline',
           route: '/(tabs)/more/customers',
+          color: '#6366f1',
         },
         {
           id: 'invoices',
@@ -259,6 +265,7 @@ export default function ProfileScreen() {
           subtitle: 'GST invoices, tax logs & receipts',
           icon: 'receipt-outline',
           route: '/(tabs)/more/invoices',
+          color: '#2563eb',
         },
       ],
     },
@@ -272,6 +279,7 @@ export default function ProfileScreen() {
           subtitle: 'Rich push announcements & images',
           icon: 'megaphone-outline',
           route: '/(tabs)/more/broadcast',
+          color: '#ec4899',
         },
         {
           id: 'reports',
@@ -279,6 +287,7 @@ export default function ProfileScreen() {
           subtitle: 'Revenue, performance & financial graphs',
           icon: 'stats-chart-outline',
           route: '/(tabs)/more/reports',
+          color: '#8b5cf6',
         },
       ],
     },
@@ -295,6 +304,7 @@ export default function ProfileScreen() {
                 icon: 'shield-checkmark-outline' as const,
                 route: '/(tabs)/more/agents',
                 ownerOnly: true,
+                color: '#10b981',
               },
             ]
           : []),
@@ -304,6 +314,7 @@ export default function ProfileScreen() {
           subtitle: 'Store status, hours, delivery radius & contact info',
           icon: 'storefront-outline',
           route: '/(tabs)/more/settings',
+          color: '#f59e0b',
         },
         {
           id: 'advanced',
@@ -311,6 +322,7 @@ export default function ProfileScreen() {
           subtitle: 'UPI QR, GST/FSSAI tax, WhatsApp & cloud backups',
           icon: 'options-outline',
           route: '/(tabs)/more/advanced-settings',
+          color: '#64748b',
         },
       ],
     },
@@ -486,16 +498,16 @@ export default function ProfileScreen() {
                 }}
               >
                 <Ionicons name="create-outline" size={15} color={colors.text} />
-                <Text style={[styles.profileActionText, { color: colors.text }]}>Edit Details</Text>
+                <Text style={[styles.profileActionText, { color: colors.text }]}>Edit Profile</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 activeOpacity={0.7}
                 style={[styles.profileActionBtn, { backgroundColor: colors.cardAlt }]}
-                onPress={handlePickImage}
+                onPress={() => router.push('/(tabs)/more/settings')}
               >
-                <Ionicons name="image-outline" size={15} color={colors.text} />
-                <Text style={[styles.profileActionText, { color: colors.text }]}>Change Photo</Text>
+                <Ionicons name="storefront-outline" size={15} color={colors.text} />
+                <Text style={[styles.profileActionText, { color: colors.text }]}>Store Settings</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -565,12 +577,16 @@ export default function ProfileScreen() {
                         style={[
                           styles.menuIconBox,
                           {
-                            backgroundColor: colors.cardAlt,
-                            borderColor: colors.border,
+                            backgroundColor: isDark
+                              ? `${item.color || '#6366f1'}22`
+                              : `${item.color || '#6366f1'}14`,
+                            borderColor: isDark
+                              ? `${item.color || '#6366f1'}44`
+                              : `${item.color || '#6366f1'}28`,
                           },
                         ]}
                       >
-                        <Ionicons name={item.icon} size={19} color={colors.text} />
+                        <Ionicons name={item.icon} size={19} color={item.color || colors.text} />
                       </View>
 
                       <View style={styles.menuTextContainer}>
@@ -605,25 +621,7 @@ export default function ProfileScreen() {
             </View>
           ))}
 
-          {/* Safe Sign Out Section */}
-          <View style={styles.signOutSection}>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={[
-                styles.signOutButton,
-                {
-                  backgroundColor: isDark ? 'rgba(239, 68, 68, 0.08)' : '#fef2f2',
-                  borderColor: isDark ? 'rgba(239, 68, 68, 0.22)' : '#fecaca',
-                },
-              ]}
-              onPress={handleSignOut}
-            >
-              <Ionicons name="log-out-outline" size={18} color="#ef4444" />
-              <Text style={styles.signOutText}>Sign Out of Store Account</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Check for Updates Section */}
+          {/* Check for Updates Section (Utility above destructive logout) */}
           <View style={styles.updateCheckSection}>
             <TouchableOpacity
               activeOpacity={0.7}
@@ -645,6 +643,24 @@ export default function ProfileScreen() {
               <Text style={[styles.updateCheckText, { color: colors.text }]}>
                 {checkingUpdates ? 'Checking for updates...' : 'Check for App Updates'}
               </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Safe Sign Out Section (Pinned at bottom of list) */}
+          <View style={styles.signOutSection}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={[
+                styles.signOutButton,
+                {
+                  backgroundColor: isDark ? 'rgba(239, 68, 68, 0.08)' : '#fef2f2',
+                  borderColor: isDark ? 'rgba(239, 68, 68, 0.22)' : '#fecaca',
+                },
+              ]}
+              onPress={handleSignOut}
+            >
+              <Ionicons name="log-out-outline" size={18} color="#ef4444" />
+              <Text style={styles.signOutText}>Sign Out of Store Account</Text>
             </TouchableOpacity>
           </View>
 
@@ -695,7 +711,12 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </View>
 
-            <View style={styles.modalBody}>
+            <ScrollView
+              style={styles.modalBodyScroll}
+              contentContainerStyle={styles.modalBody}
+              keyboardShouldPersistTaps="handled"
+              bounces={false}
+            >
               <Text style={[styles.inputLabel, { color: colors.textMuted }]}>FIRST NAME</Text>
               <TextInput
                 style={[
@@ -738,13 +759,13 @@ export default function ProfileScreen() {
                     color: colors.text,
                   },
                 ]}
-                placeholder="e.g. 09949895755"
+                placeholder="e.g. 9876543210"
                 placeholderTextColor={colors.textMuted}
                 keyboardType="phone-pad"
                 value={editMobile}
                 onChangeText={setEditMobile}
               />
-            </View>
+            </ScrollView>
 
             <View style={[styles.modalFooter, { borderTopColor: colors.border }]}>
               <TouchableOpacity
@@ -1064,7 +1085,7 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   signOutSection: {
-    marginTop: 8,
+    marginTop: 4,
     marginBottom: 20,
   },
   signOutButton: {
@@ -1130,6 +1151,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  modalBodyScroll: {
+    maxHeight: 360,
+  },
   modalBody: {
     padding: 18,
   },
@@ -1179,8 +1203,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   updateCheckSection: {
-    marginTop: 12,
-    marginBottom: 4,
+    marginTop: 10,
+    marginBottom: 10,
   },
   updateCheckButton: {
     flexDirection: 'row',
