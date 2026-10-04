@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { Platform } from 'react-native';
 import LRUCache from '../utils/LRUCache';
 import { safeStorage } from '../utils/storage';
 
@@ -94,6 +95,17 @@ const handleForceLogout = async () => {
   await safeStorage.removeItem(TOKEN_KEY);
   await safeStorage.removeItem(REFRESH_TOKEN_KEY);
   apiCache.clear();
+  try {
+    const { Image } = require('expo-image');
+    Image.clearMemoryCache?.();
+    await Image.clearDiskCache?.();
+  } catch {}
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && 'caches' in window) {
+    try {
+      const cacheKeys = await caches.keys();
+      await Promise.all(cacheKeys.map((k) => caches.delete(k)));
+    } catch {}
+  }
   if (api.defaults?.headers?.common) {
     delete api.defaults.headers.common['Authorization'];
   }

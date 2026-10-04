@@ -19,6 +19,7 @@ import {
 } from "../services/notificationService";
 import { clearCachedOrders } from "../services/ordersCache";
 import { clearUserProfileCache } from "../services/profileCache";
+import { clearHomeDataCache } from "../services/homeDataCache";
 import { getItem, getItemSync, saveItem, deleteItem } from "../utils/storage";
 import { resetWelcomeSession } from "../utils/welcomeSession";
 
@@ -186,12 +187,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await deleteItem(STORAGE_KEYS.USER);
       resetWelcomeSession();
       favoritesService.clear();
+      await clearHomeDataCache().catch(() => {});
       await clearCachedOrders().catch((e) =>
         console.warn("Failed to clear orders cache", e),
       );
       await clearUserProfileCache().catch((e) =>
         console.warn("Failed to clear profile cache", e),
       );
+
+      // 4. Clear image disk & memory caches
+      try {
+        const { Image } = require("expo-image");
+        Image.clearMemoryCache?.();
+        await Image.clearDiskCache?.();
+      } catch {}
+
+      // 5. Clear web Service Worker / PWA cache storage if running on web
+      if (Platform.OS === "web" && typeof window !== "undefined" && "caches" in window) {
+        try {
+          const cacheKeys = await caches.keys();
+          await Promise.all(cacheKeys.map((k) => caches.delete(k)));
+        } catch {}
+      }
+
       setUser(null);
     } catch (error) {
       console.error("Error during logout:", error);

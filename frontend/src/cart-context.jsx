@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import api, { clearUserCache } from './services/api'
+import api, { clearUserCache, clearAllBrowserCaches } from './services/api'
 
 const CartContext = createContext(null)
 const getUser = () => JSON.parse(localStorage.getItem('smart-kirana-customer-user') || 'null')
@@ -169,12 +169,18 @@ export function CartProvider({ children }) {
     }
     
     try {
+      await clearAllBrowserCaches();
       localStorage.removeItem('smart-kirana-customer-token');
       localStorage.removeItem('smart-kirana-customer-refresh');
       localStorage.removeItem('smart-kirana-customer-user');
-      sessionStorage.removeItem('welcome_shown_time');
-      sessionStorage.removeItem('hasShownWelcome');
-      clearUserCache();
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('smart-kirana-customer') || key.startsWith('sk_cache_') || key.startsWith('sk_ucache_'))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
     } catch {
       // Storage restricted or unavailable
     }

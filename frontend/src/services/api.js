@@ -167,6 +167,7 @@ api.interceptors.response.use(
         localStorage.removeItem(`${prefix}-refresh`);
         localStorage.removeItem(`${prefix}-user`);
         clearUserCache();
+        clearAllBrowserCaches().catch(() => {});
         if (prefix === 'smart-kirana-owner') {
           window.location.href = '/owner/login';
         } else if (prefix === 'smart-kirana-delivery') {
@@ -415,6 +416,29 @@ export const clearUserCache = () => {
     }
     toRemove.forEach(k => localStorage.removeItem(k));
   } catch (e) {}
+};
+
+export const clearAllBrowserCaches = async () => {
+  // 1. Invalidate in-memory & localStorage API caches
+  try {
+    invalidateCache();
+    clearUserCache();
+  } catch {}
+
+  // 2. Clear browser Cache Storage API (PWA, Service Worker caches)
+  if (typeof window !== 'undefined' && 'caches' in window) {
+    try {
+      const cacheKeys = await caches.keys();
+      await Promise.all(cacheKeys.map(k => caches.delete(k)));
+    } catch {}
+  }
+
+  // 3. Clear session storage
+  if (typeof sessionStorage !== 'undefined') {
+    try {
+      sessionStorage.clear();
+    } catch {}
+  }
 };
 
 export default api;

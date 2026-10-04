@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Truck, CheckCircle2, User, LogOut } from 'lucide-react';
-import api from '../services/api';
+import api, { clearAllBrowserCaches } from '../services/api';
 
 export default function DeliveryLayout() {
   const location = useLocation();
@@ -37,6 +37,7 @@ export default function DeliveryLayout() {
     if (refresh) {
       api.post('/auth/logout/', { refresh }).catch(() => {});
     }
+    await clearAllBrowserCaches();
     localStorage.removeItem('smart-kirana-delivery-token');
     localStorage.removeItem('smart-kirana-delivery-refresh');
     localStorage.removeItem('smart-kirana-delivery-user');

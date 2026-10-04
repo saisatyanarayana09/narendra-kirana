@@ -4,7 +4,7 @@ import {
   LogOut, Award, Truck, ShieldCheck, Mail
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import api, { clearAllBrowserCaches } from '../services/api';
 
 export default function DeliveryProfile() {
   const [profile, setProfile] = useState(null);
@@ -23,7 +23,7 @@ export default function DeliveryProfile() {
     if (refresh) {
       api.post('/auth/logout/', { refresh }).catch(() => {});
     }
-    
+    await clearAllBrowserCaches();
     localStorage.removeItem('smart-kirana-delivery-token');
     localStorage.removeItem('smart-kirana-delivery-refresh');
     localStorage.removeItem('smart-kirana-delivery-user');
