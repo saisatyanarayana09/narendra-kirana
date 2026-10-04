@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Platform,
   Modal,
+  KeyboardAvoidingView,
 } from 'react-native';
 import ModernSwitch from '../../../components/ModernSwitch';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -16,12 +17,15 @@ import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api, { ApiInstance, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert } from '../../../utils/alerts';
+import UniversalCameraScanner from '../../../components/UniversalCameraScanner';
 
 export default function AddProductScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { colors, isDark } = useAppTheme();
   const { id, sku: initialSku } = useLocalSearchParams<{ id?: string; sku?: string }>();
   const isEditing = Boolean(id);
@@ -48,11 +52,13 @@ export default function AddProductScreen() {
   const [analyzingPackaging, setAnalyzingPackaging] = useState(false);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [showAIOptionsModal, setShowAIOptionsModal] = useState(false);
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
 
+  // Barcode Lookup by Text/SKU
   const handleBarcodeLookup = async (overrideSku?: string) => {
     const cleanSku = (overrideSku !== undefined ? overrideSku : sku).trim();
     if (!cleanSku) {
-      showAlert('Barcode Lookup', 'Enter or scan a barcode/SKU number first.');
+      showAlert('Barcode Lookup', 'Enter or scan a barcode/SKU first.');
       return;
     }
     setLookingUpBarcode(true);
@@ -64,9 +70,9 @@ export default function AddProductScreen() {
         if (prod.brand) setBrand(prod.brand);
         if (prod.unit) setUnit(prod.unit);
         if (prod.description) setDescription(prod.description);
-        showAlert('Found!', `Auto-filled details for "${prod.name}".`);
+        showAlert('Found', `Auto-filled details for "${prod.name}".`);
       } else {
-        showAlert('Scanned', `Barcode "${cleanSku}" set. Fill in product details below.`);
+        showAlert('Scanned', `Barcode "${cleanSku}" set.`);
       }
     } catch (e: any) {
       showAlert('Lookup Failed', getErrorMessage(e, 'Could not find barcode details.'));
@@ -75,6 +81,7 @@ export default function AddProductScreen() {
     }
   };
 
+  // AI Vision Packaging Scan
   const handleAIVisionScan = async (source: 'camera' | 'library') => {
     setShowAIOptionsModal(false);
     try {
@@ -86,7 +93,7 @@ export default function AddProductScreen() {
         if (!perm.granted) {
           showAlert(
             'Permission Required',
-            'Camera / Photo library permission is required for AI Packaging Scan.'
+            'Camera/Photo access is required for AI Packaging Scan.'
           );
           return;
         }
@@ -137,53 +144,58 @@ export default function AddProductScreen() {
           if (prod.brand) setBrand(prod.brand);
           if (prod.unit) setUnit(prod.unit);
           if (prod.description) setDescription(prod.description);
-          // Auto-apply as primary product photo
           setImageUri(asset.uri);
           setImageChanged(true);
           showAlert(
-            'AI Vision Match! ✨',
-            `Successfully extracted "${prod.name || 'details'}" from packaging image.`
+            'AI Vision Match',
+            `Auto-filled details for "${prod.name || 'product'}".`
           );
         } else {
           showAlert(
             'AI Vision',
-            res?.data?.error ||
-              'Could not clearly read the product packaging. Please enter details manually.'
+            res?.data?.error || 'Could not read packaging clearly. Please enter details manually.'
           );
         }
       }
     } catch (e: any) {
       showAlert(
-        'AI Vision Scan Failed',
-        getErrorMessage(e, 'Could not analyze product packaging. Please try again.')
+        'AI Scan Failed',
+        getErrorMessage(e, 'Could not analyze packaging photo.')
       );
     } finally {
       setAnalyzingPackaging(false);
     }
   };
 
+  // Gallery Photos Picker
   const pickGalleryImages = async () => {
     try {
       if (Platform.OS !== 'web') {
         const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!perm.granted) {
-          showAlert('Permission Denied', 'Media library permission is required.');
+          showAlert('Permission Denied', 'Photo access is required.');
           return;
         }
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        allowsMultipleSelection: false, allowsEditing: true, aspect: [1, 1],
+        allowsMultipleSelection: false,
+        allowsEditing: true,
+        aspect: [1, 1],
         quality: 0.8,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         let uri = result.assets[0].uri;
         try {
-          const manip = await ImageManipulator.manipulateAsync(uri, [{ resize: { width: 800 } }], { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG });
+          const manip = await ImageManipulator.manipulateAsync(
+            uri,
+            [{ resize: { width: 800 } }],
+            { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG }
+          );
           uri = manip.uri;
-        } catch(e) {}
+        } catch (e) {}
         setGalleryImages((prev) => [...prev, uri]);
       }
     } catch (e: any) {
@@ -195,6 +207,7 @@ export default function AddProductScreen() {
     setGalleryImages((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // Initial Fetching
   useEffect(() => {
     let isMounted = true;
     api
@@ -256,12 +269,13 @@ export default function AddProductScreen() {
     };
   }, [id, initialSku]);
 
+  // Primary Image Picker
   const pickImage = async () => {
     try {
       if (Platform.OS !== 'web') {
         const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!permissionResult.granted) {
-          showAlert('Permission Required', 'Permission to access camera roll is required!');
+          showAlert('Permission Required', 'Permission to access camera roll is required.');
           return;
         }
       }
@@ -276,9 +290,13 @@ export default function AddProductScreen() {
       if (!result.canceled && result.assets && result.assets.length > 0) {
         let uri = result.assets[0].uri;
         try {
-          const manip = await ImageManipulator.manipulateAsync(uri, [{ resize: { width: 800 } }], { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG });
+          const manip = await ImageManipulator.manipulateAsync(
+            uri,
+            [{ resize: { width: 800 } }],
+            { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG }
+          );
           uri = manip.uri;
-        } catch(e) {}
+        } catch (e) {}
         setImageUri(uri);
         setImageChanged(true);
       }
@@ -287,19 +305,20 @@ export default function AddProductScreen() {
     }
   };
 
+  // Save Handler
   const handleSave = async () => {
     const cleanName = name.trim();
     const cleanPrice = price.trim();
     const cleanUnit = unit.trim();
 
     if (!cleanName || !cleanPrice || !cleanUnit) {
-      showAlert('Validation Error', 'Name, Regular Price, and Unit are required.');
+      showAlert('Required Fields', 'Name, Price, and Unit are required.');
       return;
     }
 
     const parsedPrice = Number(cleanPrice);
     if (isNaN(parsedPrice) || parsedPrice < 0) {
-      showAlert('Validation Error', 'Please enter a valid numeric price.');
+      showAlert('Invalid Price', 'Please enter a valid price.');
       return;
     }
 
@@ -379,666 +398,752 @@ export default function AddProductScreen() {
       (api as ApiInstance).clearCache();
       showAlert(
         'Success',
-        isEditing ? 'Product updated successfully' : 'Product added successfully',
+        isEditing ? 'Product updated.' : 'Product added.',
         () => router.back()
       );
     } catch (error: any) {
-      showAlert('Error', getErrorMessage(error, 'Failed to save product'));
+      showAlert('Error', getErrorMessage(error, 'Failed to save product.'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <ScrollView
-        style={[styles.container, { backgroundColor: colors.bg }]}
-        contentContainerStyle={{ paddingBottom: 40 }}
-      >
+    <View style={[styles.root, { backgroundColor: colors.bg }]}>
+      {/* ─── Top Navigation Bar ─── */}
       <View
         style={[
-          styles.imageSection,
-          { backgroundColor: colors.card, borderBottomColor: colors.border },
+          styles.topNavBar,
+          {
+            paddingTop: Math.max(insets.top, 12),
+            backgroundColor: colors.bg,
+            borderBottomColor: colors.border,
+          },
         ]}
       >
         <TouchableOpacity
-          style={[styles.imagePicker, { backgroundColor: colors.cardAlt }]}
-          onPress={pickImage}
+          style={[styles.backBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+          onPress={() => router.back()}
+          accessibilityLabel="Go back"
         >
-          {imageUri ? (
-            <Image source={{ uri: imageUri }} style={styles.previewImage} />
+          <Ionicons name="chevron-back" size={20} color={colors.text} />
+        </TouchableOpacity>
+
+        <Text style={[styles.navTitle, { color: colors.text }]}>
+          {isEditing ? 'Edit Product' : 'New Product'}
+        </Text>
+
+        <TouchableOpacity
+          style={[styles.navSaveBtn, { backgroundColor: '#10b981' }]}
+          onPress={handleSave}
+          disabled={loading}
+          accessibilityLabel="Save product"
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color="#ffffff" />
           ) : (
-            <View style={{ alignItems: 'center' }}>
-              <Ionicons name="camera-outline" size={32} color={colors.textMuted} />
-              <Text style={[styles.imagePlaceholderText, { color: colors.textMuted, marginTop: 4 }]}>
-                Tap to upload photo
-              </Text>
-            </View>
+            <Text style={styles.navSaveBtnText}>Save</Text>
           )}
         </TouchableOpacity>
       </View>
 
-      <View style={styles.form}>
-        {/* AI Vision Packaging Scan Banner */}
-        <TouchableOpacity
-          activeOpacity={0.85}
-          style={[
-            styles.aiScanBanner,
-            {
-              backgroundColor: isDark ? 'rgba(99, 102, 241, 0.16)' : '#eef2ff',
-              borderColor: isDark ? '#4338ca' : '#c7d2fe',
-            },
-          ]}
-          onPress={() => setShowAIOptionsModal(true)}
-          disabled={analyzingPackaging}
-        >
-          <View style={styles.aiIconBadge}>
-            <Ionicons name="sparkles" size={18} color="#6366f1" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Text style={[styles.aiScanTitle, { color: isDark ? '#a5b4fc' : '#4338ca' }]}>
-                AI Packaging Vision Scan
-              </Text>
-              <View style={styles.aiNewPill}>
-                <Text style={styles.aiNewPillText}>AI VISION</Text>
-              </View>
-            </View>
-            <Text style={[styles.aiScanSub, { color: colors.textMuted }]}>
-              {analyzingPackaging
-                ? 'AI is analyzing packaging photo...'
-                : 'Snap packaging to auto-fill Name, Brand, Unit & Details'}
-            </Text>
-          </View>
-          {analyzingPackaging ? (
-            <ActivityIndicator size="small" color="#6366f1" />
-          ) : (
-            <Ionicons name="camera-outline" size={20} color="#6366f1" />
-          )}
-        </TouchableOpacity>
-
-        {/* Extra Gallery Photos Section */}
-        <View style={styles.gallerySection}>
-          <View style={styles.galleryHeader}>
-            <Text style={[styles.label, { color: colors.textMuted, marginBottom: 0 }]}>
-              Additional Gallery Photos ({galleryImages.length})
-            </Text>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ─── Media & AI Bar ─── */}
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={styles.mediaRow}>
+            {/* Primary Image */}
             <TouchableOpacity
-              style={[
-                styles.addGalleryBtn,
-                { backgroundColor: colors.cardAlt, borderColor: colors.border },
-              ]}
-              onPress={pickGalleryImages}
+              style={[styles.primaryImageThumb, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}
+              onPress={pickImage}
+              activeOpacity={0.8}
             >
-              <Ionicons name="add" size={14} color="#10b981" />
-              <Text style={[styles.addGalleryBtnText, { color: colors.text }]}>Add Photos</Text>
-            </TouchableOpacity>
-          </View>
-
-          {galleryImages.length > 0 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galleryList}>
-              {galleryImages.map((uri, idx) => (
-                <View key={idx} style={[styles.galleryThumbWrap, { borderColor: colors.border }]}>
-                  <Image source={{ uri }} style={styles.galleryThumb} contentFit="cover" />
-                  <TouchableOpacity
-                    style={styles.galleryRemoveBtn}
-                    onPress={() => removeGalleryImage(idx)}
-                  >
-                    <Ionicons name="close" size={12} color="#fff" />
-                  </TouchableOpacity>
+              {imageUri ? (
+                <>
+                  <Image source={{ uri: imageUri }} style={styles.fullImage} contentFit="cover" />
+                  <View style={styles.editThumbBadge}>
+                    <Ionicons name="pencil" size={11} color="#ffffff" />
+                  </View>
+                </>
+              ) : (
+                <View style={styles.imagePlaceholderBox}>
+                  <Ionicons name="camera-outline" size={26} color={colors.textMuted} />
+                  <Text style={[styles.imagePlaceholderText, { color: colors.textMuted }]}>
+                    Photo
+                  </Text>
                 </View>
-              ))}
-            </ScrollView>
-          )}
-        </View>
-
-        <Text style={[styles.label, { color: colors.textMuted }]}>Barcode / SKU (Optional)</Text>
-        <View style={styles.row}>
-          <TextInput
-            style={[
-              styles.input,
-              { flex: 1, marginBottom: 0, backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
-            ]}
-            placeholder="Enter barcode or scan"
-            placeholderTextColor={colors.textMuted}
-            value={sku}
-            onChangeText={setSku}
-          />
-          <TouchableOpacity
-            style={styles.lookupBtn}
-            onPress={() => handleBarcodeLookup()}
-            disabled={lookingUpBarcode}
-          >
-            <Text style={styles.lookupBtnText}>
-              {lookingUpBarcode ? '...' : 'Auto-Fill'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={[styles.label, { color: colors.textMuted, marginTop: 16 }]}>Category</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.catScroll}
-        >
-          {categories.map((cat) => (
-            <TouchableOpacity
-              key={cat.id}
-              style={[
-                styles.catChip,
-                { backgroundColor: colors.card, borderColor: colors.border },
-                selectedCategory === cat.id && styles.catChipActive,
-              ]}
-              onPress={() => setSelectedCategory(cat.id)}
-            >
-              <Text
-                style={[
-                  styles.catChipText,
-                  { color: colors.textMuted },
-                  selectedCategory === cat.id && { color: '#fff', fontWeight: 'bold' },
-                ]}
-              >
-                {cat.name}
-              </Text>
+              )}
             </TouchableOpacity>
-          ))}
-        </ScrollView>
 
-        <Text style={[styles.label, { color: colors.textMuted }]}>Product Name *</Text>
-        <TextInput
-          style={[
-            styles.input,
-            { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
-          ]}
-          placeholder="e.g. Aashirvaad Shudh Chakki Atta"
-          placeholderTextColor={colors.textMuted}
-          value={name}
-          onChangeText={setName}
-        />
+            {/* Gallery Reel */}
+            <View style={{ flex: 1 }}>
+              <View style={styles.mediaHeaderRow}>
+                <Text style={[styles.fieldLabel, { color: colors.textMuted, marginBottom: 0 }]}>
+                  Gallery ({galleryImages.length})
+                </Text>
 
-        <View style={styles.row}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.label, { color: colors.textMuted }]}>Brand</Text>
-            <TextInput
-              style={[
-                styles.input,
-                { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
-              ]}
-              placeholder="e.g. ITC"
-              placeholderTextColor={colors.textMuted}
-              value={brand}
-              onChangeText={setBrand}
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.label, { color: colors.textMuted }]}>Unit *</Text>
-            <TextInput
-              style={[
-                styles.input,
-                { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
-              ]}
-              placeholder="1 kg, 500 ml"
-              placeholderTextColor={colors.textMuted}
-              value={unit}
-              onChangeText={setUnit}
-            />
-          </View>
-        </View>
+                {/* AI Scan Action Pill */}
+                <TouchableOpacity
+                  style={[
+                    styles.aiScanPill,
+                    {
+                      backgroundColor: isDark ? 'rgba(99, 102, 241, 0.16)' : '#eef2ff',
+                      borderColor: isDark ? '#4338ca' : '#c7d2fe',
+                    },
+                  ]}
+                  onPress={() => setShowAIOptionsModal(true)}
+                  disabled={analyzingPackaging}
+                >
+                  {analyzingPackaging ? (
+                    <ActivityIndicator size="small" color="#6366f1" />
+                  ) : (
+                    <>
+                      <Ionicons name="sparkles" size={13} color="#6366f1" />
+                      <Text style={[styles.aiScanPillText, { color: isDark ? '#a5b4fc' : '#4338ca' }]}>
+                        AI Scan
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
 
-        <View style={styles.row}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.label, { color: colors.textMuted }]}>Regular Price (₹) *</Text>
-            <TextInput
-              style={[
-                styles.input,
-                { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
-              ]}
-              placeholder="0.00"
-              placeholderTextColor={colors.textMuted}
-              keyboardType="numeric"
-              value={price}
-              onChangeText={setPrice}
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.label, { color: colors.textMuted }]}>Offer Price (₹)</Text>
-            <TextInput
-              style={[
-                styles.input,
-                { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
-              ]}
-              placeholder="Optional discount"
-              placeholderTextColor={colors.textMuted}
-              keyboardType="numeric"
-              value={offerPrice}
-              onChangeText={setOfferPrice}
-            />
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.galleryReel}
+              >
+                {galleryImages.map((uri, idx) => (
+                  <View key={idx} style={[styles.galleryThumbBox, { borderColor: colors.border }]}>
+                    <Image source={{ uri }} style={styles.fullImage} contentFit="cover" />
+                    <TouchableOpacity
+                      style={styles.galleryRemoveBadge}
+                      onPress={() => removeGalleryImage(idx)}
+                    >
+                      <Ionicons name="close" size={11} color="#ffffff" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+
+                <TouchableOpacity
+                  style={[styles.addGalleryChip, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}
+                  onPress={pickGalleryImages}
+                >
+                  <Ionicons name="add" size={18} color={colors.textMuted} />
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
           </View>
         </View>
 
-        {/* Purchase/Cost Price & Expiry Date */}
-        <View style={styles.row}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.label, { color: colors.textMuted }]}>Cost / Purchase Price (₹)</Text>
+        {/* ─── 1. General Details ─── */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>GENERAL</Text>
+        </View>
+
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          {/* Name */}
+          <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Product Name *</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+            placeholder="e.g. Sona Masoori Rice"
+            placeholderTextColor={colors.textMuted}
+            value={name}
+            onChangeText={setName}
+          />
+
+          {/* Category Selector */}
+          <Text style={[styles.fieldLabel, { color: colors.textMuted, marginTop: 4 }]}>Category</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoryScroll}
+          >
+            {categories.map((cat) => {
+              const active = selectedCategory === cat.id;
+              return (
+                <TouchableOpacity
+                  key={cat.id}
+                  style={[
+                    styles.catPill,
+                    active
+                      ? { backgroundColor: '#10b981', borderColor: '#10b981' }
+                      : { backgroundColor: colors.cardAlt, borderColor: colors.border },
+                  ]}
+                  onPress={() => setSelectedCategory(cat.id)}
+                >
+                  <Text
+                    style={[
+                      styles.catPillText,
+                      { color: active ? '#ffffff' : colors.textMuted, fontWeight: active ? '700' : '500' },
+                    ]}
+                  >
+                    {cat.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          {/* Brand & Unit */}
+          <View style={styles.gridRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Brand</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                placeholder="e.g. Tata"
+                placeholderTextColor={colors.textMuted}
+                value={brand}
+                onChangeText={setBrand}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Unit *</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                placeholder="1 kg, 500 g"
+                placeholderTextColor={colors.textMuted}
+                value={unit}
+                onChangeText={setUnit}
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* ─── 2. Pricing & Inventory ─── */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>PRICING & STOCK</Text>
+        </View>
+
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          {/* Price & Offer Price */}
+          <View style={styles.gridRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Regular Price (₹) *</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                placeholder="0.00"
+                placeholderTextColor={colors.textMuted}
+                keyboardType="numeric"
+                value={price}
+                onChangeText={setPrice}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Offer Price (₹)</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                placeholder="Optional"
+                placeholderTextColor={colors.textMuted}
+                keyboardType="numeric"
+                value={offerPrice}
+                onChangeText={setOfferPrice}
+              />
+            </View>
+          </View>
+
+          {/* Stock & Max Order Limit */}
+          <View style={styles.gridRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Stock Quantity</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                placeholder="10"
+                placeholderTextColor={colors.textMuted}
+                keyboardType="numeric"
+                value={stock}
+                onChangeText={setStock}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Max Order Limit</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+                placeholder="10"
+                placeholderTextColor={colors.textMuted}
+                keyboardType="numeric"
+                value={maxOrderQty}
+                onChangeText={setMaxOrderQty}
+              />
+            </View>
+          </View>
+
+          {/* Cost Price */}
+          <View style={{ marginTop: 2 }}>
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Cost / Purchase Price (₹)</Text>
             <TextInput
-              style={[
-                styles.input,
-                { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
-              ]}
-              placeholder="Cost to store"
+              style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+              placeholder="Internal cost"
               placeholderTextColor={colors.textMuted}
               keyboardType="numeric"
               value={costPrice}
               onChangeText={setCostPrice}
             />
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.label, { color: colors.textMuted }]}>Expiry Date (YYYY-MM-DD)</Text>
+        </View>
+
+        {/* ─── 3. Visibility ─── */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>VISIBILITY</Text>
+        </View>
+
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={styles.switchRow}>
+            <Text style={[styles.switchLabel, { color: colors.text }]}>Available In Stock</Text>
+            <ModernSwitch value={isInStock} onValueChange={setIsInStock} />
+          </View>
+        </View>
+
+        {/* ─── 4. Organization & SKU ─── */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>BARCODE & DETAILS</Text>
+        </View>
+
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          {/* Barcode / SKU with Scan & Auto-Fill */}
+          <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Barcode / SKU</Text>
+          <View style={styles.barcodeInputRow}>
             <TextInput
               style={[
                 styles.input,
-                { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
+                { flex: 1, marginBottom: 0, backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text },
               ]}
-              placeholder="e.g. 2026-12-31"
+              placeholder="Scan or enter barcode"
+              placeholderTextColor={colors.textMuted}
+              value={sku}
+              onChangeText={setSku}
+            />
+            <TouchableOpacity
+              style={[styles.barcodeIconBtn, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}
+              onPress={() => setShowBarcodeScanner(true)}
+              accessibilityLabel="Scan with Camera"
+            >
+              <Ionicons name="barcode-outline" size={18} color="#10b981" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.lookupBtn}
+              onPress={() => handleBarcodeLookup()}
+              disabled={lookingUpBarcode}
+            >
+              {lookingUpBarcode ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <Text style={styles.lookupBtnText}>Auto-Fill</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* Expiry Date */}
+          <View style={{ marginTop: 12 }}>
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Expiry Date</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+              placeholder="YYYY-MM-DD"
               placeholderTextColor={colors.textMuted}
               value={expiryDate}
               onChangeText={setExpiryDate}
             />
           </View>
-        </View>
 
-        <View style={styles.row}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.label, { color: colors.textMuted }]}>Stock Quantity</Text>
-            <TextInput
-              style={[
-                styles.input,
-                { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
-              ]}
-              placeholder="10"
-              placeholderTextColor={colors.textMuted}
-              keyboardType="numeric"
-              value={stock}
-              onChangeText={setStock}
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.label, { color: colors.textMuted }]}>Max Order Limit</Text>
-            <TextInput
-              style={[
-                styles.input,
-                { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
-              ]}
-              placeholder="10"
-              placeholderTextColor={colors.textMuted}
-              keyboardType="numeric"
-              value={maxOrderQty}
-              onChangeText={setMaxOrderQty}
-            />
-          </View>
-        </View>
+          {/* Tags */}
+          <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Tags</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+            placeholder="e.g. Snacks, Fresh (comma separated)"
+            placeholderTextColor={colors.textMuted}
+            value={tags}
+            onChangeText={setTags}
+          />
 
-        {/* Product Tags */}
-        <Text style={[styles.label, { color: colors.textMuted }]}>Product Tags / Highlights</Text>
-        <TextInput
-          style={[
-            styles.input,
-            { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
-          ]}
-          placeholder="e.g. Bestseller, Organic, Snacks, Top Pick (comma separated)"
-          placeholderTextColor={colors.textMuted}
-          value={tags}
-          onChangeText={setTags}
-        />
-
-        <Text style={[styles.label, { color: colors.textMuted }]}>Description</Text>
-        <TextInput
-          style={[
-            styles.input,
-            {
-              minHeight: 70,
-              textAlignVertical: 'top',
-              backgroundColor: colors.card,
-              borderColor: colors.border,
-              color: colors.text,
-            },
-          ]}
-          placeholder="Optional product description..."
-          placeholderTextColor={colors.textMuted}
-          multiline
-          value={description}
-          onChangeText={setDescription}
-        />
-
-        <View style={styles.switchRow}>
-          <View>
-            <Text style={[styles.switchLabel, { color: colors.text }]}>Available In Stock</Text>
-            <Text style={[styles.switchSub, { color: colors.textMuted }]}>
-              Show this product as ready to buy in customer app
-            </Text>
-          </View>
-          <ModernSwitch
-            value={isInStock}
-            onValueChange={setIsInStock}
+          {/* Description */}
+          <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Description</Text>
+          <TextInput
+            style={[
+              styles.input,
+              styles.textArea,
+              { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text },
+            ]}
+            placeholder="Product details & instructions..."
+            placeholderTextColor={colors.textMuted}
+            multiline
+            value={description}
+            onChangeText={setDescription}
           />
         </View>
 
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={loading}>
+        {/* ─── Bottom Save Button ─── */}
+        <TouchableOpacity
+          style={[styles.bottomSaveBtn, { backgroundColor: '#10b981' }]}
+          onPress={handleSave}
+          disabled={loading}
+        >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color="#ffffff" />
           ) : (
             <>
-              <Ionicons name="save-outline" size={20} color="#fff" />
-              <Text style={styles.saveBtnText}>{isEditing ? 'Update Product' : 'Save Product'}</Text>
+              <Ionicons name="checkmark-circle" size={18} color="#ffffff" />
+              <Text style={styles.bottomSaveBtnText}>
+                {isEditing ? 'Update Product' : 'Save Product'}
+              </Text>
             </>
           )}
         </TouchableOpacity>
-      </View>
-    </ScrollView>
+      </ScrollView>
 
-      {/* AI Packaging Options Modal */}
+      {/* ─── AI Packaging Vision Modal ─── */}
       <Modal visible={showAIOptionsModal} transparent animationType="fade">
-        <View style={styles.aiModalOverlay}>
+        <View style={styles.modalOverlay}>
           <View
             style={[
-              styles.aiModalCard,
+              styles.modalCard,
               { backgroundColor: colors.card, borderColor: colors.border },
             ]}
           >
-            <View style={styles.aiModalHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Ionicons name="sparkles" size={20} color="#6366f1" />
-                <Text style={[styles.aiModalTitle, { color: colors.text }]}>
-                  AI Packaging Scanner
-                </Text>
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="sparkles" size={18} color="#6366f1" />
+                <Text style={[styles.modalTitle, { color: colors.text }]}>AI Packaging Scan</Text>
               </View>
               <TouchableOpacity onPress={() => setShowAIOptionsModal(false)}>
-                <Ionicons name="close" size={22} color={colors.textMuted} />
+                <Ionicons name="close" size={20} color={colors.textMuted} />
               </TouchableOpacity>
             </View>
 
-            <Text style={[styles.aiModalSub, { color: colors.textMuted }]}>
-              Take a photo to auto-fill product details.
-            </Text>
-
-            <View style={styles.aiModalOptions}>
+            <View style={styles.modalOptions}>
               <TouchableOpacity
-                style={[
-                  styles.aiOptionBtn,
-                  { backgroundColor: colors.cardAlt, borderColor: colors.border },
-                ]}
+                style={[styles.modalOptionBtn, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}
                 onPress={() => handleAIVisionScan('camera')}
               >
-                <Ionicons name="camera" size={24} color="#6366f1" />
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.aiOptionTitle, { color: colors.text }]}>
-                    Take Photo with Camera
-                  </Text>
-                  <Text style={[styles.aiOptionDesc, { color: colors.textMuted }]}>
-                    Snap product packaging right now
-                  </Text>
-                </View>
+                <Ionicons name="camera" size={20} color="#6366f1" />
+                <Text style={[styles.modalOptionText, { color: colors.text }]}>Camera</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[
-                  styles.aiOptionBtn,
-                  { backgroundColor: colors.cardAlt, borderColor: colors.border },
-                ]}
+                style={[styles.modalOptionBtn, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}
                 onPress={() => handleAIVisionScan('library')}
               >
-                <Ionicons name="images" size={24} color="#10b981" />
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.aiOptionTitle, { color: colors.text }]}>
-                    Pick from Photo Gallery
-                  </Text>
-                  <Text style={[styles.aiOptionDesc, { color: colors.textMuted }]}>
-                    Select saved packaging photo
-                  </Text>
-                </View>
+                <Ionicons name="images" size={20} color="#10b981" />
+                <Text style={[styles.modalOptionText, { color: colors.text }]}>Photo Gallery</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
+
+      {/* ─── Universal Camera Barcode Scanner Modal ─── */}
+      <Modal
+        visible={showBarcodeScanner}
+        animationType="slide"
+        onRequestClose={() => setShowBarcodeScanner(false)}
+      >
+        {showBarcodeScanner && (
+          <UniversalCameraScanner
+            title="Scan Product Barcode"
+            subtitle="Align barcode within frame"
+            onScan={(code) => {
+              setShowBarcodeScanner(false);
+              setSku(code);
+              handleBarcodeLookup(code);
+            }}
+            onClose={() => setShowBarcodeScanner(false)}
+          />
+        )}
+      </Modal>
     </View>
   );
 }
 
+// ─── Stylesheet ───
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
   },
-  imageSection: {
-    alignItems: 'center',
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-  },
-  imagePicker: {
-    width: 130,
-    height: 130,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  imagePlaceholderText: {
-    fontSize: 12,
-  },
-  previewImage: {
-    width: '100%',
-    height: '100%',
-  },
-  form: {
-    padding: 16,
-  },
-  row: {
+  topNavBar: {
     flexDirection: 'row',
-    gap: 12,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    zIndex: 10,
   },
-  label: {
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  navSaveBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 8,
+    minWidth: 58,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navSaveBtnText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 50,
+  },
+
+  // Inset Card Architecture
+  card: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 14,
+  },
+  sectionHeaderRow: {
     marginBottom: 6,
+    marginLeft: 4,
+  },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  fieldLabel: {
     fontSize: 12,
     fontWeight: '600',
+    marginBottom: 6,
   },
   input: {
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 9,
     fontSize: 14,
-    marginBottom: 14,
+    marginBottom: 10,
   },
-  lookupBtn: {
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+  textArea: {
+    minHeight: 70,
+    textAlignVertical: 'top',
+    paddingTop: 10,
   },
-  lookupBtnText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 13,
-  },
-  catScroll: {
-    gap: 8,
-    marginBottom: 14,
-  },
-  catChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  catChipActive: {
-    backgroundColor: '#10b981',
-    borderColor: '#10b981',
-  },
-  catChipText: {
-    fontSize: 13,
-  },
-  switchRow: {
+  gridRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 18,
+    gap: 10,
   },
-  switchLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  switchSub: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  saveBtn: {
+
+  // Media Card
+  mediaRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#10b981',
-    paddingVertical: 14,
-    borderRadius: 10,
-    marginTop: 8,
-  },
-  saveBtnText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: 'bold',
-  },
-  aiScanBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: 12,
-    padding: 14,
+  },
+  primaryImageThumb: {
+    width: 82,
+    height: 82,
     borderRadius: 14,
     borderWidth: 1,
-    marginBottom: 16,
-  },
-  aiIconBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#ffffff',
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    position: 'relative',
   },
-  aiScanTitle: {
-    fontSize: 14,
-    fontWeight: '800',
+  imagePlaceholderBox: {
+    alignItems: 'center',
+    gap: 2,
   },
-  aiNewPill: {
-    backgroundColor: '#6366f1',
-    paddingHorizontal: 6,
-    paddingVertical: 1.5,
-    borderRadius: 4,
+  imagePlaceholderText: {
+    fontSize: 11,
+    fontWeight: '600',
   },
-  aiNewPillText: {
-    color: '#ffffff',
-    fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 0.5,
+  fullImage: {
+    width: '100%',
+    height: '100%',
   },
-  aiScanSub: {
-    fontSize: 11.5,
-    marginTop: 2,
+  editThumbBadge: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#10b981',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  gallerySection: {
-    marginBottom: 16,
-  },
-  galleryHeader: {
+  mediaHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
   },
-  addGalleryBtn: {
+  aiScanPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+    borderRadius: 6,
     borderWidth: 1,
   },
-  addGalleryBtnText: {
-    fontSize: 11.5,
-    fontWeight: '700',
+  aiScanPillText: {
+    fontSize: 11,
+    fontWeight: '800',
   },
-  galleryList: {
+  galleryReel: {
     flexDirection: 'row',
+    gap: 8,
   },
-  galleryThumbWrap: {
-    width: 64,
-    height: 64,
+  galleryThumbBox: {
+    width: 52,
+    height: 52,
     borderRadius: 10,
     borderWidth: 1,
-    marginRight: 8,
-    position: 'relative',
     overflow: 'hidden',
+    position: 'relative',
   },
-  galleryThumb: {
-    width: '100%',
-    height: '100%',
-  },
-  galleryRemoveBtn: {
+  galleryRemoveBadge: {
     position: 'absolute',
     top: 2,
     right: 2,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
     backgroundColor: 'rgba(0, 0, 0, 0.65)',
-    justifyContent: 'center',
     alignItems: 'center',
-  },
-  aiModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
     justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
   },
-  aiModalCard: {
-    width: '100%',
-    maxWidth: 420,
-    borderRadius: 20,
+  addGalleryChip: {
+    width: 52,
+    height: 52,
+    borderRadius: 10,
     borderWidth: 1,
-    padding: 20,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  aiModalHeader: {
+
+  // Category Pills
+  categoryScroll: {
+    gap: 7,
+    marginBottom: 10,
+  },
+  catPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  catPillText: {
+    fontSize: 12,
+  },
+
+  // Switch Row
+  switchRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    paddingVertical: 2,
   },
-  aiModalTitle: {
-    fontSize: 16,
-    fontWeight: '800',
+  switchLabel: {
+    fontSize: 14,
+    fontWeight: '600',
   },
-  aiModalSub: {
-    fontSize: 12.5,
-    lineHeight: 18,
-    marginBottom: 18,
-  },
-  aiModalOptions: {
-    gap: 10,
-  },
-  aiOptionBtn: {
+
+  // Barcode Input Row
+  barcodeInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1,
+    gap: 8,
   },
-  aiOptionTitle: {
-    fontSize: 14,
+  barcodeIconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lookupBtn: {
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 12,
+    height: 38,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lookupBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
     fontWeight: '700',
   },
-  aiOptionDesc: {
-    fontSize: 11.5,
-    marginTop: 1,
+
+  // Bottom Save Button
+  bottomSaveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 6,
+    marginBottom: 20,
+  },
+  bottomSaveBtnText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+
+  // Modals
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 340,
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 18,
+    gap: 14,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  modalOptions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  modalOptionBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    gap: 6,
+  },
+  modalOptionText: {
+    fontSize: 13,
+    fontWeight: '700',
   },
 });
