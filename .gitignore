@@ -27,3 +27,4 @@ backend/venv/
 
 .python/
 venv_temp/
+*.apk

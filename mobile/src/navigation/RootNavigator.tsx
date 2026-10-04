@@ -29,10 +29,6 @@ import { ErrorBoundary } from "../components/ErrorBoundary";
 import { APP_VERSION } from "../constants/config";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
-import { ForgotPasswordScreen } from "../screens/auth/ForgotPasswordScreen";
-import { LoginScreen } from "../screens/auth/LoginScreen";
-import { ResetPasswordScreen } from "../screens/auth/ResetPasswordScreen";
-import { SignupScreen } from "../screens/auth/SignupScreen";
 import {
   addNotificationResponseReceivedListener,
   getLastNotificationResponseAsync,
@@ -290,15 +286,13 @@ const linking = {
   ],
   config: {
     screens: {
-      ResetPasswordScreen: "reset-password",
-      ForgotPasswordScreen: "forgot-password",
-      Signup: "signup",
-      Login: "login",
       Auth: {
         screens: {
           Welcome: "welcome",
           Login: "login",
           Signup: "signup",
+            ResetPasswordScreen: "reset-password",
+            ForgotPasswordScreen: "forgot-password",
         },
       },
       Main: {
@@ -702,16 +696,6 @@ export function RootNavigator() {
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="Main" component={MainTabs} />
           <Stack.Screen name="Auth" component={AuthStack} />
-          <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen name="Signup" component={SignupScreen} />
-          <Stack.Screen
-            name="ForgotPasswordScreen"
-            component={ForgotPasswordScreen}
-          />
-          <Stack.Screen
-            name="ResetPasswordScreen"
-            component={ResetPasswordScreen}
-          />
         </Stack.Navigator>
       </NavigationContainer>
     </ErrorBoundary>

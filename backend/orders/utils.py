@@ -112,7 +112,10 @@ def format_invoice_number(order):
     from django.utils import timezone
     created = getattr(order, 'created_at', None) or timezone.now()
     year = created.year
-    clean_id = ''.join(c for c in str(order.id) if c.isdigit())
+    order_id_str = str(getattr(order, 'id', '') or '')
+    if order_id_str.startswith('ORD'):
+        return f"INV-{year}-{order_id_str}"
+    clean_id = ''.join(c for c in order_id_str if c.isdigit())
     seq = clean_id[-5:] if len(clean_id) >= 5 else clean_id.zfill(5)
     return f"INV-{year}-{seq}"
 

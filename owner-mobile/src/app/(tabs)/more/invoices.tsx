@@ -1406,7 +1406,7 @@ export default function InvoicesScreen() {
                       )}
 
                       {/* Customer & Fulfillment Info Grid */}
-                      <View style={styles.infoGridCol}>
+                      <View style={styles.infoGridRow}>
                         {/* Billed / Shipped To */}
                         <View style={styles.infoGridCard}>
                           <Text style={styles.infoGridHeader}>BILLED / SHIPPED TO</Text>
@@ -2306,12 +2306,11 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   docMetaCard: {
-    backgroundColor: '#f8fafc',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 8,
-    padding: 10,
-    gap: 4,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    padding: 0,
+    marginTop: 4,
+    gap: 3,
   },
   docMetaRow: {
     flexDirection: 'row',
@@ -2380,15 +2379,17 @@ const styles = StyleSheet.create({
   },
 
   // Customer & Fulfillment Info Grid
-  infoGridCol: {
+  infoGridRow: {
+    flexDirection: 'row',
     gap: 10,
     marginBottom: 14,
   },
   infoGridCard: {
+    flex: 1,
     borderWidth: 1,
     borderColor: '#e2e8f0',
     borderRadius: 10,
-    padding: 12,
+    padding: 10,
     backgroundColor: '#ffffff',
     gap: 4,
   },
