@@ -7,10 +7,14 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
+  Platform,
+  Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import api, { ApiInstance, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
+import { showAlert } from '../../../utils/alerts';
 import ScreenHeader from '../../../components/ScreenHeader';
 
 type Timeframe = '7' | '30' | 'all';
@@ -49,30 +53,31 @@ export default function ReportsScreen() {
     fetchOrders(true);
   }, [fetchOrders]);
 
-  const { totalSales, totalOrders, aov, chartPoints, topProducts } = useMemo(() => {
+  const filteredOrders = useMemo(() => {
     const now = new Date();
     const cutoff = new Date();
     if (timeframe !== 'all') {
       cutoff.setDate(now.getDate() - parseInt(timeframe, 10));
     }
 
-    // Filter valid completed/active orders
-    const validOrders = orders.filter((o) => {
+    return orders.filter((o) => {
       const orderDate = new Date(o.created_at);
       const isTimeframe = timeframe === 'all' || orderDate >= cutoff;
       return o.status !== 'REJECTED' && isTimeframe;
     });
+  }, [orders, timeframe]);
 
-    const totalSalesNum = validOrders.reduce(
+  const { totalSales, totalOrders, aov, chartPoints, topProducts } = useMemo(() => {
+    const totalSalesNum = filteredOrders.reduce(
       (sum, o) => sum + (parseFloat(o.total_amount) || 0),
       0
     );
-    const totalOrdersCount = validOrders.length;
+    const totalOrdersCount = filteredOrders.length;
     const aovNum = totalOrdersCount > 0 ? totalSalesNum / totalOrdersCount : 0;
 
     // Daily chart aggregation
     const dailyMap: Record<string, number> = {};
-    validOrders.forEach((o) => {
+    filteredOrders.forEach((o) => {
       if (!o.created_at) return;
       const dateStr = new Date(o.created_at).toLocaleDateString('en-US', {
         month: 'short',
@@ -95,7 +100,7 @@ export default function ReportsScreen() {
 
     // Top Best Sellers aggregation
     const productMap: Record<string, { name: string; quantity: number; revenue: number }> = {};
-    validOrders.forEach((o) => {
+    filteredOrders.forEach((o) => {
       (o.items || []).forEach((item: any) => {
         const pId = String(item.product || item.product_name_snapshot || 'item');
         const pName = item.product_name_snapshot || 'Product';
@@ -120,7 +125,44 @@ export default function ReportsScreen() {
       chartPoints: chartList,
       topProducts: bestSellers,
     };
-  }, [orders, timeframe]);
+  }, [filteredOrders, timeframe]);
+
+  const handleExportCSV = useCallback(async () => {
+    if (filteredOrders.length === 0) {
+      showAlert('Export Sales', 'No completed orders in this timeframe.');
+      return;
+    }
+
+    let csv = 'Order ID,Date,Customer,Items,Total Amount (Rs.)\n';
+    filteredOrders.forEach((o) => {
+      const date = new Date(o.created_at).toLocaleDateString('en-IN');
+      const customer = o.customer_name || 'Guest';
+      const itemsCount = (o.items || []).length || o.items_count || 1;
+      csv += `${o.id},"${date}","${customer}",${itemsCount},${o.total_amount}\n`;
+    });
+
+    if (Platform.OS === 'web') {
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.setAttribute('href', url);
+      a.setAttribute('download', `sales_report_${timeframe}_days.csv`);
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showAlert('Exported', 'Sales CSV report downloaded.');
+    } else {
+      try {
+        await Share.share({
+          title: `Sales Report (${timeframe === 'all' ? 'All Time' : `${timeframe} Days`})`,
+          message: csv,
+        });
+      } catch {
+        await Clipboard.setStringAsync(csv);
+        showAlert('Exported', 'Sales CSV report copied to clipboard.');
+      }
+    }
+  }, [filteredOrders, timeframe]);
 
   if (loading && !refreshing) {
     return (
@@ -138,6 +180,15 @@ export default function ReportsScreen() {
       <ScreenHeader
         title="Sales & Analytics"
         subtitle={`₹${parseFloat(totalSales).toLocaleString('en-IN', { maximumFractionDigits: 0 })} revenue • ${totalOrders} orders`}
+        rightAction={
+          <TouchableOpacity
+            style={styles.exportHeaderBtn}
+            onPress={handleExportCSV}
+          >
+            <Ionicons name="download-outline" size={14} color="#fff" />
+            <Text style={styles.exportHeaderBtnText}>Export CSV</Text>
+          </TouchableOpacity>
+        }
       />
       <ScrollView
         style={[styles.container, { backgroundColor: colors.bg }]}
@@ -299,6 +350,20 @@ export default function ReportsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  exportHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#059669',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  exportHeaderBtnText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '700',
   },
   centered: {
     flex: 1,

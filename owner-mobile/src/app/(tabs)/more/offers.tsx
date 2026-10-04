@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import api, { ApiInstance, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert, showConfirm } from '../../../utils/alerts';
@@ -89,11 +90,16 @@ export default function OffersScreen() {
     }
   };
 
-  const handleCopyCode = (couponCode: string) => {
-    setCopiedCode(couponCode);
-    setTimeout(() => {
-      setCopiedCode(null);
-    }, 2000);
+  const handleCopyCode = async (couponCode: string) => {
+    try {
+      await Clipboard.setStringAsync(couponCode);
+      setCopiedCode(couponCode);
+      setTimeout(() => {
+        setCopiedCode(null);
+      }, 2000);
+    } catch {
+      showAlert('Notice', 'Failed to copy coupon code.');
+    }
   };
 
   const handleCreatePromo = async () => {

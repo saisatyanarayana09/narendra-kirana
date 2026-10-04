@@ -20,6 +20,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import * as Clipboard from 'expo-clipboard';
 import api, { ApiInstance, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert } from '../../../utils/alerts';
@@ -98,6 +99,7 @@ export default function InvoicesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [dateFilter, setDateFilter] = useState<'ALL' | 'TODAY' | 'WEEK' | 'MONTH'>('ALL');
   const [paymentFilter, setPaymentFilter] = useState<'ALL' | 'UPI' | 'COD'>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'COMPLETED' | 'ACTIVE'>('ALL');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -148,6 +150,12 @@ export default function InvoicesScreen() {
     const safeOrders = Array.isArray(orders) ? orders : [];
     const q = searchTerm.trim().toLowerCase();
 
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - 7);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
     return safeOrders.filter((order) => {
       if (!order) return false;
       if (q) {
@@ -156,6 +164,13 @@ export default function InvoicesScreen() {
         const addrMatch = String(order.delivery_address || '').toLowerCase().includes(q);
         const upiMatch = String(order.upi_transaction_id || '').toLowerCase().includes(q);
         if (!idMatch && !nameMatch && !addrMatch && !upiMatch) return false;
+      }
+
+      if (dateFilter !== 'ALL' && order.created_at) {
+        const orderDate = new Date(order.created_at);
+        if (dateFilter === 'TODAY' && orderDate < startOfToday) return false;
+        if (dateFilter === 'WEEK' && orderDate < startOfWeek) return false;
+        if (dateFilter === 'MONTH' && orderDate < startOfMonth) return false;
       }
 
       if (paymentFilter !== 'ALL') {
@@ -173,12 +188,13 @@ export default function InvoicesScreen() {
 
       return true;
     });
-  }, [orders, searchTerm, paymentFilter, statusFilter]);
+  }, [orders, searchTerm, dateFilter, paymentFilter, statusFilter]);
 
   const metrics = useMemo(() => {
     let totalBilled = 0;
     let upiTotal = 0;
     let codTotal = 0;
+    let completedCount = 0;
 
     filteredOrders.forEach((o) => {
       const amt = parseFloat(o.total_amount) || 0;
@@ -186,14 +202,58 @@ export default function InvoicesScreen() {
       const m = String(o.payment_method || 'COD').toUpperCase();
       if (m === 'UPI') upiTotal += amt;
       else codTotal += amt;
+      if (o.status === 'COMPLETED') completedCount += 1;
     });
 
     return {
       totalBilled: totalBilled.toFixed(2),
       upiTotal: upiTotal.toFixed(2),
       codTotal: codTotal.toFixed(2),
+      completedCount,
       count: filteredOrders.length,
     };
+  }, [filteredOrders]);
+
+  const handleExportCSV = useCallback(async () => {
+    if (filteredOrders.length === 0) {
+      showAlert('Export Invoices', 'No invoices match the current filter.');
+      return;
+    }
+
+    const headers = ['Invoice / Order ID', 'Date', 'Customer', 'Payment Method', 'UTR Ref', 'Status', 'Total Amount (Rs.)'];
+    const rows = filteredOrders.map((o) => [
+      `#${o.id}`,
+      new Date(o.created_at).toLocaleString('en-IN'),
+      o.customer_name || `Customer #${o.customer}`,
+      o.payment_method || 'COD',
+      o.upi_transaction_id || '-',
+      o.status,
+      o.total_amount,
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map((e) => e.map((val) => `"${val}"`).join(','))].join('\n');
+
+    if (Platform.OS === 'web') {
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.setAttribute('href', url);
+      a.setAttribute('download', `narendra_kirana_invoices_${Date.now()}.csv`);
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showAlert('Exported', 'Invoices summary CSV exported successfully!');
+    } else {
+      try {
+        await Share.share({
+          title: 'Invoices Report',
+          message: csvContent,
+        });
+      } catch {
+        await Clipboard.setStringAsync(csvContent);
+        showAlert('Exported', 'Invoices CSV copied to clipboard.');
+      }
+    }
   }, [filteredOrders]);
 
   // Build clean HTML for the invoice (used for preview + PDF)
@@ -342,6 +402,15 @@ export default function InvoicesScreen() {
       <ScreenHeader
         title="Tax Invoices & Billing"
         subtitle={`${filteredOrders.length} invoices • ₹${totalRevenue.toFixed(0)} billed`}
+        rightAction={
+          <TouchableOpacity
+            style={styles.exportHeaderBtn}
+            onPress={handleExportCSV}
+          >
+            <Ionicons name="download-outline" size={14} color="#fff" />
+            <Text style={styles.exportHeaderBtnText}>Export CSV</Text>
+          </TouchableOpacity>
+        }
       />
 
       {/* Top Filter and Search Header */}
@@ -361,6 +430,35 @@ export default function InvoicesScreen() {
             </TouchableOpacity>
           ) : null}
         </View>
+
+        {/* Date Filter Range Pills */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.dateFilterRow}
+        >
+          {(['ALL', 'TODAY', 'WEEK', 'MONTH'] as const).map((d) => (
+            <TouchableOpacity
+              key={d}
+              style={[
+                styles.datePill,
+                { backgroundColor: colors.cardAlt },
+                dateFilter === d && styles.datePillActive,
+              ]}
+              onPress={() => setDateFilter(d)}
+            >
+              <Text
+                style={[
+                  styles.datePillText,
+                  { color: colors.textMuted },
+                  dateFilter === d && styles.datePillTextActive,
+                ]}
+              >
+                {d === 'ALL' ? 'All Dates' : d === 'TODAY' ? 'Today' : d === 'WEEK' ? 'Past 7 Days' : 'This Month'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
 
         <View style={styles.pillRow}>
           {(['ALL', 'UPI', 'COD'] as const).map((method) => (
@@ -411,19 +509,23 @@ export default function InvoicesScreen() {
         </View>
       </View>
 
-      {/* Metrics Banner */}
+      {/* 4 Financial Metrics Banner Cards */}
       <View style={[styles.metricsBanner, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <View style={styles.metricItem}>
-          <Text style={[styles.metricLabel, { color: colors.textMuted }]}>INVOICES</Text>
-          <Text style={[styles.metricVal, { color: colors.text }]}>{metrics.count}</Text>
-        </View>
         <View style={styles.metricItem}>
           <Text style={[styles.metricLabel, { color: colors.textMuted }]}>TOTAL BILLED</Text>
           <Text style={[styles.metricVal, { color: '#10b981' }]}>₹{metrics.totalBilled}</Text>
         </View>
         <View style={styles.metricItem}>
           <Text style={[styles.metricLabel, { color: colors.textMuted }]}>UPI / ONLINE</Text>
-          <Text style={[styles.metricVal, { color: '#3b82f6' }]}>₹{metrics.upiTotal}</Text>
+          <Text style={[styles.metricVal, { color: '#6366f1' }]}>₹{metrics.upiTotal}</Text>
+        </View>
+        <View style={styles.metricItem}>
+          <Text style={[styles.metricLabel, { color: colors.textMuted }]}>CASH ON DEL</Text>
+          <Text style={[styles.metricVal, { color: '#f59e0b' }]}>₹{metrics.codTotal}</Text>
+        </View>
+        <View style={styles.metricItem}>
+          <Text style={[styles.metricLabel, { color: colors.textMuted }]}>COMPLETED</Text>
+          <Text style={[styles.metricVal, { color: '#059669' }]}>{metrics.completedCount}</Text>
         </View>
       </View>
 
@@ -605,6 +707,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  exportHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#059669',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  exportHeaderBtnText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '700',
+  },
   filterHeader: {
     padding: 12,
     borderBottomWidth: 1,
@@ -618,6 +734,26 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     gap: 8,
     marginBottom: 10,
+  },
+  dateFilterRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 8,
+  },
+  datePill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+  },
+  datePillActive: {
+    backgroundColor: '#059669',
+  },
+  datePillText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  datePillTextActive: {
+    color: '#ffffff',
   },
   searchInput: {
     flex: 1,
