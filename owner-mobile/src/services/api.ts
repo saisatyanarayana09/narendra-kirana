@@ -18,7 +18,7 @@ let onUnauthorizedCallback: (() => void) | null = null;
 
 const api = axios.create({
   baseURL: process.env.EXPO_PUBLIC_API_URL || 'https://narendra-kirana.onrender.com/api/v1',
-  timeout: 45000,
+  timeout: 60000,
 }) as ApiInstance;
 
 const apiCache = new LRUCache<any>(30);
@@ -48,11 +48,11 @@ export function getErrorMessage(error: any, fallback = 'Something went wrong. Pl
   }
 
   if (error?.code === 'ECONNABORTED' || error?.message?.includes('timeout')) {
-    return 'Server is taking too long to respond (it may be waking up). Please try again in a moment.';
+    return 'The server took too long to respond while waking up. Please try again in a few moments.';
   }
 
   if (error?.message === 'Network Error') {
-    return `Unable to reach the server at ${error?.config?.baseURL || 'unknown URL'}. Please check your internet connection.`;
+    return 'Unable to reach the server. The backend may be waking up from sleep, or there was a temporary network interruption. Please try again in a few seconds.';
   }
 
   if (typeof error?.message === 'string') return error.message;
@@ -113,6 +113,20 @@ api.interceptors.response.use(
     const originalRequest = error?.config;
     if (!originalRequest) {
       return Promise.reject(error);
+    }
+
+    // Auto-retry transient network errors and 502/503/504 cold-start waking errors
+    const isTransientError =
+      error?.message === 'Network Error' ||
+      error?.code === 'ECONNABORTED' ||
+      (error?.response?.status && [502, 503, 504].includes(error.response.status));
+
+    const currentRetry = (originalRequest as any)._retryCount || 0;
+    if (isTransientError && currentRetry < 2) {
+      (originalRequest as any)._retryCount = currentRetry + 1;
+      const delayMs = (originalRequest as any)._retryCount * 2000;
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      return api(originalRequest);
     }
 
     const requestUrl = String(originalRequest.url || '');
