@@ -1709,7 +1709,7 @@ export default function OrderDetailsScreen() {
                       </View>
 
                       {/* Compliance Strip (GSTIN & FSSAI) */}
-                      {(storeSettings?.gstin || storeSettings?.fssai_license_number) && (
+                      {Boolean(storeSettings?.gstin || storeSettings?.fssai_license_number) && (
                         <View style={styles.complianceStrip}>
                           {storeSettings?.gstin ? (
                             <View style={styles.complianceItem}>
