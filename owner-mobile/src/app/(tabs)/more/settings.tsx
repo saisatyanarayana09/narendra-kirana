@@ -22,8 +22,6 @@ import api, { ApiInstance, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert } from '../../../utils/alerts';
 
-const RADIUS_PRESETS = [2, 3, 5, 8, 10, 15];
-
 export default function SettingsScreen() {
   const router = useRouter();
   const { colors, isDark } = useAppTheme();
@@ -730,44 +728,6 @@ export default function SettingsScreen() {
                   </View>
                 </View>
 
-                {/* Radius Presets */}
-                <Text style={[styles.label, { color: colors.textMuted }]}>Quick Radius Presets</Text>
-                <View style={styles.presetRow}>
-                  {RADIUS_PRESETS.map((p) => {
-                    const isSelected = Math.round(parseFloat(form.delivery_radius_km) || 0) === p;
-                    return (
-                      <TouchableOpacity
-                        key={p}
-                        style={[
-                          styles.presetPill,
-                          {
-                            backgroundColor: isSelected ? '#10b981' : colors.cardAlt,
-                            borderColor: isSelected ? '#10b981' : colors.border,
-                          },
-                        ]}
-                        onPress={() => updateField('delivery_radius_km', `${p}.00`)}
-                      >
-                        <Text style={[styles.presetText, { color: isSelected ? '#fff' : colors.text }]}>
-                          {p} km
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-
-                <View style={[styles.switchCard, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.switchLabel, { color: colors.text }]}>Enforce Geofence Radius</Text>
-                    <Text style={[styles.switchSub, { color: colors.textMuted }]}>
-                      Block customer checkout if address is beyond delivery radius
-                    </Text>
-                  </View>
-                  <ModernSwitch
-                    value={Boolean(form.enforce_delivery_radius)}
-                    onValueChange={(v) => updateField('enforce_delivery_radius', v)}
-                  />
-                </View>
-
                 {/* Map Navigation Link */}
                 <TouchableOpacity
                   style={[styles.mapShortcutBtn, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}
@@ -1071,81 +1031,6 @@ export default function SettingsScreen() {
             )}
           </View>
 
-          {/* Section 7: Homepage Section Controls */}
-          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={styles.cardHeader}>
-              <View style={[styles.cardIconBox, { backgroundColor: 'rgba(14, 165, 233, 0.15)' }]}>
-                <Ionicons name="layers-outline" size={20} color="#0ea5e9" />
-              </View>
-              <View>
-                <Text style={[styles.cardTitle, { color: colors.text }]}>Customer App Section Visibility</Text>
-                <Text style={[styles.cardSub, { color: colors.textMuted }]}>
-                  Show, hide or rename curated aisles on customer storefront
-                </Text>
-              </View>
-            </View>
-
-            {/* Popular Picks */}
-            <View style={[styles.sectionRow, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
-              <View style={styles.sectionHeaderRow}>
-                <Text style={[styles.sectionName, { color: colors.text }]}>Popular Picks Section</Text>
-                <ModernSwitch
-                  value={Boolean(form.show_popular_picks)}
-                  onValueChange={(v) => updateField('show_popular_picks', v)}
-                />
-              </View>
-              {Boolean(form.show_popular_picks) && (
-                <TextInput
-                  style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text, marginTop: 8 }]}
-                  value={String(form.popular_picks_title || '')}
-                  onChangeText={(v) => updateField('popular_picks_title', v)}
-                  placeholder="Section title (e.g. Popular picks)"
-                  placeholderTextColor={colors.textMuted}
-                />
-              )}
-            </View>
-
-            {/* Great Deals */}
-            <View style={[styles.sectionRow, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
-              <View style={styles.sectionHeaderRow}>
-                <Text style={[styles.sectionName, { color: colors.text }]}>Great Deals Section</Text>
-                <ModernSwitch
-                  value={Boolean(form.show_great_deals)}
-                  onValueChange={(v) => updateField('show_great_deals', v)}
-                />
-              </View>
-              {Boolean(form.show_great_deals) && (
-                <TextInput
-                  style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text, marginTop: 8 }]}
-                  value={String(form.great_deals_title || '')}
-                  onChangeText={(v) => updateField('great_deals_title', v)}
-                  placeholder="Section title (e.g. Great Deals)"
-                  placeholderTextColor={colors.textMuted}
-                />
-              )}
-            </View>
-
-            {/* New Arrivals */}
-            <View style={[styles.sectionRow, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
-              <View style={styles.sectionHeaderRow}>
-                <Text style={[styles.sectionName, { color: colors.text }]}>New Arrivals Section</Text>
-                <ModernSwitch
-                  value={Boolean(form.show_new_arrivals)}
-                  onValueChange={(v) => updateField('show_new_arrivals', v)}
-                />
-              </View>
-              {Boolean(form.show_new_arrivals) && (
-                <TextInput
-                  style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text, marginTop: 8 }]}
-                  value={String(form.new_arrivals_title || '')}
-                  onChangeText={(v) => updateField('new_arrivals_title', v)}
-                  placeholder="Section title (e.g. New Arrivals)"
-                  placeholderTextColor={colors.textMuted}
-                />
-              )}
-            </View>
-          </View>
-
           {/* Save Button */}
           <TouchableOpacity
             style={[styles.saveAllBtn, { backgroundColor: '#10b981' }]}
@@ -1395,22 +1280,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-  presetRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 10,
-  },
-  presetPill: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  presetText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
   mapShortcutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1538,21 +1407,6 @@ const styles = StyleSheet.create({
   signaturePlaceholderSub: {
     fontSize: 12,
     textAlign: 'center',
-  },
-  sectionRow: {
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    marginBottom: 8,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  sectionName: {
-    fontSize: 14,
-    fontWeight: '600',
   },
   saveAllBtn: {
     flexDirection: 'row',
