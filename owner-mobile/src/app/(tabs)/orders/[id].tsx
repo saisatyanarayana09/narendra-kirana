@@ -225,11 +225,11 @@ export default function OrderDetailsScreen() {
     .meta-box { text-align: right; }
     .meta-box h2 { font-size: 22px; font-weight: 900; color: #0f172a; letter-spacing: -0.5px; }
     .meta-box .orig { display: inline-block; font-size: 8.5px; font-weight: 800; text-transform: uppercase; color: #065f46; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 2px 6px; border-radius: 4px; margin-top: 2px; }
-    .meta-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 12px; margin-top: 6px; text-align: right; }
+    .meta-card { background: transparent; border: none; padding: 0; margin-top: 6px; text-align: right; }
     .meta-row { display: flex; justify-content: flex-end; gap: 8px; margin: 2px 0; font-size: 10.5px; }
     .meta-lbl { color: #64748b; }
     .meta-val { font-weight: 700; color: #0f172a; font-family: monospace; }
-    .compliance { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 12px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; font-size: 10px; }
+    .compliance { background: transparent; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 12px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; font-size: 10px; }
     .compliance b { color: #334155; }
     .grid { display: flex; gap: 12px; margin-bottom: 14px; }
     .grid-col { flex: 1; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; background: #ffffff; }
