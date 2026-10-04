@@ -1006,8 +1006,17 @@ export default function ProductsListScreen() {
     ]
   );
 
-  const listHeader = useMemo(() => (
-    <View style={styles.topSectionWrap}>
+  // ─── Sticky Controls Hub (Search, Scanner, Sort, Reorder & Categories) ───
+  const stickyHeader = useMemo(() => (
+    <View
+      style={[
+        styles.stickyControlsWrap,
+        {
+          backgroundColor: colors.bg,
+          borderBottomColor: colors.border,
+        },
+      ]}
+    >
       {/* 1. Header with Title & Add Product Action */}
       <View style={styles.topHeader}>
         <TouchableOpacity
@@ -1043,82 +1052,7 @@ export default function ProductsListScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* 2. Interactive KPI Stats Bar */}
-      <View style={styles.kpiRow}>
-        {kpiCards.map((card) => {
-          const active = stockFilter === card.key;
-          return (
-            <TouchableOpacity
-              key={card.key}
-              activeOpacity={0.7}
-              style={[
-                styles.kpiCard,
-                {
-                  backgroundColor: active ? card.activeBg : colors.card,
-                  borderColor: active ? card.activeBorder : colors.border,
-                  borderWidth: active ? 1.5 : 1,
-                },
-                active && [
-                  styles.kpiCardActive,
-                  {
-                    shadowColor: card.color,
-                    ...Platform.select({
-                      web: {
-                        boxShadow: `0 4px 14px ${card.color}35`,
-                      } as any,
-                    }),
-                  },
-                ],
-              ]}
-              onPress={() =>
-                setStockFilter(active && card.key !== 'ALL' ? 'ALL' : card.key)
-              }
-              accessibilityLabel={`${card.label} filter, ${card.count} items`}
-            >
-              <View style={styles.kpiTopRow}>
-                <Ionicons
-                  name={card.icon}
-                  size={13}
-                  color={active ? card.color : colors.textMuted}
-                />
-                <Text
-                  style={[
-                    styles.kpiValue,
-                    {
-                      color: active
-                        ? card.color
-                        : card.key === 'ALL'
-                          ? colors.text
-                          : card.color,
-                    },
-                  ]}
-                >
-                  {card.count}
-                </Text>
-              </View>
-              <Text
-                style={[
-                  styles.kpiLabel,
-                  {
-                    color: active ? card.color : colors.textMuted,
-                    fontWeight: active ? '800' : '700',
-                  },
-                ]}
-                numberOfLines={1}
-              >
-                {card.label}
-              </Text>
-              {active && (
-                <View
-                  style={[styles.kpiActiveDot, { backgroundColor: card.color }]}
-                />
-              )}
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {/* 3. Search & Control Bar */}
+      {/* 2. Search & Control Bar */}
       <View style={styles.searchBarRow}>
         <View
           style={[
@@ -1212,7 +1146,7 @@ export default function ProductsListScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* 4. Horizontal Category Filter Pills */}
+      {/* 3. Horizontal Category Filter Pills */}
       {categories.length > 0 && (
         <View style={styles.categoriesScrollWrap}>
           <ScrollView
@@ -1282,6 +1216,119 @@ export default function ProductsListScreen() {
         </View>
       )}
 
+      {/* Active Filter Indicator Pill (when filtered) */}
+      {stockFilter !== 'ALL' && (
+        <View style={styles.activeFilterChipRow}>
+          <TouchableOpacity
+            style={[
+              styles.activeFilterChip,
+              {
+                backgroundColor: isDark ? 'rgba(59, 130, 246, 0.18)' : '#eff6ff',
+                borderColor: isDark ? 'rgba(59, 130, 246, 0.35)' : '#bfdbfe',
+              },
+            ]}
+            onPress={() => setStockFilter('ALL')}
+          >
+            <Text style={[styles.activeFilterChipText, { color: isDark ? '#93c5fd' : '#2563eb' }]}>
+              Filter: {kpiCards.find((c) => c.key === stockFilter)?.label} ✕
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
+  ), [
+    colors,
+    isDark,
+    products.length,
+    searchQuery,
+    sortBy,
+    reorderMode,
+    categories,
+    selectedCatId,
+    stockFilter,
+    kpiCards,
+    toggleReorderMode,
+    router,
+  ]);
+
+  // ─── Scrollable Header (KPI Cards & Alert Banners) ───
+  const listHeader = useMemo(() => (
+    <View style={styles.topSectionWrap}>
+      {/* Interactive KPI Stats Bar */}
+      <View style={styles.kpiRow}>
+        {kpiCards.map((card) => {
+          const active = stockFilter === card.key;
+          return (
+            <TouchableOpacity
+              key={card.key}
+              activeOpacity={0.7}
+              style={[
+                styles.kpiCard,
+                {
+                  backgroundColor: active ? card.activeBg : colors.card,
+                  borderColor: active ? card.activeBorder : colors.border,
+                  borderWidth: active ? 1.5 : 1,
+                },
+                active && [
+                  styles.kpiCardActive,
+                  {
+                    shadowColor: card.color,
+                    ...Platform.select({
+                      web: {
+                        boxShadow: `0 4px 14px ${card.color}35`,
+                      } as any,
+                    }),
+                  },
+                ],
+              ]}
+              onPress={() =>
+                setStockFilter(active && card.key !== 'ALL' ? 'ALL' : card.key)
+              }
+              accessibilityLabel={`${card.label} filter, ${card.count} items`}
+            >
+              <View style={styles.kpiTopRow}>
+                <Ionicons
+                  name={card.icon}
+                  size={13}
+                  color={active ? card.color : colors.textMuted}
+                />
+                <Text
+                  style={[
+                    styles.kpiValue,
+                    {
+                      color: active
+                        ? card.color
+                        : card.key === 'ALL'
+                          ? colors.text
+                          : card.color,
+                    },
+                  ]}
+                >
+                  {card.count}
+                </Text>
+              </View>
+              <Text
+                style={[
+                  styles.kpiLabel,
+                  {
+                    color: active ? card.color : colors.textMuted,
+                    fontWeight: active ? '800' : '700',
+                  },
+                ]}
+                numberOfLines={1}
+              >
+                {card.label}
+              </Text>
+              {active && (
+                <View
+                  style={[styles.kpiActiveDot, { backgroundColor: card.color }]}
+                />
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
       {/* Error Banner */}
       {errorMsg ? (
         <View style={styles.errorBannerWrap}>
@@ -1320,23 +1367,20 @@ export default function ProductsListScreen() {
   ), [
     colors,
     isDark,
-    products.length,
     kpiCards,
     stockFilter,
-    searchQuery,
-    sortBy,
-    reorderMode,
-    categories,
-    selectedCatId,
     errorMsg,
+    reorderMode,
     fetchProducts,
     toggleReorderMode,
-    router,
   ]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <View style={styles.maxContainer}>
+        {/* Sticky Controls Hub */}
+        {stickyHeader}
+
         {loading && !refreshing ? (
           <View style={styles.centered}>
             <ActivityIndicator size="large" color="#10b981" />
@@ -1604,9 +1648,41 @@ const styles = StyleSheet.create({
     maxWidth: 960,
     alignSelf: 'center',
   },
+  stickyControlsWrap: {
+    paddingHorizontal: 14,
+    paddingTop: 8,
+    paddingBottom: 4,
+    borderBottomWidth: 1,
+    zIndex: 10,
+    ...Platform.select({
+      web: {
+        position: 'sticky' as any,
+        top: 0,
+      },
+    }),
+  },
+  activeFilterChipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  activeFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  activeFilterChipText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
   topSectionWrap: {
-    paddingTop: 10,
-    paddingBottom: 6,
+    paddingTop: 6,
+    paddingBottom: 2,
   },
   titleCol: {
     justifyContent: 'center',
