@@ -122,6 +122,31 @@ export default function OrderDetailsScreen() {
     }
   }, [id, router]);
 
+  const formatInvoiceNumber = (orderObj: any) => {
+    const rawId = String(orderObj?.id || '').trim();
+    const d = orderObj?.created_at ? new Date(orderObj.created_at) : new Date();
+    const year = !isNaN(d.getTime()) ? d.getFullYear() : new Date().getFullYear();
+    if (rawId.toUpperCase().startsWith('ORD')) {
+      return `INV-${year}-${rawId.toUpperCase()}`;
+    }
+    const digits = rawId.replace(/\D/g, '');
+    return `INV-${year}-${(digits || '1').padStart(5, '0')}`;
+  };
+
+  const formatFullDateTime = (dateVal: any) => {
+    if (!dateVal) return 'N/A';
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return 'N/A';
+    return d.toLocaleString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
   const buildInvoiceHtml = useCallback(
     (o: Order) => {
       const storeName = storeSettings?.store_name || 'Narendra Kirana Store';
@@ -136,30 +161,9 @@ export default function OrderDetailsScreen() {
         storeSettings?.terms_and_conditions ||
         '1. Goods once sold will not be taken back without original bill.\n2. Report any damaged or missing items within 24 hours of delivery.\n3. This is a computer-generated tax invoice and requires no physical signature.';
 
-      const orderDateObj = new Date(o.created_at || '');
-      const isOrderDateValid = !isNaN(orderDateObj.getTime());
-      const orderDate = isOrderDateValid
-        ? orderDateObj.toLocaleString('en-IN', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true,
-          })
-        : 'N/A';
-
-      const invoiceDate = new Date().toLocaleString('en-IN', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-      });
-
-      const orderYear = isOrderDateValid ? orderDateObj.getFullYear() : new Date().getFullYear();
-      const invoiceNumber = `INV-${orderYear}-${String(o.id).padStart(5, '0')}`;
+      const orderDate = formatFullDateTime(o.created_at);
+      const invoiceDate = formatFullDateTime(new Date());
+      const invoiceNumber = formatInvoiceNumber(o);
 
       const rawMethod = (o.payment_method || 'COD').toUpperCase();
       let methodText = 'Cash on Delivery (COD)';
@@ -251,8 +255,13 @@ export default function OrderDetailsScreen() {
     ${o.status === 'REJECTED' ? '<div class="cancelled-stamp">CANCELLED</div>' : ''}
     <div class="hdr">
       <div class="store-info">
-        <h1>${storeName}</h1>
-        <div class="tag">Grocery & Daily Essentials</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+          <img src="/logo.jpg" alt="Store Logo" style="width:40px;height:40px;object-fit:contain;border-radius:8px;border:1px solid #e2e8f0;" onerror="this.style.display='none';" />
+          <div>
+            <h1>${storeName}</h1>
+            <div class="tag">Grocery & Daily Essentials</div>
+          </div>
+        </div>
         ${storeAddr ? `<p>📍 ${storeAddr}</p>` : ''}
         ${storePhone || storeEmail ? `<p>📞 ${[storePhone, storeEmail].filter(Boolean).join(' • ')}</p>` : ''}
       </div>
@@ -1573,163 +1582,398 @@ export default function OrderDetailsScreen() {
             </View>
 
             {/* Printable Document Body */}
-            <ScrollView style={styles.invoicePrintScroll}>
-              {/* Store Identity */}
-              <View style={styles.storeDocHeader}>
-                <Text style={styles.docStoreName}>
-                  {storeSettings?.store_name || 'Narendra Kirana Store'}
-                </Text>
-                <Text style={styles.docStoreAddr}>
-                  {storeSettings?.store_address || 'Main Road, Market Center'}
-                </Text>
-                <Text style={styles.docStorePhone}>
-                  Phone: {storeSettings?.store_phone || '+91 9876543210'} • Email:{' '}
-                  {storeSettings?.store_email || 'support@narendrakirana.com'}
-                </Text>
-                {storeSettings?.gstin ? (
-                  <Text style={styles.docStoreTax}>GSTIN: {storeSettings.gstin}</Text>
-                ) : null}
-                {storeSettings?.fssai_license_number ? (
-                  <Text style={styles.docStoreTax}>
-                    FSSAI Lic #: {storeSettings.fssai_license_number}
-                  </Text>
-                ) : null}
-              </View>
+            <ScrollView
+              style={styles.invoicePrintScroll}
+              contentContainerStyle={{ paddingBottom: 30 }}
+              showsVerticalScrollIndicator={false}
+            >
+              {(() => {
+                const orderDateFormatted = formatFullDateTime(order.created_at);
+                const invoiceDateFormatted = formatFullDateTime(new Date());
+                const invoiceNum = formatInvoiceNumber(order);
+                const isRejected = order.status === 'REJECTED';
+                const isCompleted = order.status === 'COMPLETED';
+                const rawMethod = (order.payment_method || 'COD').toUpperCase();
+                let methodText = 'Cash on Delivery (COD)';
+                if (rawMethod === 'UPI') {
+                  methodText = order.upi_transaction_id ? `UPI (Ref: ${order.upi_transaction_id})` : 'UPI Instant Payment';
+                } else if (order.order_type === 'PICKUP' && rawMethod === 'COD') {
+                  methodText = 'Cash at Store Counter';
+                }
 
-              <View style={styles.docDivider} />
+                const rawTerms = storeSettings?.invoice_terms_and_conditions || storeSettings?.terms_and_conditions;
+                const termsLines = rawTerms && rawTerms.trim()
+                  ? rawTerms.split('\n').map((l: string) => l.trim()).filter(Boolean)
+                  : [
+                      '1. Goods once sold will not be taken back without original bill.',
+                      '2. Report any damaged or missing items within 24 hours of delivery.',
+                      '3. This is a computer-generated tax invoice and requires no physical signature.',
+                    ];
 
-              {/* Invoice Meta Grid */}
-              <View style={styles.docMetaGrid}>
-                <View style={styles.docMetaColLeft}>
-                  <Text style={styles.docMetaLabel}>BILLED TO</Text>
-                  <Text style={styles.docMetaVal} numberOfLines={1}>
-                    {order.customer_name || 'Walk-in Customer'}
-                  </Text>
-                  {order.customer_phone ? (
-                    <Text style={styles.docMetaSub}>Phone: {order.customer_phone}</Text>
-                  ) : null}
-                  {order.delivery_address ? (
-                    <Text style={styles.docMetaSub} numberOfLines={2}>
-                      Address: {order.delivery_address}
-                    </Text>
-                  ) : null}
-                </View>
-                <View style={styles.docMetaColRight}>
-                  <Text style={styles.docMetaLabel}>INVOICE DETAILS</Text>
-                  <Text
-                    style={styles.docMetaVal}
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.75}
-                  >
-                    INV-{String(order.id).replace(/^#/, '')}
-                  </Text>
-                  <Text style={styles.docMetaSub}>
-                    Date:{' '}
-                    {order.created_at
-                      ? new Date(order.created_at).toLocaleDateString('en-IN', {
-                          day: '2-digit',
-                          month: 'short',
-                          year: 'numeric',
-                        })
-                      : ''}
-                  </Text>
-                  <Text style={styles.docMetaSub}>
-                    Payment: {order.payment_method || 'COD'} ({order.status})
-                  </Text>
-                  {order.upi_transaction_id ? (
-                    <Text style={styles.docMetaSub} numberOfLines={1}>
-                      UPI Ref: {order.upi_transaction_id}
-                    </Text>
-                  ) : null}
-                </View>
-              </View>
-
-              {/* Itemized Table */}
-              <View style={styles.itemTable}>
-                <View style={styles.tableHeader}>
-                  <Text style={[styles.colHeader, { flex: 2 }]}>ITEM</Text>
-                  <Text style={[styles.colHeader, { flex: 0.8, textAlign: 'center' }]}>QTY</Text>
-                  <Text style={[styles.colHeader, { flex: 1, textAlign: 'right' }]}>PRICE</Text>
-                  <Text style={[styles.colHeader, { flex: 1, textAlign: 'right' }]}>TOTAL</Text>
-                </View>
-                {(order.items || []).map((item: any, idx: number) => {
-                  const qty = Number(item.quantity || 1);
-                  const price = parseFloat(item.price_snapshot) || 0;
-                  const lineTotal = parseFloat(item.subtotal) || price * qty;
-                  return (
-                    <View key={idx} style={styles.tableRow}>
-                      <View style={{ flex: 2 }}>
-                        <Text style={styles.itemName}>
-                          {item.product_name_snapshot || 'Item'}
-                        </Text>
-                        {item.unit_snapshot ? (
-                          <Text style={styles.itemUnit}>{item.unit_snapshot}</Text>
-                        ) : null}
+                return (
+                  <View style={styles.paperContainer}>
+                    {/* Cancelled Stamp (if rejected) */}
+                    {isRejected && (
+                      <View style={styles.cancelledStampWrap}>
+                        <View style={styles.cancelledStampBox}>
+                          <Text style={styles.cancelledStampText}>CANCELLED</Text>
+                        </View>
                       </View>
-                      <Text style={[styles.rowText, { flex: 0.8, textAlign: 'center' }]}>
-                        {qty}
-                      </Text>
-                      <Text style={[styles.rowText, { flex: 1, textAlign: 'right' }]}>
-                        ₹{price.toFixed(2)}
-                      </Text>
-                      <Text style={[styles.rowTextBold, { flex: 1, textAlign: 'right' }]}>
-                        ₹{lineTotal.toFixed(2)}
-                      </Text>
+                    )}
+
+                    <View style={[styles.docBody, isRejected && styles.docBodyRejected]}>
+                      {/* Top Store Header & Document Meta */}
+                      <View style={styles.docTopHeader}>
+                        {/* Store Brand */}
+                        <View style={styles.docStoreCol}>
+                          <View style={styles.docStoreRow}>
+                            <Image
+                              source={
+                                storeSettings?.store_logo
+                                  ? { uri: storeSettings.store_logo }
+                                  : require('../../../../assets/images/narendra-logo.png')
+                              }
+                              style={styles.docLogoImg}
+                              contentFit="contain"
+                            />
+                            <View style={styles.docStoreTitleCol}>
+                              <Text style={styles.docStoreName}>
+                                {storeSettings?.store_name || 'Narendra Kirana Store'}
+                              </Text>
+                              <Text style={styles.docStoreTag}>GROCERY & DAILY ESSENTIALS</Text>
+                            </View>
+                          </View>
+
+                          <View style={styles.docContactWrap}>
+                            {storeSettings?.store_address ? (
+                              <View style={styles.docContactRow}>
+                                <Ionicons name="location-outline" size={13} color="#94a3b8" style={{ marginTop: 1 }} />
+                                <Text style={styles.docContactText}>{storeSettings.store_address}</Text>
+                              </View>
+                            ) : null}
+
+                            {(storeSettings?.store_phone || storeSettings?.store_email) ? (
+                              <View style={styles.docContactRow}>
+                                {storeSettings?.store_phone ? (
+                                  <View style={styles.docInlineMeta}>
+                                    <Ionicons name="call-outline" size={12} color="#94a3b8" />
+                                    <Text style={styles.docContactText}>{storeSettings.store_phone}</Text>
+                                  </View>
+                                ) : null}
+                                {storeSettings?.store_phone && storeSettings?.store_email ? (
+                                  <Text style={styles.docMetaDot}>•</Text>
+                                ) : null}
+                                {storeSettings?.store_email ? (
+                                  <View style={styles.docInlineMeta}>
+                                    <Ionicons name="mail-outline" size={12} color="#94a3b8" />
+                                    <Text style={styles.docContactText}>{storeSettings.store_email}</Text>
+                                  </View>
+                                ) : null}
+                              </View>
+                            ) : null}
+                          </View>
+                        </View>
+
+                        {/* Invoice Official Meta */}
+                        <View style={styles.docMetaCol}>
+                          <View style={styles.docMetaHeadingRow}>
+                            <Text style={styles.docTaxInvoiceHeading}>TAX INVOICE</Text>
+                            <View style={styles.docOriginalBadge}>
+                              <Text style={styles.docOriginalBadgeText}>ORIGINAL FOR RECIPIENT</Text>
+                            </View>
+                          </View>
+
+                          <View style={styles.docMetaCard}>
+                            <View style={styles.docMetaRow}>
+                              <Text style={styles.docMetaLabel}>Invoice No:</Text>
+                              <Text style={styles.docMetaVal}>{invoiceNum}</Text>
+                            </View>
+                            <View style={styles.docMetaRow}>
+                              <Text style={styles.docMetaLabel}>Invoice Date:</Text>
+                              <Text style={styles.docMetaValSimple}>{invoiceDateFormatted}</Text>
+                            </View>
+                            <View style={styles.docMetaRow}>
+                              <Text style={styles.docMetaLabel}>Order Reference:</Text>
+                              <Text style={styles.docMetaVal}>#{order.id}</Text>
+                            </View>
+                            <View style={styles.docMetaRow}>
+                              <Text style={styles.docMetaLabel}>Order Date:</Text>
+                              <Text style={styles.docMetaValSimple}>{orderDateFormatted}</Text>
+                            </View>
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* Compliance Strip (GSTIN & FSSAI) */}
+                      {(storeSettings?.gstin || storeSettings?.fssai_license_number) && (
+                        <View style={styles.complianceStrip}>
+                          {storeSettings?.gstin ? (
+                            <View style={styles.complianceItem}>
+                              <Text style={styles.complianceLabel}>GSTIN:</Text>
+                              <Text style={styles.complianceVal}>{storeSettings.gstin}</Text>
+                            </View>
+                          ) : null}
+                          {storeSettings?.fssai_license_number ? (
+                            <View style={styles.complianceItem}>
+                              <Ionicons name="checkmark-circle" size={13} color="#059669" />
+                              <Text style={styles.complianceLabel}>FSSAI Lic. No:</Text>
+                              <Text style={styles.complianceVal}>{storeSettings.fssai_license_number}</Text>
+                              <View style={styles.govtRegPill}>
+                                <Text style={styles.govtRegText}>GOVT REG.</Text>
+                              </View>
+                            </View>
+                          ) : null}
+                          <Text style={styles.placeOfSupplyText}>
+                            Place of Supply: <Text style={{ fontWeight: '800', color: '#1e293b' }}>State Code (09)</Text>
+                          </Text>
+                        </View>
+                      )}
+
+                      {/* Customer & Fulfillment Info Grid (2 Columns) */}
+                      <View style={styles.infoGridRow}>
+                        {/* Billed / Shipped To */}
+                        <View style={styles.infoGridCard}>
+                          <Text style={styles.infoGridHeader}>BILLED / SHIPPED TO</Text>
+                          <Text style={styles.infoGridName}>
+                            {order.customer_name || `Customer ID: ${order.customer ?? '—'}`}
+                          </Text>
+                          {order.customer_phone ? (
+                            <View style={styles.infoSubRow}>
+                              <Ionicons name="call-outline" size={12} color="#94a3b8" />
+                              <Text style={styles.invoiceCustomerPhone}>{order.customer_phone}</Text>
+                            </View>
+                          ) : null}
+                          <View style={{ paddingTop: 3 }}>
+                            <Text style={styles.infoAddressText}>
+                              {order.order_type === 'DELIVERY'
+                                ? order.delivery_address || 'Home Delivery Address'
+                                : 'Store Counter Pickup'}
+                            </Text>
+                            {order.delivery_pincode ? (
+                              <Text style={styles.infoPinText}>PIN: {order.delivery_pincode}</Text>
+                            ) : null}
+                          </View>
+                        </View>
+
+                        {/* Fulfillment Details */}
+                        <View style={styles.infoGridCard}>
+                          <Text style={styles.infoGridHeader}>FULFILLMENT DETAILS</Text>
+                          <View style={styles.infoDetailLine}>
+                            <Text style={styles.infoDetailLabel}>Fulfillment Mode:</Text>
+                            <Text style={styles.infoDetailVal}>
+                              {order.order_type === 'DELIVERY' ? 'Home Delivery' : 'Store Pickup'}
+                            </Text>
+                          </View>
+                          {order.delivery_slot_label ? (
+                            <View style={styles.infoDetailLine}>
+                              <Text style={styles.infoDetailLabel}>Scheduled Slot:</Text>
+                              <Text style={[styles.infoDetailVal, { color: '#4338ca', fontWeight: '800' }]}>
+                                {order.delivery_slot_date ? `${order.delivery_slot_date} ` : ''}
+                                ({order.delivery_slot_label})
+                              </Text>
+                            </View>
+                          ) : null}
+                          <View style={styles.infoDetailLine}>
+                            <Text style={styles.infoDetailLabel}>Order Status:</Text>
+                            <Text
+                              style={[
+                                styles.infoDetailVal,
+                                {
+                                  color: isCompleted ? '#047857' : isRejected ? '#e11d48' : '#1e293b',
+                                  fontWeight: '800',
+                                },
+                              ]}
+                            >
+                              {order.status}
+                            </Text>
+                          </View>
+                          <View style={styles.infoDetailLine}>
+                            <Text style={styles.infoDetailLabel}>Payment Status:</Text>
+                            <Text
+                              style={[
+                                styles.infoDetailVal,
+                                {
+                                  color: isCompleted ? '#047857' : isRejected ? '#e11d48' : '#047857',
+                                  fontWeight: '800',
+                                },
+                              ]}
+                            >
+                              {isCompleted ? 'PAID' : isRejected ? 'CANCELLED' : 'DUE AT DELIVERY'}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* Items Table */}
+                      <View style={styles.itemsTableCard}>
+                        <View style={styles.tableHeaderRow}>
+                          <Text style={[styles.tableColHead, { width: 24, textAlign: 'center' }]}>#</Text>
+                          <Text style={[styles.tableColHead, { flex: 1 }]}>ITEM DESCRIPTION</Text>
+                          <Text style={[styles.tableColHead, { width: 34, textAlign: 'center' }]}>QTY</Text>
+                          <Text style={[styles.tableColHead, { width: 58, textAlign: 'right' }]}>RATE (₹)</Text>
+                          <Text style={[styles.tableColHead, { width: 68, textAlign: 'right' }]}>AMOUNT (₹)</Text>
+                        </View>
+
+                        {(order.items || []).map((item: any, idx: number) => {
+                          const qty = Number(item.quantity || 1);
+                          const price = parseFloat(item.price_snapshot) || 0;
+                          const lineTotal = parseFloat(item.subtotal) || price * qty;
+                          const isRej = item.status === 'REJECTED';
+
+                          return (
+                            <View key={idx} style={[styles.tableBodyRow, isRej && styles.tableBodyRowRejected]}>
+                              <Text style={[styles.tableCellNum, isRej && { color: '#94a3b8' }]}>
+                                {idx + 1}
+                              </Text>
+                              <View style={{ flex: 1, paddingRight: 6 }}>
+                                <View style={styles.tableItemTitleWrap}>
+                                  <Text
+                                    style={[
+                                      styles.tableCellItemName,
+                                      isRej && { textDecorationLine: 'line-through', color: '#94a3b8' },
+                                    ]}
+                                  >
+                                    {item.product_name_snapshot || 'Item'}
+                                  </Text>
+                                  {isRej ? (
+                                    <View style={styles.unavailableBadge}>
+                                      <Text style={styles.unavailableBadgeText}>UNAVAILABLE</Text>
+                                    </View>
+                                  ) : null}
+                                </View>
+                                {item.unit_snapshot ? (
+                                  <Text style={styles.tableCellItemUnit}>{item.unit_snapshot}</Text>
+                                ) : null}
+                              </View>
+                              <Text style={[styles.tableCellQty, isRej && { color: '#94a3b8', textDecorationLine: 'line-through' }]}>
+                                {qty}
+                              </Text>
+                              <Text style={[styles.tableCellRate, isRej && { color: '#94a3b8', textDecorationLine: 'line-through' }]}>
+                                {price.toFixed(2)}
+                              </Text>
+                              <Text style={[styles.tableCellTotal, isRej && { color: '#94a3b8' }]}>
+                                {isRej ? '0.00' : lineTotal.toFixed(2)}
+                              </Text>
+                            </View>
+                          );
+                        })}
+                      </View>
+
+                      {/* Cost Breakdown & Grand Total Box */}
+                      <View style={styles.totalsSection}>
+                        <View style={styles.totalsCard}>
+                          <View style={styles.totalsBody}>
+                            <View style={styles.totalLineRow}>
+                              <Text style={styles.totalLineLabel}>
+                                Subtotal ({activeItems.length} items)
+                              </Text>
+                              <Text style={styles.totalLineVal}>₹{itemsSubtotal}</Text>
+                            </View>
+
+                            {parseFloat(order.discount_applied || '0') > 0 ? (
+                              <View style={styles.totalLineRow}>
+                                <Text style={[styles.totalLineLabel, { color: '#4338ca' }]}>Product Savings</Text>
+                                <Text style={[styles.totalLineVal, { color: '#4338ca' }]}>
+                                  -₹{parseFloat(order.discount_applied || '0').toFixed(2)}
+                                </Text>
+                              </View>
+                            ) : null}
+
+                            {parseFloat(order.promo_discount || '0') > 0 ? (
+                              <View style={styles.totalLineRow}>
+                                <Text style={[styles.totalLineLabel, { color: '#047857' }]}>Promo Discount</Text>
+                                <Text style={[styles.totalLineVal, { color: '#047857' }]}>
+                                  -₹{parseFloat(order.promo_discount || '0').toFixed(2)}
+                                </Text>
+                              </View>
+                            ) : null}
+
+                            {parseFloat(order.packaging_fee || '0') > 0 ? (
+                              <View style={styles.totalLineRow}>
+                                <Text style={styles.totalLineLabel}>Packaging Fee</Text>
+                                <Text style={styles.totalLineVal}>
+                                  ₹{parseFloat(order.packaging_fee || '0').toFixed(2)}
+                                </Text>
+                              </View>
+                            ) : null}
+
+                            {order.order_type === 'DELIVERY' ? (
+                              <View style={styles.totalLineRow}>
+                                <Text style={styles.totalLineLabel}>Delivery Fee</Text>
+                                <Text style={styles.totalLineVal}>
+                                  {parseFloat(order.delivery_fee || '0') > 0
+                                    ? `₹${parseFloat(order.delivery_fee || '0').toFixed(2)}`
+                                    : 'FREE'}
+                                </Text>
+                              </View>
+                            ) : null}
+
+                            {parseFloat(order.wallet_discount || '0') > 0 ? (
+                              <View style={styles.totalLineRow}>
+                                <Text style={[styles.totalLineLabel, { color: '#047857' }]}>Wallet Applied</Text>
+                                <Text style={[styles.totalLineVal, { color: '#047857' }]}>
+                                  -₹{parseFloat(order.wallet_discount || '0').toFixed(2)}
+                                </Text>
+                              </View>
+                            ) : null}
+
+                            <View style={[styles.totalLineRow, { borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 5 }]}>
+                              <Text style={styles.totalLineLabel}>Payment Mode</Text>
+                              <Text style={[styles.totalLineVal, { textAlign: 'right' }]}>{methodText}</Text>
+                            </View>
+                          </View>
+
+                          <View style={styles.grandTotalBanner}>
+                            <Text style={styles.grandTotalBannerLabel}>
+                              {order.status === 'COMPLETED' ? 'TOTAL AMOUNT PAID' : 'TOTAL AMOUNT DUE'}
+                            </Text>
+                            <Text style={styles.grandTotalBannerAmount}>
+                              ₹{parseFloat(order.total_amount).toFixed(2)}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* Footer & Signature */}
+                      <View style={styles.docFooterRow}>
+                        <View style={styles.docTermsCol}>
+                          <View style={styles.docTermsHeader}>
+                            <Ionicons name="checkmark-circle-outline" size={13} color="#059669" />
+                            <Text style={styles.docTermsTitle}>TERMS & CONDITIONS</Text>
+                          </View>
+                          {termsLines.map((termLine: string, idx: number) => (
+                            <Text key={idx} style={styles.docTermLine}>
+                              {termLine}
+                            </Text>
+                          ))}
+                          <Text style={styles.docStoreGreeting}>
+                            Thank you for shopping with {storeSettings?.store_name || 'Narendra Kirana Store'}!
+                          </Text>
+                        </View>
+
+                        <View style={styles.docSigCol}>
+                          <Text style={styles.docSigForStore}>
+                            For {storeSettings?.store_name || 'Narendra Kirana Store'}
+                          </Text>
+                          <View style={styles.docSigBox}>
+                            {storeSettings?.invoice_signature ? (
+                              <Image
+                                source={{ uri: storeSettings.invoice_signature }}
+                                style={styles.docSigImg}
+                                contentFit="contain"
+                              />
+                            ) : (
+                              <View style={styles.docSigDashedLine} />
+                            )}
+                          </View>
+                          <Text style={styles.docSigLabel}>Authorized Signatory</Text>
+                          <Text style={styles.docSigSubLabel}>COMPUTER GENERATED INVOICE</Text>
+                        </View>
+                      </View>
                     </View>
-                  );
-                })}
-              </View>
-
-              {/* Cost Breakdown */}
-              <View style={styles.breakdownBox}>
-                <View style={styles.breakdownRow}>
-                  <Text style={styles.breakdownLabel}>Items Subtotal:</Text>
-                  <Text style={styles.breakdownVal}>₹{itemsSubtotal}</Text>
-                </View>
-                {parseFloat(order.packaging_fee || '0') > 0 ? (
-                  <View style={styles.breakdownRow}>
-                    <Text style={styles.breakdownLabel}>Packaging Fee:</Text>
-                    <Text style={styles.breakdownVal}>₹{order.packaging_fee}</Text>
                   </View>
-                ) : null}
-                {parseFloat(order.delivery_fee || '0') > 0 ? (
-                  <View style={styles.breakdownRow}>
-                    <Text style={styles.breakdownLabel}>Delivery Fee:</Text>
-                    <Text style={styles.breakdownVal}>₹{order.delivery_fee}</Text>
-                  </View>
-                ) : null}
-                {parseFloat(order.discount_amount || '0') > 0 ? (
-                  <View style={styles.breakdownRow}>
-                    <Text style={[styles.breakdownLabel, { color: '#059669' }]}>Discount:</Text>
-                    <Text style={[styles.breakdownVal, { color: '#059669' }]}>
-                      -₹{order.discount_amount}
-                    </Text>
-                  </View>
-                ) : null}
-                <View style={[styles.breakdownRow, styles.grandTotalRow]}>
-                  <Text style={styles.grandTotalLabel}>Grand Total:</Text>
-                  <Text style={styles.grandTotalVal}>₹{order.total_amount}</Text>
-                </View>
-              </View>
-
-              {/* Digital Signature */}
-              {storeSettings?.invoice_signature ? (
-                <View style={styles.signatureBox}>
-                  <Image
-                    source={{ uri: storeSettings.invoice_signature }}
-                    style={styles.signatureImg}
-                    contentFit="contain"
-                  />
-                  <Text style={styles.signatureLabel}>Authorized Signatory</Text>
-                </View>
-              ) : null}
-
-              {/* Terms & Notice */}
-              <Text style={styles.docFooterNotice}>
-                {storeSettings?.invoice_terms_and_conditions ||
-                  'Thank you for shopping with us! Computer generated tax invoice.'}
-              </Text>
+                );
+              })()}
             </ScrollView>
           </View>
         </View>
@@ -1738,7 +1982,7 @@ export default function OrderDetailsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles: any = StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -2488,173 +2732,506 @@ const styles = StyleSheet.create({
   invoicePrintScroll: {
     padding: 16,
   },
-  storeDocHeader: {
+  paperContainer: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  cancelledStampWrap: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
     alignItems: 'center',
-    marginBottom: 10,
+    justifyContent: 'center',
+    pointerEvents: 'none',
+    zIndex: 50,
+  },
+  cancelledStampBox: {
+    borderWidth: 5,
+    borderColor: '#e11d48',
+    borderRadius: 14,
+    paddingHorizontal: 28,
+    paddingVertical: 10,
+    transform: [{ rotate: '-15deg' }],
+    opacity: 0.25,
+  },
+  cancelledStampText: {
+    color: '#e11d48',
+    fontSize: 42,
+    fontWeight: '900',
+    letterSpacing: 6,
+  },
+  docBody: {
+    position: 'relative',
+    zIndex: 10,
+  },
+  docBodyRejected: {
+    opacity: 0.88,
+  },
+
+  // Top Header (Store Brand & Document Meta)
+  docTopHeader: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+    paddingBottom: 16,
+    marginBottom: 14,
+    gap: 14,
+  },
+  docStoreCol: {
+    gap: 6,
+  },
+  docStoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  docLogoImg: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#ffffff',
+  },
+  docStoreTitleCol: {
+    flex: 1,
   },
   docStoreName: {
     fontSize: 18,
     fontWeight: '900',
     color: '#0f172a',
+    letterSpacing: -0.3,
+    lineHeight: 22,
   },
-  docStoreAddr: {
-    fontSize: 12,
+  docStoreTag: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#047857',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginTop: 1,
+  },
+  docContactWrap: {
+    gap: 3,
+    paddingTop: 3,
+  },
+  docContactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  docContactText: {
+    fontSize: 11,
     color: '#475569',
-    textAlign: 'center',
-    marginTop: 2,
+    lineHeight: 16,
   },
-  docStorePhone: {
+  docInlineMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  docMetaDot: {
     fontSize: 11,
-    color: '#64748b',
-    textAlign: 'center',
-    marginTop: 2,
+    color: '#94a3b8',
+    marginHorizontal: 2,
   },
-  docStoreTax: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: '#334155',
-    marginTop: 2,
+
+  // Official Meta Box
+  docMetaCol: {
+    gap: 6,
   },
-  docDivider: {
-    height: 1,
-    backgroundColor: '#cbd5e1',
-    marginVertical: 12,
+  docMetaHeadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
   },
-  docMetaGrid: {
+  docTaxInvoiceHeading: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#0f172a',
+    letterSpacing: -0.5,
+  },
+  docOriginalBadge: {
+    backgroundColor: '#ecfdf5',
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  docOriginalBadgeText: {
+    color: '#065f46',
+    fontSize: 8.5,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  docMetaCard: {
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    padding: 0,
+    marginTop: 4,
+    gap: 3,
+  },
+  docMetaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: '#f8fafc',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 14,
-    gap: 12,
-  },
-  docMetaColLeft: {
-    flex: 1.1,
-  },
-  docMetaColRight: {
-    flex: 1.1,
-    alignItems: 'flex-end',
+    alignItems: 'center',
+    gap: 8,
   },
   docMetaLabel: {
-    fontSize: 9.5,
-    fontWeight: '800',
+    fontSize: 10.5,
     color: '#64748b',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 2,
+    fontWeight: '500',
   },
   docMetaVal: {
-    fontSize: 12,
+    fontSize: 11,
+    fontWeight: '800',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    color: '#0f172a',
+  },
+  docMetaValSimple: {
+    fontSize: 10.5,
     fontWeight: '700',
     color: '#0f172a',
   },
-  docMetaSub: {
-    fontSize: 10.5,
-    color: '#475569',
-    marginTop: 1,
-  },
-  itemTable: {
+
+  // Compliance Strip
+  complianceStrip: {
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
     borderColor: '#e2e8f0',
     borderRadius: 8,
-    overflow: 'hidden',
-    marginBottom: 12,
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 12,
     paddingVertical: 8,
-    paddingHorizontal: 8,
+    marginBottom: 14,
+    gap: 6,
   },
-  colHeader: {
+  complianceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  complianceLabel: {
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '700',
     color: '#475569',
   },
-  tableRow: {
-    flexDirection: 'row',
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-  },
-  itemName: {
-    fontSize: 12,
-    fontWeight: '600',
+  complianceVal: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     color: '#0f172a',
   },
-  itemUnit: {
+  govtRegPill: {
+    backgroundColor: '#d1fae5',
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 3,
+  },
+  govtRegText: {
+    fontSize: 7.5,
+    fontWeight: '900',
+    color: '#065f46',
+  },
+  placeOfSupplyText: {
     fontSize: 10,
     color: '#64748b',
   },
-  rowText: {
+
+  // Customer & Fulfillment Info Grid
+  infoGridRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 14,
+  },
+  infoGridCard: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 10,
+    padding: 10,
+    backgroundColor: '#ffffff',
+    gap: 4,
+  },
+  infoGridHeader: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#94a3b8',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+    paddingBottom: 4,
+    marginBottom: 2,
+  },
+  infoGridName: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#0f172a',
+  },
+  infoSubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  invoiceCustomerPhone: {
     fontSize: 11,
+    fontWeight: '700',
     color: '#334155',
   },
-  rowTextBold: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: '#0f172a',
+  infoAddressText: {
+    fontSize: 10.5,
+    color: '#475569',
+    lineHeight: 15,
   },
-  breakdownBox: {
-    alignItems: 'flex-end',
-    marginBottom: 14,
-  },
-  breakdownRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: 180,
-    paddingVertical: 2,
-  },
-  breakdownLabel: {
-    fontSize: 11,
+  infoPinText: {
+    fontSize: 9.5,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     color: '#64748b',
-  },
-  breakdownVal: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#0f172a',
-  },
-  grandTotalRow: {
-    borderTopWidth: 1,
-    borderTopColor: '#cbd5e1',
-    paddingTop: 4,
-    marginTop: 4,
-  },
-  grandTotalLabel: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#0f172a',
-  },
-  grandTotalVal: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: '#059669',
-  },
-  signatureBox: {
-    alignItems: 'flex-end',
-    marginTop: 10,
-    marginBottom: 14,
-  },
-  signatureImg: {
-    width: 120,
-    height: 48,
-  },
-  signatureLabel: {
-    fontSize: 10,
-    color: '#64748b',
-    borderTopWidth: 1,
-    borderTopColor: '#94a3b8',
-    paddingTop: 2,
     marginTop: 2,
   },
-  docFooterNotice: {
+  infoDetailLine: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 4,
+  },
+  infoDetailLabel: {
     fontSize: 10,
-    color: '#94a3b8',
+    color: '#64748b',
+  },
+  infoDetailVal: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+
+  // Items Table
+  itemsTableCard: {
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 10,
+    overflow: 'hidden',
+    marginBottom: 14,
+    backgroundColor: '#ffffff',
+  },
+  tableHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  tableColHead: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#475569',
+    letterSpacing: 0.5,
+  },
+  tableBodyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f8fafc',
+  },
+  tableBodyRowRejected: {
+    backgroundColor: '#fff1f2',
+    opacity: 0.7,
+  },
+  tableCellNum: {
+    width: 24,
     textAlign: 'center',
-    fontStyle: 'italic',
-    marginTop: 10,
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748b',
+  },
+  tableItemTitleWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flexWrap: 'wrap',
+  },
+  tableCellItemName: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  tableCellItemUnit: {
+    fontSize: 9.5,
+    color: '#64748b',
+    marginTop: 1,
+  },
+  unavailableBadge: {
+    backgroundColor: '#ffe4e6',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 3,
+  },
+  unavailableBadgeText: {
+    fontSize: 7.5,
+    fontWeight: '900',
+    color: '#e11d48',
+  },
+  tableCellQty: {
+    width: 34,
+    textAlign: 'center',
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  tableCellRate: {
+    width: 58,
+    textAlign: 'right',
+    fontSize: 10.5,
+    color: '#334155',
+  },
+  tableCellTotal: {
+    width: 68,
+    textAlign: 'right',
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+
+  // Totals Section
+  totalsSection: {
+    alignItems: 'flex-end',
     marginBottom: 16,
+  },
+  totalsCard: {
+    width: 280,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: '#ffffff',
+  },
+  totalsBody: {
+    padding: 10,
+    gap: 5,
+  },
+  totalLineRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  totalLineLabel: {
+    fontSize: 10.5,
+    color: '#475569',
+  },
+  totalLineVal: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  grandTotalBanner: {
+    backgroundColor: '#ecfdf5',
+    borderTopWidth: 2,
+    borderTopColor: '#059669',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  grandTotalBannerLabel: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#065f46',
+    letterSpacing: 0.5,
+  },
+  grandTotalBannerAmount: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#047857',
+  },
+
+  // Footer & Signature
+  docFooterRow: {
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+    paddingTop: 14,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  docTermsCol: {
+    flex: 1,
+    gap: 3,
+  },
+  docTermsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 2,
+  },
+  docTermsTitle: {
+    fontSize: 9.5,
+    fontWeight: '900',
+    color: '#334155',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  docTermLine: {
+    fontSize: 9.5,
+    color: '#64748b',
+    lineHeight: 13,
+  },
+  docStoreGreeting: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#047857',
+    marginTop: 4,
+  },
+  docSigCol: {
+    alignItems: 'flex-end',
+    justifyContent: 'flex-end',
+    minWidth: 120,
+  },
+  docSigForStore: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#64748b',
+    marginBottom: 4,
+  },
+  docSigBox: {
+    height: 38,
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    marginBottom: 2,
+  },
+  docSigImg: {
+    width: 100,
+    height: 36,
+  },
+  docSigDashedLine: {
+    width: 110,
+    borderBottomWidth: 1,
+    borderBottomColor: '#94a3b8',
+    borderStyle: 'dashed',
+    marginTop: 20,
+  },
+  docSigLabel: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#0f172a',
+  },
+  docSigSubLabel: {
+    fontSize: 7.5,
+    color: '#94a3b8',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginTop: 1,
   },
 });

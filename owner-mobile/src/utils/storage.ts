@@ -43,4 +43,17 @@ export const safeStorage = {
       // Ignore storage removal errors
     }
   },
+
+  async clearAll(): Promise<void> {
+    memoryFallback.clear();
+    try {
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.clear();
+        return;
+      }
+      await AsyncStorage.clear();
+    } catch {
+      // Ignore cleanup errors
+    }
+  },
 };

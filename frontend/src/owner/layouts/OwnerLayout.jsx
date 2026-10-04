@@ -6,7 +6,7 @@ import {
   TrendingUp, Sun, Moon, FileText, SlidersHorizontal,
   Truck, Bell, BellRing
 } from 'lucide-react';
-import api from '../../services/api';
+import api, { invalidateCache } from '../../services/api';
 import toast from 'react-hot-toast';
 import { useTheme } from '../../context/ThemeContext';
 import { useWebSocket } from '../../hooks/useWebSocket';
@@ -156,11 +156,44 @@ const OwnerLayout = () => {
     if (refresh) {
       api.post('/auth/logout/', { refresh }).catch(() => {});
     }
-    
+
+    // 1. Clear API in-memory response cache
+    try {
+      invalidateCache();
+    } catch {}
+
+    // 2. Clear browser Cache Storage API (PWA, Service Worker caches)
+    if (typeof window !== 'undefined' && 'caches' in window) {
+      try {
+        const cacheKeys = await caches.keys();
+        await Promise.all(cacheKeys.map(k => caches.delete(k)));
+      } catch {}
+    }
+
+    // 3. Clear session storage
+    if (typeof sessionStorage !== 'undefined') {
+      try {
+        sessionStorage.clear();
+      } catch {}
+    }
+
+    // 4. Remove all owner authentication & local storage cache keys
+    try {
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('smart-kirana-owner') || key.startsWith('sk_cache_') || key.startsWith('owner_'))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+    } catch {}
+
     localStorage.removeItem('smart-kirana-owner-token');
     localStorage.removeItem('smart-kirana-owner-refresh');
     localStorage.removeItem('smart-kirana-owner-user');
     localStorage.removeItem('smart-kirana-owner-username');
+
     window.location.href = '/owner/login';
   };
 

@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { useRouter, useSegments } from 'expo-router';
 import api, { TOKEN_KEY, REFRESH_TOKEN_KEY } from '../services/api';
 import { safeStorage } from '../utils/storage';
@@ -27,10 +27,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
 
   const logout = useCallback(async () => {
-    await safeStorage.removeItem(TOKEN_KEY);
-    await safeStorage.removeItem(REFRESH_TOKEN_KEY);
-    api.clearCache();
-    setToken(null);
+    try {
+      // 1. Clear API in-memory LRU cache
+      api.clearCache();
+
+      // 2. Clear all local storage and session data
+      await safeStorage.clearAll();
+
+      // 3. Clear image disk and memory caches if expo-image is available
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { Image } = require('expo-image');
+        Image.clearMemoryCache?.();
+        await Image.clearDiskCache?.();
+      } catch {}
+
+      // 4. If running on web, wipe CacheStorage (Service Worker / PWA caches)
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && 'caches' in window) {
+        try {
+          const cacheKeys = await caches.keys();
+          await Promise.all(cacheKeys.map((k) => caches.delete(k)));
+        } catch {}
+      }
+    } catch (err) {
+      console.log('[AuthContext] Cache clear on logout error:', err);
+    } finally {
+      setToken(null);
+    }
   }, []);
 
   useEffect(() => {
