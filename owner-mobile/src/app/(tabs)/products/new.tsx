@@ -621,7 +621,7 @@ export default function AddProductScreen() {
           {/* Price & Offer Price */}
           <View style={styles.gridRow}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Regular Price (₹) *</Text>
+              <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Price (₹) *</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
                 placeholder="0.00"
@@ -647,7 +647,7 @@ export default function AddProductScreen() {
           {/* Stock & Max Order Limit */}
           <View style={styles.gridRow}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Stock Quantity</Text>
+              <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Stock</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
                 placeholder="10"
@@ -658,7 +658,7 @@ export default function AddProductScreen() {
               />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Max Order Limit</Text>
+              <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Max Limit</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
                 placeholder="10"
@@ -671,46 +671,38 @@ export default function AddProductScreen() {
           </View>
 
           {/* Cost Price */}
-          <View style={{ marginTop: 2 }}>
-            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Cost / Purchase Price (₹)</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
-              placeholder="Internal cost"
-              placeholderTextColor={colors.textMuted}
-              keyboardType="numeric"
-              value={costPrice}
-              onChangeText={setCostPrice}
-            />
-          </View>
-        </View>
+          <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Cost Price (₹)</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
+            placeholder="Cost to store"
+            placeholderTextColor={colors.textMuted}
+            keyboardType="numeric"
+            value={costPrice}
+            onChangeText={setCostPrice}
+          />
 
-        {/* ─── 3. Visibility ─── */}
-        <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>VISIBILITY</Text>
-        </View>
-
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <View style={styles.switchRow}>
-            <Text style={[styles.switchLabel, { color: colors.text }]}>Available In Stock</Text>
+          {/* In-Stock Switch */}
+          <View style={[styles.switchRow, { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10, marginTop: 4 }]}>
+            <Text style={[styles.switchLabel, { color: colors.text }]}>In Stock</Text>
             <ModernSwitch value={isInStock} onValueChange={setIsInStock} />
           </View>
         </View>
 
-        {/* ─── 4. Organization & SKU ─── */}
+        {/* ─── 3. Organization & Details ─── */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>BARCODE & DETAILS</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>MORE DETAILS</Text>
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
           {/* Barcode / SKU with Scan & Auto-Fill */}
-          <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Barcode / SKU</Text>
+          <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Barcode</Text>
           <View style={styles.barcodeInputRow}>
             <TextInput
               style={[
                 styles.input,
                 { flex: 1, marginBottom: 0, backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text },
               ]}
-              placeholder="Scan or enter barcode"
+              placeholder="Barcode number"
               placeholderTextColor={colors.textMuted}
               value={sku}
               onChangeText={setSku}
@@ -736,7 +728,7 @@ export default function AddProductScreen() {
           </View>
 
           {/* Expiry Date */}
-          <View style={{ marginTop: 12 }}>
+          <View style={{ marginTop: 10 }}>
             <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Expiry Date</Text>
             <TextInput
               style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
@@ -751,7 +743,7 @@ export default function AddProductScreen() {
           <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Tags</Text>
           <TextInput
             style={[styles.input, { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text }]}
-            placeholder="e.g. Snacks, Fresh (comma separated)"
+            placeholder="e.g. Snacks, Fresh"
             placeholderTextColor={colors.textMuted}
             value={tags}
             onChangeText={setTags}
@@ -763,33 +755,15 @@ export default function AddProductScreen() {
             style={[
               styles.input,
               styles.textArea,
-              { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text },
+              { backgroundColor: colors.cardAlt, borderColor: colors.border, color: colors.text, marginBottom: 0 },
             ]}
-            placeholder="Product details & instructions..."
+            placeholder="Product details..."
             placeholderTextColor={colors.textMuted}
             multiline
             value={description}
             onChangeText={setDescription}
           />
         </View>
-
-        {/* ─── Bottom Save Button ─── */}
-        <TouchableOpacity
-          style={[styles.bottomSaveBtn, { backgroundColor: '#10b981' }]}
-          onPress={handleSave}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <>
-              <Ionicons name="checkmark-circle" size={18} color="#ffffff" />
-              <Text style={styles.bottomSaveBtnText}>
-                {isEditing ? 'Update Product' : 'Save Product'}
-              </Text>
-            </>
-          )}
-        </TouchableOpacity>
       </ScrollView>
 
       {/* ─── AI Packaging Vision Modal ─── */}
@@ -1088,22 +1062,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // Bottom Save Button
-  bottomSaveBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginTop: 6,
-    marginBottom: 20,
-  },
-  bottomSaveBtnText: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '800',
-  },
+
 
   // Modals
   modalOverlay: {
