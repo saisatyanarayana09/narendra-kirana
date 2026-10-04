@@ -38,8 +38,8 @@ type SortOption = "default" | "price_low" | "price_high" | "newest";
 
 const SORT_OPTIONS: { id: SortOption; label: string }[] = [
   { id: "default", label: "Relevance" },
-  { id: "price_low", label: "Price: Low-High" },
-  { id: "price_high", label: "Price: High-Low" },
+  { id: "price_low", label: "Price: Low to High" },
+  { id: "price_high", label: "Price: High to Low" },
   { id: "newest", label: "Newest" },
 ];
 
@@ -392,7 +392,16 @@ export function ProductListScreen({
         </ScrollView>
 
         {/* Category Title & Count */}
-        
+        <View style={[styles.subHeaderRow, { borderTopColor: colors.border }]}>
+          <Text style={[styles.categoryTitle, { color: colors.text }]}>
+            {activeCategoryName}
+          </Text>
+          <Text
+            style={[styles.productCountText, { color: colors.textSecondary }]}
+          >
+            {sortedProducts.length} products
+          </Text>
+        </View>
 
         {/* Sorting Pills: Relevance, Price: Low to High, Price: High to Low, Newest */}
         <ScrollView
@@ -525,7 +534,9 @@ export function ProductListScreen({
           activeOpacity={0.7}
         >
           <Feather name="arrow-left" size={18} color={colors.primary} />
-          
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>
+            {t("back")}
+          </Text>
         </TouchableOpacity>
 
         <Text

@@ -8,8 +8,7 @@ import {
   TouchableOpacity,
   StyleProp,
   ViewStyle,
-  Share,
-} from "react-native";
+  } from "react-native";
 
 import { BouncyTouchable } from "./BouncyTouchable";
 import { API_BASE_URL } from "../constants/config";
@@ -71,20 +70,7 @@ function ProductCardComponent({
     };
   }, []);
 
-  const handleShare = async (e: any) => {
-    e?.stopPropagation?.();
-    try {
-      const shareUrl = API_BASE_URL.replace("/api/v1", `/product/${product.id}`);
-      await Share.share({
-        message: `Check out ${product.name} on Narendra Kirana!\n${shareUrl}`,
-        url: shareUrl,
-      });
-    } catch (error) {
-      console.error("Error sharing product:", error);
-    }
-  };
-
-  const isFav =
+    const isFav =
     typeof isFavorite === "function"
       ? Boolean(isFavorite(product.id))
       : Boolean(isFavorite);
@@ -231,24 +217,7 @@ function ProductCardComponent({
           </BouncyTouchable>
         )}
 
-        {/* Share button at top right */}
-        <BouncyTouchable
-          style={[
-            styles.shareButton,
-            isDark && { backgroundColor: "rgba(30, 41, 59, 0.92)" },
-            !onToggleFavorite && { top: 8 }
-          ]}
-          onPress={handleShare}
-          scaleTo={0.82}
-          hapticType="selection"
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Feather
-            name="share-2"
-            size={14}
-            color={isDark ? "#64748B" : "#94A3B8"}
-          />
-        </BouncyTouchable>
+        
 
         {/* Product image or initial letter fallback */}
         {primaryImage ? (
@@ -351,7 +320,7 @@ function ProductCardComponent({
                 { backgroundColor: colors.inputBg, borderColor: colors.border },
               ]}
             >
-              <Text style={styles.outOfStockButtonText}>UNAVAILABLE</Text>
+              <Text style={styles.outOfStockButtonText}>Out of stock</Text>
             </View>
           ) : showQuantityStepper && currentCartQty > 0 ? (
             <View
@@ -429,7 +398,7 @@ function ProductCardComponent({
                   ✓ Added!
                 </Text>
               ) : updating ? (
-                <Text style={styles.addToCartText}>ADDING</Text>
+                <Text style={styles.addToCartText}>Adding...</Text>
               ) : (
                 <View style={styles.buttonInner}>
                   <Feather
@@ -438,7 +407,7 @@ function ProductCardComponent({
                     color="#FFFFFF"
                     style={{ marginRight: 6 }}
                   />
-                  <Text style={styles.addToCartText}>ADD</Text>
+                  <Text style={styles.addToCartText}>Add to Cart</Text>
                 </View>
               )}
             </BouncyTouchable>
