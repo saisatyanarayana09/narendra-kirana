@@ -1425,13 +1425,18 @@ const styles = StyleSheet.create({
 
   // Top Header (Store Brand & Document Meta)
   docTopHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     borderBottomWidth: 1,
     borderBottomColor: "#E2E8F0",
     paddingBottom: 16,
     marginBottom: 14,
-    gap: 14,
+    gap: 8,
   },
   docStoreCol: {
+    flex: 1,
+    alignItems: "flex-start",
     gap: 6,
   },
   docStoreRow: {
@@ -1492,16 +1497,15 @@ const styles = StyleSheet.create({
 
   // Official Meta Box
   docMetaCol: {
-    gap: 6,
+    alignItems: "flex-end",
+    gap: 4,
   },
   docMetaHeadingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8,
+    alignItems: "flex-end",
+    gap: 2,
   },
   docTaxInvoiceHeading: {
-    fontSize: 22,
+    fontSize: 16,
     fontWeight: "900",
     color: "#0F172A",
     letterSpacing: -0.5,
@@ -1529,7 +1533,7 @@ const styles = StyleSheet.create({
   },
   docMetaRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     alignItems: "center",
     gap: 8,
   },
