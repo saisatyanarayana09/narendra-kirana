@@ -351,7 +351,7 @@ function ProductCardComponent({
                 { backgroundColor: colors.inputBg, borderColor: colors.border },
               ]}
             >
-              <Text style={styles.outOfStockButtonText}>Out of stock</Text>
+              <Text style={styles.outOfStockButtonText}>UNAVAILABLE</Text>
             </View>
           ) : showQuantityStepper && currentCartQty > 0 ? (
             <View
@@ -429,7 +429,7 @@ function ProductCardComponent({
                   ✓ Added!
                 </Text>
               ) : updating ? (
-                <Text style={styles.addToCartText}>Adding...</Text>
+                <Text style={styles.addToCartText}>ADDING</Text>
               ) : (
                 <View style={styles.buttonInner}>
                   <Feather
@@ -438,7 +438,7 @@ function ProductCardComponent({
                     color="#FFFFFF"
                     style={{ marginRight: 6 }}
                   />
-                  <Text style={styles.addToCartText}>Add to Cart</Text>
+                  <Text style={styles.addToCartText}>ADD</Text>
                 </View>
               )}
             </BouncyTouchable>
