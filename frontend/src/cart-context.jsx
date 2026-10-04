@@ -4,19 +4,90 @@ import api, { clearUserCache, clearAllBrowserCaches } from './services/api'
 const CartContext = createContext(null)
 const getUser = () => JSON.parse(localStorage.getItem('smart-kirana-customer-user') || 'null')
 
+const LOCAL_CART_KEY = 'smart-kirana-customer-cart-cache';
+const getStoredCart = () => {
+  try {
+    const raw = localStorage.getItem(LOCAL_CART_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const getItemProductId = (item) => {
+  if (!item) return null;
+  if (typeof item.product === 'object' && item.product !== null) {
+    return Number(item.product.id);
+  }
+  if (item.product !== undefined && item.product !== null) {
+    return Number(item.product);
+  }
+  if (item.product_id !== undefined && item.product_id !== null) {
+    return Number(item.product_id);
+  }
+  return Number(item.id);
+};
+
+const calculateLocalTotals = (items, currentCart = {}, storeSettings = null) => {
+  const safeItems = Array.isArray(items) ? items : [];
+  let regularTotal = 0;
+  let itemsTotal = 0;
+
+  const normalizedItems = safeItems.map((item) => {
+    const qty = Math.max(0, Number(item.quantity || 0));
+    const unitPrice = Number(item.unit_price ?? item.product?.price ?? item.price ?? 0);
+    const regularPrice = Number(item.regular_price ?? item.product?.regular_price ?? item.product?.mrp ?? unitPrice);
+    const subtotal = (unitPrice * qty).toFixed(2);
+    regularTotal += regularPrice * qty;
+    itemsTotal += unitPrice * qty;
+
+    return {
+      ...item,
+      quantity: qty,
+      unit_price: unitPrice.toFixed(2),
+      regular_price: regularPrice.toFixed(2),
+      subtotal,
+    };
+  });
+
+  const packagingFee = normalizedItems.length > 0
+    ? Number(currentCart?.packaging_fee ?? storeSettings?.packaging_fee ?? 0)
+    : 0;
+  const promoDiscount = Math.min(Number(currentCart?.promo_discount || 0), itemsTotal);
+  const total = Math.max(0, itemsTotal - promoDiscount) + packagingFee;
+  const discount = Math.max(0, regularTotal - itemsTotal);
+
+  return {
+    ...(currentCart || {}),
+    items: normalizedItems,
+    subtotal: regularTotal.toFixed(2),
+    items_total: itemsTotal.toFixed(2),
+    discount: discount.toFixed(2),
+    packaging_fee: packagingFee.toFixed(2),
+    promo_discount: promoDiscount.toFixed(2),
+    total: total.toFixed(2),
+  };
+};
+
 // Module-level cache to track dispatched notifications without hook dependencies
 const seenNotificationIds = new Set();
 let hasLoadedInitialNotifications = false;
 
 export function CartProvider({ children }) {
- const [cart, setCart] = useState(null)
- const [user, setUser] = useState(getUser)
- const [storeSettings, setStoreSettings] = useState(null)
+  const [cart, setCart] = useState(() => getStoredCart())
+  const [user, setUser] = useState(getUser)
+  const [storeSettings, setStoreSettings] = useState(null)
   const [favorites, setFavorites] = useState([])
   const [notifications, setNotifications] = useState([])
   const cartRef = useRef(cart)
+  const storeSettingsRef = useRef(storeSettings)
   const cartMutationQueue = useRef(Promise.resolve())
   const cartMutationVersion = useRef(0)
+  const pendingSyncTimers = useRef({})
+
+  useEffect(() => {
+    storeSettingsRef.current = storeSettings
+  }, [storeSettings])
 
   useEffect(() => {
     cartRef.current = cart
@@ -25,6 +96,13 @@ export function CartProvider({ children }) {
   const replaceCart = useCallback((nextCart) => {
     cartRef.current = nextCart
     setCart(nextCart)
+    if (nextCart) {
+      try {
+        localStorage.setItem(LOCAL_CART_KEY, JSON.stringify(nextCart));
+      } catch {}
+    } else {
+      localStorage.removeItem(LOCAL_CART_KEY);
+    }
   }, [])
 
   // Cart mutation responses contain every line item. Serialize writes and only
@@ -126,7 +204,30 @@ export function CartProvider({ children }) {
   }, [isCustomer])
 
   const refresh = useCallback(async () => {
-    if (!isCustomer) { replaceCart(null); setFavorites([]); setNotifications([]); return }
+    if (!isCustomer) {
+      const guestCart = getStoredCart();
+      if (guestCart) replaceCart(guestCart);
+      setFavorites([]);
+      setNotifications([]);
+      return;
+    }
+    const stored = getStoredCart();
+    const localItems = stored?.items || [];
+    if (localItems.length > 0) {
+      try {
+        const itemsPayload = localItems
+          .map(item => ({ product: getItemProductId(item), quantity: item.quantity }))
+          .filter(i => i.product && i.quantity > 0);
+        if (itemsPayload.length > 0) {
+          const res = await api.post('/cart/merge/', { items: itemsPayload });
+          if (res?.data) {
+            replaceCart(res.data);
+          }
+        }
+      } catch (e) {
+        console.warn('Cart merge on refresh warning:', e);
+      }
+    }
     // Run them independently so one slow request doesn't block the others
     refreshCart().catch(console.error);
     refreshFavorites().catch(console.error);
@@ -193,61 +294,193 @@ export function CartProvider({ children }) {
     window.location.href = '/';
   }, [replaceCart]);
 
-  const add = useCallback(async (product) => {
-    await enqueueCartMutation(async (version) => {
-      const response = await api.post('/cart/items/', { product: product.id, quantity: 1 });
-      if (version === cartMutationVersion.current) replaceCart(response.data);
-    });
-  }, [enqueueCartMutation, replaceCart])
+  const flushCartSync = useCallback(async () => {
+    const timerKeys = Object.keys(pendingSyncTimers.current);
+    if (timerKeys.length > 0) {
+      timerKeys.forEach(k => {
+        clearTimeout(pendingSyncTimers.current[k]);
+        delete pendingSyncTimers.current[k];
+      });
+
+      if (isCustomer && cartRef.current?.items) {
+        try {
+          const itemsPayload = cartRef.current.items
+            .map(i => ({ product: getItemProductId(i), quantity: i.quantity }))
+            .filter(i => i.product && i.quantity > 0);
+          if (itemsPayload.length > 0) {
+            const res = await api.post('/cart/merge/', { items: itemsPayload });
+            if (res?.data) {
+              replaceCart(res.data);
+            }
+          }
+        } catch (e) {
+          console.warn('Flush cart sync error:', e);
+        }
+      }
+    }
+    await cartMutationQueue.current;
+  }, [isCustomer, replaceCart]);
+
+  const add = useCallback(async (product, quantity = 1) => {
+    if (!product) return;
+    const pId = Number(product.id);
+    const currentCart = cartRef.current || { items: [] };
+    const currentItems = Array.isArray(currentCart.items) ? [...currentCart.items] : [];
+    const existingIndex = currentItems.findIndex(i => getItemProductId(i) === pId);
+
+    let nextItems;
+    let targetQuantity;
+
+    if (existingIndex > -1) {
+      const existing = currentItems[existingIndex];
+      const stockLimit = existing.stock_quantity ?? product.stock_quantity ?? 999;
+      const maxOrderLimit = existing.max_order_quantity ?? product.max_order_quantity ?? 0;
+      const cap = maxOrderLimit > 0 ? Math.min(stockLimit, maxOrderLimit) : stockLimit;
+      targetQuantity = Math.min(existing.quantity + quantity, cap);
+
+      nextItems = currentItems.map((item, idx) =>
+        idx === existingIndex ? { ...item, quantity: targetQuantity } : item
+      );
+    } else {
+      const unitPrice = Number(product.offer_price || product.price || product.regular_price || 0);
+      const regularPrice = Number(product.regular_price || product.mrp || unitPrice);
+      const stockLimit = product.stock_quantity ?? 999;
+      const maxOrderLimit = product.max_order_quantity ?? 0;
+      const cap = maxOrderLimit > 0 ? Math.min(stockLimit, maxOrderLimit) : stockLimit;
+      targetQuantity = Math.min(quantity, cap);
+
+      const optimisticItem = {
+        id: `temp_${pId}_${Date.now()}`,
+        product: pId,
+        product_name: product.name,
+        product_unit: product.unit || 'pack',
+        product_image: product.image || product.primary_image || null,
+        is_in_stock: product.is_in_stock !== false,
+        stock_quantity: product.stock_quantity,
+        max_order_quantity: product.max_order_quantity,
+        quantity: targetQuantity,
+        regular_price: regularPrice.toFixed(2),
+        unit_price: unitPrice.toFixed(2),
+        subtotal: (unitPrice * targetQuantity).toFixed(2),
+      };
+      nextItems = [...currentItems, optimisticItem];
+    }
+
+    // 1. Instant 0ms Local UI Update!
+    const nextCart = calculateLocalTotals(nextItems, currentCart, storeSettingsRef.current);
+    replaceCart(nextCart);
+
+    // 2. If guest, cart is saved in local storage. Done!
+    if (!isCustomer) return;
+
+    // 3. Debounce background network sync
+    if (pendingSyncTimers.current[pId]) {
+      clearTimeout(pendingSyncTimers.current[pId]);
+      delete pendingSyncTimers.current[pId];
+    }
+
+    pendingSyncTimers.current[pId] = setTimeout(async () => {
+      delete pendingSyncTimers.current[pId];
+      try {
+        await enqueueCartMutation(async (version) => {
+          const latestItem = cartRef.current?.items?.find(i => getItemProductId(i) === pId);
+          if (!latestItem) return;
+
+          let response;
+          if (typeof latestItem.id === 'number' && latestItem.id > 0) {
+            response = await api.patch(`/cart/items/${latestItem.id}/`, { quantity: latestItem.quantity });
+          } else {
+            response = await api.post('/cart/items/', { product: pId, quantity: latestItem.quantity });
+          }
+          if (response?.data && version === cartMutationVersion.current) {
+            replaceCart(response.data);
+          }
+        });
+      } catch (err) {
+        console.error('Debounced cart add sync failed:', err);
+      }
+    }, 450);
+  }, [isCustomer, enqueueCartMutation, replaceCart]);
 
   const update = useCallback(async (item, quantity) => {
-    const previousCart = cartRef.current;
-    const mutationVersion = cartMutationVersion.current + 1;
-    setCart((current) => {
-      if (!current?.items) return current;
-      const items = quantity < 1
-        ? { ...current, items: current.items.filter((cartItem) => cartItem.id !== item.id) }
-        : {
-            ...current,
-            items: current.items.map((cartItem) => (
-              cartItem.id === item.id
-                ? { ...cartItem, quantity, subtotal: (Number(cartItem.unit_price || 0) * quantity).toFixed(2) }
-              : cartItem
-            )),
-          };
-      const nextItems = items.items;
-      const itemsTotal = nextItems.reduce((total, cartItem) => total + Number(cartItem.unit_price || 0) * cartItem.quantity, 0);
-      const regularTotal = nextItems.reduce(
-        (total, cartItem) => total + Number(cartItem.regular_price || cartItem.unit_price || 0) * cartItem.quantity,
-        0,
-      );
-      const packagingFee = nextItems.length ? Number(current.packaging_fee || 0) : 0;
-      const promoDiscount = Math.min(Number(current.promo_discount || 0), itemsTotal);
-      const nextCart = {
-        ...items,
-        subtotal: regularTotal.toFixed(2),
-        items_total: itemsTotal.toFixed(2),
-        discount: Math.max(0, regularTotal - itemsTotal).toFixed(2),
-        packaging_fee: packagingFee.toFixed(2),
-        total: (Math.max(0, itemsTotal - promoDiscount) + packagingFee).toFixed(2),
-      };
-      cartRef.current = nextCart;
-      return nextCart;
-    });
+    if (!item) return;
+    const pId = getItemProductId(item);
+    const targetQty = Math.max(0, quantity);
+    const currentCart = cartRef.current || { items: [] };
+    const currentItems = Array.isArray(currentCart.items) ? [...currentCart.items] : [];
 
-    try {
-      await enqueueCartMutation(async (version) => {
-        const response = quantity < 1
-          ? await api.delete(`/cart/items/${item.id}/`)
-          : await api.patch(`/cart/items/${item.id}/`, { quantity });
-        if (version === cartMutationVersion.current) replaceCart(response.data);
+    let nextItems;
+    if (targetQty <= 0) {
+      nextItems = currentItems.filter(i => getItemProductId(i) !== pId && i.id !== item.id);
+    } else {
+      nextItems = currentItems.map(i => {
+        if (getItemProductId(i) === pId || i.id === item.id) {
+          return { ...i, quantity: targetQty };
+        }
+        return i;
       });
-    } catch (error) {
-      if (previousCart && cartMutationVersion.current === mutationVersion) replaceCart(previousCart);
-      throw error;
     }
-  }, [enqueueCartMutation, replaceCart])
+
+    // 1. Instant 0ms Local UI Update!
+    const nextCart = calculateLocalTotals(nextItems, currentCart, storeSettingsRef.current);
+    replaceCart(nextCart);
+
+    // 2. If guest, done!
+    if (!isCustomer) return;
+
+    // 3. Debounce background network sync
+    if (pendingSyncTimers.current[pId]) {
+      clearTimeout(pendingSyncTimers.current[pId]);
+      delete pendingSyncTimers.current[pId];
+    }
+
+    pendingSyncTimers.current[pId] = setTimeout(async () => {
+      delete pendingSyncTimers.current[pId];
+      try {
+        await enqueueCartMutation(async (version) => {
+          let response;
+          if (targetQty <= 0) {
+            if (typeof item.id === 'number' && item.id > 0) {
+              response = await api.delete(`/cart/items/${item.id}/`);
+            } else {
+              return;
+            }
+          } else {
+            const realItem = cartRef.current?.items?.find(i => getItemProductId(i) === pId && typeof i.id === 'number' && i.id > 0);
+            const targetId = realItem?.id || (typeof item.id === 'number' && item.id > 0 ? item.id : null);
+            if (targetId) {
+              response = await api.patch(`/cart/items/${targetId}/`, { quantity: targetQty });
+            } else {
+              response = await api.post('/cart/items/', { product: pId, quantity: targetQty });
+            }
+          }
+          if (response?.data && version === cartMutationVersion.current) {
+            replaceCart(response.data);
+          }
+        });
+      } catch (err) {
+        console.error('Debounced cart update sync failed:', err);
+      }
+    }, 450);
+  }, [isCustomer, enqueueCartMutation, replaceCart]);
+
   const clearCart = useCallback(async () => {
+    Object.keys(pendingSyncTimers.current).forEach(k => {
+      clearTimeout(pendingSyncTimers.current[k]);
+      delete pendingSyncTimers.current[k];
+    });
+    const emptyCart = {
+      items: [],
+      subtotal: '0.00',
+      items_total: '0.00',
+      discount: '0.00',
+      promo_code: null,
+      promo_discount: '0.00',
+      packaging_fee: '0.00',
+      total: '0.00'
+    };
+    replaceCart(emptyCart);
+
     if (!isCustomer) return;
     try {
       await enqueueCartMutation(async (version) => {
@@ -260,11 +493,12 @@ export function CartProvider({ children }) {
   }, [isCustomer, enqueueCartMutation, replaceCart]);
 
   const applyPromo = useCallback(async (code) => {
+    await flushCartSync();
     await enqueueCartMutation(async (version) => {
       const response = await api.post('/cart/apply-promo/', { code });
       if (version === cartMutationVersion.current) replaceCart(response.data);
     });
-  }, [enqueueCartMutation, replaceCart])
+  }, [flushCartSync, enqueueCartMutation, replaceCart]);
 
   const toggleFavorite = useCallback(async (productId) => {
     if (!isCustomer) return;
@@ -292,10 +526,10 @@ export function CartProvider({ children }) {
  const value = useMemo(() => ({
    cart, add, update, clearCart, refresh, user, isCustomer, syncUser, logout,
    applyPromo, storeSettings, favorites, toggleFavorite, notifications,
-   notificationPermission, requestWebPushPermission
+   notificationPermission, requestWebPushPermission, flushCartSync
  }), [cart, add, update, clearCart, refresh, user, isCustomer, syncUser, logout,
       applyPromo, storeSettings, favorites, toggleFavorite, notifications,
-      notificationPermission, requestWebPushPermission])
+      notificationPermission, requestWebPushPermission, flushCartSync])
 
  return (
    <CartContext.Provider value={value}>

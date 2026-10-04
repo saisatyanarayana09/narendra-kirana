@@ -1011,7 +1011,7 @@ export function getLocalDateStr(d) {
 
 export function CartPage() {
   const navigate = useNavigate();
-  const { cart, isCustomer, storeSettings, update, applyPromo, clearCart } = useCart();
+  const { cart, isCustomer, storeSettings, update, applyPromo, clearCart, flushCartSync } = useCart();
   const [error, setError] = useState('');
   const [promoInput, setPromoInput] = useState('');
   const [promoError, setPromoError] = useState('');
@@ -1025,6 +1025,13 @@ export function CartPage() {
     } catch {
       setError('Could not update your cart.');
     }
+  }
+
+  async function handleProceedToCheckout() {
+    if (flushCartSync) {
+      await flushCartSync();
+    }
+    navigate('/checkout');
   }
 
   async function handleApplyPromo(e) {
@@ -1282,7 +1289,7 @@ export function CartPage() {
                   <div className="mt-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 p-3.5 text-center font-bold text-amber-700 dark:text-amber-300 border border-amber-100 dark:border-amber-800 text-xs sm:text-sm">Minimum order amount is ₹{minOrderAmount.toFixed(0)}</div>
                 ) : (
                   <>
-                    <button onClick={() => navigate('/checkout')} className="mt-4 w-full min-h-[46px] rounded-xl bg-emerald-600 hover:bg-emerald-700 font-black text-white shadow-md shadow-emerald-600/20 transition-all active:scale-[0.98] text-sm sm:text-base py-3 cursor-pointer flex items-center justify-center gap-2">
+                    <button onClick={handleProceedToCheckout} className="mt-4 w-full min-h-[46px] rounded-xl bg-emerald-600 hover:bg-emerald-700 font-black text-white shadow-md shadow-emerald-600/20 transition-all active:scale-[0.98] text-sm sm:text-base py-3 cursor-pointer flex items-center justify-center gap-2">
                       Proceed to Checkout →
                     </button>
                     <p className="mt-2 text-center text-[11px] text-slate-500 dark:text-slate-400 font-medium">Pay securely online or at store pickup.</p>
@@ -1299,7 +1306,7 @@ export function CartPage() {
                     <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Payable</p>
                     <p className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400 leading-none mt-0.5">₹{totalPayable.toFixed(2)}</p>
                   </div>
-                  <button onClick={() => navigate('/checkout')} className="flex-1 min-h-[44px] py-2.5 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] font-black text-white shadow-md shadow-emerald-600/20 transition-all text-sm sm:text-base flex items-center justify-center gap-2 cursor-pointer">
+                  <button onClick={handleProceedToCheckout} className="flex-1 min-h-[44px] py-2.5 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] font-black text-white shadow-md shadow-emerald-600/20 transition-all text-sm sm:text-base flex items-center justify-center gap-2 cursor-pointer">
                     Proceed to Checkout →
                   </button>
                 </div>
@@ -1331,7 +1338,14 @@ export function extractErrorMessage(err, fallback = 'Could not place your order.
 
 export function CheckoutPage() {
    const navigate = useNavigate(); 
-   const { cart, isCustomer, storeSettings, refresh, clearCart } = useCart(); 
+   const { cart, isCustomer, storeSettings, refresh, clearCart, flushCartSync } = useCart(); 
+
+   useEffect(() => {
+     if (flushCartSync) {
+       flushCartSync();
+     }
+   }, [flushCartSync]);
+
    const [time, setTime] = useState('As soon as possible'); 
    const [note, setNote] = useState(''); 
    const [error, setError] = useState(''); 
