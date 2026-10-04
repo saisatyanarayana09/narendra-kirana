@@ -1625,13 +1625,16 @@ export default function ProductsListScreen() {
         animationType="slide"
         onRequestClose={() => setShowScanner(false)}
       >
-        <UniversalCameraScanner
-          mode="all"
-          title="Universal Scanner"
-          subtitle="Point at any barcode or QR code to locate product"
-          onScan={handleBarcodeScan}
-          onClose={() => setShowScanner(false)}
-        />
+        {showScanner && (
+          <UniversalCameraScanner
+            mode="all"
+            isActive={showScanner}
+            title="Universal Scanner"
+            subtitle="Point at any barcode or QR code to locate product"
+            onScan={handleBarcodeScan}
+            onClose={() => setShowScanner(false)}
+          />
+        )}
       </Modal>
     </View>
   );

@@ -27,6 +27,7 @@ interface UniversalCameraScannerProps {
   onToggleTorch?: () => void;
   height?: DimensionValue;
   isScanned?: boolean;
+  isActive?: boolean;
   hideFloatingTorch?: boolean;
   showModeSelector?: boolean;
   onModeChange?: (mode: 'all' | 'barcode' | 'qr') => void;
@@ -60,6 +61,7 @@ export default function UniversalCameraScanner({
   onToggleTorch,
   height = 320,
   isScanned,
+  isActive = true,
   hideFloatingTorch = false,
   showModeSelector = false,
   onModeChange,
@@ -149,6 +151,24 @@ export default function UniversalCameraScanner({
   // Web camera initialization using getUserMedia + jsQR (and BarcodeDetector if available in browser)
   useEffect(() => {
     if (Platform.OS !== 'web') return;
+    if (!isActive) {
+      if (animFrameRef.current !== null && typeof cancelAnimationFrame !== 'undefined') {
+        cancelAnimationFrame(animFrameRef.current);
+        animFrameRef.current = null;
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => {
+          try {
+            track.stop();
+          } catch {}
+        });
+        streamRef.current = null;
+      }
+      if (typeof document !== 'undefined' && videoContainerRef.current) {
+        (videoContainerRef.current as HTMLElement).innerHTML = '';
+      }
+      return;
+    }
     let isMounted = true;
     let videoEl: HTMLVideoElement | null = null;
     let canvasEl: HTMLCanvasElement | null = null;
@@ -327,7 +347,7 @@ export default function UniversalCameraScanner({
       isMounted = false;
       stopWebCamera();
     };
-  }, [facing, onScan, continuous, scanned]);
+  }, [facing, onScan, continuous, scanned, isActive]);
 
   const handleNativeBarcodeScanned = (result: BarcodeScanningResult) => {
     if (scanned || !result?.data) return;
@@ -407,9 +427,16 @@ export default function UniversalCameraScanner({
             <Text style={styles.errorText}>{cameraError}</Text>
           </View>
         ) : Platform.OS === 'web' ? (
-          <View ref={videoContainerRef} style={styles.webVideoContainer} />
+          isActive ? (
+            <View ref={videoContainerRef} style={styles.webVideoContainer} />
+          ) : (
+            <View style={styles.statusCenter}>
+              <Ionicons name="videocam-off-outline" size={44} color="#64748b" />
+              <Text style={styles.statusText}>Camera is paused</Text>
+            </View>
+          )
         ) : (
-          hasPermission && (
+          hasPermission && isActive ? (
             <CameraView
               facing={facing}
               enableTorch={activeTorch}
@@ -424,6 +451,11 @@ export default function UniversalCameraScanner({
               }}
               style={StyleSheet.absoluteFill}
             />
+          ) : (
+            <View style={styles.statusCenter}>
+              <Ionicons name="videocam-off-outline" size={44} color="#64748b" />
+              <Text style={styles.statusText}>Camera is paused</Text>
+            </View>
           )
         )}
 

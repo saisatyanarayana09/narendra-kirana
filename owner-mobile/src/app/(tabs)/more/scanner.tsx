@@ -15,7 +15,7 @@ import {
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import api, { ApiInstance, getErrorMessage } from '../../../services/api';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert } from '../../../utils/alerts';
 import UniversalCameraScanner from '../../../components/UniversalCameraScanner';
@@ -52,6 +52,18 @@ export default function CommonSmartScannerScreen() {
   const { isDark, colors } = useAppTheme();
   const router = useRouter();
 
+  // Screen Focus Lifecycle (turns off camera on screen blur / close)
+  const [isScreenFocused, setIsScreenFocused] = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      setIsScreenFocused(true);
+      return () => {
+        setIsScreenFocused(false);
+      };
+    }, [])
+  );
+
   // Scanner Hardware State
   const [torchOn, setTorchOn] = useState(false);
 
@@ -78,6 +90,7 @@ export default function CommonSmartScannerScreen() {
   };
 
   const handleClose = () => {
+    setIsScreenFocused(false);
     if (router.canGoBack && router.canGoBack()) {
       router.back();
     } else {
@@ -388,16 +401,26 @@ export default function CommonSmartScannerScreen() {
               },
             ]}
           >
-            <UniversalCameraScanner
-              minimal
-              mode="all"
-              torch={torchOn}
-              hideFloatingTorch={true}
-              showModeSelector={false}
-              isScanned={!!scanResult}
-              height={340}
-              onScan={processScannedCode}
-            />
+            {isScreenFocused ? (
+              <UniversalCameraScanner
+                minimal
+                mode="all"
+                isActive={isScreenFocused}
+                torch={torchOn}
+                hideFloatingTorch={true}
+                showModeSelector={false}
+                isScanned={!!scanResult}
+                height={340}
+                onScan={processScannedCode}
+              />
+            ) : (
+              <View style={[styles.cameraBoxPlaceholder, { height: 340 }]}>
+                <Ionicons name="videocam-off-outline" size={40} color="#64748b" />
+                <Text style={{ color: '#94a3b8', marginTop: 10, fontSize: 13, fontWeight: '600' }}>
+                  Camera closed
+                </Text>
+              </View>
+            )}
 
             {/* In-Flight Auto-Decoding Indicator */}
             {processing && (
@@ -1508,5 +1531,11 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 13.5,
     fontWeight: '800',
+  },
+  cameraBoxPlaceholder: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0f172a',
   },
 });
