@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
+  Vibration,
+  DimensionValue,
 } from 'react-native';
 import { Camera, CameraView, BarcodeScanningResult, BarcodeType } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,9 +25,11 @@ interface UniversalCameraScannerProps {
   continuous?: boolean;
   torch?: boolean;
   onToggleTorch?: () => void;
-  height?: number;
+  height?: DimensionValue;
   isScanned?: boolean;
   hideFloatingTorch?: boolean;
+  showModeSelector?: boolean;
+  onModeChange?: (mode: 'all' | 'barcode' | 'qr') => void;
 }
 
 const ALL_BARCODE_TYPES: BarcodeType[] = [
@@ -57,16 +61,31 @@ export default function UniversalCameraScanner({
   height = 320,
   isScanned,
   hideFloatingTorch = false,
+  showModeSelector = false,
+  onModeChange,
 }: UniversalCameraScannerProps) {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [internalScanned, setInternalScanned] = useState(false);
+  const [internalMode, setInternalMode] = useState<'qr' | 'barcode' | 'all'>(mode);
   const [facing, setFacing] = useState<'back' | 'front'>('back');
   const [internalTorch, setInternalTorch] = useState(false);
   const [laserAnim] = useState(() => new Animated.Value(0));
 
+  const activeMode = mode !== undefined ? mode : internalMode;
   const scanned = isScanned !== undefined ? isScanned : internalScanned;
   const activeTorch = propTorch !== undefined ? propTorch : internalTorch;
+
+  const reticleWidth = activeMode === 'barcode' ? 270 : activeMode === 'qr' ? 210 : 245;
+  const reticleHeight = activeMode === 'barcode' ? 130 : activeMode === 'qr' ? 210 : 175;
+
+  const triggerScanFeedback = () => {
+    try {
+      if (Platform.OS !== 'web') {
+        Vibration.vibrate(50);
+      }
+    } catch {}
+  };
 
   useEffect(() => {
     let loopAnim: Animated.CompositeAnimation | null = null;
@@ -241,6 +260,7 @@ export default function UniversalCameraScanner({
                   try {
                     const barcodes = await barcodeDetector.detect(videoEl);
                     if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
+                      triggerScanFeedback();
                       isSessionScanned = true;
                       setInternalScanned(true);
                       onScan(String(barcodes[0].rawValue));
@@ -266,6 +286,7 @@ export default function UniversalCameraScanner({
                     inversionAttempts: 'dontInvert',
                   });
                   if (qrResult && qrResult.data) {
+                    triggerScanFeedback();
                     isSessionScanned = true;
                     setInternalScanned(true);
                     onScan(qrResult.data);
@@ -310,6 +331,7 @@ export default function UniversalCameraScanner({
 
   const handleNativeBarcodeScanned = (result: BarcodeScanningResult) => {
     if (scanned || !result?.data) return;
+    triggerScanFeedback();
     setInternalScanned(true);
     onScan(result.data);
     if (continuous) {
@@ -371,7 +393,7 @@ export default function UniversalCameraScanner({
         </View>
       )}
 
-      <View style={[styles.cameraBox, { height }]}>
+      <View style={[styles.cameraBox, { height: height as any }]}>
         {hasPermission === null && !cameraError && (
           <View style={styles.statusCenter}>
             <ActivityIndicator size="large" color="#10b981" />
@@ -393,7 +415,12 @@ export default function UniversalCameraScanner({
               enableTorch={activeTorch}
               onBarcodeScanned={scanned ? undefined : handleNativeBarcodeScanned}
               barcodeScannerSettings={{
-                barcodeTypes: mode === 'qr' ? ['qr'] : ALL_BARCODE_TYPES,
+                barcodeTypes:
+                  activeMode === 'qr'
+                    ? ['qr']
+                    : activeMode === 'barcode'
+                      ? ALL_BARCODE_TYPES.filter((t) => t !== 'qr')
+                      : ALL_BARCODE_TYPES,
               }}
               style={StyleSheet.absoluteFill}
             />
@@ -403,7 +430,7 @@ export default function UniversalCameraScanner({
         {/* Floating Controls Overlay (Visible in all modes for fast access) */}
         {!cameraError && (
           <View style={styles.floatingTopBar}>
-            {onClose && minimal && (
+            {onClose && (
               <TouchableOpacity
                 style={styles.floatingActionBtn}
                 onPress={onClose}
@@ -411,6 +438,36 @@ export default function UniversalCameraScanner({
               >
                 <Ionicons name="close" size={18} color="#ffffff" />
               </TouchableOpacity>
+            )}
+
+            {showModeSelector && (
+              <View style={styles.modeSegmentedPill}>
+                {(['all', 'barcode', 'qr'] as const).map((m) => {
+                  const isSelected = activeMode === m;
+                  return (
+                    <TouchableOpacity
+                      key={m}
+                      onPress={() => {
+                        setInternalMode(m);
+                        if (onModeChange) onModeChange(m);
+                      }}
+                      style={[
+                        styles.modeSegmentBtn,
+                        isSelected && styles.modeSegmentBtnActive,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.modeSegmentText,
+                          isSelected && styles.modeSegmentTextActive,
+                        ]}
+                      >
+                        {m === 'all' ? 'All' : m === 'barcode' ? 'Barcode' : 'QR'}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             )}
 
             <View style={{ flex: 1 }} />
@@ -451,16 +508,12 @@ export default function UniversalCameraScanner({
             <View style={styles.maskTop} />
 
             {/* Middle Row: Shaded Left, Clear Scan Window, Shaded Right */}
-            <View style={styles.maskMiddleRow}>
+            <View style={[styles.maskMiddleRow, { height: reticleHeight }]}>
               <View style={styles.maskSide} />
               <View
                 style={[
                   styles.reticleBox,
-                  mode === 'barcode'
-                    ? styles.reticleBoxWide
-                    : mode === 'qr'
-                      ? styles.reticleBoxSquare
-                      : styles.reticleBox,
+                  { width: reticleWidth, height: reticleHeight },
                   scanned && styles.reticleBoxScanned,
                 ]}
               >
@@ -479,10 +532,7 @@ export default function UniversalCameraScanner({
                           {
                             translateY: laserAnim.interpolate({
                               inputRange: [0, 1],
-                              outputRange: [
-                                -((mode === 'barcode' ? 135 : 190) / 2 - 16),
-                                (mode === 'barcode' ? 135 : 190) / 2 - 16,
-                              ],
+                              outputRange: [-(reticleHeight / 2 - 14), reticleHeight / 2 - 14],
                             }),
                           },
                         ],
@@ -509,10 +559,10 @@ export default function UniversalCameraScanner({
                 <Text style={styles.reticleBadgeText}>
                   {scanned
                     ? 'Code Detected!'
-                    : mode === 'barcode'
-                      ? 'Align Product Barcode'
-                      : mode === 'qr'
-                        ? 'Align Customer QR'
+                    : activeMode === 'barcode'
+                      ? 'Align 1D Product Barcode'
+                      : activeMode === 'qr'
+                        ? 'Align 2D Customer QR'
                         : 'Align Barcode or QR Code'}
                 </Text>
               </View>
@@ -633,6 +683,32 @@ const styles = StyleSheet.create({
   floatingActionBtnActive: {
     backgroundColor: 'rgba(250, 204, 21, 0.25)',
     borderColor: '#facc15',
+  },
+  modeSegmentedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    borderRadius: 20,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.16)',
+  },
+  modeSegmentBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 16,
+  },
+  modeSegmentBtnActive: {
+    backgroundColor: '#10b981',
+  },
+  modeSegmentText: {
+    color: '#94a3b8',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  modeSegmentTextActive: {
+    color: '#ffffff',
+    fontWeight: '800',
   },
   statusCenter: {
     padding: 24,
