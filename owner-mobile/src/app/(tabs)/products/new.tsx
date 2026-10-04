@@ -18,7 +18,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import api, { ApiInstance, getErrorMessage } from '../../../services/api';
+import api, { ApiInstance, cachedGet, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert } from '../../../utils/alerts';
 import UniversalCameraScanner from '../../../components/UniversalCameraScanner';
@@ -227,8 +227,7 @@ export default function AddProductScreen() {
   // Initial Fetching
   useEffect(() => {
     let isMounted = true;
-    api
-      .get('/categories/')
+    cachedGet('/categories/')
       .then((res) => {
         if (!isMounted) return;
         const raw = res?.data?.results ?? res?.data;

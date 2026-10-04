@@ -9,7 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import api, { getErrorMessage } from '../../../services/api';
+import api, { cachedGet, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert, showConfirm } from '../../../utils/alerts';
 import ScreenHeader from '../../../components/ScreenHeader';
@@ -25,9 +25,15 @@ export default function FeedbackScreen() {
     ? feedbacks.reduce((acc, f) => acc + (Number(f?.rating) || 0), 0) / feedbacks.length
     : 5.0;
 
-  const fetchFeedbacks = useCallback(async () => {
+  const fetchFeedbacks = useCallback(async (forceRefresh = false) => {
     try {
-      const res = await api.get('/store/feedback/');
+      const res = await cachedGet('/store/feedback/', {
+        forceRefresh,
+        onUpdate: (r) => {
+          const fresh = r.data?.results ?? r.data;
+          setFeedbacks(Array.isArray(fresh) ? fresh : []);
+        },
+      });
       const raw = res?.data?.results ?? res?.data;
       setFeedbacks(Array.isArray(raw) ? raw : []);
     } catch (e: any) {
@@ -81,7 +87,7 @@ export default function FeedbackScreen() {
               refreshing={refreshing}
               onRefresh={() => {
                 setRefreshing(true);
-                fetchFeedbacks();
+                fetchFeedbacks(true);
               }}
               tintColor="#10b981"
             />

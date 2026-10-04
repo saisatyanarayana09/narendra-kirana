@@ -15,7 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
-import api, { getErrorMessage } from '../../../services/api';
+import api, { cachedGet, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert, showConfirm } from '../../../utils/alerts';
 import ScreenHeader from '../../../components/ScreenHeader';
@@ -59,9 +59,14 @@ export default function CustomersScreen() {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
-  const fetchCustomers = useCallback(async () => {
+  const fetchCustomers = useCallback(async (forceRefresh = false) => {
     try {
-      const response = await api.get('/auth/customers/');
+      const response = await cachedGet('/auth/customers/', {
+        forceRefresh,
+        onUpdate: () => {
+          void fetchCustomers();
+        },
+      });
       const data = response?.data;
       const list = data?.customers ?? data?.results ?? (Array.isArray(data) ? data : []);
       setCustomers(Array.isArray(list) ? list : []);
@@ -310,7 +315,7 @@ export default function CustomersScreen() {
             refreshing={refreshing}
             onRefresh={() => {
               setRefreshing(true);
-              fetchCustomers();
+              fetchCustomers(true);
             }}
             tintColor="#10b981"
           />

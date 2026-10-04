@@ -17,7 +17,7 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { Ionicons } from '@expo/vector-icons';
-import api, { ApiInstance, getErrorMessage } from '../../../services/api';
+import api, { ApiInstance, cachedGet, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert, showConfirm } from '../../../utils/alerts';
 import ScreenHeader from '../../../components/ScreenHeader';
@@ -47,9 +47,15 @@ export default function CategoriesScreen() {
   const [activeDragIndex, setActiveDragIndex] = useState<number | null>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
-  const fetchCategories = useCallback(async () => {
+  const fetchCategories = useCallback(async (forceRefresh = false) => {
     try {
-      const res = await api.get('/categories/');
+      const res = await cachedGet('/categories/', {
+        forceRefresh,
+        onUpdate: (r) => {
+          const fresh = r.data?.results ?? r.data;
+          setCategories(Array.isArray(fresh) ? fresh : []);
+        },
+      });
       const raw = res?.data?.results ?? res?.data;
       setCategories(Array.isArray(raw) ? raw : []);
     } catch (e: any) {
@@ -68,7 +74,7 @@ export default function CategoriesScreen() {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchCategories();
+    fetchCategories(true);
   }, [fetchCategories]);
 
   const openAddModal = () => {

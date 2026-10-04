@@ -28,8 +28,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = useCallback(async () => {
     try {
-      // 1. Clear API in-memory LRU cache
-      api.clearCache();
+      // 1. Wipe API response cache (memory + disk)
+      await api.resetCache();
 
       // 2. Clear all local storage and session data
       await safeStorage.clearAll();
@@ -107,7 +107,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (refreshToken && typeof refreshToken === 'string') {
       await safeStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
     }
-    api.clearCache();
+    await api.resetCache();
     setToken(newToken);
   }, []);
 

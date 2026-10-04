@@ -19,7 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as Clipboard from 'expo-clipboard';
-import api, { ApiInstance, getErrorMessage } from '../../../services/api';
+import api, { ApiInstance, cachedGet, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert } from '../../../utils/alerts';
 import ScreenHeader from '../../../components/ScreenHeader';
@@ -347,12 +347,16 @@ export default function InvoicesScreen() {
   // Selected Invoice Preview Modal
   const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
 
-  const fetchInvoices = useCallback(async (isPoll = false) => {
+  const fetchInvoices = useCallback(async (isPoll = false, forceRefresh = false) => {
     if (!isPoll) setErrorMsg(null);
     try {
+      const onUpdate = () => {
+        void fetchInvoices();
+      };
       const [ordersRes, settingsRes] = await Promise.allSettled([
-        (api as ApiInstance).cachedGet('/orders/', { forceRefresh: true }),
-        api.get('/store/settings/'),
+        // Polls hit the network; first open is instant from cache
+        cachedGet('/orders/', { forceRefresh: isPoll || forceRefresh, onUpdate }),
+        cachedGet('/store/settings/', { forceRefresh, onUpdate }),
       ]);
 
       if (ordersRes.status === 'fulfilled' && ordersRes.value?.data) {
@@ -380,7 +384,7 @@ export default function InvoicesScreen() {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchInvoices();
+    fetchInvoices(false, true);
   }, [fetchInvoices]);
 
   // Filtered Orders
@@ -1137,7 +1141,7 @@ export default function InvoicesScreen() {
                     borderColor: isDark ? 'rgba(255, 255, 255, 0.06)' : '#e2e8f0',
                   },
                 ]}
-                onPress={() => fetchInvoices()}
+                onPress={() => fetchInvoices(false, true)}
               >
                 <Ionicons
                   name="refresh"

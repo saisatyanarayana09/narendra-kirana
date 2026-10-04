@@ -454,9 +454,12 @@ export default function ProductsListScreen() {
 
       setErrorMsg(null);
       try {
+        const onUpdate = () => {
+          void fetchProducts(false);
+        };
         const [prodRes, catRes] = await Promise.allSettled([
-          (api as ApiInstance).cachedGet('/products/', { forceRefresh }),
-          api.get('/categories/'),
+          (api as ApiInstance).cachedGet('/products/', { forceRefresh, onUpdate }),
+          (api as ApiInstance).cachedGet('/categories/', { forceRefresh, onUpdate }),
         ]);
 
         if (prodRes.status === 'fulfilled' && prodRes.value?.data) {

@@ -22,7 +22,7 @@ import WebCropper from '../../../components/WebCropper';
 import ModernSwitch from '../../../components/ModernSwitch';
 import { useAuth } from '../../../context/AuthContext';
 import { useAppTheme } from '../../../context/ThemeContext';
-import api, { getErrorMessage } from '../../../services/api';
+import api, { cachedGet, getErrorMessage } from '../../../services/api';
 import { showAlert, showConfirm } from '../../../utils/alerts';
 import { checkAndDownloadOtaUpdateSilently, applyOtaUpdate } from '../../../services/otaService';
 
@@ -88,7 +88,12 @@ export default function ProfileScreen() {
   const fetchProfile = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     try {
-      const res = await api.get('/auth/profile/');
+      const res = await cachedGet('/auth/profile/', {
+        forceRefresh: isRefresh,
+        onUpdate: () => {
+          void fetchProfile();
+        },
+      });
       setUser(res.data);
       if (res.data?.customer_profile?.profile_picture) {
         setProfilePic(res.data.customer_profile.profile_picture);

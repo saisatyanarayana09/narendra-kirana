@@ -12,7 +12,7 @@ import {
   TextInput,
   ScrollView,
 } from 'react-native';
-import api, { getErrorMessage } from '../../../services/api';
+import api, { cachedGet, getErrorMessage } from '../../../services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert } from '../../../utils/alerts';
@@ -108,9 +108,15 @@ export default function DeliveryPartnersScreen() {
   const [vehicleNumber, setVehicleNumber] = useState('');
   const [creating, setCreating] = useState(false);
 
-  const fetchPartners = useCallback(async () => {
+  const fetchPartners = useCallback(async (forceRefresh = false) => {
     try {
-      const response = await api.get('/delivery/partners/');
+      const response = await cachedGet('/delivery/partners/', {
+        forceRefresh,
+        onUpdate: (r) => {
+          const fresh = r.data?.results ?? r.data;
+          setPartners(Array.isArray(fresh) ? fresh : []);
+        },
+      });
       const raw = response?.data?.results ?? response?.data;
       setPartners(Array.isArray(raw) ? raw : []);
     } catch (e: any) {
@@ -129,7 +135,7 @@ export default function DeliveryPartnersScreen() {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchPartners();
+    fetchPartners(true);
   }, [fetchPartners]);
 
   const handleCreatePartner = async () => {

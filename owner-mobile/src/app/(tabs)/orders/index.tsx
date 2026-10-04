@@ -463,7 +463,12 @@ export default function OrdersListScreen() {
 
       setErrorMsg(null);
       try {
-        const response = await (api as ApiInstance).cachedGet('/orders/?page_size=100', { forceRefresh });
+        const response = await (api as ApiInstance).cachedGet('/orders/?page_size=100', {
+          forceRefresh,
+          onUpdate: () => {
+            void fetchOrders(false);
+          },
+        });
         const raw = response?.data?.results ?? response?.data;
         setOrders(Array.isArray(raw) ? raw : []);
         setNextPageUrl(response?.data?.next || null);

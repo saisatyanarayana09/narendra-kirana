@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, TextInput, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../context/ThemeContext';
-import api from '../../../services/api';
+import api, { cachedGet } from '../../../services/api';
 import { showAlert } from '../../../utils/alerts';
 
 type Agent = {
@@ -38,10 +38,12 @@ export default function AgentsScreen() {
     fetchAgents();
   }, []);
 
-  const fetchAgents = async () => {
-    setLoading(true);
+  const fetchAgents = async (forceRefresh = false) => {
     try {
-      const res = await api.get('/auth/agents/');
+      const res = await cachedGet('/auth/agents/', {
+        forceRefresh,
+        onUpdate: (r) => setAgents(r.data || []),
+      });
       setAgents(res.data || []);
     } catch (e: any) {
       console.log('Failed to fetch agents:', e);

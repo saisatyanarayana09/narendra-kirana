@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams as useExpoParams, useRouter as useExpoRouter } from 'expo-router';
 import { Image } from 'expo-image';
-import api, { ApiInstance, getErrorMessage } from '../../../services/api';
+import api, { ApiInstance, cachedGet, getErrorMessage } from '../../../services/api';
 import { Ionicons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -92,8 +92,8 @@ export default function OrderDetailsScreen() {
     try {
       const [orderRes, partnersRes, settingsRes] = await Promise.allSettled([
         api.get(`/orders/${id}/`),
-        api.get('/delivery/partners/'),
-        api.get('/store/settings/'),
+        cachedGet('/delivery/partners/'),
+        cachedGet('/store/settings/'),
       ]);
 
       if (orderRes.status === 'fulfilled' && orderRes.value?.data) {

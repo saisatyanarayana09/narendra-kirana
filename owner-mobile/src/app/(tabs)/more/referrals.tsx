@@ -13,7 +13,7 @@ import {
 import ModernSwitch from '../../../components/ModernSwitch';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import api, { getErrorMessage } from '../../../services/api';
+import api, { cachedGet, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert, showConfirm } from '../../../utils/alerts';
 import ScreenHeader from '../../../components/ScreenHeader';
@@ -47,13 +47,26 @@ export default function ReferralsScreen() {
   const [newReqCount, setNewReqCount] = useState('');
   const [newBonusAmount, setNewBonusAmount] = useState('');
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (forceRefresh = false) => {
     try {
+      const listOf = (d: any) => {
+        const raw = d?.results ?? d;
+        return Array.isArray(raw) ? raw : [];
+      };
       const [setRes, milRes, histRes, prodRes] = await Promise.allSettled([
-        api.get('/offers/referral-settings/'),
-        api.get('/offers/referral-milestones/'),
-        api.get('/offers/referrals/'),
-        api.get('/products/?limit=100'),
+        api.get('/offers/referral-settings/'), // editable form → always fresh
+        cachedGet('/offers/referral-milestones/', {
+          forceRefresh,
+          onUpdate: (r) => setMilestones(listOf(r.data)),
+        }),
+        cachedGet('/offers/referrals/', {
+          forceRefresh,
+          onUpdate: (r) => setHistory(listOf(r.data)),
+        }),
+        cachedGet('/products/?limit=100', {
+          forceRefresh,
+          onUpdate: (r) => setProducts(listOf(r.data)),
+        }),
       ]);
 
       if (setRes.status === 'fulfilled' && setRes.value?.data) {
@@ -240,7 +253,7 @@ export default function ReferralsScreen() {
               refreshing={refreshing}
               onRefresh={() => {
                 setRefreshing(true);
-                fetchData();
+                fetchData(true);
               }}
               tintColor="#10b981"
             />

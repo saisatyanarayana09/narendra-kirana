@@ -17,7 +17,7 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { Ionicons } from '@expo/vector-icons';
-import api, { ApiInstance, getErrorMessage } from '../../../services/api';
+import api, { ApiInstance, cachedGet, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert, showConfirm } from '../../../utils/alerts';
 import ScreenHeader from '../../../components/ScreenHeader';
@@ -63,12 +63,18 @@ export default function ShowcaseScreen() {
   const [productSearch, setProductSearch] = useState('');
   const [savingProducts, setSavingProducts] = useState(false);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (forceRefresh = false) => {
     try {
+      const opts = {
+        forceRefresh,
+        onUpdate: () => {
+          void fetchData();
+        },
+      };
       const [secRes, banRes, prodRes] = await Promise.allSettled([
-        api.get('/store/homepage-sections/'),
-        api.get('/offers/banners/'),
-        api.get('/products/?limit=200'),
+        cachedGet('/store/homepage-sections/', opts),
+        cachedGet('/offers/banners/', opts),
+        cachedGet('/products/?limit=200', opts),
       ]);
 
       if (secRes.status === 'fulfilled' && secRes.value?.data) {
@@ -108,7 +114,7 @@ export default function ShowcaseScreen() {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchData();
+    fetchData(true);
   }, [fetchData]);
 
   // ---------------- Banner Actions ----------------

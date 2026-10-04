@@ -107,14 +107,14 @@ export default function DashboardScreen() {
       }
 
       try {
-        if (forceRefresh) {
-          (api as ApiInstance).clearCache();
-        }
-
+        // Background revalidation → re-run (served from the just-refreshed cache, no extra network)
+        const onUpdate = () => {
+          void fetchDashboardData(false);
+        };
         const [ordersRes, analyticsRes, productsRes] = await Promise.all([
-          (api as ApiInstance).cachedGet('/orders/', { forceRefresh }),
-          (api as ApiInstance).cachedGet('/orders/analytics/', { forceRefresh }),
-          (api as ApiInstance).cachedGet('/products/?limit=100', { forceRefresh }),
+          (api as ApiInstance).cachedGet('/orders/', { forceRefresh, onUpdate }),
+          (api as ApiInstance).cachedGet('/orders/analytics/', { forceRefresh, onUpdate }),
+          (api as ApiInstance).cachedGet('/products/?limit=100', { forceRefresh, onUpdate }),
         ]);
 
         const rawOrders = ordersRes?.data?.results ?? ordersRes?.data;

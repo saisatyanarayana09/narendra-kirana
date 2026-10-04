@@ -16,7 +16,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
-import api, { ApiInstance, getErrorMessage } from '../../../services/api';
+import api, { ApiInstance, cachedGet, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert, showConfirm } from '../../../utils/alerts';
 import ScreenHeader from '../../../components/ScreenHeader';
@@ -44,11 +44,17 @@ export default function OffersScreen() {
   const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const fetchOffers = useCallback(async () => {
+  const fetchOffers = useCallback(async (forceRefresh = false) => {
     try {
+      const opts = {
+        forceRefresh,
+        onUpdate: () => {
+          void fetchOffers();
+        },
+      };
       const [promosRes, catsRes] = await Promise.allSettled([
-        api.get('/offers/promocodes/'),
-        api.get('/categories/'),
+        cachedGet('/offers/promocodes/', opts),
+        cachedGet('/categories/', opts),
       ]);
 
       if (promosRes.status === 'fulfilled') {
@@ -73,7 +79,7 @@ export default function OffersScreen() {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchOffers();
+    fetchOffers(true);
   }, [fetchOffers]);
 
   const generateRandomCode = () => {
