@@ -9,6 +9,7 @@ const Invoice = () => {
   const isModal = searchParams.get('modal') === '1' || searchParams.get('popup') === '1';
   const [order, setOrder] = useState(null);
   const [settings, setSettings] = useState(null);
+  const [invoiceHtml, setInvoiceHtml] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const invoiceContainerRef = useRef(null);
@@ -24,12 +25,16 @@ const Invoice = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [orderRes, settingsRes] = await Promise.all([
+        const [orderRes, settingsRes, invoiceRes] = await Promise.all([
           api.get(`/orders/${id}/`),
-          api.get('/store/settings/').catch(() => ({ data: {} }))
+          api.get('/store/settings/').catch(() => ({ data: {} })),
+          api.get(`/orders/${id}/invoice/`).catch(() => null),
         ]);
         setOrder(orderRes.data);
         setSettings(settingsRes.data);
+        if (invoiceRes?.data?.html) {
+          setInvoiceHtml(invoiceRes.data.html);
+        }
       } catch (err) {
         console.error(err);
         if (err.response?.status === 401) {

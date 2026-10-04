@@ -255,3 +255,53 @@ class StoreSettingsAndOrderFeaturesTest(TestCase):
         self.assertIn("12345678901234", email_html)
         self.assertIn("29ABCDE1234F1Z5", email_html)
         self.assertIn("Custom terms line 1.", email_html)
+
+    def test_order_invoice_action(self):
+        settings = StoreSettings.load()
+        settings.fssai_license_number = "12345678901234"
+        settings.gstin = "29ABCDE1234F1Z5"
+        settings.invoice_terms_and_conditions = "Official terms line."
+        settings.save()
+
+        order = Order.objects.create(
+            customer=self.user,
+            total_amount=Decimal("250.00"),
+            payment_method="UPI",
+            upi_transaction_id="UPI98765",
+            status=Order.Status.COMPLETED
+        )
+
+        view = OrderViewSet.as_view({'get': 'invoice'})
+        
+        # 1. Owner can access JSON response
+        req = self.factory.get(f'/api/orders/{order.id}/invoice/')
+        force_authenticate(req, user=self.owner)
+        resp = view(req, pk=order.id)
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('html', resp.data)
+        self.assertIn('invoice_number', resp.data)
+        self.assertIn('TAX INVOICE', resp.data['html'])
+        self.assertIn('12345678901234', resp.data['html'])
+        self.assertIn('29ABCDE1234F1Z5', resp.data['html'])
+
+        # 2. HTML format query param returns raw HTML
+        req_html = self.factory.get(f'/api/orders/{order.id}/invoice/?html=1')
+        force_authenticate(req_html, user=self.owner)
+        resp_html = view(req_html, pk=order.id)
+        self.assertEqual(resp_html.status_code, 200)
+        self.assertIn('text/html', resp_html['Content-Type'])
+        self.assertIn(b'TAX INVOICE', resp_html.content)
+
+        # 3. Order customer can access
+        req_cust = self.factory.get(f'/api/orders/{order.id}/invoice/')
+        force_authenticate(req_cust, user=self.user)
+        resp_cust = view(req_cust, pk=order.id)
+        self.assertEqual(resp_cust.status_code, 200)
+
+        # 4. Another unrelated customer gets 404 or 403
+        other_user = User.objects.create_user(username='other_customer', password='password123', email='other@example.com')
+        req_other = self.factory.get(f'/api/orders/{order.id}/invoice/')
+        force_authenticate(req_other, user=other_user)
+        resp_other = view(req_other, pk=order.id)
+        self.assertIn(resp_other.status_code, [403, 404])
+

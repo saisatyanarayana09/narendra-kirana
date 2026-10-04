@@ -711,7 +711,19 @@ export default function InvoicesScreen() {
   const handlePrintPdf = useCallback(
     async (inv: any) => {
       try {
-        const html = buildOfficialInvoiceHtml(inv);
+        let html: string = '';
+        try {
+          const res = await api.get(`/orders/${inv.id}/invoice/`);
+          if (res.data?.html) {
+            html = res.data.html;
+          }
+        } catch {
+          // Fallback to local builder if offline or API error
+        }
+        if (!html) {
+          html = buildOfficialInvoiceHtml(inv);
+        }
+
         if (Platform.OS === 'web') {
           const frameId = 'sk-inv-print-frame';
           let frame = document.getElementById(frameId) as HTMLIFrameElement | null;

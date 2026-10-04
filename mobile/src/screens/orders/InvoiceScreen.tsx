@@ -454,7 +454,18 @@ export function InvoiceScreen({
 
     try {
       setDownloading(true);
-      const html = generateInvoiceHtml();
+      let html = "";
+      try {
+        const res = await apiClient.get(`/orders/${orderId || order?.id}/invoice/`);
+        if (res.data?.html) {
+          html = res.data.html;
+        }
+      } catch {
+        // Fallback to local template
+      }
+      if (!html) {
+        html = generateInvoiceHtml();
+      }
       const { uri, base64 } = await Print.printToFileAsync({
         html,
         base64: true,
@@ -584,7 +595,18 @@ export function InvoiceScreen({
         : `ORD-${numDigits.padStart(4, "0")}`;
       const fileName = `Invoice_${formattedOrdId}.pdf`;
 
-      const html = generateInvoiceHtml();
+      let html = "";
+      try {
+        const res = await apiClient.get(`/orders/${orderId || order?.id}/invoice/`);
+        if (res.data?.html) {
+          html = res.data.html;
+        }
+      } catch {
+        // Fallback to local template
+      }
+      if (!html) {
+        html = generateInvoiceHtml();
+      }
       const { uri } = await Print.printToFileAsync({ html });
       const targetUri = `${FileSystem.documentDirectory}${fileName}`;
       await FileSystem.copyAsync({ from: uri, to: targetUri });

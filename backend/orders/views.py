@@ -20,7 +20,7 @@ from notifications.models import Notification
 from notifications.services import send_push_notification
 from .models import Order, OrderItem
 from .serializers import CheckoutSerializer, OrderSerializer, OrderStatusSerializer
-from .utils import send_order_confirmation_email, send_final_invoice_email
+from .utils import send_order_confirmation_email, send_final_invoice_email, build_order_tax_invoice_html, format_invoice_number
 
 logger = logging.getLogger(__name__)
 
@@ -858,3 +858,38 @@ class OrderViewSet(ModelViewSet):
         }
         cache.set('owner_analytics', data, timeout=60)
         return Response(data)
+
+    @action(detail=True, methods=['get'], permission_classes=[IsAuthenticated])
+    def invoice(self, request, pk=None):
+        order = self.get_object()
+
+        # Authorization: owner, staff, or the customer who placed the order
+        is_owner_or_staff = bool(
+            getattr(request.user, 'is_owner', False) or
+            getattr(request.user, 'is_staff', False) or
+            getattr(request.user, 'is_superuser', False)
+        )
+        if not is_owner_or_staff and order.customer_id != request.user.id:
+            return Response(
+                {'detail': 'You do not have permission to view this invoice.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        html_content = build_order_tax_invoice_html(order)
+        invoice_num = format_invoice_number(order)
+
+        # Direct HTML rendering when requested via ?html=1, ?type=html, or Accept: text/html
+        wants_html = (
+            request.query_params.get('html') in ('1', 'true', 'yes') or
+            request.query_params.get('type') == 'html' or
+            'text/html' in request.headers.get('Accept', '')
+        )
+        if wants_html:
+            from django.http import HttpResponse
+            return HttpResponse(html_content, content_type='text/html; charset=utf-8')
+
+        return Response({
+            'order_id': order.id,
+            'invoice_number': invoice_num,
+            'html': html_content,
+        })

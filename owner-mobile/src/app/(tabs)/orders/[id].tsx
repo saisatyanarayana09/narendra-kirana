@@ -362,13 +362,24 @@ export default function OrderDetailsScreen() {
       window.print();
       return;
     }
+    let html: string = '';
     try {
-      const html = buildInvoiceHtml(order);
+      const res = await api.get(`/orders/${order.id}/invoice/`);
+      if (res.data?.html) {
+        html = res.data.html;
+      }
+    } catch {
+      // Fallback to local builder if offline or API error
+    }
+    if (!html) {
+      html = buildInvoiceHtml(order);
+    }
+
+    try {
       await Print.printAsync({ html });
     } catch {
       try {
         const cleanId = String(order.id).replace(/^#/, '');
-        const html = buildInvoiceHtml(order);
         const { uri } = await Print.printToFileAsync({ html, width: 595, height: 842 });
         const canShare = await Sharing.isAvailableAsync();
         if (canShare) {
