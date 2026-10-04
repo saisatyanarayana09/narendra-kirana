@@ -64,6 +64,7 @@ export interface CartContextType {
   cartQuantityMap: Record<number, number>;
   getItemQuantity: (productId: number) => number;
   lastItemAddedTimestamp: number;
+  flushCartSync: () => Promise<void>;
 }
 
 export const getItemProductId = (item: CartItem): number => {
@@ -995,6 +996,49 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [cartQuantityMap],
   );
 
+  const flushCartSync = useCallback(async () => {
+    // 1. Cancel and flush any pending debounced quantity updates
+    const timerKeys = Object.keys(updateQuantityLocks.current);
+    if (timerKeys.length > 0) {
+      timerKeys.forEach((k: any) => {
+        clearTimeout(updateQuantityLocks.current[k]);
+        delete updateQuantityLocks.current[k];
+      });
+
+      if (user && cartRef.current?.items) {
+        try {
+          const itemsPayload = cartRef.current.items
+            .map((i) => ({
+              product: getItemProductId(i),
+              quantity: i.quantity,
+            }))
+            .filter((i) => i.product && i.quantity > 0);
+
+          if (itemsPayload.length > 0) {
+            const res = await apiClient.post("/cart/merge/", {
+              items: itemsPayload,
+            });
+            if (res?.data && res.data.items) {
+              cartRef.current = res.data;
+              setCart(res.data);
+            }
+          }
+        } catch (e) {
+          console.warn("[CartContext] flushCartSync merge warning:", e);
+        }
+      }
+    }
+
+    // 2. Await all in-flight addToCart locks
+    const activeAddLocks = Object.values(addToCartLocks.current).filter(Boolean);
+    if (activeAddLocks.length > 0) {
+      await Promise.all(activeAddLocks).catch(() => {});
+    }
+
+    // 3. Wait for the sequential cartMutationQueue to finish
+    await cartMutationQueue.current;
+  }, [user]);
+
   const contextValue = useMemo(
     () => ({
       cart,
@@ -1010,6 +1054,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       cartQuantityMap,
       getItemQuantity,
       lastItemAddedTimestamp,
+      flushCartSync,
     }),
     [
       cart,
@@ -1025,6 +1070,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       cartQuantityMap,
       getItemQuantity,
       lastItemAddedTimestamp,
+      flushCartSync,
     ],
   );
 

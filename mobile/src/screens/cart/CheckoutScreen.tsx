@@ -59,7 +59,7 @@ export function CheckoutScreen({
 }) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { cart, refreshCart, clearCart, storeSettings } = useCart();
+  const { cart, refreshCart, clearCart, storeSettings, flushCartSync } = useCart();
   const { colors, isDark } = useTheme();
   const { requestLocation, isRequesting: gpsLoading } = useLocation();
 
@@ -143,6 +143,9 @@ export function CheckoutScreen({
   const fetchAddressesAndWallet = async () => {
     if (!user) return;
     try {
+      if (flushCartSync) {
+        await flushCartSync().catch(() => {});
+      }
       const [addrRes, walletRes] = await Promise.all([
         apiClient.get("/auth/addresses/").catch(() => ({ data: [] })),
         apiClient.get("/auth/wallet/").catch(() => ({ data: { balance: 0 } })),

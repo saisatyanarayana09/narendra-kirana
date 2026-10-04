@@ -49,6 +49,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
     applyPromo,
     removePromo,
     storeSettings,
+    flushCartSync,
   } = useCart();
   const { colors, isDark } = useTheme();
   const [promoCode, setPromoCode] = useState("");
@@ -679,7 +680,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
           ) : (
             <TouchableOpacity
               style={styles.checkoutBtn}
-              onPress={() => {
+              onPress={async () => {
                 if (!user) {
                   triggerHaptic("light");
                   Alert.alert(
@@ -698,6 +699,9 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
                   return;
                 }
                 triggerHaptic("selection");
+                if (flushCartSync) {
+                  await flushCartSync().catch(() => {});
+                }
                 navigation.navigate("CheckoutScreen");
               }}
               disabled={isLoading}
