@@ -1,6 +1,6 @@
 import React, { Suspense, useState, useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, Outlet, useLocation } from 'react-router-dom';
-import { CartProvider } from './CartProvider';
+import { CartProvider } from './CartProvider.jsx';
 import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { Toaster } from 'react-hot-toast';
