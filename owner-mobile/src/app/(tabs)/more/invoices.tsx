@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react';
 import {
   View,
   Text,
@@ -82,6 +82,33 @@ const getPaymentMethodDisplay = (order: any) => {
 };
 
 // ─── 1. Invoice Card Component (Matches Web App Invoices Table Row) ───
+const invoiceKeyExtractor = (order: any, idx: number) =>
+  order?.id != null ? String(order.id) : `inv-${idx}`;
+
+const areOrdersShallowEqual = (prev: any[], next: any[]) => {
+  if (prev === next) return true;
+  if (!Array.isArray(prev) || !Array.isArray(next)) return false;
+  if (prev.length !== next.length) return false;
+  for (let i = 0; i < prev.length; i++) {
+    const p = prev[i];
+    const n = next[i];
+    if (
+      p?.id !== n?.id ||
+      p?.status !== n?.status ||
+      p?.total_amount !== n?.total_amount ||
+      p?.payment_method !== n?.payment_method ||
+      p?.upi_transaction_id !== n?.upi_transaction_id ||
+      p?.wallet_discount !== n?.wallet_discount ||
+      p?.customer_name !== n?.customer_name ||
+      p?.delivery_slot_label !== n?.delivery_slot_label ||
+      p?.updated_at !== n?.updated_at
+    ) {
+      return false;
+    }
+  }
+  return true;
+};
+
 const InvoiceCard = memo(
   ({
     order,
@@ -327,6 +354,22 @@ const InvoiceCard = memo(
         </View>
       </View>
     );
+  },
+  (prev, next) => {
+    return (
+      prev.order?.id === next.order?.id &&
+      prev.order?.status === next.order?.status &&
+      prev.order?.total_amount === next.order?.total_amount &&
+      prev.order?.wallet_discount === next.order?.wallet_discount &&
+      prev.order?.payment_method === next.order?.payment_method &&
+      prev.order?.upi_transaction_id === next.order?.upi_transaction_id &&
+      prev.order?.customer_name === next.order?.customer_name &&
+      prev.order?.customer_phone === next.order?.customer_phone &&
+      prev.order?.order_type === next.order?.order_type &&
+      prev.order?.delivery_slot_label === next.order?.delivery_slot_label &&
+      prev.order?.delivery_pincode === next.order?.delivery_pincode &&
+      prev.isDark === next.isDark
+    );
   }
 );
 
@@ -347,23 +390,32 @@ export default function InvoicesScreen() {
   // Selected Invoice Preview Modal
   const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
 
+  const storeSettingsRef = useRef<any>(null);
+  useEffect(() => {
+    storeSettingsRef.current = storeSettings;
+  }, [storeSettings]);
+
   const fetchInvoices = useCallback(async (isPoll = false, forceRefresh = false) => {
     if (!isPoll) setErrorMsg(null);
     try {
       const onUpdate = () => {
         void fetchInvoices();
       };
+      const shouldFetchSettings = !storeSettingsRef.current || forceRefresh;
       const [ordersRes, settingsRes] = await Promise.allSettled([
         // Polls hit the network; first open is instant from cache
         cachedGet('/orders/', { forceRefresh: isPoll || forceRefresh, onUpdate }),
-        cachedGet('/store/settings/', { forceRefresh, onUpdate }),
+        shouldFetchSettings
+          ? cachedGet('/store/settings/', { forceRefresh, onUpdate })
+          : Promise.resolve(null),
       ]);
 
       if (ordersRes.status === 'fulfilled' && ordersRes.value?.data) {
         const raw = ordersRes.value.data?.results ?? ordersRes.value.data;
-        setOrders(Array.isArray(raw) ? raw : []);
+        const fresh = Array.isArray(raw) ? raw : [];
+        setOrders((prev) => (areOrdersShallowEqual(prev, fresh) ? prev : fresh));
       }
-      if (settingsRes.status === 'fulfilled' && settingsRes.value?.data) {
+      if (settingsRes && settingsRes.status === 'fulfilled' && settingsRes.value?.data) {
         setStoreSettings(settingsRes.value.data);
       }
     } catch (e: any) {
@@ -386,6 +438,29 @@ export default function InvoicesScreen() {
     setRefreshing(true);
     fetchInvoices(false, true);
   }, [fetchInvoices]);
+
+  const handleViewInvoice = useCallback((inv: any) => {
+    setSelectedInvoice(inv);
+  }, []);
+
+  const handleOpenOrder = useCallback((id: number) => {
+    router.push(`/(tabs)/orders/${id}` as any);
+  }, [router]);
+
+  const renderInvoiceItem = useCallback(
+    ({ item }: { item: any }) => (
+      <View style={styles.invoiceItemWrap}>
+        <InvoiceCard
+          order={item}
+          onViewInvoice={handleViewInvoice}
+          onOpenOrder={handleOpenOrder}
+          colors={colors}
+          isDark={isDark}
+        />
+      </View>
+    ),
+    [handleViewInvoice, handleOpenOrder, colors, isDark]
+  );
 
   // Filtered Orders
   const filteredOrders = useMemo(() => {
@@ -864,16 +939,22 @@ export default function InvoicesScreen() {
         }
       />
 
-      <ScrollView
-        style={styles.mainScroll}
+      <FlatList
+        data={loading && !refreshing ? [] : filteredOrders}
+        keyExtractor={invoiceKeyExtractor}
+        renderItem={renderInvoiceItem}
         contentContainerStyle={styles.mainScrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        initialNumToRender={8}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={Platform.OS !== 'web'}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366f1" />
         }
-      >
-        <View style={styles.maxContainer}>
+        ListHeaderComponent={
+          <View style={styles.maxContainer}>
           {/* ─── 2. Financial Metrics Grid (4 Cards Exactly Like Web App) ─── */}
           <View style={styles.metricsGrid}>
             {/* Total Invoiced Value */}
@@ -1161,7 +1242,7 @@ export default function InvoicesScreen() {
             </View>
           ) : null}
 
-          {/* ─── 4. Invoices List ─── */}
+          {/* Loading Indicator */}
           {loading && !refreshing ? (
             <View style={styles.loadingBox}>
               <ActivityIndicator size="large" color="#6366f1" />
@@ -1169,7 +1250,12 @@ export default function InvoicesScreen() {
                 Loading store invoices...
               </Text>
             </View>
-          ) : filteredOrders.length === 0 ? (
+          ) : null}
+        </View>
+      }
+      ListEmptyComponent={
+        loading && !refreshing ? null : (
+          <View style={styles.maxContainer}>
             <View
               style={[
                 styles.emptyCard,
@@ -1187,22 +1273,10 @@ export default function InvoicesScreen() {
                 Try clearing your search query or changing date range filters.
               </Text>
             </View>
-          ) : (
-            <View style={styles.invoicesListCol}>
-              {filteredOrders.map((order) => (
-                <InvoiceCard
-                  key={order.id}
-                  order={order}
-                  onViewInvoice={(inv) => setSelectedInvoice(inv)}
-                  onOpenOrder={(id) => router.push(`/(tabs)/orders/${id}` as any)}
-                  colors={colors}
-                  isDark={isDark}
-                />
-              ))}
-            </View>
-          )}
-        </View>
-      </ScrollView>
+          </View>
+        )
+      }
+    />
 
       {/* ─── 5. Official Tax Invoice Modal (Matches Web App Invoice.jsx & InvoiceModal.jsx) ─── */}
       <Modal
@@ -1832,6 +1906,12 @@ const styles = StyleSheet.create({
   },
 
   // Invoices List Col & Cards
+  invoiceItemWrap: {
+    maxWidth: 700,
+    width: '100%',
+    alignSelf: 'center',
+    marginBottom: 10,
+  },
   invoicesListCol: {
     gap: 10,
   },

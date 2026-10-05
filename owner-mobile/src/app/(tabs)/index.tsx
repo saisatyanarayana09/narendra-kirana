@@ -84,6 +84,210 @@ const BENTO_ACTIONS: BentoAction[] = [
   },
 ];
 
+interface BentoActionCardProps {
+  item: BentoAction;
+  isWide: boolean;
+  colors: any;
+  isDark: boolean;
+  onPress: (route: string) => void;
+}
+
+const BentoActionCard = React.memo(
+  ({ item, isWide, colors, isDark, onPress }: BentoActionCardProps) => {
+    return (
+      <TouchableOpacity
+        activeOpacity={0.75}
+        style={[
+          styles.bentoCard,
+          {
+            width: isWide ? '32%' : '48.4%',
+            backgroundColor: colors.card,
+            borderColor: colors.border,
+          },
+        ]}
+        onPress={() => onPress(item.route)}
+      >
+        <View
+          style={[
+            styles.bentoIconWrap,
+            { backgroundColor: isDark ? item.bgDark : item.bgLight },
+          ]}
+        >
+          <Ionicons name={item.icon} size={20} color={item.color} />
+        </View>
+        <View style={styles.bentoTextCol}>
+          <Text
+            style={[styles.bentoTitle, { color: colors.text }]}
+            numberOfLines={1}
+          >
+            {item.label}
+          </Text>
+          <Text
+            style={[styles.bentoSub, { color: colors.textMuted }]}
+            numberOfLines={1}
+          >
+            {item.sub}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  },
+  (prev, next) => {
+    return (
+      prev.item.label === next.item.label &&
+      prev.isWide === next.isWide &&
+      prev.isDark === next.isDark &&
+      prev.colors === next.colors &&
+      prev.onPress === next.onPress
+    );
+  }
+);
+
+interface LowStockRowItemProps {
+  item: any;
+  showTopBorder: boolean;
+  isDark: boolean;
+  colors: any;
+  isBusy: boolean;
+  onPress: (id: string | number) => void;
+  onRestock: (product: any, amount: number) => void;
+}
+
+const LowStockRowItem = React.memo(
+  ({
+    item,
+    showTopBorder,
+    isDark,
+    colors,
+    isBusy,
+    onPress,
+    onRestock,
+  }: LowStockRowItemProps) => {
+    const isOutOfStock = Number(item.stock_quantity ?? 0) === 0;
+
+    return (
+      <View
+        style={[
+          styles.lowStockCompactItemRow,
+          showTopBorder && {
+            borderTopWidth: 1,
+            borderTopColor: isDark
+              ? 'rgba(255, 255, 255, 0.06)'
+              : 'rgba(0, 0, 0, 0.05)',
+          },
+        ]}
+      >
+        <TouchableOpacity
+          activeOpacity={0.7}
+          style={styles.lowStockCompactItemInfo}
+          onPress={() => onPress(item.id)}
+        >
+          <Text
+            style={[styles.lowStockItemName, { color: colors.text }]}
+            numberOfLines={1}
+          >
+            {item.name}
+          </Text>
+          <View style={styles.lowStockBadgesRow}>
+            <View
+              style={[
+                styles.stockLevelChip,
+                isOutOfStock
+                  ? styles.stockLevelChipOut
+                  : styles.stockLevelChipLow,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.stockLevelChipText,
+                  isOutOfStock ? { color: '#ef4444' } : { color: '#d97706' },
+                ]}
+              >
+                {isOutOfStock ? 'OUT' : 'LOW'}
+              </Text>
+            </View>
+            <Text
+              style={[
+                styles.stockLeftText,
+                { color: colors.textMuted },
+              ]}
+            >
+              {item.stock_quantity ?? 0} {item.unit || 'units'} left
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        <View style={styles.restockButtonsWrap}>
+          {isBusy ? (
+            <ActivityIndicator
+              size="small"
+              color="#10b981"
+              style={{ paddingHorizontal: 16 }}
+            />
+          ) : (
+            <>
+              <TouchableOpacity
+                style={[
+                  styles.restockBtn,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                  },
+                ]}
+                onPress={() => onRestock(item, 5)}
+              >
+                <Ionicons name="add" size={13} color="#10b981" />
+                <Text
+                  style={[
+                    styles.restockBtnText,
+                    { color: colors.text },
+                  ]}
+                >
+                  +5
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.restockBtn,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                  },
+                ]}
+                onPress={() => onRestock(item, 10)}
+              >
+                <Ionicons name="add" size={13} color="#10b981" />
+                <Text
+                  style={[
+                    styles.restockBtnText,
+                    { color: colors.text },
+                  ]}
+                >
+                  +10
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </View>
+    );
+  },
+  (prev, next) => {
+    return (
+      prev.item?.id === next.item?.id &&
+      prev.item?.stock_quantity === next.item?.stock_quantity &&
+      prev.item?.name === next.item?.name &&
+      prev.item?.unit === next.item?.unit &&
+      prev.showTopBorder === next.showTopBorder &&
+      prev.isBusy === next.isBusy &&
+      prev.isDark === next.isDark &&
+      prev.colors === next.colors &&
+      prev.onPress === next.onPress &&
+      prev.onRestock === next.onRestock
+    );
+  }
+);
+
 export default function DashboardScreen() {
   const router = useRouter();
   const { token, isLoading: authLoading } = useAuth();
@@ -167,36 +371,37 @@ export default function DashboardScreen() {
     fetchDashboardData(true);
   }, [fetchDashboardData]);
 
-  const now = new Date();
-  const hour = now.getHours();
-  const greeting =
-    hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  const dateString = now.toLocaleDateString('en-IN', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  });
+  const { greeting, dateString } = useMemo(() => {
+    const now = new Date();
+    const hour = now.getHours();
+    const g =
+      hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    const ds = now.toLocaleDateString('en-IN', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+    });
+    return { greeting: g, dateString: ds };
+  }, []);
 
-  const { newOrdersCount, activeOrders } = useMemo(() => {
+  const { newOrdersCount, activeOrdersCount } = useMemo(() => {
     let newCnt = 0;
-    const liveList: any[] = [];
+    let activeCnt = 0;
+    const safeOrders = Array.isArray(orders) ? orders : [];
+    const ACTIVE_STATUSES = new Set(['NEW', 'ACCEPTED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY']);
 
-    const sorted = [...orders].sort(
-      (a, b) =>
-        new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime()
-    );
-
-    for (const o of sorted) {
+    for (let i = 0; i < safeOrders.length; i++) {
+      const o = safeOrders[i];
       if (!o) continue;
       if (o.status === 'NEW') newCnt++;
-      if (['NEW', 'ACCEPTED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY'].includes(o.status)) {
-        liveList.push(o);
+      if (ACTIVE_STATUSES.has(o.status)) {
+        activeCnt++;
       }
     }
 
     return {
       newOrdersCount: newCnt,
-      activeOrders: liveList,
+      activeOrdersCount: activeCnt,
     };
   }, [orders]);
 
@@ -206,7 +411,7 @@ export default function DashboardScreen() {
       .sort((a, b) => Number(a?.stock_quantity ?? 0) - Number(b?.stock_quantity ?? 0));
   }, [products]);
 
-  const handleQuickRestock = async (product: any, amount: number) => {
+  const handleQuickRestock = useCallback(async (product: any, amount: number) => {
     const prevStock = Number(product?.stock_quantity ?? 0);
     const newStock = prevStock + amount;
     setRestockingId(product.id);
@@ -226,7 +431,27 @@ export default function DashboardScreen() {
     } finally {
       setRestockingId(null);
     }
-  };
+  }, []);
+
+  const handleBentoPress = useCallback((route: string) => {
+    router.push(route as any);
+  }, [router]);
+
+  const handleProductPress = useCallback((productId: string | number) => {
+    router.push(`/(tabs)/products/new?id=${productId}` as any);
+  }, [router]);
+
+  const handleOrdersPress = useCallback(() => {
+    router.push('/(tabs)/orders');
+  }, [router]);
+
+  const handleReportsPress = useCallback(() => {
+    router.push('/(tabs)/more/reports');
+  }, [router]);
+
+  const handleProductsCatalogPress = useCallback(() => {
+    router.push('/(tabs)/products');
+  }, [router]);
 
   return (
     <ScrollView
@@ -269,7 +494,7 @@ export default function DashboardScreen() {
             <TouchableOpacity
               activeOpacity={0.85}
               style={styles.heroMetricBox}
-              onPress={() => router.push('/(tabs)/orders')}
+              onPress={handleOrdersPress}
             >
               <View style={styles.heroMetricTop}>
                 <View style={[styles.heroIconCircle, { backgroundColor: 'rgba(244, 63, 94, 0.2)' }]}>
@@ -302,7 +527,7 @@ export default function DashboardScreen() {
               </Text>
               <Text style={styles.heroMetricLabel}>Needs Approval</Text>
               <Text style={styles.heroMetricSub}>
-                {activeOrders.length} active in store
+                {activeOrdersCount} active in store
               </Text>
             </TouchableOpacity>
 
@@ -310,7 +535,7 @@ export default function DashboardScreen() {
             <TouchableOpacity
               activeOpacity={0.85}
               style={styles.heroMetricBox}
-              onPress={() => router.push('/(tabs)/more/reports')}
+              onPress={handleReportsPress}
             >
               <View style={styles.heroMetricTop}>
                 <View
@@ -351,42 +576,14 @@ export default function DashboardScreen() {
           </Text>
           <View style={styles.bentoGrid}>
             {BENTO_ACTIONS.map((item) => (
-              <TouchableOpacity
+              <BentoActionCard
                 key={item.label}
-                activeOpacity={0.75}
-                style={[
-                  styles.bentoCard,
-                  {
-                    width: isWide ? '32%' : '48.4%',
-                    backgroundColor: colors.card,
-                    borderColor: colors.border,
-                  },
-                ]}
-                onPress={() => router.push(item.route as any)}
-              >
-                <View
-                  style={[
-                    styles.bentoIconWrap,
-                    { backgroundColor: isDark ? item.bgDark : item.bgLight },
-                  ]}
-                >
-                  <Ionicons name={item.icon} size={20} color={item.color} />
-                </View>
-                <View style={styles.bentoTextCol}>
-                  <Text
-                    style={[styles.bentoTitle, { color: colors.text }]}
-                    numberOfLines={1}
-                  >
-                    {item.label}
-                  </Text>
-                  <Text
-                    style={[styles.bentoSub, { color: colors.textMuted }]}
-                    numberOfLines={1}
-                  >
-                    {item.sub}
-                  </Text>
-                </View>
-              </TouchableOpacity>
+                item={item}
+                isWide={isWide}
+                colors={colors}
+                isDark={isDark}
+                onPress={handleBentoPress}
+              />
             ))}
           </View>
         </View>
@@ -417,7 +614,7 @@ export default function DashboardScreen() {
               </View>
               <TouchableOpacity
                 style={styles.viewCatalogLink}
-                onPress={() => router.push('/(tabs)/products')}
+                onPress={handleProductsCatalogPress}
               >
                 <Text style={styles.viewCatalogText}>View All</Text>
                 <Ionicons name="arrow-forward" size={12} color="#4f46e5" />
@@ -426,120 +623,18 @@ export default function DashboardScreen() {
 
             {/* Compact Items (Top 2 most critical) */}
             <View style={styles.lowStockCompactList}>
-              {lowStockProducts.slice(0, 2).map((item, idx) => {
-                const isOutOfStock = Number(item.stock_quantity ?? 0) === 0;
-                const isBusy = restockingId === item.id;
-
-                return (
-                  <View
-                    key={item.id}
-                    style={[
-                      styles.lowStockCompactItemRow,
-                      idx > 0 && {
-                        borderTopWidth: 1,
-                        borderTopColor: isDark
-                          ? 'rgba(255, 255, 255, 0.06)'
-                          : 'rgba(0, 0, 0, 0.05)',
-                      },
-                    ]}
-                  >
-                    <TouchableOpacity
-                      activeOpacity={0.7}
-                      style={styles.lowStockCompactItemInfo}
-                      onPress={() =>
-                        router.push(`/(tabs)/products/new?id=${item.id}` as any)
-                      }
-                    >
-                      <Text
-                        style={[styles.lowStockItemName, { color: colors.text }]}
-                        numberOfLines={1}
-                      >
-                        {item.name}
-                      </Text>
-                      <View style={styles.lowStockBadgesRow}>
-                        <View
-                          style={[
-                            styles.stockLevelChip,
-                            isOutOfStock
-                              ? styles.stockLevelChipOut
-                              : styles.stockLevelChipLow,
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.stockLevelChipText,
-                              isOutOfStock ? { color: '#ef4444' } : { color: '#d97706' },
-                            ]}
-                          >
-                            {isOutOfStock ? 'OUT' : 'LOW'}
-                          </Text>
-                        </View>
-                        <Text
-                          style={[
-                            styles.stockLeftText,
-                            { color: colors.textMuted },
-                          ]}
-                        >
-                          {item.stock_quantity ?? 0} {item.unit || 'units'} left
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-
-                    <View style={styles.restockButtonsWrap}>
-                      {isBusy ? (
-                        <ActivityIndicator
-                          size="small"
-                          color="#10b981"
-                          style={{ paddingHorizontal: 16 }}
-                        />
-                      ) : (
-                        <>
-                          <TouchableOpacity
-                            style={[
-                              styles.restockBtn,
-                              {
-                                backgroundColor: colors.card,
-                                borderColor: colors.border,
-                              },
-                            ]}
-                            onPress={() => handleQuickRestock(item, 5)}
-                          >
-                            <Ionicons name="add" size={13} color="#10b981" />
-                            <Text
-                              style={[
-                                styles.restockBtnText,
-                                { color: colors.text },
-                              ]}
-                            >
-                              +5
-                            </Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            style={[
-                              styles.restockBtn,
-                              {
-                                backgroundColor: colors.card,
-                                borderColor: colors.border,
-                              },
-                            ]}
-                            onPress={() => handleQuickRestock(item, 10)}
-                          >
-                            <Ionicons name="add" size={13} color="#10b981" />
-                            <Text
-                              style={[
-                                styles.restockBtnText,
-                                { color: colors.text },
-                              ]}
-                            >
-                              +10
-                            </Text>
-                          </TouchableOpacity>
-                        </>
-                      )}
-                    </View>
-                  </View>
-                );
-              })}
+              {lowStockProducts.slice(0, 2).map((item, idx) => (
+                <LowStockRowItem
+                  key={item.id}
+                  item={item}
+                  showTopBorder={idx > 0}
+                  isDark={isDark}
+                  colors={colors}
+                  isBusy={restockingId === item.id}
+                  onPress={handleProductPress}
+                  onRestock={handleQuickRestock}
+                />
+              ))}
             </View>
 
             {lowStockProducts.length > 2 && (
@@ -552,7 +647,7 @@ export default function DashboardScreen() {
                       : 'rgba(0, 0, 0, 0.05)',
                   },
                 ]}
-                onPress={() => router.push('/(tabs)/products')}
+                onPress={handleProductsCatalogPress}
               >
                 <Text style={styles.lowStockFooterLinkText}>
                   +{lowStockProducts.length - 2} more items need restock • Manage in Products →

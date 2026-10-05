@@ -11,6 +11,7 @@ import {
   ScrollView,
   Modal,
   Linking,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -29,6 +30,203 @@ interface CustomerCounts {
   locked: number;
   delete_requested: number;
 }
+
+const customerKeyExtractor = (item: any, idx: number) =>
+  item?.id != null ? String(item.id) : `cust-${idx}`;
+
+interface CustomerCardProps {
+  item: any;
+  isBusy: boolean;
+  colors: any;
+  isDark: boolean;
+  onOpenDetails: (cust: any) => void;
+  onNotify: (cust: any) => void;
+  onActivate: (userId: number, username: string) => void;
+  onUnlock: (userId: number, username: string) => void;
+  onPromptLock: (cust: any) => void;
+  onDeleteRequest: (userId: number, approve: boolean) => void;
+}
+
+const CustomerCard = React.memo<CustomerCardProps>(
+  ({
+    item,
+    isBusy,
+    colors,
+    isDark,
+    onOpenDetails,
+    onNotify,
+    onActivate,
+    onUnlock,
+    onPromptLock,
+    onDeleteRequest,
+  }) => {
+    const fullName = `${item?.first_name || ''} ${item?.last_name || ''}`.trim();
+    const phone = item?.customer_profile?.mobile_number
+      ? `+91 ${item.customer_profile.mobile_number}`
+      : 'No phone';
+    const delReq = Boolean(item?.customer_profile?.delete_requested);
+    const initial = (item?.first_name || item?.username || 'C')[0].toUpperCase();
+
+    return (
+      <TouchableOpacity
+        style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
+        activeOpacity={0.8}
+        onPress={() => onOpenDetails(item)}
+      >
+        <View style={styles.cardTop}>
+          {/* Avatar */}
+          <View
+            style={[
+              styles.avatar,
+              {
+                backgroundColor: isDark ? '#312e81' : '#e0e7ff',
+                borderColor: isDark ? '#4338ca' : '#c7d2fe',
+              },
+            ]}
+          >
+            <Text style={[styles.avatarText, { color: isDark ? '#c7d2fe' : '#4338ca' }]}>
+              {initial}
+            </Text>
+          </View>
+
+          {/* Main Information */}
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={[styles.name, { color: colors.text }]}>
+              {fullName || item?.username || 'Customer'}
+            </Text>
+            <Text style={[styles.subText, { color: colors.textMuted }]}>
+              @{item?.username} • {phone}
+            </Text>
+            <Text style={[styles.subText, { color: colors.textMuted, marginTop: 1 }]}>
+              ID: #{item?.id} {item?.email ? `• ${item.email}` : ''}
+            </Text>
+          </View>
+
+          {/* Status Badges */}
+          <View style={styles.badgesCol}>
+            {item?.is_locked ? (
+              <View style={[styles.badge, { backgroundColor: '#fee2e2', borderColor: '#fca5a5' }]}>
+                <Ionicons name="lock-closed" size={10} color="#dc2626" />
+                <Text style={[styles.badgeText, { color: '#dc2626' }]}>
+                  Locked ({item?.failed_login_attempts || 0})
+                </Text>
+              </View>
+            ) : delReq ? (
+              <View style={[styles.badge, { backgroundColor: '#fef3c7', borderColor: '#fde68a' }]}>
+                <Ionicons name="warning" size={10} color="#b45309" />
+                <Text style={[styles.badgeText, { color: '#b45309' }]}>Delete Req</Text>
+              </View>
+            ) : item?.is_active ? (
+              <View style={[styles.badge, { backgroundColor: '#d1fae5', borderColor: '#a7f3d0' }]}>
+                <View style={[styles.badgeDot, { backgroundColor: '#059669' }]} />
+                <Text style={[styles.badgeText, { color: '#059669' }]}>Active</Text>
+              </View>
+            ) : (
+              <View style={[styles.badge, { backgroundColor: '#f1f5f9', borderColor: '#e2e8f0' }]}>
+                <View style={[styles.badgeDot, { backgroundColor: '#64748b' }]} />
+                <Text style={[styles.badgeText, { color: '#64748b' }]}>Inactive</Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Action Buttons Row */}
+        <View style={styles.actionsRow}>
+          {/* Details Button */}
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: colors.cardAlt }]}
+            onPress={() => onOpenDetails(item)}
+          >
+            <Ionicons name="eye-outline" size={14} color="#6366f1" />
+            <Text style={[styles.actionText, { color: '#6366f1' }]}>Details</Text>
+          </TouchableOpacity>
+
+          {/* Notify Button (active customers) */}
+          {item?.is_active && !item?.is_locked && (
+            <TouchableOpacity
+              style={[styles.actionBtn, { backgroundColor: colors.cardAlt }]}
+              onPress={() => onNotify(item)}
+            >
+              <Ionicons name="notifications-outline" size={14} color="#3b82f6" />
+              <Text style={[styles.actionText, { color: '#3b82f6' }]}>Notify</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Activate Button (inactive customers) */}
+          {!item?.is_active && (
+            <TouchableOpacity
+              style={[styles.actionBtn, { backgroundColor: '#d1fae5' }]}
+              onPress={() => onActivate(item.id, item.username)}
+              disabled={isBusy}
+            >
+              <Ionicons name="checkmark-circle-outline" size={14} color="#059669" />
+              <Text style={[styles.actionText, { color: '#059669' }]}>Activate</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Lock / Unlock Toggle */}
+          {item?.is_locked ? (
+            <TouchableOpacity
+              style={[styles.actionBtn, { backgroundColor: '#d1fae5' }]}
+              onPress={() => onUnlock(item.id, item.username)}
+              disabled={isBusy}
+            >
+              <Ionicons name="lock-open-outline" size={14} color="#059669" />
+              <Text style={[styles.actionText, { color: '#059669' }]}>Unlock</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[styles.actionBtn, { backgroundColor: colors.cardAlt }]}
+              onPress={() => onPromptLock(item)}
+              disabled={isBusy}
+            >
+              <Ionicons name="lock-closed-outline" size={14} color="#ef4444" />
+              <Text style={[styles.actionText, { color: '#ef4444' }]}>Lock</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Deletion Request Actions */}
+          {delReq && (
+            <>
+              <TouchableOpacity
+                style={[styles.actionBtn, { backgroundColor: '#fee2e2' }]}
+                onPress={() => onDeleteRequest(item.id, true)}
+                disabled={isBusy}
+              >
+                <Ionicons name="trash-outline" size={14} color="#dc2626" />
+                <Text style={[styles.actionText, { color: '#dc2626' }]}>Approve Del</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionBtn, { backgroundColor: colors.cardAlt }]}
+                onPress={() => onDeleteRequest(item.id, false)}
+                disabled={isBusy}
+              >
+                <Ionicons name="close-circle-outline" size={14} color={colors.textMuted} />
+                <Text style={[styles.actionText, { color: colors.textMuted }]}>Reject Del</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  },
+  (prev, next) => {
+    return (
+      prev.item?.id === next.item?.id &&
+      prev.item?.username === next.item?.username &&
+      prev.item?.first_name === next.item?.first_name &&
+      prev.item?.last_name === next.item?.last_name &&
+      prev.item?.email === next.item?.email &&
+      prev.item?.is_active === next.item?.is_active &&
+      prev.item?.is_locked === next.item?.is_locked &&
+      prev.item?.failed_login_attempts === next.item?.failed_login_attempts &&
+      prev.item?.customer_profile?.mobile_number === next.item?.customer_profile?.mobile_number &&
+      prev.item?.customer_profile?.delete_requested === next.item?.customer_profile?.delete_requested &&
+      prev.isBusy === next.isBusy &&
+      prev.isDark === next.isDark
+    );
+  }
+);
 
 export default function CustomersScreen() {
   const { colors, isDark } = useAppTheme();
@@ -99,11 +297,15 @@ export default function CustomersScreen() {
     }
   }, []);
 
-  const handleOpenDetails = (cust: any) => {
+  const handleOpenDetails = useCallback((cust: any) => {
     setSelectedCustomer(cust);
     setCustomerDetails(cust);
     fetchCustomerDetails(cust.id);
-  };
+  }, [fetchCustomerDetails]);
+
+  const handleNotifyTarget = useCallback((cust: any) => {
+    setNotifyTarget(cust);
+  }, []);
 
   // KPI Counts (derived or backend)
   const totalCount = counts?.total ?? customers.length;
@@ -143,7 +345,7 @@ export default function CustomersScreen() {
     });
   }, [customers, activeTab, searchQuery]);
 
-  const handleUnlock = (userId: number, username: string) => {
+  const handleUnlock = useCallback((userId: number, username: string) => {
     showConfirm(
       'Unlock Account',
       `Are you sure you want to unlock "${username}"? This resets failed attempts and immediately re-enables login.`,
@@ -163,12 +365,12 @@ export default function CustomersScreen() {
         }
       }
     );
-  };
+  }, [fetchCustomers, selectedCustomer?.id, fetchCustomerDetails]);
 
-  const handlePromptLock = (cust: any) => {
+  const handlePromptLock = useCallback((cust: any) => {
     setLockTarget(cust);
     setLockReason('Locked by store administrator');
-  };
+  }, []);
 
   const handleConfirmLock = async () => {
     if (!lockTarget) return;
@@ -192,7 +394,7 @@ export default function CustomersScreen() {
     }
   };
 
-  const handleActivate = (userId: number, username: string) => {
+  const handleActivate = useCallback((userId: number, username: string) => {
     showConfirm(
       'Activate Account',
       `Activate account "${username}"? Customer will be able to log in and shop immediately.`,
@@ -212,9 +414,9 @@ export default function CustomersScreen() {
         }
       }
     );
-  };
+  }, [fetchCustomers, selectedCustomer?.id, fetchCustomerDetails]);
 
-  const handleDeleteRequest = (userId: number, approve: boolean) => {
+  const handleDeleteRequest = useCallback((userId: number, approve: boolean) => {
     const endpoint = approve
       ? `/auth/customers/${userId}/approve-delete/`
       : `/auth/customers/${userId}/reject-delete/`;
@@ -239,7 +441,35 @@ export default function CustomersScreen() {
         }
       }
     );
-  };
+  }, [fetchCustomers, selectedCustomer?.id]);
+
+  const renderCustomerItem = useCallback(
+    ({ item }: { item: any }) => (
+      <CustomerCard
+        item={item}
+        isBusy={actionInProgress === item?.id}
+        colors={colors}
+        isDark={isDark}
+        onOpenDetails={handleOpenDetails}
+        onNotify={handleNotifyTarget}
+        onActivate={handleActivate}
+        onUnlock={handleUnlock}
+        onPromptLock={handlePromptLock}
+        onDeleteRequest={handleDeleteRequest}
+      />
+    ),
+    [
+      actionInProgress,
+      colors,
+      isDark,
+      handleOpenDetails,
+      handleNotifyTarget,
+      handleActivate,
+      handleUnlock,
+      handlePromptLock,
+      handleDeleteRequest,
+    ]
+  );
 
   const handleCopyActivationLink = async (link: string) => {
     try {
@@ -308,8 +538,12 @@ export default function CustomersScreen() {
 
       <FlatList
         data={displayedCustomers}
-        keyExtractor={(item, idx) => (item?.id != null ? String(item.id) : `cust-${idx}`)}
+        keyExtractor={customerKeyExtractor}
         contentContainerStyle={styles.listContent}
+        initialNumToRender={8}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={Platform.OS !== 'web'}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -524,158 +758,7 @@ export default function CustomersScreen() {
             </ScrollView>
           </View>
         }
-        renderItem={({ item }) => {
-          const fullName = `${item?.first_name || ''} ${item?.last_name || ''}`.trim();
-          const phone = item?.customer_profile?.mobile_number
-            ? `+91 ${item.customer_profile.mobile_number}`
-            : 'No phone';
-          const delReq = Boolean(item?.customer_profile?.delete_requested);
-          const initial = (item?.first_name || item?.username || 'C')[0].toUpperCase();
-          const isBusy = actionInProgress === item?.id;
-
-          return (
-            <TouchableOpacity
-              style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
-              activeOpacity={0.8}
-              onPress={() => handleOpenDetails(item)}
-            >
-              <View style={styles.cardTop}>
-                {/* Avatar */}
-                <View
-                  style={[
-                    styles.avatar,
-                    {
-                      backgroundColor: isDark ? '#312e81' : '#e0e7ff',
-                      borderColor: isDark ? '#4338ca' : '#c7d2fe',
-                    },
-                  ]}
-                >
-                  <Text style={[styles.avatarText, { color: isDark ? '#c7d2fe' : '#4338ca' }]}>
-                    {initial}
-                  </Text>
-                </View>
-
-                {/* Main Information */}
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={[styles.name, { color: colors.text }]}>
-                    {fullName || item?.username || 'Customer'}
-                  </Text>
-                  <Text style={[styles.subText, { color: colors.textMuted }]}>
-                    @{item?.username} • {phone}
-                  </Text>
-                  <Text style={[styles.subText, { color: colors.textMuted, marginTop: 1 }]}>
-                    ID: #{item?.id} {item?.email ? `• ${item.email}` : ''}
-                  </Text>
-                </View>
-
-                {/* Status Badges */}
-                <View style={styles.badgesCol}>
-                  {item?.is_locked ? (
-                    <View style={[styles.badge, { backgroundColor: '#fee2e2', borderColor: '#fca5a5' }]}>
-                      <Ionicons name="lock-closed" size={10} color="#dc2626" />
-                      <Text style={[styles.badgeText, { color: '#dc2626' }]}>
-                        Locked ({item?.failed_login_attempts || 0})
-                      </Text>
-                    </View>
-                  ) : delReq ? (
-                    <View style={[styles.badge, { backgroundColor: '#fef3c7', borderColor: '#fde68a' }]}>
-                      <Ionicons name="warning" size={10} color="#b45309" />
-                      <Text style={[styles.badgeText, { color: '#b45309' }]}>Delete Req</Text>
-                    </View>
-                  ) : item?.is_active ? (
-                    <View style={[styles.badge, { backgroundColor: '#d1fae5', borderColor: '#a7f3d0' }]}>
-                      <View style={[styles.badgeDot, { backgroundColor: '#059669' }]} />
-                      <Text style={[styles.badgeText, { color: '#059669' }]}>Active</Text>
-                    </View>
-                  ) : (
-                    <View style={[styles.badge, { backgroundColor: '#f1f5f9', borderColor: '#e2e8f0' }]}>
-                      <View style={[styles.badgeDot, { backgroundColor: '#64748b' }]} />
-                      <Text style={[styles.badgeText, { color: '#64748b' }]}>Inactive</Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-
-              {/* Action Buttons Row */}
-              <View style={styles.actionsRow}>
-                {/* Details Button */}
-                <TouchableOpacity
-                  style={[styles.actionBtn, { backgroundColor: colors.cardAlt }]}
-                  onPress={() => handleOpenDetails(item)}
-                >
-                  <Ionicons name="eye-outline" size={14} color="#6366f1" />
-                  <Text style={[styles.actionText, { color: '#6366f1' }]}>Details</Text>
-                </TouchableOpacity>
-
-                {/* Notify Button (active customers) */}
-                {item?.is_active && !item?.is_locked && (
-                  <TouchableOpacity
-                    style={[styles.actionBtn, { backgroundColor: colors.cardAlt }]}
-                    onPress={() => setNotifyTarget(item)}
-                  >
-                    <Ionicons name="notifications-outline" size={14} color="#3b82f6" />
-                    <Text style={[styles.actionText, { color: '#3b82f6' }]}>Notify</Text>
-                  </TouchableOpacity>
-                )}
-
-                {/* Activate Button (inactive customers) */}
-                {!item?.is_active && (
-                  <TouchableOpacity
-                    style={[styles.actionBtn, { backgroundColor: '#d1fae5' }]}
-                    onPress={() => handleActivate(item.id, item.username)}
-                    disabled={isBusy}
-                  >
-                    <Ionicons name="checkmark-circle-outline" size={14} color="#059669" />
-                    <Text style={[styles.actionText, { color: '#059669' }]}>Activate</Text>
-                  </TouchableOpacity>
-                )}
-
-                {/* Lock / Unlock Toggle */}
-                {item?.is_locked ? (
-                  <TouchableOpacity
-                    style={[styles.actionBtn, { backgroundColor: '#d1fae5' }]}
-                    onPress={() => handleUnlock(item.id, item.username)}
-                    disabled={isBusy}
-                  >
-                    <Ionicons name="lock-open-outline" size={14} color="#059669" />
-                    <Text style={[styles.actionText, { color: '#059669' }]}>Unlock</Text>
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity
-                    style={[styles.actionBtn, { backgroundColor: colors.cardAlt }]}
-                    onPress={() => handlePromptLock(item)}
-                    disabled={isBusy}
-                  >
-                    <Ionicons name="lock-closed-outline" size={14} color="#ef4444" />
-                    <Text style={[styles.actionText, { color: '#ef4444' }]}>Lock</Text>
-                  </TouchableOpacity>
-                )}
-
-                {/* Deletion Request Actions */}
-                {delReq && (
-                  <>
-                    <TouchableOpacity
-                      style={[styles.actionBtn, { backgroundColor: '#fee2e2' }]}
-                      onPress={() => handleDeleteRequest(item.id, true)}
-                      disabled={isBusy}
-                    >
-                      <Ionicons name="trash-outline" size={14} color="#dc2626" />
-                      <Text style={[styles.actionText, { color: '#dc2626' }]}>Approve Del</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.actionBtn, { backgroundColor: colors.cardAlt }]}
-                      onPress={() => handleDeleteRequest(item.id, false)}
-                      disabled={isBusy}
-                    >
-                      <Ionicons name="close-circle-outline" size={14} color={colors.textMuted} />
-                      <Text style={[styles.actionText, { color: colors.textMuted }]}>Reject Del</Text>
-                    </TouchableOpacity>
-                  </>
-                )}
-              </View>
-            </TouchableOpacity>
-          );
-        }}
+        renderItem={renderCustomerItem}
         ListEmptyComponent={
           loading && !refreshing ? (
             <ActivityIndicator size="large" color="#10b981" style={{ marginTop: 40 }} />

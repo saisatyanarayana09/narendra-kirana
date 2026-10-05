@@ -22,6 +22,134 @@ import { showAlert, showConfirm } from '../../../utils/alerts';
 import ScreenHeader from '../../../components/ScreenHeader';
 import ModernSwitch from '../../../components/ModernSwitch';
 
+const offerKeyExtractor = (item: any) => String(item.id);
+
+interface OfferCardProps {
+  item: any;
+  colors: any;
+  isDark: boolean;
+  isCopied: boolean;
+  onCopyCode: (code: string) => void;
+  onTogglePromo: (promo: any) => void;
+  onDeletePromo: (id: number, code: string) => void;
+}
+
+const OfferCard = React.memo<OfferCardProps>(
+  ({ item, colors, isDark, isCopied, onCopyCode, onTogglePromo, onDeletePromo }) => {
+    const isPercentage = item?.discount_type === 'PERCENTAGE';
+
+    return (
+      <View
+        style={[
+          styles.promoCard,
+          { backgroundColor: colors.card, borderColor: colors.border },
+        ]}
+      >
+        {/* Left Ticket Stub */}
+        <View style={styles.cardHeaderRow}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            style={[
+              styles.codePill,
+              { backgroundColor: colors.cardAlt, borderColor: colors.border },
+            ]}
+            onPress={() => onCopyCode(item.code)}
+          >
+            <Ionicons name="ticket-outline" size={16} color="#10b981" />
+            <Text style={[styles.codeText, { color: colors.text }]}>
+              {item.code}
+            </Text>
+            <Ionicons
+              name={isCopied ? 'checkmark-circle' : 'copy-outline'}
+              size={14}
+              color={isCopied ? '#10b981' : colors.textMuted}
+            />
+          </TouchableOpacity>
+
+          <View
+            style={[
+              styles.discountBadge,
+              {
+                backgroundColor: isDark
+                  ? 'rgba(16, 185, 129, 0.15)'
+                  : '#ecfdf5',
+              },
+            ]}
+          >
+            <Text style={styles.discountBadgeText}>
+              {isPercentage
+                ? `${item?.discount_value}% OFF`
+                : `₹${item?.discount_value} FLAT OFF`}
+            </Text>
+          </View>
+        </View>
+
+        {/* Sub details */}
+        <View style={styles.rulesRow}>
+          <Text style={[styles.ruleText, { color: colors.textMuted }]}>
+            Min order: ₹{item?.min_order_amount ?? 0}
+          </Text>
+          {item?.applicable_category_name && (
+            <Text style={[styles.ruleText, { color: colors.textMuted }]}>
+              • On: {item.applicable_category_name}
+            </Text>
+          )}
+          {item?.max_discount && (
+            <Text style={[styles.ruleText, { color: colors.textMuted }]}>
+              • Max discount: ₹{item.max_discount}
+            </Text>
+          )}
+        </View>
+
+        {/* Footer with ModernSwitch & Delete */}
+        <View style={[styles.cardFooter, { borderTopColor: colors.border }]}>
+          <View style={styles.statusWrap}>
+            <View
+              style={[
+                styles.statusDot,
+                { backgroundColor: item.is_active ? '#10b981' : '#64748b' },
+              ]}
+            />
+            <Text style={[styles.statusLabel, { color: colors.textMuted }]}>
+              {item.is_active ? 'Active & Redeemable' : 'Disabled'}
+            </Text>
+          </View>
+
+          <View style={styles.cardActions}>
+            <ModernSwitch
+              value={Boolean(item.is_active)}
+              onValueChange={() => onTogglePromo(item)}
+            />
+
+            <TouchableOpacity
+              style={[styles.deleteBtn, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}
+              onPress={() => onDeletePromo(item.id, item.code)}
+              accessibilityLabel="Delete promo code"
+            >
+              <Ionicons name="trash-outline" size={16} color="#ef4444" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  },
+  (prev, next) =>
+    prev.item?.id === next.item?.id &&
+    prev.item?.code === next.item?.code &&
+    prev.item?.is_active === next.item?.is_active &&
+    prev.item?.discount_type === next.item?.discount_type &&
+    prev.item?.discount_value === next.item?.discount_value &&
+    prev.item?.min_order_amount === next.item?.min_order_amount &&
+    prev.item?.max_discount === next.item?.max_discount &&
+    prev.item?.applicable_category_name === next.item?.applicable_category_name &&
+    prev.isCopied === next.isCopied &&
+    prev.isDark === next.isDark &&
+    prev.colors === next.colors &&
+    prev.onCopyCode === next.onCopyCode &&
+    prev.onTogglePromo === next.onTogglePromo &&
+    prev.onDeletePromo === next.onDeletePromo
+);
+
 export default function OffersScreen() {
   const router = useRouter();
   const { colors, isDark } = useAppTheme();
@@ -96,7 +224,7 @@ export default function OffersScreen() {
     }
   };
 
-  const handleCopyCode = async (couponCode: string) => {
+  const handleCopyCode = useCallback(async (couponCode: string) => {
     try {
       await Clipboard.setStringAsync(couponCode);
       setCopiedCode(couponCode);
@@ -106,7 +234,7 @@ export default function OffersScreen() {
     } catch {
       showAlert('Notice', 'Failed to copy coupon code.');
     }
-  };
+  }, []);
 
   const handleCreatePromo = async () => {
     const cleanCode = code.trim().toUpperCase();
@@ -152,7 +280,7 @@ export default function OffersScreen() {
     }
   };
 
-  const handleTogglePromo = async (promo: any) => {
+  const handleTogglePromo = useCallback(async (promo: any) => {
     const nextStatus = !promo.is_active;
     // 0ms Optimistic Update
     setPromos((prev) =>
@@ -171,9 +299,9 @@ export default function OffersScreen() {
       );
       showAlert('Error', getErrorMessage(e, 'Failed to toggle promo code.'));
     }
-  };
+  }, []);
 
-  const handleDeletePromo = (id: number, promoCode: string) => {
+  const handleDeletePromo = useCallback((id: number, promoCode: string) => {
     showConfirm(
       'Delete Promo Code',
       `Are you sure you want to delete "${promoCode}"? Customers will no longer be able to redeem it.`,
@@ -190,7 +318,7 @@ export default function OffersScreen() {
       undefined,
       'Delete'
     );
-  };
+  }, []);
 
   const filteredPromos = useMemo(() => {
     let list = promos;
@@ -210,6 +338,21 @@ export default function OffersScreen() {
   const activeCount = useMemo(
     () => promos.filter((p) => Boolean(p.is_active)).length,
     [promos]
+  );
+
+  const renderOfferItem = useCallback(
+    ({ item }: { item: any }) => (
+      <OfferCard
+        item={item}
+        colors={colors}
+        isDark={isDark}
+        isCopied={copiedCode === item.code}
+        onCopyCode={handleCopyCode}
+        onTogglePromo={handleTogglePromo}
+        onDeletePromo={handleDeletePromo}
+      />
+    ),
+    [colors, isDark, copiedCode, handleCopyCode, handleTogglePromo, handleDeletePromo]
   );
 
   return (
@@ -327,8 +470,12 @@ export default function OffersScreen() {
       ) : (
         <FlatList
           data={filteredPromos}
-          keyExtractor={(item) => String(item.id)}
+          keyExtractor={offerKeyExtractor}
           contentContainerStyle={styles.listContent}
+          initialNumToRender={8}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS !== 'web'}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -336,105 +483,7 @@ export default function OffersScreen() {
               tintColor="#10b981"
             />
           }
-          renderItem={({ item }) => {
-            const isPercentage = item?.discount_type === 'PERCENTAGE';
-            const isCopied = copiedCode === item.code;
-
-            return (
-              <View
-                style={[
-                  styles.promoCard,
-                  { backgroundColor: colors.card, borderColor: colors.border },
-                ]}
-              >
-                {/* Left Ticket Stub */}
-                <View style={styles.cardHeaderRow}>
-                  <TouchableOpacity
-                    activeOpacity={0.7}
-                    style={[
-                      styles.codePill,
-                      { backgroundColor: colors.cardAlt, borderColor: colors.border },
-                    ]}
-                    onPress={() => handleCopyCode(item.code)}
-                  >
-                    <Ionicons name="ticket-outline" size={16} color="#10b981" />
-                    <Text style={[styles.codeText, { color: colors.text }]}>
-                      {item.code}
-                    </Text>
-                    <Ionicons
-                      name={isCopied ? 'checkmark-circle' : 'copy-outline'}
-                      size={14}
-                      color={isCopied ? '#10b981' : colors.textMuted}
-                    />
-                  </TouchableOpacity>
-
-                  <View
-                    style={[
-                      styles.discountBadge,
-                      {
-                        backgroundColor: isDark
-                          ? 'rgba(16, 185, 129, 0.15)'
-                          : '#ecfdf5',
-                      },
-                    ]}
-                  >
-                    <Text style={styles.discountBadgeText}>
-                      {isPercentage
-                        ? `${item?.discount_value}% OFF`
-                        : `₹${item?.discount_value} FLAT OFF`}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Sub details */}
-                <View style={styles.rulesRow}>
-                  <Text style={[styles.ruleText, { color: colors.textMuted }]}>
-                    Min order: ₹{item?.min_order_amount ?? 0}
-                  </Text>
-                  {item?.applicable_category_name && (
-                    <Text style={[styles.ruleText, { color: colors.textMuted }]}>
-                      • On: {item.applicable_category_name}
-                    </Text>
-                  )}
-                  {item?.max_discount && (
-                    <Text style={[styles.ruleText, { color: colors.textMuted }]}>
-                      • Max discount: ₹{item.max_discount}
-                    </Text>
-                  )}
-                </View>
-
-                {/* Footer with ModernSwitch & Delete */}
-                <View style={[styles.cardFooter, { borderTopColor: colors.border }]}>
-                  <View style={styles.statusWrap}>
-                    <View
-                      style={[
-                        styles.statusDot,
-                        { backgroundColor: item.is_active ? '#10b981' : '#64748b' },
-                      ]}
-                    />
-                    <Text style={[styles.statusLabel, { color: colors.textMuted }]}>
-                      {item.is_active ? 'Active & Redeemable' : 'Disabled'}
-                    </Text>
-                  </View>
-
-                  <View style={styles.cardActions}>
-                    <ModernSwitch
-                      value={Boolean(item.is_active)}
-                      onValueChange={() => handleTogglePromo(item)}
-                    />
-
-                    <TouchableOpacity
-                      style={[styles.deleteBtn, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}
-                      onPress={() => handleDeletePromo(item.id, item.code)}
-                      accessibilityLabel="Delete promo code"
-                    >
-                      <Ionicons name="trash-outline" size={16} color="#ef4444" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            );
-          }}
+          renderItem={renderOfferItem}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <View style={[styles.emptyIconBox, { backgroundColor: colors.cardAlt }]}>

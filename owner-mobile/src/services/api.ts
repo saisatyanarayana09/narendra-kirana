@@ -7,6 +7,22 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export const TOKEN_KEY = 'smart-kirana-owner-token';
 export const REFRESH_TOKEN_KEY = 'smart-kirana-owner-refresh';
 
+let inMemoryToken: string | null = null;
+
+export const setInMemoryToken = (token: string | null) => {
+  inMemoryToken = token;
+};
+
+// Initialize inMemoryToken during app launch from storage
+safeStorage
+  .getItem(TOKEN_KEY)
+  .then((token) => {
+    if (token && !inMemoryToken) {
+      inMemoryToken = token;
+    }
+  })
+  .catch(() => {});
+
 export interface CachedGetConfig<T = any> extends AxiosRequestConfig {
   /** Skip cached data and hit the network (still deduplicated). */
   forceRefresh?: boolean;
@@ -83,11 +99,17 @@ export function getErrorMessage(error: any, fallback = 'Something went wrong. Pl
 api.interceptors.request.use(
   async (config) => {
     try {
-      const token = await safeStorage.getItem(TOKEN_KEY);
-      if (token) {
-        config.headers = config.headers || {};
-        config.headers['Authorization'] = `Bearer ${token}`;
+      config.headers = config.headers || {};
+      if (inMemoryToken) {
+        config.headers['Authorization'] = `Bearer ${inMemoryToken}`;
+      } else {
+        const token = await safeStorage.getItem(TOKEN_KEY);
+        if (token) {
+          inMemoryToken = token;
+          config.headers['Authorization'] = `Bearer ${token}`;
+        }
       }
+      config.headers['X-Portal-Context'] = 'owner';
     } catch {
       // Ignore storage read errors
     }
@@ -111,6 +133,7 @@ const processQueue = (error: any, token: string | null = null) => {
 };
 
 const handleForceLogout = async () => {
+  inMemoryToken = null;
   await safeStorage.removeItem(TOKEN_KEY);
   await safeStorage.removeItem(REFRESH_TOKEN_KEY);
   await api.resetCache();
@@ -200,6 +223,7 @@ api.interceptors.response.use(
           throw new Error('Invalid token refresh response');
         }
 
+        inMemoryToken = newAccessToken;
         await safeStorage.setItem(TOKEN_KEY, newAccessToken);
         if (res?.data?.refresh) {
           await safeStorage.setItem(REFRESH_TOKEN_KEY, res.data.refresh);
@@ -402,6 +426,7 @@ api.clearCache = () => {
 };
 
 api.resetCache = async () => {
+  inMemoryToken = null;
   globalExpiredBefore = Date.now();
   globalStaleBefore = globalExpiredBefore;
   resourceExpiredBefore.clear();

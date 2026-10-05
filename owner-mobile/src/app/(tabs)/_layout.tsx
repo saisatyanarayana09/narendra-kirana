@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useAppTheme } from '../../context/ThemeContext';
-import api from '../../services/api';
+import api, { cachedGet } from '../../services/api';
 import { safeStorage } from '../../utils/storage';
 
 interface NavSection {
@@ -196,12 +196,20 @@ export default function TabLayout() {
   const [storeLoaded, setStoreLoaded] = useState(false);
   const [newOrdersBadge, setNewOrdersBadge] = useState(0);
   const [activeOrdersBadge, setActiveOrdersBadge] = useState(0);
+  const lastOrdersCheckRef = useRef<number>(0);
 
   useEffect(() => {
     if (!token) return;
     let isMounted = true;
-    api
-      .get('/store/settings/')
+    cachedGet('/store/settings/', {
+      onUpdate: (res) => {
+        if (!isMounted) return;
+        const data = Array.isArray(res?.data) ? res.data[0] : res?.data;
+        if (data && typeof data.is_open === 'boolean') {
+          setStoreOpen(data.is_open);
+        }
+      },
+    })
       .then((res) => {
         if (!isMounted) return;
         const data = Array.isArray(res?.data) ? res.data[0] : res?.data;
@@ -221,43 +229,75 @@ export default function TabLayout() {
     let isMounted = true;
 
     const SEEN_KEY = 'smart-kirana-orders-last-seen';
+    const isOrdersTab = pathname.startsWith('/orders') || pathname === '/(tabs)/orders';
 
-    const run = async () => {
+    // If on the orders tab right now, mark all as seen immediately
+    if (isOrdersTab) {
+      safeStorage.setItem(SEEN_KEY, new Date().toISOString()).catch(() => {});
+      setNewOrdersBadge(0);
+      setActiveOrdersBadge(0);
+    }
+
+    const checkUnseenOrders = async () => {
       try {
-        const res = await api.get('/orders/?page_size=100');
-        if (!isMounted) return;
-        const list = Array.isArray(res?.data?.results)
-          ? res.data.results
-          : Array.isArray(res?.data)
-            ? res.data
-            : [];
-
-        const lastSeen = await safeStorage.getItem(SEEN_KEY);
-        const lastSeenTime = lastSeen ? new Date(lastSeen).getTime() : 0;
-
-        // Count NEW orders the owner hasn't seen yet
-        const unseenNewCount = list.filter((o: any) => {
-          if (o.status !== 'NEW') return false;
-          const createdTime = o.created_at ? new Date(o.created_at).getTime() : 0;
-          return createdTime > lastSeenTime;
-        }).length;
-
-        setNewOrdersBadge(unseenNewCount);
-        setActiveOrdersBadge(unseenNewCount);
-
-        // If on the orders tab right now, mark all as seen
-        if (pathname.startsWith('/orders') || pathname === '/(tabs)/orders') {
-          await safeStorage.setItem(SEEN_KEY, new Date().toISOString());
-          if (isMounted) {
-            setNewOrdersBadge(0);
-            setActiveOrdersBadge(0);
-          }
+        const now = Date.now();
+        // Throttle: don't hammer the API if checked within the last 15 seconds
+        if (now - lastOrdersCheckRef.current < 15000) {
+          return;
         }
+        lastOrdersCheckRef.current = now;
+
+        const updateBadges = async (ordersData: any) => {
+          if (!isMounted) return;
+          const list = Array.isArray(ordersData?.results)
+            ? ordersData.results
+            : Array.isArray(ordersData)
+              ? ordersData
+              : [];
+
+          const lastSeen = await safeStorage.getItem(SEEN_KEY);
+          const lastSeenTime = lastSeen ? new Date(lastSeen).getTime() : 0;
+
+          // If on the orders tab right now, mark all as seen
+          if (pathname.startsWith('/orders') || pathname === '/(tabs)/orders') {
+            await safeStorage.setItem(SEEN_KEY, new Date().toISOString());
+            if (isMounted) {
+              setNewOrdersBadge(0);
+              setActiveOrdersBadge(0);
+            }
+            return;
+          }
+
+          // Count NEW orders the owner hasn't seen yet
+          const unseenNewCount = list.filter((o: any) => {
+            if (o.status !== 'NEW') return false;
+            const createdTime = o.created_at ? new Date(o.created_at).getTime() : 0;
+            return createdTime > lastSeenTime;
+          }).length;
+
+          if (isMounted) {
+            setNewOrdersBadge(unseenNewCount);
+            setActiveOrdersBadge(unseenNewCount);
+          }
+        };
+
+        const res = await cachedGet('/orders/?page_size=100', {
+          onUpdate: (updatedRes) => {
+            updateBadges(updatedRes?.data);
+          },
+        });
+
+        await updateBadges(res?.data);
       } catch {}
     };
 
-    run();
-    return () => { isMounted = false; };
+    // Debounce: wait 400ms across rapid tab navigation before checking unseen orders
+    const timer = setTimeout(checkUnseenOrders, 400);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
   }, [token, pathname]);
 
   if (isLoading || (Platform.OS === 'web' && typeof window === 'undefined')) {

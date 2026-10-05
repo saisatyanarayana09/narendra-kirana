@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api, { cachedGet, getErrorMessage } from '../../../services/api';
@@ -82,6 +83,10 @@ export default function FeedbackScreen() {
           data={feedbacks}
           keyExtractor={(item, idx) => (item?.id != null ? String(item.id) : `fb-${idx}`)}
           contentContainerStyle={styles.listContent}
+          initialNumToRender={8}
+          maxToRenderPerBatch={8}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === 'android'}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

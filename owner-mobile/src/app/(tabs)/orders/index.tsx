@@ -418,6 +418,18 @@ const OrderCard = React.memo(({
       )}
     </View>
   );
+},
+(prev: any, next: any) => {
+  return (
+    prev.order?.id === next.order?.id &&
+    prev.order?.status === next.order?.status &&
+    prev.order?.payment_status === next.order?.payment_status &&
+    prev.order?.total_amount === next.order?.total_amount &&
+    prev.isExpanded === next.isExpanded &&
+    prev.loadingDetailId === next.loadingDetailId &&
+    prev.updatingOrderId === next.updatingOrderId &&
+    prev.detailData === next.detailData
+  );
 });
 
 export default function OrdersListScreen() {
@@ -439,18 +451,19 @@ export default function OrdersListScreen() {
 
   // ─── Sticky Header Scroll Tracking ───
   const listRef = useRef<FlatList>(null);
+  const isScrolledRef = useRef(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       const offsetY = event.nativeEvent.contentOffset.y;
-      if (offsetY > 10 && !isScrolled) {
-        setIsScrolled(true);
-      } else if (offsetY <= 10 && isScrolled) {
-        setIsScrolled(false);
+      const scrolled = offsetY > 10;
+      if (scrolled !== isScrolledRef.current) {
+        isScrolledRef.current = scrolled;
+        setIsScrolled(scrolled);
       }
     },
-    [isScrolled]
+    []
   );
 
   const fetchOrders = useCallback(
@@ -605,6 +618,30 @@ export default function OrdersListScreen() {
 
     return { statusCounts: counts, filteredOrders: matched };
   }, [orders, filter, searchTerm]);
+
+  const renderOrderItem = useCallback(
+    ({ item: order }: { item: any }) => (
+      <OrderCard
+        order={order}
+        isExpanded={expandedOrderId === order.id}
+        detailData={orderDetailsMap[String(order.id)] || order}
+        loadingDetailId={loadingDetailId}
+        updatingOrderId={updatingOrderId}
+        onToggleExpand={handleToggleExpand}
+        onRejectOrder={handleRejectOrder}
+        onQuickStatusUpdate={handleQuickStatusUpdate}
+      />
+    ),
+    [
+      expandedOrderId,
+      orderDetailsMap,
+      loadingDetailId,
+      updatingOrderId,
+      handleToggleExpand,
+      handleRejectOrder,
+      handleQuickStatusUpdate,
+    ]
+  );
 
 
 
@@ -798,7 +835,11 @@ export default function OrdersListScreen() {
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             onScroll={handleScroll}
-            scrollEventThrottle={16}
+            scrollEventThrottle={32}
+            initialNumToRender={8}
+            maxToRenderPerBatch={8}
+            windowSize={5}
+            removeClippedSubviews={Platform.OS !== 'web'}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
@@ -822,18 +863,7 @@ export default function OrdersListScreen() {
                 </Text>
               </View>
             }
-            renderItem={({ item: order }) => (
-              <OrderCard
-                order={order}
-                isExpanded={expandedOrderId === order.id}
-                detailData={orderDetailsMap[String(order.id)] || order}
-                loadingDetailId={loadingDetailId}
-                updatingOrderId={updatingOrderId}
-                onToggleExpand={handleToggleExpand}
-                onRejectOrder={handleRejectOrder}
-                onQuickStatusUpdate={handleQuickStatusUpdate}
-              />
-            )}
+            renderItem={renderOrderItem}
             onEndReached={loadMoreOrders}
             onEndReachedThreshold={0.4}
             ListFooterComponent={

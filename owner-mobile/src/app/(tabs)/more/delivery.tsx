@@ -32,7 +32,10 @@ interface Driver {
 
 const VEHICLE_TYPES = ['Bike', 'Scooter', 'Cycle', 'Car'];
 
-const DriverCard = memo(
+const partnerKeyExtractor = (item: Driver, index: number) =>
+  item?.id != null ? String(item.id) : `driver-${index}`;
+
+const PartnerCard = memo(
   ({
     item,
     onCall,
@@ -86,8 +89,24 @@ const DriverCard = memo(
         </View>
       </View>
     );
+  },
+  (prev, next) => {
+    return (
+      prev.item.id === next.item.id &&
+      prev.item.name === next.item.name &&
+      prev.item.username === next.item.username &&
+      prev.item.phone === next.item.phone &&
+      prev.item.vehicle_type === next.item.vehicle_type &&
+      prev.item.vehicle_number === next.item.vehicle_number &&
+      prev.item.is_online === next.item.is_online &&
+      prev.item.total_deliveries === next.item.total_deliveries &&
+      prev.item.active_orders_count === next.item.active_orders_count &&
+      prev.colors === next.colors
+    );
   }
 );
+
+const DriverCard = PartnerCard;
 
 export default function DeliveryPartnersScreen() {
   const { colors, isDark } = useAppTheme();
@@ -218,6 +237,18 @@ export default function DeliveryPartnersScreen() {
   const onlineCount = useMemo(
     () => partners.filter((p) => Boolean(p.is_online)).length,
     [partners]
+  );
+
+  const renderPartnerItem = useCallback(
+    ({ item }: { item: Driver }) => (
+      <PartnerCard
+        item={item}
+        onCall={contactDriver}
+        onWhatsapp={whatsappDriver}
+        colors={colors}
+      />
+    ),
+    [contactDriver, whatsappDriver, colors]
   );
 
   return (
@@ -395,8 +426,12 @@ export default function DeliveryPartnersScreen() {
       ) : (
         <FlatList
           data={filteredPartners}
-          keyExtractor={(item, index) => (item?.id != null ? String(item.id) : `driver-${index}`)}
+          keyExtractor={partnerKeyExtractor}
           contentContainerStyle={styles.listContent}
+          initialNumToRender={8}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS !== 'web'}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -404,14 +439,7 @@ export default function DeliveryPartnersScreen() {
               tintColor="#10b981"
             />
           }
-          renderItem={({ item }) => (
-            <DriverCard
-              item={item}
-              onCall={contactDriver}
-              onWhatsapp={whatsappDriver}
-              colors={colors}
-            />
-          )}
+          renderItem={renderPartnerItem}
           ListEmptyComponent={
             <Text style={[styles.emptyText, { color: colors.textMuted }]}>
               No delivery partners found.

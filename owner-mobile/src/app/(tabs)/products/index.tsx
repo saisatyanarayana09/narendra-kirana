@@ -37,40 +37,107 @@ class TrieNode {
 
 class ProductTrie {
   root: TrieNode;
+  cache: Map<string, Set<number>>;
 
   constructor() {
     this.root = new TrieNode();
+    this.cache = new Map();
   }
 
-  insert(word: string, productId: number) {
-    if (!word || typeof word !== 'string') return;
-    const cleanWord = word.toLowerCase().trim();
-    const parts = cleanWord.split(/\s+/);
-    parts.forEach((part) => {
-      let currNode = this.root;
-      for (const char of part) {
-        if (!currNode.children[char]) {
-          currNode.children[char] = new TrieNode();
-        }
-        currNode = currNode.children[char];
-        currNode.productIds.add(productId);
+  insert(text: string, productId: number) {
+    if (!text || typeof text !== 'string') return;
+    const cleanText = text.toLowerCase().trim();
+    if (!cleanText) return;
+
+    // Index full clean text
+    let currNode = this.root;
+    for (const char of cleanText) {
+      if (!currNode.children[char]) {
+        currNode.children[char] = new TrieNode();
       }
-    });
+      currNode = currNode.children[char];
+      currNode.productIds.add(productId);
+    }
+
+    // Index individual words for multi-word queries
+    const parts = cleanText.split(/\s+/);
+    if (parts.length > 1) {
+      parts.forEach((part) => {
+        let node = this.root;
+        for (const char of part) {
+          if (!node.children[char]) {
+            node.children[char] = new TrieNode();
+          }
+          node = node.children[char];
+          node.productIds.add(productId);
+        }
+      });
+    }
   }
 
   searchPrefix(prefix: string): Set<number> | null {
     if (!prefix || typeof prefix !== 'string') return null;
-    let node = this.root;
     const cleanPrefix = prefix.toLowerCase().trim();
     if (!cleanPrefix) return null;
 
+    if (this.cache.has(cleanPrefix)) {
+      return this.cache.get(cleanPrefix)!;
+    }
+
+    // 1. Direct phrase traversal (O(k))
+    let node: TrieNode | undefined = this.root;
+    let matched = true;
     for (const char of cleanPrefix) {
       if (!node.children[char]) {
-        return new Set();
+        matched = false;
+        break;
       }
       node = node.children[char];
     }
-    return node.productIds;
+
+    if (matched && node && node.productIds.size > 0) {
+      this.cache.set(cleanPrefix, node.productIds);
+      return node.productIds;
+    }
+
+    // 2. Multi-word prefix intersection
+    const words = cleanPrefix.split(/\s+/).filter(Boolean);
+    if (words.length > 1) {
+      let intersectedIds: Set<number> | null = null;
+      for (const word of words) {
+        let wNode: TrieNode | undefined = this.root;
+        let wMatched = true;
+        for (const char of word) {
+          if (!wNode.children[char]) {
+            wMatched = false;
+            break;
+          }
+          wNode = wNode.children[char];
+        }
+
+        const wordIds = wMatched && wNode ? wNode.productIds : new Set<number>();
+        if (intersectedIds === null) {
+          intersectedIds = new Set(wordIds);
+        } else {
+          const next = new Set<number>();
+          for (const id of intersectedIds) {
+            if (wordIds.has(id)) next.add(id);
+          }
+          intersectedIds = next;
+        }
+
+        if (intersectedIds.size === 0) break;
+      }
+
+      if (intersectedIds && intersectedIds.size > 0) {
+        this.cache.set(cleanPrefix, intersectedIds);
+        return intersectedIds;
+      }
+    }
+
+    const empty = new Set<number>();
+    this.cache.set(cleanPrefix, empty);
+    return empty;
   }
 }
 
@@ -405,6 +472,23 @@ const ProductCard = memo(
         )}
       </View>
     );
+  },
+  (prev, next) => {
+    return (
+      prev.item?.id === next.item?.id &&
+      prev.item?.stock_quantity === next.item?.stock_quantity &&
+      prev.item?.regular_price === next.item?.regular_price &&
+      prev.item?.offer_price === next.item?.offer_price &&
+      prev.item?.is_in_stock === next.item?.is_in_stock &&
+      prev.item?.name === next.item?.name &&
+      prev.item?.image === next.item?.image &&
+      prev.isDark === next.isDark &&
+      prev.reorderMode === next.reorderMode &&
+      prev.isDragging === next.isDragging &&
+      prev.isHoveredTarget === next.isHoveredTarget &&
+      prev.index === next.index &&
+      prev.totalCount === next.totalCount
+    );
   }
 );
 
@@ -442,6 +526,8 @@ export default function ProductsListScreen() {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const scrollOffsetRef = useRef<number>(0);
   const listRef = useRef<FlatList>(null);
+  const productsRef = useRef<any[]>(products);
+  productsRef.current = products;
 
   // Fetch Products & Categories
   const fetchProducts = useCallback(
@@ -554,17 +640,18 @@ export default function ProductsListScreen() {
   // Reorder Handler
   const reorderProduct = useCallback(
     async (fromIndex: number, toIndex: number) => {
+      const currentList = productsRef.current;
       if (
         fromIndex === toIndex ||
         fromIndex < 0 ||
         toIndex < 0 ||
-        fromIndex >= products.length ||
-        toIndex >= products.length
+        fromIndex >= currentList.length ||
+        toIndex >= currentList.length
       ) {
         return;
       }
 
-      const updated = [...products];
+      const updated = [...currentList];
       const [moved] = updated.splice(fromIndex, 1);
       updated.splice(toIndex, 0, moved);
       setProducts(updated);
@@ -578,7 +665,7 @@ export default function ProductsListScreen() {
         showAlert('Error', getErrorMessage(err, 'Failed to save product order.'));
       }
     },
-    [products, fetchProducts]
+    [fetchProducts]
   );
 
   const moveProduct = useCallback(
@@ -671,22 +758,37 @@ export default function ProductsListScreen() {
   };
 
   // Search Trie & Indexing
-  const { productMap, searchTrie } = useMemo(() => {
+  // Only rebuild the Trie when the catalog identity changes (IDs, names, SKUs)
+  // This prevents rebuilding the 100+ product Trie when only stock is stepped up/down
+  const catalogKey = useMemo(() => {
+    const safe = Array.isArray(products) ? products : [];
+    return safe.map((p) => `${p?.id ?? ''}_${p?.name ?? ''}_${p?.sku ?? ''}`).join('|');
+  }, [products]);
+
+  const searchTrie = useMemo(() => {
     const safeProducts = Array.isArray(products) ? products : [];
-    const map = new Map<number, any>();
     const trie = new ProductTrie();
 
     for (let i = 0; i < safeProducts.length; i++) {
       const p = safeProducts[i];
       if (!p || p.id == null) continue;
-      map.set(p.id, p);
       if (p.name) trie.insert(String(p.name), p.id);
       if (p.sku) trie.insert(String(p.sku), p.id);
       if (p.brand) trie.insert(String(p.brand), p.id);
       if (p.category_name) trie.insert(String(p.category_name), p.id);
     }
 
-    return { productMap: map, searchTrie: trie };
+    return trie;
+  }, [catalogKey]);
+
+  const productMap = useMemo(() => {
+    const map = new Map<number, any>();
+    const safe = Array.isArray(products) ? products : [];
+    for (let i = 0; i < safe.length; i++) {
+      const p = safe[i];
+      if (p?.id != null) map.set(p.id, p);
+    }
+    return map;
   }, [products]);
 
   // Real-time Inventory Metrics
@@ -721,15 +823,16 @@ export default function ProductsListScreen() {
     const safeProducts = Array.isArray(products) ? products : [];
     let baseList = safeProducts;
 
-    // Search query matching via Trie
-    if (searchQuery.trim()) {
-      const matchedIds = searchTrie.searchPrefix(searchQuery);
-      if (matchedIds) {
+    // Search query matching via Trie (0ms prefix lookup with substring fallback)
+    const query = searchQuery.trim();
+    if (query) {
+      const matchedIds = searchTrie.searchPrefix(query);
+      if (matchedIds && matchedIds.size > 0) {
         baseList = Array.from(matchedIds)
           .map((id) => productMap.get(id))
           .filter(Boolean);
       } else {
-        const q = searchQuery.toLowerCase().trim();
+        const q = query.toLowerCase();
         baseList = baseList.filter((p) => {
           if (!p) return false;
           return (
@@ -1126,32 +1229,63 @@ export default function ProductsListScreen() {
     [colors, isDark, errorMsg, reorderMode, fetchProducts, toggleReorderMode]
   );
 
+  // Stable Item Layout for 60/120fps scrolling without dynamic layout measurements
+  const getItemLayout = useCallback(
+    (_data: any, index: number) => ({
+      length: 154,
+      offset: 154 * index,
+      index,
+    }),
+    []
+  );
+
+  // Stable Drag and Drop Callbacks
+  const handleDragStart = useCallback((idx: number) => {
+    setActiveDragIndex(idx);
+  }, []);
+
+  const handleHoverChange = useCallback((idx: number | null) => {
+    setHoverIndex(idx);
+  }, []);
+
+  const handleDrop = useCallback(
+    (fromIdx: number, toIdx: number) => {
+      setActiveDragIndex(null);
+      setHoverIndex(null);
+      if (fromIdx !== toIdx) {
+        reorderProduct(fromIdx, toIdx);
+      }
+    },
+    [reorderProduct]
+  );
+
+  const handleScroll = useCallback(
+    (e: any) => {
+      if (reorderMode) {
+        scrollOffsetRef.current = e.nativeEvent?.contentOffset?.y ?? 0;
+      }
+    },
+    [reorderMode]
+  );
+
+  const displayedCount = displayedProducts.length;
+
   const renderItem = useCallback(
     ({ item, index }: any) => {
       if (reorderMode) {
         return (
           <DraggableItem
             index={index}
-            totalCount={displayedProducts.length}
+            totalCount={displayedCount}
             enabled={reorderMode}
             itemHeight={150}
             listRef={listRef}
             scrollOffsetRef={scrollOffsetRef}
             activeDragIndex={activeDragIndex}
             hoverIndex={hoverIndex}
-            onDragStart={(idx) => {
-              setActiveDragIndex(idx);
-            }}
-            onHoverChange={(idx) => {
-              setHoverIndex(idx);
-            }}
-            onDrop={(fromIdx, toIdx) => {
-              setActiveDragIndex(null);
-              setHoverIndex(null);
-              if (fromIdx !== toIdx) {
-                reorderProduct(fromIdx, toIdx);
-              }
-            }}
+            onDragStart={handleDragStart}
+            onHoverChange={handleHoverChange}
+            onDrop={handleDrop}
           >
             {({ dragHandleProps, isDragging, isHoveredTarget }) => (
               <ProductCard
@@ -1164,7 +1298,7 @@ export default function ProductsListScreen() {
                 onDelete={handleDelete}
                 reorderMode={reorderMode}
                 index={index}
-                totalCount={displayedProducts.length}
+                totalCount={displayedCount}
                 onMoveProduct={moveProduct}
                 dragHandleProps={dragHandleProps}
                 isDragging={isDragging}
@@ -1186,7 +1320,7 @@ export default function ProductsListScreen() {
           onDelete={handleDelete}
           reorderMode={false}
           index={index}
-          totalCount={displayedProducts.length}
+          totalCount={displayedCount}
         />
       );
     },
@@ -1198,10 +1332,12 @@ export default function ProductsListScreen() {
       handleStockDelta,
       handleDelete,
       reorderMode,
-      displayedProducts.length,
+      displayedCount,
       activeDragIndex,
       hoverIndex,
-      reorderProduct,
+      handleDragStart,
+      handleHoverChange,
+      handleDrop,
       moveProduct,
     ]
   );
@@ -1227,12 +1363,11 @@ export default function ProductsListScreen() {
               item?.id != null ? String(item.id) : `prod-${idx}`
             }
             renderItem={renderItem}
+            getItemLayout={!reorderMode ? getItemLayout : undefined}
             ListHeaderComponent={listHeader}
             contentContainerStyle={styles.listContent}
-            onScroll={(e) => {
-              scrollOffsetRef.current = e.nativeEvent.contentOffset.y;
-            }}
-            scrollEventThrottle={16}
+            onScroll={reorderMode ? handleScroll : undefined}
+            scrollEventThrottle={32}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
@@ -1240,10 +1375,10 @@ export default function ProductsListScreen() {
                 tintColor="#10b981"
               />
             }
-            initialNumToRender={10}
-            maxToRenderPerBatch={10}
+            initialNumToRender={8}
+            maxToRenderPerBatch={8}
             windowSize={5}
-            removeClippedSubviews={Platform.OS === 'android'}
+            removeClippedSubviews={Platform.OS !== 'web'}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <Ionicons name="cube-outline" size={44} color={colors.textMuted} />

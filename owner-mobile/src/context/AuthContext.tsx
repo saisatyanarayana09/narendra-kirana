@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { useRouter, useSegments } from 'expo-router';
-import api, { TOKEN_KEY, REFRESH_TOKEN_KEY } from '../services/api';
+import api, { TOKEN_KEY, REFRESH_TOKEN_KEY, setInMemoryToken } from '../services/api';
 import { safeStorage } from '../utils/storage';
 
 interface AuthContextType {
@@ -28,6 +28,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = useCallback(async () => {
     try {
+      setInMemoryToken(null);
       // 1. Wipe API response cache (memory + disk)
       await api.resetCache();
 
@@ -52,12 +53,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (err) {
       console.log('[AuthContext] Cache clear on logout error:', err);
     } finally {
+      setInMemoryToken(null);
       setToken(null);
     }
   }, []);
 
   useEffect(() => {
     api.setOnUnauthorized(() => {
+      setInMemoryToken(null);
       setToken(null);
     });
     return () => {
@@ -72,10 +75,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const storedToken = await safeStorage.getItem(TOKEN_KEY);
         // Basic structural sanity check for JWT (3 segments)
         if (storedToken && typeof storedToken === 'string' && storedToken.split('.').length === 3) {
+          setInMemoryToken(storedToken);
           if (isMounted) setToken(storedToken);
         } else if (storedToken) {
+          setInMemoryToken(null);
           await safeStorage.removeItem(TOKEN_KEY);
           await safeStorage.removeItem(REFRESH_TOKEN_KEY);
+        } else {
+          setInMemoryToken(null);
         }
       } catch {
         // Ignore storage read errors
@@ -103,11 +110,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = useCallback(async (newToken: string, refreshToken?: string) => {
     if (!newToken || typeof newToken !== 'string') return;
+    setInMemoryToken(newToken);
     await safeStorage.setItem(TOKEN_KEY, newToken);
     if (refreshToken && typeof refreshToken === 'string') {
       await safeStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
     }
     await api.resetCache();
+    setInMemoryToken(newToken);
     setToken(newToken);
   }, []);
 

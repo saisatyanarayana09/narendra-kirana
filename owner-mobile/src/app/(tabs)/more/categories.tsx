@@ -24,6 +24,217 @@ import ScreenHeader from '../../../components/ScreenHeader';
 import ModernSwitch from '../../../components/ModernSwitch';
 import { DraggableItem } from '../../../components/DraggableItem';
 
+const categoryKeyExtractor = (item: any) => String(item.id);
+
+interface CategoryItemProps {
+  item: any;
+  index: number;
+  totalCount: number;
+  listRef: React.RefObject<FlatList | null>;
+  scrollOffsetRef: React.MutableRefObject<number>;
+  activeDragIndex: number | null;
+  hoverIndex: number | null;
+  onDragStart: (idx: number) => void;
+  onHoverChange: (idx: number | null) => void;
+  onDrop: (fromIdx: number, toIdx: number) => void;
+  onMoveUp: (index: number) => void;
+  onMoveDown: (index: number) => void;
+  onEdit: (cat: any) => void;
+  onToggleActive: (cat: any) => void;
+  onDelete: (id: number, catName: string) => void;
+  colors: any;
+  isDark: boolean;
+}
+
+const CategoryItem = React.memo<CategoryItemProps>(
+  ({
+    item,
+    index,
+    totalCount,
+    listRef,
+    scrollOffsetRef,
+    activeDragIndex,
+    hoverIndex,
+    onDragStart,
+    onHoverChange,
+    onDrop,
+    onMoveUp,
+    onMoveDown,
+    onEdit,
+    onToggleActive,
+    onDelete,
+    colors,
+    isDark,
+  }) => {
+    return (
+      <DraggableItem
+        index={index}
+        totalCount={totalCount}
+        itemHeight={76}
+        listRef={listRef}
+        scrollOffsetRef={scrollOffsetRef}
+        activeDragIndex={activeDragIndex}
+        hoverIndex={hoverIndex}
+        onDragStart={onDragStart}
+        onHoverChange={onHoverChange}
+        onDrop={onDrop}
+      >
+        {({ dragHandleProps, isDragging, isHoveredTarget }) => (
+          <View
+            style={[
+              styles.categoryCard,
+              {
+                backgroundColor: colors.card,
+                borderColor: isDragging || isHoveredTarget ? '#10b981' : colors.border,
+                borderWidth: isDragging || isHoveredTarget ? 2 : 1,
+              },
+            ]}
+          >
+            {/* Image & Title */}
+            <TouchableOpacity
+              style={styles.cardMain}
+              activeOpacity={0.7}
+              onPress={() => onEdit(item)}
+            >
+              <View
+                style={[
+                  styles.thumbnailBox,
+                  { backgroundColor: colors.cardAlt, borderColor: colors.border },
+                ]}
+              >
+                {item.image ? (
+                  <Image
+                    source={{ uri: item.image }}
+                    style={styles.thumbnailImg}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <Ionicons name="pricetag-outline" size={20} color="#10b981" />
+                )}
+              </View>
+
+              <View style={styles.cardInfo}>
+                <Text style={[styles.categoryName, { color: colors.text }]} numberOfLines={1}>
+                  {item.name}
+                </Text>
+                <View style={styles.metaRow}>
+                  <View
+                    style={[
+                      styles.statusDot,
+                      { backgroundColor: item.is_active ? '#10b981' : '#64748b' },
+                    ]}
+                  />
+                  <Text style={[styles.statusText, { color: colors.textMuted }]}>
+                    {item.is_active ? 'Active & Visible' : 'Hidden'}
+                  </Text>
+                  {item.products_count !== undefined && (
+                    <Text style={[styles.productCount, { color: colors.textMuted }]}>
+                      • {item.products_count} products
+                    </Text>
+                  )}
+                </View>
+              </View>
+            </TouchableOpacity>
+
+            {/* Actions Right Col */}
+            <View style={styles.cardActions}>
+              {/* Drag Handle Grip */}
+              <View
+                {...dragHandleProps}
+                style={[
+                  styles.dragHandleGrip,
+                  {
+                    backgroundColor: isDragging
+                      ? '#10b981'
+                      : isDark
+                        ? 'rgba(16, 185, 129, 0.15)'
+                        : '#ecfdf5',
+                    borderColor: isDragging
+                      ? '#059669'
+                      : isDark
+                        ? 'rgba(16, 185, 129, 0.3)'
+                        : '#a7f3d0',
+                  },
+                ]}
+                accessibilityLabel={`Drag handle for ${item.name}`}
+              >
+                <Ionicons
+                  name="reorder-two-outline"
+                  size={18}
+                  color={isDragging ? '#ffffff' : '#10b981'}
+                />
+              </View>
+
+              {/* Reorder Arrows */}
+              <View style={styles.reorderArrows}>
+                <TouchableOpacity
+                  style={[
+                    styles.arrowBtn,
+                    { opacity: index === 0 ? 0.3 : 1 },
+                  ]}
+                  onPress={() => onMoveUp(index)}
+                  disabled={index === 0}
+                  accessibilityLabel="Move category up"
+                >
+                  <Ionicons name="chevron-up" size={15} color={colors.text} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.arrowBtn,
+                    { opacity: index === totalCount - 1 ? 0.3 : 1 },
+                  ]}
+                  onPress={() => onMoveDown(index)}
+                  disabled={index === totalCount - 1}
+                  accessibilityLabel="Move category down"
+                >
+                  <Ionicons name="chevron-down" size={15} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Modern Switch */}
+              <ModernSwitch
+                value={Boolean(item.is_active)}
+                onValueChange={() => onToggleActive(item)}
+              />
+
+              {/* Edit & Delete Action Icons */}
+              <TouchableOpacity
+                style={[styles.iconBtn, { backgroundColor: colors.cardAlt }]}
+                onPress={() => onEdit(item)}
+                accessibilityLabel="Edit category"
+              >
+                <Ionicons name="create-outline" size={16} color={colors.text} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.iconBtn, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}
+                onPress={() => onDelete(item.id, item.name)}
+                accessibilityLabel="Delete category"
+              >
+                <Ionicons name="trash-outline" size={16} color="#ef4444" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      </DraggableItem>
+    );
+  },
+  (prev, next) => {
+    return (
+      prev.item.id === next.item.id &&
+      prev.item.name === next.item.name &&
+      prev.item.is_active === next.item.is_active &&
+      prev.item.image === next.item.image &&
+      prev.item.products_count === next.item.products_count &&
+      prev.index === next.index &&
+      prev.totalCount === next.totalCount &&
+      prev.activeDragIndex === next.activeDragIndex &&
+      prev.hoverIndex === next.hoverIndex &&
+      prev.isDark === next.isDark
+    );
+  }
+);
+
 export default function CategoriesScreen() {
   const { colors, isDark } = useAppTheme();
 
@@ -86,14 +297,14 @@ export default function CategoriesScreen() {
     setModalOpen(true);
   };
 
-  const openEditModal = (cat: any) => {
+  const openEditModal = useCallback((cat: any) => {
     setEditingId(cat.id);
     setName(cat.name || '');
     setIsActive(cat.is_active ?? true);
     setCategoryImageUri(cat.image || null);
     setImageChanged(false);
     setModalOpen(true);
-  };
+  }, []);
 
   const closeModal = () => {
     setModalOpen(false);
@@ -177,7 +388,7 @@ export default function CategoriesScreen() {
     }
   };
 
-  const handleToggleActive = async (cat: any) => {
+  const handleToggleActive = useCallback(async (cat: any) => {
     const newStatus = !cat.is_active;
     // 0ms Optimistic UI update
     setCategories((prev) =>
@@ -194,9 +405,9 @@ export default function CategoriesScreen() {
       );
       showAlert('Error', getErrorMessage(e, 'Failed to update category status.'));
     }
-  };
+  }, []);
 
-  const handleDelete = (id: number, catName: string) => {
+  const handleDelete = useCallback((id: number, catName: string) => {
     showConfirm(
       'Delete Category',
       `Are you sure you want to delete "${catName}"? This action cannot be undone.`,
@@ -213,45 +424,7 @@ export default function CategoriesScreen() {
       undefined,
       'Delete'
     );
-  };
-
-  const reorderCategory = async (fromIndex: number, toIndex: number) => {
-    if (
-      fromIndex === toIndex ||
-      fromIndex < 0 ||
-      toIndex < 0 ||
-      fromIndex >= filteredCategories.length ||
-      toIndex >= filteredCategories.length
-    ) {
-      return;
-    }
-
-    const updated = [...categories];
-    const itemA = filteredCategories[fromIndex];
-    const itemB = filteredCategories[toIndex];
-
-    const idxA = updated.findIndex((c) => c.id === itemA.id);
-    const idxB = updated.findIndex((c) => c.id === itemB.id);
-
-    if (idxA === -1 || idxB === -1) return;
-
-    const [moved] = updated.splice(idxA, 1);
-    updated.splice(idxB, 0, moved);
-    setCategories(updated);
-
-    try {
-      const updates = updated.map((item, idx) => ({ id: item.id, display_order: idx }));
-      await api.post('/categories/reorder/', updates);
-      (api as ApiInstance).clearCache();
-    } catch (e) {
-      // Revert silently if reorder fails
-      fetchCategories();
-    }
-  };
-
-  const moveCategory = (index: number, direction: -1 | 1) => {
-    reorderCategory(index, index + direction);
-  };
+  }, []);
 
   const filteredCategories = useMemo(() => {
     if (!searchTerm.trim()) return categories;
@@ -262,6 +435,96 @@ export default function CategoriesScreen() {
   const activeCount = useMemo(
     () => categories.filter((c) => Boolean(c.is_active)).length,
     [categories]
+  );
+
+  const reorderCategory = useCallback(
+    async (fromIndex: number, toIndex: number) => {
+      if (
+        fromIndex === toIndex ||
+        fromIndex < 0 ||
+        toIndex < 0 ||
+        fromIndex >= filteredCategories.length ||
+        toIndex >= filteredCategories.length
+      ) {
+        return;
+      }
+
+      const updated = [...categories];
+      const itemA = filteredCategories[fromIndex];
+      const itemB = filteredCategories[toIndex];
+
+      const idxA = updated.findIndex((c) => c.id === itemA.id);
+      const idxB = updated.findIndex((c) => c.id === itemB.id);
+
+      if (idxA === -1 || idxB === -1) return;
+
+      const [moved] = updated.splice(idxA, 1);
+      updated.splice(idxB, 0, moved);
+      setCategories(updated);
+
+      try {
+        const updates = updated.map((item, idx) => ({ id: item.id, display_order: idx }));
+        await api.post('/categories/reorder/', updates);
+        (api as ApiInstance).clearCache();
+      } catch (e) {
+        // Revert silently if reorder fails
+        fetchCategories();
+      }
+    },
+    [filteredCategories, categories, fetchCategories]
+  );
+
+  const handleMoveUp = useCallback((index: number) => {
+    reorderCategory(index, index - 1);
+  }, [reorderCategory]);
+
+  const handleMoveDown = useCallback((index: number) => {
+    reorderCategory(index, index + 1);
+  }, [reorderCategory]);
+
+  const handleDrop = useCallback((fromIdx: number, toIdx: number) => {
+    setActiveDragIndex(null);
+    setHoverIndex(null);
+    if (fromIdx !== toIdx) {
+      reorderCategory(fromIdx, toIdx);
+    }
+  }, [reorderCategory]);
+
+  const renderCategoryItem = useCallback(
+    ({ item, index }: { item: any; index: number }) => (
+      <CategoryItem
+        item={item}
+        index={index}
+        totalCount={filteredCategories.length}
+        listRef={listRef}
+        scrollOffsetRef={scrollOffsetRef}
+        activeDragIndex={activeDragIndex}
+        hoverIndex={hoverIndex}
+        onDragStart={setActiveDragIndex}
+        onHoverChange={setHoverIndex}
+        onDrop={handleDrop}
+        onMoveUp={handleMoveUp}
+        onMoveDown={handleMoveDown}
+        onEdit={openEditModal}
+        onToggleActive={handleToggleActive}
+        onDelete={handleDelete}
+        colors={colors}
+        isDark={isDark}
+      />
+    ),
+    [
+      filteredCategories.length,
+      activeDragIndex,
+      hoverIndex,
+      handleDrop,
+      handleMoveUp,
+      handleMoveDown,
+      openEditModal,
+      handleToggleActive,
+      handleDelete,
+      colors,
+      isDark,
+    ]
   );
 
   return (
@@ -320,8 +583,12 @@ export default function CategoriesScreen() {
         <FlatList
           ref={listRef}
           data={filteredCategories}
-          keyExtractor={(item) => String(item.id)}
+          keyExtractor={categoryKeyExtractor}
           contentContainerStyle={styles.listContent}
+          initialNumToRender={8}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS !== 'web'}
           onScroll={(e) => {
             scrollOffsetRef.current = e.nativeEvent.contentOffset.y;
           }}
@@ -333,164 +600,7 @@ export default function CategoriesScreen() {
               tintColor="#10b981"
             />
           }
-          renderItem={({ item, index }) => (
-            <DraggableItem
-              index={index}
-              totalCount={filteredCategories.length}
-              itemHeight={76}
-              listRef={listRef}
-              scrollOffsetRef={scrollOffsetRef}
-              activeDragIndex={activeDragIndex}
-              hoverIndex={hoverIndex}
-              onDragStart={(idx) => setActiveDragIndex(idx)}
-              onHoverChange={(idx) => setHoverIndex(idx)}
-              onDrop={(fromIdx, toIdx) => {
-                setActiveDragIndex(null);
-                setHoverIndex(null);
-                if (fromIdx !== toIdx) {
-                  reorderCategory(fromIdx, toIdx);
-                }
-              }}
-            >
-              {({ dragHandleProps, isDragging, isHoveredTarget }) => (
-                <View
-                  style={[
-                    styles.categoryCard,
-                    {
-                      backgroundColor: colors.card,
-                      borderColor: isDragging || isHoveredTarget ? '#10b981' : colors.border,
-                      borderWidth: isDragging || isHoveredTarget ? 2 : 1,
-                    },
-                  ]}
-                >
-                  {/* Image & Title */}
-                  <TouchableOpacity
-                    style={styles.cardMain}
-                    activeOpacity={0.7}
-                    onPress={() => openEditModal(item)}
-                  >
-                    <View
-                      style={[
-                        styles.thumbnailBox,
-                        { backgroundColor: colors.cardAlt, borderColor: colors.border },
-                      ]}
-                    >
-                      {item.image ? (
-                        <Image
-                          source={{ uri: item.image }}
-                          style={styles.thumbnailImg}
-                          contentFit="cover"
-                        />
-                      ) : (
-                        <Ionicons name="pricetag-outline" size={20} color="#10b981" />
-                      )}
-                    </View>
-
-                    <View style={styles.cardInfo}>
-                      <Text style={[styles.categoryName, { color: colors.text }]} numberOfLines={1}>
-                        {item.name}
-                      </Text>
-                      <View style={styles.metaRow}>
-                        <View
-                          style={[
-                            styles.statusDot,
-                            { backgroundColor: item.is_active ? '#10b981' : '#64748b' },
-                          ]}
-                        />
-                        <Text style={[styles.statusText, { color: colors.textMuted }]}>
-                          {item.is_active ? 'Active & Visible' : 'Hidden'}
-                        </Text>
-                        {item.products_count !== undefined && (
-                          <Text style={[styles.productCount, { color: colors.textMuted }]}>
-                            • {item.products_count} products
-                          </Text>
-                        )}
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-
-                  {/* Actions Right Col */}
-                  <View style={styles.cardActions}>
-                    {/* Drag Handle Grip */}
-                    <View
-                      {...dragHandleProps}
-                      style={[
-                        styles.dragHandleGrip,
-                        {
-                          backgroundColor: isDragging
-                            ? '#10b981'
-                            : isDark
-                              ? 'rgba(16, 185, 129, 0.15)'
-                              : '#ecfdf5',
-                          borderColor: isDragging
-                            ? '#059669'
-                            : isDark
-                              ? 'rgba(16, 185, 129, 0.3)'
-                              : '#a7f3d0',
-                        },
-                      ]}
-                      accessibilityLabel={`Drag handle for ${item.name}`}
-                    >
-                      <Ionicons
-                        name="reorder-two-outline"
-                        size={18}
-                        color={isDragging ? '#ffffff' : '#10b981'}
-                      />
-                    </View>
-
-                    {/* Reorder Arrows */}
-                    <View style={styles.reorderArrows}>
-                      <TouchableOpacity
-                        style={[
-                          styles.arrowBtn,
-                          { opacity: index === 0 ? 0.3 : 1 },
-                        ]}
-                        onPress={() => moveCategory(index, -1)}
-                        disabled={index === 0}
-                        accessibilityLabel="Move category up"
-                      >
-                        <Ionicons name="chevron-up" size={15} color={colors.text} />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[
-                          styles.arrowBtn,
-                          { opacity: index === filteredCategories.length - 1 ? 0.3 : 1 },
-                        ]}
-                        onPress={() => moveCategory(index, 1)}
-                        disabled={index === filteredCategories.length - 1}
-                        accessibilityLabel="Move category down"
-                      >
-                        <Ionicons name="chevron-down" size={15} color={colors.text} />
-                      </TouchableOpacity>
-                    </View>
-
-                    {/* Modern Switch */}
-                    <ModernSwitch
-                      value={Boolean(item.is_active)}
-                      onValueChange={() => handleToggleActive(item)}
-                    />
-
-                    {/* Edit & Delete Action Icons */}
-                    <TouchableOpacity
-                      style={[styles.iconBtn, { backgroundColor: colors.cardAlt }]}
-                      onPress={() => openEditModal(item)}
-                      accessibilityLabel="Edit category"
-                    >
-                      <Ionicons name="create-outline" size={16} color={colors.text} />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.iconBtn, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}
-                      onPress={() => handleDelete(item.id, item.name)}
-                      accessibilityLabel="Delete category"
-                    >
-                      <Ionicons name="trash-outline" size={16} color="#ef4444" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              )}
-            </DraggableItem>
-          )}
+          renderItem={renderCategoryItem}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <View style={[styles.emptyIconBox, { backgroundColor: colors.cardAlt }]}>
