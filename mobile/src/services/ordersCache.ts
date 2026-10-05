@@ -1,9 +1,21 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getItemSync } from "../utils/storage";
+import { STORAGE_KEYS } from "../constants/config";
 
-const CACHE_KEY = "sk_orders_cache";
+const getCacheKey = () => {
+  try {
+    const userRaw = getItemSync(STORAGE_KEYS.USER);
+    if (userRaw) {
+      const user = typeof userRaw === "string" ? JSON.parse(userRaw) : userRaw;
+      if (user?.id) return `sk_orders_cache_${user.id}`;
+    }
+  } catch {}
+  return "sk_orders_cache";
+};
 
 // In-memory cache for instantaneous synchronous access (<50ms / 0ms)
 let memoryCache: any[] | null = null;
+let memoryCacheUserId: string | number | null = null;
 let loadPromise: Promise<any[] | null> | null = null;
 
 /**
@@ -11,18 +23,20 @@ let loadPromise: Promise<any[] | null> | null = null;
  * otherwise reads from AsyncStorage (once) and hydrates in-memory cache.
  */
 export async function loadCachedOrders(): Promise<any[] | null> {
-  if (memoryCache) return memoryCache;
+  const cacheKey = getCacheKey();
+  if (memoryCache && memoryCacheUserId === cacheKey) return memoryCache;
 
   // Deduplicate concurrent loads
   if (loadPromise) return loadPromise;
 
   loadPromise = (async () => {
     try {
-      const raw = await AsyncStorage.getItem(CACHE_KEY);
+      const raw = await AsyncStorage.getItem(cacheKey);
       if (raw) {
         const parsed: any[] = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
           memoryCache = parsed;
+          memoryCacheUserId = cacheKey;
           return parsed;
         }
       }
@@ -57,7 +71,9 @@ export function getCachedOrderByIdSync(orderId: number | string): any | null {
  */
 export async function saveCachedSingleOrder(order: any): Promise<void> {
   if (!order || !order.id) return;
+  const cacheKey = getCacheKey();
   if (!memoryCache) memoryCache = [];
+  memoryCacheUserId = cacheKey;
   const idx = memoryCache.findIndex((o) => String(o.id) === String(order.id));
   if (idx >= 0) {
     memoryCache[idx] = { ...memoryCache[idx], ...order };
@@ -65,7 +81,7 @@ export async function saveCachedSingleOrder(order: any): Promise<void> {
     memoryCache.unshift(order);
   }
   try {
-    await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(memoryCache));
+    await AsyncStorage.setItem(cacheKey, JSON.stringify(memoryCache));
   } catch {}
 }
 
@@ -75,10 +91,12 @@ export async function saveCachedSingleOrder(order: any): Promise<void> {
  */
 export async function saveCachedOrders(orders: any[]): Promise<void> {
   if (!Array.isArray(orders)) return;
+  const cacheKey = getCacheKey();
   memoryCache = orders;
+  memoryCacheUserId = cacheKey;
 
   try {
-    await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(orders));
+    await AsyncStorage.setItem(cacheKey, JSON.stringify(orders));
   } catch (err) {
     console.warn("[ordersCache] Failed to save cache:", err);
   }
@@ -88,9 +106,12 @@ export async function saveCachedOrders(orders: any[]): Promise<void> {
  * Clear cached orders (e.g. on logout or manual cache bust).
  */
 export async function clearCachedOrders(): Promise<void> {
+  const cacheKey = getCacheKey();
   memoryCache = null;
+  memoryCacheUserId = null;
   try {
-    await AsyncStorage.removeItem(CACHE_KEY);
+    await AsyncStorage.removeItem(cacheKey);
+    await AsyncStorage.removeItem("sk_orders_cache");
   } catch {}
 }
 

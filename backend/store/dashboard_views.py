@@ -88,7 +88,7 @@ class APIDashboardDataView(View):
         # --- System Info ---
         try:
             memory = psutil.virtual_memory()
-            cpu_percent = psutil.cpu_percent(interval=0.1)
+            cpu_percent = psutil.cpu_percent(interval=None)
             system_info = {
                 'python_version': sys.version.split()[0],
                 'cpu_percent': cpu_percent,

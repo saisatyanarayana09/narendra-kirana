@@ -31,8 +31,8 @@ api.interceptors.request.use(
   (config) => {
     const prefix = getPrefix();
     const token = localStorage.getItem(`${prefix}-token`);
+    config.headers = config.headers || {};
     if (token) {
-      config.headers = config.headers || {};
       config.headers['Authorization'] = `Bearer ${token}`;
     }
     return config;
@@ -77,8 +77,46 @@ api.interceptors.response.use(
     return response;
   },
   async (error) => {
-    const originalRequest = error.config;
-    if (!originalRequest || !error.response) {
+    const originalRequest = error?.config;
+    if (!originalRequest) {
+      return Promise.reject(error);
+    }
+
+    // Auto-retry cold start timeouts (Render spins down after 15m), transient network errors, and 502/503/504 gateway errors
+    const isTimeout =
+      error?.code === 'ECONNABORTED' ||
+      error?.code === 'ETIMEDOUT' ||
+      error?.message?.toLowerCase().includes('timeout');
+
+    const isNetworkError =
+      error?.code === 'ERR_NETWORK' ||
+      error?.message?.toLowerCase().includes('network') ||
+      (!error?.response && Boolean(error?.request));
+
+    const is5xxGatewayError = Boolean(
+      error?.response?.status && [502, 503, 504].includes(error.response.status)
+    );
+
+    const isColdStartOrTransient = isTimeout || isNetworkError || is5xxGatewayError;
+
+    if (isColdStartOrTransient) {
+      const method = (originalRequest.method || 'get').toLowerCase();
+      const isSafeMethod = ['get', 'head', 'options'].includes(method);
+      const RETRY_DELAYS = [2000, 4000, 8000, 14000, 20000, 24000];
+      const maxRetries = RETRY_DELAYS.length;
+
+      originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
+      if (isSafeMethod && originalRequest._retryCount <= maxRetries) {
+        const delayMs = RETRY_DELAYS[originalRequest._retryCount - 1] || 20000;
+        console.log(
+          `[Api] Backend waking up or transient network hiccup. Retrying ${originalRequest.url} (attempt ${originalRequest._retryCount}/${maxRetries}) in ${delayMs}ms...`
+        );
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        return api(originalRequest);
+      }
+    }
+
+    if (!error.response) {
       return Promise.reject(error);
     }
 
@@ -198,21 +236,31 @@ const CACHEABLE_URLS = [
   '/store/homepage-sections/',
 ];
 
-// Evict oldest cache entries when limit is reached
+// Evict oldest cache entries only when limit is actually exceeded
 function evictOldestCache() {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  if (localStorage.length <= MAX_CACHE_ENTRIES) return;
+
   const cacheKeys = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key && key.startsWith('sk_cache_')) {
-      try {
-        const val = JSON.parse(localStorage.getItem(key));
-        cacheKeys.push({ key, timestamp: val?.timestamp || 0 });
-      } catch (e) { cacheKeys.push({ key, timestamp: 0 }); }
+      cacheKeys.push(key);
     }
   }
+
   if (cacheKeys.length > MAX_CACHE_ENTRIES) {
-    cacheKeys.sort((a, b) => a.timestamp - b.timestamp);
-    const toRemove = cacheKeys.slice(0, cacheKeys.length - MAX_CACHE_ENTRIES);
+    const keyWithTime = [];
+    for (const key of cacheKeys) {
+      try {
+        const val = JSON.parse(localStorage.getItem(key));
+        keyWithTime.push({ key, timestamp: val?.timestamp || 0 });
+      } catch (e) {
+        keyWithTime.push({ key, timestamp: 0 });
+      }
+    }
+    keyWithTime.sort((a, b) => a.timestamp - b.timestamp);
+    const toRemove = keyWithTime.slice(0, keyWithTime.length - MAX_CACHE_ENTRIES);
     toRemove.forEach(entry => localStorage.removeItem(entry.key));
   }
 }

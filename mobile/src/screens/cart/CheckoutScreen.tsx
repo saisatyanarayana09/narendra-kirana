@@ -632,6 +632,7 @@ export function CheckoutScreen({
         return;
       }
       if (
+        Boolean(storeSettings?.enforce_delivery_radius) &&
         selectedAddress &&
         (selectedAddress.latitude == null || selectedAddress.longitude == null)
       ) {
@@ -691,13 +692,17 @@ export function CheckoutScreen({
 
     try {
       const response = await apiClient.post("/orders/", payload);
-      try {
-        await clearCart();
-        await refreshCart();
-      } catch (err) {
-        console.error("Cart cleanup failed:", err);
-      }
+      // Navigate to success screen immediately so the screen transition is smooth
       navigation.navigate("OrderSuccessScreen", { orderId: response.data.id });
+      // Clear cart asynchronously in the background so it doesn't cause a re-render flash
+      setTimeout(async () => {
+        try {
+          await clearCart();
+          await refreshCart();
+        } catch (err) {
+          console.error("Cart cleanup failed:", err);
+        }
+      }, 350);
     } catch (err: any) {
       const msg = extractErrorMessage(err, "Could not place your order.");
       setError(msg);

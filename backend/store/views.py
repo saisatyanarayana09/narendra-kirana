@@ -249,16 +249,23 @@ class HomepageSectionViewSet(viewsets.ModelViewSet):
                 from products.models import Product
 
                 section.section_products.all().delete()
-                for idx, pid in enumerate(product_ids):
-                    try:
-                        product = Product.objects.get(id=pid)
-                        HomepageSectionProduct.objects.create(
-                            section=section,
-                            product=product,
-                            position=idx
-                        )
-                    except (Product.DoesNotExist, ValueError, TypeError):
-                        continue
+                valid_ids = [int(pid) for pid in product_ids if str(pid).isdigit()]
+                if valid_ids:
+                    products_map = {p.id: p for p in Product.objects.filter(id__in=valid_ids)}
+                    to_create = []
+                    for idx, pid in enumerate(product_ids):
+                        try:
+                            p_int = int(pid)
+                            if p_int in products_map:
+                                to_create.append(HomepageSectionProduct(
+                                    section=section,
+                                    product=products_map[p_int],
+                                    position=idx
+                                ))
+                        except (ValueError, TypeError):
+                            continue
+                    if to_create:
+                        HomepageSectionProduct.objects.bulk_create(to_create)
                 cache.delete(HOMEPAGE_SECTIONS_CACHE_KEY)
 
     @action(detail=False, methods=['post'])

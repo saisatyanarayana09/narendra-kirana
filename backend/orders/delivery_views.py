@@ -69,7 +69,7 @@ class DeliveryDashboardView(APIView):
                 'total_deliveries': profile.total_deliveries,
             },
             'active_orders': active_data,
-            'completed_today_count': completed_today_qs.count(),
+            'completed_today_count': len(completed_data),
             'completed_today': completed_data,
         })
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, lazy, Suspense } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, Package, MapPin, Edit2, Sparkles, AlertCircle, AlertTriangle, Clock, Calendar, QrCode, Smartphone, RefreshCw, Lock, ShieldCheck } from 'lucide-react';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
+import { ArrowLeft, CheckCircle2, MapPin, Edit2, Sparkles, AlertCircle, AlertTriangle, Clock, Calendar, QrCode, Smartphone, RefreshCw, Lock, ShieldCheck, Check, Copy } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import { CustomerLayout } from '../../customer-layout';
@@ -172,7 +172,7 @@ export function CheckoutPage() {
      }
    };
 
- if (!isCustomer) return <CartPage />;
+  if (!isCustomer) return <Navigate to="/cart" replace />;
  
   const mrpTotal = parseFloat(cart?.subtotal || 0);
   const discount = parseFloat(cart?.discount || 0);

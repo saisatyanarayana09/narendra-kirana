@@ -98,19 +98,19 @@ html.dark .min-h-screen.bg-gray-50 {
 }
 
 /* Level 1 Elevated Surfaces: Cards, Containers, Sections */
-html.dark .bg-white:not([class*="dark:bg-"]):not(.keep-white):not([data-keep-white="true"]),
-html.dark .bg-white\/95:not([class*="dark:bg-"]):not(.keep-white):not([data-keep-white="true"]),
-html.dark .bg-white\/90:not([class*="dark:bg-"]):not(.keep-white):not([data-keep-white="true"]),
-html.dark .bg-white\/80:not([class*="dark:bg-"]):not(.keep-white):not([data-keep-white="true"]),
-html.dark .bg-white\/70:not([class*="dark:bg-"]):not(.keep-white):not([data-keep-white="true"]) {
+html.dark .bg-white:not([class*="dark:bg-"]):not(.keep-white):not([data-keep-white="true"]):not(.invoice-paper *):not([data-keep-white="true"] *):not([data-invoice-paper="true"] *),
+html.dark .bg-white\/95:not([class*="dark:bg-"]):not(.keep-white):not([data-keep-white="true"]):not(.invoice-paper *):not([data-keep-white="true"] *):not([data-invoice-paper="true"] *),
+html.dark .bg-white\/90:not([class*="dark:bg-"]):not(.keep-white):not([data-keep-white="true"]):not(.invoice-paper *):not([data-keep-white="true"] *):not([data-invoice-paper="true"] *),
+html.dark .bg-white\/80:not([class*="dark:bg-"]):not(.keep-white):not([data-keep-white="true"]):not(.invoice-paper *):not([data-keep-white="true"] *):not([data-invoice-paper="true"] *),
+html.dark .bg-white\/70:not([class*="dark:bg-"]):not(.keep-white):not([data-keep-white="true"]):not(.invoice-paper *):not([data-keep-white="true"] *):not([data-invoice-paper="true"] *) {
   background-color: #111827 !important;
 }
 
 /* Level 2 Sub-surfaces: Secondary Containers, Badges, Hover states */
-html.dark .bg-slate-100:not([class*="dark:bg-"]),
-html.dark .bg-slate-100\/90:not([class*="dark:bg-"]),
-html.dark .bg-slate-100\/80:not([class*="dark:bg-"]),
-html.dark .bg-gray-100:not([class*="dark:bg-"]) {
+html.dark .bg-slate-100:not([class*="dark:bg-"]):not(.invoice-paper *):not([data-keep-white="true"] *):not([data-invoice-paper="true"] *),
+html.dark .bg-slate-100\/90:not([class*="dark:bg-"]):not(.invoice-paper *):not([data-keep-white="true"] *):not([data-invoice-paper="true"] *),
+html.dark .bg-slate-100\/80:not([class*="dark:bg-"]):not(.invoice-paper *):not([data-keep-white="true"] *):not([data-invoice-paper="true"] *),
+html.dark .bg-gray-100:not([class*="dark:bg-"]):not(.invoice-paper *):not([data-keep-white="true"] *):not([data-invoice-paper="true"] *) {
   background-color: #182234 !important;
 }
 
@@ -619,6 +619,27 @@ html.dark [data-keep-white="true"] .mix-blend-multiply {
   mix-blend-mode: multiply !important;
 }
 
+/* Unbreakable Table Elements inside Invoice Paper */
+html.dark .invoice-paper th,
+html.dark [data-invoice-paper="true"] th,
+.invoice-paper th {
+  background-color: #f1f5f9 !important;
+  color: #334155 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.dark .invoice-paper td,
+html.dark [data-invoice-paper="true"] td,
+.invoice-paper td {
+  border-color: #e2e8f0 !important;
+}
+
+html.dark .invoice-paper tr:hover td,
+html.dark [data-invoice-paper="true"] tr:hover td,
+.invoice-paper tr:hover td {
+  background-color: transparent !important;
+}
+
 /* 4. Strict Print Media Isolation */
 @media print {
   html,
@@ -707,18 +728,18 @@ html.dark .hover\:bg-gray-100:hover {
   background-color: #1a2438 !important;
 }
 
-/* Table Headers & Cells in Owner Portal */
-html.dark th {
+/* Table Headers & Cells in Owner Portal (Excluding Invoice Paper) */
+html.dark th:not(.invoice-paper th):not([data-keep-white="true"] th):not([data-invoice-paper="true"] th) {
   background-color: #162032 !important;
   color: #cbd5e1 !important;
   border-color: rgba(255, 255, 255, 0.08) !important;
 }
 
-html.dark td {
+html.dark td:not(.invoice-paper td):not([data-keep-white="true"] td):not([data-invoice-paper="true"] td) {
   border-color: rgba(255, 255, 255, 0.06) !important;
 }
 
-html.dark tr:hover td {
+html.dark tr:hover td:not(.invoice-paper td):not([data-keep-white="true"] td):not([data-invoice-paper="true"] td) {
   background-color: #162032 !important;
 }
 

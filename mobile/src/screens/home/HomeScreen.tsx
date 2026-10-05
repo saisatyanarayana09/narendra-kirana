@@ -185,9 +185,9 @@ const BannerCarouselSection = React.memo(function BannerCarouselSection({
           const index = Math.round(e.nativeEvent.contentOffset.x / width);
           setActiveBannerIndex(index);
         }}
-        initialNumToRender={6}
-        maxToRenderPerBatch={10}
-        windowSize={5}
+        initialNumToRender={2}
+        maxToRenderPerBatch={2}
+        windowSize={3}
         removeClippedSubviews={Platform.OS === "android"}
         renderItem={renderBannerItem}
       />

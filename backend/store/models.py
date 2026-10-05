@@ -216,6 +216,9 @@ class HomepageSectionProduct(models.Model):
     class Meta:
         ordering = ['position']
         unique_together = [['section', 'product']]
+        indexes = [
+            models.Index(fields=['section', 'position'], name='hsp_section_pos_idx'),
+        ]
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
@@ -236,6 +239,12 @@ class Feedback(models.Model):
     rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)])
     comments = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['-created_at'], name='feedback_created_at_idx'),
+        ]
 
     def __str__(self):
         return f"{self.rating} Star - {self.customer if self.customer else 'Anonymous'}"

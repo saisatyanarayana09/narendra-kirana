@@ -7,20 +7,22 @@ from products.models import Product
 def order_id():
     from django.utils import timezone
     from orders.models import Order
+    import uuid
     now = timezone.now()
     # Format: ORDYYYYNNNNN (e.g. ORD202600001)
     prefix = f"ORD{now.year}"
-    last_order = Order.objects.filter(id__startswith=prefix).order_by('id').last()
-    
-    if not last_order:
-        return f"{prefix}00001"
-    
     try:
-        # Extract the last 5 digits as the sequence number
-        last_num = int(last_order.id[-5:])
-        return f"{prefix}{last_num + 1:05d}"
-    except (ValueError, IndexError):
-        return f"{prefix}00001"
+        last_order = Order.objects.filter(id__startswith=prefix).order_by('id').last()
+        if not last_order:
+            return f"{prefix}00001"
+        # Extract the sequence digits after prefix
+        seq_str = last_order.id[len(prefix):]
+        if seq_str.isdigit():
+            last_num = int(seq_str)
+            return f"{prefix}{last_num + 1:05d}"
+    except Exception:
+        pass
+    return f"{prefix}{uuid.uuid4().hex[:6].upper()}"
 
 
 class Order(models.Model):

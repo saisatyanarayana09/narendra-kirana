@@ -42,6 +42,19 @@ export default defineConfig({
           /^\/forgot-password/,
           /^\/verify-email/,
         ],
+        globIgnores: [
+          '**/vendor-charts*',
+          '**/vendor-scanner*',
+          '**/vendor-dnd*',
+          '**/vendor-image*',
+          '**/leaflet*',
+          '**/AdvancedSettings*',
+          '**/Dashboard-*',
+          '**/Sales-*',
+          '**/Customers-*',
+          '**/Showcase-*',
+          '**/DeliveryDashboard-*',
+        ],
         // Cache API responses, fonts, and assets
         runtimeCaching: [
           {
@@ -77,7 +90,7 @@ export default defineConfig({
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
-              networkTimeoutSeconds: 5,
+              networkTimeoutSeconds: 20,
               expiration: {
                 maxEntries: 100,
                 maxAgeSeconds: 60 * 60 * 24 // 24 hours

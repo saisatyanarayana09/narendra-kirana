@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Eye, EyeOff, CheckCircle2, ShieldCheck, MailCheck, Copy, Sparkles, Check, AlertCircle, Gift } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, CheckCircle2, ShieldCheck, MailCheck, Copy, Sparkles, Check, AlertCircle, Gift, RefreshCw, XCircle, Smartphone } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useGoogleLogin } from '@react-oauth/google';
 import api from '../../services/api';

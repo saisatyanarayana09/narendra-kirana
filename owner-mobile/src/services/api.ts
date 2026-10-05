@@ -109,7 +109,9 @@ api.interceptors.request.use(
           config.headers['Authorization'] = `Bearer ${token}`;
         }
       }
-      config.headers['X-Portal-Context'] = 'owner';
+      if (Platform.OS !== 'web') {
+        config.headers['X-Portal-Context'] = 'owner';
+      }
     } catch {
       // Ignore storage read errors
     }
@@ -173,12 +175,16 @@ api.interceptors.response.use(
     const isTransientError =
       error?.message === 'Network Error' ||
       error?.code === 'ECONNABORTED' ||
+      error?.code === 'ERR_NETWORK' ||
+      (!error?.response && Boolean(error?.request)) ||
       (error?.response?.status && [502, 503, 504].includes(error.response.status));
 
+    const RETRY_DELAYS = [2000, 4000, 8000, 14000, 20000, 24000];
+    const maxRetries = RETRY_DELAYS.length;
     const currentRetry = (originalRequest as any)._retryCount || 0;
-    if (isTransientError && currentRetry < 2) {
+    if (isTransientError && currentRetry < maxRetries) {
       (originalRequest as any)._retryCount = currentRetry + 1;
-      const delayMs = (originalRequest as any)._retryCount * 2000;
+      const delayMs = RETRY_DELAYS[currentRetry] || 20000;
       await new Promise((resolve) => setTimeout(resolve, delayMs));
       return api(originalRequest);
     }

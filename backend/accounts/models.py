@@ -25,6 +25,7 @@ class User(AbstractUser):
 
     class Meta:
         indexes = [
+            models.Index(fields=['is_customer', '-date_joined'], name='user_cust_date_idx'),
             models.Index(fields=['-date_joined'], name='user_date_joined_idx'),
             models.Index(fields=['is_active'], name='user_is_active_idx'),
         ]
@@ -68,6 +69,9 @@ class Address(models.Model):
 
     class Meta:
         ordering = ['-is_default', '-created_at']
+        indexes = [
+            models.Index(fields=['user', '-is_default', '-created_at'], name='addr_user_def_created_idx'),
+        ]
 
     def __str__(self):
         return f"{self.title} - {self.user.username}"

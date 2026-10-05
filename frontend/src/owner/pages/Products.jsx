@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Plus, Edit2, Trash2, X, Image as ImageIcon, Package, GripVertical, Camera, Sparkles, Wand2, FileText, ScanLine, Search } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import ImageCropper from '../components/ImageCropper';
-import BarcodeScanner from '../../components/BarcodeScanner';
 import { createPortal } from 'react-dom';
 import { compressImage } from '../../utils/compress';
+
+const BarcodeScanner = lazy(() => import('../../components/BarcodeScanner'));
 const Products = () => {
  const [products, setProducts] = useState([]);
  const [categories, setCategories] = useState([]);
@@ -360,6 +361,7 @@ const Products = () => {
  </label>
  <input type="text" value={formData.sku} onChange={e => setFormData({...formData, sku: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-all shadow-sm" placeholder="Optional"/>
  {showScanner && (
+   <Suspense fallback={null}>
     <BarcodeScanner
       onScan={(decodedText) => {
         setFormData(prev => ({...prev, sku: decodedText}));
@@ -368,6 +370,7 @@ const Products = () => {
       }}
       onClose={() => setShowScanner(false)}
     />
+   </Suspense>
  )}
  </div>
  <div>
@@ -574,7 +577,11 @@ const Products = () => {
  </button>
  </div>
  )}
- {isScanning && <BarcodeScanner onScan={handleBarcodeScan} onClose={() => setIsScanning(false)} />}
+ {isScanning && (
+   <Suspense fallback={null}>
+     <BarcodeScanner onScan={handleBarcodeScan} onClose={() => setIsScanning(false)} />
+   </Suspense>
+ )}
  </div>
  );
 };

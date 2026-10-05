@@ -10,6 +10,22 @@ class Banner(models.Model):
     display_order = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        ordering = ['display_order', '-created_at']
+        indexes = [
+            models.Index(fields=['is_active', 'display_order', '-created_at'], name='banner_act_ord_date_idx'),
+        ]
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        from django.core.cache import cache
+        cache.delete('active_banners_serialized')
+
+    def delete(self, *args, **kwargs):
+        from django.core.cache import cache
+        cache.delete('active_banners_serialized')
+        return super().delete(*args, **kwargs)
+
     def __str__(self):
         return self.title
 
@@ -27,6 +43,22 @@ class PromoCode(models.Model):
     expiration_date = models.DateTimeField(blank=True, null=True)
     max_uses_per_user = models.IntegerField(default=1, help_text="0 means unlimited uses per user")
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['is_active', '-created_at'], name='promo_act_created_idx'),
+        ]
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        from django.core.cache import cache
+        cache.delete('active_promos_serialized')
+
+    def delete(self, *args, **kwargs):
+        from django.core.cache import cache
+        cache.delete('active_promos_serialized')
+        return super().delete(*args, **kwargs)
 
     def __str__(self):
         return self.code

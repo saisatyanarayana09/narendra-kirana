@@ -19,8 +19,11 @@ class CartDetailView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated, IsCustomerUser]
 
     def get_object(self):
-        cart = customer_cart(self.request.user)
-        return Cart.objects.prefetch_related('items__product').select_related('promo_code').get(id=cart.id)
+        try:
+            return Cart.objects.prefetch_related('items__product').select_related('promo_code').get(customer=self.request.user)
+        except Cart.DoesNotExist:
+            cart = Cart.objects.create(customer=self.request.user)
+            return Cart.objects.prefetch_related('items__product').select_related('promo_code').get(id=cart.id)
 
 
 class CartItemCreateView(generics.CreateAPIView):
@@ -32,11 +35,11 @@ class CartItemCreateView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         product = serializer.validated_data['product']
-        cart = customer_cart(request.user)
-        # All write endpoints take this cart-level lock. They return the entire
-        # cart, so serializing writes prevents a concurrent response from being
-        # built with only part of the customer's latest changes.
-        cart = Cart.objects.select_for_update().get(id=cart.id)
+        try:
+            cart = Cart.objects.select_for_update().get(customer=request.user)
+        except Cart.DoesNotExist:
+            Cart.objects.create(customer=request.user)
+            cart = Cart.objects.select_for_update().get(customer=request.user)
         
         item = CartItem.objects.select_for_update().filter(cart=cart, product=product).first()
         current_qty = item.quantity if item else 0

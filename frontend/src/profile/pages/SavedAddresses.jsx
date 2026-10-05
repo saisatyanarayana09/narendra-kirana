@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, MapPin, Trash2, Plus, X, Edit2, RefreshCw, CheckCircle2 } from 'lucide-react';
 import api, { getUserCacheSync, setUserCache } from '../../services/api';
 import toast from 'react-hot-toast';
-import MapLocationPicker from '../../components/MapLocationPicker';
 import { useCart } from '../../cart-context';
+
+const MapLocationPicker = lazy(() => import('../../components/MapLocationPicker'));
 
 export default function SavedAddresses() {
   const { storeSettings } = useCart() || {};
@@ -130,25 +131,29 @@ export default function SavedAddresses() {
                )}
              </div>
 
-              <MapLocationPicker
-                isOpen={showMapPicker}
-                onClose={() => setShowMapPicker(false)}
-                storeSettings={storeSettings}
-                initialLat={form.latitude ? Number(form.latitude) : (storeSettings?.store_latitude ? Number(storeSettings.store_latitude) : 17.385044)}
-                initialLng={form.longitude ? Number(form.longitude) : (storeSettings?.store_longitude ? Number(storeSettings.store_longitude) : 78.486671)}
-                onConfirm={(pin) => {
-                 setForm(prev => ({
-                   ...prev,
-                   latitude: pin.latitude,
-                   longitude: pin.longitude,
-                   street: pin.street ? (prev.street ? prev.street : pin.street) : prev.street,
-                   city: pin.city || prev.city,
-                   state: pin.state || prev.state,
-                   zip_code: pin.zip_code || prev.zip_code
-                 }));
-                 toast.success('Doorstep location pinned on map!');
-               }}
-             />
+              {showMapPicker && (
+                <Suspense fallback={null}>
+                  <MapLocationPicker
+                    isOpen={showMapPicker}
+                    onClose={() => setShowMapPicker(false)}
+                    storeSettings={storeSettings}
+                    initialLat={form.latitude ? Number(form.latitude) : (storeSettings?.store_latitude ? Number(storeSettings.store_latitude) : 17.385044)}
+                    initialLng={form.longitude ? Number(form.longitude) : (storeSettings?.store_longitude ? Number(storeSettings.store_longitude) : 78.486671)}
+                    onConfirm={(pin) => {
+                      setForm(prev => ({
+                        ...prev,
+                        latitude: pin.latitude,
+                        longitude: pin.longitude,
+                        street: pin.street ? (prev.street ? prev.street : pin.street) : prev.street,
+                        city: pin.city || prev.city,
+                        state: pin.state || prev.state,
+                        zip_code: pin.zip_code || prev.zip_code
+                      }));
+                      toast.success('Doorstep location pinned on map!');
+                    }}
+                  />
+                </Suspense>
+              )}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div className="sm:col-span-2">

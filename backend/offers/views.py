@@ -7,6 +7,8 @@ from accounts.permissions import IsOwnerUser
 from .models import Banner, PromoCode
 from .serializers import BannerSerializer, PromoCodeSerializer
 
+BANNER_CACHE_KEY = 'active_banners_serialized'
+
 class BannerViewSet(viewsets.ModelViewSet):
     serializer_class = BannerSerializer
     
@@ -16,20 +18,55 @@ class BannerViewSet(viewsets.ModelViewSet):
             return qs
         return qs.filter(is_active=True)
 
+    def list(self, request, *args, **kwargs):
+        from django.core.cache import cache
+        is_owner = bool(request.user and request.user.is_authenticated and getattr(request.user, 'is_owner', False))
+        if not is_owner and not request.query_params:
+            cached_data = cache.get(BANNER_CACHE_KEY)
+            if cached_data is not None:
+                resp = Response(cached_data)
+                resp['Cache-Control'] = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+                return resp
+
+        response = super().list(request, *args, **kwargs)
+        if not is_owner and not request.query_params and response.status_code == 200:
+            cache.set(BANNER_CACHE_KEY, response.data, 600)
+            response['Cache-Control'] = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+        return response
+
+    def perform_create(self, serializer):
+        from django.core.cache import cache
+        super().perform_create(serializer)
+        cache.delete(BANNER_CACHE_KEY)
+
+    def perform_update(self, serializer):
+        from django.core.cache import cache
+        super().perform_update(serializer)
+        cache.delete(BANNER_CACHE_KEY)
+
+    def perform_destroy(self, instance):
+        from django.core.cache import cache
+        super().perform_destroy(instance)
+        cache.delete(BANNER_CACHE_KEY)
+
     @action(detail=False, methods=['post'], permission_classes=[IsOwnerUser])
     def reorder(self, request):
+        from django.core.cache import cache
         updates = request.data
         banners = []
         for update in updates:
             b = Banner(id=update['id'], display_order=update['display_order'])
             banners.append(b)
         Banner.objects.bulk_update(banners, ['display_order'])
+        cache.delete(BANNER_CACHE_KEY)
         return Response({'status': 'reordered'})
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
             return [permissions.AllowAny()]
         return [IsOwnerUser()]
+
+PROMO_CACHE_KEY = 'active_promos_serialized'
 
 class PromoCodeViewSet(viewsets.ModelViewSet):
     serializer_class = PromoCodeSerializer
@@ -41,11 +78,43 @@ class PromoCodeViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = getattr(self.request, 'user', None)
+        qs = PromoCode.objects.select_related('applicable_category')
         if user and user.is_authenticated and getattr(user, 'is_owner', False):
-            return PromoCode.objects.all().order_by('-created_at')
-        return PromoCode.objects.filter(is_active=True).filter(
+            return qs.all().order_by('-created_at')
+        return qs.filter(is_active=True).filter(
             models.Q(expiration_date__isnull=True) | models.Q(expiration_date__gte=timezone.now())
         ).order_by('-created_at')
+
+    def list(self, request, *args, **kwargs):
+        from django.core.cache import cache
+        is_owner = bool(request.user and request.user.is_authenticated and getattr(request.user, 'is_owner', False))
+        if not is_owner and not request.query_params:
+            cached_data = cache.get(PROMO_CACHE_KEY)
+            if cached_data is not None:
+                resp = Response(cached_data)
+                resp['Cache-Control'] = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+                return resp
+
+        response = super().list(request, *args, **kwargs)
+        if not is_owner and not request.query_params and response.status_code == 200:
+            cache.set(PROMO_CACHE_KEY, response.data, 300)
+            response['Cache-Control'] = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+        return response
+
+    def perform_create(self, serializer):
+        from django.core.cache import cache
+        super().perform_create(serializer)
+        cache.delete(PROMO_CACHE_KEY)
+
+    def perform_update(self, serializer):
+        from django.core.cache import cache
+        super().perform_update(serializer)
+        cache.delete(PROMO_CACHE_KEY)
+
+    def perform_destroy(self, instance):
+        from django.core.cache import cache
+        super().perform_destroy(instance)
+        cache.delete(PROMO_CACHE_KEY)
 
 from .models import ReferralSettings, ReferralMilestone, Referral
 from .serializers import ReferralSettingsSerializer, ReferralMilestoneSerializer, ReferralSerializer

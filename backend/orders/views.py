@@ -45,6 +45,19 @@ def check_store_operating_hours(timings_json):
     if not timings_json:
         return True, ""
 
+    if isinstance(timings_json, str):
+        import json, ast
+        timings_str = timings_json.strip()
+        if not timings_str or timings_str in ('[]', '{}', 'null'):
+            return True, ""
+        try:
+            timings_json = json.loads(timings_str)
+        except Exception:
+            try:
+                timings_json = ast.literal_eval(timings_str)
+            except Exception:
+                return True, ""
+
     now = timezone.localtime(timezone.now())
     day_name_full = now.strftime('%A').lower()   # e.g. "friday"
     day_name_short = now.strftime('%a').lower()  # e.g. "fri"
@@ -149,9 +162,43 @@ class OrderViewSet(ModelViewSet):
         ).prefetch_related(
             Prefetch('items', queryset=OrderItem.objects.select_related('product'))
         ).order_by('-created_at')
-        if getattr(self.request.user, 'is_owner', False) or getattr(self.request.user, 'is_staff', False) or getattr(self.request.user, 'is_superuser', False):
-            return queryset
-        return queryset.filter(customer=self.request.user)
+
+        user = self.request.user
+        if not user or not user.is_authenticated:
+            return queryset.none()
+
+        # Delivery partner: only view assigned orders
+        if getattr(user, 'is_delivery_partner', False) and not (
+            getattr(user, 'is_owner', False) or getattr(user, 'is_superuser', False)
+        ):
+            return queryset.filter(delivery_partner=user)
+
+        is_owner_or_staff = (
+            getattr(user, 'is_owner', False) or
+            getattr(user, 'is_staff', False) or
+            getattr(user, 'is_superuser', False)
+        )
+
+        if is_owner_or_staff:
+            headers = getattr(self.request, 'headers', {})
+            portal_header = str(headers.get('X-Portal-Context') or self.request.META.get('HTTP_X_PORTAL_CONTEXT', '')).strip().lower()
+            params = getattr(self.request, 'query_params', getattr(self.request, 'GET', {}))
+            as_owner_param = str(params.get('as_owner', '')).strip().lower() in ('true', '1')
+            scope_param = str(params.get('scope', '')).strip().lower()
+            referer = str(self.request.META.get('HTTP_REFERER', ''))
+
+            # Owner management endpoints or explicit owner portal context
+            if (
+                portal_header == 'owner' or 
+                as_owner_param or 
+                scope_param in ('all', 'store', 'owner') or 
+                '/owner' in referer or 
+                self.action in ['status', 'assign_partner', 'reject_item', 'owner_note', 'sales_summary', 'dispatch', 'invoice']
+            ):
+                return queryset
+
+        # In customer portal / customer mobile app, strictly scope to current user's orders
+        return queryset.filter(customer=user)
 
     @transaction.atomic
     def create(self, request, *args, **kwargs):
@@ -317,28 +364,49 @@ class OrderViewSet(ModelViewSet):
             from django.utils.crypto import get_random_string
             delivery_otp = get_random_string(4, allowed_chars='0123456789')
 
-        order = Order.objects.create(
-            customer=request.user, 
-            total_amount=total, 
-            discount_applied=product_discount, 
-            promo_discount=promo_discount,
-            wallet_discount=wallet_discount,
-            packaging_fee=packaging_fee,
-            pickup_time=checkout.validated_data.get('pickup_time', ''),
-            customer_note=checkout.validated_data.get('customer_note', ''),
-            status=initial_status,
-            order_type=order_type,
-            delivery_address=delivery_address,
-            delivery_pincode=delivery_pincode,
-            delivery_latitude=delivery_latitude,
-            delivery_longitude=delivery_longitude,
-            delivery_fee=delivery_fee,
-            delivery_slot_date=checkout.validated_data.get('delivery_slot_date'),
-            delivery_slot_label=checkout.validated_data.get('delivery_slot_label', ''),
-            payment_method=checkout.validated_data.get('payment_method', 'COD'),
-            upi_transaction_id=checkout.validated_data.get('upi_transaction_id', ''),
-            delivery_otp=delivery_otp
-        )
+        from django.db import IntegrityError
+        from django.utils import timezone
+        import uuid
+
+        order = None
+        order_kwargs = {
+            'customer': request.user,
+            'total_amount': total,
+            'discount_applied': product_discount,
+            'promo_discount': promo_discount,
+            'wallet_discount': wallet_discount,
+            'packaging_fee': packaging_fee,
+            'pickup_time': checkout.validated_data.get('pickup_time', ''),
+            'customer_note': checkout.validated_data.get('customer_note', ''),
+            'status': initial_status,
+            'order_type': order_type,
+            'delivery_address': delivery_address,
+            'delivery_pincode': delivery_pincode,
+            'delivery_latitude': delivery_latitude,
+            'delivery_longitude': delivery_longitude,
+            'delivery_fee': delivery_fee,
+            'delivery_slot_date': checkout.validated_data.get('delivery_slot_date'),
+            'delivery_slot_label': checkout.validated_data.get('delivery_slot_label', ''),
+            'payment_method': checkout.validated_data.get('payment_method', 'COD'),
+            'upi_transaction_id': checkout.validated_data.get('upi_transaction_id', ''),
+            'delivery_otp': delivery_otp,
+        }
+
+        for attempt in range(3):
+            try:
+                order = Order.objects.create(**order_kwargs)
+                break
+            except IntegrityError as ie:
+                if attempt < 2:
+                    now = timezone.now()
+                    fallback_id = f"ORD{now.year}{uuid.uuid4().hex[:7].upper()}"
+                    try:
+                        order = Order.objects.create(id=fallback_id, **order_kwargs)
+                        break
+                    except Exception:
+                        pass
+                else:
+                    raise
         
         # Record Promo Usage
         if cart.promo_code:
@@ -398,25 +466,27 @@ class OrderViewSet(ModelViewSet):
                 from accounts.models import User
                 from django.db.models import Q
                 cust_name = request.user.get_full_name() or request.user.username
-                owner_users = User.objects.filter(
+                owner_users = list(User.objects.filter(
                     Q(is_owner=True) | Q(is_staff=True) | Q(is_superuser=True),
                     is_active=True
-                ).distinct()
+                ).distinct())
 
                 owner_title = f"New Order #{order.id} Received! 🛒"
                 owner_body = f"₹{order.total_amount} ({order.payment_method}) placed by {cust_name}."
 
+                notifications = [
+                    Notification(
+                        user=owner,
+                        title=owner_title,
+                        message=owner_body,
+                        category='ORDER',
+                        action_url=f"/orders/{order.id}"
+                    )
+                    for owner in owner_users
+                ]
+                Notification.objects.bulk_create(notifications)
+
                 for owner in owner_users:
-                    try:
-                        Notification.objects.create(
-                            user=owner,
-                            title=owner_title,
-                            message=owner_body,
-                            category='ORDER',
-                            action_url=f"/orders/{order.id}"
-                        )
-                    except Exception:
-                        pass
 
                     send_push_notification(
                         user=owner,
@@ -819,7 +889,7 @@ class OrderViewSet(ModelViewSet):
             return Response(cached)
 
         from django.utils import timezone
-        from django.db.models import Sum
+        from django.db.models import Sum, Q
         from datetime import timedelta
 
         now = timezone.now()
@@ -832,21 +902,32 @@ class OrderViewSet(ModelViewSet):
 
         qs = Order.objects.exclude(status=Order.Status.REJECTED)
 
-        today_sales = qs.filter(created_at__gte=today_start).aggregate(total=Sum('total_amount'))['total'] or 0
-        weekly_sales = qs.filter(created_at__gte=week_start).aggregate(total=Sum('total_amount'))['total'] or 0
-        monthly_sales = qs.filter(created_at__gte=month_start).aggregate(total=Sum('total_amount'))['total'] or 0
-        yearly_sales = qs.filter(created_at__gte=year_start).aggregate(total=Sum('total_amount'))['total'] or 0
-
         # Daily sales for the chart (last 7 days)
         last_7_days = [(today_start - timedelta(days=i)) for i in range(7)]
         last_7_days.reverse()
-        chart_data = []
-        for d in last_7_days:
+
+        agg_kwargs = {
+            'today_sales': Sum('total_amount', filter=Q(created_at__gte=today_start)),
+            'weekly_sales': Sum('total_amount', filter=Q(created_at__gte=week_start)),
+            'monthly_sales': Sum('total_amount', filter=Q(created_at__gte=month_start)),
+            'yearly_sales': Sum('total_amount', filter=Q(created_at__gte=year_start)),
+        }
+        for i, d in enumerate(last_7_days):
             day_end = d + timedelta(days=1)
-            day_sales = qs.filter(created_at__gte=d, created_at__lt=day_end).aggregate(total=Sum('total_amount'))['total'] or 0
+            agg_kwargs[f'day_{i}'] = Sum('total_amount', filter=Q(created_at__gte=d, created_at__lt=day_end))
+
+        totals = qs.aggregate(**agg_kwargs)
+
+        today_sales = totals.get('today_sales') or 0
+        weekly_sales = totals.get('weekly_sales') or 0
+        monthly_sales = totals.get('monthly_sales') or 0
+        yearly_sales = totals.get('yearly_sales') or 0
+
+        chart_data = []
+        for i, d in enumerate(last_7_days):
             chart_data.append({
                 'name': f"{d.day} {d.strftime('%b')}",
-                'Sales': day_sales
+                'Sales': totals.get(f'day_{i}') or 0
             })
 
         data = {

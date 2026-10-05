@@ -12,15 +12,7 @@ const Invoice = () => {
   const [invoiceHtml, setInvoiceHtml] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const invoiceContainerRef = useRef(null);
-
-  // Enforce light color scheme on mount
-  useEffect(() => {
-    if (invoiceContainerRef.current) {
-      invoiceContainerRef.current.classList.add('invoice-root', 'keep-white');
-      invoiceContainerRef.current.style.colorScheme = 'light';
-    }
-  }, []);
+  const invoicePaperRef = useRef(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -52,14 +44,10 @@ const Invoice = () => {
 
   if (loading) {
     return (
-      <div
-        className="invoice-root keep-white min-h-screen flex items-center justify-center py-10 px-4 font-sans"
-        data-keep-white="true"
-        style={{ backgroundColor: '#f8fafc', colorScheme: 'light' }}
-      >
-        <div className="text-center p-8 bg-white rounded-2xl shadow-sm border border-slate-200">
+      <div className="min-h-screen flex items-center justify-center py-10 px-4 font-sans bg-slate-50 dark:bg-[#090d16] transition-colors">
+        <div className="text-center p-8 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
           <div className="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-          <p className="font-bold text-slate-700 text-sm">Generating tax invoice preview...</p>
+          <p className="font-bold text-slate-700 dark:text-slate-300 text-sm">Generating tax invoice preview...</p>
         </div>
       </div>
     );
@@ -67,27 +55,23 @@ const Invoice = () => {
 
   if (error || !order) {
     return (
-      <div
-        className="invoice-root keep-white min-h-screen flex items-center justify-center p-4 font-sans"
-        data-keep-white="true"
-        style={{ backgroundColor: '#f8fafc', colorScheme: 'light' }}
-      >
-        <div className="max-w-md w-full bg-white rounded-2xl p-8 border border-slate-200 shadow-sm text-center">
-          <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-4 font-black">
+      <div className="min-h-screen flex items-center justify-center p-4 font-sans bg-slate-50 dark:bg-[#090d16] transition-colors">
+        <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-2xl p-8 border border-slate-200 dark:border-slate-800 shadow-sm text-center">
+          <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 flex items-center justify-center mx-auto mb-4 font-black">
             !
           </div>
-          <h2 className="text-xl font-black text-slate-900 mb-2">Invoice Unavailable</h2>
-          <p className="text-sm text-slate-600 mb-6">{error || 'Could not find this invoice.'}</p>
+          <h2 className="text-xl font-black text-slate-900 dark:text-white mb-2">Invoice Unavailable</h2>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">{error || 'Could not find this invoice.'}</p>
           <div className="flex flex-col gap-2.5">
             <Link
               to={`/login?redirect=${encodeURIComponent(window.location.pathname)}`}
-              className="w-full py-2.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition text-sm"
+              className="w-full py-2.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition text-sm shadow-sm"
             >
               Sign In to View Invoice
             </Link>
             <Link
               to="/"
-              className="w-full py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition text-sm"
+              className="w-full py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition text-sm"
             >
               Return to Store
             </Link>
@@ -147,11 +131,8 @@ const Invoice = () => {
 
   return (
     <div
-      ref={invoiceContainerRef}
-      data-testid="invoice-root"
-      data-keep-white="true"
-      className={`invoice-root keep-white min-h-screen ${isModal ? 'p-1 sm:p-4' : 'py-8 px-4 sm:px-6'} print:bg-white print:p-0 font-sans`}
-      style={{ backgroundColor: '#f1f5f9', colorScheme: 'light' }}
+      data-testid="invoice-page-root"
+      className={`min-h-screen ${isModal ? 'p-1 sm:p-4 bg-transparent' : 'py-8 px-4 sm:px-6 bg-slate-100 dark:bg-[#090d16]'} print:bg-white print:p-0 font-sans transition-colors`}
     >
       {/* Strict Print CSS Override */}
       <style>{`
@@ -166,11 +147,6 @@ const Invoice = () => {
             color-scheme: light !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
-          }
-          .invoice-root {
-            background-color: #ffffff !important;
-            padding: 0 !important;
-            margin: 0 !important;
           }
           .invoice-paper {
             box-shadow: none !important;
@@ -198,20 +174,20 @@ const Invoice = () => {
         <div className="max-w-4xl mx-auto mb-6 flex flex-col sm:flex-row gap-3 justify-between items-center print:hidden">
           <Link
             to={localStorage.getItem('smart-kirana-owner-token') ? `/owner/orders/${id}` : `/orders/${id}`}
-            className="w-full sm:w-auto justify-center inline-flex items-center text-slate-800 hover:text-slate-900 font-bold bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200 hover:bg-slate-50 transition-colors text-xs"
+            className="w-full sm:w-auto justify-center inline-flex items-center text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white font-bold bg-white dark:bg-slate-800 px-4 py-2.5 rounded-xl shadow-xs border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-xs"
           >
             <ArrowLeft className="w-4 h-4 mr-1.5" /> Back to Order
           </Link>
           <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
             <a
               href={`smartkirana://orders/${id}/invoice`}
-              className="w-full sm:w-auto justify-center inline-flex items-center bg-white border border-slate-200 text-slate-800 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 rounded-xl font-bold shadow-sm transition-colors text-xs"
+              className="w-full sm:w-auto justify-center inline-flex items-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white px-4 py-2.5 rounded-xl font-bold shadow-xs transition-colors text-xs"
             >
               <Smartphone className="w-4 h-4 mr-1.5" /> Mobile App
             </a>
             <button
               onClick={handlePrint}
-              className="w-full sm:w-auto justify-center inline-flex items-center bg-emerald-600 text-white px-5 py-2 rounded-xl font-bold hover:bg-emerald-700 shadow-sm transition-colors text-xs cursor-pointer"
+              className="w-full sm:w-auto justify-center inline-flex items-center bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-sm hover:shadow transition-all text-xs cursor-pointer active:scale-95"
             >
               <Printer className="w-4 h-4 mr-1.5" /> Download / Print PDF
             </button>
@@ -221,10 +197,12 @@ const Invoice = () => {
 
       {/* Printable A4 Invoice Container */}
       <div
+        ref={invoicePaperRef}
         data-testid="invoice-container"
+        data-invoice-paper="true"
         data-keep-white="true"
         className={`invoice-paper keep-white relative max-w-4xl mx-auto bg-white ${
-          isModal ? 'p-4 sm:p-6 md:p-8 shadow-sm border border-slate-200/80 rounded-xl' : 'p-6 sm:p-8 md:p-10 shadow-lg border border-slate-200 rounded-2xl'
+          isModal ? 'p-4 sm:p-6 md:p-8 shadow-sm border border-slate-200/80 rounded-xl' : 'p-6 sm:p-8 md:p-10 shadow-xl border border-slate-200 rounded-2xl'
         } print:shadow-none print:border-none print:rounded-none print:p-0 print:m-0 text-slate-900 overflow-hidden`}
         style={{ colorScheme: 'light', backgroundColor: '#ffffff', color: '#0f172a' }}
       >
@@ -340,63 +318,69 @@ const Invoice = () => {
           {/* Customer & Fulfillment Info Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5 text-xs">
             {/* Billed / Shipped To */}
-            <div className="bg-white border border-slate-200 rounded-xl p-3.5 space-y-1 shadow-2xs print:border-slate-300">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-1 mb-1.5">
+            <div 
+              className="bg-white border border-slate-200 rounded-xl p-3.5 space-y-1 shadow-2xs print:border-slate-300"
+              style={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', color: '#0f172a' }}
+            >
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-1 mb-1.5" style={{ color: '#94a3b8', borderColor: '#f1f5f9' }}>
                 Billed / Shipped To
               </p>
-              <p className="text-sm font-black text-slate-900">
+              <p className="text-sm font-black text-slate-900" style={{ color: '#0f172a' }}>
                 {order.customer_name || `Customer ID: ${order.customer}`}
               </p>
               {order.customer_phone && (
-                <p className="text-slate-600 flex items-center gap-1">
+                <p className="text-slate-600 flex items-center gap-1" style={{ color: '#475569' }}>
                   <Phone size={11} className="text-slate-400" /> {order.customer_phone}
                 </p>
               )}
               {order.order_type === 'DELIVERY' ? (
-                <div className="text-slate-600 pt-1">
-                  <p className="font-medium text-slate-800">{order.delivery_address || 'Home Delivery Address'}</p>
+                <div className="text-slate-600 pt-1" style={{ color: '#475569' }}>
+                  <p className="font-medium text-slate-800" style={{ color: '#1e293b' }}>{order.delivery_address || 'Home Delivery Address'}</p>
                   {order.delivery_pincode && (
-                    <p className="text-[11px] text-slate-500 font-mono mt-0.5">PIN: {order.delivery_pincode}</p>
+                    <p className="text-[11px] text-slate-500 font-mono mt-0.5" style={{ color: '#64748b' }}>PIN: {order.delivery_pincode}</p>
                   )}
                 </div>
               ) : (
-                <p className="text-slate-600 pt-1 font-medium">Store Counter Pickup</p>
+                <p className="text-slate-600 pt-1 font-medium" style={{ color: '#475569' }}>Store Counter Pickup</p>
               )}
             </div>
 
             {/* Order & Delivery Slot Details */}
-            <div className="bg-white border border-slate-200 rounded-xl p-3.5 space-y-1 shadow-2xs print:border-slate-300">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-1 mb-1.5">
+            <div 
+              className="bg-white border border-slate-200 rounded-xl p-3.5 space-y-1 shadow-2xs print:border-slate-300"
+              style={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', color: '#0f172a' }}
+            >
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-1 mb-1.5" style={{ color: '#94a3b8', borderColor: '#f1f5f9' }}>
                 Fulfillment Details
               </p>
               <div className="flex justify-between items-center">
-                <span className="text-slate-500">Fulfillment Mode:</span>
-                <span className="font-bold text-slate-900">
+                <span className="text-slate-500" style={{ color: '#64748b' }}>Fulfillment Mode:</span>
+                <span className="font-bold text-slate-900" style={{ color: '#0f172a' }}>
                   {order.order_type === 'DELIVERY' ? 'Home Delivery' : 'Store Pickup'}
                 </span>
               </div>
               {order.delivery_slot_label ? (
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-500">Scheduled Slot:</span>
-                  <span className="font-bold text-indigo-700">
+                  <span className="text-slate-500" style={{ color: '#64748b' }}>Scheduled Slot:</span>
+                  <span className="font-bold text-indigo-700" style={{ color: '#4338ca' }}>
                     {order.delivery_slot_date} ({order.delivery_slot_label})
                   </span>
                 </div>
               ) : order.pickup_time ? (
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-500">Pickup Slot:</span>
-                  <span className="font-bold text-slate-900">{order.pickup_time}</span>
+                  <span className="text-slate-500" style={{ color: '#64748b' }}>Pickup Slot:</span>
+                  <span className="font-bold text-slate-900" style={{ color: '#0f172a' }}>{order.pickup_time}</span>
                 </div>
               ) : null}
               <div className="flex justify-between items-center">
-                <span className="text-slate-500">Order Status:</span>
-                <span className={`font-bold ${order.status === 'COMPLETED' ? 'text-emerald-700' : (order.status === 'REJECTED' ? 'text-rose-600' : 'text-slate-800')}`}>
+                <span className="text-slate-500" style={{ color: '#64748b' }}>Order Status:</span>
+                <span className={`font-bold ${order.status === 'COMPLETED' ? 'text-emerald-700' : (order.status === 'REJECTED' ? 'text-rose-600' : 'text-slate-800')}`} style={{ color: order.status === 'COMPLETED' ? '#047857' : (order.status === 'REJECTED' ? '#e11d48' : '#1e293b') }}>
                   {order.status}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-500">Payment Status:</span>
-                <span className="font-bold text-emerald-700">
+                <span className="text-slate-500" style={{ color: '#64748b' }}>Payment Status:</span>
+                <span className="font-bold text-emerald-700" style={{ color: order.status === 'COMPLETED' ? '#047857' : (order.status === 'REJECTED' ? '#e11d48' : '#047857') }}>
                   {order.status === 'COMPLETED' ? 'PAID' : (order.status === 'REJECTED' ? 'CANCELLED' : 'DUE AT DELIVERY')}
                 </span>
               </div>
@@ -404,15 +388,15 @@ const Invoice = () => {
           </div>
 
           {/* Items Table */}
-          <div className="mb-5 border border-slate-200 rounded-xl overflow-hidden shadow-2xs print:border-slate-300">
+          <div className="mb-5 border border-slate-200 rounded-xl overflow-hidden shadow-2xs print:border-slate-300" style={{ borderColor: '#e2e8f0', backgroundColor: '#ffffff' }}>
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="bg-slate-100/80 border-b border-slate-200 text-slate-700 font-bold uppercase tracking-wider text-[11px] print:bg-slate-100 print:border-slate-400">
-                  <th className="py-2.5 px-3 text-center w-[6%]">#</th>
-                  <th className="py-2.5 px-3 w-[54%]">Item Description</th>
-                  <th className="py-2.5 px-3 text-center w-[12%]">Qty</th>
-                  <th className="py-2.5 px-3 text-right w-[14%]">Rate (₹)</th>
-                  <th className="py-2.5 px-3 text-right w-[14%]">Amount (₹)</th>
+                <tr className="bg-slate-100/80 border-b border-slate-200 text-slate-700 font-bold uppercase tracking-wider text-[11px] print:bg-slate-100 print:border-slate-400" style={{ backgroundColor: '#f1f5f9', borderColor: '#e2e8f0' }}>
+                  <th className="py-2.5 px-3 text-center w-[6%]" style={{ backgroundColor: '#f1f5f9', color: '#334155' }}>#</th>
+                  <th className="py-2.5 px-3 w-[54%]" style={{ backgroundColor: '#f1f5f9', color: '#334155' }}>Item Description</th>
+                  <th className="py-2.5 px-3 text-center w-[12%]" style={{ backgroundColor: '#f1f5f9', color: '#334155' }}>Qty</th>
+                  <th className="py-2.5 px-3 text-right w-[14%]" style={{ backgroundColor: '#f1f5f9', color: '#334155' }}>Rate (₹)</th>
+                  <th className="py-2.5 px-3 text-right w-[14%]" style={{ backgroundColor: '#f1f5f9', color: '#334155' }}>Amount (₹)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 text-slate-800">
@@ -456,24 +440,27 @@ const Invoice = () => {
 
           {/* Totals Section */}
           <div className="flex justify-end mb-6 avoid-break">
-            <div className="w-full sm:w-80 border border-slate-200 rounded-xl overflow-hidden text-xs bg-white shadow-2xs print:border-slate-300">
-              <div className="p-3 space-y-1.5 text-slate-600">
+            <div 
+              className="w-full sm:w-80 border border-slate-200 rounded-xl overflow-hidden text-xs bg-white shadow-2xs print:border-slate-300"
+              style={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', color: '#0f172a' }}
+            >
+              <div className="p-3 space-y-1.5 text-slate-600" style={{ color: '#475569' }}>
                 <div className="flex justify-between">
                   <span>Subtotal ({order.items.filter(i => i.status !== 'REJECTED').length} items)</span>
-                  <span className="font-semibold text-slate-900">
+                  <span className="font-semibold text-slate-900" style={{ color: '#0f172a' }}>
                     ₹{order.items.filter(i => i.status !== 'REJECTED').reduce((acc, item) => acc + parseFloat(item.subtotal), 0).toFixed(2)}
                   </span>
                 </div>
 
                 {parseFloat(order.discount_applied) > 0 && (
-                  <div className="flex justify-between text-indigo-600">
+                  <div className="flex justify-between text-indigo-600" style={{ color: '#4338ca' }}>
                     <span>Product Savings</span>
                     <span className="font-bold">-₹{parseFloat(order.discount_applied).toFixed(2)}</span>
                   </div>
                 )}
 
                 {parseFloat(order.promo_discount) > 0 && (
-                  <div className="flex justify-between text-emerald-600">
+                  <div className="flex justify-between text-emerald-600" style={{ color: '#047857' }}>
                     <span>Promo Code Discount</span>
                     <span className="font-bold">-₹{parseFloat(order.promo_discount).toFixed(2)}</span>
                   </div>
@@ -482,40 +469,43 @@ const Invoice = () => {
                 {parseFloat(order.packaging_fee) > 0 && (
                   <div className="flex justify-between">
                     <span>Packaging Charges</span>
-                    <span className="font-semibold text-slate-900">₹{parseFloat(order.packaging_fee).toFixed(2)}</span>
+                    <span className="font-semibold text-slate-900" style={{ color: '#0f172a' }}>₹{parseFloat(order.packaging_fee).toFixed(2)}</span>
                   </div>
                 )}
 
                 {order.order_type === 'DELIVERY' && (
                   <div className="flex justify-between">
                     <span>Delivery Charges</span>
-                    <span className="font-semibold text-slate-900">
+                    <span className="font-semibold text-slate-900" style={{ color: '#0f172a' }}>
                       {parseFloat(order.delivery_fee) > 0 ? `₹${parseFloat(order.delivery_fee).toFixed(2)}` : 'FREE'}
                     </span>
                   </div>
                 )}
 
                 {parseFloat(order.wallet_discount) > 0 && (
-                  <div className="flex justify-between text-emerald-700 font-bold border-t border-slate-100 pt-1">
+                  <div className="flex justify-between text-emerald-700 font-bold border-t border-slate-100 pt-1" style={{ color: '#047857', borderColor: '#f1f5f9' }}>
                     <span>Wallet Applied</span>
                     <span>-₹{parseFloat(order.wallet_discount).toFixed(2)}</span>
                   </div>
                 )}
 
-                <div className="flex justify-between border-t border-slate-100 pt-1">
-                  <span className="font-medium text-slate-500">Payment Mode</span>
-                  <span className="font-bold text-slate-900 text-right max-w-[180px] break-words">
+                <div className="flex justify-between border-t border-slate-100 pt-1" style={{ borderColor: '#f1f5f9' }}>
+                  <span className="font-medium text-slate-500" style={{ color: '#64748b' }}>Payment Mode</span>
+                  <span className="font-bold text-slate-900 text-right max-w-[180px] break-words" style={{ color: '#0f172a' }}>
                     {getPaymentMethodDisplay()}
                   </span>
                 </div>
               </div>
 
               {/* Total Due/Paid Banner */}
-              <div className="bg-emerald-50 border-t-2 border-emerald-600 px-3 py-2 flex justify-between items-center text-slate-900">
-                <span className="font-bold uppercase tracking-wider text-xs">
+              <div 
+                className="bg-emerald-50 border-t-2 border-emerald-600 px-3 py-2 flex justify-between items-center text-slate-900"
+                style={{ backgroundColor: '#ecfdf5', borderColor: '#059669', color: '#064e3b' }}
+              >
+                <span className="font-bold uppercase tracking-wider text-xs" style={{ color: '#064e3b' }}>
                   {order.status === 'COMPLETED' ? 'Total Amount Paid' : 'Total Amount Due'}
                 </span>
-                <span className="text-xl font-black text-emerald-800">
+                <span className="text-xl font-black text-emerald-800" style={{ color: '#065f46' }}>
                   ₹{parseFloat(order.total_amount).toFixed(2)}
                 </span>
               </div>

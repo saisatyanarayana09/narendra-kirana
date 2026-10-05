@@ -47,8 +47,8 @@ apiClient.interceptors.request.use(
     try {
       const token =
         getItemSync(STORAGE_KEYS.TOKEN) || (await getItem(STORAGE_KEYS.TOKEN));
+      config.headers = config.headers || {};
       if (token) {
-        config.headers = config.headers || {};
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (err) {
@@ -82,10 +82,13 @@ const processQueue = (error: any, token: string | null = null) => {
 
 // Response interceptor with robust 401 refresh queue & network failure resilience
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    DeviceEventEmitter.emit("BACKEND_READY");
+    return response;
+  },
   async (error: AxiosError | any) => {
     try {
-      // 1. Handle Network Timeout and Disconnect Errors (ECONNABORTED, ERR_NETWORK, etc.)
+      // 1. Handle Network Timeout, Disconnect Errors, and Render 502/503/504 gateway wake-up errors
       const isTimeout =
         error?.code === "ECONNABORTED" ||
         error?.code === "ETIMEDOUT" ||
@@ -98,36 +101,58 @@ apiClient.interceptors.response.use(
         error?.message?.toLowerCase().includes("network") ||
         (!error?.response && Boolean(error?.request));
 
+      const is5xxGatewayError = Boolean(
+        error?.response?.status &&
+          [502, 503, 504].includes(error.response.status),
+      );
+
+      const isColdStartOrTransient =
+        isTimeout || isNetworkError || is5xxGatewayError;
+
       const originalRequest = error?.config as CustomRequestConfig | undefined;
 
-      // Automatic retry for idempotent or cold-start waking up requests (max 4 retries)
-      if (originalRequest && (isTimeout || isNetworkError)) {
+      // Progressive backoff covering up to ~72s of cold-start wake-up time:
+      // Delays: 2s, 4s, 8s, 14s, 20s, 24s (sum = 72s)
+      const RETRY_DELAYS = [2000, 4000, 8000, 14000, 20000, 24000];
+      const maxRetries = RETRY_DELAYS.length;
+
+      // Automatic retry for idempotent or cold-start waking up requests
+      if (originalRequest && isColdStartOrTransient) {
         const method = (originalRequest.method || "get").toLowerCase();
         const isSafeMethod = ["get", "head", "options"].includes(method);
-        const maxRetries = 4; // Up to 4 retries to accommodate 50s Render cold starts
 
         originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
         if (isSafeMethod && originalRequest._retryCount <= maxRetries) {
-          // Exponential backoff: 2s, 4s, 8s, 16s
-          const delayMs = Math.pow(2, originalRequest._retryCount) * 1000;
+          const delayMs =
+            RETRY_DELAYS[originalRequest._retryCount - 1] || 20000;
           console.log(
             `[ApiClient] Backend waking up or transient network hiccup. Retrying ${originalRequest.url} (attempt ${originalRequest._retryCount}/${maxRetries}) in ${delayMs}ms...`,
           );
+          DeviceEventEmitter.emit("BACKEND_WAKING", {
+            url: originalRequest.url,
+            attempt: originalRequest._retryCount,
+            maxRetries,
+            delayMs,
+          });
           await new Promise((resolve) => setTimeout(resolve, delayMs));
           return apiClient(originalRequest);
         }
       }
 
-      if (isTimeout || isNetworkError) {
+      if (isColdStartOrTransient) {
         // Tag error with structured flags
         if (error) {
-          error.isNetworkError = true;
+          error.isNetworkError = isNetworkError;
           error.isTimeout = isTimeout;
+          error.isColdStart = true;
 
           // Provide user-friendly message
           if (isTimeout) {
             error.message =
               "Connection timed out. Please check your internet connection.";
+          } else if (is5xxGatewayError) {
+            error.message =
+              "Server is taking a moment to wake up. Please pull down to refresh.";
           } else {
             error.message =
               "Network connection error. Please verify your connection.";
@@ -136,11 +161,11 @@ apiClient.interceptors.response.use(
           // Ensure a safe fallback response structure so component catch blocks don't crash
           if (!error.response) {
             error.response = {
-              status: isTimeout ? 408 : 0,
-              statusText: isTimeout ? "Request Timeout" : "Network Error",
+              status: isTimeout ? 408 : is5xxGatewayError ? error.response?.status : 0,
+              statusText: isTimeout ? "Request Timeout" : is5xxGatewayError ? "Gateway Error" : "Network Error",
               data: {
                 detail: error.message,
-                error: isTimeout ? "Request Timeout" : "Network Error",
+                error: isTimeout ? "Request Timeout" : is5xxGatewayError ? "Gateway Error" : "Network Error",
               },
               headers: {},
               config: error.config,
@@ -149,7 +174,7 @@ apiClient.interceptors.response.use(
         }
 
         console.warn(
-          `[ApiClient] Network/Timeout error: ${error?.code || "NO_RESPONSE"} - ${error?.message}`,
+          `[ApiClient] Network/Timeout error: ${error?.code || error?.response?.status || "NO_RESPONSE"} - ${error?.message}`,
         );
         return Promise.reject(error);
       }

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, PackageSearch, Truck, Store, XCircle, CheckCircle2, AlertCircle, Sparkles, MapPin, Smartphone } from 'lucide-react';
+import { ArrowLeft, Package, PackageSearch, Truck, Store, XCircle, CheckCircle2, AlertCircle, Sparkles, MapPin, Smartphone } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import { CustomerLayout } from '../../customer-layout';
