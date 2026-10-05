@@ -743,7 +743,7 @@ class OrderViewSet(ModelViewSet):
     @action(detail=True, methods=['post'], permission_classes=[IsOwnerUser])
     def assign_partner(self, request, pk=None):
         order = self.get_object()
-        partner_id = request.data.get('delivery_partner_id')
+        partner_id = request.data.get('delivery_partner_id') or request.data.get('partner_id')
 
         if not partner_id:
             order.delivery_partner = None
