@@ -44,7 +44,18 @@ export async function saveItem(key: string, value: string): Promise<void> {
 }
 
 export function getItemSync(key: string): string | null {
-  return memoryStore.get(key) || null;
+  const inMem = memoryStore.get(key);
+  if (inMem !== undefined) return inMem;
+  if (Platform.OS === "web" && typeof window !== "undefined" && window.localStorage) {
+    try {
+      const val = window.localStorage.getItem(key);
+      if (val !== null) {
+        memoryStore.set(key, val);
+        return val;
+      }
+    } catch {}
+  }
+  return null;
 }
 
 export async function getItem(key: string): Promise<string | null> {
@@ -136,7 +147,17 @@ export function preloadKeys(keys: string[]): Promise<void> {
   if (preloadPromise) return preloadPromise;
 
   preloadPromise = (async () => {
-    if (Platform.OS === "web") return;
+    if (Platform.OS === "web") {
+      if (typeof window !== "undefined" && window.localStorage) {
+        try {
+          keys.forEach((key) => {
+            const val = window.localStorage.getItem(key);
+            if (val !== null) memoryStore.set(key, val);
+          });
+        } catch {}
+      }
+      return;
+    }
 
     await Promise.allSettled(
       keys.map(async (key) => {

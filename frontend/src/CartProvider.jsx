@@ -2,7 +2,14 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import api, { clearUserCache, clearAllBrowserCaches } from './services/api'
 
 import { CartContext } from './cart-context';
-const getUser = () => JSON.parse(localStorage.getItem('smart-kirana-customer-user') || 'null')
+const getUser = () => {
+  try {
+    const raw = localStorage.getItem('smart-kirana-customer-user');
+    return raw && raw !== 'undefined' ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
 
 const LOCAL_CART_KEY = 'smart-kirana-customer-cart-cache';
 const getStoredCart = () => {

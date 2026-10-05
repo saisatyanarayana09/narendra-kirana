@@ -30,7 +30,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
-    api.get('/accounts/profile/').then(res => {
+    api.get('/auth/profile/').then(res => {
       if (res.data) {
         localStorage.setItem('smart-kirana-owner-user', JSON.stringify(res.data));
         setOwnerName([res.data.first_name, res.data.last_name].filter(Boolean).join(' ') || res.data.username || 'Owner');
