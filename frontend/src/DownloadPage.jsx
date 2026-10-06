@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { Download, Smartphone, Briefcase, Truck } from 'lucide-react';
+import { Download, Briefcase, Truck } from 'lucide-react';
 import api from './services/api';
-import { openAppOrFallback } from './components/SmartAppBanner';
+
 
 export default function DownloadPage() {
   const [storeSettings, setStoreSettings] = useState(null);
@@ -127,11 +127,13 @@ export default function DownloadPage() {
 
                   <button
                     type="button"
-                    onClick={() => openAppOrFallback('')}
-                    className="w-full py-4 px-6 rounded-xl bg-transparent hover:bg-zinc-900 text-zinc-400 hover:text-zinc-300 font-medium text-sm flex items-center justify-center gap-2 transition-colors"
+                    disabled
+                    className="w-full py-4 px-6 rounded-xl bg-zinc-900/40 text-zinc-500 font-medium text-sm flex items-center justify-center gap-2.5 cursor-not-allowed border border-zinc-800/40"
                   >
-                    <Smartphone size={18} />
-                    <span>Open App</span>
+                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className="opacity-70">
+                      <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                    <span>Play Store (Coming Soon)</span>
                   </button>
                 </>
               )}
