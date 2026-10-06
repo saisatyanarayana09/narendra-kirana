@@ -1,104 +1,13 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-import { VitePWA } from 'vite-plugin-pwa'
+
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
-    VitePWA({
-      registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
-      manifest: {
-        name: 'Narendra Kirana Store',
-        short_name: 'Narendra Kirana',
-        description: 'Smart Kirana Store App',
-        theme_color: '#ffffff',
-        icons: [
-          {
-            src: 'pwa-192x192.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable'
-          }
-        ]
-      },
-      workbox: {
-        cleanupOutdatedCaches: true,
-        skipWaiting: true,
-        clientsClaim: true,
-        navigateFallback: '/index.html',
-        navigateFallbackDenylist: [
-          /^\/api\//,
-          /^\/\.well-known\//,
-          /^\/reset-password/,
-          /^\/owner\/reset-password/,
-          /^\/forgot-password/,
-          /^\/verify-email/,
-        ],
-        globIgnores: [
-          '**/vendor-charts*',
-          '**/vendor-scanner*',
-          '**/vendor-dnd*',
-          '**/vendor-image*',
-          '**/leaflet*',
-          '**/AdvancedSettings*',
-          '**/Dashboard-*',
-          '**/Sales-*',
-          '**/Customers-*',
-          '**/Showcase-*',
-          '**/DeliveryDashboard-*',
-        ],
-        // Cache API responses, fonts, and assets
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts',
-              expiration: {
-                maxEntries: 30,
-                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
-          },
-          {
-            urlPattern: /^https:\/\/narendra-kirana\.onrender\.com\/api\/v1\/(?:products|categories|store\/(?:settings|homepage-sections)|offers\/banners).*/i,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'catalog-api-cache',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 // 24 hours
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
-          },
-          {
-            urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'image-cache',
-              expiration: {
-                maxEntries: 200,
-                maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
-              }
-            }
-          }
-        ]
-      }
-    })
+    
   ],
   build: {
     rollupOptions: {

@@ -2,6 +2,10 @@
 <html lang="en">
  <head>
  <meta charset="UTF-8"/>
+ <!-- Prevent Caching -->
+ <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+ <meta http-equiv="Pragma" content="no-cache" />
+ <meta http-equiv="Expires" content="0" />
  <link rel="icon" type="image/jpeg" href="/favicon.jpg"/>
  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
  <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -36,5 +40,17 @@
  <body class="bg-slate-50 dark:bg-[#090d16] text-slate-900 dark:text-slate-100 font-sans antialiased tracking-tight" style="-webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;">
  <div id="root"></div>
  <script type="module" src="/src/main.jsx"></script>
+
+    <!-- Unregister Service Workers to forcefully clear PWA cache -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            registration.unregister();
+            console.log("Service Worker unregistered to clear cache");
+          }
+        });
+      }
+    </script>
  </body>
 </html>

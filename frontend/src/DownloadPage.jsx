@@ -153,8 +153,8 @@ export default function DownloadPage() {
               )}
             </div>
 
-          {/* Footer */}
-          <div className="w-full pt-16 pb-4 flex flex-col items-center justify-center mt-auto opacity-70 hover:opacity-100 transition-opacity">
+          {/* Fixed Footer */}
+          <div className="fixed bottom-6 left-0 w-full flex flex-col items-center justify-center pointer-events-auto opacity-70 hover:opacity-100 transition-opacity z-50">
             <span className="text-xs font-medium text-zinc-500">Built by</span>
             <a 
               href="https://ssn-portfolio.netlify.app/" 
