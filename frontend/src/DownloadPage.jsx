@@ -89,32 +89,39 @@ export default function DownloadPage() {
           
 
 
-          <div className="w-full flex flex-col items-center text-center space-y-8">
-            <div className="relative">
+          <div className="w-full flex flex-col items-center text-center space-y-8 mt-4">
+            
+            <div className="relative group">
+              <div className="absolute -inset-4 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full blur-2xl opacity-20 group-hover:opacity-40 transition duration-1000 animate-pulse"></div>
               {loading ? (
-                <div className="size-32 rounded-3xl bg-zinc-900 animate-pulse" />
+                <div className="relative size-32 rounded-[2rem] bg-zinc-900 animate-pulse" />
               ) : (
                 <img
                   src={appIconUrl || "/logo.jpg"}
                   alt={appName}
-                  className="size-32 rounded-3xl object-cover shadow-2xl"
+                  className="relative size-32 rounded-[2rem] object-cover shadow-2xl ring-1 ring-white/10"
                 />
               )}
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-3">
               {loading ? (
                 <div className="h-8 w-40 bg-zinc-900 rounded-lg animate-pulse mx-auto" />
               ) : (
-                <h1 className="text-2xl font-bold text-zinc-100 tracking-tight">
-                  {appName}
-                </h1>
+                <>
+                  <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-400 tracking-tight">
+                    {appName}
+                  </h1>
+                  <p className="text-sm font-medium text-zinc-500 max-w-[260px] mx-auto leading-relaxed">
+                    Get fresh groceries and daily essentials delivered right to your door.
+                  </p>
+                </>
               )}
             </div>
 
-            <div className="w-full space-y-3 pt-6">
+            <div className="w-full space-y-4 pt-6">
               {loading ? (
-                <div className="h-14 w-full bg-zinc-900 rounded-xl animate-pulse" />
+                <div className="h-14 w-full bg-zinc-900 rounded-2xl animate-pulse" />
               ) : (
                 <>
                   <a
@@ -122,22 +129,33 @@ export default function DownloadPage() {
                     download="narendra-kirana.apk"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full py-4 px-6 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 font-bold text-base flex items-center justify-center gap-2 transition-colors"
+                    className="group relative w-full py-4 px-6 rounded-2xl bg-gradient-to-b from-emerald-400 to-emerald-600 hover:from-emerald-300 hover:to-emerald-500 text-white font-bold text-lg flex items-center justify-center gap-3 shadow-[0_0_40px_-10px_rgba(16,185,129,0.5)] transition-all active:scale-95"
                   >
-                    <Download size={20} strokeWidth={2.5} />
+                    <Download size={22} strokeWidth={2.5} className="group-hover:-translate-y-0.5 transition-transform" />
                     <span>{buttonText}</span>
                   </a>
 
-                  <button
-                    type="button"
-                    disabled
-                    className="w-full py-4 px-6 rounded-xl bg-zinc-900/40 text-zinc-500 font-medium text-sm flex items-center justify-center gap-2.5 cursor-not-allowed border border-zinc-800/40"
-                  >
-                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className="opacity-70">
-                      <polygon points="5 3 19 12 5 21 5 3" />
-                    </svg>
-                    <span>Play Store (Coming Soon)</span>
-                  </button>
+                  <div className="flex items-center justify-center gap-2 pt-2">
+                    <div className="flex -space-x-2">
+                      <div className="size-6 rounded-full bg-zinc-800 border-2 border-[#09090b]"></div>
+                      <div className="size-6 rounded-full bg-zinc-700 border-2 border-[#09090b]"></div>
+                      <div className="size-6 rounded-full bg-zinc-600 border-2 border-[#09090b]"></div>
+                    </div>
+                    <span className="text-xs font-semibold text-zinc-500">Trusted by 1000+ customers</span>
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      disabled
+                      className="w-full py-4 px-6 rounded-2xl bg-zinc-900/50 text-zinc-500 font-semibold text-sm flex items-center justify-center gap-2.5 cursor-not-allowed border border-zinc-800/50"
+                    >
+                      <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className="opacity-70">
+                        <polygon points="5 3 19 12 5 21 5 3" />
+                      </svg>
+                      <span>Play Store (Coming Soon)</span>
+                    </button>
+                  </div>
                 </>
               )}
             </div>
