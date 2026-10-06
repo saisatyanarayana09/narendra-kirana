@@ -47,10 +47,10 @@ export default function DownloadPage() {
 
   const customerApkUrl = (rawUpdateUrl && !isPlayStoreUrl)
     ? rawUpdateUrl
-    : 'https://github.com/saisatyanarayana09/narendra-kirana/releases/download/latest/narendra-kirana.apk';
+    : '/download-apk/customer';
 
-  const ownerApkUrl = 'https://github.com/saisatyanarayana09/narendra-kirana/releases/download/owner-latest/narendra-kirana-owner.apk';
-  const deliveryApkUrl = 'https://github.com/saisatyanarayana09/narendra-kirana/releases/download/delivery-latest/narendra-kirana-delivery.apk';
+  const ownerApkUrl = '/download-apk/owner';
+  const deliveryApkUrl = '/download-apk/delivery';
 
   return (
     <div className="bg-[#09090b] text-zinc-100 antialiased font-sans relative select-none">

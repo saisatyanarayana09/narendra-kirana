@@ -1,8 +1,14 @@
 {
   "cleanUrls": false,
   "rewrites": [
-    { "source": "/.well-known/(.*)", "destination": "/.well-known/$1" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/.well-known/(.*)",
+      "destination": "/.well-known/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ],
   "headers": [
     {
@@ -78,6 +84,23 @@
           "value": "same-origin-allow-popups"
         }
       ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/download-apk/customer",
+      "destination": "https://github.com/saisatyanarayana09/narendra-kirana/releases/download/latest/narendra-kirana.apk",
+      "permanent": false
+    },
+    {
+      "source": "/download-apk/owner",
+      "destination": "https://github.com/saisatyanarayana09/narendra-kirana/releases/download/owner-latest/narendra-kirana-owner.apk",
+      "permanent": false
+    },
+    {
+      "source": "/download-apk/delivery",
+      "destination": "https://github.com/saisatyanarayana09/narendra-kirana/releases/download/delivery-latest/narendra-kirana-delivery.apk",
+      "permanent": false
     }
   ]
 }
