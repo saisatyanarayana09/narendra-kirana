@@ -3,9 +3,9 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Share, Alert } fr
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAppTheme } from '../../../../context/ThemeContext';
+import { useAppTheme } from '../../../context/ThemeContext';
 import * as Clipboard from 'expo-clipboard';
-import api from '../../../../services/api';
+import api from '../../../services/api';
 
 export default function ShareAppsScreen() {
   const router = useRouter();
@@ -79,7 +79,7 @@ export default function ShareAppsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+        <Text style={[styles.subtitle, { color: colors.textMuted }]}>
           Share these links with your customers and staff to download the apps directly.
         </Text>
 
@@ -91,7 +91,7 @@ export default function ShareAppsScreen() {
               </View>
               <View style={styles.cardTexts}>
                 <Text style={[styles.cardTitle, { color: colors.text }]}>{app.name}</Text>
-                <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>{app.description}</Text>
+                <Text style={[styles.cardDesc, { color: colors.textMuted }]}>{app.description}</Text>
               </View>
             </View>
 
