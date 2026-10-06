@@ -305,6 +305,42 @@ const Dashboard = () => {
           </div>
         </div>
 
+
+
+          {/* App Download Links */}
+          <div className="space-y-4 pt-6">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Share Apps</h2>
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 space-y-4">
+              <p className="text-sm text-slate-500 dark:text-slate-400">Share these links with your customers and staff to download the apps directly.</p>
+              
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
+                  <div>
+                    <p className="font-semibold text-slate-900 dark:text-white text-sm">Customer App</p>
+                    <p className="text-xs text-slate-500 mt-0.5">For your buyers</p>
+                  </div>
+                  <button onClick={() => { navigator.clipboard.writeText(window.location.origin + '/download-apk/customer'); alert('Link copied!'); }} className="px-3 py-1.5 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 rounded-lg text-xs font-bold transition-colors">Copy Link</button>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
+                  <div>
+                    <p className="font-semibold text-slate-900 dark:text-white text-sm">Delivery App</p>
+                    <p className="text-xs text-slate-500 mt-0.5">For your drivers</p>
+                  </div>
+                  <button onClick={() => { navigator.clipboard.writeText(window.location.origin + '/download-apk/delivery'); alert('Link copied!'); }} className="px-3 py-1.5 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-400 rounded-lg text-xs font-bold transition-colors">Copy Link</button>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
+                  <div>
+                    <p className="font-semibold text-slate-900 dark:text-white text-sm">Owner App</p>
+                    <p className="text-xs text-slate-500 mt-0.5">For management</p>
+                  </div>
+                  <button onClick={() => { navigator.clipboard.writeText(window.location.origin + '/download-apk/owner'); alert('Link copied!'); }} className="px-3 py-1.5 bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold transition-colors">Copy Link</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
         {/* Low Stock Alerts (1/3 width on large screens) */}
         <div className="space-y-6">
           <div className="flex items-center justify-between">
