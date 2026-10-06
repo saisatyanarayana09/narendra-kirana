@@ -135,14 +135,7 @@ export default function DownloadPage() {
                     <span>{buttonText}</span>
                   </a>
 
-                  <div className="flex items-center justify-center gap-2 pt-2">
-                    <div className="flex -space-x-2">
-                      <div className="size-6 rounded-full bg-zinc-800 border-2 border-[#09090b]"></div>
-                      <div className="size-6 rounded-full bg-zinc-700 border-2 border-[#09090b]"></div>
-                      <div className="size-6 rounded-full bg-zinc-600 border-2 border-[#09090b]"></div>
-                    </div>
-                    <span className="text-xs font-semibold text-zinc-500">Trusted by 1000+ customers</span>
-                  </div>
+                  
 
                   <div className="pt-2">
                     <button
@@ -159,6 +152,20 @@ export default function DownloadPage() {
                 </>
               )}
             </div>
+
+          {/* Footer */}
+          <div className="w-full pt-16 pb-4 flex flex-col items-center justify-center mt-auto opacity-70 hover:opacity-100 transition-opacity">
+            <span className="text-xs font-medium text-zinc-500">Built by</span>
+            <a 
+              href="https://github.com/saisatyanarayana09" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-sm font-bold text-zinc-300 hover:text-white hover:underline transition-colors mt-0.5"
+            >
+              Sai Satyanarayana
+            </a>
+            <span className="text-[10px] font-semibold text-zinc-600 tracking-widest uppercase mt-1">Full Stack Developer</span>
+          </div>
           </div>
         </div>
 
