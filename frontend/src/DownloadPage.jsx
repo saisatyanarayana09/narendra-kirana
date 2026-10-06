@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Package, Smartphone } from 'lucide-react';
+import { Download, Smartphone } from 'lucide-react';
 import api from './services/api';
 import { openAppOrFallback } from './components/SmartAppBanner';
 
@@ -30,6 +30,12 @@ export default function DownloadPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 sm:p-6 antialiased font-sans relative overflow-hidden select-none">
+      {/* Header with App Logo and Brand Name */}
+      <header className="absolute top-0 left-0 w-full p-4 sm:p-6 flex items-center gap-3 z-20">
+        <img src="/logo-transparent.png" alt="Logo" className="size-10 sm:size-12 object-contain drop-shadow-md" />
+        <span className="font-extrabold text-xl sm:text-2xl text-white tracking-tight">{appName}</span>
+      </header>
+
       {/* Subtle ambient lighting */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-emerald-600/10 blur-[120px] rounded-full" />
@@ -41,16 +47,12 @@ export default function DownloadPage() {
         <div className="relative group">
           {loading ? (
             <div className="size-28 sm:size-32 rounded-3xl bg-slate-900 border border-slate-800 animate-pulse" />
-          ) : appIconUrl ? (
+          ) : (
             <img
-              src={appIconUrl}
+              src={appIconUrl || "/logo.jpg"}
               alt={appName}
               className="size-28 sm:size-32 rounded-3xl object-cover shadow-2xl shadow-emerald-500/20 ring-1 ring-emerald-400/20 transition-transform duration-300 group-hover:scale-105"
             />
-          ) : (
-            <div className="size-28 sm:size-32 rounded-3xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 flex items-center justify-center shadow-2xl shadow-emerald-500/25 ring-1 ring-emerald-400/20 transition-transform duration-300 group-hover:scale-105">
-              <Package size={56} className="text-white drop-shadow-sm" />
-            </div>
           )}
         </div>
 
