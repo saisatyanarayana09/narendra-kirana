@@ -1,5 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import { GoogleSignin } from "../../utils/GoogleSigninWrapper";
+import { RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React, { useState, useEffect } from "react";
 import {
@@ -17,10 +17,10 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { apiClient } from "../../api/client";
-import { RouteProp } from "@react-navigation/native";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import type { AuthStackParamList } from "../../navigation/AuthStack";
+import { GoogleSignin } from "../../utils/GoogleSigninWrapper";
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "Signup">;
@@ -30,9 +30,9 @@ type Props = {
 export function SignupScreen({ navigation, route }: Props) {
   const { colors, isDark } = useTheme();
   const { loginWithGoogle, pendingRedirect, clearPendingRedirect } = useAuth();
-  
+
   const initialReferralCode = String(
-    route?.params?.referral_code || route?.params?.ref || ""
+    route?.params?.referral_code || route?.params?.ref || "",
   ).trim();
 
   const [form, setForm] = useState({
@@ -46,7 +46,9 @@ export function SignupScreen({ navigation, route }: Props) {
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [showReferralInput, setShowReferralInput] = useState(Boolean(initialReferralCode));
+  const [showReferralInput, setShowReferralInput] = useState(
+    Boolean(initialReferralCode),
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   // Sync referral code if it arrives after mount (e.g. runtime deep link)
@@ -238,7 +240,9 @@ export function SignupScreen({ navigation, route }: Props) {
   const handleGoogleSignup = async () => {
     try {
       setIsGoogleLoading(true);
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      await GoogleSignin.hasPlayServices({
+        showPlayServicesUpdateDialog: true,
+      });
       try {
         await GoogleSignin.signOut();
       } catch {
@@ -262,9 +266,10 @@ export function SignupScreen({ navigation, route }: Props) {
         error.response?.data?.detail || error.response?.data?.error;
       const errorMsg = backendDetail
         ? backendDetail
-        : error.code === "10" || String(error.message).includes("DEVELOPER_ERROR")
-        ? "Google Sign-In configuration error (Code 10). The APK SHA-1 fingerprint needs to be registered in Google Cloud Console."
-        : error.message || "Something went wrong.";
+        : error.code === "10" ||
+            String(error.message).includes("DEVELOPER_ERROR")
+          ? "Google Sign-In configuration error (Code 10). The APK SHA-1 fingerprint needs to be registered in Google Cloud Console."
+          : error.message || "Something went wrong.";
 
       Alert.alert("Google Sign-In Failed", errorMsg);
     } finally {

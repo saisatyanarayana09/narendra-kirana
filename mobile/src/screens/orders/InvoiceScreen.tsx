@@ -110,7 +110,9 @@ export function InvoiceScreen({
     });
   };
 
-  const orderDateObj = order?.created_at ? new Date(order.created_at) : new Date();
+  const orderDateObj = order?.created_at
+    ? new Date(order.created_at)
+    : new Date();
   const isOrderDateValid = !isNaN(orderDateObj.getTime());
   const orderDateFormatted = formatFullDateTime(order?.created_at);
   const invoiceDateFormatted = formatFullDateTime(new Date());
@@ -118,7 +120,9 @@ export function InvoiceScreen({
   const getInvoiceNumber = (ord: any) => {
     const rawId = String(ord?.id || orderId || "").trim();
     const d = ord?.created_at ? new Date(ord.created_at) : new Date();
-    const year = !isNaN(d.getTime()) ? d.getFullYear() : new Date().getFullYear();
+    const year = !isNaN(d.getTime())
+      ? d.getFullYear()
+      : new Date().getFullYear();
     if (rawId.toUpperCase().startsWith("ORD")) {
       return `INV-${year}-${rawId.toUpperCase()}`;
     }
@@ -220,7 +224,8 @@ export function InvoiceScreen({
     const storePhone = settings?.store_phone || "";
     const storeEmail = settings?.store_email || "";
     const gstin = settings?.gstin || "";
-    const fssai = settings?.fssai_license_number || settings?.fssai_number || "";
+    const fssai =
+      settings?.fssai_license_number || settings?.fssai_number || "";
     const methodText = getPaymentMethodDisplay();
 
     const itemsHtml = items
@@ -306,7 +311,7 @@ export function InvoiceScreen({
 </head>
 <body>
   <div class="paper">
-    ${isRejected ? '<div class="cancelled-stamp">CANCELLED</div>' : ''}
+    ${isRejected ? '<div class="cancelled-stamp">CANCELLED</div>' : ""}
     <div class="hdr">
       <div class="store-info">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
@@ -316,8 +321,8 @@ export function InvoiceScreen({
             <div class="tag">Grocery & Daily Essentials</div>
           </div>
         </div>
-        ${storeAddr ? `<p>📍 ${storeAddr}</p>` : ''}
-        ${storePhone || storeEmail ? `<p>📞 ${[storePhone, storeEmail].filter(Boolean).join(' • ')}</p>` : ''}
+        ${storeAddr ? `<p>📍 ${storeAddr}</p>` : ""}
+        ${storePhone || storeEmail ? `<p>📞 ${[storePhone, storeEmail].filter(Boolean).join(" • ")}</p>` : ""}
       </div>
       <div class="meta-box">
         <h2>TAX INVOICE</h2>
@@ -334,31 +339,31 @@ export function InvoiceScreen({
     ${
       gstin || fssai
         ? `<div class="compliance">
-        ${gstin ? `<div><b>GSTIN:</b> <span style="font-family:monospace;font-weight:700;">${gstin}</span></div>` : ''}
-        ${fssai ? `<div><b>FSSAI Lic. No:</b> <span style="font-family:monospace;font-weight:700;">${fssai}</span> <span style="background:#d1fae5;color:#065f46;font-size:8px;font-weight:800;padding:1px 4px;border-radius:3px;">Govt Reg.</span></div>` : ''}
+        ${gstin ? `<div><b>GSTIN:</b> <span style="font-family:monospace;font-weight:700;">${gstin}</span></div>` : ""}
+        ${fssai ? `<div><b>FSSAI Lic. No:</b> <span style="font-family:monospace;font-weight:700;">${fssai}</span> <span style="background:#d1fae5;color:#065f46;font-size:8px;font-weight:800;padding:1px 4px;border-radius:3px;">Govt Reg.</span></div>` : ""}
         <div style="color:#64748b;">Place of Supply: <b>State Code (09)</b></div>
       </div>`
-        : ''
+        : ""
     }
 
     <div class="grid">
       <div class="grid-col">
         <div class="grid-hdr">Billed / Shipped To</div>
-        <div class="grid-name">${order?.customer_name || `Customer #${order?.customer ?? '—'}`}</div>
-        ${order?.customer_phone ? `<div class="grid-row"><span>Phone:</span><b>${order.customer_phone}</b></div>` : ''}
+        <div class="grid-name">${order?.customer_name || `Customer #${order?.customer ?? "—"}`}</div>
+        ${order?.customer_phone ? `<div class="grid-row"><span>Phone:</span><b>${order.customer_phone}</b></div>` : ""}
         <div class="grid-row">
           <span>Address:</span>
-          <b>${isDelivery ? order?.delivery_address || 'Home Delivery' : 'Store Counter Pickup'}</b>
+          <b>${isDelivery ? order?.delivery_address || "Home Delivery" : "Store Counter Pickup"}</b>
         </div>
-        ${order?.delivery_pincode ? `<div class="grid-row"><span>PIN Code:</span><b>${order.delivery_pincode}</b></div>` : ''}
+        ${order?.delivery_pincode ? `<div class="grid-row"><span>PIN Code:</span><b>${order.delivery_pincode}</b></div>` : ""}
       </div>
 
       <div class="grid-col">
         <div class="grid-hdr">Fulfillment Details</div>
-        <div class="grid-row"><span>Mode:</span><b>${isDelivery ? 'Home Delivery' : 'Store Pickup'}</b></div>
-        ${order?.delivery_slot_label ? `<div class="grid-row"><span>Slot:</span><b style="color:#4f46e5;">${order?.delivery_slot_date || ''} (${order.delivery_slot_label})</b></div>` : ''}
-        <div class="grid-row"><span>Order Status:</span><b style="color:${order?.status === 'COMPLETED' ? '#059669' : isRejected ? '#e11d48' : '#334155'};">${order?.status}</b></div>
-        <div class="grid-row"><span>Payment Status:</span><b style="color:#059669;">${order?.status === 'COMPLETED' ? 'PAID' : isRejected ? 'CANCELLED' : 'DUE AT DELIVERY'}</b></div>
+        <div class="grid-row"><span>Mode:</span><b>${isDelivery ? "Home Delivery" : "Store Pickup"}</b></div>
+        ${order?.delivery_slot_label ? `<div class="grid-row"><span>Slot:</span><b style="color:#4f46e5;">${order?.delivery_slot_date || ""} (${order.delivery_slot_label})</b></div>` : ""}
+        <div class="grid-row"><span>Order Status:</span><b style="color:${order?.status === "COMPLETED" ? "#059669" : isRejected ? "#e11d48" : "#334155"};">${order?.status}</b></div>
+        <div class="grid-row"><span>Payment Status:</span><b style="color:#059669;">${order?.status === "COMPLETED" ? "PAID" : isRejected ? "CANCELLED" : "DUE AT DELIVERY"}</b></div>
       </div>
     </div>
 
@@ -383,18 +388,18 @@ export function InvoiceScreen({
           <span>Subtotal (${validItems.length} items)</span>
           <b>₹${(subtotal || 0).toFixed(2)}</b>
         </div>
-        ${parseFloat(order?.discount_applied || '0') > 0 ? `<div class="tot-row" style="color:#4f46e5;"><span>Product Savings</span><b>-₹${parseFloat(order.discount_applied).toFixed(2)}</b></div>` : ''}
-        ${parseFloat(order?.promo_discount || '0') > 0 ? `<div class="tot-row" style="color:#059669;"><span>Promo Code Discount</span><b>-₹${parseFloat(order.promo_discount).toFixed(2)}</b></div>` : ''}
-        ${parseFloat(order?.packaging_fee || '0') > 0 ? `<div class="tot-row"><span>Packaging Charges</span><b>₹${parseFloat(order.packaging_fee).toFixed(2)}</b></div>` : ''}
-        ${isDelivery ? `<div class="tot-row"><span>Delivery Charges</span><b>${parseFloat(order?.delivery_fee || '0') > 0 ? `₹${parseFloat(order.delivery_fee).toFixed(2)}` : 'FREE'}</b></div>` : ''}
-        ${parseFloat(order?.wallet_discount || '0') > 0 ? `<div class="tot-row" style="color:#059669;font-weight:700;"><span>Wallet Applied</span><b>-₹${parseFloat(order.wallet_discount).toFixed(2)}</b></div>` : ''}
+        ${parseFloat(order?.discount_applied || "0") > 0 ? `<div class="tot-row" style="color:#4f46e5;"><span>Product Savings</span><b>-₹${parseFloat(order.discount_applied).toFixed(2)}</b></div>` : ""}
+        ${parseFloat(order?.promo_discount || "0") > 0 ? `<div class="tot-row" style="color:#059669;"><span>Promo Code Discount</span><b>-₹${parseFloat(order.promo_discount).toFixed(2)}</b></div>` : ""}
+        ${parseFloat(order?.packaging_fee || "0") > 0 ? `<div class="tot-row"><span>Packaging Charges</span><b>₹${parseFloat(order.packaging_fee).toFixed(2)}</b></div>` : ""}
+        ${isDelivery ? `<div class="tot-row"><span>Delivery Charges</span><b>${parseFloat(order?.delivery_fee || "0") > 0 ? `₹${parseFloat(order.delivery_fee).toFixed(2)}` : "FREE"}</b></div>` : ""}
+        ${parseFloat(order?.wallet_discount || "0") > 0 ? `<div class="tot-row" style="color:#059669;font-weight:700;"><span>Wallet Applied</span><b>-₹${parseFloat(order.wallet_discount).toFixed(2)}</b></div>` : ""}
         <div class="tot-row" style="border-top:1px solid #f1f5f9;padding-top:6px;">
           <span>Payment Mode</span>
           <b style="text-align:right;">${methodText}</b>
         </div>
         <div class="tot-grand">
-          <span>${order?.status === 'COMPLETED' ? 'TOTAL AMOUNT PAID' : 'TOTAL AMOUNT DUE'}</span>
-          <span class="big">₹${(parseFloat(order?.total_amount || '0') || 0).toFixed(2)}</span>
+          <span>${order?.status === "COMPLETED" ? "TOTAL AMOUNT PAID" : "TOTAL AMOUNT DUE"}</span>
+          <span class="big">₹${(parseFloat(order?.total_amount || "0") || 0).toFixed(2)}</span>
         </div>
       </div>
     </div>
@@ -440,7 +445,9 @@ export function InvoiceScreen({
       setDownloading(true);
       let html = "";
       try {
-        const res = await apiClient.get(`/orders/${orderId || order?.id}/invoice/`);
+        const res = await apiClient.get(
+          `/orders/${orderId || order?.id}/invoice/`,
+        );
         if (res.data?.html) {
           html = res.data.html;
         }
@@ -581,7 +588,9 @@ export function InvoiceScreen({
 
       let html = "";
       try {
-        const res = await apiClient.get(`/orders/${orderId || order?.id}/invoice/`);
+        const res = await apiClient.get(
+          `/orders/${orderId || order?.id}/invoice/`,
+        );
         if (res.data?.html) {
           html = res.data.html;
         }
@@ -880,15 +889,24 @@ export function InvoiceScreen({
                     <Text style={styles.docStoreName}>
                       {settings?.store_name || "Narendra Kirana Store"}
                     </Text>
-                    <Text style={styles.docStoreTag}>GROCERY & DAILY ESSENTIALS</Text>
+                    <Text style={styles.docStoreTag}>
+                      GROCERY & DAILY ESSENTIALS
+                    </Text>
                   </View>
                 </View>
 
                 <View style={styles.docContactWrap}>
                   {settings?.store_address ? (
                     <View style={styles.docContactRow}>
-                      <Ionicons name="location-outline" size={13} color="#94a3b8" style={{ marginTop: 1 }} />
-                      <Text style={styles.docContactText}>{settings.store_address}</Text>
+                      <Ionicons
+                        name="location-outline"
+                        size={13}
+                        color="#94a3b8"
+                        style={{ marginTop: 1 }}
+                      />
+                      <Text style={styles.docContactText}>
+                        {settings.store_address}
+                      </Text>
                     </View>
                   ) : null}
 
@@ -896,17 +914,29 @@ export function InvoiceScreen({
                     <View style={styles.docContactRow}>
                       {settings?.store_phone ? (
                         <View style={styles.docInlineMeta}>
-                          <Ionicons name="call-outline" size={12} color="#94a3b8" />
-                          <Text style={styles.docContactText}>{settings.store_phone}</Text>
+                          <Ionicons
+                            name="call-outline"
+                            size={12}
+                            color="#94a3b8"
+                          />
+                          <Text style={styles.docContactText}>
+                            {settings.store_phone}
+                          </Text>
                         </View>
                       ) : null}
-                      {Boolean(settings?.store_phone && settings?.store_email) && (
-                        <Text style={styles.docMetaDot}>•</Text>
-                      )}
+                      {Boolean(
+                        settings?.store_phone && settings?.store_email,
+                      ) && <Text style={styles.docMetaDot}>•</Text>}
                       {settings?.store_email ? (
                         <View style={styles.docInlineMeta}>
-                          <Ionicons name="mail-outline" size={12} color="#94a3b8" />
-                          <Text style={styles.docContactText}>{settings.store_email}</Text>
+                          <Ionicons
+                            name="mail-outline"
+                            size={12}
+                            color="#94a3b8"
+                          />
+                          <Text style={styles.docContactText}>
+                            {settings.store_email}
+                          </Text>
                         </View>
                       ) : null}
                     </View>
@@ -919,7 +949,9 @@ export function InvoiceScreen({
                 <View style={styles.docMetaHeadingRow}>
                   <Text style={styles.docTaxInvoiceHeading}>TAX INVOICE</Text>
                   <View style={styles.docOriginalBadge}>
-                    <Text style={styles.docOriginalBadgeText}>ORIGINAL FOR RECIPIENT</Text>
+                    <Text style={styles.docOriginalBadgeText}>
+                      ORIGINAL FOR RECIPIENT
+                    </Text>
                   </View>
                 </View>
 
@@ -930,7 +962,9 @@ export function InvoiceScreen({
                   </View>
                   <View style={styles.docMetaRow}>
                     <Text style={styles.docMetaLabel}>Invoice Date:</Text>
-                    <Text style={styles.docMetaValSimple}>{invoiceDateFormatted}</Text>
+                    <Text style={styles.docMetaValSimple}>
+                      {invoiceDateFormatted}
+                    </Text>
                   </View>
                   <View style={styles.docMetaRow}>
                     <Text style={styles.docMetaLabel}>Order Reference:</Text>
@@ -938,14 +972,20 @@ export function InvoiceScreen({
                   </View>
                   <View style={styles.docMetaRow}>
                     <Text style={styles.docMetaLabel}>Order Date:</Text>
-                    <Text style={styles.docMetaValSimple}>{orderDateFormatted}</Text>
+                    <Text style={styles.docMetaValSimple}>
+                      {orderDateFormatted}
+                    </Text>
                   </View>
                 </View>
               </View>
             </View>
 
             {/* Compliance Strip (GSTIN & FSSAI) */}
-            {Boolean(settings?.gstin || settings?.fssai_license_number || settings?.fssai_number) && (
+            {Boolean(
+              settings?.gstin ||
+              settings?.fssai_license_number ||
+              settings?.fssai_number,
+            ) && (
               <View style={styles.complianceStrip}>
                 {settings?.gstin ? (
                   <View style={styles.complianceItem}>
@@ -953,9 +993,13 @@ export function InvoiceScreen({
                     <Text style={styles.complianceVal}>{settings.gstin}</Text>
                   </View>
                 ) : null}
-                {Boolean(settings?.fssai_license_number || settings?.fssai_number) ? (
+                {settings?.fssai_license_number || settings?.fssai_number ? (
                   <View style={styles.complianceItem}>
-                    <Ionicons name="checkmark-circle" size={13} color="#059669" />
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={13}
+                      color="#059669"
+                    />
                     <Text style={styles.complianceLabel}>FSSAI Lic. No:</Text>
                     <Text style={styles.complianceVal}>
                       {settings?.fssai_license_number || settings?.fssai_number}
@@ -966,7 +1010,10 @@ export function InvoiceScreen({
                   </View>
                 ) : null}
                 <Text style={styles.placeOfSupplyText}>
-                  Place of Supply: <Text style={{ fontWeight: "800", color: "#1e293b" }}>State Code (09)</Text>
+                  Place of Supply:{" "}
+                  <Text style={{ fontWeight: "800", color: "#1e293b" }}>
+                    State Code (09)
+                  </Text>
                 </Text>
               </View>
             )}
@@ -982,7 +1029,9 @@ export function InvoiceScreen({
                 {order.customer_phone ? (
                   <View style={styles.infoSubRow}>
                     <Ionicons name="call-outline" size={12} color="#94a3b8" />
-                    <Text style={styles.infoSubText}>{order.customer_phone}</Text>
+                    <Text style={styles.infoSubText}>
+                      {order.customer_phone}
+                    </Text>
                   </View>
                 ) : null}
                 <View style={{ paddingTop: 3 }}>
@@ -992,7 +1041,9 @@ export function InvoiceScreen({
                       : "Store Counter Pickup"}
                   </Text>
                   {order.delivery_pincode ? (
-                    <Text style={styles.infoPinText}>PIN: {order.delivery_pincode}</Text>
+                    <Text style={styles.infoPinText}>
+                      PIN: {order.delivery_pincode}
+                    </Text>
                   ) : null}
                 </View>
               </View>
@@ -1009,15 +1060,24 @@ export function InvoiceScreen({
                 {order.delivery_slot_label ? (
                   <View style={styles.infoDetailLine}>
                     <Text style={styles.infoDetailLabel}>Scheduled Slot:</Text>
-                    <Text style={[styles.infoDetailVal, { color: "#4338ca", fontWeight: "800" }]}>
-                      {order.delivery_slot_date ? `${order.delivery_slot_date} ` : ""}
+                    <Text
+                      style={[
+                        styles.infoDetailVal,
+                        { color: "#4338ca", fontWeight: "800" },
+                      ]}
+                    >
+                      {order.delivery_slot_date
+                        ? `${order.delivery_slot_date} `
+                        : ""}
                       ({order.delivery_slot_label})
                     </Text>
                   </View>
                 ) : order.pickup_time ? (
                   <View style={styles.infoDetailLine}>
                     <Text style={styles.infoDetailLabel}>Pickup Slot:</Text>
-                    <Text style={styles.infoDetailVal}>{order.pickup_time}</Text>
+                    <Text style={styles.infoDetailVal}>
+                      {order.pickup_time}
+                    </Text>
                   </View>
                 ) : null}
                 <View style={styles.infoDetailLine}>
@@ -1068,26 +1128,66 @@ export function InvoiceScreen({
             {/* Items Table */}
             <View style={styles.itemsTableCard}>
               <View style={styles.tableHeaderRow}>
-                <Text style={[styles.tableColHead, { width: 24, textAlign: "center" }]}>#</Text>
-                <Text style={[styles.tableColHead, { flex: 1 }]}>ITEM DESCRIPTION</Text>
-                <Text style={[styles.tableColHead, { width: 34, textAlign: "center" }]}>QTY</Text>
-                <Text style={[styles.tableColHead, { width: 58, textAlign: "right" }]}>RATE (₹)</Text>
-                <Text style={[styles.tableColHead, { width: 68, textAlign: "right" }]}>AMOUNT (₹)</Text>
+                <Text
+                  style={[
+                    styles.tableColHead,
+                    { width: 24, textAlign: "center" },
+                  ]}
+                >
+                  #
+                </Text>
+                <Text style={[styles.tableColHead, { flex: 1 }]}>
+                  ITEM DESCRIPTION
+                </Text>
+                <Text
+                  style={[
+                    styles.tableColHead,
+                    { width: 34, textAlign: "center" },
+                  ]}
+                >
+                  QTY
+                </Text>
+                <Text
+                  style={[
+                    styles.tableColHead,
+                    { width: 58, textAlign: "right" },
+                  ]}
+                >
+                  RATE (₹)
+                </Text>
+                <Text
+                  style={[
+                    styles.tableColHead,
+                    { width: 68, textAlign: "right" },
+                  ]}
+                >
+                  AMOUNT (₹)
+                </Text>
               </View>
 
               {(order.items || []).map((item: any, idx: number) => {
                 const qty = Number(item.quantity || 1);
                 const price =
-                  parseFloat(item.price_snapshot || item.price_at_order || "0") || 0;
+                  parseFloat(
+                    item.price_snapshot || item.price_at_order || "0",
+                  ) || 0;
                 const lineTotal = parseFloat(item.subtotal) || price * qty;
                 const isRej = item.status === "REJECTED";
 
                 return (
                   <View
                     key={item.id || idx}
-                    style={[styles.tableBodyRow, isRej && styles.tableBodyRowRejected]}
+                    style={[
+                      styles.tableBodyRow,
+                      isRej && styles.tableBodyRowRejected,
+                    ]}
                   >
-                    <Text style={[styles.tableCellNum, isRej && { color: "#94a3b8" }]}>
+                    <Text
+                      style={[
+                        styles.tableCellNum,
+                        isRej && { color: "#94a3b8" },
+                      ]}
+                    >
                       {idx + 1}
                     </Text>
                     <View style={{ flex: 1, paddingRight: 6 }}>
@@ -1095,25 +1195,37 @@ export function InvoiceScreen({
                         <Text
                           style={[
                             styles.tableCellItemName,
-                            isRej && { textDecorationLine: "line-through", color: "#94a3b8" },
+                            isRej && {
+                              textDecorationLine: "line-through",
+                              color: "#94a3b8",
+                            },
                           ]}
                         >
-                          {item.product_name_snapshot || item.product_name || "Item"}
+                          {item.product_name_snapshot ||
+                            item.product_name ||
+                            "Item"}
                         </Text>
                         {isRej ? (
                           <View style={styles.unavailableBadge}>
-                            <Text style={styles.unavailableBadgeText}>UNAVAILABLE</Text>
+                            <Text style={styles.unavailableBadgeText}>
+                              UNAVAILABLE
+                            </Text>
                           </View>
                         ) : null}
                       </View>
                       {item.unit_snapshot ? (
-                        <Text style={styles.tableCellItemUnit}>{item.unit_snapshot}</Text>
+                        <Text style={styles.tableCellItemUnit}>
+                          {item.unit_snapshot}
+                        </Text>
                       ) : null}
                     </View>
                     <Text
                       style={[
                         styles.tableCellQty,
-                        isRej && { color: "#94a3b8", textDecorationLine: "line-through" },
+                        isRej && {
+                          color: "#94a3b8",
+                          textDecorationLine: "line-through",
+                        },
                       ]}
                     >
                       {qty}
@@ -1121,12 +1233,20 @@ export function InvoiceScreen({
                     <Text
                       style={[
                         styles.tableCellRate,
-                        isRej && { color: "#94a3b8", textDecorationLine: "line-through" },
+                        isRej && {
+                          color: "#94a3b8",
+                          textDecorationLine: "line-through",
+                        },
                       ]}
                     >
                       {price.toFixed(2)}
                     </Text>
-                    <Text style={[styles.tableCellTotal, isRej && { color: "#94a3b8" }]}>
+                    <Text
+                      style={[
+                        styles.tableCellTotal,
+                        isRej && { color: "#94a3b8" },
+                      ]}
+                    >
                       {isRej ? "0.00" : lineTotal.toFixed(2)}
                     </Text>
                   </View>
@@ -1142,12 +1262,18 @@ export function InvoiceScreen({
                     <Text style={styles.totalLineLabel}>
                       Subtotal ({validItems.length} items)
                     </Text>
-                    <Text style={styles.totalLineVal}>₹{(subtotal || 0).toFixed(2)}</Text>
+                    <Text style={styles.totalLineVal}>
+                      ₹{(subtotal || 0).toFixed(2)}
+                    </Text>
                   </View>
 
                   {parseFloat(order.discount_applied || "0") > 0 ? (
                     <View style={styles.totalLineRow}>
-                      <Text style={[styles.totalLineLabel, { color: "#4338ca" }]}>Product Savings</Text>
+                      <Text
+                        style={[styles.totalLineLabel, { color: "#4338ca" }]}
+                      >
+                        Product Savings
+                      </Text>
                       <Text style={[styles.totalLineVal, { color: "#4338ca" }]}>
                         -₹{parseFloat(order.discount_applied).toFixed(2)}
                       </Text>
@@ -1156,7 +1282,11 @@ export function InvoiceScreen({
 
                   {parseFloat(order.promo_discount || "0") > 0 ? (
                     <View style={styles.totalLineRow}>
-                      <Text style={[styles.totalLineLabel, { color: "#047857" }]}>Promo Discount</Text>
+                      <Text
+                        style={[styles.totalLineLabel, { color: "#047857" }]}
+                      >
+                        Promo Discount
+                      </Text>
                       <Text style={[styles.totalLineVal, { color: "#047857" }]}>
                         -₹{parseFloat(order.promo_discount).toFixed(2)}
                       </Text>
@@ -1185,7 +1315,11 @@ export function InvoiceScreen({
 
                   {parseFloat(order.wallet_discount || "0") > 0 ? (
                     <View style={styles.totalLineRow}>
-                      <Text style={[styles.totalLineLabel, { color: "#047857" }]}>Wallet Applied</Text>
+                      <Text
+                        style={[styles.totalLineLabel, { color: "#047857" }]}
+                      >
+                        Wallet Applied
+                      </Text>
                       <Text style={[styles.totalLineVal, { color: "#047857" }]}>
                         -₹{parseFloat(order.wallet_discount).toFixed(2)}
                       </Text>
@@ -1195,17 +1329,25 @@ export function InvoiceScreen({
                   <View
                     style={[
                       styles.totalLineRow,
-                      { borderTopWidth: 1, borderTopColor: "#f1f5f9", paddingTop: 5 },
+                      {
+                        borderTopWidth: 1,
+                        borderTopColor: "#f1f5f9",
+                        paddingTop: 5,
+                      },
                     ]}
                   >
                     <Text style={styles.totalLineLabel}>Payment Mode</Text>
-                    <Text style={[styles.totalLineVal, { textAlign: "right" }]}>{methodText}</Text>
+                    <Text style={[styles.totalLineVal, { textAlign: "right" }]}>
+                      {methodText}
+                    </Text>
                   </View>
                 </View>
 
                 <View style={styles.grandTotalBanner}>
                   <Text style={styles.grandTotalBannerLabel}>
-                    {order.status === "COMPLETED" ? "TOTAL AMOUNT PAID" : "TOTAL AMOUNT DUE"}
+                    {order.status === "COMPLETED"
+                      ? "TOTAL AMOUNT PAID"
+                      : "TOTAL AMOUNT DUE"}
                   </Text>
                   <Text style={styles.grandTotalBannerAmount}>
                     ₹{(parseFloat(order.total_amount || "0") || 0).toFixed(2)}
@@ -1218,7 +1360,11 @@ export function InvoiceScreen({
             <View style={styles.docFooterRow}>
               <View style={styles.docTermsCol}>
                 <View style={styles.docTermsHeader}>
-                  <Ionicons name="checkmark-circle-outline" size={13} color="#059669" />
+                  <Ionicons
+                    name="checkmark-circle-outline"
+                    size={13}
+                    color="#059669"
+                  />
                   <Text style={styles.docTermsTitle}>TERMS & CONDITIONS</Text>
                 </View>
                 {termsList.map((termLine: string, idx: number) => (
@@ -1227,7 +1373,8 @@ export function InvoiceScreen({
                   </Text>
                 ))}
                 <Text style={styles.docStoreGreeting}>
-                  Thank you for shopping with {settings?.store_name || "Narendra Kirana Store"}!
+                  Thank you for shopping with{" "}
+                  {settings?.store_name || "Narendra Kirana Store"}!
                 </Text>
               </View>
 
@@ -1247,7 +1394,9 @@ export function InvoiceScreen({
                   )}
                 </View>
                 <Text style={styles.docSigLabel}>Authorized Signatory</Text>
-                <Text style={styles.docSigSubLabel}>COMPUTER GENERATED INVOICE</Text>
+                <Text style={styles.docSigSubLabel}>
+                  COMPUTER GENERATED INVOICE
+                </Text>
               </View>
             </View>
           </View>

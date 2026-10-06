@@ -491,6 +491,7 @@ const ProductCard = memo(
     );
   }
 );
+ProductCard.displayName = 'ProductCard';
 
 // ─── Main Products List Screen ───
 export default function ProductsListScreen() {
@@ -527,7 +528,9 @@ export default function ProductsListScreen() {
   const scrollOffsetRef = useRef<number>(0);
   const listRef = useRef<FlatList>(null);
   const productsRef = useRef<any[]>(products);
-  productsRef.current = products;
+  useEffect(() => {
+    productsRef.current = products;
+  }, [products]);
 
   // Fetch Products & Categories
   const fetchProducts = useCallback(

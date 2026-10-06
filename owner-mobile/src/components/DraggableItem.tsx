@@ -49,8 +49,8 @@ export function DraggableItem({
   const isDragging = activeDragIndex === index;
   const isHoveredTarget = activeDragIndex !== null && hoverIndex === index && !isDragging;
 
-  const translateY = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const translateY = useMemo(() => new Animated.Value(0), []);
+  const scaleAnim = useMemo(() => new Animated.Value(1), []);
   const measuredHeight = useRef<number>(itemHeight);
   const targetIndexRef = useRef<number>(index);
 

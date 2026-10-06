@@ -144,13 +144,16 @@ export function NotificationsScreen({
 
   const handleAction = (item: any) => {
     markAsRead(item.id);
-    const actionUrl = item.action_url || item.data?.action_url || item.data?.url;
-    
+    const actionUrl =
+      item.action_url || item.data?.action_url || item.data?.url;
+
     if (actionUrl) {
       if (actionUrl.includes("order")) {
         const orderId = actionUrl.split("/").pop();
         if (orderId && !isNaN(Number(orderId))) {
-          navigation.navigate("OrderTrackingScreen", { orderId: Number(orderId) });
+          navigation.navigate("OrderTrackingScreen", {
+            orderId: Number(orderId),
+          });
           return;
         }
         navigation.navigate("Main", { screen: "Orders" } as any);
@@ -159,7 +162,9 @@ export function NotificationsScreen({
       if (actionUrl.includes("product")) {
         const prodId = actionUrl.split("/").pop();
         if (prodId && !isNaN(Number(prodId))) {
-          navigation.navigate("ProductDetailScreen", { productId: Number(prodId) });
+          navigation.navigate("ProductDetailScreen", {
+            productId: Number(prodId),
+          });
           return;
         }
       }
@@ -375,7 +380,9 @@ export function NotificationsScreen({
           <Text style={[styles.headerTitle, { color: colors.text }]}>
             Notifications
           </Text>
-          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
+          <Text
+            style={[styles.headerSubtitle, { color: colors.textSecondary }]}
+          >
             Updates about your orders, exclusive offers and alerts.
           </Text>
         </View>
@@ -490,7 +497,10 @@ export function NotificationsScreen({
                 onPress={() => handleAction(item)}
                 style={[
                   styles.notificationCard,
-                  { backgroundColor: colors.surface, borderColor: colors.border },
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
                   !isRead && {
                     backgroundColor: isDark
                       ? "rgba(5, 150, 105, 0.12)"
@@ -514,9 +524,7 @@ export function NotificationsScreen({
                         color={theme.color}
                       />
                     </View>
-                    <Text
-                      style={[styles.catBadgeText, { color: theme.color }]}
-                    >
+                    <Text style={[styles.catBadgeText, { color: theme.color }]}>
                       {theme.badgeLabel}
                     </Text>
                   </View>

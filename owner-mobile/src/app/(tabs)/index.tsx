@@ -142,6 +142,7 @@ const BentoActionCard = React.memo(
     );
   }
 );
+BentoActionCard.displayName = 'BentoActionCard';
 
 interface LowStockRowItemProps {
   item: any;
@@ -287,6 +288,7 @@ const LowStockRowItem = React.memo(
     );
   }
 );
+LowStockRowItem.displayName = 'LowStockRowItem';
 
 export default function DashboardScreen() {
   const router = useRouter();

@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getItemSync } from "../utils/storage";
+
 import { STORAGE_KEYS } from "../constants/config";
+import { getItemSync } from "../utils/storage";
 
 const getCacheKey = () => {
   try {

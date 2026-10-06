@@ -227,6 +227,7 @@ const CustomerCard = React.memo<CustomerCardProps>(
     );
   }
 );
+CustomerCard.displayName = 'CustomerCard';
 
 export default function CustomersScreen() {
   const { colors, isDark } = useAppTheme();

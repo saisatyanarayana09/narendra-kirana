@@ -1,4 +1,3 @@
-import { GoogleSignin } from "../utils/GoogleSigninWrapper";
 import React, {
   createContext,
   useContext,
@@ -13,13 +12,14 @@ import { DeviceEventEmitter, Platform } from "react-native";
 import { apiClient } from "../api/client";
 import { STORAGE_KEYS } from "../constants/config";
 import { favoritesService } from "../services/favoritesService";
+import { clearHomeDataCache } from "../services/homeDataCache";
 import {
   registerForPushNotificationsAsync,
   unregisterPushNotificationsAsync,
 } from "../services/notificationService";
 import { clearCachedOrders } from "../services/ordersCache";
 import { clearUserProfileCache } from "../services/profileCache";
-import { clearHomeDataCache } from "../services/homeDataCache";
+import { GoogleSignin } from "../utils/GoogleSigninWrapper";
 import { getItem, getItemSync, saveItem, deleteItem } from "../utils/storage";
 import { resetWelcomeSession } from "../utils/welcomeSession";
 
@@ -58,7 +58,9 @@ type AuthContextType = {
   refreshUser: () => Promise<void>;
 };
 
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(
+  undefined,
+);
 
 // Try to read user from memoryStore synchronously (populated by preloadKeys)
 function tryGetSyncUser(): User | null {
@@ -203,7 +205,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch {}
 
       // 5. Clear web Service Worker / PWA cache storage if running on web
-      if (Platform.OS === "web" && typeof window !== "undefined" && "caches" in window) {
+      if (
+        Platform.OS === "web" &&
+        typeof window !== "undefined" &&
+        "caches" in window
+      ) {
         try {
           const cacheKeys = await caches.keys();
           await Promise.all(cacheKeys.map((k) => caches.delete(k)));

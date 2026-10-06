@@ -46,7 +46,11 @@ export async function saveItem(key: string, value: string): Promise<void> {
 export function getItemSync(key: string): string | null {
   const inMem = memoryStore.get(key);
   if (inMem !== undefined) return inMem;
-  if (Platform.OS === "web" && typeof window !== "undefined" && window.localStorage) {
+  if (
+    Platform.OS === "web" &&
+    typeof window !== "undefined" &&
+    window.localStorage
+  ) {
     try {
       const val = window.localStorage.getItem(key);
       if (val !== null) {

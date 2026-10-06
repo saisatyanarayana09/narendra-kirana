@@ -1,4 +1,4 @@
-import { Feather, Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React, { useState, useEffect, useRef } from "react";
 import {
@@ -8,17 +8,13 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
-  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTheme } from "../context/ThemeContext";
-import {
-  addNotificationReceivedListener,
-  getNotifications,
-} from "../services/notificationService";
-import { triggerHaptic } from "../utils/haptics";
 import { navigationRef } from "../navigation/RootNavigator";
+import { addNotificationReceivedListener } from "../services/notificationService";
+import { triggerHaptic } from "../utils/haptics";
 
 const { width } = Dimensions.get("window");
 
@@ -49,7 +45,9 @@ export function InAppNotificationBanner() {
       const title = content.title || "Notification";
       const body = content.body || "";
       const imageUrl =
-        payloadData.image_url || payloadData.image || content.attachments?.[0]?.url;
+        payloadData.image_url ||
+        payloadData.image ||
+        content.attachments?.[0]?.url;
       const category = payloadData.category || "SYSTEM";
       const actionUrl = payloadData.action_url;
 
@@ -161,7 +159,9 @@ export function InAppNotificationBanner() {
         const orderId = actionUrl.split("/").pop();
         if (orderId && !isNaN(Number(orderId))) {
           if (navigationRef.isReady()) {
-            (navigationRef as any).navigate("OrderTrackingScreen", { orderId: Number(orderId) });
+            (navigationRef as any).navigate("OrderTrackingScreen", {
+              orderId: Number(orderId),
+            });
           }
           return;
         }
@@ -174,7 +174,9 @@ export function InAppNotificationBanner() {
         const prodId = actionUrl.split("/").pop();
         if (prodId && !isNaN(Number(prodId))) {
           if (navigationRef.isReady()) {
-            (navigationRef as any).navigate("ProductDetailScreen", { productId: Number(prodId) });
+            (navigationRef as any).navigate("ProductDetailScreen", {
+              productId: Number(prodId),
+            });
           }
           return;
         }
@@ -220,10 +222,7 @@ export function InAppNotificationBanner() {
           />
         ) : (
           <View
-            style={[
-              styles.iconCircle,
-              { backgroundColor: catConfig.bgColor },
-            ]}
+            style={[styles.iconCircle, { backgroundColor: catConfig.bgColor }]}
           >
             <Feather name={catConfig.icon} size={20} color={catConfig.color} />
           </View>

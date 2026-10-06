@@ -831,7 +831,7 @@ export default function CommonSmartScannerScreen() {
             >
               <Ionicons name="keypad-outline" size={17} color="#10b981" />
               <Text style={[styles.manualTriggerText, { color: colors.text }]}>
-                Can't scan? Enter Barcode or SKU Manually
+                {"Can't scan? Enter Barcode or SKU Manually"}
               </Text>
             </TouchableOpacity>
           </View>

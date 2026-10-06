@@ -30,7 +30,10 @@ export async function loadHomeData(): Promise<CachedHomeData | null> {
       if (raw) {
         const parsed: CachedHomeData | null = JSON.parse(raw);
         // Only use cache if it has actual data
-        if (parsed && (parsed.categories?.length > 0 || parsed.sections?.length > 0)) {
+        if (
+          parsed &&
+          (parsed.categories?.length > 0 || parsed.sections?.length > 0)
+        ) {
           memoryCache = parsed;
           return parsed;
         }

@@ -103,7 +103,7 @@ apiClient.interceptors.response.use(
 
       const is5xxGatewayError = Boolean(
         error?.response?.status &&
-          [502, 503, 504].includes(error.response.status),
+        [502, 503, 504].includes(error.response.status),
       );
 
       const isColdStartOrTransient =
@@ -161,11 +161,23 @@ apiClient.interceptors.response.use(
           // Ensure a safe fallback response structure so component catch blocks don't crash
           if (!error.response) {
             error.response = {
-              status: isTimeout ? 408 : is5xxGatewayError ? error.response?.status : 0,
-              statusText: isTimeout ? "Request Timeout" : is5xxGatewayError ? "Gateway Error" : "Network Error",
+              status: isTimeout
+                ? 408
+                : is5xxGatewayError
+                  ? error.response?.status
+                  : 0,
+              statusText: isTimeout
+                ? "Request Timeout"
+                : is5xxGatewayError
+                  ? "Gateway Error"
+                  : "Network Error",
               data: {
                 detail: error.message,
-                error: isTimeout ? "Request Timeout" : is5xxGatewayError ? "Gateway Error" : "Network Error",
+                error: isTimeout
+                  ? "Request Timeout"
+                  : is5xxGatewayError
+                    ? "Gateway Error"
+                    : "Network Error",
               },
               headers: {},
               config: error.config,

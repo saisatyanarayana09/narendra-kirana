@@ -1,3 +1,4 @@
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useState, useEffect, useRef } from "react";
 import {
   View,
@@ -10,7 +11,6 @@ import {
   StatusBar,
   Dimensions,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
@@ -44,7 +44,7 @@ export function WelcomeScreen({
 
   // Instantly block screen
   const mainFadeAnim = useRef(new Animated.Value(shouldShow ? 1 : 0)).current;
-  
+
   // Cinematic Animation values
   const bgOpacityAnim = useRef(new Animated.Value(0)).current; // Fades from Pitch Black to Deep Green
   const spotlightY = useRef(new Animated.Value(-height)).current;
@@ -108,7 +108,7 @@ export function WelcomeScreen({
           duration: 1000,
           delay: 1100, // Slightly after brand text
           useNativeDriver: USE_NATIVE_DRIVER,
-        })
+        }),
       ]).start();
 
       timerRef.current = setTimeout(() => {
@@ -158,23 +158,31 @@ export function WelcomeScreen({
       animationType="none"
       onRequestClose={dismiss}
     >
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-      
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="transparent"
+        translucent
+      />
+
       {/* Base Layer: Pitch Black */}
       <Animated.View style={[styles.overlay, { opacity: mainFadeAnim }]}>
-        
         {/* Transition Layer: Brand Emerald */}
-        <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: colors.primary, opacity: bgOpacityAnim }]} />
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: colors.primary, opacity: bgOpacityAnim },
+          ]}
+        />
 
         {/* The Spotlight Light Beam */}
         <Animated.View
           style={[
             styles.spotlightWrapper,
-            { transform: [{ translateY: spotlightY }, { rotate: '-25deg' }] }
+            { transform: [{ translateY: spotlightY }, { rotate: "-25deg" }] },
           ]}
         >
           <LinearGradient
-            colors={['transparent', 'rgba(255,255,255,0.25)', 'transparent']}
+            colors={["transparent", "rgba(255,255,255,0.25)", "transparent"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 0, y: 1 }}
             style={StyleSheet.absoluteFill}
@@ -199,8 +207,13 @@ export function WelcomeScreen({
             </View>
           </Animated.View>
 
-          <Animated.View style={[styles.brandRow, { opacity: textFadeAnim, paddingHorizontal: 24 }]}>
-            <Text 
+          <Animated.View
+            style={[
+              styles.brandRow,
+              { opacity: textFadeAnim, paddingHorizontal: 24 },
+            ]}
+          >
+            <Text
               style={styles.brandText}
               numberOfLines={1}
               adjustsFontSizeToFit
@@ -215,7 +228,6 @@ export function WelcomeScreen({
             </Text>
           </Animated.View>
         </View>
-
       </Animated.View>
     </Modal>
   );

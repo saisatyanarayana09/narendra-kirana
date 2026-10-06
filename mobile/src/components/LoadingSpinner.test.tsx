@@ -8,13 +8,23 @@ describe("LoadingSpinner", () => {
     jest.useFakeTimers();
   });
 
+  afterAll(() => {
+    jest.useRealTimers();
+  });
+
   it("renders correctly as a small spinner by default", () => {
-    const tree = renderer.create(<LoadingSpinner />).toJSON();
+    let tree: any;
+    renderer.act(() => {
+      tree = renderer.create(<LoadingSpinner />).toJSON();
+    });
     expect(tree).toMatchSnapshot();
   });
 
   it("renders correctly in fullScreen mode", () => {
-    const tree = renderer.create(<LoadingSpinner fullScreen />).toJSON();
+    let tree: any;
+    renderer.act(() => {
+      tree = renderer.create(<LoadingSpinner fullScreen />).toJSON();
+    });
     expect(tree).toMatchSnapshot();
   });
 });

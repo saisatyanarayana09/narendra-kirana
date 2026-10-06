@@ -5,7 +5,7 @@ import {
   getFocusedRouteNameFromRoute,
 } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Platform, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -237,14 +237,11 @@ export function MainTabs() {
     0,
   );
 
-
   // Pre-warm both homeDataCache and ordersCache when user is present or on component mount
   useEffect(() => {
     loadHomeData().catch(() => {});
     loadCachedOrders().catch(() => {});
   }, [user]);
-
-
 
   // Optimize Android bottom padding
   const bottomPadding = Math.max(

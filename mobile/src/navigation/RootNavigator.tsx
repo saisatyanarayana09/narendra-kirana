@@ -171,9 +171,9 @@ export function parseDeepLinkUrl(url: string): ParsedDeepLink | null {
       const qp = parsed.queryParams || {};
       const refCode = String(
         qp.ref ||
-        qp.code ||
-        qp.referral_code ||
-        (segments[0] === "refer" && segments[1] ? segments[1] : "")
+          qp.code ||
+          qp.referral_code ||
+          (segments[0] === "refer" && segments[1] ? segments[1] : ""),
       ).trim();
 
       return {
@@ -291,8 +291,8 @@ const linking = {
           Welcome: "welcome",
           Login: "login",
           Signup: "signup",
-            ResetPasswordScreen: "reset-password",
-            ForgotPasswordScreen: "forgot-password",
+          ResetPasswordScreen: "reset-password",
+          ForgotPasswordScreen: "forgot-password",
         },
       },
       Main: {

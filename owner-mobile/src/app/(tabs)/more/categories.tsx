@@ -234,6 +234,7 @@ const CategoryItem = React.memo<CategoryItemProps>(
     );
   }
 );
+CategoryItem.displayName = 'CategoryItem';
 
 export default function CategoriesScreen() {
   const { colors, isDark } = useAppTheme();

@@ -431,6 +431,7 @@ const OrderCard = React.memo(({
     prev.detailData === next.detailData
   );
 });
+OrderCard.displayName = 'OrderCard';
 
 export default function OrdersListScreen() {
   const { token } = useAuth();

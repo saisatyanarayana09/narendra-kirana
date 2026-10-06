@@ -36,7 +36,6 @@ import { useCart } from "../../context/CartContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { useTheme } from "../../context/ThemeContext";
 import { AppNavigationProp } from "../../navigation/types";
-import { favoritesService } from "../../services/favoritesService";
 import {
   loadHomeData,
   saveHomeData,
@@ -362,7 +361,7 @@ const SearchTicker = React.memo(function SearchTicker({
 
 export function HomeScreen({ navigation }: Props) {
   const { user } = useAuth();
-  const { } = useCart();
+  const {} = useCart();
   const { colors, isDark } = useTheme();
   const { t, language, setLanguage } = useLanguage();
 
@@ -420,7 +419,6 @@ export function HomeScreen({ navigation }: Props) {
     outputRange: [0, width - 32 - collapsedSearchBarWidth],
     extrapolate: "clamp",
   });
-
 
   // Keep text slightly visible or crossfade it smoothly
   const headerSearchOpacity = scrollY.interpolate({
@@ -502,11 +500,6 @@ export function HomeScreen({ navigation }: Props) {
   };
 
   // Favorites state synced via favoritesService
-  
-
-  
-
-  
 
   const fetchHomeData = async () => {
     try {
@@ -616,15 +609,7 @@ export function HomeScreen({ navigation }: Props) {
 
     // 2. Fetch fresh data in background (SWR - stale while revalidate)
     fetchHomeData();
-
-    
   }, [user]);
-
-  
-
-  
-
-  
 
   const handleCategoryPress = useCallback(
     (c: any) => {
@@ -686,7 +671,6 @@ export function HomeScreen({ navigation }: Props) {
   const onRefresh = () => {
     setRefreshing(true);
     fetchHomeData();
-    
   };
 
   const customSearches = React.useMemo(() => {

@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { Alert } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { ProductCard, Product } from './ProductCard';
-import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext';
-import { favoritesService } from '../services/favoritesService';
-import { AppNavigationProp } from '../navigation/types';
+import { useNavigation } from "@react-navigation/native";
+import React, { useState, useEffect } from "react";
+import { Alert } from "react-native";
+
+import { ProductCard, Product } from "./ProductCard";
+import { useAuth } from "../context/AuthContext";
+import { useCart } from "../context/CartContext";
+import { AppNavigationProp } from "../navigation/types";
+import { favoritesService } from "../services/favoritesService";
 
 interface Props {
   product: Product;
@@ -15,8 +16,10 @@ export const ConnectedProductCard = React.memo(({ product }: Props) => {
   const { cartQuantityMap, addToCart } = useCart();
   const { user } = useAuth();
   const navigation = useNavigation<AppNavigationProp>();
-  
-  const [isFavorite, setIsFavorite] = useState(favoritesService.getFavoriteIds().has(product.id));
+
+  const [isFavorite, setIsFavorite] = useState(
+    favoritesService.getFavoriteIds().has(product.id),
+  );
 
   useEffect(() => {
     const handleFavChange = () => {

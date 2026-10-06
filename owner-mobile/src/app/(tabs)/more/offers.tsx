@@ -149,6 +149,7 @@ const OfferCard = React.memo<OfferCardProps>(
     prev.onTogglePromo === next.onTogglePromo &&
     prev.onDeletePromo === next.onDeletePromo
 );
+OfferCard.displayName = 'OfferCard';
 
 export default function OffersScreen() {
   const router = useRouter();

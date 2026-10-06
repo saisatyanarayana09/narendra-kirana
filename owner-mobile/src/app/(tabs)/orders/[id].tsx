@@ -791,7 +791,7 @@ export default function OrderDetailsScreen() {
                   ]}
                   numberOfLines={2}
                 >
-                  Customer note: "{order.customer_note}"
+                  {`Customer note: "${order.customer_note}"`}
                 </Text>
               </View>
             ) : null}
@@ -1340,7 +1340,7 @@ export default function OrderDetailsScreen() {
                   ]}
                   numberOfLines={2}
                 >
-                  "{order.customer_note}"
+                  {`"${order.customer_note}"`}
                 </Text>
               </View>
             ) : null}

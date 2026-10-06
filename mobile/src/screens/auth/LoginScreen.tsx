@@ -1,5 +1,4 @@
 import { Feather, AntDesign } from "@expo/vector-icons";
-import { GoogleSignin } from "../../utils/GoogleSigninWrapper";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React, { useState } from "react";
 import {
@@ -19,6 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import type { AuthStackParamList } from "../../navigation/AuthStack";
+import { GoogleSignin } from "../../utils/GoogleSigninWrapper";
 
 GoogleSignin.configure({
   webClientId:
@@ -71,7 +71,9 @@ export function LoginScreen({ navigation }: Props) {
 
     try {
       setIsGoogleLoading(true);
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      await GoogleSignin.hasPlayServices({
+        showPlayServicesUpdateDialog: true,
+      });
       try {
         await GoogleSignin.signOut();
       } catch {
@@ -95,9 +97,10 @@ export function LoginScreen({ navigation }: Props) {
         error.response?.data?.detail || error.response?.data?.error;
       const errorMsg = backendDetail
         ? backendDetail
-        : error.code === "10" || String(error.message).includes("DEVELOPER_ERROR")
-        ? "Google Sign-In configuration error (Code 10). The APK SHA-1 fingerprint needs to be registered in Google Cloud Console."
-        : error.message || "Something went wrong.";
+        : error.code === "10" ||
+            String(error.message).includes("DEVELOPER_ERROR")
+          ? "Google Sign-In configuration error (Code 10). The APK SHA-1 fingerprint needs to be registered in Google Cloud Console."
+          : error.message || "Something went wrong.";
 
       Alert.alert("Google Sign-In Failed", errorMsg);
     } finally {

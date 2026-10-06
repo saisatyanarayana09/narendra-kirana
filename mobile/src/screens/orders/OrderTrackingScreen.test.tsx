@@ -1,10 +1,6 @@
-import React from 'react';
-import { render } from '@testing-library/react-native';
-import { OrderTrackingScreen } from './OrderTrackingScreen';
-
 // This is an auto-generated CodiumAI baseline test
-describe('OrderTrackingScreen Component', () => {
-  it('renders without crashing', () => {
+describe("OrderTrackingScreen Component", () => {
+  it("renders without crashing", () => {
     // Basic instantiation test (requires props mocking for full render)
     expect(true).toBeTruthy();
   });

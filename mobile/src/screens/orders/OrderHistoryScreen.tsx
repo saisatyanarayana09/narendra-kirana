@@ -32,44 +32,158 @@ const SkeletonCard = ({ colors, isDark }: { colors: any; isDark: boolean }) => {
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 800, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0.4, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulse, {
+          toValue: 0.4,
+          duration: 800,
+          useNativeDriver: true,
+        }),
       ]),
     ).start();
   }, []);
   const b = isDark ? "#1E293B" : "#F1F5F9";
   return (
-    <Animated.View style={[s.premiumCard, { backgroundColor: colors.surface, opacity: pulse, padding: 16 }]}>
+    <Animated.View
+      style={[
+        s.premiumCard,
+        { backgroundColor: colors.surface, opacity: pulse, padding: 16 },
+      ]}
+    >
       <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <View style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: b }} />
+        <View
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: 12,
+            backgroundColor: b,
+          }}
+        />
         <View style={{ flex: 1, marginLeft: 16, gap: 8 }}>
-          <View style={{ width: 120, height: 16, backgroundColor: b, borderRadius: 4 }} />
-          <View style={{ width: 180, height: 12, backgroundColor: b, borderRadius: 4 }} />
+          <View
+            style={{
+              width: 120,
+              height: 16,
+              backgroundColor: b,
+              borderRadius: 4,
+            }}
+          />
+          <View
+            style={{
+              width: 180,
+              height: 12,
+              backgroundColor: b,
+              borderRadius: 4,
+            }}
+          />
         </View>
-        <View style={{ width: 60, height: 18, backgroundColor: b, borderRadius: 4 }} />
+        <View
+          style={{ width: 60, height: 18, backgroundColor: b, borderRadius: 4 }}
+        />
       </View>
     </Animated.View>
   );
 };
 
 /* ─── Status Helper ─── */
-type StatusMeta = { bg: string; text: string; border: string; icon: string; label: string };
+type StatusMeta = {
+  bg: string;
+  text: string;
+  border: string;
+  icon: string;
+  label: string;
+};
 
 const STATUS_MAP_LIGHT: Record<string, StatusMeta> = {
-  COMPLETED: { bg: "#ECFDF5", text: "#047857", border: "#A7F3D0", icon: "check-circle", label: "Delivered" },
-  REJECTED: { bg: "#FFF1F2", text: "#BE123C", border: "#FECDD3", icon: "x-circle", label: "Cancelled" },
-  READY: { bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE", icon: "truck", label: "Ready" },
-  PREPARING: { bg: "#FFFBEB", text: "#B45309", border: "#FDE68A", icon: "loader", label: "Preparing" },
-  NEW: { bg: "#EEF2FF", text: "#4338CA", border: "#C7D2FE", icon: "clock", label: "Placed" },
-  DEFAULT: { bg: "#F8FAFC", text: "#475569", border: "#E2E8F0", icon: "info", label: "Order" },
+  COMPLETED: {
+    bg: "#ECFDF5",
+    text: "#047857",
+    border: "#A7F3D0",
+    icon: "check-circle",
+    label: "Delivered",
+  },
+  REJECTED: {
+    bg: "#FFF1F2",
+    text: "#BE123C",
+    border: "#FECDD3",
+    icon: "x-circle",
+    label: "Cancelled",
+  },
+  READY: {
+    bg: "#EFF6FF",
+    text: "#1D4ED8",
+    border: "#BFDBFE",
+    icon: "truck",
+    label: "Ready",
+  },
+  PREPARING: {
+    bg: "#FFFBEB",
+    text: "#B45309",
+    border: "#FDE68A",
+    icon: "loader",
+    label: "Preparing",
+  },
+  NEW: {
+    bg: "#EEF2FF",
+    text: "#4338CA",
+    border: "#C7D2FE",
+    icon: "clock",
+    label: "Placed",
+  },
+  DEFAULT: {
+    bg: "#F8FAFC",
+    text: "#475569",
+    border: "#E2E8F0",
+    icon: "info",
+    label: "Order",
+  },
 };
 const STATUS_MAP_DARK: Record<string, StatusMeta> = {
-  COMPLETED: { bg: "rgba(16,185,129,0.15)", text: "#34D399", border: "rgba(16,185,129,0.3)", icon: "check-circle", label: "Delivered" },
-  REJECTED: { bg: "rgba(244,63,94,0.15)", text: "#FB7185", border: "rgba(244,63,94,0.3)", icon: "x-circle", label: "Cancelled" },
-  READY: { bg: "rgba(59,130,246,0.15)", text: "#60A5FA", border: "rgba(59,130,246,0.3)", icon: "truck", label: "Ready" },
-  PREPARING: { bg: "rgba(245,158,11,0.15)", text: "#FBBF24", border: "rgba(245,158,11,0.3)", icon: "loader", label: "Preparing" },
-  NEW: { bg: "rgba(99,102,241,0.15)", text: "#818CF8", border: "rgba(99,102,241,0.3)", icon: "clock", label: "Placed" },
-  DEFAULT: { bg: "rgba(148,163,184,0.15)", text: "#94A3B8", border: "rgba(148,163,184,0.3)", icon: "info", label: "Order" },
+  COMPLETED: {
+    bg: "rgba(16,185,129,0.15)",
+    text: "#34D399",
+    border: "rgba(16,185,129,0.3)",
+    icon: "check-circle",
+    label: "Delivered",
+  },
+  REJECTED: {
+    bg: "rgba(244,63,94,0.15)",
+    text: "#FB7185",
+    border: "rgba(244,63,94,0.3)",
+    icon: "x-circle",
+    label: "Cancelled",
+  },
+  READY: {
+    bg: "rgba(59,130,246,0.15)",
+    text: "#60A5FA",
+    border: "rgba(59,130,246,0.3)",
+    icon: "truck",
+    label: "Ready",
+  },
+  PREPARING: {
+    bg: "rgba(245,158,11,0.15)",
+    text: "#FBBF24",
+    border: "rgba(245,158,11,0.3)",
+    icon: "loader",
+    label: "Preparing",
+  },
+  NEW: {
+    bg: "rgba(99,102,241,0.15)",
+    text: "#818CF8",
+    border: "rgba(99,102,241,0.3)",
+    icon: "clock",
+    label: "Placed",
+  },
+  DEFAULT: {
+    bg: "rgba(148,163,184,0.15)",
+    text: "#94A3B8",
+    border: "rgba(148,163,184,0.3)",
+    icon: "info",
+    label: "Order",
+  },
 };
 
 /* ─── Date Formatter ─── */
@@ -78,7 +192,11 @@ const fmtDate = (d: string) => {
     const dt = new Date(d);
     const day = dt.getDate();
     const mon = dt.toLocaleDateString("en-US", { month: "short" });
-    const hr = dt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+    const hr = dt.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
     return `${day} ${mon}, ${hr}`;
   } catch {
     return d;
@@ -86,13 +204,19 @@ const fmtDate = (d: string) => {
 };
 
 /* ─── Main Screen ─── */
-export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationProp }) {
+export function OrderHistoryScreen({
+  navigation,
+}: {
+  navigation: AppNavigationProp;
+}) {
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
 
   const cachedOrders = getCachedOrdersSync();
   const [orders, setOrders] = useState<any[]>(cachedOrders || []);
-  const [loading, setLoading] = useState(!cachedOrders || cachedOrders.length === 0);
+  const [loading, setLoading] = useState(
+    !cachedOrders || cachedOrders.length === 0,
+  );
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
@@ -103,7 +227,9 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
   const [statusFilter, setStatusFilter] = useState("ALL");
 
   const requestIdRef = useRef(0);
-  const hasRenderedRef = useRef(Boolean(cachedOrders && cachedOrders.length > 0));
+  const hasRenderedRef = useRef(
+    Boolean(cachedOrders && cachedOrders.length > 0),
+  );
 
   useEffect(() => {
     if (user) {
@@ -124,8 +250,15 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
     }
   }, [user, searchQuery, statusFilter]);
 
-  const fetchOrders = async (pageNum: number, isRefresh = false, isLoadMore = false) => {
-    if (!user) { setLoading(false); return; }
+  const fetchOrders = async (
+    pageNum: number,
+    isRefresh = false,
+    isLoadMore = false,
+  ) => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     if (isLoadMore) {
       if (loadingMore || !hasMore || loading || refreshing) return;
       setLoadingMore(true);
@@ -140,7 +273,7 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
       let url = `/orders/?page=${pageNum}&page_size=5`;
       if (searchQuery) url += `&search=${searchQuery}`;
       if (statusFilter !== "ALL") url += `&status=${statusFilter}`;
-      
+
       const res = await apiClient.get(url);
       if (reqId !== requestIdRef.current) return;
       const raw = res.data;
@@ -158,7 +291,8 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
       setHasMore(Boolean(raw?.next));
       setPage(pageNum);
     } catch (e: any) {
-      if (e?.response?.status !== 401) console.error("Error fetching orders:", e);
+      if (e?.response?.status !== 401)
+        console.error("Error fetching orders:", e);
     } finally {
       if (reqId === requestIdRef.current) {
         if (isLoadMore) setLoadingMore(false);
@@ -174,14 +308,25 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
   };
 
   const statusMeta = useCallback(
-    (st: string): StatusMeta => (isDark ? STATUS_MAP_DARK : STATUS_MAP_LIGHT)[st] || (isDark ? STATUS_MAP_DARK : STATUS_MAP_LIGHT).DEFAULT,
+    (st: string): StatusMeta =>
+      (isDark ? STATUS_MAP_DARK : STATUS_MAP_LIGHT)[st] ||
+      (isDark ? STATUS_MAP_DARK : STATUS_MAP_LIGHT).DEFAULT,
     [isDark],
   );
 
   /* ─── Header Component ─── */
   const Header = () => (
-    <View style={[s.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-      <TouchableOpacity onPress={handleBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={s.backBtn}>
+    <View
+      style={[
+        s.header,
+        { backgroundColor: colors.surface, borderBottomColor: colors.border },
+      ]}
+    >
+      <TouchableOpacity
+        onPress={handleBack}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        style={s.backBtn}
+      >
         <Feather name="arrow-left" size={22} color={colors.text} />
       </TouchableOpacity>
       <Text style={[s.headerTitle, { color: colors.text }]}>My Orders</Text>
@@ -200,16 +345,20 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
   const renderItem = useCallback(
     ({ item }: { item: any }) => {
       const meta = statusMeta(item.status);
-      const total = (parseFloat(String(item?.total_amount || 0)) || 0).toFixed(2);
+      const total = (parseFloat(String(item?.total_amount || 0)) || 0).toFixed(
+        2,
+      );
       const count = item.items?.length || 0;
-      
+
       const firstItem = item.items?.[0];
       const additionalCount = count > 1 ? count - 1 : 0;
 
-      const images = (item.items || []).map((i: any) => i.product_image).filter(Boolean);
+      const images = (item.items || [])
+        .map((i: any) => i.product_image)
+        .filter(Boolean);
       const displayImages = images.slice(0, 4);
       const extraImages = images.length > 4 ? images.length - 4 : 0;
-      
+
       const pileCount = displayImages.length + (extraImages > 0 ? 1 : 0);
       const OFFSET_X = 14;
       const OFFSET_Y = 6;
@@ -219,56 +368,92 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
       return (
         <TouchableOpacity
           activeOpacity={0.7}
-          onPress={() => navigation.navigate("OrderTrackingScreen", { orderId: item.id, initialOrder: item })}
+          onPress={() =>
+            navigation.navigate("OrderTrackingScreen", {
+              orderId: item.id,
+              initialOrder: item,
+            })
+          }
           style={[s.premiumCard, { backgroundColor: colors.surface }]}
         >
           {/* Top Row: Order ID & Status */}
-          <View style={[s.pcHeader, { borderBottomColor: isDark ? "#334155" : "#F1F5F9" }]}>
+          <View
+            style={[
+              s.pcHeader,
+              { borderBottomColor: isDark ? "#334155" : "#F1F5F9" },
+            ]}
+          >
             <Text style={[s.pcOrderId, { color: colors.text }]}>{item.id}</Text>
             <View style={[s.pcStatusPill, { backgroundColor: meta.bg }]}>
-              <Text style={[s.pcStatusText, { color: meta.text }]}>{meta.label}</Text>
+              <Text style={[s.pcStatusText, { color: meta.text }]}>
+                {meta.label}
+              </Text>
             </View>
           </View>
 
           {/* Middle Row: Image Pile & Text */}
           <View style={s.pcBody}>
             {/* Left: Diagonal Stack */}
-            <View style={{ width: pileWidth, height: pileHeight, marginRight: 16 }}>
+            <View
+              style={{ width: pileWidth, height: pileHeight, marginRight: 16 }}
+            >
               {displayImages.length > 0 ? (
                 displayImages.map((img: string, idx: number) => (
-                  <View 
-                    key={idx} 
+                  <View
+                    key={idx}
                     style={[
-                      s.pcThumbnailShadowBox, 
-                      { 
+                      s.pcThumbnailShadowBox,
+                      {
                         position: "absolute",
                         backgroundColor: isDark ? "#1E293B" : "#F8FAFC",
                         zIndex: 10 - idx,
                         left: idx * OFFSET_X,
                         top: (pileCount - 1 - idx) * OFFSET_Y,
-                      }
+                      },
                     ]}
                   >
                     <Image source={{ uri: img }} style={s.pcThumbnail} />
                   </View>
                 ))
               ) : (
-                <View style={[s.pcThumbnailShadowBox, { position: "absolute", left: 0, top: 0, backgroundColor: isDark ? "#1E293B" : "#F8FAFC", justifyContent: "center", alignItems: "center" }]}>
-                  <Feather name="shopping-bag" size={20} color={colors.primary} />
+                <View
+                  style={[
+                    s.pcThumbnailShadowBox,
+                    {
+                      position: "absolute",
+                      left: 0,
+                      top: 0,
+                      backgroundColor: isDark ? "#1E293B" : "#F8FAFC",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    },
+                  ]}
+                >
+                  <Feather
+                    name="shopping-bag"
+                    size={20}
+                    color={colors.primary}
+                  />
                 </View>
               )}
               {extraImages > 0 && (
-                <View style={[
-                  s.pcThumbnailExtra, 
-                  { 
-                    position: "absolute",
-                    backgroundColor: isDark ? "#334155" : "#E2E8F0",
-                    zIndex: 1,
-                    left: displayImages.length * OFFSET_X,
-                    top: 0
-                  }
-                ]}>
-                  <Text style={[s.pcThumbnailExtraText, { color: colors.text }]}>+{extraImages}</Text>
+                <View
+                  style={[
+                    s.pcThumbnailExtra,
+                    {
+                      position: "absolute",
+                      backgroundColor: isDark ? "#334155" : "#E2E8F0",
+                      zIndex: 1,
+                      left: displayImages.length * OFFSET_X,
+                      top: 0,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[s.pcThumbnailExtraText, { color: colors.text }]}
+                  >
+                    +{extraImages}
+                  </Text>
                 </View>
               )}
             </View>
@@ -277,16 +462,34 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
             <View style={s.pcItemDetails}>
               {firstItem ? (
                 <View style={s.pcSummaryBlock}>
-                  <Text style={[s.pcItemsText, { color: colors.text }]} numberOfLines={1}>
+                  <Text
+                    style={[s.pcItemsText, { color: colors.text }]}
+                    numberOfLines={1}
+                  >
                     {firstItem.product_name_snapshot}
                   </Text>
-                  <Text style={[s.pcMoreText, { color: additionalCount > 0 ? colors.textSecondary : 'transparent' }]} numberOfLines={1}>
-                    {additionalCount > 0 ? `+ ${additionalCount} more` : ' '}
+                  <Text
+                    style={[
+                      s.pcMoreText,
+                      {
+                        color:
+                          additionalCount > 0
+                            ? colors.textSecondary
+                            : "transparent",
+                      },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {additionalCount > 0 ? `+ ${additionalCount} more` : " "}
                   </Text>
                 </View>
               ) : (
                 <View style={s.pcSummaryBlock}>
-                  <Text style={[s.pcItemsText, { color: colors.textSecondary }]}>No items</Text>
+                  <Text
+                    style={[s.pcItemsText, { color: colors.textSecondary }]}
+                  >
+                    No items
+                  </Text>
                   <Text style={s.pcMoreText}> </Text>
                 </View>
               )}
@@ -294,12 +497,20 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
           </View>
 
           {/* Bottom Row: Date & Price */}
-          <View style={[s.pcFooter, { borderTopColor: isDark ? "#334155" : "#F1F5F9" }]}>
+          <View
+            style={[
+              s.pcFooter,
+              { borderTopColor: isDark ? "#334155" : "#F1F5F9" },
+            ]}
+          >
             <Text style={[s.pcDate, { color: colors.textSecondary }]}>
               {fmtDate(item.created_at)}
             </Text>
             <View style={s.pcPriceBox}>
-              <Text style={[s.pcTotal, { color: colors.text }]}>{'\u20B9'}{total}</Text>
+              <Text style={[s.pcTotal, { color: colors.text }]}>
+                {"\u20B9"}
+                {total}
+              </Text>
             </View>
           </View>
         </TouchableOpacity>
@@ -309,7 +520,10 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
   );
 
   const renderFooter = useCallback(
-    () => (loadingMore ? <ActivityIndicator style={{ margin: 16 }} color={colors.primary} /> : null),
+    () =>
+      loadingMore ? (
+        <ActivityIndicator style={{ margin: 16 }} color={colors.primary} />
+      ) : null,
     [loadingMore, colors.primary],
   );
 
@@ -320,13 +534,28 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
     PREPARING: "Preparing",
     READY: "Ready",
     COMPLETED: "Delivered",
-    REJECTED: "Cancelled"
+    REJECTED: "Cancelled",
   };
 
   const FilterBar = () => (
-    <View style={[s.filterBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-      <View style={[s.searchBox, { backgroundColor: isDark ? "#1E293B" : "#F1F5F9" }]}>
-        <Feather name="search" size={16} color={colors.textSecondary} style={{ marginRight: 8 }} />
+    <View
+      style={[
+        s.filterBar,
+        { backgroundColor: colors.surface, borderBottomColor: colors.border },
+      ]}
+    >
+      <View
+        style={[
+          s.searchBox,
+          { backgroundColor: isDark ? "#1E293B" : "#F1F5F9" },
+        ]}
+      >
+        <Feather
+          name="search"
+          size={16}
+          color={colors.textSecondary}
+          style={{ marginRight: 8 }}
+        />
         <TextInput
           style={[s.searchInput, { color: colors.text }]}
           placeholder="Search Order ID..."
@@ -342,19 +571,34 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
         )}
       </View>
       <View style={s.scrollViewWrap}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.pillsContainer}>
-          {FILTERS.map(f => (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={s.pillsContainer}
+        >
+          {FILTERS.map((f) => (
             <TouchableOpacity
               key={f}
               onPress={() => setStatusFilter(f)}
               style={[
                 s.pill,
                 statusFilter === f
-                  ? { backgroundColor: colors.primary, borderColor: colors.primary }
-                  : { backgroundColor: colors.background, borderColor: colors.border }
+                  ? {
+                      backgroundColor: colors.primary,
+                      borderColor: colors.primary,
+                    }
+                  : {
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                    },
               ]}
             >
-              <Text style={[s.pillText, { color: statusFilter === f ? "#FFF" : colors.text }]}>
+              <Text
+                style={[
+                  s.pillText,
+                  { color: statusFilter === f ? "#FFF" : colors.text },
+                ]}
+              >
                 {filterLabels[f]}
               </Text>
             </TouchableOpacity>
@@ -367,13 +611,23 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
   /* ─── Guest State ─── */
   if (!user) {
     return (
-      <SafeAreaView style={[s.container, { backgroundColor: colors.background }]} edges={["top"]}>
+      <SafeAreaView
+        style={[s.container, { backgroundColor: colors.background }]}
+        edges={["top"]}
+      >
         <Header />
         <View style={s.emptyWrap}>
-          <View style={[s.emptyIcon, { backgroundColor: isDark ? "rgba(5,150,105,0.15)" : "#ECFDF5" }]}>
+          <View
+            style={[
+              s.emptyIcon,
+              { backgroundColor: isDark ? "rgba(5,150,105,0.15)" : "#ECFDF5" },
+            ]}
+          >
             <Feather name="shopping-bag" size={40} color={colors.primary} />
           </View>
-          <Text style={[s.emptyTitle, { color: colors.text }]}>Sign in to view orders</Text>
+          <Text style={[s.emptyTitle, { color: colors.text }]}>
+            Sign in to view orders
+          </Text>
           <Text style={[s.emptySubtitle, { color: colors.textSecondary }]}>
             Track your live order status, view bills, and reorder easily.
           </Text>
@@ -382,7 +636,12 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
             onPress={() => navigation.navigate("Login" as any)}
             activeOpacity={0.85}
           >
-            <Feather name="log-in" size={16} color="#FFF" style={{ marginRight: 8 }} />
+            <Feather
+              name="log-in"
+              size={16}
+              color="#FFF"
+              style={{ marginRight: 8 }}
+            />
             <Text style={s.ctaBtnText}>Sign In / Register</Text>
           </TouchableOpacity>
         </View>
@@ -391,9 +650,19 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
   }
 
   /* ─── Loading Skeleton ─── */
-  if (loading && page === 1 && !refreshing && orders.length === 0 && !searchQuery && statusFilter === "ALL") {
+  if (
+    loading &&
+    page === 1 &&
+    !refreshing &&
+    orders.length === 0 &&
+    !searchQuery &&
+    statusFilter === "ALL"
+  ) {
     return (
-      <SafeAreaView style={[s.container, { backgroundColor: colors.background }]} edges={["top"]}>
+      <SafeAreaView
+        style={[s.container, { backgroundColor: colors.background }]}
+        edges={["top"]}
+      >
         <Header />
         <FilterBar />
         <View style={{ padding: 16, gap: 10 }}>
@@ -407,15 +676,28 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
 
   /* ─── Main View ─── */
   return (
-    <SafeAreaView style={[s.container, { backgroundColor: colors.background }]} edges={["top"]}>
+    <SafeAreaView
+      style={[s.container, { backgroundColor: colors.background }]}
+      edges={["top"]}
+    >
       <Header />
       <FilterBar />
       {orders.length === 0 ? (
         <View style={s.emptyWrap}>
-          <View style={[s.emptyIcon, { backgroundColor: isDark ? "rgba(5,150,105,0.2)" : "#ECFDF5", borderColor: isDark ? "rgba(5,150,105,0.4)" : "#A7F3D0" }]}>
+          <View
+            style={[
+              s.emptyIcon,
+              {
+                backgroundColor: isDark ? "rgba(5,150,105,0.2)" : "#ECFDF5",
+                borderColor: isDark ? "rgba(5,150,105,0.4)" : "#A7F3D0",
+              },
+            ]}
+          >
             <Feather name="package" size={40} color={colors.primary} />
           </View>
-          <Text style={[s.emptyTitle, { color: colors.text }]}>No orders yet</Text>
+          <Text style={[s.emptyTitle, { color: colors.text }]}>
+            No orders yet
+          </Text>
           <Text style={[s.emptySubtitle, { color: colors.textSecondary }]}>
             Once you place an order, it will show up here.
           </Text>
@@ -440,13 +722,19 @@ export function OrderHistoryScreen({ navigation }: { navigation: AppNavigationPr
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={() => { setPage(1); fetchOrders(1, true); }}
+              onRefresh={() => {
+                setPage(1);
+                fetchOrders(1, true);
+              }}
               colors={[colors.primary]}
               tintColor={colors.primary}
             />
           }
           renderItem={renderItem}
-          onEndReached={() => { if (hasMore && !loading && !refreshing && !loadingMore) fetchOrders(page + 1, false, true); }}
+          onEndReached={() => {
+            if (hasMore && !loading && !refreshing && !loadingMore)
+              fetchOrders(page + 1, false, true);
+          }}
           onEndReachedThreshold={0.4}
           ListFooterComponent={renderFooter}
         />
@@ -494,8 +782,19 @@ const s = StyleSheet.create({
     borderBottomWidth: 1,
   },
   pcOrderId: { fontSize: 16, fontWeight: "800", letterSpacing: -0.2 },
-  pcStatusPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, alignItems: "center", justifyContent: "center" },
-  pcStatusText: { fontSize: 11, fontWeight: "800", letterSpacing: 0.5, textTransform: "uppercase" },
+  pcStatusPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pcStatusText: {
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+  },
 
   pcImagesRow: {
     flexDirection: "row",
@@ -626,7 +925,13 @@ const s = StyleSheet.create({
     fontWeight: "700",
   },
   /* Empty / Guest */
-  emptyWrap: { flex: 1, justifyContent: "center", alignItems: "center", padding: 32, paddingBottom: 60 },
+  emptyWrap: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+    paddingBottom: 60,
+  },
   emptyIcon: {
     width: 80,
     height: 80,
@@ -638,7 +943,13 @@ const s = StyleSheet.create({
     borderColor: "#A7F3D0",
   },
   emptyTitle: { fontSize: 20, fontWeight: "800", marginBottom: 6 },
-  emptySubtitle: { fontSize: 14, lineHeight: 20, textAlign: "center", marginBottom: 20, maxWidth: 280 },
+  emptySubtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center",
+    marginBottom: 20,
+    maxWidth: 280,
+  },
   ctaBtn: {
     flexDirection: "row",
     alignItems: "center",

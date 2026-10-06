@@ -477,7 +477,7 @@ export default function SettingsScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={[styles.switchLabel, { color: colors.text }]}>Auto-Accept Incoming Orders</Text>
                 <Text style={[styles.switchSub, { color: colors.textMuted }]}>
-                  Automatically move newly placed orders to 'ACCEPTED' status
+                  {"Automatically move newly placed orders to 'ACCEPTED' status"}
                 </Text>
               </View>
               <ModernSwitch
@@ -919,8 +919,8 @@ export default function SettingsScreen() {
               <View style={[styles.guideBox, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
                 <Text style={[styles.guideStep, { color: colors.text }]}>1. Go to Google Account Security</Text>
                 <Text style={[styles.guideStep, { color: colors.text }]}>2. Ensure 2-Step Verification is turned ON</Text>
-                <Text style={[styles.guideStep, { color: colors.text }]}>3. Search for "App Passwords" in Google Security</Text>
-                <Text style={[styles.guideStep, { color: colors.text }]}>4. Create a new password named "Narendra Kirana Store"</Text>
+                <Text style={[styles.guideStep, { color: colors.text }]}>{'3. Search for "App Passwords" in Google Security'}</Text>
+                <Text style={[styles.guideStep, { color: colors.text }]}>{'4. Create a new password named "Narendra Kirana Store"'}</Text>
                 <Text style={[styles.guideStep, { color: colors.text }]}>5. Copy the 16-character code into the field above</Text>
               </View>
             )}

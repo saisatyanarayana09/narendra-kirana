@@ -7,7 +7,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
   ActivityIndicator,
   Alert,
   Switch,
@@ -59,7 +58,8 @@ export function CheckoutScreen({
 }) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { cart, refreshCart, clearCart, storeSettings, flushCartSync } = useCart();
+  const { cart, refreshCart, clearCart, storeSettings, flushCartSync } =
+    useCart();
   const { colors, isDark } = useTheme();
   const { requestLocation, isRequesting: gpsLoading } = useLocation();
 

@@ -105,6 +105,7 @@ const PartnerCard = memo(
     );
   }
 );
+PartnerCard.displayName = 'PartnerCard';
 
 const DriverCard = PartnerCard;
 

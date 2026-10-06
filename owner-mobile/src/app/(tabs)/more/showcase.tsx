@@ -201,6 +201,7 @@ const BannerCard = React.memo<BannerCardProps>(
     prev.onToggleBanner === next.onToggleBanner &&
     prev.onDeleteBanner === next.onDeleteBanner
 );
+BannerCard.displayName = 'BannerCard';
 
 interface SectionCardProps {
   item: any;
@@ -330,7 +331,7 @@ const SectionCard = React.memo<SectionCardProps>(
               <View style={[styles.emptyAisleBox, { backgroundColor: colors.cardAlt }]}>
                 <Ionicons name="basket-outline" size={18} color={colors.textMuted} />
                 <Text style={[styles.emptyAisleText, { color: colors.textMuted }]}>
-                  No products added yet. Tap "Curate Products" below.
+                  {'No products added yet. Tap "Curate Products" below.'}
                 </Text>
               </View>
             )}
@@ -432,6 +433,7 @@ const SectionCard = React.memo<SectionCardProps>(
     prev.onDeleteSection === next.onDeleteSection &&
     prev.onOpenCurator === next.onOpenCurator
 );
+SectionCard.displayName = 'SectionCard';
 
 interface CatalogProductRowProps {
   item: any;
@@ -508,6 +510,7 @@ const CatalogProductRow = React.memo<CatalogProductRowProps>(
     prev.colors === next.colors &&
     prev.onToggle === next.onToggle
 );
+CatalogProductRow.displayName = 'CatalogProductRow';
 
 export default function ShowcaseScreen() {
   const { colors, isDark } = useAppTheme();
@@ -1166,7 +1169,7 @@ export default function ShowcaseScreen() {
               </View>
               <Text style={[styles.emptyTitle, { color: colors.text }]}>No Curated Aisles</Text>
               <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
-                Create custom homepage rows (e.g. "Festival Specials", "Summer Coolers")
+                {'Create custom homepage rows (e.g. "Festival Specials", "Summer Coolers")'}
               </Text>
               <TouchableOpacity
                 style={styles.emptyActionBtn}

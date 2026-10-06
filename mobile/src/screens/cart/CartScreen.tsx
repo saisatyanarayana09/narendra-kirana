@@ -186,7 +186,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
         />
       </AnimatedFadeIn>
     ),
-    [handleUpdateQuantity, handleRemoveItem]
+    [handleUpdateQuantity, handleRemoveItem],
   );
 
   if (!cart) {
@@ -222,7 +222,9 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
                 activeOpacity={0.7}
               >
                 <Feather name="arrow-left" size={18} color={colors.primary} />
-                <Text style={[styles.backButtonText, { color: colors.primary }]}>
+                <Text
+                  style={[styles.backButtonText, { color: colors.primary }]}
+                >
                   Back
                 </Text>
               </TouchableOpacity>
@@ -300,7 +302,13 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
                     { color: colors.textSecondary },
                   ]}
                 >
-                  {" "}({items.reduce((s: number, i: any) => s + (i.quantity || 1), 0)})
+                  {" "}
+                  (
+                  {items.reduce(
+                    (s: number, i: any) => s + (i.quantity || 1),
+                    0,
+                  )}
+                  )
                 </Text>
               )}
             </Text>
@@ -330,12 +338,16 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
         </View>
       </View>
 
-      
       <FlatList
         data={items}
-        keyExtractor={(item) => String(item.product?.id ?? item.product ?? item.id)}
+        keyExtractor={(item) =>
+          String(item.product?.id ?? item.product ?? item.id)
+        }
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: items.length > 0 ? 100 : 24 }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: items.length > 0 ? 100 : 24 },
+        ]}
         initialNumToRender={8}
         maxToRenderPerBatch={10}
         windowSize={5}
@@ -343,264 +355,273 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
         ListHeaderComponent={
           <View>
             {/* Out of Stock Warning Banner */}
-        {hasOutOfStock && (
-          <View style={styles.outOfStockBanner}>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-                marginBottom: 2,
-              }}
-            >
-              <Feather name="alert-circle" size={15} color="#DC2626" />
-              <Text style={styles.outOfStockBannerTitle}>
-                Action Required: Out of Stock
-              </Text>
-            </View>
-            <Text style={styles.outOfStockBannerText}>
-              {outOfStockItems.length === 1
-                ? `1 item in your cart is currently out of stock. Please remove it to proceed to checkout.`
-                : `${outOfStockItems.length} items in your cart are currently out of stock. Please remove them to proceed.`}
-            </Text>
-          </View>
-        )}
-
-        {/* Emergency Pause Warning */}
-        {isEmergencyPaused && (
-          <View style={styles.emergencyWarning}>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 8,
-                marginBottom: 4,
-              }}
-            >
-              <Feather name="alert-triangle" size={16} color="#B45309" />
-              <Text style={styles.emergencyWarningTitle}>
-                Ordering Temporarily Paused
-              </Text>
-            </View>
-            <Text style={styles.emergencyWarningText}>
-              {emergencyPauseMessage}
-            </Text>
-          </View>
-        )}
-
-        {/* Store Closed Warning */}
-        {isStoreClosed && (
-          <View style={styles.closedWarning}>
-            <Text style={styles.closedWarningText}>
-              The store is currently closed.
-            </Text>
-          </View>
-        )}
-
-        {/* Minimum Order Shortfall Warning */}
-        {isBelowMinOrder && (
-          <View style={styles.minOrderWarning}>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-                marginBottom: 2,
-              }}
-            >
-              <Feather name="info" size={14} color="#B45309" />
-              <Text style={styles.minOrderWarningTitle}>
-                Minimum Order Required
-              </Text>
-            </View>
-            <Text style={styles.minOrderWarningText}>
-              Minimum order is ₹{(minOrderAmount || 0).toFixed(2)}. Add ₹
-              {minOrderShortfall.toFixed(2)} more to checkout.
-            </Text>
-          </View>
-        )}
-
-        {/* Free Delivery Motivational Progress Bar */}
-        {freeDeliveryThreshold > 0 && (
-          <View
-            style={[
-              styles.freeDeliveryCard,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
-          >
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 6,
-              }}
-            >
-              <View
-                style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
-              >
-                <Feather
-                  name="truck"
-                  size={15}
-                  color={freeDeliveryGap === 0 ? "#10B981" : colors.primary}
-                />
-                <Text style={[styles.freeDeliveryText, { color: colors.text }]}>
-                  {freeDeliveryGap === 0
-                    ? "🎉 You unlocked FREE Delivery!"
-                    : `Add ₹${freeDeliveryGap.toFixed(2)} more for FREE Delivery`}
+            {hasOutOfStock && (
+              <View style={styles.outOfStockBanner}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                    marginBottom: 2,
+                  }}
+                >
+                  <Feather name="alert-circle" size={15} color="#DC2626" />
+                  <Text style={styles.outOfStockBannerTitle}>
+                    Action Required: Out of Stock
+                  </Text>
+                </View>
+                <Text style={styles.outOfStockBannerText}>
+                  {outOfStockItems.length === 1
+                    ? `1 item in your cart is currently out of stock. Please remove it to proceed to checkout.`
+                    : `${outOfStockItems.length} items in your cart are currently out of stock. Please remove them to proceed.`}
                 </Text>
               </View>
-              <Text
-                style={{
-                  fontSize: 11,
-                  fontWeight: "700",
-                  color:
-                    freeDeliveryGap === 0 ? "#10B981" : colors.textSecondary,
-                }}
-              >
-                {freeDeliveryGap === 0
-                  ? "FREE"
-                  : `₹${itemsTotal.toFixed(0)} / ₹${freeDeliveryThreshold.toFixed(0)}`}
-              </Text>
-            </View>
-            <View
-              style={[
-                styles.progressTrack,
-                { backgroundColor: colors.inputBg },
-              ]}
-            >
+            )}
+
+            {/* Emergency Pause Warning */}
+            {isEmergencyPaused && (
+              <View style={styles.emergencyWarning}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 4,
+                  }}
+                >
+                  <Feather name="alert-triangle" size={16} color="#B45309" />
+                  <Text style={styles.emergencyWarningTitle}>
+                    Ordering Temporarily Paused
+                  </Text>
+                </View>
+                <Text style={styles.emergencyWarningText}>
+                  {emergencyPauseMessage}
+                </Text>
+              </View>
+            )}
+
+            {/* Store Closed Warning */}
+            {isStoreClosed && (
+              <View style={styles.closedWarning}>
+                <Text style={styles.closedWarningText}>
+                  The store is currently closed.
+                </Text>
+              </View>
+            )}
+
+            {/* Minimum Order Shortfall Warning */}
+            {isBelowMinOrder && (
+              <View style={styles.minOrderWarning}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                    marginBottom: 2,
+                  }}
+                >
+                  <Feather name="info" size={14} color="#B45309" />
+                  <Text style={styles.minOrderWarningTitle}>
+                    Minimum Order Required
+                  </Text>
+                </View>
+                <Text style={styles.minOrderWarningText}>
+                  Minimum order is ₹{(minOrderAmount || 0).toFixed(2)}. Add ₹
+                  {minOrderShortfall.toFixed(2)} more to checkout.
+                </Text>
+              </View>
+            )}
+
+            {/* Free Delivery Motivational Progress Bar */}
+            {freeDeliveryThreshold > 0 && (
               <View
                 style={[
-                  styles.progressBar,
+                  styles.freeDeliveryCard,
                   {
-                    width: `${freeDeliveryProgress}%`,
-                    backgroundColor:
-                      freeDeliveryGap === 0 ? "#10B981" : colors.primary,
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
                   },
                 ]}
-              />
-            </View>
-          </View>
-        )}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: 6,
+                  }}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <Feather
+                      name="truck"
+                      size={15}
+                      color={freeDeliveryGap === 0 ? "#10B981" : colors.primary}
+                    />
+                    <Text
+                      style={[styles.freeDeliveryText, { color: colors.text }]}
+                    >
+                      {freeDeliveryGap === 0
+                        ? "🎉 You unlocked FREE Delivery!"
+                        : `Add ₹${freeDeliveryGap.toFixed(2)} more for FREE Delivery`}
+                    </Text>
+                  </View>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontWeight: "700",
+                      color:
+                        freeDeliveryGap === 0
+                          ? "#10B981"
+                          : colors.textSecondary,
+                    }}
+                  >
+                    {freeDeliveryGap === 0
+                      ? "FREE"
+                      : `₹${itemsTotal.toFixed(0)} / ₹${freeDeliveryThreshold.toFixed(0)}`}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.progressTrack,
+                    { backgroundColor: colors.inputBg },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.progressBar,
+                      {
+                        width: `${freeDeliveryProgress}%`,
+                        backgroundColor:
+                          freeDeliveryGap === 0 ? "#10B981" : colors.primary,
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
+            )}
 
-        {/* Cart Items List */}
+            {/* Cart Items List */}
           </View>
         }
         renderItem={renderCartItem}
         ListFooterComponent={
           <View>
             {/* Promo Code Card */}
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: colors.surface, borderColor: colors.border },
-          ]}
-        >
-          <View style={styles.promoForm}>
-            <TextInput
-              style={[
-                styles.promoInput,
-                {
-                  backgroundColor: colors.inputBg,
-                  borderColor: colors.border,
-                  color: colors.text,
-                },
-              ]}
-              placeholder="Enter promo code"
-              placeholderTextColor={colors.textSecondary}
-              value={promoCode}
-              onChangeText={(t) => {
-                setPromoCode(t.toUpperCase());
-                if (promoError) setPromoError("");
-              }}
-              autoCapitalize="characters"
-            />
-            <TouchableOpacity
-              style={[
-                styles.applyBtn,
-                isDark && { backgroundColor: colors.primary },
-                (!promoCode.trim() || promoApplying) && styles.disabledApplyBtn,
-              ]}
-              onPress={handleApplyPromo}
-              disabled={!promoCode.trim() || promoApplying || isLoading}
-              activeOpacity={0.8}
-            >
-              {promoApplying ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text style={styles.applyBtnText}>Apply</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-
-          {promoError ? (
-            <View style={styles.promoErrorRow}>
-              <Feather name="alert-circle" size={13} color="#DC2626" />
-              <Text style={styles.promoErrorText}>{promoError}</Text>
-            </View>
-          ) : null}
-
-          {cart.promo_code ? (
             <View
               style={[
-                styles.appliedPromoRow,
-                isDark && {
-                  backgroundColor: "rgba(16, 185, 129, 0.15)",
-                  borderColor: "rgba(16, 185, 129, 0.3)",
-                },
+                styles.card,
+                { backgroundColor: colors.surface, borderColor: colors.border },
               ]}
             >
-              <View>
-                <Text
+              <View style={styles.promoForm}>
+                <TextInput
                   style={[
-                    styles.appliedPromoTag,
-                    isDark && { color: "#34D399" },
+                    styles.promoInput,
+                    {
+                      backgroundColor: colors.inputBg,
+                      borderColor: colors.border,
+                      color: colors.text,
+                    },
                   ]}
-                >
-                  Code Applied
-                </Text>
-                <Text
+                  placeholder="Enter promo code"
+                  placeholderTextColor={colors.textSecondary}
+                  value={promoCode}
+                  onChangeText={(t) => {
+                    setPromoCode(t.toUpperCase());
+                    if (promoError) setPromoError("");
+                  }}
+                  autoCapitalize="characters"
+                />
+                <TouchableOpacity
                   style={[
-                    styles.appliedPromoCode,
-                    isDark && { color: colors.text },
+                    styles.applyBtn,
+                    isDark && { backgroundColor: colors.primary },
+                    (!promoCode.trim() || promoApplying) &&
+                      styles.disabledApplyBtn,
                   ]}
+                  onPress={handleApplyPromo}
+                  disabled={!promoCode.trim() || promoApplying || isLoading}
+                  activeOpacity={0.8}
                 >
-                  {cart.promo_code}
-                </Text>
+                  {promoApplying ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.applyBtnText}>Apply</Text>
+                  )}
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity
-                style={[
-                  styles.removePromoBtn,
-                  isDark && {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                ]}
-                onPress={async () => {
-                  setPromoError("");
-                  await removePromo();
-                }}
-                disabled={isLoading}
-                activeOpacity={0.8}
-              >
-                <Text
+
+              {promoError ? (
+                <View style={styles.promoErrorRow}>
+                  <Feather name="alert-circle" size={13} color="#DC2626" />
+                  <Text style={styles.promoErrorText}>{promoError}</Text>
+                </View>
+              ) : null}
+
+              {cart.promo_code ? (
+                <View
                   style={[
-                    styles.removePromoText,
-                    isDark && { color: colors.text },
+                    styles.appliedPromoRow,
+                    isDark && {
+                      backgroundColor: "rgba(16, 185, 129, 0.15)",
+                      borderColor: "rgba(16, 185, 129, 0.3)",
+                    },
                   ]}
                 >
-                  Remove
-                </Text>
-              </TouchableOpacity>
+                  <View>
+                    <Text
+                      style={[
+                        styles.appliedPromoTag,
+                        isDark && { color: "#34D399" },
+                      ]}
+                    >
+                      Code Applied
+                    </Text>
+                    <Text
+                      style={[
+                        styles.appliedPromoCode,
+                        isDark && { color: colors.text },
+                      ]}
+                    >
+                      {cart.promo_code}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[
+                      styles.removePromoBtn,
+                      isDark && {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                    onPress={async () => {
+                      setPromoError("");
+                      await removePromo();
+                    }}
+                    disabled={isLoading}
+                    activeOpacity={0.8}
+                  >
+                    <Text
+                      style={[
+                        styles.removePromoText,
+                        isDark && { color: colors.text },
+                      ]}
+                    >
+                      Remove
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
             </View>
-          ) : null}
-        </View>
-
-
           </View>
         }
       />
-
 
       {/* Sticky Bottom Checkout Bar – Always visible with clear disabled state */}
       {items.length > 0 && (

@@ -372,6 +372,7 @@ const InvoiceCard = memo(
     );
   }
 );
+InvoiceCard.displayName = 'InvoiceCard';
 
 export default function InvoicesScreen() {
   const router = useRouter();

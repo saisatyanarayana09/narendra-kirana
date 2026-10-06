@@ -88,7 +88,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     useState<number>(0);
   const cartRef = React.useRef<CartData | null>(cart);
   const storeSettingsRef = React.useRef<any>(storeSettings);
-  const addToCartLocks = React.useRef<Record<number, Promise<void> | undefined>>({});
+  const addToCartLocks = React.useRef<
+    Record<number, Promise<void> | undefined>
+  >({});
   const updateQuantityLocks = React.useRef<
     Record<number, ReturnType<typeof setTimeout>>
   >({});
@@ -109,7 +111,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     (mutation: (version: number) => Promise<void>): Promise<void> => {
       const version = ++cartMutationVersion.current;
       const previous = cartMutationQueue.current;
-      const next = previous.catch(() => undefined).then(() => mutation(version));
+      const next = previous
+        .catch(() => undefined)
+        .then(() => mutation(version));
       cartMutationQueue.current = next;
 
       void next
@@ -273,7 +277,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
         await enqueueCartMutation(async (version) => {
           const res = await apiClient.get("/cart/");
           if (res?.data) {
-            if (version === cartMutationVersion.current) { cartRef.current = res.data; setCart(res.data); }
+            if (version === cartMutationVersion.current) {
+              cartRef.current = res.data;
+              setCart(res.data);
+            }
           }
         });
       } catch (error: any) {
@@ -315,13 +322,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // 1) Direct match by cart item ID (most common — from CartScreen)
     const byCartId = items.find((i) => i.id === rawId);
     if (byCartId) {
-      return { cartItemId: byCartId.id, productId: getItemProductId(byCartId), item: byCartId };
+      return {
+        cartItemId: byCartId.id,
+        productId: getItemProductId(byCartId),
+        item: byCartId,
+      };
     }
 
     // 2) Match by product ID (from ProductCard / HomeScreen)
     const byProductId = items.find((i) => getItemProductId(i) === rawId);
     if (byProductId) {
-      return { cartItemId: byProductId.id, productId: rawId, item: byProductId };
+      return {
+        cartItemId: byProductId.id,
+        productId: rawId,
+        item: byProductId,
+      };
     }
 
     return null;
@@ -350,13 +365,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
             if (!currentCart) return;
 
             const updatedItems = currentCart.items.filter(
-              (item) => item.id !== cartItemId && getItemProductId(item) !== productId,
+              (item) =>
+                item.id !== cartItemId && getItemProductId(item) !== productId,
             );
 
             const packagingFee = storeSettingsRef.current?.packaging_fee || "0";
-            const newCartData = calculateGuestTotals(updatedItems, packagingFee);
-            await setGuestStorageItem(GUEST_CART_KEY, JSON.stringify(newCartData));
-            if (version === cartMutationVersion.current) { cartRef.current = newCartData; setCart(newCartData); }
+            const newCartData = calculateGuestTotals(
+              updatedItems,
+              packagingFee,
+            );
+            await setGuestStorageItem(
+              GUEST_CART_KEY,
+              JSON.stringify(newCartData),
+            );
+            if (version === cartMutationVersion.current) {
+              cartRef.current = newCartData;
+              setCart(newCartData);
+            }
           });
         } catch (error) {
           console.error("Failed to remove from guest cart:", error);
@@ -370,7 +395,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setCart((current) => {
         if (!current?.items) return current;
         const updatedItems = current.items.filter(
-          (item) => item.id !== cartItemId && getItemProductId(item) !== productId,
+          (item) =>
+            item.id !== cartItemId && getItemProductId(item) !== productId,
         );
         let newOfferSubtotal = 0;
         let newRegularSubtotal = 0;
@@ -407,7 +433,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
               ? newRegularSubtotal.toFixed(2)
               : newOfferSubtotal.toFixed(2),
           items_total: newOfferSubtotal.toFixed(2),
-          discount: Math.max(0, newRegularSubtotal - newOfferSubtotal).toFixed(2),
+          discount: Math.max(0, newRegularSubtotal - newOfferSubtotal).toFixed(
+            2,
+          ),
           total: newTotal.toFixed(2),
         };
         cartRef.current = nextCart;
@@ -420,7 +448,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
           const pId = ghostItemProductId || productId;
           if (addToCartLocks.current[pId]) {
-            try { await addToCartLocks.current[pId]; } catch(e) {}
+            try {
+              await addToCartLocks.current[pId];
+            } catch (e) {}
           }
 
           // Ghost item: resolve to real ID from backend
@@ -441,7 +471,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
           try {
             const res = await apiClient.delete(`/cart/items/${targetId}/`);
             if (res?.data?.items) {
-              if (version === cartMutationVersion.current) { cartRef.current = res.data; setCart(res.data); }
+              if (version === cartMutationVersion.current) {
+                cartRef.current = res.data;
+                setCart(res.data);
+              }
             } else {
               await refreshCart(true);
             }
@@ -475,7 +508,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       // Resolve incoming ID (could be cart item pk OR product pk)
       const resolved = resolveCartItem(itemId);
       const cartItemId = resolved?.cartItemId ?? itemId;
-      const productId = resolved?.productId ?? (resolved ? resolved.productId : itemId);
+      const productId =
+        resolved?.productId ?? (resolved ? resolved.productId : itemId);
 
       const currentCart = cartRef.current;
       const currentQty = resolved?.item?.quantity || 0;
@@ -490,7 +524,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
             if (!activeGuestCart) return;
 
             const updatedItems = activeGuestCart.items.map((item) => {
-              if (item.id === cartItemId || getItemProductId(item) === productId) {
+              if (
+                item.id === cartItemId ||
+                getItemProductId(item) === productId
+              ) {
                 const stockLimit =
                   item.stock_quantity ?? item.product?.stock_quantity ?? 999;
                 const maxOrderLimit =
@@ -508,9 +545,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
             });
 
             const packagingFee = storeSettingsRef.current?.packaging_fee || "0";
-            const newCartData = calculateGuestTotals(updatedItems, packagingFee);
-            await setGuestStorageItem(GUEST_CART_KEY, JSON.stringify(newCartData));
-            if (version === cartMutationVersion.current) { cartRef.current = newCartData; setCart(newCartData); }
+            const newCartData = calculateGuestTotals(
+              updatedItems,
+              packagingFee,
+            );
+            await setGuestStorageItem(
+              GUEST_CART_KEY,
+              JSON.stringify(newCartData),
+            );
+            if (version === cartMutationVersion.current) {
+              cartRef.current = newCartData;
+              setCart(newCartData);
+            }
           });
         } catch (error) {
           console.error("Failed to update guest cart quantity:", error);
@@ -525,10 +571,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setCart((current) => {
         if (!current?.items) return current;
         const updatedItems = current.items.map((item) => {
-          if (
-            item.id === cartItemId ||
-            getItemProductId(item) === productId
-          ) {
+          if (item.id === cartItemId || getItemProductId(item) === productId) {
             const unitPriceNum = parseFloat(
               item.unit_price || item.product?.price || "0",
             );
@@ -575,7 +618,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
               ? newRegularSubtotal.toFixed(2)
               : newOfferSubtotal.toFixed(2),
           items_total: newOfferSubtotal.toFixed(2),
-          discount: Math.max(0, newRegularSubtotal - newOfferSubtotal).toFixed(2),
+          discount: Math.max(0, newRegularSubtotal - newOfferSubtotal).toFixed(
+            2,
+          ),
           total: newTotal.toFixed(2),
         };
         cartRef.current = nextCart;
@@ -597,7 +642,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const pId = ghostItemProductId || productId;
         // Wait for any pending addToCart for this product to finish
         if (addToCartLocks.current[pId]) {
-          try { await addToCartLocks.current[pId]; } catch(e) {}
+          try {
+            await addToCartLocks.current[pId];
+          } catch (e) {}
         }
 
         // Resolve Ghost ID to Real ID (poll if addToCart POST is still in-flight)
@@ -616,7 +663,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
             await new Promise((r) => setTimeout(r, 200));
           }
           if (!resolvedFromBackend) {
-            console.warn("[CartContext] Aborted patch: Ghost item never resolved to real ID.");
+            console.warn(
+              "[CartContext] Aborted patch: Ghost item never resolved to real ID.",
+            );
             if (updateQuantityLocks.current[cartItemId] === timerId) {
               delete updateQuantityLocks.current[cartItemId];
             }
@@ -628,10 +677,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
           if (updateQuantityLocks.current[cartItemId] !== timerId) return;
 
           try {
-            const res = await apiClient.patch(`/cart/items/${targetId}/`, { quantity });
+            const res = await apiClient.patch(`/cart/items/${targetId}/`, {
+              quantity,
+            });
             if (updateQuantityLocks.current[cartItemId] === timerId) {
               if (res?.data && res.data.items) {
-                if (version === cartMutationVersion.current) { cartRef.current = res.data; setCart(res.data); }
+                if (version === cartMutationVersion.current) {
+                  cartRef.current = res.data;
+                  setCart(res.data);
+                }
               } else {
                 await refreshCart(true);
               }
@@ -640,7 +694,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
             if (error?.response?.status === 404) {
               // Item was deleted by a concurrent removeFromCart. Refresh to sync.
               await refreshCart(true);
-            } else if (updateQuantityLocks.current[cartItemId] === timerId && prevCart) {
+            } else if (
+              updateQuantityLocks.current[cartItemId] === timerId &&
+              prevCart
+            ) {
               cartRef.current = prevCart;
               setCart(prevCart);
             }
@@ -897,7 +954,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
               quantity,
             });
             if (res?.data && res.data.items) {
-              if (version === cartMutationVersion.current) { cartRef.current = res.data; setCart(res.data); }
+              if (version === cartMutationVersion.current) {
+                cartRef.current = res.data;
+                setCart(res.data);
+              }
             } else {
               await refreshCart(true);
             }
@@ -1030,7 +1090,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
 
     // 2. Await all in-flight addToCart locks
-    const activeAddLocks = Object.values(addToCartLocks.current).filter(Boolean);
+    const activeAddLocks = Object.values(addToCartLocks.current).filter(
+      Boolean,
+    );
     if (activeAddLocks.length > 0) {
       await Promise.all(activeAddLocks).catch(() => {});
     }
@@ -1086,4 +1148,3 @@ export function useCart() {
   }
   return context;
 }
-

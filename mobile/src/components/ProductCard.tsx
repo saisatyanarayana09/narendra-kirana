@@ -8,10 +8,9 @@ import {
   TouchableOpacity,
   StyleProp,
   ViewStyle,
-  } from "react-native";
+} from "react-native";
 
 import { BouncyTouchable } from "./BouncyTouchable";
-import { API_BASE_URL } from "../constants/config";
 import { useTheme } from "../context/ThemeContext";
 import { getOptimizedImageUrl } from "../utils/image";
 
@@ -70,7 +69,7 @@ function ProductCardComponent({
     };
   }, []);
 
-    const isFav =
+  const isFav =
     typeof isFavorite === "function"
       ? Boolean(isFavorite(product.id))
       : Boolean(isFavorite);
@@ -216,8 +215,6 @@ function ProductCardComponent({
             />
           </BouncyTouchable>
         )}
-
-        
 
         {/* Product image or initial letter fallback */}
         {primaryImage ? (
