@@ -698,7 +698,7 @@ class OrderViewSet(ModelViewSet):
                     
                 if order.wallet_discount > 0:
                     from accounts.models import Wallet, WalletTransaction
-                    wallet = Wallet.objects.select_for_update().get(user=order.customer)
+                    wallet, _ = Wallet.objects.select_for_update().get_or_create(user=order.customer)
                     Wallet.objects.filter(id=wallet.id).update(balance=F('balance') + order.wallet_discount)
                     WalletTransaction.objects.create(
                         wallet=wallet,
@@ -830,7 +830,7 @@ class OrderViewSet(ModelViewSet):
             item_wallet_refund = (item.subtotal * wallet_ratio).quantize(Decimal('0.01'))
             if item_wallet_refund > 0:
                 order.wallet_discount -= item_wallet_refund
-                wallet = Wallet.objects.select_for_update().get(user=order.customer)
+                wallet, _ = Wallet.objects.select_for_update().get_or_create(user=order.customer)
                 Wallet.objects.filter(id=wallet.id).update(balance=F('balance') + item_wallet_refund)
                 WalletTransaction.objects.create(
                     wallet=wallet,
@@ -859,7 +859,7 @@ class OrderViewSet(ModelViewSet):
                 
                 # Refund any remaining wallet discount
                 if order.wallet_discount > 0:
-                    wallet = Wallet.objects.select_for_update().get(user=order.customer)
+                    wallet, _ = Wallet.objects.select_for_update().get_or_create(user=order.customer)
                     Wallet.objects.filter(id=wallet.id).update(balance=F('balance') + order.wallet_discount)
                     WalletTransaction.objects.create(
                         wallet=wallet,

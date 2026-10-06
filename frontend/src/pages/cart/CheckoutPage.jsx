@@ -6,26 +6,10 @@ import api from '../../services/api';
 import { CustomerLayout } from '../../customer-layout';
 import { useCart } from '../../cart-context';
 import { QRCodeSVG } from 'qrcode.react';
-import { checkOperatingHours, parseTimeSlots, isSlotPassedToday, getLocalDateStr } from '../../utils/operatingHours';
+import { checkOperatingHours, parseTimeSlots, isSlotPassedToday, getLocalDateStr, extractErrorMessage } from '../../utils/operatingHours';
 
 const MapLocationPicker = lazy(() => import('../../components/MapLocationPicker'));
 
-export function extractErrorMessage(err, fallback = 'Could not place your order.') {
-  const data = err?.response?.data;
-  if (!data) return err?.message || fallback;
-  if (typeof data === 'string') return data;
-  if (data.detail && typeof data.detail === 'string') return data.detail;
-  if (data.error && typeof data.error === 'string') return data.error;
-  if (data.message && typeof data.message === 'string') return data.message;
-  if (typeof data === 'object') {
-    const values = Object.values(data);
-    for (const val of values) {
-      if (Array.isArray(val) && val.length > 0) return String(val[0]);
-      if (typeof val === 'string' && val.trim().length > 0) return val;
-    }
-  }
-  return fallback;
-}
 
 export function CheckoutPage() {
    const navigate = useNavigate(); 
@@ -76,7 +60,7 @@ export function CheckoutPage() {
          setSlotDay('tomorrow');
        }
      }
-   }, [enableTimeSlots, allTimeSlots.length, todaySlots.length]);
+   }, [enableTimeSlots, allTimeSlots.length, todaySlots.length, slotDay]);
 
    // Ensure an active slot is selected
    useEffect(() => {
@@ -87,7 +71,7 @@ export function CheckoutPage() {
          setTime(activeSlotList[0].label);
        }
      }
-   }, [enableTimeSlots, slotDay, activeSlotList]);
+   }, [enableTimeSlots, slotDay, activeSlotList, selectedSlotLabel]);
 
    // Emergency Pause & Operating Hours
    const isEmergencyPaused = Boolean(storeSettings?.is_emergency_paused);

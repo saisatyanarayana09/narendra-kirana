@@ -46,12 +46,12 @@ export default function ImageCropper({
     }
   }, [file, defaultAspect]);
 
-  const handleClose = () => {
+  const handleClose = React.useCallback(() => {
     setModalOpen(false);
     if (onCancel) {
       onCancel();
     }
-  };
+  }, [onCancel]);
 
   // Handle Escape key to close modal
   React.useEffect(() => {
@@ -63,7 +63,7 @@ export default function ImageCropper({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [modalOpen, isCompressing]);
+  }, [modalOpen, isCompressing, handleClose]);
 
   function onSelectFile(e) {
     if (e.target.files && e.target.files.length > 0) {

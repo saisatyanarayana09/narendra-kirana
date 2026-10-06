@@ -141,3 +141,20 @@ export function getLocalDateStr(d) {
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
+
+export function extractErrorMessage(err, fallback = 'Could not place your order.') {
+  const data = err?.response?.data;
+  if (!data) return err?.message || fallback;
+  if (typeof data === 'string') return data;
+  if (data.detail && typeof data.detail === 'string') return data.detail;
+  if (data.error && typeof data.error === 'string') return data.error;
+  if (data.message && typeof data.message === 'string') return data.message;
+  if (typeof data === 'object') {
+    const values = Object.values(data);
+    for (const val of values) {
+      if (Array.isArray(val) && val.length > 0) return String(val[0]);
+      if (typeof val === 'string' && val.trim().length > 0) return val;
+    }
+  }
+  return fallback;
+}
