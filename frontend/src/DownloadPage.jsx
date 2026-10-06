@@ -47,10 +47,10 @@ export default function DownloadPage() {
 
   const customerApkUrl = (rawUpdateUrl && !isPlayStoreUrl)
     ? rawUpdateUrl
-    : 'https://ssn-portfolio.netlify.app//narendra-kirana/releases/latest/download/narendra-kirana.apk';
+    : 'https://github.com/saisatyanarayana09/narendra-kirana/releases/latest/download/narendra-kirana.apk';
 
-  const ownerApkUrl = 'https://ssn-portfolio.netlify.app//narendra-kirana/releases/latest/download/narendra-kirana-owner.apk';
-  const deliveryApkUrl = 'https://ssn-portfolio.netlify.app//narendra-kirana/releases/latest/download/narendra-kirana-delivery.apk';
+  const ownerApkUrl = 'https://github.com/saisatyanarayana09/narendra-kirana/releases/latest/download/narendra-kirana-owner.apk';
+  const deliveryApkUrl = 'https://github.com/saisatyanarayana09/narendra-kirana/releases/latest/download/narendra-kirana-delivery.apk';
 
   return (
     <div className="bg-[#09090b] text-zinc-100 antialiased font-sans relative select-none">
