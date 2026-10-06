@@ -18,6 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { apiClient } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
+import * as Clipboard from 'expo-clipboard';
 import { useTheme } from "../../context/ThemeContext";
 import type { AuthStackParamList } from "../../navigation/AuthStack";
 import { GoogleSignin } from "../../utils/GoogleSigninWrapper";
@@ -60,6 +61,37 @@ export function SignupScreen({ navigation, route }: Props) {
       setShowReferralInput(true);
     }
   }, [route?.params?.referral_code, route?.params?.ref]);
+
+  // Automatically check clipboard for a referral code on mount
+  useEffect(() => {
+    const checkClipboardForReferral = async () => {
+      try {
+        const hasString = await Clipboard.hasStringAsync();
+        if (hasString) {
+          const text = await Clipboard.getStringAsync();
+          // Check if the clipboard text matches a typical referral code format (e.g. 5-12 uppercase alphanumeric)
+          if (text && /^[A-Z0-9]{5,12}$/i.test(text.trim())) {
+            const cleanCode = text.trim().toUpperCase();
+            // Only auto-fill if the input is currently empty
+            setForm((prev) => {
+              if (!prev.referral_code) {
+                setShowReferralInput(true);
+                return { ...prev, referral_code: cleanCode };
+              }
+              return prev;
+            });
+          }
+        }
+      } catch (err) {
+        // Ignore clipboard read errors
+      }
+    };
+    
+    // Slight delay so the screen renders first before the system 'pasted' toast appears
+    setTimeout(() => {
+      checkClipboardForReferral();
+    }, 500);
+  }, []);
 
   // Live password validation criteria
   const pwd = form.password || "";
