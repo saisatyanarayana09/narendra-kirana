@@ -317,6 +317,13 @@ export default function ProfileScreen() {
           route: '/(tabs)/more/advanced-settings',
           color: '#64748b',
         },
+        {
+          id: 'share-apps',
+          title: 'Share App Links',
+          icon: 'share-social-outline',
+          route: '/(tabs)/more/share',
+          color: '#0ea5e9',
+        },
       ],
     },
   ], [user?.is_owner]);
