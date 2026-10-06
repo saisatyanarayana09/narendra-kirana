@@ -7,6 +7,20 @@ export default function DownloadPage() {
   const [storeSettings, setStoreSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const mainViewRef = useRef(null);
+  const [refCode, setRefCode] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) setRefCode(ref);
+  }, []);
+
+  const handleDownloadClick = () => {
+    if (refCode) {
+      navigator.clipboard.writeText(refCode).then(() => setCopied(true)).catch(() => {});
+    }
+  };
 
   useLayoutEffect(() => {
     if (mainViewRef.current) {
@@ -124,7 +138,18 @@ export default function DownloadPage() {
                 <div className="h-14 w-full bg-zinc-900 rounded-2xl animate-pulse" />
               ) : (
                 <>
+                  {refCode && (
+                    <div className="w-full bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 mb-4 flex flex-col items-center text-center animate-in zoom-in duration-300">
+                      <span className="text-emerald-400 font-bold text-sm mb-1">🎁 You've been invited!</span>
+                      <span className="text-white font-black tracking-widest text-xl bg-zinc-900/50 px-4 py-1.5 rounded-lg border border-white/5">{refCode}</span>
+                      <span className="text-zinc-400 text-xs mt-2 font-medium">
+                        {copied ? 'Code copied to clipboard! Paste it during signup.' : 'Code will be copied automatically when you download.'}
+                      </span>
+                    </div>
+                  )}
+
                   <a
+                    onClick={handleDownloadClick}
                     href={customerApkUrl}
                     download="narendra-kirana.apk"
                     target="_blank"
