@@ -60,7 +60,7 @@ export default function ReferAndEarn() {
   const handleShare = () => {
     if (!settings || !referralCode) return;
     
-    const referralUrl = `${window.location.origin}/signup?ref=${encodeURIComponent(referralCode)}`;
+    const referralUrl = `${window.location.origin}/download?ref=${encodeURIComponent(referralCode)}`;
     let text = settings.share_text_template || 'Join Narendra Kirana with my referral code {code}! {link}';
     if (text.includes('{link}')) {
       text = text.replace(/{code}/g, referralCode).replace(/{link}/g, referralUrl);

@@ -179,7 +179,7 @@ export function ReferAndEarnScreen({
   };
 
   const handleShare = async () => {
-    const referralLink = `https://narendra-kirana.vercel.app/signup?ref=${encodeURIComponent(referralCode)}`;
+    const referralLink = `https://narendra-kirana.vercel.app/download?ref=${encodeURIComponent(referralCode)}`;
     let shareText = "";
     if (settings?.share_text_template) {
       if (settings.share_text_template.includes("{link}")) {
