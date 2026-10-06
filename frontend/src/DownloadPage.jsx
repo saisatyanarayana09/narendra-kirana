@@ -41,6 +41,12 @@ export default function DownloadPage() {
   return (
     <div className="bg-[#09090b] text-zinc-100 antialiased font-sans relative select-none">
       
+      {/* Fixed App Bar */}
+      <header className="fixed top-0 left-0 w-full flex items-center justify-center gap-3 py-4 z-50 bg-[#09090b]/80 backdrop-blur-lg border-b border-white/5">
+        <img src="/logo-transparent.png" alt="Logo" className="size-8 object-contain" />
+        <span className="font-bold text-lg text-zinc-100">{appName}</span>
+      </header>
+      
       <div className="relative z-10 w-full max-w-sm mx-auto flex flex-col">
         
         {/* ================================================== */}
@@ -79,12 +85,9 @@ export default function DownloadPage() {
         {/* ================================================== */}
         {/* 2. MAIN CUSTOMER VIEW (AUTO-SCROLLED TO TOP)      */}
         {/* ================================================== */}
-        <div ref={mainViewRef} className="w-full min-h-screen flex flex-col items-center px-6 pt-12 pb-20 animate-in fade-in duration-500">
+        <div ref={mainViewRef} className="w-full min-h-screen flex flex-col items-center px-6 pt-12 pb-20 animate-in fade-in duration-500 scroll-mt-16">
           
-          <header className="w-full flex items-center justify-center gap-3 mb-16">
-            <img src="/logo-transparent.png" alt="Logo" className="size-8 object-contain" />
-            <span className="font-bold text-lg text-zinc-100">{appName}</span>
-          </header>
+
 
           <div className="w-full flex flex-col items-center text-center space-y-8">
             <div className="relative">
