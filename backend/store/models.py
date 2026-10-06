@@ -151,6 +151,14 @@ class StoreSettings(models.Model):
     app_name = models.CharField(max_length=100, blank=True, default="Narendra Kirana")
     app_icon = models.ImageField(upload_to='app_icon/', null=True, blank=True)
     app_download_btn_text = models.CharField(max_length=50, blank=True, default="Download APK")
+    owner_app_update_url = models.URLField(
+        blank=True,
+        default="https://github.com/saisatyanarayana09/narendra-kirana/releases/download/owner-latest/narendra-kirana-owner.apk"
+    )
+    delivery_app_update_url = models.URLField(
+        blank=True,
+        default="https://github.com/saisatyanarayana09/narendra-kirana/releases/download/delivery-latest/narendra-kirana-delivery.apk"
+    )
 
     
     def save(self, *args, **kwargs):

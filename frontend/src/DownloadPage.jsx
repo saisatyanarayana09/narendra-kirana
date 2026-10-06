@@ -49,8 +49,8 @@ export default function DownloadPage() {
     ? rawUpdateUrl
     : '/download-apk/customer';
 
-  const ownerApkUrl = '/download-apk/owner';
-  const deliveryApkUrl = '/download-apk/delivery';
+  const ownerApkUrl = storeSettings?.owner_app_update_url?.trim() || '/download-apk/owner';
+  const deliveryApkUrl = storeSettings?.delivery_app_update_url?.trim() || '/download-apk/delivery';
 
   return (
     <div className="bg-[#09090b] text-zinc-100 antialiased font-sans relative select-none">

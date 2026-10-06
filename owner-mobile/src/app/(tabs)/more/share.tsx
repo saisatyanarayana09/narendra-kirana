@@ -1,15 +1,23 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Share, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../../../../context/ThemeContext';
 import * as Clipboard from 'expo-clipboard';
+import api from '../../../../services/api';
 
 export default function ShareAppsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isDark, colors } = useAppTheme();
+  const [settings, setSettings] = useState<any>(null);
+
+  useEffect(() => {
+    api.get('/store/settings/')
+      .then((res: any) => setSettings(res.data))
+      .catch(() => {});
+  }, []);
 
   const handleCopy = async (url: string, name: string) => {
     try {
@@ -35,21 +43,21 @@ export default function ShareAppsScreen() {
     {
       name: 'Customer App',
       description: 'For your buyers to order groceries.',
-      url: 'https://narendra-kirana.vercel.app/download-apk/customer',
+      url: settings?.app_update_url || 'https://narendra-kirana.vercel.app/download-apk/customer',
       icon: 'basket-outline' as const,
       color: '#10b981',
     },
     {
       name: 'Delivery App',
       description: 'For your delivery partners.',
-      url: 'https://narendra-kirana.vercel.app/download-apk/delivery',
+      url: settings?.delivery_app_update_url || 'https://narendra-kirana.vercel.app/download-apk/delivery',
       icon: 'bicycle-outline' as const,
       color: '#6366f1',
     },
     {
       name: 'Owner App',
       description: 'For store management.',
-      url: 'https://narendra-kirana.vercel.app/download-apk/owner',
+      url: settings?.owner_app_update_url || 'https://narendra-kirana.vercel.app/download-apk/owner',
       icon: 'storefront-outline' as const,
       color: '#f59e0b',
     },

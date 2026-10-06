@@ -1274,7 +1274,7 @@ const AdvancedSettings = () => {
 
                   <div>
                     <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
-                      Direct APK Download Link
+                      Customer App APK Link
                     </label>
                     <div className="flex items-center gap-2">
                       <input
@@ -1282,11 +1282,11 @@ const AdvancedSettings = () => {
                         name="app_update_url"
                         value={settings.app_update_url}
                         onChange={handleChange}
-                        placeholder="https://github.com/saisatyanarayana09/narendra-kirana/releases/latest/download/narendra-kirana.apk"
+                        placeholder="https://github.com/saisatyanarayana09/narendra-kirana/releases/download/latest/narendra-kirana.apk"
                         className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900 font-mono text-xs"
                       />
                       <a
-                        href={settings.app_update_url || 'https://github.com/saisatyanarayana09/narendra-kirana/releases/latest/download/narendra-kirana.apk'}
+                        href={settings.app_update_url || 'https://github.com/saisatyanarayana09/narendra-kirana/releases/download/latest/narendra-kirana.apk'}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="p-2 rounded-lg bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-white hover:text-slate-900 dark:text-white transition shrink-0"
@@ -1296,7 +1296,63 @@ const AdvancedSettings = () => {
                       </a>
                     </div>
                     <p className="text-[11px] text-gray-400 mt-1">
-                      Direct link to your APK file. Served on the Downloads page and for 1-tap in-app mobile updates.
+                      Direct APK download link for the Customer mobile app.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
+                      Owner App APK Link
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="url"
+                        name="owner_app_update_url"
+                        value={settings.owner_app_update_url}
+                        onChange={handleChange}
+                        placeholder="https://github.com/saisatyanarayana09/narendra-kirana/releases/download/owner-latest/narendra-kirana-owner.apk"
+                        className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900 font-mono text-xs"
+                      />
+                      <a
+                        href={settings.owner_app_update_url || 'https://github.com/saisatyanarayana09/narendra-kirana/releases/download/owner-latest/narendra-kirana-owner.apk'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 rounded-lg bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-white hover:text-slate-900 dark:text-white transition shrink-0"
+                        title="Test direct download link"
+                      >
+                        <ExternalLink size={16} />
+                      </a>
+                    </div>
+                    <p className="text-[11px] text-gray-400 mt-1">
+                      Direct APK download link for the Store Owner mobile app.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
+                      Delivery Partner App APK Link
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="url"
+                        name="delivery_app_update_url"
+                        value={settings.delivery_app_update_url}
+                        onChange={handleChange}
+                        placeholder="https://github.com/saisatyanarayana09/narendra-kirana/releases/download/delivery-latest/narendra-kirana-delivery.apk"
+                        className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-gray-900 dark:text-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900 font-mono text-xs"
+                      />
+                      <a
+                        href={settings.delivery_app_update_url || 'https://github.com/saisatyanarayana09/narendra-kirana/releases/download/delivery-latest/narendra-kirana-delivery.apk'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 rounded-lg bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-white hover:text-slate-900 dark:text-white transition shrink-0"
+                        title="Test direct download link"
+                      >
+                        <ExternalLink size={16} />
+                      </a>
+                    </div>
+                    <p className="text-[11px] text-gray-400 mt-1">
+                      Direct APK download link for the Delivery Partner fleet app.
                     </p>
                   </div>
                 </div>
