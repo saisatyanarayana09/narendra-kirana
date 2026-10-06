@@ -33,10 +33,10 @@ export default function DownloadPage() {
 
   const customerApkUrl = (rawUpdateUrl && !isPlayStoreUrl)
     ? rawUpdateUrl
-    : 'https://github.com/saisatyanarayana09/narendra-kirana/releases/latest/download/narendra-kirana.apk';
+    : 'https://ssn-portfolio.netlify.app//narendra-kirana/releases/latest/download/narendra-kirana.apk';
 
-  const ownerApkUrl = 'https://github.com/saisatyanarayana09/narendra-kirana/releases/latest/download/narendra-kirana-owner.apk';
-  const deliveryApkUrl = 'https://github.com/saisatyanarayana09/narendra-kirana/releases/latest/download/narendra-kirana-delivery.apk';
+  const ownerApkUrl = 'https://ssn-portfolio.netlify.app//narendra-kirana/releases/latest/download/narendra-kirana-owner.apk';
+  const deliveryApkUrl = 'https://ssn-portfolio.netlify.app//narendra-kirana/releases/latest/download/narendra-kirana-delivery.apk';
 
   return (
     <div className="bg-[#09090b] text-zinc-100 antialiased font-sans relative select-none">
@@ -157,7 +157,7 @@ export default function DownloadPage() {
           <div className="w-full pt-16 pb-4 flex flex-col items-center justify-center mt-auto opacity-70 hover:opacity-100 transition-opacity">
             <span className="text-xs font-medium text-zinc-500">Built by</span>
             <a 
-              href="https://github.com/saisatyanarayana09" 
+              href="https://ssn-portfolio.netlify.app/" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-sm font-bold text-zinc-300 hover:text-white hover:underline transition-colors mt-0.5"
