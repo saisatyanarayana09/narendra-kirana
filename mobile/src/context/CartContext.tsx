@@ -234,18 +234,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }
         await refreshCart();
       } else {
+        // Instantly reset user cart in state so old items vanish immediately on logout
+        setCart({
+          items: [],
+          subtotal: "0.00",
+          discount: "0.00",
+          promo_code: null,
+          promo_discount: "0.00",
+          packaging_fee: "0.00",
+          total: "0.00",
+        });
         const guestCart = await loadGuestCart();
-        setCart(
-          guestCart || {
-            items: [],
-            subtotal: "0.00",
-            discount: "0.00",
-            promo_code: null,
-            promo_discount: "0.00",
-            packaging_fee: "0.00",
-            total: "0.00",
-          },
-        );
+        if (guestCart && guestCart.items && guestCart.items.length > 0) {
+          setCart(guestCart);
+        }
       }
     };
 

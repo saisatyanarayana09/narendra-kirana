@@ -167,71 +167,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     isLoggingOutRef.current = true;
-    setUser(null); // Instantly transition to guest state and keep it locked
 
-    try {
-      // 1. Fire and forget backend unregister
-      unregisterPushNotificationsAsync().catch(() => {});
+    // 1. INSTANT ZERO-LATENCY WIPEOUT (0ms UI freeze)
+    setUser(null);
+    favoritesService.clear();
+    resetWelcomeSession();
 
-      const refreshToken = await getItem(STORAGE_KEYS.REFRESH);
-      if (refreshToken) {
-        await apiClient
-          .post("/auth/logout/", { refresh: refreshToken })
-          .catch((err) => {
-            console.warn("[AuthContext] Backend logout failed:", err.message);
-          });
-      }
+    // Instantly wipe memoryStore tokens and initiate storage purge
+    const tokenPurgePromise = Promise.allSettled([
+      deleteItem(STORAGE_KEYS.TOKEN),
+      deleteItem(STORAGE_KEYS.REFRESH),
+      deleteItem(STORAGE_KEYS.USER),
+    ]);
 
-      // 2. Sign out of Google silently (only on Native platforms)
-      if (Platform.OS !== "web") {
-        try {
-          await GoogleSignin.signOut();
-        } catch (e) {
-          // Ignore Google sign out error if not signed in via Google
+    // 2. Fire-and-forget backend notification & push unregister (non-blocking)
+    unregisterPushNotificationsAsync().catch(() => {});
+    getItem(STORAGE_KEYS.REFRESH)
+      .then((refreshToken) => {
+        if (refreshToken) {
+          apiClient
+            .post("/auth/logout/", { refresh: refreshToken })
+            .catch(() => {});
         }
-      }
+      })
+      .catch(() => {});
 
-      // 3. Immediately clear local storage and state
-      await deleteItem(STORAGE_KEYS.TOKEN);
-      await deleteItem(STORAGE_KEYS.REFRESH);
-      await deleteItem(STORAGE_KEYS.USER);
-      resetWelcomeSession();
-      favoritesService.clear();
-      await clearHomeDataCache().catch(() => {});
-      await clearCachedOrders().catch((e) =>
-        console.warn("Failed to clear orders cache", e),
-      );
-      await clearUserProfileCache().catch((e) =>
-        console.warn("Failed to clear profile cache", e),
-      );
-
-      // 4. Clear image disk & memory caches
+    // 3. Fire-and-forget Google sign out
+    if (Platform.OS !== "web") {
       try {
-        const { Image } = require("expo-image");
-        Image.clearMemoryCache?.();
-        await Image.clearDiskCache?.();
+        GoogleSignin.signOut().catch(() => {});
       } catch {}
+    }
 
-      // 5. Clear web Service Worker / PWA cache storage if running on web
-      if (
-        Platform.OS === "web" &&
-        typeof window !== "undefined" &&
-        "caches" in window
-      ) {
+    // 4. Background parallel cache purges (does not block user interaction)
+    Promise.allSettled([
+      tokenPurgePromise,
+      clearHomeDataCache(),
+      clearCachedOrders(),
+      clearUserProfileCache(),
+      (async () => {
         try {
-          const cacheKeys = await caches.keys();
-          await Promise.all(cacheKeys.map((k) => caches.delete(k)));
+          const { Image } = require("expo-image");
+          Image.clearMemoryCache?.();
+          await Image.clearDiskCache?.();
         } catch {}
-      }
-    } catch (error) {
-      console.error("Error during logout:", error);
-    } finally {
-      setUser(null);
+      })(),
+      (async () => {
+        if (
+          Platform.OS === "web" &&
+          typeof window !== "undefined" &&
+          "caches" in window
+        ) {
+          try {
+            const cacheKeys = await caches.keys();
+            await Promise.all(cacheKeys.map((k) => caches.delete(k)));
+          } catch {}
+        }
+      })(),
+    ]).finally(() => {
       // Keep isLoggingOut locked for a brief window to discard any trailing in-flight network responses
       setTimeout(() => {
         isLoggingOutRef.current = false;
       }, 1000);
-    }
+    });
   }, []);
 
   const updateUser = useCallback(async (updatedUser: User) => {
