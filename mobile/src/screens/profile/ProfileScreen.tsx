@@ -73,6 +73,8 @@ export function ProfileScreen({
     triggerHaptic("medium");
     if (Platform.OS === "web") {
       if (window.confirm("Are you sure you want to sign out?")) {
+        setWalletBalance(0);
+        setReferralCount(0);
         logout();
       }
       return;
@@ -84,6 +86,8 @@ export function ProfileScreen({
         text: t("logout"),
         style: "destructive",
         onPress: async () => {
+          setWalletBalance(0);
+          setReferralCount(0);
           await logout();
         },
       },

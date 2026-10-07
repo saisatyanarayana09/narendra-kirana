@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useMemo,
   useCallback,
+  useRef,
   ReactNode,
 } from "react";
 import { DeviceEventEmitter, Platform } from "react-native";
@@ -79,13 +80,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(!syncUser); // Only show loading if sync init failed
   const [pendingRedirect, setPendingRedirect] =
     useState<PendingRedirect | null>(null);
+  const isLoggingOutRef = useRef(false);
 
   const clearPendingRedirect = useCallback(() => setPendingRedirect(null), []);
 
   const loadStoredUser = useCallback(async () => {
+    if (isLoggingOutRef.current) return;
     try {
       const storedUser = await getItem(STORAGE_KEYS.USER);
-      if (storedUser) {
+      if (storedUser && !isLoggingOutRef.current) {
         const parsed = JSON.parse(storedUser);
         setUser(parsed);
         registerForPushNotificationsAsync().catch(() => {});
@@ -113,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadStoredUser]);
 
   const login = useCallback(async (data: any) => {
+    isLoggingOutRef.current = false;
     try {
       const response = await apiClient.post("/auth/login/", data);
 
@@ -133,6 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loginWithGoogle = useCallback(async (idToken: string) => {
+    isLoggingOutRef.current = false;
     try {
       const response = await apiClient.post("/auth/google/customer/", {
         credential: idToken,
@@ -161,6 +166,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    isLoggingOutRef.current = true;
+    setUser(null); // Instantly transition to guest state and keep it locked
+
     try {
       // 1. Fire and forget backend unregister
       unregisterPushNotificationsAsync().catch(() => {});
@@ -215,30 +223,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await Promise.all(cacheKeys.map((k) => caches.delete(k)));
         } catch {}
       }
-
-      setUser(null);
     } catch (error) {
       console.error("Error during logout:", error);
-      // Fallback: still nullify user so they don't get stuck
+    } finally {
       setUser(null);
+      // Keep isLoggingOut locked for a brief window to discard any trailing in-flight network responses
+      setTimeout(() => {
+        isLoggingOutRef.current = false;
+      }, 1000);
     }
   }, []);
 
   const updateUser = useCallback(async (updatedUser: User) => {
+    if (isLoggingOutRef.current) return;
     try {
       await saveItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
-      setUser(updatedUser);
+      if (!isLoggingOutRef.current) {
+        setUser(updatedUser);
+      }
     } catch (error) {
       console.error("Failed to update user locally:", error);
     }
   }, []);
 
   const refreshUser = useCallback(async () => {
+    if (isLoggingOutRef.current) return;
+    const token = getItemSync(STORAGE_KEYS.TOKEN);
+    if (!token) return;
+
     try {
       const response = await apiClient.get("/auth/profile/");
+      if (isLoggingOutRef.current) return;
       if (response.data) {
         await saveItem(STORAGE_KEYS.USER, JSON.stringify(response.data));
-        setUser(response.data);
+        if (!isLoggingOutRef.current) {
+          setUser(response.data);
+        }
       }
     } catch (error: any) {
       if (error?.response?.status !== 401) {
