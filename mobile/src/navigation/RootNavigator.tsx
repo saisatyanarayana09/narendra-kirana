@@ -24,6 +24,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AuthStack } from "./AuthStack";
 import { MainTabs } from "./MainTabs";
 import { navigationRef } from "./navigationRef";
+import { ForgotPasswordScreen } from "../screens/auth/ForgotPasswordScreen";
+import { LoginScreen } from "../screens/auth/LoginScreen";
+import { ResetPasswordScreen } from "../screens/auth/ResetPasswordScreen";
+import { SignupScreen } from "../screens/auth/SignupScreen";
 import { storeApi, StoreSettings } from "../api/store";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { APP_VERSION } from "../constants/config";
@@ -696,6 +700,16 @@ export function RootNavigator() {
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="Main" component={MainTabs} />
           <Stack.Screen name="Auth" component={AuthStack} />
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Signup" component={SignupScreen} />
+          <Stack.Screen
+            name="ForgotPasswordScreen"
+            component={ForgotPasswordScreen}
+          />
+          <Stack.Screen
+            name="ResetPasswordScreen"
+            component={ResetPasswordScreen}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </ErrorBoundary>

@@ -151,7 +151,7 @@ export function LoginScreen({ navigation }: Props) {
           onPress={() =>
             navigation.canGoBack()
               ? navigation.goBack()
-              : navigation.navigate("Login")
+              : (navigation as any).navigate("Main")
           }
           activeOpacity={0.7}
         >
