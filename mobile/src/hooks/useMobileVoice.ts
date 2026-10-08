@@ -41,14 +41,14 @@ export function useMobileVoice({
           } else {
             recognizerRef.current.stop();
           }
-        } catch {
+        } catch (_err) {
           // Ignore
         }
         recognizerRef.current = null;
       }
       try {
         Speech.stop();
-      } catch {
+      } catch (_err) {
         // Ignore
       }
     };
@@ -63,7 +63,7 @@ export function useMobileVoice({
         } else {
           recognizerRef.current.stop();
         }
-      } catch {
+      } catch (_err) {
         // Ignore
       }
       recognizerRef.current = null;
@@ -79,7 +79,7 @@ export function useMobileVoice({
   const startListening = useCallback(async () => {
     try {
       Speech.stop();
-    } catch {
+    } catch (_err) {
       // Ignore
     }
 
@@ -186,7 +186,7 @@ export function useMobileVoice({
             } else {
               recognizerRef.current.stop();
             }
-          } catch {
+          } catch (_err) {
             // Ignore
           }
         }
@@ -291,7 +291,7 @@ export function useMobileVoice({
     try {
       Speech.stop();
       setIsSpeaking(false);
-    } catch {
+    } catch (_err) {
       // Ignore
     }
   }, []);
