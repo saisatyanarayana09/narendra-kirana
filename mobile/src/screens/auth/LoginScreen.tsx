@@ -15,11 +15,13 @@ import {
   Modal,
   TextInput,
   Animated,
+  Platform,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { apiClient } from "../../api/client";
+import { AnimatedAuthBackground } from "../../components/auth/AnimatedAuthBackground";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import type { AuthStackParamList } from "../../navigation/AuthStack";
@@ -43,30 +45,38 @@ export function LoginScreen({ navigation, route }: Props) {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [referralCode, setReferralCode] = useState<string>("");
   const [referrerName, setReferrerName] = useState<string>("");
-  const [isLookingUpReferral, setIsLookingUpReferral] = useState(false);
+  const [, setIsLookingUpReferral] = useState(false);
 
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(18)).current;
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+  // Staggered fluid entrance physics
+  const logoScale = useRef(new Animated.Value(0.88)).current;
+  const contentFade = useRef(new Animated.Value(0)).current;
+  const buttonSlide = useRef(new Animated.Value(16)).current;
+  const buttonScale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
+    Animated.stagger(70, [
+      Animated.spring(logoScale, {
         toValue: 1,
-        duration: 320,
+        tension: 65,
+        friction: 7,
         useNativeDriver: true,
       }),
-      Animated.spring(slideAnim, {
+      Animated.timing(contentFade, {
+        toValue: 1,
+        duration: 260,
+        useNativeDriver: true,
+      }),
+      Animated.spring(buttonSlide, {
         toValue: 0,
-        tension: 65,
+        tension: 60,
         friction: 8,
         useNativeDriver: true,
       }),
     ]).start();
   }, []);
 
-  // Manual referral input
-  const [showManualReferral, setShowManualReferral] = useState(false);
+  // Manual invite code drawer
+  const [showInviteInput, setShowInviteInput] = useState(false);
   const [manualCode, setManualCode] = useState("");
 
   // Mandatory mobile number prompt modal
@@ -87,7 +97,6 @@ export function LoginScreen({ navigation, route }: Props) {
       return;
     }
 
-    // Layer 3: Auto-detect from clipboard
     Clipboard.getStringAsync()
       .then((clip) => {
         const trimmed = (clip || "").trim();
@@ -97,7 +106,6 @@ export function LoginScreen({ navigation, route }: Props) {
           lookupReferrer(code);
           return;
         }
-        // Layer 2: IP lookup fallback if clipboard empty
         checkIpReferral();
       })
       .catch(() => {
@@ -134,12 +142,12 @@ export function LoginScreen({ navigation, route }: Props) {
     }
   };
 
-  const handleApplyManualCode = () => {
+  const handleApplyInviteCode = () => {
     const clean = manualCode.trim().toUpperCase();
     if (!clean) return;
     setReferralCode(clean);
     lookupReferrer(clean);
-    setShowManualReferral(false);
+    setShowInviteInput(false);
     setManualCode("");
   };
 
@@ -187,7 +195,6 @@ export function LoginScreen({ navigation, route }: Props) {
 
       const result = await loginWithGoogle(idToken, referralCode, tokenType);
 
-      // If backend requires mobile number for a new account
       if (result?.requires_mobile) {
         setPendingIdToken(idToken);
         setPendingTokenType(tokenType);
@@ -252,142 +259,165 @@ export function LoginScreen({ navigation, route }: Props) {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.background }}
+      style={[styles.safeArea, { backgroundColor: colors.background }]}
       edges={["top", "bottom"]}
     >
-      <KeyboardAwareScrollView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        enableOnAndroid
-      >
-        {/* Header Back Button */}
+      {/* Ambient Hairline SVG Background with Floating Wireframes */}
+      <AnimatedAuthBackground isDark={isDark} />
+
+      {/* Top Bar with Apple-Style Frosted Circular Back Button */}
+      <View style={styles.topBar}>
         <TouchableOpacity
-          style={styles.backButton}
+          style={[
+            styles.backCircleBtn,
+            {
+              backgroundColor: isDark
+                ? "rgba(30, 41, 59, 0.75)"
+                : "rgba(255, 255, 255, 0.85)",
+              borderColor: isDark
+                ? "rgba(51, 65, 85, 0.6)"
+                : "rgba(226, 232, 240, 0.9)",
+            },
+          ]}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          onPress={() =>
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             navigation.canGoBack()
               ? navigation.goBack()
-              : (navigation as any).navigate("Main")
-          }
-          activeOpacity={0.7}
+              : (navigation as any).navigate("Main");
+          }}
+          activeOpacity={0.75}
         >
-          <Feather name="arrow-left" color={colors.primary} size={18} />
-          <Text style={[styles.backButtonText, { color: colors.primary }]}>
-            Back
-          </Text>
+          <Feather
+            name="arrow-left"
+            color={isDark ? "#F8FAFC" : "#0F172A"}
+            size={16}
+          />
         </TouchableOpacity>
+      </View>
 
-        {/* Brand Header */}
-        <View style={styles.header}>
-          <View style={styles.brandRow}>
+      <KeyboardAwareScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        enableOnAndroid
+      >
+        {/* Centerpiece: Squircle Brand Mark + Typographic Identity */}
+        <View style={styles.centerSection}>
+          <Animated.View
+            style={[
+              styles.logoWrapper,
+              {
+                backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
+                borderColor: isDark
+                  ? "rgba(255, 255, 255, 0.1)"
+                  : "rgba(0, 0, 0, 0.06)",
+                transform: [{ scale: logoScale }],
+              },
+            ]}
+          >
             <Image
               source={require("../../../assets/narendra-logo-tight.png")}
               style={styles.logoImage}
               resizeMode="contain"
             />
+          </Animated.View>
+
+          <Animated.View
+            style={[styles.brandTextContainer, { opacity: contentFade }]}
+          >
             <Text style={styles.brandTitle}>
               <Text style={[styles.brandSlate, { color: colors.text }]}>
                 Narendra{" "}
               </Text>
               <Text style={styles.brandRed}>Kirana</Text>
             </Text>
-          </View>
-          <Text style={[styles.title, { color: colors.text }]}>Sign in</Text>
-        </View>
 
-        {/* Redirect Notice */}
-        {pendingRedirect && (
-          <View
-            style={[
-              styles.redirectBanner,
-              {
-                backgroundColor: isDark ? "rgba(5, 150, 105, 0.15)" : "#ECFDF5",
-                borderColor: isDark ? "rgba(5, 150, 105, 0.3)" : "#A7F3D0",
-              },
-            ]}
-          >
-            <Feather name="lock" color={colors.primary} size={14} />
-            <Text
-              style={[
-                styles.redirectBannerText,
-                { color: isDark ? "#34D399" : "#065F46" },
-              ]}
-            >
-              Sign in to continue
-            </Text>
-          </View>
-        )}
+            {/* Contextual Subline (Only if redirected from checkout) */}
+            {pendingRedirect ? (
+              <Text style={styles.contextualSubline}>Complete checkout</Text>
+            ) : null}
 
-        {/* Minimal Referral Chip */}
-        {referralCode ? (
-          <View
-            style={[
-              styles.referralBanner,
-              {
-                backgroundColor: isDark ? "rgba(13, 148, 136, 0.15)" : "#ECFDF5",
-                borderColor: isDark ? "rgba(13, 148, 136, 0.3)" : "#A7F3D0",
-              },
-            ]}
-          >
-            <View style={{ flex: 1, flexDirection: "row", alignItems: "center" }}>
-              <Feather name="tag" size={13} color="#059669" style={{ marginRight: 6 }} />
-              <Text
+            {/* Frosted Micro-Pill for Referral (No clunky green boxes) */}
+            {referralCode ? (
+              <View
                 style={[
-                  styles.referralTitle,
-                  { color: isDark ? "#34D399" : "#065F46" },
+                  styles.invitePill,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(16, 185, 129, 0.12)"
+                      : "rgba(16, 185, 129, 0.08)",
+                    borderColor: isDark
+                      ? "rgba(16, 185, 129, 0.25)"
+                      : "rgba(16, 185, 129, 0.2)",
+                  },
                 ]}
               >
-                Invited by{" "}
-                <Text style={{ fontWeight: "700" }}>
-                  {referrerName || referralCode}
+                <Text
+                  style={[
+                    styles.invitePillText,
+                    { color: isDark ? "#34D399" : "#059669" },
+                  ]}
+                >
+                  Invited by {referrerName || referralCode}
                 </Text>
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => {
-                setReferralCode("");
-                setReferrerName("");
-              }}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Feather name="x" size={14} color="#059669" />
-            </TouchableOpacity>
-          </View>
-        ) : null}
+                <TouchableOpacity
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setReferralCode("");
+                    setReferrerName("");
+                  }}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Feather
+                    name="x"
+                    size={11}
+                    color={isDark ? "#34D399" : "#059669"}
+                  />
+                </TouchableOpacity>
+              </View>
+            ) : null}
+          </Animated.View>
+        </View>
 
-        {/* Central Auth Card with Smooth Animated Entrance */}
+        {/* Action Area: Precision Tactile Google Button */}
         <Animated.View
           style={[
-            styles.card,
+            styles.actionArea,
             {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
+              opacity: contentFade,
+              transform: [{ translateY: buttonSlide }],
             },
           ]}
         >
-          {/* Interactive Google Button with Spring Scale */}
-          <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+          <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
             <TouchableOpacity
               style={[
                 styles.googleButton,
                 isDark
-                  ? { backgroundColor: "#1E293B", borderColor: "#334155" }
-                  : { backgroundColor: "#FFFFFF", borderColor: "#CBD5E1" },
+                  ? {
+                      backgroundColor: "#1E293B",
+                      borderColor: "rgba(255, 255, 255, 0.1)",
+                    }
+                  : {
+                      backgroundColor: "#FFFFFF",
+                      borderColor: "#E2E8F0",
+                      ...styles.lightElevation,
+                    },
               ]}
               onPressIn={() => {
-                Animated.spring(scaleAnim, {
+                Animated.spring(buttonScale, {
                   toValue: 0.97,
+                  tension: 90,
+                  friction: 6,
                   useNativeDriver: true,
                 }).start();
               }}
               onPressOut={() => {
-                Animated.spring(scaleAnim, {
+                Animated.spring(buttonScale, {
                   toValue: 1,
-                  tension: 70,
-                  friction: 6,
+                  tension: 75,
+                  friction: 7,
                   useNativeDriver: true,
                 }).start();
               }}
@@ -405,13 +435,13 @@ export function LoginScreen({ navigation, route }: Props) {
                   <AntDesign
                     name="google"
                     color="#4285F4"
-                    size={20}
+                    size={18}
                     style={{ marginRight: 10 }}
                   />
                   <Text
                     style={[
                       styles.googleButtonText,
-                      { color: isDark ? "#F8FAFC" : "#1E293B" },
+                      { color: isDark ? "#F8FAFC" : "#0F172A" },
                     ]}
                   >
                     Continue with Google
@@ -421,60 +451,56 @@ export function LoginScreen({ navigation, route }: Props) {
             </TouchableOpacity>
           </Animated.View>
 
-          {/* Manual Referral Input */}
+          {/* Inline Invite Code Drawer */}
           {!referralCode && (
-            <View style={{ marginTop: 14, alignItems: "center" }}>
-              {!showManualReferral ? (
+            <View style={styles.inviteCodeContainer}>
+              {!showInviteInput ? (
                 <TouchableOpacity
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setShowManualReferral(true);
+                    setShowInviteInput(true);
                   }}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                  <Text
-                    style={[
-                      styles.referralLinkText,
-                      { color: colors.primary },
-                    ]}
-                  >
-                    Have a referral code?
-                  </Text>
+                  <Text style={styles.inviteCodeLink}>Invite code</Text>
                 </TouchableOpacity>
               ) : (
-                <View style={styles.manualReferralRow}>
+                <View style={styles.inlineCodeInputRow}>
                   <TextInput
                     style={[
-                      styles.manualInput,
+                      styles.inlineInput,
                       {
                         color: colors.text,
-                        borderColor: colors.border,
+                        borderColor: isDark
+                          ? "rgba(255, 255, 255, 0.12)"
+                          : "#E2E8F0",
                         backgroundColor: isDark ? "#0F172A" : "#F8FAFC",
                       },
                     ]}
-                    placeholder="Enter code"
+                    placeholder="CODE"
                     placeholderTextColor={colors.textSecondary}
                     value={manualCode}
                     onChangeText={(t) => setManualCode(t.toUpperCase())}
                     autoCapitalize="characters"
+                    autoFocus
                   />
                   <TouchableOpacity
                     style={[
-                      styles.manualApplyBtn,
-                      { backgroundColor: colors.primary },
+                      styles.inlineApplyBtn,
+                      { backgroundColor: isDark ? "#334155" : "#0F172A" },
                     ]}
                     onPress={() => {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      handleApplyManualCode();
+                      handleApplyInviteCode();
                     }}
                   >
-                    <Text style={styles.manualApplyBtnText}>Apply</Text>
+                    <Text style={styles.inlineApplyText}>Apply</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    onPress={() => setShowManualReferral(false)}
+                    onPress={() => setShowInviteInput(false)}
                     style={{ padding: 6 }}
                   >
-                    <Feather name="x" size={16} color={colors.textSecondary} />
+                    <Feather name="x" size={14} color={colors.textSecondary} />
                   </TouchableOpacity>
                 </View>
               )}
@@ -482,15 +508,13 @@ export function LoginScreen({ navigation, route }: Props) {
           )}
         </Animated.View>
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: colors.textSecondary }]}>
-            By continuing, you agree to our Terms of Service and Privacy Policy.
-          </Text>
-        </View>
+        {/* Minimal Footer */}
+        <Animated.View style={[styles.footer, { opacity: contentFade }]}>
+          <Text style={styles.footerText}>Terms • Privacy</Text>
+        </Animated.View>
       </KeyboardAwareScrollView>
 
-      {/* Mandatory Mobile Number Modal */}
+      {/* High-End Mobile Verification Modal */}
       <Modal
         visible={showMobileModal}
         transparent
@@ -501,46 +525,44 @@ export function LoginScreen({ navigation, route }: Props) {
           <View
             style={[
               styles.modalCard,
-              { backgroundColor: colors.surface, borderColor: colors.border },
+              {
+                backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
+                borderColor: isDark
+                  ? "rgba(255, 255, 255, 0.1)"
+                  : "rgba(0, 0, 0, 0.08)",
+              },
             ]}
           >
             <View style={styles.modalHeader}>
               <View>
                 <Text style={[styles.modalTitle, { color: colors.text }]}>
-                  Mobile number
+                  Phone number
                 </Text>
-                <Text
-                  style={[
-                    styles.modalSubtitle,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  Required for delivery updates
-                </Text>
+                <Text style={styles.modalSubtitle}>Required for delivery</Text>
               </View>
               <TouchableOpacity
                 onPress={() => setShowMobileModal(false)}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Feather name="x" size={18} color={colors.textSecondary} />
+                <Feather name="x" size={16} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
             {referralCode ? (
               <View
                 style={[
-                  styles.modalReferralNotice,
+                  styles.modalInviteBadge,
                   {
                     backgroundColor: isDark
-                      ? "rgba(5, 150, 105, 0.15)"
-                      : "#ECFDF5",
+                      ? "rgba(16, 185, 129, 0.12)"
+                      : "rgba(16, 185, 129, 0.08)",
                   },
                 ]}
               >
                 <Text
                   style={[
-                    styles.modalReferralNoticeText,
-                    { color: isDark ? "#34D399" : "#065F46" },
+                    styles.modalInviteText,
+                    { color: isDark ? "#34D399" : "#059669" },
                   ]}
                 >
                   Invited by {referrerName || referralCode}
@@ -557,8 +579,10 @@ export function LoginScreen({ navigation, route }: Props) {
                 style={[
                   styles.countryCodeBox,
                   {
-                    backgroundColor: isDark ? "#0F172A" : "#F1F5F9",
-                    borderColor: colors.border,
+                    backgroundColor: isDark ? "#0F172A" : "#F8FAFC",
+                    borderColor: isDark
+                      ? "rgba(255, 255, 255, 0.1)"
+                      : "#E2E8F0",
                   },
                 ]}
               >
@@ -571,11 +595,13 @@ export function LoginScreen({ navigation, route }: Props) {
                   styles.phoneInput,
                   {
                     color: colors.text,
-                    borderColor: colors.border,
+                    borderColor: isDark
+                      ? "rgba(255, 255, 255, 0.1)"
+                      : "#E2E8F0",
                     backgroundColor: isDark ? "#0F172A" : "#FFFFFF",
                   },
                 ]}
-                placeholder="10-digit mobile number"
+                placeholder="10-digit number"
                 placeholderTextColor={colors.textSecondary}
                 keyboardType="phone-pad"
                 maxLength={10}
@@ -589,25 +615,22 @@ export function LoginScreen({ navigation, route }: Props) {
               <TouchableOpacity
                 style={[
                   styles.modalCancelBtn,
-                  { borderColor: colors.border },
+                  {
+                    borderColor: isDark
+                      ? "rgba(255, 255, 255, 0.1)"
+                      : "#E2E8F0",
+                  },
                 ]}
                 onPress={() => setShowMobileModal(false)}
               >
-                <Text
-                  style={[
-                    styles.modalCancelBtnText,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  Cancel
-                </Text>
+                <Text style={styles.modalCancelBtnText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
                   styles.modalSubmitBtn,
-                  { backgroundColor: colors.primary },
+                  { backgroundColor: isDark ? "#38BDF8" : "#0F172A" },
                   (isSubmittingPhone || mobileNumber.length !== 10) && {
-                    opacity: 0.5,
+                    opacity: 0.45,
                   },
                 ]}
                 disabled={isSubmittingPhone || mobileNumber.length !== 10}
@@ -616,7 +639,14 @@ export function LoginScreen({ navigation, route }: Props) {
                 {isSubmittingPhone ? (
                   <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
-                  <Text style={styles.modalSubmitBtnText}>Continue</Text>
+                  <Text
+                    style={[
+                      styles.modalSubmitBtnText,
+                      { color: isDark ? "#0F172A" : "#FFFFFF" },
+                    ]}
+                  >
+                    Continue
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -628,43 +658,66 @@ export function LoginScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
+    flex: 1,
+  },
+  topBar: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  backCircleBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  scrollContainer: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingHorizontal: 24,
     paddingBottom: 40,
   },
-  backButton: {
-    flexDirection: "row",
+  centerSection: {
     alignItems: "center",
-    gap: 4,
+    marginBottom: 32,
+  },
+  logoWrapper: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 16,
-    alignSelf: "flex-start",
-  },
-  backButtonText: {
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  header: {
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  brandRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-    gap: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   logoImage: {
-    width: 38,
-    height: 38,
+    width: 44,
+    height: 44,
+  },
+  brandTextContainer: {
+    alignItems: "center",
   },
   brandTitle: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: "800",
-    letterSpacing: -0.4,
+    letterSpacing: -0.8,
   },
   brandSlate: {
     color: "#0F172A",
@@ -672,168 +725,142 @@ const styles = StyleSheet.create({
   brandRed: {
     color: "#DC2626",
   },
-  title: {
-    fontSize: 20,
-    fontWeight: "800",
-    marginBottom: 4,
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 12,
-    fontWeight: "500",
-    textAlign: "center",
-    paddingHorizontal: 16,
-  },
-  redirectBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    padding: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    marginBottom: 12,
-  },
-  redirectBannerText: {
+  contextualSubline: {
     fontSize: 12,
     fontWeight: "600",
-    flex: 1,
-  },
-  referralBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 16,
-  },
-  referralTitle: {
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  referralSubtitle: {
-    fontSize: 11,
-    fontWeight: "500",
-    marginTop: 2,
-  },
-  referralLinkText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  manualReferralRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+    color: "#64748B",
     marginTop: 4,
+    letterSpacing: -0.2,
   },
-  manualInput: {
-    borderWidth: 1,
-    borderRadius: 8,
+  invitePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     paddingHorizontal: 10,
-    paddingVertical: 6,
-    fontSize: 12,
-    minWidth: 120,
-    fontWeight: "700",
-  },
-  manualApplyBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 8,
-  },
-  manualApplyBtnText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  card: {
-    borderRadius: 16,
-    padding: 20,
+    paddingVertical: 4,
+    borderRadius: 14,
     borderWidth: 1,
+    marginTop: 10,
   },
-  cardHeaderTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    textAlign: "center",
+  invitePillText: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: -0.2,
   },
-  cardHeaderSubtitle: {
-    fontSize: 12,
-    fontWeight: "500",
-    textAlign: "center",
-    marginTop: 2,
-    marginBottom: 16,
+  actionArea: {
+    width: "100%",
+    maxWidth: 320,
+    alignSelf: "center",
   },
   googleButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 13,
-    borderRadius: 12,
+    height: 50,
+    borderRadius: 14,
     borderWidth: 1,
   },
+  lightElevation: {
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 6,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
   googleButtonText: {
-    fontSize: 14,
+    fontSize: 14.5,
     fontWeight: "700",
+    letterSpacing: -0.2,
   },
-  perksContainer: {
+  inviteCodeContainer: {
     marginTop: 16,
-    paddingTop: 14,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "rgba(148, 163, 184, 0.2)",
-    gap: 8,
+    alignItems: "center",
   },
-  perkRow: {
+  inviteCodeLink: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#94A3B8",
+    letterSpacing: -0.1,
+  },
+  inlineCodeInputRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
-  perkText: {
+  inlineInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     fontSize: 11.5,
-    fontWeight: "500",
+    fontWeight: "700",
+    minWidth: 100,
+    letterSpacing: 0.5,
+  },
+  inlineApplyBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  inlineApplyText: {
+    color: "#FFFFFF",
+    fontSize: 11.5,
+    fontWeight: "700",
   },
   footer: {
-    marginTop: 24,
+    marginTop: 40,
     alignItems: "center",
   },
   footerText: {
     fontSize: 11,
-    textAlign: "center",
-    lineHeight: 16,
+    color: "#94A3B8",
+    fontWeight: "500",
+    letterSpacing: -0.1,
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.55)",
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: 24,
   },
   modalCard: {
     width: "100%",
-    maxWidth: 360,
-    borderRadius: 18,
+    maxWidth: 340,
+    borderRadius: 20,
     borderWidth: 1,
-    padding: 20,
+    padding: 22,
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 14,
+    marginBottom: 16,
   },
   modalTitle: {
     fontSize: 16,
     fontWeight: "800",
+    letterSpacing: -0.3,
   },
   modalSubtitle: {
     fontSize: 11.5,
-    fontWeight: "500",
+    color: "#94A3B8",
     marginTop: 2,
   },
-  modalReferralNotice: {
-    padding: 8,
-    borderRadius: 8,
+  modalInviteBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
     marginBottom: 12,
+    alignSelf: "flex-start",
   },
-  modalReferralNoticeText: {
+  modalInviteText: {
     fontSize: 11,
     fontWeight: "600",
   },
@@ -849,11 +876,10 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   countryCodeBox: {
-    borderWidth: 1,
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
     paddingHorizontal: 12,
+    justifyContent: "center",
+    borderRadius: 10,
+    borderWidth: 1,
   },
   countryCodeText: {
     fontSize: 13,
@@ -865,12 +891,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "600",
   },
   modalActions: {
     flexDirection: "row",
-    gap: 10,
+    gap: 8,
   },
   modalCancelBtn: {
     flex: 1,
@@ -880,18 +906,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   modalCancelBtnText: {
-    fontSize: 12.5,
-    fontWeight: "700",
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#94A3B8",
   },
   modalSubmitBtn: {
     flex: 1,
     paddingVertical: 10,
     borderRadius: 10,
     alignItems: "center",
+    justifyContent: "center",
   },
   modalSubmitBtnText: {
-    color: "#FFFFFF",
-    fontSize: 12.5,
+    fontSize: 12,
     fontWeight: "700",
   },
 });
