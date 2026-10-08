@@ -36,9 +36,11 @@ export function useMobileVoice({
       isMountedRef.current = false;
       if (recognizerRef.current) {
         try {
-          recognizerRef.current.abort
-            ? recognizerRef.current.abort()
-            : recognizerRef.current.stop();
+          if (recognizerRef.current.abort) {
+            recognizerRef.current.abort();
+          } else {
+            recognizerRef.current.stop();
+          }
         } catch {
           // Ignore
         }
@@ -56,9 +58,11 @@ export function useMobileVoice({
     // Web Speech API cleanup
     if (recognizerRef.current) {
       try {
-        recognizerRef.current.abort
-          ? recognizerRef.current.abort()
-          : recognizerRef.current.stop();
+        if (recognizerRef.current.abort) {
+          recognizerRef.current.abort();
+        } else {
+          recognizerRef.current.stop();
+        }
       } catch {
         // Ignore
       }
@@ -177,9 +181,11 @@ export function useMobileVoice({
       try {
         if (recognizerRef.current) {
           try {
-            recognizerRef.current.abort
-              ? recognizerRef.current.abort()
-              : recognizerRef.current.stop();
+            if (recognizerRef.current.abort) {
+              recognizerRef.current.abort();
+            } else {
+              recognizerRef.current.stop();
+            }
           } catch {
             // Ignore
           }

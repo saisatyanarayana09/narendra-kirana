@@ -8,7 +8,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Platform,
   Alert,
   ActivityIndicator,
   Image,
@@ -102,14 +101,6 @@ export function LoginScreen({ navigation, route }: Props) {
   };
 
   const handleGoogleLogin = async () => {
-    if (Platform.OS === "web") {
-      Alert.alert(
-        "Web Authentication",
-        "Please use the Web browser portal for Google Sign-In on Web.",
-      );
-      return;
-    }
-
     try {
       setIsGoogleLoading(true);
       await GoogleSignin.hasPlayServices({
@@ -123,8 +114,12 @@ export function LoginScreen({ navigation, route }: Props) {
       const response = await GoogleSignin.signIn();
       const idToken =
         (response as any).data?.idToken || (response as any).idToken;
+      const tokenType =
+        (response as any).data?.tokenType ||
+        (response as any).tokenType ||
+        "id_token";
       if (idToken) {
-        await loginWithGoogle(idToken, referralCode);
+        await loginWithGoogle(idToken, referralCode, tokenType);
         processRedirect();
       } else {
         throw new Error("No ID token present!");

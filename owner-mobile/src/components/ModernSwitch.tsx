@@ -1,8 +1,6 @@
 import React, { useEffect } from 'react';
 import { TouchableOpacity, StyleSheet } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, interpolateColor } from 'react-native-reanimated';
-import { useAppTheme } from '../context/ThemeContext';
-
 interface ModernSwitchProps {
   value: boolean;
   onValueChange: (val: boolean) => void;
@@ -12,7 +10,6 @@ interface ModernSwitchProps {
 }
 
 const ModernSwitch: React.FC<ModernSwitchProps> = ({ value, onValueChange, disabled }) => {
-  const { colors } = useAppTheme();
   const progress = useSharedValue(value ? 1 : 0);
 
   useEffect(() => {
@@ -55,5 +52,7 @@ const styles = StyleSheet.create({
   track: { width: 48, height: 26, borderRadius: 13, padding: 2, justifyContent: 'center' },
   thumb: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#ffffff', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 2, elevation: 3 },
 });
+
+ModernSwitch.displayName = 'ModernSwitch';
 
 export default React.memo(ModernSwitch);

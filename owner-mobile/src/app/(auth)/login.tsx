@@ -76,6 +76,8 @@ export default function LoginScreen() {
       }
       const userInfo: any = await GoogleSignin.signIn();
       const idToken = userInfo?.data?.idToken || userInfo?.idToken;
+      const tokenType =
+        userInfo?.data?.tokenType || userInfo?.tokenType || 'id_token';
 
       if (!idToken) {
         throw new Error('No Google ID token received from Play Services');
@@ -83,7 +85,7 @@ export default function LoginScreen() {
 
       const response = await api.post('/auth/google-login/', {
         credential: idToken,
-        token_type: 'id_token',
+        token_type: tokenType,
       });
 
       const data = response?.data || {};

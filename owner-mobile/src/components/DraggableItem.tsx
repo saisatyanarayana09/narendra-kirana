@@ -49,139 +49,12 @@ export function DraggableItem({
   const isDragging = activeDragIndex === index;
   const isHoveredTarget = activeDragIndex !== null && hoverIndex === index && !isDragging;
 
-  const translateY = useMemo(() => new Animated.Value(0), []);
-  const scaleAnim = useMemo(() => new Animated.Value(1), []);
+  const translateY = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
   const measuredHeight = useRef<number>(itemHeight);
   const targetIndexRef = useRef<number>(index);
 
-  const panResponder = useMemo(() => {
-    if (!enabled) {
-      return { panHandlers: {} };
-    }
-
-    return PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onStartShouldSetPanResponderCapture: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        return Math.abs(gestureState.dy) > 2;
-      },
-      onMoveShouldSetPanResponderCapture: (_, gestureState) => {
-        return Math.abs(gestureState.dy) > 2;
-      },
-      onPanResponderGrant: () => {
-        // Lock parent scrolling to avoid gesture collisions
-        try {
-          listRef?.current?.setNativeProps?.({ scrollEnabled: false });
-        } catch {}
-
-        // Haptic feedback bump
-        try {
-          Vibration.vibrate(25);
-        } catch {}
-
-        targetIndexRef.current = index;
-        onDragStart(index);
-        onHoverChange(index);
-
-        Animated.spring(scaleAnim, {
-          toValue: 1.03,
-          friction: 6,
-          tension: 40,
-          useNativeDriver: true,
-        }).start();
-      },
-      onPanResponderMove: (_, gestureState) => {
-        translateY.setValue(gestureState.dy);
-
-        // Auto-scroll near viewport boundaries
-        if (listRef?.current && scrollOffsetRef?.current !== undefined) {
-          const windowHeight = Dimensions.get('window').height;
-          if (gestureState.moveY < 130) {
-            listRef.current.scrollToOffset({
-              offset: Math.max(0, scrollOffsetRef.current - 12),
-              animated: false,
-            });
-          } else if (gestureState.moveY > windowHeight - 130) {
-            listRef.current.scrollToOffset({
-              offset: scrollOffsetRef.current + 12,
-              animated: false,
-            });
-          }
-        }
-
-        // Calculate dynamic destination index
-        const h = measuredHeight.current > 0 ? measuredHeight.current : itemHeight;
-        const slotsMoved = Math.round(gestureState.dy / h);
-        const newTarget = Math.max(0, Math.min(totalCount - 1, index + slotsMoved));
-
-        if (newTarget !== targetIndexRef.current) {
-          targetIndexRef.current = newTarget;
-          onHoverChange(newTarget);
-          try {
-            Vibration.vibrate(10);
-          } catch {}
-        }
-      },
-      onPanResponderRelease: () => {
-        try {
-          listRef?.current?.setNativeProps?.({ scrollEnabled: true });
-        } catch {}
-
-        const finalTarget = targetIndexRef.current;
-        const h = measuredHeight.current > 0 ? measuredHeight.current : itemHeight;
-
-        if (finalTarget !== index) {
-          const offset = (finalTarget - index) * h;
-          Animated.parallel([
-            Animated.timing(translateY, {
-              toValue: offset,
-              duration: 120,
-              useNativeDriver: true,
-            }),
-            Animated.timing(scaleAnim, {
-              toValue: 1,
-              duration: 120,
-              useNativeDriver: true,
-            }),
-          ]).start(() => {
-            translateY.setValue(0);
-            onHoverChange(null);
-            onDrop(index, finalTarget);
-          });
-        } else {
-          Animated.parallel([
-            Animated.spring(translateY, {
-              toValue: 0,
-              friction: 7,
-              useNativeDriver: true,
-            }),
-            Animated.spring(scaleAnim, {
-              toValue: 1,
-              friction: 7,
-              useNativeDriver: true,
-            }),
-          ]).start(() => {
-            onHoverChange(null);
-            onDrop(index, index);
-          });
-        }
-      },
-      onPanResponderTerminate: () => {
-        try {
-          listRef?.current?.setNativeProps?.({ scrollEnabled: true });
-        } catch {}
-
-        Animated.parallel([
-          Animated.spring(translateY, { toValue: 0, useNativeDriver: true }),
-          Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true }),
-        ]).start(() => {
-          onHoverChange(null);
-          onDrop(index, index);
-        });
-      },
-    });
-  }, [
-    enabled,
+  const latestRef = useRef({
     index,
     totalCount,
     itemHeight,
@@ -192,7 +65,174 @@ export function DraggableItem({
     onDrop,
     translateY,
     scaleAnim,
-  ]);
+    enabled,
+  });
+  latestRef.current = {
+    index,
+    totalCount,
+    itemHeight,
+    listRef,
+    scrollOffsetRef,
+    onDragStart,
+    onHoverChange,
+    onDrop,
+    translateY,
+    scaleAnim,
+    enabled,
+  };
+
+  const panResponder = useMemo(() => {
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => latestRef.current.enabled,
+      onStartShouldSetPanResponderCapture: () => latestRef.current.enabled,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return latestRef.current.enabled && Math.abs(gestureState.dy) > 2;
+      },
+      onMoveShouldSetPanResponderCapture: (_, gestureState) => {
+        return latestRef.current.enabled && Math.abs(gestureState.dy) > 2;
+      },
+      onPanResponderGrant: () => {
+        const { listRef: lRef, onDragStart: onStart, onHoverChange: onHover, scaleAnim: sAnim, index: idx } =
+          latestRef.current;
+        try {
+          lRef?.current?.setNativeProps?.({ scrollEnabled: false });
+        } catch {}
+
+        try {
+          Vibration.vibrate(25);
+        } catch {}
+
+        targetIndexRef.current = idx;
+        onStart(idx);
+        onHover(idx);
+
+        Animated.spring(sAnim, {
+          toValue: 1.03,
+          friction: 6,
+          tension: 40,
+          useNativeDriver: true,
+        }).start();
+      },
+      onPanResponderMove: (_, gestureState) => {
+        const {
+          listRef: lRef,
+          scrollOffsetRef: sOffsetRef,
+          totalCount: count,
+          index: idx,
+          translateY: tY,
+          onHoverChange: onHover,
+          itemHeight: hProp,
+        } = latestRef.current;
+
+        tY.setValue(gestureState.dy);
+
+        // Auto-scroll near viewport boundaries
+        if (lRef?.current && sOffsetRef?.current !== undefined) {
+          const windowHeight = Dimensions.get('window').height;
+          if (gestureState.moveY < 130) {
+            lRef.current.scrollToOffset({
+              offset: Math.max(0, sOffsetRef.current - 12),
+              animated: false,
+            });
+          } else if (gestureState.moveY > windowHeight - 130) {
+            lRef.current.scrollToOffset({
+              offset: sOffsetRef.current + 12,
+              animated: false,
+            });
+          }
+        }
+
+        // Calculate dynamic destination index
+        const h = measuredHeight.current > 0 ? measuredHeight.current : hProp;
+        const slotsMoved = Math.round(gestureState.dy / h);
+        const newTarget = Math.max(0, Math.min(count - 1, idx + slotsMoved));
+
+        if (newTarget !== targetIndexRef.current) {
+          targetIndexRef.current = newTarget;
+          onHover(newTarget);
+          try {
+            Vibration.vibrate(10);
+          } catch {}
+        }
+      },
+      onPanResponderRelease: () => {
+        const {
+          listRef: lRef,
+          index: idx,
+          onHoverChange: onHover,
+          onDrop: drop,
+          itemHeight: hProp,
+          translateY: tY,
+          scaleAnim: sAnim,
+        } = latestRef.current;
+
+        try {
+          lRef?.current?.setNativeProps?.({ scrollEnabled: true });
+        } catch {}
+
+        const finalTarget = targetIndexRef.current;
+        const h = measuredHeight.current > 0 ? measuredHeight.current : hProp;
+
+        if (finalTarget !== idx) {
+          const offset = (finalTarget - idx) * h;
+          Animated.parallel([
+            Animated.timing(tY, {
+              toValue: offset,
+              duration: 120,
+              useNativeDriver: true,
+            }),
+            Animated.timing(sAnim, {
+              toValue: 1,
+              duration: 120,
+              useNativeDriver: true,
+            }),
+          ]).start(() => {
+            tY.setValue(0);
+            onHover(null);
+            drop(idx, finalTarget);
+          });
+        } else {
+          Animated.parallel([
+            Animated.spring(tY, {
+              toValue: 0,
+              friction: 7,
+              useNativeDriver: true,
+            }),
+            Animated.spring(sAnim, {
+              toValue: 1,
+              friction: 7,
+              useNativeDriver: true,
+            }),
+          ]).start(() => {
+            onHover(null);
+            drop(idx, idx);
+          });
+        }
+      },
+      onPanResponderTerminate: () => {
+        const {
+          listRef: lRef,
+          index: idx,
+          onHoverChange: onHover,
+          onDrop: drop,
+          translateY: tY,
+          scaleAnim: sAnim,
+        } = latestRef.current;
+
+        try {
+          lRef?.current?.setNativeProps?.({ scrollEnabled: true });
+        } catch {}
+
+        Animated.parallel([
+          Animated.spring(tY, { toValue: 0, useNativeDriver: true }),
+          Animated.spring(sAnim, { toValue: 1, useNativeDriver: true }),
+        ]).start(() => {
+          onHover(null);
+          drop(idx, idx);
+        });
+      },
+    });
+  }, []);
 
   const animatedStyle = useMemo(() => {
     if (!isDragging) return null;

@@ -361,9 +361,9 @@ const SearchTicker = React.memo(function SearchTicker({
 
 export function HomeScreen({ navigation }: Props) {
   const { user } = useAuth();
-  const {} = useCart();
+  useCart();
   const { colors, isDark } = useTheme();
-  const { t, language, setLanguage } = useLanguage();
+  const { t } = useLanguage();
 
   // Try to get cached home data synchronously for instant render
   const cachedHome = getHomeDataSync();

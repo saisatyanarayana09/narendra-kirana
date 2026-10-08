@@ -52,8 +52,11 @@ type AuthContextType = {
   pendingRedirect: PendingRedirect | null;
   setPendingRedirect: (redirect: PendingRedirect | null) => void;
   clearPendingRedirect: () => void;
-  login: (data: any) => Promise<void>;
-  loginWithGoogle: (idToken: string, referralCode?: string) => Promise<void>;
+  loginWithGoogle: (
+    idToken: string,
+    referralCode?: string,
+    tokenType?: string,
+  ) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (updatedUser: User) => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -137,12 +140,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loginWithGoogle = useCallback(
-    async (idToken: string, referralCode?: string) => {
+    async (
+      idToken: string,
+      referralCode?: string,
+      tokenType: string = "id_token",
+    ) => {
       isLoggingOutRef.current = false;
       try {
         const payload: any = {
           credential: idToken,
-          token_type: "id_token",
+          token_type: tokenType,
         };
         if (referralCode && typeof referralCode === "string" && referralCode.trim()) {
           payload.referral_code = referralCode.trim().toUpperCase();

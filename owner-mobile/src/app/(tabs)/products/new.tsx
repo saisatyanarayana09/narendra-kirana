@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   Platform,
   Modal,
-  KeyboardAvoidingView,
 } from 'react-native';
 import ModernSwitch from '../../../components/ModernSwitch';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -48,7 +47,7 @@ export default function AddProductScreen() {
   const [isInStock, setIsInStock] = useState(true);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageChanged, setImageChanged] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(Boolean(id));
   const [lookingUpBarcode, setLookingUpBarcode] = useState(false);
   const [analyzingPackaging, setAnalyzingPackaging] = useState(false);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
@@ -58,7 +57,7 @@ export default function AddProductScreen() {
   const webCroppingImage = webCropQueue.length > 0 ? webCropQueue[0] : null;
 
   // Barcode Lookup by Text/SKU
-  const handleBarcodeLookup = async (overrideSku?: string) => {
+  const handleBarcodeLookup = useCallback(async (overrideSku?: string) => {
     const cleanSku = (overrideSku !== undefined ? overrideSku : sku).trim();
     if (!cleanSku) {
       showAlert('Barcode Lookup', 'Enter or scan a barcode/SKU first.');
@@ -82,7 +81,10 @@ export default function AddProductScreen() {
     } finally {
       setLookingUpBarcode(false);
     }
-  };
+  }, [sku]);
+
+  const handleBarcodeLookupRef = React.useRef(handleBarcodeLookup);
+  handleBarcodeLookupRef.current = handleBarcodeLookup;
 
   // AI Vision Packaging Scan
   const handleAIVisionScan = async (source: 'camera' | 'library') => {
@@ -212,7 +214,7 @@ export default function AddProductScreen() {
             { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG }
           );
           uri = manip.uri;
-        } catch (e) {}
+        } catch {}
         setGalleryImages((prev) => [...prev, uri]);
       }
     } catch (e: any) {
@@ -278,7 +280,7 @@ export default function AddProductScreen() {
           if (isMounted) setLoading(false);
         });
     } else if (initialSku) {
-      handleBarcodeLookup(String(initialSku));
+      handleBarcodeLookupRef.current(String(initialSku));
     }
     return () => {
       isMounted = false;
@@ -322,7 +324,7 @@ export default function AddProductScreen() {
             { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG }
           );
           uri = manip.uri;
-        } catch (e) {}
+        } catch {}
         setImageUri(uri);
         setImageChanged(true);
       }

@@ -1,4 +1,3 @@
-import React from 'react';
-export default function WebCropper(props: any) {
+export default function WebCropper(_props: any) {
   return null;
 }

@@ -93,6 +93,13 @@
       "@react-native-google-signin/google-signin",
       "expo-splash-screen",
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/android-icon-monochrome.png",
+          "color": "#059669"
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "android": {
