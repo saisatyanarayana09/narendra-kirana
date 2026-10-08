@@ -10,6 +10,7 @@ import {
   Alert,
   RefreshControl,
   Platform,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -227,6 +228,14 @@ export function ProfileScreen({
   ];
 
   const displayName = user?.first_name || user?.username || "Customer";
+  const avatarUri =
+    user?.avatar ||
+    user?.customer_profile?.avatar ||
+    user?.customer_profile?.avatar_url ||
+    user?.customer_profile?.profile_picture;
+  const completion =
+    user?.profile_completion?.percentage ??
+    (user?.customer_profile?.dob ? 100 : 80);
 
   const handleCardPress = (card: {
     name: string;
@@ -301,24 +310,39 @@ export function ProfileScreen({
 
           {/* Avatar & Customer Greeting */}
           <View style={styles.customerInfoRow}>
-            <View style={styles.avatarCircle}>
-              {user ? (
+            <TouchableOpacity
+              style={styles.avatarCircle}
+              activeOpacity={0.85}
+              onPress={() => {
+                if (user) {
+                  navigation.navigate("AccountSettingsScreen");
+                }
+              }}
+            >
+              {avatarUri ? (
+                <Image
+                  source={{ uri: avatarUri }}
+                  style={styles.avatarImage}
+                />
+              ) : user ? (
                 <Text style={styles.avatarText}>{getInitials()}</Text>
               ) : (
                 <Feather name="user" size={26} color="#059669" />
               )}
-            </View>
+              {user && (
+                <View style={styles.avatarCameraBadge}>
+                  <Feather name="camera" size={10} color="#FFFFFF" />
+                </View>
+              )}
+            </TouchableOpacity>
             <View style={styles.greetingBox}>
               <Text style={styles.greetingTitle}>
-                {user ? `Hi, ${displayName}!` : "Welcome, Guest!"}
+                {user ? `Hi, ${displayName}` : "Welcome, Guest"}
               </Text>
               <Text style={styles.greetingSubtitle} numberOfLines={1}>
                 {user
-                  ? user?.email ||
-                    (user?.phone_number
-                      ? `+91 ${user.phone_number}`
-                      : "Manage your account and track orders")
-                  : "Sign in to track orders, earn cashbacks & more"}
+                  ? user?.email || "Manage your account and track orders"
+                  : "Sign in to track orders and earn cashbacks"}
               </Text>
               {!user && (
                 <TouchableOpacity
@@ -337,6 +361,37 @@ export function ProfileScreen({
               )}
             </View>
           </View>
+
+          {/* Minimal Profile Completion Bar */}
+          {user && (
+            <View style={styles.completionContainer}>
+              <View style={styles.completionHeaderRow}>
+                <Text style={styles.completionLabelText}>
+                  {completion === 100
+                    ? "Profile complete"
+                    : `${completion}% complete • Add date of birth to reach 100%`}
+                </Text>
+                {completion !== 100 && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      triggerHaptic("light");
+                      navigation.navigate("AccountSettingsScreen");
+                    }}
+                  >
+                    <Feather name="chevron-right" size={14} color="#D1FAE5" />
+                  </TouchableOpacity>
+                )}
+              </View>
+              <View style={styles.completionTrack}>
+                <View
+                  style={[
+                    styles.completionFill,
+                    { width: `${completion}%` },
+                  ]}
+                />
+              </View>
+            </View>
+          )}
 
           {/* Loyalty & Quick Stats Strip: 2 Balanced Interactive Tiles */}
           <View
@@ -807,14 +862,62 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   avatarCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
     boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.15)",
     elevation: 3,
+    position: "relative",
+  },
+  avatarImage: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+  },
+  avatarCameraBadge: {
+    position: "absolute",
+    bottom: -2,
+    right: -2,
+    backgroundColor: "#059669",
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "#FFFFFF",
+  },
+  completionContainer: {
+    marginTop: 12,
+    marginBottom: 6,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.15)",
+  },
+  completionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  completionLabelText: {
+    fontSize: 12,
+    color: "#D1FAE5",
+    fontWeight: "600",
+  },
+  completionTrack: {
+    height: 6,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 3,
+    overflow: "hidden",
+  },
+  completionFill: {
+    height: "100%",
+    backgroundColor: "#34D399",
+    borderRadius: 3,
   },
   avatarText: {
     color: "#065F46",

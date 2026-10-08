@@ -845,9 +845,17 @@ export function CustomerLayout({ children }) {
                   to="/profile" 
                   className="hidden sm:flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition ml-1 shadow-xs"
                 >
-                  <div className="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 rounded-full p-1">
-                    <User size={16} />
-                  </div>
+                  {user?.avatar || user?.customer_profile?.avatar || user?.customer_profile?.avatar_url || user?.customer_profile?.profile_picture ? (
+                    <img 
+                      src={user?.avatar || user?.customer_profile?.avatar || user?.customer_profile?.avatar_url || user?.customer_profile?.profile_picture} 
+                      alt="Avatar" 
+                      className="size-6 rounded-full object-cover border border-slate-200 dark:border-slate-700" 
+                    />
+                  ) : (
+                    <div className="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 rounded-full p-1">
+                      <User size={16} />
+                    </div>
+                  )}
                   <span className="text-sm font-bold text-slate-700 dark:text-slate-200 pr-1">My Account</span>
                 </Link>
               </>

@@ -242,6 +242,7 @@ class GoogleCustomerAuthView(APIView):
     def post(self, request):
         token = request.data.get('credential')
         token_type = request.data.get('token_type', 'id_token')
+        mobile_number = (request.data.get('mobile_number') or '').strip()
         referral_code = (request.data.get('referral_code') or '').strip().upper()
 
         if not token:
@@ -258,10 +259,57 @@ class GoogleCustomerAuthView(APIView):
         email = google_user['email']
         first_name = google_user['first_name']
         last_name = google_user['last_name']
+        picture = google_user.get('picture', '')
 
         user = User.objects.filter(email__iexact=email).first()
         if not user:
             user = User.objects.filter(username__iexact=email).first()
+
+        from .models import CustomerProfile, Wallet, PendingApkReferral
+        has_mobile = False
+        if user and hasattr(user, 'customer_profile') and user.customer_profile:
+            has_mobile = bool(user.customer_profile.mobile_number and str(user.customer_profile.mobile_number).strip())
+
+        # If user is new OR missing mobile number, and no mobile_number was passed in request:
+        if not has_mobile and not mobile_number:
+            detected_ref = referral_code
+            if not detected_ref:
+                client_ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')
+                if client_ip:
+                    from datetime import timedelta
+                    from django.utils import timezone
+                    recent = PendingApkReferral.objects.filter(
+                        ip_address=client_ip,
+                        created_at__gte=timezone.now() - timedelta(hours=48)
+                    ).first()
+                    if recent:
+                        detected_ref = recent.referral_code
+
+            return Response({
+                'requires_mobile': True,
+                'email': email,
+                'first_name': first_name,
+                'last_name': last_name,
+                'picture': picture,
+                'referral_code': detected_ref or ''
+            }, status=200)
+
+        # If mobile_number was required and passed, validate 10 digits
+        clean_mobile = None
+        if not has_mobile:
+            import re
+            digits = re.sub(r'[^0-9]', '', mobile_number)
+            if len(digits) == 12 and digits.startswith('91'):
+                digits = digits[2:]
+            if not (len(digits) == 10 and digits[0] in '6789'):
+                return Response({'detail': 'Please enter a valid 10-digit mobile number.'}, status=400)
+            clean_mobile = digits
+
+            conflict = CustomerProfile.objects.filter(mobile_number=clean_mobile)
+            if user:
+                conflict = conflict.exclude(user=user)
+            if conflict.exists():
+                return Response({'detail': 'This mobile number is already registered with another account.'}, status=400)
 
         if not user:
             is_new = True
@@ -286,7 +334,6 @@ class GoogleCustomerAuthView(APIView):
             is_new = False
 
         with transaction.atomic():
-            # Sync user details if needed
             user.save()
 
             if user.is_locked:
@@ -310,11 +357,17 @@ class GoogleCustomerAuthView(APIView):
             if fields_to_save:
                 user.save(update_fields=fields_to_save)
 
-            # Ensure CustomerProfile exists
-            from .models import CustomerProfile, Wallet
             profile, _ = CustomerProfile.objects.get_or_create(user=user)
+            profile_save_fields = []
+            if clean_mobile and not profile.mobile_number:
+                profile.mobile_number = clean_mobile
+                profile_save_fields.append('mobile_number')
+            if picture and not profile.avatar_url:
+                profile.avatar_url = picture
+                profile_save_fields.append('avatar_url')
+            if profile_save_fields:
+                profile.save(update_fields=profile_save_fields)
 
-            # Ensure Wallet exists
             wallet, _ = Wallet.objects.get_or_create(user=user)
 
             # Referral processing for new customers
@@ -340,7 +393,7 @@ class GoogleCustomerAuthView(APIView):
         return Response({
             'access': str(refresh.access_token),
             'refresh': str(refresh),
-            'user': UserSerializer(user).data,
+            'user': UserSerializer(user, context={'request': request}).data,
             'is_new': is_new
         })
 
@@ -1283,18 +1336,61 @@ class ReferralLookupView(APIView):
     
     def get(self, request):
         try:
-            code = request.query_params.get('code')
+            code = (request.query_params.get('code') or '').strip().upper()
+            by_ip = request.query_params.get('ip') in ('true', '1', 'yes')
+
+            # If no code but IP check requested, find pending referral from client IP
+            if not code and by_ip:
+                client_ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')
+                if client_ip:
+                    from datetime import timedelta
+                    from django.utils import timezone
+                    from .models import PendingApkReferral
+                    pending = PendingApkReferral.objects.filter(
+                        ip_address=client_ip,
+                        created_at__gte=timezone.now() - timedelta(hours=48)
+                    ).first()
+                    if pending:
+                        code = pending.referral_code
+
             if not code:
-                return Response({'error': 'No code provided'}, status=400)
+                return Response({'error': 'No referral code provided'}, status=400)
                 
-            profile = CustomerProfile.objects.select_related('user').get(referral_code__iexact=code)
+            profile = CustomerProfile.objects.select_related('user').filter(referral_code__iexact=code).first()
+            if not profile:
+                return Response({'error': 'Invalid referral code'}, status=404)
+
             name = profile.user.first_name or profile.user.username
-            return Response({'referrer_name': name})
-        except CustomerProfile.DoesNotExist:
-            return Response({'error': 'Invalid referral code'}, status=404)
+            return Response({
+                'referrer_name': name,
+                'referral_code': code.upper()
+            })
         except Exception as e:
-            import traceback
-            return Response({'error': str(e), 'traceback': traceback.format_exc()}, status=500)
+            return Response({'error': str(e)}, status=500)
+
+
+class RecordDownloadReferralView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        code = (request.data.get('referral_code') or request.data.get('code') or '').strip().upper()
+        if not code:
+            return Response({'detail': 'No referral code provided'}, status=400)
+
+        # Verify code exists
+        if not CustomerProfile.objects.filter(referral_code__iexact=code).exists():
+            return Response({'detail': 'Referral code does not exist'}, status=404)
+
+        client_ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR')
+        if not client_ip:
+            return Response({'detail': 'Could not determine IP address'}, status=400)
+
+        from .models import PendingApkReferral
+        PendingApkReferral.objects.create(
+            ip_address=client_ip,
+            referral_code=code
+        )
+        return Response({'status': 'recorded', 'referral_code': code})
 
 from .models import DeliveryPartnerProfile
 

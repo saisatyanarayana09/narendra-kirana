@@ -9,7 +9,7 @@ from .views import (
     VerifyEmailView, ResendActivationEmailView, CustomerSignupView, CustomTokenObtainPairView, ProfileView,
     CustomerListView, AddressViewSet, WalletView, GoogleOwnerLoginView, admin_google_login,
     GoogleCustomerAuthView, GoogleDeliveryLoginView,
-    ReferralLookupView, LogoutView, AgentManagementView
+    ReferralLookupView, RecordDownloadReferralView, LogoutView, AgentManagementView
 )
 
 router = DefaultRouter()
@@ -35,6 +35,7 @@ urlpatterns = [
 
     path('signup/', CustomerSignupView.as_view(), name='signup'),
     path('referral-lookup/', ReferralLookupView.as_view(), name='referral-lookup'),
+    path('record-download-referral/', RecordDownloadReferralView.as_view(), name='record-download-referral'),
     path('login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('logout/', LogoutView.as_view(), name='auth_logout'),
     path('google-login/', GoogleOwnerLoginView.as_view(), name='google-login'),

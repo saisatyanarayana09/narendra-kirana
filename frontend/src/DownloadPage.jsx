@@ -12,8 +12,11 @@ export default function DownloadPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const ref = params.get('ref');
-    if (ref) setRefCode(ref);
+    const ref = (params.get('ref') || params.get('code') || params.get('referral_code') || '').trim().toUpperCase();
+    if (ref) {
+      setRefCode(ref);
+      api.post('/auth/record-download-referral/', { referral_code: ref }).catch(() => {});
+    }
   }, []);
 
   const handleDownloadClick = () => {
@@ -140,10 +143,10 @@ export default function DownloadPage() {
                 <>
                   {refCode && (
                     <div className="w-full bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 mb-4 flex flex-col items-center text-center animate-in zoom-in duration-300">
-                      <span className="text-emerald-400 font-bold text-sm mb-1">🎁 You've been invited!</span>
-                      <span className="text-white font-black tracking-widest text-xl bg-zinc-900/50 px-4 py-1.5 rounded-lg border border-white/5">{refCode}</span>
+                      <span className="text-emerald-400 font-semibold text-xs tracking-wider uppercase mb-1">Referral invite</span>
+                      <span className="text-white font-mono font-bold tracking-widest text-lg bg-zinc-900/50 px-4 py-1.5 rounded-lg border border-white/5">{refCode}</span>
                       <span className="text-zinc-400 text-xs mt-2 font-medium">
-                        {copied ? 'Code copied to clipboard! Paste it during signup.' : 'Code will be copied automatically when you download.'}
+                        {copied ? 'Code copied to clipboard. Auto-applies in app.' : 'Code will copy automatically on download.'}
                       </span>
                     </div>
                   )}

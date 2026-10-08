@@ -1,244 +1,235 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, Eye, EyeOff } from 'lucide-react';
+import { ChevronRight, Camera, Check } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { useCart } from '../../cart-context';
 
 export default function AccountSettings() {
   const { user, syncUser } = useCart();
+  const fileInputRef = useRef(null);
+
   const [form, setForm] = useState({
     first_name: user?.first_name || '',
-    password: '',
-    confirmPassword: '',
+    mobile_number: user?.customer_profile?.mobile_number || '',
     dob: user?.customer_profile?.dob || '',
   });
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const saveProfile = async () => {
-    if (form.password) {
-      if (form.password.length < 6) {
-        toast.error('Password must be at least 6 characters long.');
+  const avatarUrl = imagePreview || user?.avatar || user?.customer_profile?.avatar || user?.customer_profile?.avatar_url || user?.customer_profile?.profile_picture;
+  const hasExistingPhone = Boolean(user?.customer_profile?.mobile_number);
+
+  const initials = (
+    user?.first_name
+      ? user.first_name.slice(0, 2)
+      : user?.username
+      ? user.username.slice(0, 2)
+      : 'NK'
+  ).toUpperCase();
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image size must be less than 5MB.');
         return;
       }
-      if (!form.confirmPassword) {
-        toast.error('Please confirm your new password.');
-        return;
-      }
-      if (form.password !== form.confirmPassword) {
-        toast.error('New password and confirm password do not match.');
-        return;
-      }
+      setSelectedImage(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const saveProfile = async (e) => {
+    e.preventDefault();
+    if (!form.first_name.trim()) {
+      toast.error('Full name is required.');
+      return;
     }
 
     setLoading(true);
     try {
       const formData = new FormData();
-      formData.append('first_name', form.first_name);
-      if (form.password) formData.append('password', form.password);
-      
-      const customerProfileData = { dob: form.dob };
+      formData.append('first_name', form.first_name.trim());
+
+      const customerProfileData = {
+        dob: form.dob || null,
+      };
+
+      if (!hasExistingPhone && form.mobile_number) {
+        const clean = form.mobile_number.replace(/\D/g, '');
+        if (clean.length === 10) {
+          customerProfileData.mobile_number = clean;
+        }
+      }
+
       formData.append('customer_profile', JSON.stringify(customerProfileData));
+
+      if (selectedImage) {
+        formData.append('profile_picture', selectedImage);
+      }
 
       const { data } = await api.put('/auth/profile/', formData);
       localStorage.setItem('smart-kirana-customer-user', JSON.stringify(data));
       syncUser();
-      toast.success('Profile updated successfully!');
-      setForm(prev => ({ ...prev, password: '', confirmPassword: '' }));
+      toast.success('Changes saved');
     } catch (err) {
-      toast.error('Failed to update profile.');
+      toast.error(err.response?.data?.detail || 'Failed to update profile.');
     } finally {
       setLoading(false);
     }
   };
 
-  
-  const [deleteLoading, setDeleteLoading] = useState(false);
-  const [showDeletePrompt, setShowDeletePrompt] = useState(false);
-  const [deletePassword, setDeletePassword] = useState('');
-  const [showDeletePassword, setShowDeletePassword] = useState(false);
-  const deleteRequested = user?.customer_profile?.delete_requested || false;
-
-  const requestDeletion = async () => {
-    if (!deletePassword) {
-      toast.error('Please enter your password to confirm.');
-      return;
-    }
-    setDeleteLoading(true);
-    try {
-      await api.post('/auth/request-delete/', { password: deletePassword });
-      toast.success('Account deletion requested successfully.');
-      
-      // Update local storage user object
-      const updatedUser = { ...user, customer_profile: { ...user.customer_profile, delete_requested: true } };
-      localStorage.setItem('smart-kirana-customer-user', JSON.stringify(updatedUser));
-      syncUser();
-      setShowDeletePrompt(false);
-      setDeletePassword('');
-    } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to request deletion.');
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
-
-  const submit = (e) => { e.preventDefault(); saveProfile(); };
+  const completion = user?.profile_completion?.percentage ?? (form.dob ? 100 : 80);
 
   return (
     <div>
       <div className="mb-6 border-b border-slate-200 dark:border-slate-800 pb-4">
-        <Link to="/profile" className="text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors inline-flex items-center gap-1 mb-4">
-          <ChevronRight className="rotate-180" size={16}/> Back to Dashboard
+        <Link
+          to="/profile"
+          className="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors inline-flex items-center gap-1 mb-3"
+        >
+          <ChevronRight className="rotate-180" size={14} /> Back to dashboard
         </Link>
-        <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Account Settings</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage your personal information and security preferences.</p>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Account settings</h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Manage your personal details</p>
       </div>
-      
-      <form onSubmit={submit} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-        {/* Personal Information Section */}
-        <div className="p-6 md:p-8">
-          <h3 className="text-base font-bold text-slate-900 dark:text-white mb-5 pb-2 border-b border-slate-100 dark:border-slate-800">Personal Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Full Name</label>
-              <input required value={form.first_name} onChange={e => setForm({...form, first_name: e.target.value})} className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white p-3.5 text-sm font-medium focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-primary-500 outline-none transition-all shadow-sm"/>
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">Email Address</label>
-                <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">Cannot be changed</span>
-              </div>
-              <input 
-                disabled 
-                readOnly 
-                type="email" 
-                value={user?.email || user?.username || ''} 
-                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100/80 dark:bg-slate-800/80 p-3.5 text-sm font-medium text-slate-500 dark:text-slate-400 cursor-not-allowed outline-none shadow-sm"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Date of Birth</label>
-              <input type="date" value={form.dob} onChange={e => setForm({...form, dob: e.target.value})} className="w-full md:w-1/2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white p-3.5 text-sm font-medium focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-primary-500 outline-none transition-all shadow-sm"/>
-            </div>
+
+      {/* Profile Completion Status */}
+      <div className="mb-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs">
+        <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-200 mb-2">
+          <span>Profile completion</span>
+          <span className="text-emerald-600 dark:text-emerald-400 font-bold">{completion}%</span>
+        </div>
+        <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden mb-2">
+          <div
+            className="h-full bg-emerald-600 rounded-full transition-all duration-500"
+            style={{ width: `${completion}%` }}
+          />
+        </div>
+        <div className="text-[11px] text-slate-500 flex items-center justify-between">
+          <span>{completion === 100 ? 'All milestones completed' : 'Add date of birth to reach 100%'}</span>
+          {completion === 100 && (
+            <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">
+              <Check size={12} /> Complete
+            </span>
+          )}
+        </div>
+      </div>
+
+      <form onSubmit={saveProfile} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-xs space-y-6">
+        {/* Photo Upload Section */}
+        <div className="flex items-center gap-4 pb-6 border-b border-slate-100 dark:border-slate-800">
+          <div className="relative size-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-200 font-bold text-xl overflow-hidden border border-slate-200 dark:border-slate-700 shrink-0">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              initials
+            )}
+          </div>
+          <div>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImageChange}
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            >
+              <Camera size={13} /> Change photo
+            </button>
+            <p className="text-[11px] text-slate-400 mt-1">JPG, PNG, WebP up to 5MB</p>
           </div>
         </div>
 
-        {/* Security Section */}
-        <div className="p-6 md:p-8 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800">
-          <h3 className="text-base font-bold text-slate-900 dark:text-white mb-5 pb-2 border-b border-slate-200 dark:border-slate-700">Security & Password</h3>
-          <div className="max-w-md space-y-4">
-            <div>
-              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">New Password</label>
-              <div className="relative w-full">
-                <input 
-                  type={showPassword ? "text" : "password"} 
-                  placeholder="Leave blank to keep current password" 
-                  value={form.password} 
-                  onChange={e => setForm({...form, password: e.target.value})} 
-                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white p-3.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition-all shadow-sm"
-                />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300">
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
+        {/* Inputs */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Full name
+            </label>
+            <input
+              required
+              type="text"
+              value={form.first_name}
+              onChange={(e) => setForm({ ...form, first_name: e.target.value })}
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3.5 py-2.5 text-xs font-medium focus:ring-1 focus:ring-emerald-600 outline-none"
+            />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Email address
+              </label>
+              <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full">
+                Verified
+              </span>
             </div>
+            <input
+              disabled
+              readOnly
+              type="email"
+              value={user?.email || user?.username || ''}
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3.5 py-2.5 text-xs font-medium text-slate-500 cursor-not-allowed outline-none"
+            />
+          </div>
 
-            {form.password ? (
-              <div>
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Confirm New Password</label>
-                <div className="relative w-full">
-                  <input 
-                    type={showConfirmPassword ? "text" : "password"} 
-                    placeholder="Re-enter new password" 
-                    value={form.confirmPassword} 
-                    onChange={e => setForm({...form, confirmPassword: e.target.value})} 
-                    className={`w-full rounded-xl border p-3.5 pr-10 text-sm font-medium outline-none transition-all shadow-sm focus:ring-2 ${
-                      form.confirmPassword && form.password !== form.confirmPassword 
-                        ? 'border-red-300 dark:border-red-500 bg-red-50/30 dark:bg-red-950/30 focus:ring-red-400' 
-                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-primary-500'
-                    }`}
-                  />
-                  <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-3.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300">
-                    {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-                {form.confirmPassword && form.password !== form.confirmPassword && (
-                  <p className="text-xs text-red-500 dark:text-red-400 mt-1.5 font-medium">Passwords do not match</p>
-                )}
-              </div>
-            ) : null}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Mobile number
+              </label>
+              {hasExistingPhone && (
+                <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full">
+                  Verified
+                </span>
+              )}
+            </div>
+            <input
+              disabled={hasExistingPhone}
+              readOnly={hasExistingPhone}
+              type="tel"
+              value={form.mobile_number}
+              onChange={(e) => setForm({ ...form, mobile_number: e.target.value })}
+              placeholder="10-digit mobile number"
+              className={`w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs font-medium outline-none ${
+                hasExistingPhone
+                  ? 'bg-slate-50 dark:bg-slate-800/60 text-slate-500 cursor-not-allowed'
+                  : 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-1 focus:ring-emerald-600'
+              }`}
+            />
+          </div>
 
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">Use 8 or more characters with a mix of letters, numbers & symbols.</p>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Date of birth
+            </label>
+            <input
+              type="date"
+              value={form.dob}
+              onChange={(e) => setForm({ ...form, dob: e.target.value })}
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3.5 py-2.5 text-xs font-medium focus:ring-1 focus:ring-emerald-600 outline-none"
+            />
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="p-6 md:p-8 border-t border-slate-200 dark:border-slate-800 flex justify-end bg-white dark:bg-slate-900">
-          <button disabled={loading} className="w-full md:w-auto min-w-[140px] bg-primary-600 text-white font-bold py-3.5 px-6 rounded-xl hover:bg-primary-700 hover:shadow-md active:scale-95 transition-all disabled:opacity-70 flex items-center justify-center">
-            {loading ? 'Saving...' : 'Save Changes'}
+        <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all disabled:opacity-50 cursor-pointer shadow-xs"
+          >
+            {loading ? 'Saving...' : 'Save changes'}
           </button>
         </div>
       </form>
-
-        {/* Danger Zone */}
-        <div className="mt-8 bg-red-50 dark:bg-rose-950/20 rounded-2xl shadow-sm border border-red-200 dark:border-rose-900/50 overflow-hidden p-6 md:p-8">
-          <h3 className="text-base font-bold text-red-900 dark:text-rose-200 mb-2">Danger Zone</h3>
-          <p className="text-sm text-red-700 dark:text-rose-300 mb-5">Permanently remove your account and all of your data.</p>
-          
-          {deleteRequested ? (
-            <div className="inline-flex items-center gap-2 bg-orange-100 dark:bg-amber-950/60 text-orange-800 dark:text-amber-300 px-4 py-2 rounded-lg text-sm font-bold border border-orange-200 dark:border-amber-800">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500"></span>
-              </span>
-              Deletion Pending Approval
-            </div>
-          ) : showDeletePrompt ? (
-            <div className="bg-white dark:bg-slate-900 border border-red-200 dark:border-rose-900/60 p-4 rounded-xl flex flex-col gap-3 items-start w-full md:w-1/2">
-              <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Enter your password to confirm</label>
-              <div className="relative w-full">
-              <input 
-                type={showDeletePassword ? "text" : "password"} 
-                value={deletePassword} 
-                onChange={e => setDeletePassword(e.target.value)} 
-                placeholder="Your password" 
-                className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white p-2.5 pr-10 text-sm font-medium focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-red-500 outline-none"
-              />
-              <button type="button" onClick={() => setShowDeletePassword(!showDeletePassword)} className="absolute right-3 top-2.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300">
-                {showDeletePassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-              </div>
-              <div className="flex gap-2 w-full mt-1">
-                <button 
-                  type="button" 
-                  onClick={requestDeletion}
-                  disabled={deleteLoading}
-                  className="bg-red-600 text-white hover:bg-red-700 px-4 py-2 rounded-lg font-bold text-sm transition-colors flex-1 disabled:opacity-50"
-                >
-                  {deleteLoading ? 'Processing...' : 'Confirm Deletion'}
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => { setShowDeletePrompt(false); setDeletePassword(''); }}
-                  disabled={deleteLoading}
-                  className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 px-4 py-2 rounded-lg font-bold text-sm transition-colors flex-1 disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button 
-              type="button" 
-              onClick={() => setShowDeletePrompt(true)}
-              className="bg-white dark:bg-slate-900 text-red-600 dark:text-rose-400 border-2 border-red-200 dark:border-rose-900/60 hover:border-red-600 hover:bg-red-50 dark:hover:bg-rose-950/40 px-6 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm"
-            >
-              Request Account Deletion
-            </button>
-          )}
-        </div>
     </div>
   );
 }

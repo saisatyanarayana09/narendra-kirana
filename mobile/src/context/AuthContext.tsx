@@ -56,7 +56,8 @@ type AuthContextType = {
     idToken: string,
     referralCode?: string,
     tokenType?: string,
-  ) => Promise<void>;
+    mobileNumber?: string,
+  ) => Promise<any>;
   logout: () => Promise<void>;
   updateUser: (updatedUser: User) => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -144,6 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       idToken: string,
       referralCode?: string,
       tokenType: string = "id_token",
+      mobileNumber?: string,
     ) => {
       isLoggingOutRef.current = false;
       try {
@@ -154,29 +156,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (referralCode && typeof referralCode === "string" && referralCode.trim()) {
           payload.referral_code = referralCode.trim().toUpperCase();
         }
+        if (mobileNumber && typeof mobileNumber === "string" && mobileNumber.trim()) {
+          payload.mobile_number = mobileNumber.trim();
+        }
 
         const response = await apiClient.post("/auth/google/customer/", payload);
 
-      if (!response || !response.data) {
-        throw new Error("Invalid response from server");
+        if (!response || !response.data) {
+          throw new Error("Invalid response from server");
+        }
+
+        if (response.data?.requires_mobile) {
+          return response.data;
+        }
+
+        const { access, refresh, user: userData } = response.data;
+
+        await saveItem(STORAGE_KEYS.TOKEN, access);
+        await saveItem(STORAGE_KEYS.REFRESH, refresh);
+        await saveItem(STORAGE_KEYS.USER, JSON.stringify(userData));
+
+        setUser(userData);
+        registerForPushNotificationsAsync().catch(() => {});
+        return response.data;
+      } catch (error: any) {
+        console.error(
+          "Google Login error:",
+          error?.response?.data || error.message,
+        );
+        throw error;
       }
-
-      const { access, refresh, user: userData } = response.data;
-
-      await saveItem(STORAGE_KEYS.TOKEN, access);
-      await saveItem(STORAGE_KEYS.REFRESH, refresh);
-      await saveItem(STORAGE_KEYS.USER, JSON.stringify(userData));
-
-      setUser(userData);
-      registerForPushNotificationsAsync().catch(() => {});
-    } catch (error: any) {
-      console.error(
-        "Google Login error:",
-        error?.response?.data || error.message,
-      );
-      throw error;
-    }
-  }, []);
+    },
+    [],
+  );
 
   const logout = useCallback(async () => {
     isLoggingOutRef.current = true;

@@ -35,6 +35,7 @@ class CustomerProfile(models.Model):
     mobile_number = models.CharField(max_length=15, unique=True, null=True, blank=True)
     dob = models.DateField(null=True, blank=True)
     profile_picture = models.ImageField(upload_to='profiles/', null=True, blank=True)
+    avatar_url = models.URLField(max_length=500, null=True, blank=True)
     pickup_preference = models.CharField(max_length=50, blank=True, null=True, help_text="e.g., ASAP, 30 minutes, 1 hour")
     referral_code = models.CharField(max_length=20, unique=True, null=True, blank=True)
     delete_requested = models.BooleanField(default=False)
@@ -176,4 +177,19 @@ class DeliveryPartnerProfile(models.Model):
     def __str__(self):
         status = "Online" if self.is_online else "Offline"
         return f"DeliveryPartner: {self.user.get_full_name() or self.user.username} ({status})"
+
+
+class PendingApkReferral(models.Model):
+    ip_address = models.GenericIPAddressField(db_index=True)
+    referral_code = models.CharField(max_length=20)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['ip_address', '-created_at'], name='pending_apk_ip_created_idx'),
+        ]
+
+    def __str__(self):
+        return f"PendingReferral: {self.referral_code} ({self.ip_address})"
 

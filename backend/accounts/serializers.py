@@ -4,9 +4,24 @@ from django.contrib.auth.password_validation import validate_password
 from .models import User, CustomerProfile, Address, DeliveryPartnerProfile
 
 class CustomerProfileSerializer(serializers.ModelSerializer):
+    avatar = serializers.SerializerMethodField()
+
     class Meta:
         model = CustomerProfile
-        fields = ['mobile_number', 'pickup_preference', 'dob', 'profile_picture', 'referral_code', 'delete_requested']
+        fields = [
+            'mobile_number', 'pickup_preference', 'dob', 'profile_picture',
+            'avatar_url', 'avatar', 'referral_code', 'delete_requested'
+        ]
+
+    def get_avatar(self, obj):
+        if obj.profile_picture:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.profile_picture.url)
+            return obj.profile_picture.url
+        if obj.avatar_url:
+            return obj.avatar_url
+        return None
 
 class DeliveryPartnerProfileSerializer(serializers.ModelSerializer):
     class Meta:
@@ -20,6 +35,8 @@ class DeliveryPartnerProfileSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     customer_profile = CustomerProfileSerializer(read_only=True)
     delivery_profile = DeliveryPartnerProfileSerializer(read_only=True)
+    avatar = serializers.SerializerMethodField()
+    profile_completion = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -27,7 +44,7 @@ class UserSerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'first_name', 'last_name', 
             'is_customer', 'is_owner', 'is_delivery_partner', 'customer_profile', 
             'delivery_profile', 'password', 
-            'profile_picture', 'is_active', 'failed_login_attempts', 
+            'profile_picture', 'avatar', 'profile_completion', 'is_active', 'failed_login_attempts', 
             'is_locked', 'locked_at', 'lockout_until', 'lockout_reason', 
             'last_failed_login_ip'
         ]
@@ -44,6 +61,44 @@ class UserSerializer(serializers.ModelSerializer):
         }
 
     profile_picture = serializers.ImageField(write_only=True, required=False)
+
+    def get_avatar(self, obj):
+        if hasattr(obj, 'customer_profile') and obj.customer_profile:
+            profile = obj.customer_profile
+            if profile.profile_picture:
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(profile.profile_picture.url)
+                return profile.profile_picture.url
+            if profile.avatar_url:
+                return profile.avatar_url
+        return None
+
+    def get_profile_completion(self, obj):
+        if not obj.is_customer:
+            return None
+        has_profile = hasattr(obj, 'customer_profile') and obj.customer_profile
+        has_photo = bool(has_profile and (obj.customer_profile.profile_picture or obj.customer_profile.avatar_url))
+        has_phone = bool(has_profile and obj.customer_profile.mobile_number and str(obj.customer_profile.mobile_number).strip())
+        has_dob = bool(has_profile and obj.customer_profile.dob)
+        has_name = bool(obj.first_name and obj.first_name.strip())
+        has_email = bool(obj.email and obj.email.strip())
+
+        steps = [
+            {"id": "name", "label": "Full name", "completed": has_name, "weight": 20},
+            {"id": "email", "label": "Email address", "completed": has_email, "weight": 20},
+            {"id": "photo", "label": "Profile photo", "completed": has_photo, "weight": 20},
+            {"id": "phone", "label": "Mobile number", "completed": has_phone, "weight": 20},
+            {"id": "dob", "label": "Date of birth", "completed": has_dob, "weight": 20},
+        ]
+        percentage = sum(s["weight"] for s in steps if s["completed"])
+        missing = [s["label"] for s in steps if not s["completed"]]
+        return {
+            "percentage": percentage,
+            "steps": steps,
+            "missing_steps": missing,
+            "is_complete": percentage == 100,
+        }
 
     def validate_profile_picture(self, value):
         if not value:
@@ -100,14 +155,17 @@ class UserSerializer(serializers.ModelSerializer):
             if 'mobile_number' in profile_data:
                 raw_mobile = profile_data.get('mobile_number')
                 clean_mobile = None if raw_mobile in ("", None) else str(raw_mobile).strip()
-                if clean_mobile:
+                # Do not allow modifying mobile number once set
+                if profile.mobile_number and profile.mobile_number.strip():
+                    pass # Locked
+                elif clean_mobile:
                     from .models import CustomerProfile
                     conflict = CustomerProfile.objects.filter(mobile_number=clean_mobile).exclude(id=profile.id).first()
                     if conflict:
                         raise serializers.ValidationError({
                             'customer_profile': {'mobile_number': ['This mobile number is already in use by another account.']}
                         })
-                profile.mobile_number = clean_mobile
+                    profile.mobile_number = clean_mobile
 
             profile.save()
             

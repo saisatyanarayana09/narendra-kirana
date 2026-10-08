@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import {
   View,
@@ -11,6 +12,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -28,8 +30,12 @@ export function AccountSettingsScreen({
   const { user, updateUser } = useAuth();
 
   const [firstName, setFirstName] = useState(user?.first_name || "");
+  const [mobileNumber, setMobileNumber] = useState(
+    user?.customer_profile?.mobile_number || ""
+  );
   const [dob, setDob] = useState(user?.customer_profile?.dob || "");
   const [dobError, setDobError] = useState("");
+  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -41,6 +47,53 @@ export function AccountSettingsScreen({
   const [deletePassword, setDeletePassword] = useState("");
   const [showDeletePassword, setShowDeletePassword] = useState(false);
   const deleteRequested = Boolean(user?.customer_profile?.delete_requested);
+
+  const hasExistingPhone = Boolean(user?.customer_profile?.mobile_number);
+  const avatarUri =
+    selectedImageUri ||
+    user?.avatar ||
+    user?.customer_profile?.avatar ||
+    user?.customer_profile?.avatar_url ||
+    user?.customer_profile?.profile_picture;
+
+  const initials = (
+    user?.first_name
+      ? user.first_name.slice(0, 2)
+      : user?.username
+      ? user.username.slice(0, 2)
+      : "NK"
+  ).toUpperCase();
+
+  const completion =
+    user?.profile_completion?.percentage ?? (dob ? 100 : 80);
+
+  const handlePickImage = async () => {
+    try {
+      const permission =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          "Permission Required",
+          "Please grant media library access to select a profile photo."
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setSelectedImageUri(result.assets[0].uri);
+      }
+    } catch (err) {
+      console.warn("Failed to pick image:", err);
+      Alert.alert("Error", "Could not select photo.");
+    }
+  };
 
   const handleSaveProfile = async () => {
     if (!firstName.trim()) {
@@ -105,18 +158,50 @@ export function AccountSettingsScreen({
 
     setSaving(true);
     try {
-      const payload: any = {
-        first_name: firstName.trim(),
-      };
-      if (password) payload.password = password;
-      if (dob !== undefined)
-        payload.customer_profile = JSON.stringify({ dob: trimmedDob || null });
+      const formData = new FormData();
+      formData.append("first_name", firstName.trim());
 
-      const res = await apiClient.put("/auth/profile/", payload);
+      const customerProfileData: any = {
+        dob: trimmedDob || null,
+      };
+
+      if (!hasExistingPhone && mobileNumber.trim()) {
+        const cleanMobile = mobileNumber.replace(/\D/g, "");
+        if (cleanMobile.length === 10) {
+          customerProfileData.mobile_number = cleanMobile;
+        }
+      }
+
+      formData.append(
+        "customer_profile",
+        JSON.stringify(customerProfileData)
+      );
+
+      if (password) {
+        formData.append("password", password);
+      }
+
+      if (selectedImageUri) {
+        const filename = selectedImageUri.split("/").pop() || "avatar.jpg";
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1].toLowerCase()}` : "image/jpeg";
+        formData.append("profile_picture", {
+          uri: selectedImageUri,
+          name: filename,
+          type,
+        } as any);
+      }
+
+      const res = await apiClient.put("/auth/profile/", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
       if (updateUser && res.data) {
         await updateUser(res.data);
       }
-      Alert.alert("Success", "Profile updated successfully!");
+      setSelectedImageUri(null);
+      Alert.alert("Success", "Profile updated successfully.");
       setPassword("");
       setConfirmPassword("");
     } catch (err: any) {
@@ -282,6 +367,47 @@ export function AccountSettingsScreen({
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
+          {/* Profile Completion Status */}
+          <View
+            style={[
+              styles.card,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <View style={styles.completionHeaderRow}>
+              <Text style={[styles.completionTitle, { color: colors.text }]}>
+                Profile completion
+              </Text>
+              <Text style={styles.completionPercentText}>{completion}%</Text>
+            </View>
+            <View style={styles.completionTrack}>
+              <View
+                style={[
+                  styles.completionFill,
+                  { width: `${completion}%` },
+                ]}
+              />
+            </View>
+            <View style={styles.completionFooterRow}>
+              <Text
+                style={[
+                  styles.completionSubtext,
+                  { color: colors.textSecondary },
+                ]}
+              >
+                {completion === 100
+                  ? "All milestones completed"
+                  : "Add date of birth to reach 100%"}
+              </Text>
+              {completion === 100 && (
+                <View style={styles.completedBadgeRow}>
+                  <Feather name="check" size={12} color="#059669" />
+                  <Text style={styles.completedBadgeText}>Complete</Text>
+                </View>
+              )}
+            </View>
+          </View>
+
           {/* Personal Details Card */}
           <View
             style={[
@@ -297,6 +423,70 @@ export function AccountSettingsScreen({
             >
               Personal Information
             </Text>
+
+            {/* Photo Upload Section */}
+            <View style={styles.avatarRow}>
+              <View
+                style={[
+                  styles.avatarPreview,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(255,255,255,0.08)"
+                      : "#F1F5F9",
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                {avatarUri ? (
+                  <Image
+                    source={{ uri: avatarUri }}
+                    style={styles.avatarPreviewImage}
+                  />
+                ) : (
+                  <Text
+                    style={[
+                      styles.avatarPreviewInitials,
+                      { color: colors.text },
+                    ]}
+                  >
+                    {initials}
+                  </Text>
+                )}
+              </View>
+              <View style={styles.avatarActionCol}>
+                <TouchableOpacity
+                  style={[
+                    styles.changePhotoBtn,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(255,255,255,0.06)"
+                        : "#FFFFFF",
+                      borderColor: colors.border,
+                    },
+                  ]}
+                  onPress={handlePickImage}
+                  activeOpacity={0.8}
+                >
+                  <Feather name="camera" size={13} color={colors.primary} />
+                  <Text
+                    style={[
+                      styles.changePhotoBtnText,
+                      { color: colors.text },
+                    ]}
+                  >
+                    Change photo
+                  </Text>
+                </TouchableOpacity>
+                <Text
+                  style={[
+                    styles.avatarHintText,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  JPG, PNG, WebP up to 5MB
+                </Text>
+              </View>
+            </View>
 
             <View style={styles.inputGroup}>
               <Text style={[styles.inputLabel, { color: colors.text }]}>
@@ -325,19 +515,9 @@ export function AccountSettingsScreen({
                 <Text style={[styles.inputLabel, { color: colors.text }]}>
                   Email Address
                 </Text>
-                <Text
-                  style={[
-                    styles.readOnlyBadge,
-                    {
-                      backgroundColor: isDark
-                        ? "rgba(255,255,255,0.06)"
-                        : "#F1F5F9",
-                      color: colors.textSecondary,
-                    },
-                  ]}
-                >
-                  Cannot be changed
-                </Text>
+                <View style={styles.verifiedBadge}>
+                  <Text style={styles.verifiedBadgeText}>Verified</Text>
+                </View>
               </View>
               <TextInput
                 style={[
@@ -354,6 +534,45 @@ export function AccountSettingsScreen({
                 value={user?.email || user?.username || ""}
                 editable={false}
                 placeholderTextColor={colors.textSecondary}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <View style={styles.inputLabelRow}>
+                <Text style={[styles.inputLabel, { color: colors.text }]}>
+                  Mobile Number
+                </Text>
+                {hasExistingPhone && (
+                  <View style={styles.verifiedBadge}>
+                    <Text style={styles.verifiedBadgeText}>Verified</Text>
+                  </View>
+                )}
+              </View>
+              <TextInput
+                style={[
+                  styles.textInput,
+                  hasExistingPhone && styles.textInputDisabled,
+                  {
+                    backgroundColor: hasExistingPhone
+                      ? isDark
+                        ? "rgba(255,255,255,0.03)"
+                        : "#F1F5F9"
+                      : isDark
+                      ? "rgba(255,255,255,0.05)"
+                      : "#F8FAFC",
+                    borderColor: colors.border,
+                    color: hasExistingPhone
+                      ? colors.textSecondary
+                      : colors.text,
+                  },
+                ]}
+                value={mobileNumber}
+                onChangeText={setMobileNumber}
+                editable={!hasExistingPhone}
+                placeholder="10-digit mobile number"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="phone-pad"
+                maxLength={10}
               />
             </View>
 
@@ -749,6 +968,110 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 6,
+  },
+  completionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  completionTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  completionPercentText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#059669",
+  },
+  completionTrack: {
+    height: 6,
+    backgroundColor: "#F1F5F9",
+    borderRadius: 3,
+    overflow: "hidden",
+    marginBottom: 8,
+  },
+  completionFill: {
+    height: "100%",
+    backgroundColor: "#059669",
+    borderRadius: 3,
+  },
+  completionFooterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  completionSubtext: {
+    fontSize: 11,
+    fontWeight: "500",
+  },
+  completedBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  completedBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#059669",
+  },
+  avatarRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    paddingBottom: 14,
+    marginBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  avatarPreview: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 1,
+    overflow: "hidden",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarPreviewImage: {
+    width: "100%",
+    height: "100%",
+  },
+  avatarPreviewInitials: {
+    fontSize: 18,
+    fontWeight: "800",
+  },
+  avatarActionCol: {
+    flex: 1,
+    alignItems: "flex-start",
+  },
+  changePhotoBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  changePhotoBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  avatarHintText: {
+    fontSize: 11,
+    marginTop: 4,
+  },
+  verifiedBadge: {
+    backgroundColor: "#ECFDF5",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  verifiedBadgeText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#059669",
   },
   readOnlyBadge: {
     fontSize: 11,

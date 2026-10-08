@@ -127,6 +127,10 @@ export default function DashboardHome() {
     },
   ];
 
+  const avatarUrl = user?.avatar || user?.customer_profile?.avatar || user?.customer_profile?.avatar_url || user?.customer_profile?.profile_picture;
+  const completion = user?.profile_completion?.percentage ?? (user?.customer_profile?.dob ? 100 : 80);
+  const isComplete = completion === 100;
+
   const initials = (
     user?.first_name
       ? user.first_name.slice(0, 2)
@@ -137,12 +141,16 @@ export default function DashboardHome() {
 
   return (
     <div>
-      {/* Improved Customer Name Hero Background */}
+      {/* Customer Hero Card */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-800 p-6 sm:p-8 text-white shadow-lg mb-8">
         <div className="absolute top-0 right-0 -mt-10 -mr-10 w-48 h-48 rounded-full bg-white/10 blur-2xl pointer-events-none"></div>
         <div className="relative z-10 flex items-center gap-4 sm:gap-5">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white text-emerald-900 flex items-center justify-center text-xl sm:text-2xl font-black shadow-md flex-shrink-0">
-            {initials}
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white text-emerald-900 flex items-center justify-center text-xl sm:text-2xl font-black shadow-md flex-shrink-0 overflow-hidden">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              initials
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <button
@@ -152,11 +160,29 @@ export default function DashboardHome() {
               <ArrowLeft size={14} /> {t('Back to Store')}
             </button>
             <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight truncate">
-              Hi, {user?.first_name || user?.username || 'Customer'}!
+              Hi, {user?.first_name || user?.username || 'Customer'}
             </h1>
             <p className="text-emerald-100/80 text-xs sm:text-sm mt-0.5 truncate">
-              {user?.email || 'Manage your account and track your orders.'}
+              {user?.email || 'Manage your account and track orders'}
             </p>
+          </div>
+        </div>
+
+        {/* Minimal Profile Completion Bar */}
+        <div className="relative z-10 mt-5 pt-4 border-t border-white/10">
+          <div className="flex items-center justify-between text-xs font-medium text-emerald-100/90 mb-1.5">
+            <span>{isComplete ? 'Profile complete' : `${completion}% complete`}</span>
+            {!isComplete && (
+              <Link to="/profile/account" className="underline hover:text-white transition-colors">
+                Add date of birth to reach 100%
+              </Link>
+            )}
+          </div>
+          <div className="w-full h-1.5 rounded-full bg-white/20 overflow-hidden">
+            <div
+              className="h-full bg-emerald-300 rounded-full transition-all duration-500"
+              style={{ width: `${completion}%` }}
+            />
           </div>
         </div>
       </div>
