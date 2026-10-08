@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, ShieldCheck, CheckCircle2, Lock, Phone, X } from 'lucide-react';
+import { ArrowLeft, Lock, Phone, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useGoogleLogin } from '@react-oauth/google';
 import api from '../../services/api';
@@ -167,97 +167,82 @@ export function CustomerLoginPage() {
 
   return (
     <CustomerLayout>
-      <main className="mx-auto max-w-md px-4 py-12">
+      <main className="mx-auto max-w-sm px-4 py-16">
         <Link
           to="/"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500 hover:text-slate-900 transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors mb-8"
         >
-          <ArrowLeft size={15} />
+          <ArrowLeft size={14} />
           Back to store
         </Link>
 
-        {/* Brand Header */}
-        <div className="mt-8 text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <img src="/logo-transparent.png" alt="Logo" className="w-10 h-10 object-contain" />
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-              Narendra <span className="text-rose-600">Kirana</span>
-            </h1>
+        {/* Brand Presentation */}
+        <div className="flex flex-col items-center text-center mb-6">
+          <div className="size-14 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2.5 shadow-sm flex items-center justify-center mb-3">
+            <img src="/logo-transparent.png" alt="Narendra Kirana" className="w-full h-full object-contain" />
           </div>
-          <p className="text-sm text-slate-500">
-            Fresh groceries and daily essentials delivered to your door.
-          </p>
+          <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Sign in
+          </h1>
         </div>
 
         {/* Action Notice */}
         {redirectTarget !== '/' && (
-          <div className="mt-6 flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 text-xs text-emerald-800">
-            <Lock size={14} className="shrink-0 text-emerald-600" />
-            <span className="font-medium">
+          <div className="mb-4 flex items-center justify-center gap-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 px-3 py-2 text-xs font-medium text-emerald-800 dark:text-emerald-300">
+            <Lock size={13} className="shrink-0 text-emerald-600" />
+            <span>
               {redirectTarget.includes('checkout')
-                ? 'Sign in to complete your checkout.'
+                ? 'Sign in to complete checkout'
                 : redirectTarget.includes('orders')
-                ? 'Sign in to view your order history.'
-                : 'Sign in to continue.'}
+                ? 'Sign in to view orders'
+                : 'Sign in to continue'}
             </span>
           </div>
         )}
 
-        {/* Referral Invite Banner */}
+        {/* Referral Invite Pill */}
         {referralCode && (
-          <div className="mt-6 rounded-xl border border-teal-200 bg-teal-50/80 p-3.5 flex items-center justify-between gap-3 animate-in fade-in duration-200">
-            <div>
-              <p className="text-xs font-bold text-teal-900">
-                {referrerName ? `Invited by ${referrerName}` : `Referral code ${referralCode}`}
-              </p>
-              <p className="text-[11px] text-teal-700 mt-0.5">
-                ₹50 referral credit will be added to your account.
-              </p>
-            </div>
+          <div className="mb-4 flex items-center justify-between rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 px-3 py-2 text-xs text-emerald-800 dark:text-emerald-300 animate-in fade-in duration-200">
+            <span>
+              Invited by <strong className="font-semibold">{referrerName || referralCode}</strong>
+            </span>
             <button
               onClick={() => { setReferralCode(''); setReferrerName(''); }}
-              className="text-teal-600 hover:text-teal-800 p-1"
+              className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-white p-0.5"
               title="Remove code"
             >
-              <X size={14} />
+              <X size={13} />
             </button>
           </div>
         )}
 
-        {/* 1-Tap Google Auth Card */}
-        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-7 shadow-xs">
-          <div className="text-center mb-6">
-            <h2 className="text-base font-bold text-slate-900">Sign in</h2>
-            <p className="text-xs text-slate-500 mt-1">
-              One-tap sign-in with your Google account.
-            </p>
-          </div>
-
+        {/* Sign In Card */}
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
           {error && (
-            <div className="mb-5 rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs font-semibold text-rose-700">
+            <div className="mb-4 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900/50 p-3 text-xs font-semibold text-rose-700 dark:text-rose-300">
               {error}
             </div>
           )}
 
-          {/* 1-Tap Google Button */}
+          {/* Interactive Google Button */}
           <button
             type="button"
             disabled={googleLoading}
             onClick={() => handleGoogleSignIn()}
-            className="w-full flex items-center justify-center gap-3 px-5 py-3.5 bg-white border border-slate-300 hover:border-slate-400 rounded-xl hover:bg-slate-50 transition-all text-sm font-bold text-slate-800 active:scale-[0.99] disabled:opacity-50 cursor-pointer shadow-xs"
+            className="w-full flex items-center justify-center gap-3 px-5 py-3.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-750 transition-all duration-200 text-sm font-semibold text-slate-800 dark:text-slate-100 active:scale-[0.99] disabled:opacity-50 cursor-pointer shadow-xs hover:shadow-sm"
           >
             <GoogleIcon />
             <span>{googleLoading ? 'Signing in...' : 'Continue with Google'}</span>
           </button>
 
-          {/* Manual Referral Link */}
+          {/* Referral Code Expansion */}
           {!referralCode && (
             <div className="mt-4 text-center">
               {!showReferralInput ? (
                 <button
                   type="button"
                   onClick={() => setShowReferralInput(true)}
-                  className="text-xs font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
+                  className="text-xs font-medium text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 transition-colors"
                 >
                   Have a referral code?
                 </button>
@@ -265,21 +250,21 @@ export function CustomerLoginPage() {
                 <form onSubmit={handleApplyManualCode} className="mt-2 flex items-center gap-2">
                   <input
                     type="text"
-                    placeholder="Enter referral code"
+                    placeholder="REFERRAL CODE"
                     value={manualCode}
                     onChange={(e) => setManualCode(e.target.value.toUpperCase())}
-                    className="flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs uppercase font-mono tracking-wider focus:outline-emerald-500"
+                    className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 text-xs uppercase font-mono tracking-wider focus:outline-emerald-500 text-slate-900 dark:text-white"
                   />
                   <button
                     type="submit"
-                    className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+                    className="rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors"
                   >
                     Apply
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowReferralInput(false)}
-                    className="text-slate-400 hover:text-slate-600"
+                    className="text-slate-400 hover:text-slate-600 p-1"
                   >
                     <X size={14} />
                   </button>
@@ -287,18 +272,6 @@ export function CustomerLoginPage() {
               )}
             </div>
           )}
-
-          {/* Clean Security Badges */}
-          <div className="mt-6 pt-5 border-t border-slate-100 space-y-2">
-            <div className="flex items-center gap-2 text-xs text-slate-600">
-              <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
-              <span>Instant account setup</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-slate-600">
-              <ShieldCheck size={14} className="text-emerald-600 shrink-0" />
-              <span>Verified Google security</span>
-            </div>
-          </div>
         </div>
 
         {/* Footer Note */}
@@ -309,14 +282,14 @@ export function CustomerLoginPage() {
         {/* Mandatory Mobile Number Modal */}
         {showMobileModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-            <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl border border-slate-200 animate-in zoom-in-95 duration-150">
+            <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-900 p-6 shadow-xl border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-150">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2.5">
-                  <div className="size-9 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                  <div className="size-9 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 flex items-center justify-center">
                     <Phone size={16} />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900">Mobile number</h3>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">Mobile number</h3>
                     <p className="text-[11px] text-slate-500">Required for delivery updates</p>
                   </div>
                 </div>
@@ -329,23 +302,23 @@ export function CustomerLoginPage() {
               </div>
 
               {referralCode && (
-                <div className="mb-4 rounded-lg bg-teal-50 border border-teal-100 p-2 text-xs text-teal-800">
-                  Invited by {referrerName || referralCode} • ₹50 credit applied
+                <div className="mb-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-100 dark:border-emerald-900/50 px-3 py-1.5 text-xs text-emerald-800 dark:text-emerald-300">
+                  Invited by {referrerName || referralCode}
                 </div>
               )}
 
               {mobileError && (
-                <div className="mb-3 rounded-lg bg-rose-50 border border-rose-200 p-2 text-xs font-semibold text-rose-700">
+                <div className="mb-3 rounded-lg bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900/50 p-2 text-xs font-semibold text-rose-700 dark:text-rose-300">
                   {mobileError}
                 </div>
               )}
 
               <form onSubmit={handleMobileSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                     Phone number
                   </label>
-                  <div className="flex items-center rounded-xl border border-slate-300 px-3 py-2.5 focus-within:border-emerald-600 focus-within:ring-1 focus-within:ring-emerald-600">
+                  <div className="flex items-center rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 focus-within:border-emerald-600 focus-within:ring-1 focus-within:ring-emerald-600">
                     <span className="text-xs font-bold text-slate-500 mr-2">+91</span>
                     <input
                       type="tel"
@@ -354,7 +327,7 @@ export function CustomerLoginPage() {
                       placeholder="98765 43210"
                       value={mobileNumber}
                       onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ''))}
-                      className="w-full text-sm font-medium text-slate-900 outline-none placeholder:text-slate-400"
+                      className="w-full text-sm font-medium text-slate-900 dark:text-white outline-none placeholder:text-slate-400 bg-transparent"
                     />
                   </div>
                 </div>
@@ -363,14 +336,14 @@ export function CustomerLoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowMobileModal(false)}
-                    className="flex-1 rounded-xl border border-slate-200 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                    className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={submittingPhone || mobileNumber.length !== 10}
-                    className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
+                    className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
                   >
                     {submittingPhone ? 'Saving...' : 'Continue'}
                   </button>

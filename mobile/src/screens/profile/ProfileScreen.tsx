@@ -1,6 +1,7 @@
 import { Feather, MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useState, useEffect, useCallback } from "react";
+import Svg, { Circle } from "react-native-svg";
 import {
   View,
   Text,
@@ -311,7 +312,7 @@ export function ProfileScreen({
           {/* Avatar & Customer Greeting */}
           <View style={styles.customerInfoRow}>
             <TouchableOpacity
-              style={styles.avatarCircle}
+              style={styles.avatarWrapper}
               activeOpacity={0.85}
               onPress={() => {
                 if (user) {
@@ -319,22 +320,53 @@ export function ProfileScreen({
                 }
               }}
             >
-              {avatarUri ? (
-                <Image
-                  source={{ uri: avatarUri }}
-                  style={styles.avatarImage}
-                />
-              ) : user ? (
-                <Text style={styles.avatarText}>{getInitials()}</Text>
-              ) : (
-                <Feather name="user" size={26} color="#059669" />
+              {user && completion < 100 && (
+                <Svg width={62} height={62} style={styles.avatarSvgRing}>
+                  <Circle
+                    cx={31}
+                    cy={31}
+                    r={28}
+                    stroke="rgba(255, 255, 255, 0.25)"
+                    strokeWidth={3}
+                    fill="none"
+                  />
+                  <Circle
+                    cx={31}
+                    cy={31}
+                    r={28}
+                    stroke="#34D399"
+                    strokeWidth={3}
+                    strokeDasharray={`${2 * Math.PI * 28}`}
+                    strokeDashoffset={`${2 * Math.PI * 28 * (1 - completion / 100)}`}
+                    strokeLinecap="round"
+                    fill="none"
+                  />
+                </Svg>
               )}
-              {user && (
-                <View style={styles.avatarCameraBadge}>
-                  <Feather name="camera" size={10} color="#FFFFFF" />
+              <View style={styles.avatarCircle}>
+                {avatarUri ? (
+                  <Image
+                    source={{ uri: avatarUri }}
+                    style={styles.avatarImage}
+                  />
+                ) : user ? (
+                  <Text style={styles.avatarText}>{getInitials()}</Text>
+                ) : (
+                  <Feather name="user" size={26} color="#059669" />
+                )}
+                {user && (
+                  <View style={styles.avatarCameraBadge}>
+                    <Feather name="camera" size={10} color="#FFFFFF" />
+                  </View>
+                )}
+              </View>
+              {user && completion < 100 && (
+                <View style={styles.completionPercentBadge}>
+                  <Text style={styles.completionPercentBadgeText}>{completion}%</Text>
                 </View>
               )}
             </TouchableOpacity>
+
             <View style={styles.greetingBox}>
               <Text style={styles.greetingTitle}>
                 {user ? `Hi, ${displayName}` : "Welcome, Guest"}
@@ -344,6 +376,19 @@ export function ProfileScreen({
                   ? user?.email || "Manage your account and track orders"
                   : "Sign in to track orders and earn cashbacks"}
               </Text>
+              {user && completion < 100 && (
+                <TouchableOpacity
+                  onPress={() => {
+                    triggerHaptic("light");
+                    navigation.navigate("AccountSettingsScreen");
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.milestonePromptText}>
+                    Add date of birth to complete profile
+                  </Text>
+                </TouchableOpacity>
+              )}
               {!user && (
                 <TouchableOpacity
                   style={styles.guestPillBtn}
@@ -361,37 +406,6 @@ export function ProfileScreen({
               )}
             </View>
           </View>
-
-          {/* Minimal Profile Completion Bar */}
-          {user && (
-            <View style={styles.completionContainer}>
-              <View style={styles.completionHeaderRow}>
-                <Text style={styles.completionLabelText}>
-                  {completion === 100
-                    ? "Profile complete"
-                    : `${completion}% complete • Add date of birth to reach 100%`}
-                </Text>
-                {completion !== 100 && (
-                  <TouchableOpacity
-                    onPress={() => {
-                      triggerHaptic("light");
-                      navigation.navigate("AccountSettingsScreen");
-                    }}
-                  >
-                    <Feather name="chevron-right" size={14} color="#D1FAE5" />
-                  </TouchableOpacity>
-                )}
-              </View>
-              <View style={styles.completionTrack}>
-                <View
-                  style={[
-                    styles.completionFill,
-                    { width: `${completion}%` },
-                  ]}
-                />
-              </View>
-            </View>
-          )}
 
           {/* Loyalty & Quick Stats Strip: 2 Balanced Interactive Tiles */}
           <View
@@ -890,34 +904,41 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "#FFFFFF",
   },
-  completionContainer: {
-    marginTop: 12,
-    marginBottom: 6,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.15)",
-  },
-  completionHeaderRow: {
-    flexDirection: "row",
+  avatarWrapper: {
+    width: 62,
+    height: 62,
+    justifyContent: "center",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 6,
+    position: "relative",
   },
-  completionLabelText: {
-    fontSize: 12,
+  avatarSvgRing: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    transform: [{ rotate: "-90deg" }],
+  },
+  completionPercentBadge: {
+    position: "absolute",
+    bottom: -2,
+    right: -2,
+    backgroundColor: "#059669",
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: "#FFFFFF",
+  },
+  completionPercentBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 9,
+    fontWeight: "900",
+  },
+  milestonePromptText: {
+    fontSize: 11,
     color: "#D1FAE5",
+    marginTop: 3,
     fontWeight: "600",
-  },
-  completionTrack: {
-    height: 6,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    borderRadius: 3,
-    overflow: "hidden",
-  },
-  completionFill: {
-    height: "100%",
-    backgroundColor: "#34D399",
-    borderRadius: 3,
+    textDecorationLine: "underline",
   },
   avatarText: {
     color: "#065F46",

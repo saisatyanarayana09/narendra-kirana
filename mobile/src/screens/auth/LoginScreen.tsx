@@ -2,7 +2,8 @@ import { Feather, AntDesign } from "@expo/vector-icons";
 import { RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import * as Clipboard from "expo-clipboard";
-import React, { useState, useEffect } from "react";
+import * as Haptics from "expo-haptics";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -13,6 +14,7 @@ import {
   Image,
   Modal,
   TextInput,
+  Animated,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -42,6 +44,26 @@ export function LoginScreen({ navigation, route }: Props) {
   const [referralCode, setReferralCode] = useState<string>("");
   const [referrerName, setReferrerName] = useState<string>("");
   const [isLookingUpReferral, setIsLookingUpReferral] = useState(false);
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(18)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 320,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 65,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   // Manual referral input
   const [showManualReferral, setShowManualReferral] = useState(false);
@@ -272,9 +294,6 @@ export function LoginScreen({ navigation, route }: Props) {
             </Text>
           </View>
           <Text style={[styles.title, { color: colors.text }]}>Sign in</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Fresh groceries and daily essentials delivered to your door.
-          </Text>
         </View>
 
         {/* Redirect Notice */}
@@ -295,54 +314,35 @@ export function LoginScreen({ navigation, route }: Props) {
                 { color: isDark ? "#34D399" : "#065F46" },
               ]}
             >
-              Sign in to continue.
+              Sign in to continue
             </Text>
           </View>
         )}
 
-        {/* Referral Banner */}
+        {/* Minimal Referral Chip */}
         {referralCode ? (
           <View
             style={[
               styles.referralBanner,
               {
-                backgroundColor: isDark ? "rgba(13, 148, 136, 0.15)" : "#F0FDFA",
-                borderColor: isDark ? "rgba(13, 148, 136, 0.3)" : "#99F6E4",
+                backgroundColor: isDark ? "rgba(13, 148, 136, 0.15)" : "#ECFDF5",
+                borderColor: isDark ? "rgba(13, 148, 136, 0.3)" : "#A7F3D0",
               },
             ]}
           >
-            <View style={{ flex: 1 }}>
-              {isLookingUpReferral ? (
-                <Text
-                  style={[
-                    styles.referralSubtitle,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  Checking referral code...
+            <View style={{ flex: 1, flexDirection: "row", alignItems: "center" }}>
+              <Feather name="tag" size={13} color="#059669" style={{ marginRight: 6 }} />
+              <Text
+                style={[
+                  styles.referralTitle,
+                  { color: isDark ? "#34D399" : "#065F46" },
+                ]}
+              >
+                Invited by{" "}
+                <Text style={{ fontWeight: "700" }}>
+                  {referrerName || referralCode}
                 </Text>
-              ) : (
-                <>
-                  <Text
-                    style={[
-                      styles.referralTitle,
-                      { color: isDark ? "#2DD4BF" : "#0F766E" },
-                    ]}
-                  >
-                    {referrerName
-                      ? `Invited by ${referrerName}`
-                      : `Referral code ${referralCode}`}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.referralSubtitle,
-                      { color: isDark ? "#99F6E4" : "#115E59" },
-                    ]}
-                  >
-                    ₹50 referral credit will be applied.
-                  </Text>
-                </>
-              )}
+              </Text>
             </View>
             <TouchableOpacity
               onPress={() => {
@@ -351,70 +351,85 @@ export function LoginScreen({ navigation, route }: Props) {
               }}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Feather name="x" size={15} color="#0D9488" />
+              <Feather name="x" size={14} color="#059669" />
             </TouchableOpacity>
           </View>
         ) : null}
 
-        {/* Central Auth Card */}
-        <View
+        {/* Central Auth Card with Smooth Animated Entrance */}
+        <Animated.View
           style={[
             styles.card,
-            { backgroundColor: colors.surface, borderColor: colors.border },
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
           ]}
         >
-          <Text style={[styles.cardHeaderTitle, { color: colors.text }]}>
-            Continue with Google
-          </Text>
-          <Text
-            style={[
-              styles.cardHeaderSubtitle,
-              { color: colors.textSecondary },
-            ]}
-          >
-            One-tap sign-in with your Google account.
-          </Text>
-
-          {/* 1-Tap Google Button */}
-          <TouchableOpacity
-            style={[
-              styles.googleButton,
-              isDark
-                ? { backgroundColor: "#1E293B", borderColor: "#334155" }
-                : { backgroundColor: "#FFFFFF", borderColor: "#CBD5E1" },
-            ]}
-            onPress={handleGoogleLogin}
-            disabled={isGoogleLoading}
-            activeOpacity={0.8}
-          >
-            {isGoogleLoading ? (
-              <ActivityIndicator color="#4285F4" size="small" />
-            ) : (
-              <>
-                <AntDesign
-                  name="google"
-                  color="#4285F4"
-                  size={20}
-                  style={{ marginRight: 10 }}
-                />
-                <Text
-                  style={[
-                    styles.googleButtonText,
-                    { color: isDark ? "#F8FAFC" : "#1E293B" },
-                  ]}
-                >
-                  Continue with Google
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
+          {/* Interactive Google Button with Spring Scale */}
+          <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+            <TouchableOpacity
+              style={[
+                styles.googleButton,
+                isDark
+                  ? { backgroundColor: "#1E293B", borderColor: "#334155" }
+                  : { backgroundColor: "#FFFFFF", borderColor: "#CBD5E1" },
+              ]}
+              onPressIn={() => {
+                Animated.spring(scaleAnim, {
+                  toValue: 0.97,
+                  useNativeDriver: true,
+                }).start();
+              }}
+              onPressOut={() => {
+                Animated.spring(scaleAnim, {
+                  toValue: 1,
+                  tension: 70,
+                  friction: 6,
+                  useNativeDriver: true,
+                }).start();
+              }}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                handleGoogleLogin();
+              }}
+              disabled={isGoogleLoading}
+              activeOpacity={0.9}
+            >
+              {isGoogleLoading ? (
+                <ActivityIndicator color="#4285F4" size="small" />
+              ) : (
+                <>
+                  <AntDesign
+                    name="google"
+                    color="#4285F4"
+                    size={20}
+                    style={{ marginRight: 10 }}
+                  />
+                  <Text
+                    style={[
+                      styles.googleButtonText,
+                      { color: isDark ? "#F8FAFC" : "#1E293B" },
+                    ]}
+                  >
+                    Continue with Google
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </Animated.View>
 
           {/* Manual Referral Input */}
           {!referralCode && (
-            <View style={{ marginTop: 12, alignItems: "center" }}>
+            <View style={{ marginTop: 14, alignItems: "center" }}>
               {!showManualReferral ? (
                 <TouchableOpacity
-                  onPress={() => setShowManualReferral(true)}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setShowManualReferral(true);
+                  }}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                   <Text
@@ -448,7 +463,10 @@ export function LoginScreen({ navigation, route }: Props) {
                       styles.manualApplyBtn,
                       { backgroundColor: colors.primary },
                     ]}
-                    onPress={handleApplyManualCode}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      handleApplyManualCode();
+                    }}
                   >
                     <Text style={styles.manualApplyBtnText}>Apply</Text>
                   </TouchableOpacity>
@@ -462,23 +480,7 @@ export function LoginScreen({ navigation, route }: Props) {
               )}
             </View>
           )}
-
-          {/* Badges */}
-          <View style={styles.perksContainer}>
-            <View style={styles.perkRow}>
-              <Feather name="check" size={14} color="#10B981" />
-              <Text style={[styles.perkText, { color: colors.textSecondary }]}>
-                Instant account setup
-              </Text>
-            </View>
-            <View style={styles.perkRow}>
-              <Feather name="shield" size={14} color="#10B981" />
-              <Text style={[styles.perkText, { color: colors.textSecondary }]}>
-                Verified Google security
-              </Text>
-            </View>
-          </View>
-        </View>
+        </Animated.View>
 
         {/* Footer */}
         <View style={styles.footer}>
@@ -530,18 +532,18 @@ export function LoginScreen({ navigation, route }: Props) {
                   styles.modalReferralNotice,
                   {
                     backgroundColor: isDark
-                      ? "rgba(13, 148, 136, 0.15)"
-                      : "#F0FDFA",
+                      ? "rgba(5, 150, 105, 0.15)"
+                      : "#ECFDF5",
                   },
                 ]}
               >
                 <Text
                   style={[
                     styles.modalReferralNoticeText,
-                    { color: isDark ? "#2DD4BF" : "#0F766E" },
+                    { color: isDark ? "#34D399" : "#065F46" },
                   ]}
                 >
-                  Invited by {referrerName || referralCode} • ₹50 credit applied
+                  Invited by {referrerName || referralCode}
                 </Text>
               </View>
             ) : null}

@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
+import Svg, { Circle } from "react-native-svg";
 import {
   View,
   Text,
@@ -367,47 +368,6 @@ export function AccountSettingsScreen({
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Profile Completion Status */}
-          <View
-            style={[
-              styles.card,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
-          >
-            <View style={styles.completionHeaderRow}>
-              <Text style={[styles.completionTitle, { color: colors.text }]}>
-                Profile completion
-              </Text>
-              <Text style={styles.completionPercentText}>{completion}%</Text>
-            </View>
-            <View style={styles.completionTrack}>
-              <View
-                style={[
-                  styles.completionFill,
-                  { width: `${completion}%` },
-                ]}
-              />
-            </View>
-            <View style={styles.completionFooterRow}>
-              <Text
-                style={[
-                  styles.completionSubtext,
-                  { color: colors.textSecondary },
-                ]}
-              >
-                {completion === 100
-                  ? "All milestones completed"
-                  : "Add date of birth to reach 100%"}
-              </Text>
-              {completion === 100 && (
-                <View style={styles.completedBadgeRow}>
-                  <Feather name="check" size={12} color="#059669" />
-                  <Text style={styles.completedBadgeText}>Complete</Text>
-                </View>
-              )}
-            </View>
-          </View>
-
           {/* Personal Details Card */}
           <View
             style={[
@@ -426,33 +386,89 @@ export function AccountSettingsScreen({
 
             {/* Photo Upload Section */}
             <View style={styles.avatarRow}>
-              <View
-                style={[
-                  styles.avatarPreview,
-                  {
-                    backgroundColor: isDark
-                      ? "rgba(255,255,255,0.08)"
-                      : "#F1F5F9",
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                {avatarUri ? (
-                  <Image
-                    source={{ uri: avatarUri }}
-                    style={styles.avatarPreviewImage}
-                  />
-                ) : (
-                  <Text
+              {completion < 100 ? (
+                <View style={styles.avatarWrapper}>
+                  <Svg width={68} height={68} style={styles.avatarSvgRing}>
+                    <Circle
+                      cx={34}
+                      cy={34}
+                      r={31}
+                      stroke={isDark ? "rgba(255,255,255,0.12)" : "#E2E8F0"}
+                      strokeWidth={3}
+                      fill="none"
+                    />
+                    <Circle
+                      cx={34}
+                      cy={34}
+                      r={31}
+                      stroke="#059669"
+                      strokeWidth={3}
+                      strokeDasharray={`${2 * Math.PI * 31}`}
+                      strokeDashoffset={`${2 * Math.PI * 31 * (1 - completion / 100)}`}
+                      strokeLinecap="round"
+                      fill="none"
+                    />
+                  </Svg>
+                  <View
                     style={[
-                      styles.avatarPreviewInitials,
-                      { color: colors.text },
+                      styles.avatarPreview,
+                      {
+                        backgroundColor: isDark
+                          ? "rgba(255,255,255,0.08)"
+                          : "#F1F5F9",
+                        borderColor: colors.border,
+                      },
                     ]}
                   >
-                    {initials}
-                  </Text>
-                )}
-              </View>
+                    {avatarUri ? (
+                      <Image
+                        source={{ uri: avatarUri }}
+                        style={styles.avatarPreviewImage}
+                      />
+                    ) : (
+                      <Text
+                        style={[
+                          styles.avatarPreviewInitials,
+                          { color: colors.text },
+                        ]}
+                      >
+                        {initials}
+                      </Text>
+                    )}
+                  </View>
+                  <View style={styles.completionBadge}>
+                    <Text style={styles.completionBadgeText}>{completion}%</Text>
+                  </View>
+                </View>
+              ) : (
+                <View
+                  style={[
+                    styles.avatarPreview,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(255,255,255,0.08)"
+                        : "#F1F5F9",
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  {avatarUri ? (
+                    <Image
+                      source={{ uri: avatarUri }}
+                      style={styles.avatarPreviewImage}
+                    />
+                  ) : (
+                    <Text
+                      style={[
+                        styles.avatarPreviewInitials,
+                        { color: colors.text },
+                      ]}
+                    >
+                      {initials}
+                    </Text>
+                  )}
+                </View>
+              )}
               <View style={styles.avatarActionCol}>
                 <TouchableOpacity
                   style={[
@@ -483,7 +499,7 @@ export function AccountSettingsScreen({
                     { color: colors.textSecondary },
                   ]}
                 >
-                  JPG, PNG, WebP up to 5MB
+                  1:1 square crop • Max 10MB
                 </Text>
               </View>
             </View>
@@ -969,51 +985,34 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 6,
   },
-  completionHeaderRow: {
-    flexDirection: "row",
+  avatarWrapper: {
+    width: 68,
+    height: 68,
+    justifyContent: "center",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 8,
+    position: "relative",
   },
-  completionTitle: {
-    fontSize: 13,
-    fontWeight: "700",
+  avatarSvgRing: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    transform: [{ rotate: "-90deg" }],
   },
-  completionPercentText: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#059669",
-  },
-  completionTrack: {
-    height: 6,
-    backgroundColor: "#F1F5F9",
-    borderRadius: 3,
-    overflow: "hidden",
-    marginBottom: 8,
-  },
-  completionFill: {
-    height: "100%",
+  completionBadge: {
+    position: "absolute",
+    bottom: -2,
+    right: -2,
     backgroundColor: "#059669",
-    borderRadius: 3,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: "#FFFFFF",
   },
-  completionFooterRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  completionSubtext: {
-    fontSize: 11,
-    fontWeight: "500",
-  },
-  completedBadgeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  completedBadgeText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#059669",
+  completionBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 9,
+    fontWeight: "900",
   },
   avatarRow: {
     flexDirection: "row",

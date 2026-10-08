@@ -1,9 +1,10 @@
 import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, Camera, Check } from 'lucide-react';
+import { ChevronRight, Camera } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { useCart } from '../../cart-context';
+import ImageCropper from '../../owner/components/ImageCropper';
 
 export default function AccountSettings() {
   const { user, syncUser } = useCart();
@@ -17,6 +18,7 @@ export default function AccountSettings() {
 
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [cropperFile, setCropperFile] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const avatarUrl = imagePreview || user?.avatar || user?.customer_profile?.avatar || user?.customer_profile?.avatar_url || user?.customer_profile?.profile_picture;
@@ -33,13 +35,19 @@ export default function AccountSettings() {
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('Image size must be less than 5MB.');
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error('Image size must be less than 10MB.');
         return;
       }
-      setSelectedImage(file);
-      setImagePreview(URL.createObjectURL(file));
+      setCropperFile(file);
     }
+    e.target.value = '';
+  };
+
+  const handleCropComplete = (croppedFile, objectUrl) => {
+    setSelectedImage(croppedFile);
+    setImagePreview(objectUrl);
+    setCropperFile(null);
   };
 
   const saveProfile = async (e) => {
@@ -83,6 +91,7 @@ export default function AccountSettings() {
   };
 
   const completion = user?.profile_completion?.percentage ?? (form.dob ? 100 : 80);
+  const isComplete = completion === 100;
 
   return (
     <div>
@@ -97,38 +106,54 @@ export default function AccountSettings() {
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Manage your personal details</p>
       </div>
 
-      {/* Profile Completion Status */}
-      <div className="mb-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs">
-        <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-200 mb-2">
-          <span>Profile completion</span>
-          <span className="text-emerald-600 dark:text-emerald-400 font-bold">{completion}%</span>
-        </div>
-        <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden mb-2">
-          <div
-            className="h-full bg-emerald-600 rounded-full transition-all duration-500"
-            style={{ width: `${completion}%` }}
-          />
-        </div>
-        <div className="text-[11px] text-slate-500 flex items-center justify-between">
-          <span>{completion === 100 ? 'All milestones completed' : 'Add date of birth to reach 100%'}</span>
-          {completion === 100 && (
-            <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">
-              <Check size={12} /> Complete
-            </span>
-          )}
-        </div>
-      </div>
-
       <form onSubmit={saveProfile} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-xs space-y-6">
         {/* Photo Upload Section */}
         <div className="flex items-center gap-4 pb-6 border-b border-slate-100 dark:border-slate-800">
-          <div className="relative size-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-200 font-bold text-xl overflow-hidden border border-slate-200 dark:border-slate-700 shrink-0">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-            ) : (
-              initials
-            )}
-          </div>
+          {!isComplete ? (
+            <div className="relative size-18 flex items-center justify-center shrink-0">
+              <svg className="absolute inset-0 size-full -rotate-90 pointer-events-none" viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="44"
+                  fill="none"
+                  stroke="currentColor"
+                  className="text-slate-200 dark:text-slate-800"
+                  strokeWidth="4"
+                />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="44"
+                  fill="none"
+                  stroke="#059669"
+                  strokeWidth="4"
+                  strokeDasharray="276.46"
+                  strokeDashoffset={276.46 - (276.46 * completion) / 100}
+                  strokeLinecap="round"
+                  className="transition-all duration-500 ease-out"
+                />
+              </svg>
+              <div className="size-14 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-200 font-bold text-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  initials
+                )}
+              </div>
+              <div className="absolute -bottom-1 -right-1 px-1.5 py-0.2 rounded-full bg-emerald-600 text-white text-[10px] font-bold shadow-xs">
+                {completion}%
+              </div>
+            </div>
+          ) : (
+            <div className="size-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-200 font-bold text-xl overflow-hidden border border-slate-200 dark:border-slate-700 shrink-0">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                initials
+              )}
+            </div>
+          )}
           <div>
             <input
               type="file"
@@ -144,9 +169,19 @@ export default function AccountSettings() {
             >
               <Camera size={13} /> Change photo
             </button>
-            <p className="text-[11px] text-slate-400 mt-1">JPG, PNG, WebP up to 5MB</p>
+            <p className="text-[11px] text-slate-400 mt-1">1:1 square crop • Max 10MB</p>
           </div>
         </div>
+
+        {cropperFile && (
+          <ImageCropper
+            aspect={1}
+            aspectRatio={1}
+            file={cropperFile}
+            onCropComplete={handleCropComplete}
+            onCancel={() => setCropperFile(null)}
+          />
+        )}
 
         {/* Inputs */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

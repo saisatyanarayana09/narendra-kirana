@@ -145,13 +145,50 @@ export default function DashboardHome() {
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-800 p-6 sm:p-8 text-white shadow-lg mb-8">
         <div className="absolute top-0 right-0 -mt-10 -mr-10 w-48 h-48 rounded-full bg-white/10 blur-2xl pointer-events-none"></div>
         <div className="relative z-10 flex items-center gap-4 sm:gap-5">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white text-emerald-900 flex items-center justify-center text-xl sm:text-2xl font-black shadow-md flex-shrink-0 overflow-hidden">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-            ) : (
-              initials
-            )}
-          </div>
+          {!isComplete ? (
+            <div className="relative size-16 sm:size-18 flex items-center justify-center shrink-0">
+              <svg className="absolute inset-0 size-full -rotate-90 pointer-events-none" viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="44"
+                  fill="none"
+                  stroke="rgba(255, 255, 255, 0.2)"
+                  strokeWidth="4"
+                />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="44"
+                  fill="none"
+                  stroke="#34D399"
+                  strokeWidth="4"
+                  strokeDasharray="276.46"
+                  strokeDashoffset={276.46 - (276.46 * completion) / 100}
+                  strokeLinecap="round"
+                  className="transition-all duration-700 ease-out"
+                />
+              </svg>
+              <div className="size-13 sm:size-15 rounded-full bg-white text-emerald-900 flex items-center justify-center text-lg sm:text-xl font-black shadow-md overflow-hidden">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  initials
+                )}
+              </div>
+              <div className="absolute -bottom-1 -right-1 px-1.5 py-0.2 rounded-full bg-emerald-500 text-white text-[10px] font-bold shadow-xs border border-white">
+                {completion}%
+              </div>
+            </div>
+          ) : (
+            <div className="size-14 sm:size-16 rounded-full bg-white text-emerald-900 flex items-center justify-center text-xl sm:text-2xl font-black shadow-md shrink-0 overflow-hidden border-2 border-white/20">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                initials
+              )}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <button
               onClick={() => navigate('/')}
@@ -165,24 +202,11 @@ export default function DashboardHome() {
             <p className="text-emerald-100/80 text-xs sm:text-sm mt-0.5 truncate">
               {user?.email || 'Manage your account and track orders'}
             </p>
-          </div>
-        </div>
-
-        {/* Minimal Profile Completion Bar */}
-        <div className="relative z-10 mt-5 pt-4 border-t border-white/10">
-          <div className="flex items-center justify-between text-xs font-medium text-emerald-100/90 mb-1.5">
-            <span>{isComplete ? 'Profile complete' : `${completion}% complete`}</span>
             {!isComplete && (
-              <Link to="/profile/account" className="underline hover:text-white transition-colors">
+              <Link to="/profile/account" className="inline-block text-emerald-200 hover:text-white text-xs underline mt-1 transition-colors">
                 Add date of birth to reach 100%
               </Link>
             )}
-          </div>
-          <div className="w-full h-1.5 rounded-full bg-white/20 overflow-hidden">
-            <div
-              className="h-full bg-emerald-300 rounded-full transition-all duration-500"
-              style={{ width: `${completion}%` }}
-            />
           </div>
         </div>
       </div>

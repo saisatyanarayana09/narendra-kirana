@@ -113,7 +113,53 @@ class UserSerializer(serializers.ModelSerializer):
         if getattr(value, 'content_type', None) not in allowed_formats:
             raise serializers.ValidationError("Only JPEG, PNG, and WebP images are allowed.")
             
-        return value
+        try:
+            from PIL import Image, ImageOps
+            import io
+            from django.core.files.uploadedfile import InMemoryUploadedFile
+
+            image = Image.open(value)
+            image = ImageOps.exif_transpose(image)
+
+            if image.mode in ('RGBA', 'LA') or (image.mode == 'P' and 'transparency' in image.info):
+                bg = Image.new('RGB', image.size, (255, 255, 255))
+                bg.paste(image, mask=image.split()[-1])
+                image = bg
+            elif image.mode != 'RGB':
+                image = image.convert('RGB')
+
+            # 1:1 Aspect ratio center-crop
+            w, h = image.size
+            min_dim = min(w, h)
+            left = (w - min_dim) // 2
+            top = (h - min_dim) // 2
+            right = left + min_dim
+            bottom = top + min_dim
+            image = image.crop((left, top, right, bottom))
+
+            # Resize to max 512x512 with LANCZOS resampling
+            if min_dim > 512:
+                image = image.resize((512, 512), Image.Resampling.LANCZOS)
+
+            output_io = io.BytesIO()
+            image.save(output_io, format='JPEG', quality=85, optimize=True)
+            output_io.seek(0)
+
+            orig_name = getattr(value, 'name', 'avatar') or 'avatar'
+            base_name = orig_name.rsplit('.', 1)[0]
+            new_file_name = f"{base_name}.jpg"
+
+            return InMemoryUploadedFile(
+                output_io,
+                None,
+                new_file_name,
+                'image/jpeg',
+                output_io.getbuffer().nbytes,
+                None
+            )
+        except Exception as e:
+            print(f"Profile picture PIL optimization fallback: {e}")
+            return value
 
     def update(self, instance, validated_data):
         import json
