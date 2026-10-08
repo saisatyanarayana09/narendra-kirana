@@ -271,7 +271,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = useCallback(async () => {
     if (isLoggingOutRef.current) return;
-    const token = getItemSync(STORAGE_KEYS.TOKEN);
+    const token =
+      getItemSync(STORAGE_KEYS.TOKEN) || (await getItem(STORAGE_KEYS.TOKEN));
     if (!token) return;
 
     try {
