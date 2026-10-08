@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Eye, EyeOff, Lock } from 'lucide-react';
+import { ArrowLeft, Gift, ShieldCheck, Zap, CheckCircle2, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useGoogleLogin } from '@react-oauth/google';
 import api from '../../services/api';
@@ -12,16 +12,7 @@ export function CustomerLoginPage() {
   const navigate = useNavigate();
   const { syncUser } = useCart();
   const location = useLocation();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [isInactive, setIsInactive] = useState(false);
-  const [resendingActivation, setResendingActivation] = useState(false);
-  const [activationResent, setActivationResent] = useState(false);
 
-  // Parse redirect destination from query (?redirect=...) or location state
   const searchParams = new URLSearchParams(location.search);
   const rawRedirect = searchParams.get('redirect') || location.state?.from?.pathname || '/';
   let redirectTarget = '/';
@@ -39,25 +30,53 @@ export function CustomerLoginPage() {
     redirectTarget = '/';
   }
 
+  const referralCode = (searchParams.get('ref') || searchParams.get('code') || '').trim().toUpperCase();
+  const [referrerName, setReferrerName] = useState('');
+  const [isLookingUpReferral, setIsLookingUpReferral] = useState(false);
+  const [error, setError] = useState('');
   const [googleLoading, setGoogleLoading] = useState(false);
+
+  // Look up referrer name if referral code is present in query parameters
+  useEffect(() => {
+    if (!referralCode) return;
+    setIsLookingUpReferral(true);
+    api.get(`/auth/referral-lookup/?code=${encodeURIComponent(referralCode)}`)
+      .then((res) => {
+        if (res.data?.referrer_name) {
+          setReferrerName(res.data.referrer_name);
+        }
+      })
+      .catch(() => {
+        // Referral code invalid or lookup failed
+      })
+      .finally(() => {
+        setIsLookingUpReferral(false);
+      });
+  }, [referralCode]);
 
   const handleGoogleSignIn = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       setGoogleLoading(true);
       setError('');
       try {
-        const { data } = await api.post('/auth/google/customer/', {
+        const payload = {
           credential: tokenResponse.access_token,
-          token_type: 'access_token'
-        });
+          token_type: 'access_token',
+        };
+        if (referralCode) {
+          payload.referral_code = referralCode;
+        }
+
+        const { data } = await api.post('/auth/google/customer/', payload);
         localStorage.setItem('smart-kirana-customer-token', data.access);
         localStorage.setItem('smart-kirana-customer-refresh', data.refresh);
         localStorage.setItem('smart-kirana-customer-user', JSON.stringify(data.user));
         syncUser();
+
         toast.success(data.is_new ? 'Welcome to Narendra Kirana! 🎉' : 'Signed in with Google! 👋');
         navigate(redirectTarget, { replace: true });
       } catch (err) {
-        setError(err.response?.data?.detail || 'Google Sign-In failed. Please try again.');
+        setError(err.response?.data?.detail || err.response?.data?.error || 'Google Sign-In failed. Please try again.');
       } finally {
         setGoogleLoading(false);
       }
@@ -67,183 +86,123 @@ export function CustomerLoginPage() {
     }
   });
 
-  async function handleResendActivation() {
-    const cleanEmail = email.trim();
-    if (!cleanEmail) {
-      toast.error('Please enter your email address first.');
-      return;
-    }
-    setResendingActivation(true);
-    try {
-      await api.post('/auth/resend-activation/', { email: cleanEmail });
-      setActivationResent(true);
-      toast.success('Fresh activation link sent to your email!');
-    } catch (err) {
-      toast.error(err.response?.data?.error || err.response?.data?.detail || 'Failed to resend activation link.');
-    } finally {
-      setResendingActivation(false);
-    }
-  }
-
-  async function submit(event) {
-    event.preventDefault();
-    setSubmitting(true);
-    setError('');
-    setIsInactive(false);
-    setActivationResent(false);
-    try {
-      const cleanEmail = email.trim();
-      const { data } = await api.post('/auth/login/', { username: cleanEmail, password });
-      if (!data.user.is_customer) throw new Error('Please use the owner portal for this account.');
-      localStorage.setItem('smart-kirana-customer-token', data.access);
-      localStorage.setItem('smart-kirana-customer-refresh', data.refresh);
-      localStorage.setItem('smart-kirana-customer-user', JSON.stringify(data.user));
-      syncUser();
-      toast.success('Signed in successfully!');
-      navigate(redirectTarget, { replace: true });
-    } catch (requestError) {
-      const errData = requestError.response?.data;
-      const isInactiveAccount =
-        errData?.code === 'account_inactive' ||
-        (typeof errData?.detail === 'string' && errData.detail.toLowerCase().includes('not been activated'));
-
-      if (isInactiveAccount) {
-        setIsInactive(true);
-        setError(typeof errData?.detail === 'string' ? errData : 'Your account has not been activated yet.');
-      } else {
-        setIsInactive(false);
-        setError(errData?.detail || requestError.message || 'Unable to sign in.');
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  const signupLink = location.search ? `/signup${location.search}` : '/signup';
-
   return (
     <CustomerLayout>
-      <main className="mx-auto max-w-md px-4 py-10">
-        <button
-          onClick={() => navigate(-1)}
-          className="mb-4 flex items-center gap-2 text-sm font-bold text-primary-700 hover:underline cursor-pointer"
+      <main className="mx-auto max-w-md px-4 py-12">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-slate-900 transition-colors"
         >
-          <ArrowLeft size={16} /> Back
-        </button>
-        <form onSubmit={submit} className="rounded-2xl bg-white p-6 shadow-sm">
-          <h1 className="text-2xl font-extrabold text-slate-900">Customer sign in</h1>
-          <p className="mt-2 text-sm text-slate-600">
-            Sign in to save your cart, view invoices, and track orders.
+          <ArrowLeft size={16} />
+          Back to store
+        </Link>
+
+        {/* Brand Header */}
+        <div className="mt-8 text-center">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <img src="/logo-transparent.png" alt="Logo" className="w-10 h-10 object-contain" />
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+              Narendra <span className="text-rose-600">Kirana</span>
+            </h1>
+          </div>
+          <p className="text-sm text-slate-500">
+            Fresh groceries & daily essentials delivered directly to your doorstep.
           </p>
+        </div>
 
-          {/* Contextual Banner if user was redirected from a protected page */}
-          {redirectTarget && redirectTarget !== '/' && (
-            <div className="mt-4 rounded-xl bg-emerald-50 border border-emerald-200 p-3.5 text-sm font-medium text-emerald-800 flex items-center gap-2.5">
-              <Lock size={16} className="text-emerald-600 flex-shrink-0" />
-              <span>
-                {redirectTarget.includes('invoice')
-                  ? 'Please sign in to view and download your official invoice.'
-                  : redirectTarget.includes('order')
-                  ? 'Please sign in to view and track your order.'
-                  : redirectTarget.includes('checkout')
-                  ? 'Please sign in to complete your checkout.'
-                  : redirectTarget.includes('offers')
-                  ? 'Please sign in to claim exclusive offers and promo codes.'
-                  : 'Please sign in to access your requested page.'}
-              </span>
+        {/* Action Destination Notice */}
+        {redirectTarget !== '/' && (
+          <div className="mt-6 flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50/80 p-3 text-xs text-emerald-800">
+            <Lock size={15} className="shrink-0 text-emerald-600" />
+            <span className="font-medium">
+              {redirectTarget.includes('checkout')
+                ? 'Sign in with Google to complete your checkout.'
+                : redirectTarget.includes('orders')
+                ? 'Sign in with Google to view and track your orders.'
+                : 'Sign in with Google to continue.'}
+            </span>
+          </div>
+        )}
+
+        {/* Personalized Referral Invite Banner */}
+        {referralCode && (
+          <div className="mt-6 rounded-2xl border-2 border-teal-200 bg-teal-50/80 p-4 shadow-sm flex items-start gap-3.5 animate-in fade-in duration-300">
+            <div className="size-10 rounded-xl bg-teal-600/10 flex items-center justify-center text-teal-600 shrink-0 mt-0.5">
+              <Gift size={20} />
             </div>
-          )}
-
-          {error && (
-            <div className={`mt-4 rounded-xl p-3.5 text-sm ${isInactive ? 'bg-amber-50 border border-amber-200 text-amber-900' : 'bg-red-50 text-red-700'}`}>
-              <p className="font-semibold">{error}</p>
-              {isInactive && (
-                <div className="mt-2.5 pt-2.5 border-t border-amber-200/80 flex items-center justify-between gap-2">
-                  <span className="text-xs text-amber-800">Need a fresh link?</span>
-                  <button
-                    type="button"
-                    onClick={handleResendActivation}
-                    disabled={resendingActivation || activationResent}
-                    className="text-xs font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 px-3 py-1.5 rounded-lg transition disabled:opacity-50 cursor-pointer"
-                  >
-                    {activationResent ? '✓ Link Dispatched' : resendingActivation ? 'Sending...' : 'Resend Activation Link'}
-                  </button>
-                </div>
+            <div>
+              {isLookingUpReferral ? (
+                <p className="text-xs font-medium text-teal-700">Validating your invitation code...</p>
+              ) : referrerName ? (
+                <>
+                  <p className="text-sm font-bold text-teal-900">
+                    You've been invited by <span className="text-teal-700 font-extrabold">{referrerName}</span>! 🎉
+                  </p>
+                  <p className="text-xs text-teal-700 mt-0.5">
+                    Sign in with Google to claim your exclusive welcome discount on your first order.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-bold text-teal-900">
+                    Referral Code Applied: <span className="font-mono font-extrabold">{referralCode}</span> 🎁
+                  </p>
+                  <p className="text-xs text-teal-700 mt-0.5">
+                    Sign in with Google to claim your referral reward.
+                  </p>
+                </>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Main 1-Tap Google Auth Card */}
+        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
+          <div className="text-center mb-6">
+            <h2 className="text-lg font-extrabold text-slate-900">Quick Sign-In</h2>
+            <p className="text-xs text-slate-500 mt-1">
+              Instant 1-tap sign-in and account setup. No passwords to remember.
+            </p>
+          </div>
+
+          {error && (
+            <div className="mb-5 rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs font-semibold text-rose-700">
+              {error}
+            </div>
           )}
 
-          {/* Continue with Google */}
-          <div className="mt-5">
-            <button
-              type="button"
-              disabled={googleLoading || submitting}
-              onClick={() => handleGoogleSignIn()}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 hover:shadow-sm transition-all text-sm font-bold text-slate-700 active:scale-[0.99] disabled:opacity-50 cursor-pointer shadow-xs"
-            >
-              <GoogleIcon />
-              <span>{googleLoading ? 'Signing in with Google...' : 'Continue with Google'}</span>
-            </button>
-          </div>
-
-          <div className="relative flex items-center justify-center my-5">
-            <span className="bg-white px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              or sign in with email
-            </span>
-            <div className="w-full border-t border-slate-200" />
-          </div>
-
-          <label className="mt-1 block text-sm font-bold text-slate-700">
-            Email address
-            <input
-              required
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="mt-1 w-full rounded-lg border p-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"
-            />
-          </label>
-
-          <label className="mt-4 block text-sm font-bold text-slate-700">
-            Password
-            <div className="relative mt-1 w-full">
-              <input
-                required
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="w-full rounded-lg border p-3 pr-10 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-          </label>
-
-          <div className="flex justify-end mt-2">
-            <Link to="/forgot-password" className="text-sm font-bold text-primary-700 hover:underline">
-              Forgot password?
-            </Link>
-          </div>
-
+          {/* 1-Tap Google Button */}
           <button
-            disabled={submitting}
-            className="mt-6 min-h-12 w-full rounded-xl bg-primary-600 font-bold text-white transition-all hover:bg-primary-700 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+            type="button"
+            disabled={googleLoading}
+            onClick={() => handleGoogleSignIn()}
+            className="w-full flex items-center justify-center gap-3.5 px-5 py-4 bg-white border-2 border-slate-200 hover:border-slate-300 rounded-xl hover:bg-slate-50 hover:shadow-md transition-all text-sm font-extrabold text-slate-800 active:scale-[0.99] disabled:opacity-50 cursor-pointer shadow-xs"
           >
-            {submitting ? 'Signing in...' : 'Sign in'}
+            <GoogleIcon />
+            <span>{googleLoading ? 'Signing in with Google...' : 'Continue with Google'}</span>
           </button>
 
-          <p className="mt-4 text-center text-sm text-slate-600">
-            New customer?{' '}
-            <Link to={signupLink} className="font-bold text-primary-700">
-              Create account
-            </Link>
-          </p>
-        </form>
+          {/* Perks */}
+          <div className="mt-6 pt-5 border-t border-slate-100 space-y-2.5">
+            <div className="flex items-center gap-2.5 text-xs text-slate-600">
+              <CheckCircle2 size={15} className="text-emerald-500 shrink-0" />
+              <span>Instant setup with your verified Google account</span>
+            </div>
+            <div className="flex items-center gap-2.5 text-xs text-slate-600">
+              <ShieldCheck size={15} className="text-emerald-500 shrink-0" />
+              <span>100% Safe & Secure — zero passwords or OTP delays</span>
+            </div>
+            <div className="flex items-center gap-2.5 text-xs text-slate-600">
+              <Zap size={15} className="text-emerald-500 shrink-0" />
+              <span>Automatic wallet activation & rewards on every order</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer Note */}
+        <p className="mt-6 text-center text-[11px] text-slate-400">
+          By continuing, you agree to our Terms of Service & Privacy Policy.
+        </p>
       </main>
     </CustomerLayout>
   );

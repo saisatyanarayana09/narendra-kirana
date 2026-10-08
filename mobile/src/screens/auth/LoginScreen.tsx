@@ -1,10 +1,11 @@
 import { Feather, AntDesign } from "@expo/vector-icons";
+import { RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import React, { useState } from "react";
+import * as Clipboard from "expo-clipboard";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  TextInput,
   StyleSheet,
   TouchableOpacity,
   Platform,
@@ -15,6 +16,7 @@ import {
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { apiClient } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import type { AuthStackParamList } from "../../navigation/AuthStack";
@@ -28,18 +30,57 @@ GoogleSignin.configure({
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "Login">;
+  route?: RouteProp<AuthStackParamList, "Login">;
 };
 
-export function LoginScreen({ navigation }: Props) {
+export function LoginScreen({ navigation, route }: Props) {
   const { colors, isDark } = useTheme();
-  const { login, loginWithGoogle, pendingRedirect, clearPendingRedirect } =
-    useAuth();
+  const { loginWithGoogle, pendingRedirect, clearPendingRedirect } = useAuth();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [referralCode, setReferralCode] = useState<string>("");
+  const [referrerName, setReferrerName] = useState<string>("");
+  const [isLookingUpReferral, setIsLookingUpReferral] = useState(false);
+
+  // 1. Detect referral code from params or clipboard
+  useEffect(() => {
+    const rawParam = route?.params?.referral_code || route?.params?.ref;
+    if (rawParam && typeof rawParam === "string") {
+      const code = rawParam.trim().toUpperCase();
+      setReferralCode(code);
+      lookupReferrer(code);
+      return;
+    }
+
+    // Auto-detect referral code from clipboard
+    Clipboard.getStringAsync()
+      .then((clip) => {
+        const trimmed = (clip || "").trim();
+        if (/^[A-Za-z0-9]{5,12}$/.test(trimmed)) {
+          const code = trimmed.toUpperCase();
+          setReferralCode(code);
+          lookupReferrer(code);
+        }
+      })
+      .catch(() => {});
+  }, [route?.params]);
+
+  const lookupReferrer = async (code: string) => {
+    if (!code) return;
+    setIsLookingUpReferral(true);
+    try {
+      const res = await apiClient.get(
+        `/auth/referral-lookup/?code=${encodeURIComponent(code)}`,
+      );
+      if (res.data?.referrer_name) {
+        setReferrerName(res.data.referrer_name);
+      }
+    } catch {
+      // Invalid code or unresolvable
+    } finally {
+      setIsLookingUpReferral(false);
+    }
+  };
 
   const processRedirect = () => {
     if (pendingRedirect) {
@@ -63,8 +104,8 @@ export function LoginScreen({ navigation }: Props) {
   const handleGoogleLogin = async () => {
     if (Platform.OS === "web") {
       Alert.alert(
-        "Not Supported",
-        "Google Sign-In is only supported on the Android/iOS mobile app, not on the web browser.",
+        "Web Authentication",
+        "Please use the Web browser portal for Google Sign-In on Web.",
       );
       return;
     }
@@ -83,7 +124,7 @@ export function LoginScreen({ navigation }: Props) {
       const idToken =
         (response as any).data?.idToken || (response as any).idToken;
       if (idToken) {
-        await loginWithGoogle(idToken);
+        await loginWithGoogle(idToken, referralCode);
         processRedirect();
       } else {
         throw new Error("No ID token present!");
@@ -108,28 +149,6 @@ export function LoginScreen({ navigation }: Props) {
     }
   };
 
-  const handleLogin = async () => {
-    if (!email.trim() || !password) {
-      Alert.alert("Required Fields", "Please enter your email and password.");
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      await login({ username: email.trim(), password });
-      processRedirect();
-    } catch (error: any) {
-      Alert.alert(
-        "Login Failed",
-        error.response?.data?.detail ||
-          error.response?.data?.error ||
-          "Invalid email or password.",
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: colors.background }}
@@ -138,13 +157,10 @@ export function LoginScreen({ navigation }: Props) {
       <KeyboardAwareScrollView
         style={[styles.container, { backgroundColor: colors.background }]}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
         contentContainerStyle={styles.scrollContent}
         enableOnAndroid
-        extraScrollHeight={20}
       >
-        {/* Back Button */}
+        {/* Header Back Button */}
         <TouchableOpacity
           style={styles.backButton}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
@@ -161,6 +177,7 @@ export function LoginScreen({ navigation }: Props) {
           </Text>
         </TouchableOpacity>
 
+        {/* Brand Header */}
         <View style={styles.header}>
           <View style={styles.brandRow}>
             <Image
@@ -176,13 +193,14 @@ export function LoginScreen({ navigation }: Props) {
             </Text>
           </View>
           <Text style={[styles.title, { color: colors.text }]}>
-            Welcome back
+            Quick Sign-In
           </Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Sign in to access your orders, wallet & favorites
+            Fresh groceries & daily essentials delivered right to your door.
           </Text>
         </View>
 
+        {/* Pending Action Redirect Banner (e.g. from Checkout or Orders) */}
         {pendingRedirect && (
           <View
             style={[
@@ -205,35 +223,81 @@ export function LoginScreen({ navigation }: Props) {
                 : pendingRedirect.screen === "OrderTrackingScreen"
                   ? `Sign in to track Order #${pendingRedirect.params?.orderId || ""}`
                   : pendingRedirect.screen === "OrderHistoryScreen"
-                    ? "Sign in to view your full order history"
+                    ? "Sign in to view your order history"
                     : "Sign in to complete your checkout"}
             </Text>
           </View>
         )}
 
-        {/* Card */}
+        {/* Personalized Referral Invite Banner */}
+        {referralCode ? (
+          <View
+            style={[
+              styles.referralBanner,
+              {
+                backgroundColor: isDark ? "rgba(13, 148, 136, 0.15)" : "#F0FDFA",
+                borderColor: isDark ? "rgba(13, 148, 136, 0.3)" : "#99F6E4",
+              },
+            ]}
+          >
+            <View style={styles.referralIconBox}>
+              <Feather name="gift" size={20} color="#0D9488" />
+            </View>
+            <View style={{ flex: 1 }}>
+              {isLookingUpReferral ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <ActivityIndicator size="small" color="#0D9488" />
+                  <Text style={[styles.referralSubtitle, { color: colors.textSecondary }]}>
+                    Validating invitation code...
+                  </Text>
+                </View>
+              ) : referrerName ? (
+                <>
+                  <Text style={[styles.referralTitle, { color: isDark ? "#2DD4BF" : "#0F766E" }]}>
+                    Invited by <Text style={{ fontWeight: "900" }}>{referrerName}</Text>! 🎉
+                  </Text>
+                  <Text style={[styles.referralSubtitle, { color: isDark ? "#99F6E4" : "#115E59" }]}>
+                    Sign in with Google to claim your exclusive welcome discount.
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text style={[styles.referralTitle, { color: isDark ? "#2DD4BF" : "#0F766E" }]}>
+                    Referral Code Applied: {referralCode} 🎁
+                  </Text>
+                  <Text style={[styles.referralSubtitle, { color: isDark ? "#99F6E4" : "#115E59" }]}>
+                    Sign in with Google to receive your referral reward.
+                  </Text>
+                </>
+              )}
+            </View>
+          </View>
+        ) : null}
+
+        {/* Central Auth Card */}
         <View
           style={[
             styles.card,
             { backgroundColor: colors.surface, borderColor: colors.border },
           ]}
         >
+          <Text style={[styles.cardHeaderTitle, { color: colors.text }]}>
+            Continue with Google
+          </Text>
+          <Text style={[styles.cardHeaderSubtitle, { color: colors.textSecondary }]}>
+            No password required. Instant 1-tap sign-in and account setup.
+          </Text>
+
+          {/* 1-Tap Google Button */}
           <TouchableOpacity
             style={[
               styles.googleButton,
               isDark
                 ? { backgroundColor: "#1E293B", borderColor: "#334155" }
-                : { backgroundColor: "#FFFFFF", borderColor: "#E2E8F0" },
-              {
-                shadowColor: "#4285F4",
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.15,
-                shadowRadius: 8,
-                elevation: 4,
-              },
+                : { backgroundColor: "#FFFFFF", borderColor: "#CBD5E1" },
             ]}
             onPress={handleGoogleLogin}
-            disabled={isLoading || isGoogleLoading}
+            disabled={isGoogleLoading}
             activeOpacity={0.8}
           >
             {isGoogleLoading ? (
@@ -244,7 +308,7 @@ export function LoginScreen({ navigation }: Props) {
                   name="google"
                   color="#4285F4"
                   size={22}
-                  style={{ marginRight: 10 }}
+                  style={{ marginRight: 12 }}
                 />
                 <Text
                   style={[
@@ -258,128 +322,34 @@ export function LoginScreen({ navigation }: Props) {
             )}
           </TouchableOpacity>
 
-          <View style={styles.dividerContainer}>
-            <View
-              style={[styles.divider, { backgroundColor: colors.border }]}
-            />
-            <Text
-              style={[
-                styles.dividerText,
-                {
-                  color: colors.textSecondary,
-                  backgroundColor: colors.background,
-                },
-              ]}
-            >
-              OR
-            </Text>
-            <View
-              style={[styles.divider, { backgroundColor: colors.border }]}
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={[styles.label, { color: colors.text }]}>
-              Email or Username
-            </Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: isDark
-                    ? "rgba(255,255,255,0.05)"
-                    : "#F8FAFC",
-                  borderColor: colors.border,
-                  color: colors.text,
-                },
-              ]}
-              placeholder="Enter your email or username"
-              placeholderTextColor={colors.textSecondary}
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <View style={styles.passwordHeader}>
-              <Text style={[styles.label, { color: colors.text }]}>
-                Password
+          {/* Value Props / Perks */}
+          <View style={styles.perksContainer}>
+            <View style={styles.perkRow}>
+              <Feather name="check-circle" size={16} color="#10B981" />
+              <Text style={[styles.perkText, { color: colors.textSecondary }]}>
+                Instant setup with your verified Google account
               </Text>
-              <TouchableOpacity
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                onPress={() =>
-                  navigation.navigate("ForgotPasswordScreen" as any)
-                }
-              >
-                <Text
-                  style={[styles.forgotPasswordText, { color: colors.primary }]}
-                >
-                  Forgot Password?
-                </Text>
-              </TouchableOpacity>
             </View>
-            <View
-              style={[
-                styles.passwordContainer,
-                {
-                  backgroundColor: isDark
-                    ? "rgba(255,255,255,0.05)"
-                    : "#F8FAFC",
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              <TextInput
-                style={[styles.passwordInput, { color: colors.text }]}
-                placeholder="Enter password"
-                placeholderTextColor={colors.textSecondary}
-                secureTextEntry={!showPassword}
-                value={password}
-                onChangeText={setPassword}
-              />
-              <TouchableOpacity
-                style={styles.eyeIcon}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                onPress={() => setShowPassword(!showPassword)}
-              >
-                <Feather
-                  name={showPassword ? "eye-off" : "eye"}
-                  color={colors.textSecondary}
-                  size={18}
-                />
-              </TouchableOpacity>
+            <View style={styles.perkRow}>
+              <Feather name="shield" size={16} color="#10B981" />
+              <Text style={[styles.perkText, { color: colors.textSecondary }]}>
+                100% Secure — no passwords to remember or lose
+              </Text>
+            </View>
+            <View style={styles.perkRow}>
+              <Feather name="zap" size={16} color="#10B981" />
+              <Text style={[styles.perkText, { color: colors.textSecondary }]}>
+                Automatic wallet & cashbacks on every order
+              </Text>
             </View>
           </View>
+        </View>
 
-          <TouchableOpacity
-            style={[
-              styles.primaryButton,
-              { backgroundColor: colors.primary },
-              isLoading && styles.primaryButtonDisabled,
-            ]}
-            onPress={handleLogin}
-            disabled={isLoading || isGoogleLoading}
-            activeOpacity={0.85}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (
-              <Text style={styles.primaryButtonText}>Log In</Text>
-            )}
-          </TouchableOpacity>
-
-          <View style={styles.footer}>
-            <Text style={[styles.footerText, { color: colors.textSecondary }]}>
-              Don't have an account?{" "}
-            </Text>
-            <TouchableOpacity onPress={() => navigation.navigate("Signup")}>
-              <Text style={[styles.footerLink, { color: colors.primary }]}>
-                Sign Up
-              </Text>
-            </TouchableOpacity>
-          </View>
+        {/* Footer Terms */}
+        <View style={styles.footer}>
+          <Text style={[styles.footerText, { color: colors.textSecondary }]}>
+            By continuing, you agree to our Terms of Service & Privacy Policy.
+          </Text>
         </View>
       </KeyboardAwareScrollView>
     </SafeAreaView>
@@ -389,11 +359,11 @@ export function LoginScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8FAFC", // slate-50
+    backgroundColor: "#F8FAFC",
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 48,
+    paddingTop: 40,
     paddingBottom: 40,
   },
   backButton: {
@@ -401,11 +371,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
     marginBottom: 20,
+    alignSelf: "flex-start",
   },
   backButtonText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "700",
-    color: "#059669",
   },
   header: {
     marginBottom: 24,
@@ -428,159 +398,136 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   brandSlate: {
-    color: "#0F172A",
+    fontWeight: "900",
   },
   brandRed: {
-    color: "#DC2626",
+    color: "#E11D48",
+    fontWeight: "900",
   },
   title: {
-    fontSize: 28,
-    lineHeight: 32,
-    fontWeight: "900",
-    color: "#0F172A",
-    letterSpacing: -0.5,
-    textAlign: "center",
+    fontSize: 22,
+    fontWeight: "800",
+    marginTop: 4,
   },
   subtitle: {
-    fontSize: 14,
-    color: "#64748B",
-    marginTop: 4,
-    lineHeight: 20,
+    fontSize: 13,
     textAlign: "center",
-  },
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 22,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    boxShadow: "0px 2px 6px rgba(0, 0, 0, 0.04)",
-    elevation: 2,
-    gap: 16,
-  },
-  inputContainer: {
-    gap: 6,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#334155",
-  },
-  input: {
-    backgroundColor: "#F8FAFC",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    height: 46,
-    fontSize: 14,
-    color: "#0F172A",
-    fontWeight: "500",
-  },
-  passwordHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  passwordContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F8FAFC",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    height: 46,
-  },
-  passwordInput: {
-    flex: 1,
-    fontSize: 14,
-    color: "#0F172A",
-    fontWeight: "500",
-  },
-  eyeIcon: {
-    padding: 6,
-  },
-  forgotPasswordText: {
-    color: "#059669",
-    fontWeight: "700",
-    fontSize: 12,
-  },
-  primaryButton: {
-    backgroundColor: "#059669",
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: "center",
     marginTop: 6,
-    boxShadow: "0px 2px 4px rgba(5, 150, 105, 0.2)",
-    elevation: 3,
-  },
-  primaryButtonDisabled: {
-    opacity: 0.7,
-  },
-  primaryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  dividerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 24,
-  },
-  divider: {
-    flex: 1,
-    height: 1,
-  },
-  dividerText: {
-    paddingHorizontal: 12,
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  googleButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 24,
-  },
-  googleButtonText: {
-    fontSize: 16,
-    fontWeight: "800",
-    letterSpacing: 0.3,
-  },
-  footer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: 6,
-  },
-  footerText: {
-    color: "#64748B",
-    fontSize: 13,
-  },
-  footerLink: {
-    color: "#059669",
-    fontWeight: "800",
-    fontSize: 13,
+    paddingHorizontal: 16,
+    lineHeight: 18,
   },
   redirectBanner: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "#ECFDF5",
     borderWidth: 1,
-    borderColor: "#A7F3D0",
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
     marginBottom: 16,
   },
   redirectBannerText: {
-    color: "#065F46",
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "600",
     flex: 1,
+  },
+  referralBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1.5,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 20,
+    shadowColor: "#0D9488",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  referralIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(13, 148, 136, 0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  referralTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    marginBottom: 2,
+  },
+  referralSubtitle: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  card: {
+    borderRadius: 20,
+    padding: 24,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  cardHeaderTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    textAlign: "center",
+    marginBottom: 4,
+  },
+  cardHeaderSubtitle: {
+    fontSize: 13,
+    textAlign: "center",
+    marginBottom: 24,
+    lineHeight: 18,
+  },
+  googleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    shadowColor: "#4285F4",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  googleButtonText: {
+    fontSize: 16,
+    fontWeight: "800",
+    letterSpacing: 0.2,
+  },
+  perksContainer: {
+    marginTop: 24,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(148, 163, 184, 0.2)",
+    gap: 12,
+  },
+  perkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  perkText: {
+    fontSize: 12.5,
+    fontWeight: "500",
+    flex: 1,
+  },
+  footer: {
+    marginTop: 24,
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  footerText: {
+    fontSize: 11.5,
+    textAlign: "center",
+    lineHeight: 16,
   },
 });

@@ -53,7 +53,7 @@ type AuthContextType = {
   setPendingRedirect: (redirect: PendingRedirect | null) => void;
   clearPendingRedirect: () => void;
   login: (data: any) => Promise<void>;
-  loginWithGoogle: (idToken: string) => Promise<void>;
+  loginWithGoogle: (idToken: string, referralCode?: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (updatedUser: User) => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -136,13 +136,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const loginWithGoogle = useCallback(async (idToken: string) => {
-    isLoggingOutRef.current = false;
-    try {
-      const response = await apiClient.post("/auth/google/customer/", {
-        credential: idToken,
-        token_type: "id_token",
-      });
+  const loginWithGoogle = useCallback(
+    async (idToken: string, referralCode?: string) => {
+      isLoggingOutRef.current = false;
+      try {
+        const payload: any = {
+          credential: idToken,
+          token_type: "id_token",
+        };
+        if (referralCode && typeof referralCode === "string" && referralCode.trim()) {
+          payload.referral_code = referralCode.trim().toUpperCase();
+        }
+
+        const response = await apiClient.post("/auth/google/customer/", payload);
 
       if (!response || !response.data) {
         throw new Error("Invalid response from server");

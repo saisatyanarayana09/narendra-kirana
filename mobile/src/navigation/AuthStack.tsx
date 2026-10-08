@@ -9,7 +9,7 @@ import { SignupScreen } from "../screens/auth/SignupScreen";
 
 export type AuthStackParamList = {
   Welcome: undefined;
-  Login: undefined;
+  Login: { referral_code?: string; ref?: string } | undefined;
   Signup: { referral_code?: string; ref?: string } | undefined;
   ForgotPasswordScreen: undefined;
   ResetPasswordScreen: { uid?: string; token?: string } | undefined;

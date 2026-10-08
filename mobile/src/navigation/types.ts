@@ -40,8 +40,8 @@ export type GlobalParamList = {
     | { uid?: string; token?: string; email?: string; mode?: "otp" | "link" }
     | undefined;
   Auth: { screen?: string; params?: any } | undefined;
-  Login: undefined;
-  Signup: undefined;
+  Login: { referral_code?: string; ref?: string } | undefined;
+  Signup: { referral_code?: string; ref?: string } | undefined;
 };
 
 export type AppNavigationProp = NativeStackNavigationProp<GlobalParamList>;
