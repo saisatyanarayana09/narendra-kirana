@@ -1,4 +1,5 @@
 import logging
+import asyncio
 from django.utils import timezone
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
@@ -6,13 +7,30 @@ from channels.layers import get_channel_layer
 logger = logging.getLogger(__name__)
 
 
+def _send_group(group_name: str, message: dict):
+    """
+    Safely delivers message to a channel layer group across both synchronous
+    contexts (standard Django views) and asynchronous event loops (async tests/views).
+    """
+    channel_layer = get_channel_layer()
+    if not channel_layer:
+        return
+
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    if loop and loop.is_running():
+        loop.create_task(channel_layer.group_send(group_name, message))
+    else:
+        async_to_sync(channel_layer.group_send)(group_name, message)
+
+
 def broadcast_order_created(order, customer_name, customer_phone="", items_count=0):
     """Broadcasts newly created order to the store owner live feed."""
     try:
-        channel_layer = get_channel_layer()
-        if not channel_layer:
-            return
-        async_to_sync(channel_layer.group_send)(
+        _send_group(
             "store_owner",
             {
                 "type": "owner_order_created",
@@ -35,11 +53,8 @@ def broadcast_order_created(order, customer_name, customer_phone="", items_count
 def broadcast_order_status(order_id, next_status, delivery_otp=""):
     """Broadcasts status change to tracking customer and store owner."""
     try:
-        channel_layer = get_channel_layer()
-        if not channel_layer:
-            return
         # Broadcast to specific order tracking room
-        async_to_sync(channel_layer.group_send)(
+        _send_group(
             f"order_{order_id}",
             {
                 "type": "order_status_broadcast",
@@ -50,7 +65,7 @@ def broadcast_order_status(order_id, next_status, delivery_otp=""):
             }
         )
         # Broadcast to store owner dashboard
-        async_to_sync(channel_layer.group_send)(
+        _send_group(
             "store_owner",
             {
                 "type": "owner_order_status",
@@ -65,10 +80,7 @@ def broadcast_order_status(order_id, next_status, delivery_otp=""):
 def broadcast_rider_location(order_id, latitude, longitude, heading=None, speed=None):
     """Broadcasts rider live GPS coordinates to tracking customer."""
     try:
-        channel_layer = get_channel_layer()
-        if not channel_layer:
-            return
-        async_to_sync(channel_layer.group_send)(
+        _send_group(
             f"order_{order_id}",
             {
                 "type": "rider_location_broadcast",
@@ -87,10 +99,7 @@ def broadcast_rider_location(order_id, latitude, longitude, heading=None, speed=
 def broadcast_order_ready_dispatch(order):
     """Broadcasts READY order to online delivery partners."""
     try:
-        channel_layer = get_channel_layer()
-        if not channel_layer:
-            return
-        async_to_sync(channel_layer.group_send)(
+        _send_group(
             "delivery_dispatch",
             {
                 "type": "dispatch_order_ready",

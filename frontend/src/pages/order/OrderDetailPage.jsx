@@ -1,4 +1,4 @@
-import React, { useEffect, useState, lazy, Suspense } from 'react';
+import React, { useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Package, PackageSearch, Truck, Store, XCircle, CheckCircle2, AlertCircle, Sparkles, MapPin, Smartphone } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -6,6 +6,7 @@ import api from '../../services/api';
 import { CustomerLayout } from '../../customer-layout';
 import { useCart } from '../../cart-context';
 import { openAppOrFallback } from '../../components/SmartAppBanner';
+import { useWebSocket } from '../../hooks/useWebSocket';
 
 const OrderTrackingMap = lazy(() => import('../../components/OrderTrackingMap'));
 
@@ -16,16 +17,73 @@ export function OrderDetailPage() {
   const [order, setOrder] = useState(null);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    const fetchOrder = () =>
-      api
-        .get(`/orders/${id}/`, { params: { t: Date.now() } })
-        .then((response) => setOrder(response.data))
-        .catch(() => setError('Could not load this order.'));
-    fetchOrder();
-    const intervalId = setInterval(fetchOrder, 5000);
-    return () => clearInterval(intervalId);
+  const fetchOrder = useCallback((silent = false) => {
+    return api
+      .get(`/orders/${id}/`, { params: { t: Date.now() } })
+      .then((response) => {
+        setOrder(response.data);
+        setError('');
+      })
+      .catch(() => {
+        if (!silent) setError('Could not load this order.');
+      });
   }, [id]);
+
+  const handleWsMessage = useCallback((data) => {
+    if (!data || !data.type) return;
+
+    if (data.type === 'INITIAL_STATE' && data.order) {
+      setOrder((prev) => ({ ...(prev || {}), ...data.order }));
+    } else if (data.type === 'ORDER_STATUS_UPDATE') {
+      const formattedStatus = String(data.status || '').toLowerCase().replace(/_/g, ' ');
+      toast.success(`Order status updated to ${formattedStatus}`);
+      setOrder((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          status: data.status,
+          delivery_otp: data.delivery_otp || prev.delivery_otp,
+          updated_at: data.updated_at || new Date().toISOString(),
+        };
+      });
+    } else if (data.type === 'RIDER_LOCATION_UPDATE') {
+      const latNum = parseFloat(data.latitude);
+      const lngNum = parseFloat(data.longitude);
+      if (!isNaN(latNum) && !isNaN(lngNum)) {
+        setOrder((prev) => {
+          if (!prev) return prev;
+          const currentPartner = prev.delivery_partner || {};
+          return {
+            ...prev,
+            delivery_partner_lat: latNum,
+            delivery_partner_lng: lngNum,
+            delivery_partner: {
+              ...currentPartner,
+              current_lat: latNum,
+              current_lng: lngNum,
+              heading: data.heading,
+              speed: data.speed,
+            },
+          };
+        });
+      }
+    }
+  }, []);
+
+  const { isConnected: isWsConnected } = useWebSocket({
+    path: `/ws/orders/${id}/tracking/`,
+    enabled: Boolean(id),
+    onMessage: handleWsMessage,
+  });
+
+  useEffect(() => {
+    fetchOrder();
+    const pollInterval = isWsConnected ? 30000 : 8000;
+    const intervalId = setInterval(() => {
+      if (!document.hidden) fetchOrder(true);
+    }, pollInterval);
+    return () => clearInterval(intervalId);
+  }, [fetchOrder, isWsConnected]);
 
   const statusRankMap = {
     NEW: 0,

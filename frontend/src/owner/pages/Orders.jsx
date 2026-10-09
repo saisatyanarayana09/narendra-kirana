@@ -51,7 +51,7 @@ const Orders = () => {
         const audio = new Audio('/sounds/notification.mp3');
         audio.play().catch(() => {});
       } catch {}
-      toast.success(`Ding! New Order #${data.order?.id} received! 🛒`, { duration: 6000 });
+      toast.success(`New Order #${data.order?.id} received`, { duration: 6000 });
       fetchOrders(true);
     } else if (data.type === 'ORDER_STATUS_CHANGED') {
       fetchOrders(true);

@@ -1,14 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Package, ChevronRight } from 'lucide-react';
 import api, { getUserCacheSync, setUserCache } from '../../services/api';
+import { useWebSocket } from '../../hooks/useWebSocket';
 
 export default function OrdersHistory() {
   const cachedOrders = getUserCacheSync('/orders/');
   const [orders, setOrders] = useState(cachedOrders || []);
   const [loading, setLoading] = useState(!cachedOrders);
 
-  useEffect(() => {
+  const fetchOrders = useCallback((silent = false) => {
+    if (!silent && !cachedOrders) setLoading(true);
     api.get('/orders/')
       .then(res => {
         const orderList = res.data.results || res.data || [];
@@ -18,8 +20,33 @@ export default function OrdersHistory() {
       .catch(() => {
         if (!cachedOrders) setOrders([]);
       })
-      .finally(() => setLoading(false));
-  }, []);
+      .finally(() => {
+        if (!silent) setLoading(false);
+      });
+  }, [cachedOrders]);
+
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
+
+  const activeOrder = orders.find(o =>
+    ['PENDING', 'NEW', 'ACCEPTED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY'].includes(
+      String(o?.status || '').toUpperCase()
+    )
+  );
+
+  const handleWsMessage = useCallback((data) => {
+    if (!data || !data.type) return;
+    if (data.type === 'ORDER_STATUS_UPDATE') {
+      fetchOrders(true);
+    }
+  }, [fetchOrders]);
+
+  useWebSocket({
+    path: activeOrder ? `/ws/orders/${activeOrder.id}/tracking/` : '',
+    enabled: Boolean(activeOrder),
+    onMessage: handleWsMessage,
+  });
 
   const getStatusColor = (status) => {
     switch (status) {

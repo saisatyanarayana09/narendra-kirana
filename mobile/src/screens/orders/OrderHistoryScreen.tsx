@@ -25,6 +25,7 @@ import {
   loadCachedOrders,
   saveCachedOrders,
 } from "../../services/ordersCache";
+import { useWebSocket } from "../../hooks/useWebSocket";
 
 /* ─── Skeleton Loader ─── */
 const SkeletonCard = ({ colors, isDark }: { colors: any; isDark: boolean }) => {
@@ -301,6 +302,31 @@ export function OrderHistoryScreen({
       }
     }
   };
+
+  // Real-time WebSocket sync for active order status
+  const activeOrder = orders.find((o) =>
+    [
+      "PENDING",
+      "NEW",
+      "ACCEPTED",
+      "PREPARING",
+      "READY",
+      "OUT_FOR_DELIVERY",
+    ].includes(String(o.status || "").toUpperCase()),
+  );
+
+  const handleWsMessage = useCallback((data: any) => {
+    if (!data || !data.type) return;
+    if (data.type === "ORDER_STATUS_UPDATE") {
+      fetchOrders(1, true);
+    }
+  }, []);
+
+  useWebSocket({
+    path: activeOrder ? `/ws/orders/${activeOrder.id}/tracking/` : "",
+    enabled: Boolean(user && activeOrder),
+    onMessage: handleWsMessage,
+  });
 
   const handleBack = () => {
     if (navigation.canGoBack()) navigation.goBack();

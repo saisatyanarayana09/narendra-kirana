@@ -280,6 +280,16 @@ class OwnerOrdersConsumer(AsyncWebsocketConsumer):
 
 # ─── 3. Delivery Partner Dispatch Consumer ───
 
+@database_sync_to_async
+def is_dispatch_authorized(user):
+    """Verifies user has permission to connect to delivery dispatch stream."""
+    if not user or not user.is_authenticated:
+        return False
+    if getattr(user, 'is_owner', False) or user.is_staff or getattr(user, 'is_delivery_partner', False):
+        return True
+    return DeliveryPartnerProfile.objects.filter(user=user).exists()
+
+
 class DeliveryDispatchConsumer(AsyncWebsocketConsumer):
     """
     WebSocket endpoint: /ws/delivery/dispatch/
@@ -297,8 +307,7 @@ class DeliveryDispatchConsumer(AsyncWebsocketConsumer):
             await self.close(code=4003)
             return
 
-        # Must have a delivery profile or be admin
-        has_profile = hasattr(self.user, 'delivery_profile') or getattr(self.user, 'is_owner', False) or self.user.is_staff
+        has_profile = await is_dispatch_authorized(self.user)
         if not has_profile:
             await self.close(code=4003)
             return

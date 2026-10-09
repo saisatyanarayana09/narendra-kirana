@@ -86,7 +86,7 @@ const OwnerLayout = () => {
         const perm = await Notification.requestPermission();
         setNotificationPermission(perm);
         if (perm === 'granted') {
-          toast.success('Live order alerts enabled! 🔔');
+          toast.success('Live order alerts enabled');
           playOrderChime();
         } else {
           toast.error('Notification permission was blocked in browser settings.');
@@ -106,8 +106,8 @@ const OwnerLayout = () => {
       toast.custom(
         (t) => (
           <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-sm w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-2xl rounded-2xl pointer-events-auto flex items-center p-3.5 border border-emerald-500 gap-3`}>
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 dark:text-emerald-600 flex items-center justify-center font-bold shrink-0 text-lg">
-              🛒
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 dark:text-emerald-600 flex items-center justify-center font-bold shrink-0">
+              <ShoppingCart size={18} />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-white dark:text-slate-900 truncate">
@@ -132,7 +132,7 @@ const OwnerLayout = () => {
       // Trigger native browser notification
       if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
         try {
-          const n = new Notification(`New Order #${order.id} Received! 🛒`, {
+          const n = new Notification(`New Order #${order.id} Received`, {
             body: `₹${order.total_amount} placed by ${order.customer_name || 'Customer'}.`,
             icon: '/favicon.png',
             tag: `order-${order.id}`,

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 
 import { 
@@ -10,6 +10,7 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 import ProductFormModal from '../components/ProductFormModal';
 import ActiveOrdersModal from '../components/ActiveOrdersModal';
+import { useWebSocket } from '../../hooks/useWebSocket';
 
 const Dashboard = () => {
   const [orders, setOrders] = useState([]);
@@ -41,6 +42,18 @@ const Dashboard = () => {
     }, 60000);
     return () => clearInterval(interval);
   }, []);
+
+  const handleWsMessage = useCallback((data) => {
+    if (!data || !data.type) return;
+    if (data.type === 'NEW_ORDER' || data.type === 'ORDER_STATUS_CHANGED') {
+      fetchDashboardData();
+    }
+  }, []);
+
+  useWebSocket({
+    path: '/ws/owner/orders/',
+    onMessage: handleWsMessage,
+  });
 
   const fetchDashboardData = async () => {
     try {
