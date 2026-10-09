@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { ShoppingBag, Search, Clock, CheckCircle, Package, Printer, AlertTriangle, Loader2 } from 'lucide-react';
+import { Search, Printer, AlertTriangle, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import InvoiceModal from '../components/InvoiceModal';

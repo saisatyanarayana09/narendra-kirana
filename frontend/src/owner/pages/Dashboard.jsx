@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { 
   PackageSearch, Clock, TrendingUp, ChevronRight, 
   AlertTriangle, Plus, Gift, Tag, Activity,
-  PlusCircle, ShoppingBag
+  ShoppingBag
 } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
@@ -84,7 +84,7 @@ const Dashboard = () => {
     try {
       await api.patch(`/products/${product.id}/`, { stock_quantity: newStock });
       toast.success(`Restocked ${amount}x ${product.name}`);
-    } catch (err) {
+    } catch {
       setProducts(products.map(p => p.id === product.id ? { ...p, stock_quantity: previousStock } : p));
       toast.error('Failed to restock items');
     }
@@ -103,7 +103,7 @@ const Dashboard = () => {
       await api.patch(`/orders/${orderId}/status/`, { status: newStatus });
       toast.success(`Order marked as ${newStatus}`);
       fetchDashboardData();
-    } catch (err) {
+    } catch {
       toast.error('Failed to update order status');
       fetchDashboardData();
     }

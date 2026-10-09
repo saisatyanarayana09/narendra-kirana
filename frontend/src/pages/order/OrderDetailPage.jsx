@@ -1,11 +1,10 @@
 import React, { useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Package, PackageSearch, Truck, Store, XCircle, CheckCircle2, AlertCircle, Sparkles, MapPin, Smartphone } from 'lucide-react';
+import { ArrowLeft, Package, PackageSearch, Truck, Store, XCircle, CheckCircle2, MapPin, Calendar, CreditCard } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import { CustomerLayout } from '../../customer-layout';
 import { useCart } from '../../cart-context';
-import { openAppOrFallback } from '../../components/SmartAppBanner';
 import { useWebSocket } from '../../hooks/useWebSocket';
 
 const OrderTrackingMap = lazy(() => import('../../components/OrderTrackingMap'));
@@ -331,20 +330,26 @@ export function OrderDetailPage() {
                 </>
               )}
               {order.delivery_slot_label && (
-                <div className="mt-2.5 pt-2.5 border-t border-slate-200 dark:border-slate-700/60 text-xs">
-                  📅 <span className="font-bold">Scheduled Slot:</span> {order.delivery_slot_date ? `${order.delivery_slot_date} • ` : ''}
-                  {order.delivery_slot_label}
+                <div className="mt-2.5 pt-2.5 border-t border-slate-200 dark:border-slate-700/60 text-xs flex items-center justify-center gap-1.5">
+                  <Calendar size={14} className="text-slate-400" />
+                  <span>
+                    <span className="font-bold">Scheduled Slot:</span> {order.delivery_slot_date ? `${order.delivery_slot_date} • ` : ''}
+                    {order.delivery_slot_label}
+                  </span>
                 </div>
               )}
               {order.payment_method && (
-                <div className="mt-1 text-xs">
-                  💳 <span className="font-bold">Payment Method:</span>{' '}
-                  {order.payment_method === 'UPI'
-                    ? 'UPI / Online'
-                    : order.payment_method === 'WALLET'
-                    ? 'Wallet Balance'
-                    : 'Cash on Delivery'}
-                  {order.upi_transaction_id ? ` (Ref: ${order.upi_transaction_id})` : ''}
+                <div className="mt-1 text-xs flex items-center justify-center gap-1.5">
+                  <CreditCard size={14} className="text-slate-400" />
+                  <span>
+                    <span className="font-bold">Payment Method:</span>{' '}
+                    {order.payment_method === 'UPI'
+                      ? 'UPI / Online'
+                      : order.payment_method === 'WALLET'
+                      ? 'Wallet Balance'
+                      : 'Cash on Delivery'}
+                    {order.upi_transaction_id ? ` (Ref: ${order.upi_transaction_id})` : ''}
+                  </span>
                 </div>
               )}
             </div>
