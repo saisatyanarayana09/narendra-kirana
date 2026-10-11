@@ -142,7 +142,7 @@ export function CartPage() {
                   <div className="flex justify-between items-center text-xs font-bold text-emerald-900 dark:text-emerald-200 mb-1.5">
                     <span>
                       {isFreeDeliveryUnlocked
-                        ? '🎉 Free Home Delivery unlocked!'
+                        ? 'Free Home Delivery unlocked!'
                         : `Add ₹${freeDeliveryGap.toFixed(0)} more for FREE Delivery`}
                     </span>
                     <span>₹{itemsTotal.toFixed(2)} / ₹{freeThreshold.toFixed(0)}</span>
@@ -263,7 +263,7 @@ export function CartPage() {
 
                 {discount > 0 && (
                   <div className="mt-3 py-2 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-center text-xs font-black text-emerald-800 dark:text-emerald-300">
-                    🎉 You are saving ₹{discount.toFixed(2)} on this order!
+                    You are saving ₹{discount.toFixed(2)} on this order!
                   </div>
                 )}
 

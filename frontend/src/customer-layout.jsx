@@ -1,7 +1,7 @@
 import { optimizeImage } from './utils/image';
 import React, { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom'
-import { Home, Search, ShoppingBasket, ShoppingCart, User, X, Heart, Bell, LayoutGrid, Trash2, ShoppingBag, Leaf, Coffee, Package, Mic, Volume2, Megaphone, Sparkles, Clock, Wrench, AlertTriangle } from 'lucide-react'
+import { Home, Search, ShoppingBasket, ShoppingCart, User, X, Heart, Bell, LayoutGrid, Trash2, ShoppingBag, Leaf, Coffee, Package, Mic, Volume2, Megaphone, Sparkles, Clock, Wrench, AlertTriangle, Loader2, SearchX, ArrowUpRight } from 'lucide-react'
 import { useCart } from './cart-context'
 import { useLanguage } from './context/LanguageContext'
 import { useSpeechRecognition, useTextToSpeech } from './hooks/useVoice'
@@ -12,6 +12,7 @@ function GlobalSearchBar({ settings, onActiveChange }) {
   const [results, setResults] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const wrapperRef = useRef(null);
@@ -20,6 +21,17 @@ function GlobalSearchBar({ settings, onActiveChange }) {
   useEffect(() => {
     onActiveChange?.(Boolean(isOpen || isFocused));
   }, [isOpen, isFocused, onActiveChange]);
+
+  const popularKeywords = React.useMemo(() => {
+    if (settings?.popular_searches) {
+      const parsed = settings.popular_searches
+        .split("\n")
+        .map(s => s.trim())
+        .filter(Boolean);
+      if (parsed.length > 0) return parsed.slice(0, 6);
+    }
+    return ["Milk", "Atta", "Rice", "Sugar", "Cooking Oil", "Dal"];
+  }, [settings?.popular_searches]);
 
   // Dynamic Animated Placeholders
   const placeholders = React.useMemo(() => {
@@ -125,6 +137,10 @@ function GlobalSearchBar({ settings, onActiveChange }) {
     return () => { clearTimeout(timer); controller.abort(); };
   }, [displayValue]);
 
+  useEffect(() => {
+    setSelectedIndex(-1);
+  }, [displayValue]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const targetQuery = displayValue.trim();
@@ -179,6 +195,24 @@ function GlobalSearchBar({ settings, onActiveChange }) {
           onBlur={() => {
             setIsFocused(false);
           }}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowDown') {
+              e.preventDefault();
+              setSelectedIndex(prev => (prev < results.length - 1 ? prev + 1 : 0));
+            } else if (e.key === 'ArrowUp') {
+              e.preventDefault();
+              setSelectedIndex(prev => (prev > 0 ? prev - 1 : results.length - 1));
+            } else if (e.key === 'Enter') {
+              if (selectedIndex >= 0 && results[selectedIndex]) {
+                e.preventDefault();
+                setIsOpen(false);
+                navigate(`/product/${results[selectedIndex].id}`);
+              }
+            } else if (e.key === 'Escape') {
+              setIsOpen(false);
+              setIsFocused(false);
+            }
+          }}
           placeholder={isListening ? "Listening... Speak now" : (typewriterText || "Search rice, dal, snacks...")}
           className={`w-full bg-transparent pl-2.5 sm:pl-3 ${
             displayValue.trim().length > 0 ? 'pr-16 sm:pr-24' : 'pr-10 sm:pr-12'
@@ -189,6 +223,13 @@ function GlobalSearchBar({ settings, onActiveChange }) {
 
         {/* Right-Hand Button Controls Group positioned cleanly inside Search Bar */}
         <div className="absolute right-1.5 sm:right-2 flex items-center gap-0.5 sm:gap-1">
+          {/* Active Search Loading Spinner */}
+          {loading && (
+            <div className="p-1 text-emerald-600 dark:text-emerald-400 animate-spin">
+              <Loader2 size={15} />
+            </div>
+          )}
+
           {/* Read Aloud Text-to-Speech Button (Desktop/Tablet) */}
           {displayValue.trim().length > 0 && !isListening && (
             <button
@@ -241,7 +282,7 @@ function GlobalSearchBar({ settings, onActiveChange }) {
         <div className="absolute top-full left-0 right-0 mt-1 px-3 py-1.5 bg-rose-500 text-white rounded-lg text-xs font-semibold flex items-center justify-between shadow-lg z-50 animate-in fade-in slide-in-from-top-1">
           <div className="flex items-center gap-2 truncate">
             <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-            <span className="truncate">{interimTranscript ? `"${interimTranscript}"` : "Listening... Speak your item (e.g. 'Sugar', 'Dal', 'Oil')"}</span>
+            <span className="truncate">{interimTranscript ? `"${interimTranscript}"` : "Listening... Speak your item (e.g. Sugar, Dal, Oil)"}</span>
           </div>
           <button 
             type="button" 
@@ -261,38 +302,109 @@ function GlobalSearchBar({ settings, onActiveChange }) {
         </div>
       )}
 
-      {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 overflow-hidden z-50 max-h-[70vh] overflow-y-auto">
+      {/* Popular Searches Dropdown on Focus (when query is empty) */}
+      {isFocused && displayValue.trim().length === 0 && (
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 overflow-hidden z-50 p-3.5 sm:p-4 animate-in fade-in slide-in-from-top-1 duration-150">
+          <div className="flex items-center justify-between mb-2.5">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Popular Searches</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {popularKeywords.map((keyword, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => {
+                  setQuery(keyword);
+                  navigate(`/products?search=${encodeURIComponent(keyword)}`);
+                  setIsOpen(false);
+                }}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-950/50 dark:hover:text-emerald-300 transition-all border border-slate-200/60 dark:border-slate-700/60 hover:border-emerald-300 dark:hover:border-emerald-800 cursor-pointer active:scale-95"
+              >
+                <span>{keyword}</span>
+                <ArrowUpRight size={12} className="text-slate-400" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Search Results Dropdown */}
+      {isOpen && displayValue.trim().length > 1 && (
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 overflow-hidden z-50 max-h-[70vh] overflow-y-auto animate-in fade-in slide-in-from-top-1 duration-150">
           {loading ? (
-            <div className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">Searching...</div>
+            <div className="p-3 space-y-2">
+              {[1, 2, 3].map((skeletonIdx) => (
+                <div key={skeletonIdx} className="flex items-center gap-3 p-2.5 rounded-xl animate-pulse">
+                  <div className="size-11 rounded-lg bg-slate-200 dark:bg-slate-800 shrink-0" />
+                  <div className="flex-1 space-y-1.5 min-w-0">
+                    <div className="h-3.5 bg-slate-200 dark:bg-slate-800 rounded-md w-3/5" />
+                    <div className="h-3 bg-slate-100 dark:bg-slate-800/60 rounded-md w-1/4" />
+                  </div>
+                  <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-md w-14 shrink-0" />
+                </div>
+              ))}
+            </div>
           ) : results.length > 0 ? (
             <div>
-              {results.map(product => (
+              {results.map((product, idx) => (
                 <Link 
                   key={product.id} 
                   to={`/product/${product.id}`}
                   onClick={() => { setIsOpen(false); setQuery(''); }}
-                  className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-800 border-b border-slate-50 dark:border-slate-800/60 last:border-0 transition"
+                  className={`flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-800/80 border-b border-slate-100 dark:border-slate-800/60 last:border-0 transition-colors ${
+                    selectedIndex === idx ? 'bg-emerald-50/70 dark:bg-emerald-950/40' : ''
+                  }`}
                 >
-                  <div className="w-10 h-10 rounded bg-slate-100 dark:bg-slate-800 overflow-hidden shrink-0 flex items-center justify-center font-bold text-slate-400 text-xs">
-                    {product.image ? <img loading="lazy" decoding="async" src={optimizeImage(product.image, 100)} className="w-full h-full object-cover" alt=""/> : 'IMG'}
+                  <div className="size-11 rounded-lg bg-slate-100 dark:bg-slate-800 overflow-hidden shrink-0 flex items-center justify-center font-bold text-slate-400 text-xs border border-slate-200/50 dark:border-slate-700/50">
+                    {product.image ? (
+                      <img loading="lazy" decoding="async" src={optimizeImage(product.image, 100)} className="size-full object-cover" alt="" />
+                    ) : (
+                      product.name?.charAt(0)?.toUpperCase() || 'P'
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{product.name}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{product.unit}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{product.unit}</p>
                   </div>
-                  <div className="text-sm font-bold text-emerald-700 dark:text-emerald-400 whitespace-nowrap">₹{product.offer_price || product.regular_price}</div>
+                  <div className="text-sm font-bold text-emerald-700 dark:text-emerald-400 whitespace-nowrap">
+                    ₹{product.offer_price || product.regular_price}
+                  </div>
                 </Link>
               ))}
               <button 
                 onClick={handleSubmit} 
-                className="w-full p-3 text-sm font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-center transition"
+                className="w-full p-3 text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50/70 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-center transition flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                View all results for "{displayValue}"
+                <span>View all results for "{displayValue}"</span>
+                <ArrowUpRight size={14} />
               </button>
             </div>
-          ) : displayValue.trim().length > 1 && (
-            <div className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">No products found.</div>
+          ) : (
+            <div className="p-6 text-center">
+              <div className="size-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 mx-auto mb-3">
+                <SearchX size={22} />
+              </div>
+              <p className="text-sm font-bold text-slate-800 dark:text-slate-200">No products found</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs mx-auto leading-relaxed">
+                We could not find items matching "{displayValue}". Try searching for daily essentials below.
+              </p>
+              <div className="flex flex-wrap justify-center gap-1.5 mt-3.5">
+                {popularKeywords.slice(0, 4).map((keyword, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => {
+                      setQuery(keyword);
+                      navigate(`/products?search=${encodeURIComponent(keyword)}`);
+                      setIsOpen(false);
+                    }}
+                    className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-950/50 dark:hover:text-emerald-300 transition-colors border border-slate-200/50 dark:border-slate-700/50 cursor-pointer"
+                  >
+                    {keyword}
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       )}
@@ -351,29 +463,29 @@ export function NotificationPopup({ isOpen, onClose }) {
   <div className="overflow-y-auto p-4 space-y-3">
   {(!notifications || notifications.length === 0) ? (
   <div className="text-center py-6">
-  <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-950/40 rounded-full flex items-center justify-center text-indigo-300 mx-auto mb-3">
-  <Bell size={24} />
+  <div className="size-12 bg-emerald-50 dark:bg-emerald-950/40 rounded-full flex items-center justify-center text-emerald-500 mx-auto mb-3">
+  <Bell size={22} />
   </div>
   <p className="text-sm font-bold text-slate-900 dark:text-white">You're all caught up!</p>
   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">No new notifications.</p>
   </div>
   ) : (
   notifications.map(n => (
-  <div key={n.id} className={`p-3 rounded-xl border ${n.is_read ? 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/60 ' : 'border-indigo-100 dark:border-indigo-900/40 bg-indigo-50 dark:bg-indigo-950/30 '}`}>
+  <div key={n.id} className={`p-3 rounded-xl border ${n.is_read ? 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/60 ' : 'border-emerald-100 dark:border-emerald-900/40 bg-emerald-50/50 dark:bg-emerald-950/20 '}`}>
   <div className="flex justify-between items-start mb-1">
-  <h4 className={`text-sm font-bold ${n.is_read ? 'text-slate-900 dark:text-slate-100 ' : 'text-indigo-900 dark:text-indigo-300 '}`}>{n.title}</h4>
+  <h4 className={`text-sm font-bold ${n.is_read ? 'text-slate-900 dark:text-slate-100 ' : 'text-emerald-900 dark:text-emerald-300 '}`}>{n.title}</h4>
   <div className="flex items-center gap-2">
   <span className="text-[10px] font-medium text-slate-400">{new Date(n.created_at).toLocaleDateString()}</span>
   <button onClick={() => deleteNotification(n.id)} className="text-slate-300 hover:text-red-500 transition"><Trash2 size={14}/></button>
   </div>
   </div>
-  <p className={`text-xs ${n.is_read ? 'text-slate-500 dark:text-slate-400 ' : 'text-indigo-700 dark:text-indigo-300 '}`}>{n.message}</p>
+  <p className={`text-xs ${n.is_read ? 'text-slate-500 dark:text-slate-400 ' : 'text-emerald-700 dark:text-emerald-300 '}`}>{n.message}</p>
   </div>
   ))
   )}
   </div>
   <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-center">
-  <Link to="/notifications" onClick={onClose} className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300">Manage notifications</Link>
+  <Link to="/notifications" onClick={onClose} className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300">Manage notifications</Link>
   </div>
   </div>
  );

@@ -6,7 +6,7 @@ import { GSAPFadeUp, GSAPZoomIn, GSAPSlideIn, GSAPStagger } from './components/G
 
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
-import { ChevronRight, ChevronLeft, Search, X, Heart, ArrowLeft, ShoppingCart, Sparkles, Zap, Star, Megaphone, ShieldCheck, Tag, Minus, Plus, Check, Share2 } from 'lucide-react'
+import { ChevronRight, ChevronLeft, Search, X, Heart, ArrowLeft, ShoppingCart, Sparkles, Zap, Star, Megaphone, ShieldCheck, Tag, Minus, Plus, Check, Share2, Loader2, PackageSearch } from 'lucide-react'
 
 import api, { readCacheSync } from './services/api'
 
@@ -230,7 +230,7 @@ export const ProductCard = React.memo(function ProductCard({ product, priority =
             disabled={adding || added || isMaxReached}
             className={`w-full rounded-xl py-2.5 min-h-[44px] sm:min-h-0 sm:py-2 text-sm font-bold transition-all active:scale-95 flex items-center justify-center gap-1.5 ${added ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-xs' : isMaxReached ? 'bg-slate-50 text-slate-400 border border-slate-100 cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-lg shadow-emerald-600/20 shadow-md'} disabled:opacity-60 disabled:active:scale-100 cursor-pointer`}
           >
-            {isMaxReached ? 'Max in cart' : added ? '✓ Added!' : adding ? 'Adding...' : <><ShoppingCart size={14} className="stroke-[2.5]" /> Add to Cart</>}
+            {isMaxReached ? 'Max in cart' : added ? <><Check size={14} className="stroke-[2.5]" /> Added</> : adding ? <><Loader2 size={14} className="animate-spin" /> Adding...</> : <><ShoppingCart size={14} className="stroke-[2.5]" /> Add to Cart</>}
           </button>
         ) : (
           <div className="w-full text-center rounded-xl bg-slate-50 border border-slate-100 py-2 text-sm font-extrabold text-slate-400">
@@ -989,20 +989,72 @@ export function ProductsPage() {
         )}
       </div>
 
-      {error && <p className="mt-4 rounded-xl bg-red-50 dark:bg-rose-950/40 p-3.5 text-xs sm:text-sm text-red-700 dark:text-rose-300 font-semibold">{error}</p>}
+      {error && (
+        <div className="mt-4 rounded-xl bg-red-50 dark:bg-rose-950/40 p-4 border border-red-200/60 dark:border-rose-900/40 flex items-center justify-between gap-3">
+          <p className="text-xs sm:text-sm text-red-700 dark:text-rose-300 font-semibold">{error}</p>
+          <button 
+            type="button"
+            onClick={() => {
+              setError('');
+              setLoading(true);
+              api.get('/products/', { params })
+                .then(res => setProducts(res.data.results || res.data || []))
+                .catch(() => setError('Could not load products.'))
+                .finally(() => setLoading(false));
+            }}
+            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-slate-900 text-red-700 dark:text-rose-300 border border-red-200 dark:border-rose-800 hover:bg-red-50 transition cursor-pointer shrink-0"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
-      <div className="mt-3.5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 gap-3 sm:gap-4 w-full">
-        {loading ? Array.from({length: 12}).map((_, i) => <ProductSkeleton key={i} />) : sortedProducts.map((product, index) => <ProductCard key={product.id} product={product} priority={index < 6} />)}
-      </div>
+      {loading ? (
+        <div className="mt-3.5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 gap-3 sm:gap-4 w-full">
+          {Array.from({length: 12}).map((_, i) => <ProductSkeleton key={i} />)}
+        </div>
+      ) : sortedProducts.length > 0 ? (
+        <div className="mt-3.5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 gap-3 sm:gap-4 w-full">
+          {sortedProducts.map((product, index) => <ProductCard key={product.id} product={product} priority={index < 6} />)}
+        </div>
+      ) : (
+        <div className="mt-8 rounded-3xl bg-white dark:bg-slate-900 p-8 sm:p-12 text-center border border-slate-200/80 dark:border-slate-800 flex flex-col items-center max-w-lg mx-auto shadow-xs">
+          <div className="size-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 mb-4">
+            <PackageSearch size={32} />
+          </div>
+          <h3 className="text-lg font-black text-slate-900 dark:text-white mb-1.5">No products found</h3>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-sm leading-relaxed">
+            {query 
+              ? `We could not find items matching "${query}". Try checking your spelling or clear active filters.`
+              : "There are no products available under this category or section at the moment."}
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setSearchParams({});
+            }}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm transition-all shadow-md shadow-emerald-600/20 active:scale-95 cursor-pointer"
+          >
+            Clear all filters
+          </button>
+        </div>
+      )}
       
       {nextPage && (
         <div className="flex justify-center mt-8 pb-6">
           <button 
             onClick={loadMore} 
             disabled={loadingMore} 
-            className="bg-slate-900 dark:bg-slate-800 dark:border dark:border-slate-700 text-white hover:bg-black dark:hover:bg-slate-700 transition-colors px-8 py-3 rounded-xl font-bold shadow-sm disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center min-w-[200px]"
+            className="bg-slate-900 dark:bg-slate-800 dark:border dark:border-slate-700 text-white hover:bg-black dark:hover:bg-slate-700 transition-colors px-8 py-3 rounded-xl font-bold shadow-sm disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center min-w-[200px] text-xs sm:text-sm cursor-pointer"
           >
-            {loadingMore ? 'Loading more products...' : 'Load More'}
+            {loadingMore ? (
+              <>
+                <Loader2 size={16} className="animate-spin mr-2 text-emerald-400" />
+                <span>Loading more products...</span>
+              </>
+            ) : (
+              <span>Load More</span>
+            )}
           </button>
         </div>
       )}
@@ -1286,7 +1338,10 @@ export function ProductDetailPage() {
                     }`}
                   >
                     {adding ? (
-                      'Adding...'
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        <span>Adding...</span>
+                      </>
                     ) : isOutOfStock ? (
                       'Out of Stock'
                     ) : isMaxReached ? (
