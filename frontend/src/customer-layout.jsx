@@ -150,13 +150,13 @@ function GlobalSearchBar({ settings }) {
   };
 
   return (
-    <div ref={wrapperRef} className="relative flex-1 min-w-0 mx-1 sm:mx-2">
-      <form onSubmit={handleSubmit} className={`relative flex items-center w-full bg-slate-100/80 dark:bg-slate-800/80 rounded-xl border transition-all duration-300 ${
+    <div ref={wrapperRef} className="relative w-full">
+      <form onSubmit={handleSubmit} className={`relative flex items-center w-full bg-slate-100/90 dark:bg-slate-800/90 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl sm:rounded-2xl border transition-all duration-300 shadow-xs ${
         isListening
-          ? 'border-rose-500 ring-4 ring-rose-500/20 bg-rose-50/30 dark:bg-rose-950/20'
-          : 'border-slate-200/50 dark:border-slate-700/50 focus-within:border-primary-500 focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:ring-4 focus-within:ring-primary-500/10 focus-within:shadow-md'
+          ? 'border-rose-500 ring-4 ring-rose-500/20 bg-rose-50/40 dark:bg-rose-950/20'
+          : 'border-slate-200/80 dark:border-slate-700/80 focus-within:border-emerald-500 focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:ring-4 focus-within:ring-emerald-500/10 focus-within:shadow-md'
       }`}>
-        <div className={`pl-3.5 transition-colors ${isListening ? 'text-rose-500 animate-pulse' : 'text-slate-400'}`}>
+        <div className={`pl-3 sm:pl-3.5 transition-colors shrink-0 ${isListening ? 'text-rose-500 animate-pulse' : 'text-slate-400'}`}>
           <Search size={18} />
         </div>
 
@@ -168,36 +168,38 @@ function GlobalSearchBar({ settings }) {
             if (isListening) toggleListening();
           }}
           onFocus={() => { if (results.length > 0) setIsOpen(true); }}
-          placeholder={isListening ? "Listening... Speak now" : (typewriterText || "")}
-          className={`w-full bg-transparent pl-3 pr-20 py-2.5 outline-none text-sm text-slate-900 dark:text-white ${
+          placeholder={isListening ? "Listening... Speak now" : (typewriterText || "Search rice, dal, snacks...")}
+          className={`w-full bg-transparent pl-2.5 sm:pl-3 ${
+            displayValue.trim().length > 0 ? 'pr-16 sm:pr-24' : 'pr-10 sm:pr-12'
+          } py-2 sm:py-2.5 outline-none text-xs sm:text-sm text-slate-900 dark:text-white font-medium ${
             isListening ? 'placeholder:text-rose-500 placeholder:font-medium' : 'placeholder:text-slate-400'
           }`}
         />
 
         {/* Right-Hand Button Controls Group positioned cleanly inside Search Bar */}
-        <div className="absolute right-2 flex items-center gap-1">
-          {/* Read Aloud Text-to-Speech Button */}
+        <div className="absolute right-1.5 sm:right-2 flex items-center gap-0.5 sm:gap-1">
+          {/* Read Aloud Text-to-Speech Button (Desktop/Tablet) */}
           {displayValue.trim().length > 0 && !isListening && (
             <button
               type="button"
               onClick={handleReadAloud}
               title={isSpeaking ? "Stop speech" : "Read aloud"}
-              className={`p-1.5 rounded-lg transition-all ${
+              className={`hidden sm:inline-flex p-1.5 rounded-lg transition-all ${
                 isSpeaking 
-                  ? 'text-primary-600 bg-primary-50 dark:bg-primary-950/60 animate-pulse' 
+                  ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 animate-pulse' 
                   : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700'
               }`}
             >
-              {isSpeaking ? <Volume2 size={15} className="text-primary-600 animate-bounce" /> : <Volume2 size={15} />}
+              {isSpeaking ? <Volume2 size={15} className="text-emerald-600 animate-bounce" /> : <Volume2 size={15} />}
             </button>
           )}
 
           {/* Clear Input Button */}
           {displayValue.length > 0 && !isListening && (
             <button 
-              type="button"
+              type="button" 
               onClick={() => { setQuery(''); setResults([]); setIsOpen(false); }} 
-              className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700 transition"
+              className="p-1 sm:p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700 transition"
               title="Clear search"
             >
               <X size={15} />
@@ -212,7 +214,7 @@ function GlobalSearchBar({ settings }) {
             className={`relative p-1.5 rounded-lg transition-all flex items-center justify-center ${
               isListening
                 ? 'bg-rose-500 text-white shadow-md shadow-rose-500/30 scale-105'
-                : 'text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-200/60 dark:hover:bg-slate-700'
+                : 'text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-200/60 dark:hover:bg-slate-700'
             }`}
           >
             {isListening && (
@@ -249,7 +251,7 @@ function GlobalSearchBar({ settings }) {
       )}
 
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-slate-100 dark:border-slate-800 overflow-hidden z-50">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 overflow-hidden z-50 max-h-[70vh] overflow-y-auto">
           {loading ? (
             <div className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">Searching...</div>
           ) : results.length > 0 ? (
@@ -268,12 +270,12 @@ function GlobalSearchBar({ settings }) {
                     <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{product.name}</p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">{product.unit}</p>
                   </div>
-                  <div className="text-sm font-bold text-primary-700 dark:text-primary-400 whitespace-nowrap">₹{product.offer_price || product.regular_price}</div>
+                  <div className="text-sm font-bold text-emerald-700 dark:text-emerald-400 whitespace-nowrap">₹{product.offer_price || product.regular_price}</div>
                 </Link>
               ))}
               <button 
                 onClick={handleSubmit} 
-                className="w-full p-3 text-sm font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/40 hover:bg-primary-100 dark:hover:bg-primary-900/60 text-center transition"
+                className="w-full p-3 text-sm font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-center transition"
               >
                 View all results for "{displayValue}"
               </button>
@@ -810,23 +812,45 @@ export function CustomerLayout({ children }) {
       <FestivePopupModal settings={storeSettings} />
       <WhatsAppSupportWidget settings={storeSettings} />
 
-      {/* Original Header Restored */}
-      <header className="sticky top-0 z-30 border-b border-slate-200/60 dark:border-slate-800 bg-white/90 dark:bg-[#0d1322]/90 backdrop-blur-xl shadow-xs transition-colors duration-200">
-        <div className="mx-auto flex w-full items-center justify-between px-4 py-3 sm:px-6 lg:px-8 xl:px-12 gap-3 sm:gap-6">
-          {/* Brand Logo & Text */}
-          <Link to="/" className="text-2xl sm:text-3xl font-black tracking-tighter whitespace-nowrap shrink-0 drop-shadow-sm hover:opacity-80 transition-opacity">
-            <span className="text-slate-800 dark:text-white">Narendra</span>
-            <span className="text-emerald-600 dark:text-emerald-400">Kirana</span>
-          </Link>
+      {/* Customer Header */}
+      <header className="sticky top-0 z-30 border-b border-slate-200/60 dark:border-slate-800 bg-white/95 dark:bg-[#0d1322]/95 backdrop-blur-xl shadow-xs transition-colors duration-200">
+        <div className="mx-auto flex flex-col sm:flex-row w-full sm:items-center sm:justify-between px-3.5 py-2.5 sm:px-6 sm:py-3 lg:px-8 xl:px-12 gap-2.5 sm:gap-6">
+          {/* Top Row on Mobile / Left Group on Desktop */}
+          <div className="flex items-center justify-between w-full sm:w-auto">
+            {/* Brand Logo & Text */}
+            <Link to="/" className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tighter whitespace-nowrap shrink-0 drop-shadow-sm hover:opacity-80 transition-opacity">
+              <span className="text-slate-800 dark:text-white">Narendra</span>
+              <span className="text-emerald-600 dark:text-emerald-400">Kirana</span>
+            </Link>
+
+            {/* Mobile-only Notification Bell (Logged-in Customers) */}
+            {isCustomer && (
+              <div className="relative sm:hidden">
+                <button 
+                  onClick={() => setShowNotifications(!showNotifications)} 
+                  className="grid size-9 place-items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition relative cursor-pointer"
+                  title="Notifications"
+                >
+                  <Bell size={18} />
+                  {notifications?.some(n => !n.is_read) && (
+                    <span className="absolute right-0 top-0 size-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 animate-pulse"></span>
+                  )}
+                </button>
+                <NotificationPopup isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+              </div>
+            )}
+          </div>
           
-          {/* Center Search Bar */}
-          <GlobalSearchBar settings={storeSettings} />
+          {/* Center Search Bar - Spans Full Width on Mobile, Centered & Constrained on Desktop */}
+          <div className="w-full sm:flex-1 sm:max-w-2xl sm:mx-2 md:mx-4">
+            <GlobalSearchBar settings={storeSettings} />
+          </div>
         
-          {/* Right Controls */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Right Controls (Desktop Only - Mobile navigation is handled by bottom bar) */}
+          <div className="hidden sm:flex items-center gap-2 sm:gap-3 shrink-0">
             {isCustomer ? (
               <>
-                <div className="relative hidden sm:block">
+                <div className="relative">
                   <button 
                     onClick={() => setShowNotifications(!showNotifications)} 
                     className="grid size-9 sm:size-10 place-items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition relative cursor-pointer"
@@ -843,7 +867,7 @@ export function CustomerLayout({ children }) {
                 {/* My Account Pill */}
                 <Link 
                   to="/profile" 
-                  className="hidden sm:flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition ml-1 shadow-xs"
+                  className="flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition ml-1 shadow-xs"
                 >
                   {user?.avatar || user?.customer_profile?.avatar || user?.customer_profile?.avatar_url || user?.customer_profile?.profile_picture ? (
                     <img 
@@ -869,7 +893,7 @@ export function CustomerLayout({ children }) {
             <Link 
               to="/cart" 
               aria-label="Cart" 
-              className="relative hidden sm:flex h-11 w-16 items-center justify-center rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-all ml-2 shadow-sm hover:shadow active:scale-95 group cursor-pointer"
+              className="relative flex h-11 w-16 items-center justify-center rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-all ml-2 shadow-sm hover:shadow active:scale-95 group cursor-pointer"
             >
               <ShoppingCart size={20} strokeWidth={2.5} className="mt-0.5" />
               {cart?.items?.length > 0 && (
