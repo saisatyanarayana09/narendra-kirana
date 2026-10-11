@@ -7,14 +7,19 @@ import { useLanguage } from './context/LanguageContext'
 import { useSpeechRecognition, useTextToSpeech } from './hooks/useVoice'
 import api from './services/api'
 
-function GlobalSearchBar({ settings }) {
+function GlobalSearchBar({ settings, onActiveChange }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const wrapperRef = useRef(null);
   const { language } = useLanguage();
+
+  useEffect(() => {
+    onActiveChange?.(Boolean(isOpen || isFocused));
+  }, [isOpen, isFocused, onActiveChange]);
 
   // Dynamic Animated Placeholders
   const placeholders = React.useMemo(() => {
@@ -167,7 +172,13 @@ function GlobalSearchBar({ settings }) {
             setQuery(e.target.value);
             if (isListening) toggleListening();
           }}
-          onFocus={() => { if (results.length > 0) setIsOpen(true); }}
+          onFocus={() => {
+            setIsFocused(true);
+            if (results.length > 0) setIsOpen(true);
+          }}
+          onBlur={() => {
+            setIsFocused(false);
+          }}
           placeholder={isListening ? "Listening... Speak now" : (typewriterText || "Search rice, dal, snacks...")}
           className={`w-full bg-transparent pl-2.5 sm:pl-3 ${
             displayValue.trim().length > 0 ? 'pr-16 sm:pr-24' : 'pr-10 sm:pr-12'
@@ -775,7 +786,48 @@ export function CustomerLayout({ children }) {
   const { cart, isCustomer, notifications, storeSettings: contextSettings, user } = useCart()
   const [storeSettings, setStoreSettings] = useState(contextSettings)
   const [showNotifications, setShowNotifications] = useState(false)
+  const [isMobileSearchHidden, setIsMobileSearchHidden] = useState(false)
+  const [isSearchActive, setIsSearchActive] = useState(false)
   const location = useLocation();
+
+  useEffect(() => {
+    // Only auto-collapse searchbar on the customer home page
+    if (location.pathname !== '/') {
+      setIsMobileSearchHidden(false);
+      return;
+    }
+
+    let lastScrollY = window.scrollY;
+    let ticking = false;
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY;
+
+          // If at or near top of the page, searchbar is always visible
+          if (currentScrollY <= 25) {
+            setIsMobileSearchHidden(false);
+          } else if (!isSearchActive) {
+            if (currentScrollY > lastScrollY && currentScrollY > 50) {
+              // Scrolling down (user swiping up) - hide searchbar like mobile app
+              setIsMobileSearchHidden(true);
+            } else if (currentScrollY < lastScrollY - 12) {
+              // Scrolling up (user swiping down towards top) - reveal searchbar
+              setIsMobileSearchHidden(false);
+            }
+          }
+
+          lastScrollY = currentScrollY;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [location.pathname, isSearchActive]);
 
   useEffect(() => {
     if (contextSettings) {
@@ -814,9 +866,11 @@ export function CustomerLayout({ children }) {
 
       {/* Customer Header */}
       <header className="sticky top-0 z-30 border-b border-slate-200/60 dark:border-slate-800 bg-white/95 dark:bg-[#0d1322]/95 backdrop-blur-xl shadow-xs transition-colors duration-200">
-        <div className="mx-auto flex flex-col sm:flex-row w-full sm:items-center sm:justify-between px-3.5 py-2.5 sm:px-6 sm:py-3 lg:px-8 xl:px-12 gap-2.5 sm:gap-6">
+        <div className={`mx-auto flex flex-col sm:flex-row w-full sm:items-center sm:justify-between px-3.5 sm:px-6 sm:py-3 lg:px-8 xl:px-12 transition-all duration-300 ${
+          isMobileSearchHidden ? 'py-2 gap-0 sm:gap-6' : 'py-2.5 gap-2.5 sm:gap-6'
+        }`}>
           {/* Top Row on Mobile / Left Group on Desktop */}
-          <div className="flex items-center justify-between w-full sm:w-auto">
+          <div className="flex items-center justify-between w-full sm:w-auto shrink-0">
             {/* Brand Logo & Text */}
             <Link to="/" className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tighter whitespace-nowrap shrink-0 drop-shadow-sm hover:opacity-80 transition-opacity">
               <span className="text-slate-800 dark:text-white">Narendra</span>
@@ -841,9 +895,13 @@ export function CustomerLayout({ children }) {
             )}
           </div>
           
-          {/* Center Search Bar - Spans Full Width on Mobile, Centered & Constrained on Desktop */}
-          <div className="w-full sm:flex-1 sm:max-w-2xl sm:mx-2 md:mx-4">
-            <GlobalSearchBar settings={storeSettings} />
+          {/* Center Search Bar - Smooth Auto-Collapse / Expand on Mobile Home Page Scroll */}
+          <div className={`w-full sm:flex-1 sm:max-w-2xl sm:mx-2 md:mx-4 transition-all duration-300 ease-in-out origin-top ${
+            isMobileSearchHidden
+              ? 'max-h-0 opacity-0 -translate-y-2 pointer-events-none overflow-hidden sm:max-h-none sm:opacity-100 sm:translate-y-0 sm:pointer-events-auto sm:overflow-visible'
+              : 'max-h-20 opacity-100 translate-y-0 pointer-events-auto sm:max-h-none'
+          }`}>
+            <GlobalSearchBar settings={storeSettings} onActiveChange={setIsSearchActive} />
           </div>
         
           {/* Right Controls (Desktop Only - Mobile navigation is handled by bottom bar) */}
