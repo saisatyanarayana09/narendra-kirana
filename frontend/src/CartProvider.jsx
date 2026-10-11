@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import api, { clearUserCache, clearAllBrowserCaches } from './services/api'
+import api, { clearAllBrowserCaches } from './services/api'
 
 import { CartContext } from './cart-context';
+import { useWebSocket } from './hooks/useWebSocket';
 const getUser = () => {
   try {
     const raw = localStorage.getItem('smart-kirana-customer-user');
@@ -129,6 +130,23 @@ export function CartProvider({ children }) {
   }, [])
  
  const isCustomer = Boolean(user?.is_customer)
+
+  const handleWsMessage = useCallback((msg) => {
+    if (!msg || typeof msg !== 'object') return;
+    if (msg.type === 'INITIAL_STATE' || msg.type === 'CART_UPDATED') {
+      if (msg.cart && typeof msg.cart === 'object') {
+        replaceCart(msg.cart);
+      }
+    }
+  }, [replaceCart]);
+
+  const { isConnected: isWsConnected, sendMessage: sendWsMessage } = useWebSocket({
+    path: '/ws/cart/',
+    enabled: isCustomer,
+    onMessage: handleWsMessage,
+    autoReconnect: true,
+    heartbeatIntervalMs: 25000,
+  });
 
  const fetchSettings = useCallback(async () => {
    try {
@@ -315,9 +333,13 @@ export function CartProvider({ children }) {
             .map(i => ({ product: getItemProductId(i), quantity: i.quantity }))
             .filter(i => i.product && i.quantity > 0);
           if (itemsPayload.length > 0) {
-            const res = await api.post('/cart/merge/', { items: itemsPayload });
-            if (res?.data) {
-              replaceCart(res.data);
+            if (isWsConnected) {
+              sendWsMessage({ type: 'MERGE_GUEST', items: itemsPayload });
+            } else {
+              const res = await api.post('/cart/merge/', { items: itemsPayload });
+              if (res?.data) {
+                replaceCart(res.data);
+              }
             }
           }
         } catch (e) {
@@ -326,7 +348,7 @@ export function CartProvider({ children }) {
       }
     }
     await cartMutationQueue.current;
-  }, [isCustomer, replaceCart]);
+  }, [isCustomer, isWsConnected, sendWsMessage, replaceCart]);
 
   const add = useCallback(async (product, quantity = 1) => {
     if (!product) return;
@@ -388,11 +410,21 @@ export function CartProvider({ children }) {
 
     pendingSyncTimers.current[pId] = setTimeout(async () => {
       delete pendingSyncTimers.current[pId];
+      const latestItem = cartRef.current?.items?.find(i => getItemProductId(i) === pId);
+      if (!latestItem) return;
+
+      if (isWsConnected) {
+        sendWsMessage({
+          type: 'UPDATE_QUANTITY',
+          item_id: typeof latestItem.id === 'number' && latestItem.id > 0 ? latestItem.id : null,
+          product_id: pId,
+          quantity: latestItem.quantity,
+        });
+        return;
+      }
+
       try {
         await enqueueCartMutation(async (version) => {
-          const latestItem = cartRef.current?.items?.find(i => getItemProductId(i) === pId);
-          if (!latestItem) return;
-
           let response;
           if (typeof latestItem.id === 'number' && latestItem.id > 0) {
             response = await api.patch(`/cart/items/${latestItem.id}/`, { quantity: latestItem.quantity });
@@ -407,7 +439,7 @@ export function CartProvider({ children }) {
         console.error('Debounced cart add sync failed:', err);
       }
     }, 450);
-  }, [isCustomer, enqueueCartMutation, replaceCart]);
+  }, [isCustomer, isWsConnected, sendWsMessage, enqueueCartMutation, replaceCart]);
 
   const update = useCallback(async (item, quantity) => {
     if (!item) return;
@@ -443,6 +475,24 @@ export function CartProvider({ children }) {
 
     pendingSyncTimers.current[pId] = setTimeout(async () => {
       delete pendingSyncTimers.current[pId];
+      if (isWsConnected) {
+        if (targetQty <= 0) {
+          sendWsMessage({
+            type: 'REMOVE_ITEM',
+            item_id: typeof item.id === 'number' && item.id > 0 ? item.id : null,
+            product_id: pId,
+          });
+        } else {
+          sendWsMessage({
+            type: 'UPDATE_QUANTITY',
+            item_id: typeof item.id === 'number' && item.id > 0 ? item.id : null,
+            product_id: pId,
+            quantity: targetQty,
+          });
+        }
+        return;
+      }
+
       try {
         await enqueueCartMutation(async (version) => {
           let response;
@@ -469,7 +519,7 @@ export function CartProvider({ children }) {
         console.error('Debounced cart update sync failed:', err);
       }
     }, 450);
-  }, [isCustomer, enqueueCartMutation, replaceCart]);
+  }, [isCustomer, isWsConnected, sendWsMessage, enqueueCartMutation, replaceCart]);
 
   const clearCart = useCallback(async () => {
     Object.keys(pendingSyncTimers.current).forEach(k => {
@@ -489,6 +539,10 @@ export function CartProvider({ children }) {
     replaceCart(emptyCart);
 
     if (!isCustomer) return;
+    if (isWsConnected) {
+      sendWsMessage({ type: 'CLEAR_CART' });
+      return;
+    }
     try {
       await enqueueCartMutation(async (version) => {
         const response = await api.post('/cart/clear/');
@@ -497,7 +551,7 @@ export function CartProvider({ children }) {
     } catch {
       // ignore
     }
-  }, [isCustomer, enqueueCartMutation, replaceCart]);
+  }, [isCustomer, isWsConnected, sendWsMessage, enqueueCartMutation, replaceCart]);
 
   const applyPromo = useCallback(async (code) => {
     await flushCartSync();
@@ -533,10 +587,10 @@ export function CartProvider({ children }) {
  const value = useMemo(() => ({
    cart, add, update, clearCart, refresh, user, isCustomer, syncUser, logout,
    applyPromo, storeSettings, favorites, toggleFavorite, notifications,
-   notificationPermission, requestWebPushPermission, flushCartSync
+   notificationPermission, requestWebPushPermission, flushCartSync, isWsConnected
  }), [cart, add, update, clearCart, refresh, user, isCustomer, syncUser, logout,
       applyPromo, storeSettings, favorites, toggleFavorite, notifications,
-      notificationPermission, requestWebPushPermission, flushCartSync])
+      notificationPermission, requestWebPushPermission, flushCartSync, isWsConnected])
 
  return (
    <CartContext.Provider value={value}>

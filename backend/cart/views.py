@@ -7,6 +7,7 @@ from accounts.permissions import IsCustomerUser
 from products.models import Product
 from .models import Cart, CartItem
 from .serializers import CartItemSerializer, CartSerializer
+from .ws_broadcast import broadcast_cart_updated
 
 
 def customer_cart(user):
@@ -63,7 +64,9 @@ class CartItemCreateView(generics.CreateAPIView):
 
         # Return the FULL cart so the frontend can update totals in one shot
         cart = Cart.objects.prefetch_related('items__product').select_related('promo_code').get(id=cart.id)
-        return Response(CartSerializer(cart, context=self.get_serializer_context()).data, status=status.HTTP_201_CREATED)
+        data = CartSerializer(cart, context=self.get_serializer_context()).data
+        broadcast_cart_updated(request.user.id, data)
+        return Response(data, status=status.HTTP_201_CREATED)
 
 class CartItemDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = CartItemSerializer
@@ -96,7 +99,9 @@ class CartItemDetailView(generics.RetrieveUpdateDestroyAPIView):
 
         # Return the FULL cart so the frontend can update all totals in one round-trip
         cart = Cart.objects.prefetch_related('items__product').select_related('promo_code').get(id=item.cart_id)
-        return Response(CartSerializer(cart, context=self.get_serializer_context()).data)
+        data = CartSerializer(cart, context=self.get_serializer_context()).data
+        broadcast_cart_updated(request.user.id, data)
+        return Response(data)
 
     def perform_update(self, serializer):
         # Validation is already done in update(); just save here
@@ -111,7 +116,9 @@ class CartItemDetailView(generics.RetrieveUpdateDestroyAPIView):
         item.delete()
         # Return the full cart after deletion too
         cart = Cart.objects.prefetch_related('items__product').select_related('promo_code').get(id=cart_id)
-        return Response(CartSerializer(cart, context=self.get_serializer_context()).data)
+        data = CartSerializer(cart, context=self.get_serializer_context()).data
+        broadcast_cart_updated(request.user.id, data)
+        return Response(data)
 
 
 from rest_framework.views import APIView
@@ -168,7 +175,9 @@ class ApplyPromoView(APIView):
         cart.promo_code = promo
         cart.save(update_fields=['promo_code'])
         cart = Cart.objects.prefetch_related('items__product').select_related('promo_code').get(id=cart.id)
-        return Response(CartSerializer(cart, context={'request': request}).data)
+        data = CartSerializer(cart, context={'request': request}).data
+        broadcast_cart_updated(request.user.id, data)
+        return Response(data)
 
 
 class CartClearView(APIView):
@@ -182,7 +191,9 @@ class CartClearView(APIView):
         cart.promo_code = None
         cart.save(update_fields=['promo_code'])
         cart = Cart.objects.prefetch_related('items__product').select_related('promo_code').get(id=cart.id)
-        return Response(CartSerializer(cart, context={'request': request}).data, status=status.HTTP_200_OK)
+        data = CartSerializer(cart, context={'request': request}).data
+        broadcast_cart_updated(request.user.id, data)
+        return Response(data, status=status.HTTP_200_OK)
 
 
 class CartMergeView(APIView):
@@ -231,6 +242,8 @@ class CartMergeView(APIView):
                     CartItem.objects.create(cart=cart, product=product, quantity=initial_qty)
 
         cart = Cart.objects.prefetch_related('items__product').select_related('promo_code').get(id=cart.id)
-        return Response(CartSerializer(cart, context={'request': request}).data, status=status.HTTP_200_OK)
+        data = CartSerializer(cart, context={'request': request}).data
+        broadcast_cart_updated(request.user.id, data)
+        return Response(data, status=status.HTTP_200_OK)
 
 

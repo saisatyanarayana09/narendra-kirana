@@ -18,12 +18,13 @@ django_asgi_app = get_asgi_application()
 from channels.routing import ProtocolTypeRouter, URLRouter
 from accounts.ws_auth import JwtAuthMiddlewareStack
 import orders.routing
+import cart.routing
 
 application = ProtocolTypeRouter({
     "http": django_asgi_app,
     "websocket": JwtAuthMiddlewareStack(
         URLRouter(
-            orders.routing.websocket_urlpatterns
+            orders.routing.websocket_urlpatterns + cart.routing.websocket_urlpatterns
         )
     ),
 })

@@ -11,6 +11,7 @@ import React, {
 import { useAuth } from "./AuthContext";
 import { apiClient } from "../api/client";
 import { storeApi } from "../api/store";
+import { useWebSocket } from "../hooks/useWebSocket";
 import {
   getGuestStorageItem,
   setGuestStorageItem,
@@ -65,6 +66,7 @@ export interface CartContextType {
   getItemQuantity: (productId: number) => number;
   lastItemAddedTimestamp: number;
   flushCartSync: () => Promise<void>;
+  isWsConnected?: boolean;
 }
 
 export const getItemProductId = (item: CartItem): number => {
@@ -98,6 +100,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // response can never overwrite a newer quantity change for another item.
   const cartMutationQueue = React.useRef<Promise<void>>(Promise.resolve());
   const cartMutationVersion = React.useRef<number>(0);
+
+  const handleWsMessage = useCallback((msg: any) => {
+    if (!msg || typeof msg !== "object") return;
+    if (msg.type === "INITIAL_STATE" || msg.type === "CART_UPDATED") {
+      if (msg.cart && typeof msg.cart === "object") {
+        cartRef.current = msg.cart;
+        setCart(msg.cart);
+      }
+    }
+  }, []);
+
+  const { isConnected: isWsConnected, sendMessage: sendWsMessage } =
+    useWebSocket({
+      path: "/ws/cart/",
+      enabled: Boolean(user?.id),
+      onMessage: handleWsMessage,
+      autoReconnect: true,
+      heartbeatIntervalMs: 25000,
+    });
 
   useEffect(() => {
     cartRef.current = cart;
@@ -444,6 +465,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return nextCart;
       });
 
+      if (isWsConnected) {
+        sendWsMessage({
+          type: "REMOVE_ITEM",
+          item_id:
+            typeof cartItemId === "number" && cartItemId > 0
+              ? cartItemId
+              : null,
+          product_id: productId,
+        });
+        return;
+      }
+
       try {
         await enqueueCartMutation(async (version) => {
           let targetId = cartItemId;
@@ -498,7 +531,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         console.error("Failed to remove from cart:", error);
       }
     },
-    [user, refreshCart, enqueueCartMutation],
+    [user, isWsConnected, sendWsMessage, refreshCart, enqueueCartMutation],
   );
 
   const updateQuantity = useCallback(
@@ -649,6 +682,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
           } catch (e) {}
         }
 
+        if (isWsConnected) {
+          sendWsMessage({
+            type: "UPDATE_QUANTITY",
+            item_id:
+              typeof targetId === "number" && targetId > 0 ? targetId : null,
+            product_id: pId,
+            quantity,
+          });
+          if (updateQuantityLocks.current[cartItemId] === timerId) {
+            delete updateQuantityLocks.current[cartItemId];
+          }
+          return;
+        }
+
         // Resolve Ghost ID to Real ID (poll if addToCart POST is still in-flight)
         if (targetId < 0) {
           let resolvedFromBackend = false;
@@ -714,7 +761,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       updateQuantityLocks.current[cartItemId] = timerId;
     },
-    [user, removeFromCart, refreshCart, enqueueCartMutation],
+    [user, isWsConnected, sendWsMessage, removeFromCart, refreshCart, enqueueCartMutation],
   );
 
   const addToCart = useCallback(
@@ -949,6 +996,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
         });
         setLastItemAddedTimestamp(Date.now());
 
+        if (isWsConnected) {
+          sendWsMessage({
+            type: "ADD_ITEM",
+            product_id: productId,
+            quantity,
+          });
+          return;
+        }
+
         try {
           await enqueueCartMutation(async (version) => {
             const res = await apiClient.post("/cart/items/", {
@@ -977,12 +1033,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }
       }
     },
-    [user, updateQuantity, refreshCart, enqueueCartMutation],
+    [user, isWsConnected, sendWsMessage, updateQuantity, refreshCart, enqueueCartMutation],
   );
 
   const clearCart = useCallback(async () => {
     if (!user) {
       await removeGuestStorageItem(GUEST_CART_KEY);
+      setCart({
+        items: [],
+        subtotal: "0.00",
+        items_total: "0.00",
+        discount: "0.00",
+        promo_code: null,
+        promo_discount: "0.00",
+        packaging_fee: "0.00",
+        total: "0.00",
+      });
+      return;
+    }
+
+    if (isWsConnected) {
+      sendWsMessage({ type: "CLEAR_CART" });
       setCart({
         items: [],
         subtotal: "0.00",
@@ -1005,7 +1076,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [user, refreshCart]);
+  }, [user, isWsConnected, sendWsMessage, refreshCart]);
 
   const applyPromo = useCallback(
     async (code: string) => {
@@ -1077,12 +1148,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
             .filter((i) => i.product && i.quantity > 0);
 
           if (itemsPayload.length > 0) {
-            const res = await apiClient.post("/cart/merge/", {
-              items: itemsPayload,
-            });
-            if (res?.data && res.data.items) {
-              cartRef.current = res.data;
-              setCart(res.data);
+            if (isWsConnected) {
+              sendWsMessage({ type: "MERGE_GUEST", items: itemsPayload });
+            } else {
+              const res = await apiClient.post("/cart/merge/", {
+                items: itemsPayload,
+              });
+              if (res?.data && res.data.items) {
+                cartRef.current = res.data;
+                setCart(res.data);
+              }
             }
           }
         } catch (e) {
@@ -1101,7 +1176,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     // 3. Wait for the sequential cartMutationQueue to finish
     await cartMutationQueue.current;
-  }, [user]);
+  }, [user, isWsConnected, sendWsMessage]);
 
   const contextValue = useMemo(
     () => ({
@@ -1119,6 +1194,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       getItemQuantity,
       lastItemAddedTimestamp,
       flushCartSync,
+      isWsConnected,
     }),
     [
       cart,
@@ -1135,6 +1211,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       getItemQuantity,
       lastItemAddedTimestamp,
       flushCartSync,
+      isWsConnected,
     ],
   );
 
