@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { TouchableOpacity, StyleSheet } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, interpolateColor } from 'react-native-reanimated';
+import { theme } from '@/constants/theme';
 interface ModernSwitchProps {
   value: boolean;
   onValueChange: (val: boolean) => void;
@@ -20,7 +21,7 @@ const ModernSwitch: React.FC<ModernSwitchProps> = ({ value, onValueChange, disab
     const bgColor = interpolateColor(
       progress.value,
       [0, 1],
-      ['#64748b', '#10b981']
+      ['#64748b', theme.colors.primary]
     );
     return {
       backgroundColor: disabled ? '#94a3b8' : bgColor,

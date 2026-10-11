@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { useAppTheme } from '../../../context/ThemeContext';
+import { theme } from '../../../constants/theme';
 import { showAlert, showConfirm } from '../../../utils/alerts';
 
 interface OrderItem {
@@ -220,7 +221,7 @@ export default function OrderDetailsScreen() {
     .cancelled-stamp { position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%) rotate(-15deg); border: 6px solid #e11d48; color: #e11d48; font-size: 54px; font-weight: 900; letter-spacing: 6px; padding: 10px 30px; border-radius: 12px; opacity: 0.25; pointer-events: none; }
     .hdr { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px; margin-bottom: 14px; gap: 16px; }
     .store-info h1 { font-size: 19px; font-weight: 900; color: #0f172a; line-height: 1.2; }
-    .store-info .tag { font-size: 9.5px; font-weight: 800; color: #047857; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+    .store-info .tag { font-size: 9.5px; font-weight: 800; color: ${theme.colors.primaryDark}; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
     .store-info p { font-size: 10.5px; color:#475569; margin-top: 3px; line-height: 1.4; }
     .meta-box { text-align: right; }
     .meta-box h2 { font-size: 22px; font-weight: 900; color: #0f172a; letter-spacing: -0.5px; }
@@ -242,8 +243,8 @@ export default function OrderDetailsScreen() {
     .totals-wrap { display: flex; justify-content: flex-end; margin-bottom: 16px; }
     .totals-box { width: 280px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #ffffff; }
     .tot-row { display: flex; justify-content: space-between; padding: 5px 10px; font-size: 10.5px; color: #475569; }
-    .tot-grand { background: #ecfdf5; border-top: 2px solid #10b981; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; color: #065f46; font-size: 11px; font-weight: 800; }
-    .tot-grand .big { font-size: 16px; font-weight: 900; color: #047857; }
+    .tot-grand { background: #ecfdf5; border-top: 2px solid ${theme.colors.primary}; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; color: #065f46; font-size: 11px; font-weight: 800; }
+    .tot-grand .big { font-size: 16px; font-weight: 900; color: ${theme.colors.primaryDark}; }
     .ftr { border-top: 1px solid #e2e8f0; padding-top: 12px; display: flex; justify-content: space-between; align-items: flex-end; font-size: 10px; }
     .ftr-terms { max-width: 420px; color: #64748b; }
     .ftr-sig { text-align: right; }
@@ -303,8 +304,8 @@ export default function OrderDetailsScreen() {
         <div class="grid-hdr">Fulfillment Details</div>
         <div class="grid-row"><span>Mode:</span><b>${o.order_type === 'DELIVERY' ? 'Home Delivery' : 'Store Pickup'}</b></div>
         ${o.delivery_slot_label ? `<div class="grid-row"><span>Slot:</span><b style="color:#4f46e5;">${o.delivery_slot_date || ''} (${o.delivery_slot_label})</b></div>` : ''}
-        <div class="grid-row"><span>Order Status:</span><b style="color:${o.status === 'COMPLETED' ? '#059669' : o.status === 'REJECTED' ? '#e11d48' : '#334155'};">${o.status}</b></div>
-        <div class="grid-row"><span>Payment Status:</span><b style="color:#059669;">${o.status === 'COMPLETED' ? 'PAID' : o.status === 'REJECTED' ? 'CANCELLED' : 'DUE AT DELIVERY'}</b></div>
+        <div class="grid-row"><span>Order Status:</span><b style="color:${o.status === 'COMPLETED' ? theme.colors.primaryDark : o.status === 'REJECTED' ? '#e11d48' : '#334155'};">${o.status}</b></div>
+        <div class="grid-row"><span>Payment Status:</span><b style="color:${theme.colors.primaryDark};">${o.status === 'COMPLETED' ? 'PAID' : o.status === 'REJECTED' ? 'CANCELLED' : 'DUE AT DELIVERY'}</b></div>
       </div>
     </div>
 
@@ -330,10 +331,10 @@ export default function OrderDetailsScreen() {
           <b>₹${items.filter((i) => i.status !== 'REJECTED').reduce((acc, item) => acc + (parseFloat(item.subtotal) || 0), 0).toFixed(2)}</b>
         </div>
         ${parseFloat(o.discount_applied || '0') > 0 ? `<div class="tot-row" style="color:#4f46e5;"><span>Product Savings</span><b>-₹${parseFloat(o.discount_applied || '0').toFixed(2)}</b></div>` : ''}
-        ${parseFloat(o.promo_discount || '0') > 0 ? `<div class="tot-row" style="color:#059669;"><span>Promo Code Discount</span><b>-₹${parseFloat(o.promo_discount || '0').toFixed(2)}</b></div>` : ''}
+        ${parseFloat(o.promo_discount || '0') > 0 ? `<div class="tot-row" style="color:${theme.colors.primaryDark};"><span>Promo Code Discount</span><b>-₹${parseFloat(o.promo_discount || '0').toFixed(2)}</b></div>` : ''}
         ${parseFloat(o.packaging_fee || '0') > 0 ? `<div class="tot-row"><span>Packaging Charges</span><b>₹${parseFloat(o.packaging_fee || '0').toFixed(2)}</b></div>` : ''}
         ${o.order_type === 'DELIVERY' ? `<div class="tot-row"><span>Delivery Charges</span><b>${parseFloat(o.delivery_fee || '0') > 0 ? `₹${parseFloat(o.delivery_fee || '0').toFixed(2)}` : 'FREE'}</b></div>` : ''}
-        ${parseFloat(o.wallet_discount || '0') > 0 ? `<div class="tot-row" style="color:#059669;font-weight:700;"><span>Wallet Applied</span><b>-₹${parseFloat(o.wallet_discount || '0').toFixed(2)}</b></div>` : ''}
+        ${parseFloat(o.wallet_discount || '0') > 0 ? `<div class="tot-row" style="color:${theme.colors.primaryDark};font-weight:700;"><span>Wallet Applied</span><b>-₹${parseFloat(o.wallet_discount || '0').toFixed(2)}</b></div>` : ''}
         <div class="tot-row" style="border-top:1px solid #f1f5f9;padding-top:6px;">
           <span>Payment Mode</span>
           <b style="text-align:right;">${methodText}</b>
@@ -349,7 +350,7 @@ export default function OrderDetailsScreen() {
       <div class="ftr-terms">
         <div style="font-weight:900;text-transform:uppercase;margin-bottom:3px;color:#334155;">Terms & Conditions</div>
         ${termsHtml}
-        <div style="margin-top:4px;font-weight:700;color:#047857;">Thank you for shopping with ${storeName}!</div>
+        <div style="margin-top:4px;font-weight:700;color:${theme.colors.primaryDark};">Thank you for shopping with ${storeName}!</div>
       </div>
       <div class="ftr-sig">
         <div style="font-weight:700;color:#64748b;margin-bottom:2px;">For ${storeName}</div>
@@ -538,7 +539,7 @@ export default function OrderDetailsScreen() {
   if (loading) {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: colors.bg }]}>
-        <ActivityIndicator size="large" color="#10b981" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -639,9 +640,9 @@ export default function OrderDetailsScreen() {
                   {
                     backgroundColor:
                       order.status === 'COMPLETED'
-                        ? '#10b981'
+                        ? colors.primary
                         : order.status === 'READY'
-                          ? '#059669'
+                          ? colors.primaryDark
                           : order.status === 'PREPARING'
                             ? '#f59e0b'
                             : order.status === 'ACCEPTED'
@@ -711,12 +712,12 @@ export default function OrderDetailsScreen() {
                   styles.invoiceNavBtn,
                   {
                     backgroundColor: isDark ? 'rgba(5, 150, 105, 0.2)' : '#ecfdf5',
-                    borderColor: '#10b981',
+                    borderColor: colors.primary,
                   },
                 ]}
                 onPress={() => setShowInvoiceModal(true)}
               >
-                <Ionicons name="receipt-outline" size={13} color="#10b981" />
+                <Ionicons name="receipt-outline" size={13} color={colors.primary} />
                 <Text style={styles.invoiceNavBtnText}>Tax Invoice</Text>
               </TouchableOpacity>
             </View>
@@ -733,8 +734,8 @@ export default function OrderDetailsScreen() {
                         style={[
                           styles.slimStepIndicator,
                           {
-                            backgroundColor: done ? '#10b981' : colors.cardAlt,
-                            borderColor: isCurrent ? '#10b981' : 'transparent',
+                            backgroundColor: done ? colors.primary : colors.cardAlt,
+                            borderColor: isCurrent ? colors.primary : 'transparent',
                             borderWidth: isCurrent ? 1.5 : 0,
                           },
                         ]}
@@ -749,7 +750,7 @@ export default function OrderDetailsScreen() {
                         style={[
                           styles.slimStepLabel,
                           {
-                            color: done ? '#10b981' : colors.textMuted,
+                            color: done ? colors.primary : colors.textMuted,
                             fontWeight: isCurrent ? '800' : done ? '700' : '500',
                           },
                         ]}
@@ -808,7 +809,7 @@ export default function OrderDetailsScreen() {
                           : 'list-outline'
                     }
                     size={17}
-                    color="#10b981"
+                    color={colors.primary}
                   />
                   <Text style={[styles.sectionTitle, { color: colors.text }]}>
                     {isPackingMode ? 'Packing Checklist' : `Order Items (${activeItems.length})`}
@@ -819,7 +820,7 @@ export default function OrderDetailsScreen() {
                         styles.packedCounterBadge,
                         {
                           backgroundColor: allPacked
-                            ? '#10b981'
+                            ? colors.primary
                             : isDark
                               ? 'rgba(16, 185, 129, 0.15)'
                               : '#ecfdf5',
@@ -829,7 +830,7 @@ export default function OrderDetailsScreen() {
                       <Text
                         style={[
                           styles.packedCounterText,
-                          { color: allPacked ? '#ffffff' : '#059669' },
+                          { color: allPacked ? '#ffffff' : colors.primaryDark },
                         ]}
                       >
                         {packedCount}/{activeItems.length} Packed
@@ -850,7 +851,7 @@ export default function OrderDetailsScreen() {
                       <Text
                         style={[
                           styles.packedCounterText,
-                          { color: '#059669' },
+                          { color: colors.primaryDark },
                         ]}
                       >
                         ✓ All Packed
@@ -872,8 +873,8 @@ export default function OrderDetailsScreen() {
                   style={[
                     styles.packAllBtn,
                     {
-                      backgroundColor: allPacked ? '#10b981' : colors.cardAlt,
-                      borderColor: allPacked ? '#10b981' : colors.border,
+                      backgroundColor: allPacked ? colors.primary : colors.cardAlt,
+                      borderColor: allPacked ? colors.primary : colors.border,
                     },
                   ]}
                   onPress={toggleAllPacked}
@@ -904,7 +905,7 @@ export default function OrderDetailsScreen() {
                       styles.progressBarFill,
                       {
                         width: `${progressPercent}%`,
-                        backgroundColor: allPacked ? '#10b981' : '#3b82f6',
+                        backgroundColor: allPacked ? colors.primary : '#3b82f6',
                       },
                     ]}
                   />
@@ -927,7 +928,7 @@ export default function OrderDetailsScreen() {
                 ]}
               >
                 <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <Ionicons name="checkmark-done-circle" size={24} color="#10b981" />
+                  <Ionicons name="checkmark-done-circle" size={24} color={colors.primary} />
                   <View style={{ flex: 1 }}>
                     <Text style={styles.allPackedTitle}>All items verified & packed!</Text>
                     <Text style={[styles.allPackedSub, { color: colors.textMuted }]}>
@@ -980,7 +981,7 @@ export default function OrderDetailsScreen() {
                         borderColor: isRejected
                           ? '#fecdd3'
                           : isPackingMode && isPacked
-                            ? '#10b981'
+                            ? colors.primary
                             : colors.border,
                       },
                     ]}
@@ -994,12 +995,12 @@ export default function OrderDetailsScreen() {
                             backgroundColor: isRejected
                               ? '#fda4af'
                               : isPacked
-                                ? '#10b981'
+                                ? colors.primary
                                 : colors.card,
                             borderColor: isRejected
                               ? '#f43f5e'
                               : isPacked
-                                ? '#10b981'
+                                ? colors.primary
                                 : colors.border,
                           },
                         ]}
@@ -1033,7 +1034,7 @@ export default function OrderDetailsScreen() {
                         <Ionicons
                           name="basket-outline"
                           size={20}
-                          color={isPacked ? '#10b981' : colors.textMuted}
+                          color={isPacked ? colors.primary : colors.textMuted}
                         />
                       )}
                     </View>
@@ -1149,7 +1150,7 @@ export default function OrderDetailsScreen() {
                   <Text style={[styles.feeLabel, { color: colors.textMuted }]}>
                     Promo Discount
                   </Text>
-                  <Text style={[styles.feeVal, { color: '#10b981' }]}>
+                  <Text style={[styles.feeVal, { color: colors.primary }]}>
                     -₹{order.discount_amount}
                   </Text>
                 </View>
@@ -1159,7 +1160,7 @@ export default function OrderDetailsScreen() {
                   <Text style={[styles.feeLabel, { color: colors.textMuted }]}>
                     Wallet Used
                   </Text>
-                  <Text style={[styles.feeVal, { color: '#10b981' }]}>
+                  <Text style={[styles.feeVal, { color: colors.primary }]}>
                     -₹{order.wallet_discount}
                   </Text>
                 </View>
@@ -1207,8 +1208,8 @@ export default function OrderDetailsScreen() {
                         style={[
                           styles.partnerChip,
                           {
-                            backgroundColor: selected ? '#10b981' : colors.cardAlt,
-                            borderColor: selected ? '#10b981' : colors.border,
+                            backgroundColor: selected ? colors.primary : colors.cardAlt,
+                            borderColor: selected ? colors.primary : colors.border,
                           },
                         ]}
                         onPress={() => handleAssignPartner(selected ? null : p.id)}
@@ -1252,7 +1253,7 @@ export default function OrderDetailsScreen() {
               {/* Left Column: Customer details */}
               <View style={styles.customerMetaCol}>
                 <View style={styles.customerNameLine}>
-                  <Ionicons name="person" size={14} color="#10b981" />
+                  <Ionicons name="person" size={14} color={colors.primary} />
                   <Text
                     style={[styles.compactCustomerName, { color: colors.text }]}
                     numberOfLines={1}
@@ -1290,7 +1291,7 @@ export default function OrderDetailsScreen() {
                 {order.customer_phone ? (
                   <>
                     <TouchableOpacity
-                      style={[styles.compactMiniBtn, { backgroundColor: '#10b981' }]}
+                      style={[styles.compactMiniBtn, { backgroundColor: colors.primary }]}
                       onPress={() =>
                         Linking.openURL(`tel:${order.customer_phone}`).catch(() => {})
                       }
@@ -1300,7 +1301,7 @@ export default function OrderDetailsScreen() {
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      style={[styles.compactMiniBtn, { backgroundColor: '#059669' }]}
+                      style={[styles.compactMiniBtn, { backgroundColor: colors.primaryDark }]}
                       onPress={handleWhatsAppCustomer}
                       accessibilityLabel="WhatsApp Customer"
                     >
@@ -1395,7 +1396,7 @@ export default function OrderDetailsScreen() {
         >
           <View style={styles.stickyActionInner}>
             {updatingStatus ? (
-              <ActivityIndicator size="small" color="#10b981" style={{ flex: 1 }} />
+              <ActivityIndicator size="small" color={colors.primary} style={{ flex: 1 }} />
             ) : (
               <>
                 {order.status === 'NEW' && (
@@ -1409,7 +1410,7 @@ export default function OrderDetailsScreen() {
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      style={[styles.stickyPrimaryBtn, { backgroundColor: '#10b981' }]}
+                      style={[styles.stickyPrimaryBtn, { backgroundColor: colors.primary }]}
                       onPress={() => updateStatus('ACCEPTED')}
                     >
                       <Ionicons name="checkmark-circle" size={18} color="#ffffff" />
@@ -1437,13 +1438,13 @@ export default function OrderDetailsScreen() {
                           width: '100%',
                           flex: 0,
                           backgroundColor: allPacked
-                            ? '#10b981'
+                            ? colors.primary
                             : isDark
                               ? 'rgba(124, 58, 237, 0.15)'
                               : '#f5f3ff',
                           borderWidth: allPacked ? 0 : 1.5,
                           borderColor: allPacked
-                            ? '#10b981'
+                            ? colors.primary
                             : isDark
                               ? 'rgba(124, 58, 237, 0.4)'
                               : '#c4b5fd',
@@ -1499,7 +1500,7 @@ export default function OrderDetailsScreen() {
 
                 {order.status === 'READY' && (
                   <TouchableOpacity
-                    style={[styles.stickyPrimaryBtn, { backgroundColor: '#059669' }]}
+                    style={[styles.stickyPrimaryBtn, { backgroundColor: colors.primaryDark }]}
                     onPress={() =>
                       updateStatus(
                         order.order_type === 'PICKUP' ? 'COMPLETED' : 'OUT_FOR_DELIVERY'
@@ -1525,7 +1526,7 @@ export default function OrderDetailsScreen() {
 
                 {order.status === 'OUT_FOR_DELIVERY' && (
                   <TouchableOpacity
-                    style={[styles.stickyPrimaryBtn, { backgroundColor: '#10b981' }]}
+                    style={[styles.stickyPrimaryBtn, { backgroundColor: colors.primary }]}
                     onPress={() => updateStatus('COMPLETED')}
                   >
                     <Ionicons
@@ -1551,7 +1552,7 @@ export default function OrderDetailsScreen() {
             {/* Modal Controls Header */}
             <View style={styles.invoiceModalHeader}>
               <View style={styles.invoiceModalHeaderLeft}>
-                <Ionicons name="document-text" size={18} color="#059669" />
+                <Ionicons name="document-text" size={18} color={colors.primaryDark} />
                 <Text
                   style={styles.invoiceModalHeaderTitle}
                   numberOfLines={1}
@@ -1712,7 +1713,7 @@ export default function OrderDetailsScreen() {
                           ) : null}
                           {storeSettings?.fssai_license_number ? (
                             <View style={styles.complianceItem}>
-                              <Ionicons name="checkmark-circle" size={13} color="#059669" />
+                              <Ionicons name="checkmark-circle" size={13} color={colors.primaryDark} />
                               <Text style={styles.complianceLabel}>FSSAI Lic. No:</Text>
                               <Text style={styles.complianceVal}>{storeSettings.fssai_license_number}</Text>
                               <View style={styles.govtRegPill}>
@@ -1776,7 +1777,7 @@ export default function OrderDetailsScreen() {
                               style={[
                                 styles.infoDetailVal,
                                 {
-                                  color: isCompleted ? '#047857' : isRejected ? '#e11d48' : '#1e293b',
+                                  color: isCompleted ? colors.primaryDark : isRejected ? '#e11d48' : '#1e293b',
                                   fontWeight: '800',
                                 },
                               ]}
@@ -1790,7 +1791,7 @@ export default function OrderDetailsScreen() {
                               style={[
                                 styles.infoDetailVal,
                                 {
-                                  color: isCompleted ? '#047857' : isRejected ? '#e11d48' : '#047857',
+                                  color: isCompleted ? colors.primaryDark : isRejected ? '#e11d48' : colors.primaryDark,
                                   fontWeight: '800',
                                 },
                               ]}
@@ -1878,8 +1879,8 @@ export default function OrderDetailsScreen() {
 
                             {parseFloat(order.promo_discount || '0') > 0 ? (
                               <View style={styles.totalLineRow}>
-                                <Text style={[styles.totalLineLabel, { color: '#047857' }]}>Promo Discount</Text>
-                                <Text style={[styles.totalLineVal, { color: '#047857' }]}>
+                                <Text style={[styles.totalLineLabel, { color: colors.primaryDark }]}>Promo Discount</Text>
+                                <Text style={[styles.totalLineVal, { color: colors.primaryDark }]}>
                                   -₹{parseFloat(order.promo_discount || '0').toFixed(2)}
                                 </Text>
                               </View>
@@ -1907,8 +1908,8 @@ export default function OrderDetailsScreen() {
 
                             {parseFloat(order.wallet_discount || '0') > 0 ? (
                               <View style={styles.totalLineRow}>
-                                <Text style={[styles.totalLineLabel, { color: '#047857' }]}>Wallet Applied</Text>
-                                <Text style={[styles.totalLineVal, { color: '#047857' }]}>
+                                <Text style={[styles.totalLineLabel, { color: colors.primaryDark }]}>Wallet Applied</Text>
+                                <Text style={[styles.totalLineVal, { color: colors.primaryDark }]}>
                                   -₹{parseFloat(order.wallet_discount || '0').toFixed(2)}
                                 </Text>
                               </View>
@@ -1935,7 +1936,7 @@ export default function OrderDetailsScreen() {
                       <View style={styles.docFooterRow}>
                         <View style={styles.docTermsCol}>
                           <View style={styles.docTermsHeader}>
-                            <Ionicons name="checkmark-circle-outline" size={13} color="#059669" />
+                            <Ionicons name="checkmark-circle-outline" size={13} color={colors.primaryDark} />
                             <Text style={styles.docTermsTitle}>TERMS & CONDITIONS</Text>
                           </View>
                           {termsLines.map((termLine: string, idx: number) => (
@@ -2045,7 +2046,7 @@ const styles: any = StyleSheet.create({
   compactTotalAmount: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#10b981',
+    color: theme.colors.primary,
   },
   compactOrderSubRow: {
     flexDirection: 'row',
@@ -2194,7 +2195,7 @@ const styles: any = StyleSheet.create({
     fontWeight: '700',
   },
   statusPill: {
-    backgroundColor: '#10b981',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 8,
@@ -2221,7 +2222,7 @@ const styles: any = StyleSheet.create({
   headlineAmount: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#10b981',
+    color: theme.colors.primary,
   },
   pipelineRow: {
     flexDirection: 'row',
@@ -2382,7 +2383,7 @@ const styles: any = StyleSheet.create({
     marginTop: 4,
   },
   allPackedTitle: {
-    color: '#059669',
+    color: theme.colors.primaryDark,
     fontSize: 13,
     fontWeight: '800',
   },
@@ -2394,7 +2395,7 @@ const styles: any = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#10b981',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 8,
@@ -2538,7 +2539,7 @@ const styles: any = StyleSheet.create({
     fontWeight: '800',
   },
   totalAmount: {
-    color: '#10b981',
+    color: theme.colors.primary,
     fontSize: 20,
     fontWeight: '900',
   },
@@ -2551,7 +2552,7 @@ const styles: any = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: '#059669',
+    backgroundColor: theme.colors.primaryDark,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 8,
@@ -2591,7 +2592,7 @@ const styles: any = StyleSheet.create({
     fontSize: 13,
   },
   saveNoteBtn: {
-    backgroundColor: '#10b981',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 16,
     borderRadius: 10,
     justifyContent: 'center',
@@ -2655,7 +2656,7 @@ const styles: any = StyleSheet.create({
     borderWidth: 1,
   },
   invoiceNavBtnText: {
-    color: '#10b981',
+    color: theme.colors.primary,
     fontSize: 11,
     fontWeight: '800',
   },
@@ -2711,7 +2712,7 @@ const styles: any = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#059669',
+    backgroundColor: theme.colors.primaryDark,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
@@ -2814,7 +2815,7 @@ const styles: any = StyleSheet.create({
   docStoreTag: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#047857',
+    color: theme.colors.primaryDark,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
     marginTop: 1,
@@ -3139,7 +3140,7 @@ const styles: any = StyleSheet.create({
   grandTotalBanner: {
     backgroundColor: '#ecfdf5',
     borderTopWidth: 2,
-    borderTopColor: '#059669',
+    borderTopColor: theme.colors.primaryDark,
     paddingHorizontal: 10,
     paddingVertical: 8,
     flexDirection: 'row',
@@ -3149,13 +3150,13 @@ const styles: any = StyleSheet.create({
   grandTotalBannerLabel: {
     fontSize: 11,
     fontWeight: '900',
-    color: '#065f46',
+    color: theme.colors.primaryDark,
     letterSpacing: 0.5,
   },
   grandTotalBannerAmount: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#047857',
+    color: theme.colors.primaryDark,
   },
 
   // Footer & Signature
@@ -3192,7 +3193,7 @@ const styles: any = StyleSheet.create({
   docStoreGreeting: {
     fontSize: 9.5,
     fontWeight: '700',
-    color: '#047857',
+    color: theme.colors.primaryDark,
     marginTop: 4,
   },
   docSigCol: {

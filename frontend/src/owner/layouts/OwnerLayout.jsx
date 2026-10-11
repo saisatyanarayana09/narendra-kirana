@@ -12,8 +12,32 @@ import { useTheme } from '../../context/ThemeContext';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { playOrderChime } from '../../utils/sound';
 
+const OWNER_EMERALD_STYLES = {
+  '--color-primary-50': '#ecfdf5',
+  '--color-primary-100': '#d1fae5',
+  '--color-primary-200': '#a7f3d0',
+  '--color-primary-300': '#6ee7b7',
+  '--color-primary-400': '#34d399',
+  '--color-primary-500': '#10b981',
+  '--color-primary-600': '#059669',
+  '--color-primary-700': '#047857',
+  '--color-primary-800': '#065f46',
+  '--color-primary-900': '#064e3b',
+  '--color-emerald-50': '#ecfdf5',
+  '--color-emerald-100': '#d1fae5',
+  '--color-emerald-200': '#a7f3d0',
+  '--color-emerald-300': '#6ee7b7',
+  '--color-emerald-400': '#34d399',
+  '--color-emerald-500': '#10b981',
+  '--color-emerald-600': '#059669',
+  '--color-emerald-700': '#047857',
+  '--color-emerald-800': '#065f46',
+  '--color-emerald-900': '#064e3b',
+};
+
 const OwnerLayout = () => {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, storeTheme } = useTheme();
+  const applyThemeToOwner = Boolean(storeTheme?.apply_theme_to_owner_app);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [storeStatus, setStoreStatus] = useState({ is_open: true, loaded: false });
   const [notificationPermission, setNotificationPermission] = useState(() => {
@@ -209,7 +233,10 @@ const OwnerLayout = () => {
   };
 
   return (
-    <div className="flex h-[100dvh] w-full bg-slate-50 dark:bg-[#090d16] overflow-hidden">
+    <div
+      className="flex h-[100dvh] w-full bg-slate-50 dark:bg-[#090d16] overflow-hidden"
+      style={!applyThemeToOwner ? OWNER_EMERALD_STYLES : undefined}
+    >
       {/* Mobile sidebar overlay */}
       {isSidebarOpen && (
         <div 

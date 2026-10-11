@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { apiClient } from "../../api/client";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { API_BASE_URL } from "../../constants/config";
+import { theme } from "../../constants/theme";
 import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
 import { useLanguage } from "../../context/LanguageContext";
@@ -593,7 +594,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   galleryThumbnailActive: {
-    borderColor: "#059669",
+    borderColor: theme.colors.primary,
   },
   galleryThumbnailImage: {
     width: "100%",
@@ -656,7 +657,7 @@ const styles = StyleSheet.create({
   categoryBadgeText: {
     fontSize: 11,
     fontWeight: "800",
-    color: "#059669",
+    color: theme.colors.primary,
     textTransform: "uppercase",
   },
   brand: {
@@ -749,7 +750,7 @@ const styles = StyleSheet.create({
     boxShadow: "0px -4px 8px rgba(0, 0, 0, 0.05)",
   },
   addToCartButton: {
-    backgroundColor: "#059669",
+    backgroundColor: theme.colors.primary,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",

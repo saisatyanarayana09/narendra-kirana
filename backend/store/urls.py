@@ -1,7 +1,8 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    StoreSettingsView, 
+    StoreSettingsView,
+    StorePublicSettingsView, 
     FeedbackViewSet, 
     HomepageSectionViewSet, 
     VoiceSearchView,
@@ -16,6 +17,7 @@ router.register(r'feedback', FeedbackViewSet, basename='feedback')
 router.register(r'homepage-sections', HomepageSectionViewSet, basename='homepage-section')
 
 urlpatterns = [
+    path('public-settings/', StorePublicSettingsView.as_view(), name='store-public-settings'),
     path('settings/', StoreSettingsView.as_view(), name='store-settings'),
     path('email-settings/', StoreEmailSettingsView.as_view(), name='store-email-settings'),
     path('email-settings/test/', TestStoreEmailView.as_view(), name='store-email-settings-test'),

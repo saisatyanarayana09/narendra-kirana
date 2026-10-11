@@ -103,7 +103,7 @@ export const CategoryCard = memo(function CategoryCard({
             <Text
               style={[
                 styles.fallbackLetter,
-                { color: isDark ? colors.text : "#059669", opacity: 0.2 },
+                { color: isDark ? colors.text : colors.primary, opacity: 0.2 },
               ]}
             >
               {category.name?.charAt(0)?.toUpperCase() || "C"}

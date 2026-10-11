@@ -178,7 +178,7 @@ export function ForgotPasswordScreen({ navigation }: Props) {
                   <Feather
                     name={method === "link" ? "mail" : "key"}
                     size={32}
-                    color="#10B981"
+                    color={colors.success}
                   />
                 </View>
                 <Text style={[styles.successTitle, { color: colors.text }]}>

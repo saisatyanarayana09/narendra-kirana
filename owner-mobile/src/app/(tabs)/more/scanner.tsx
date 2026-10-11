@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import api, { ApiInstance, getErrorMessage } from '../../../services/api';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useAppTheme } from '../../../context/ThemeContext';
+import { theme } from '../../../constants/theme';
 import { showAlert } from '../../../utils/alerts';
 import UniversalCameraScanner from '../../../components/UniversalCameraScanner';
 
@@ -343,7 +344,7 @@ export default function CommonSmartScannerScreen() {
                 styles.livePulsePill,
                 {
                   backgroundColor: isDark ? 'rgba(16, 185, 129, 0.14)' : '#ecfdf5',
-                  borderColor: isDark ? 'rgba(16, 185, 129, 0.35)' : '#10b981',
+                  borderColor: isDark ? 'rgba(16, 185, 129, 0.35)' : colors.primary,
                 },
               ]}
             >
@@ -425,7 +426,7 @@ export default function CommonSmartScannerScreen() {
             {/* In-Flight Auto-Decoding Indicator */}
             {processing && (
               <View style={styles.cameraDecodingPill}>
-                <ActivityIndicator size="small" color="#10b981" />
+                <ActivityIndicator size="small" color={colors.primary} />
                 <Text style={styles.cameraDecodingText}>Auto-identifying code...</Text>
               </View>
             )}
@@ -438,14 +439,14 @@ export default function CommonSmartScannerScreen() {
                 styles.resultCard,
                 {
                   backgroundColor: isDark ? '#111827' : '#ffffff',
-                  borderColor: '#10b981',
+                  borderColor: colors.primary,
                 },
               ]}
             >
               {/* Card Header */}
               <View style={styles.resultCardHeader}>
                 <View style={styles.catalogPill}>
-                  <Ionicons name="checkmark-circle" size={13} color="#10b981" />
+                  <Ionicons name="checkmark-circle" size={13} color={colors.primary} />
                   <Text style={styles.catalogPillText}>IN STORE CATALOG</Text>
                 </View>
                 <TouchableOpacity
@@ -540,7 +541,7 @@ export default function CommonSmartScannerScreen() {
                         style={[
                           styles.stockDot,
                           {
-                            backgroundColor: scanResult.product.is_in_stock ? '#10b981' : '#f43f5e',
+                            backgroundColor: scanResult.product.is_in_stock ? colors.primary : '#f43f5e',
                           },
                         ]}
                       />
@@ -548,7 +549,7 @@ export default function CommonSmartScannerScreen() {
                         style={{
                           fontSize: 11.5,
                           fontWeight: '800',
-                          color: scanResult.product.is_in_stock ? '#10b981' : '#f43f5e',
+                          color: scanResult.product.is_in_stock ? colors.primary : '#f43f5e',
                         }}
                       >
                         {scanResult.product.is_in_stock
@@ -576,7 +577,7 @@ export default function CommonSmartScannerScreen() {
                     Quick Restock:
                   </Text>
                   {updatingStock && (
-                    <ActivityIndicator size="small" color="#10b981" style={{ marginLeft: 6 }} />
+                    <ActivityIndicator size="small" color={colors.primary} style={{ marginLeft: 6 }} />
                   )}
                 </View>
                 <View style={styles.stepperBtns}>
@@ -609,7 +610,7 @@ export default function CommonSmartScannerScreen() {
                       ]}
                       onPress={() => handleQuickStockAdjust(scanResult.product, amt)}
                     >
-                      <Text style={[styles.stepperPillBtnText, { color: '#10b981' }]}>+{amt}</Text>
+                      <Text style={[styles.stepperPillBtnText, { color: colors.primary }]}>+{amt}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -636,7 +637,7 @@ export default function CommonSmartScannerScreen() {
 
                 <TouchableOpacity
                   activeOpacity={0.8}
-                  style={[styles.actionBtnFilled, { backgroundColor: '#10b981' }]}
+                  style={[styles.actionBtnFilled, { backgroundColor: colors.primary }]}
                   onPress={() =>
                     router.push({
                       pathname: '/(tabs)/products/new',
@@ -829,7 +830,7 @@ export default function CommonSmartScannerScreen() {
               ]}
               onPress={() => setShowManualModal(true)}
             >
-              <Ionicons name="keypad-outline" size={17} color="#10b981" />
+              <Ionicons name="keypad-outline" size={17} color={colors.primary} />
               <Text style={[styles.manualTriggerText, { color: colors.text }]}>
                 {"Can't scan? Enter Barcode or SKU Manually"}
               </Text>
@@ -887,7 +888,7 @@ export default function CommonSmartScannerScreen() {
                       size={15}
                       color={
                         item.type === 'EXISTING_PRODUCT'
-                          ? '#10b981'
+                          ? colors.primary
                           : item.type === 'REFERRAL'
                             ? '#8b5cf6'
                             : '#f59e0b'
@@ -920,7 +921,7 @@ export default function CommonSmartScannerScreen() {
               },
             ]}
           >
-            <Ionicons name="sparkles-outline" size={15} color="#10b981" />
+            <Ionicons name="sparkles-outline" size={15} color={colors.primary} />
             <Text style={[styles.guideText, { color: colors.textMuted }]}>
               Auto-Detector active: Point at any 1D product barcode or 2D customer QR code to scan.
             </Text>
@@ -971,7 +972,7 @@ export default function CommonSmartScannerScreen() {
                 },
               ]}
             >
-              <Ionicons name="barcode-outline" size={20} color="#10b981" />
+              <Ionicons name="barcode-outline" size={20} color={colors.primary} />
               <TextInput
                 style={[styles.manualTextInput, { color: colors.text }]}
                 placeholder="Enter 8-13 digit SKU or voucher code..."
@@ -997,7 +998,7 @@ export default function CommonSmartScannerScreen() {
 
             {/* Instant Catalog Match Suggestions */}
             {searchingManual && (
-              <ActivityIndicator size="small" color="#10b981" style={{ marginVertical: 8 }} />
+              <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 8 }} />
             )}
 
             {manualSearchResults.length > 0 && (
@@ -1019,7 +1020,7 @@ export default function CommonSmartScannerScreen() {
                       setScanResult({ type: 'EXISTING_PRODUCT', product: prod });
                     }}
                   >
-                    <Ionicons name="cube-outline" size={16} color="#10b981" />
+                    <Ionicons name="cube-outline" size={16} color={colors.primary} />
                     <View style={{ flex: 1 }}>
                       <Text
                         style={[styles.suggestionTitle, { color: colors.text }]}
@@ -1041,7 +1042,7 @@ export default function CommonSmartScannerScreen() {
               <TouchableOpacity
                 style={[
                   styles.manualSubmitAction,
-                  { backgroundColor: '#10b981', opacity: !manualCode.trim() ? 0.6 : 1 },
+                  { backgroundColor: colors.primary, opacity: !manualCode.trim() ? 0.6 : 1 },
                 ]}
                 disabled={!manualCode.trim() || processing}
                 onPress={() => {
@@ -1112,10 +1113,10 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#10b981',
+    backgroundColor: theme.colors.primary,
   },
   livePulseText: {
-    color: '#10b981',
+    color: theme.colors.primary,
     fontSize: 10.5,
     fontWeight: '800',
   },
@@ -1181,14 +1182,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 5,
     backgroundColor: 'rgba(16, 185, 129, 0.14)',
-    borderColor: '#10b981',
+    borderColor: theme.colors.primary,
     borderWidth: 1,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
   },
   catalogPillText: {
-    color: '#10b981',
+    color: theme.colors.primary,
     fontSize: 10.5,
     fontWeight: '900',
     letterSpacing: 0.3,
@@ -1258,7 +1259,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   priceCurrent: {
-    color: '#10b981',
+    color: theme.colors.primary,
     fontSize: 17,
     fontWeight: '900',
     letterSpacing: -0.3,

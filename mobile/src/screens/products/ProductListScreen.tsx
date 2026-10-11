@@ -24,6 +24,7 @@ import { apiClient } from "../../api/client";
 import { AnimatedFadeIn } from "../../components/AnimatedFadeIn";
 import { ProductCard } from "../../components/ProductCard";
 import { ProductCardSkeleton } from "../../components/SkeletonLoader";
+import { theme } from "../../constants/theme";
 import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
 import { useLanguage } from "../../context/LanguageContext";
@@ -677,7 +678,7 @@ export function ProductListScreen({
           onEndReachedThreshold={0.5}
           ListFooterComponent={() =>
             loadingMore ? (
-              <ActivityIndicator style={{ margin: 20 }} color="#059669" />
+              <ActivityIndicator style={{ margin: 20 }} color={colors.primary} />
             ) : null
           }
         />
@@ -710,7 +711,7 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#059669",
+    color: theme.colors.primary,
   },
   topBarTitle: {
     fontSize: 15,
@@ -730,7 +731,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   topBarBadgeText: {
-    color: "#059669",
+    color: theme.colors.primary,
     fontSize: 11,
     fontWeight: "800",
   },
@@ -757,8 +758,8 @@ const styles = StyleSheet.create({
     borderColor: "#E2E8F0",
   },
   categoryPillActive: {
-    backgroundColor: "#059669",
-    borderColor: "#059669",
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
   },
   categoryPillText: {
     fontSize: 12,
@@ -805,7 +806,7 @@ const styles = StyleSheet.create({
   sortChipActive: {
     backgroundColor: "#ECFDF5",
     borderWidth: 1,
-    borderColor: "#059669",
+    borderColor: theme.colors.primary,
   },
   sortChipText: {
     fontSize: 12,
@@ -813,7 +814,7 @@ const styles = StyleSheet.create({
     color: "#64748B",
   },
   sortChipTextActive: {
-    color: "#059669",
+    color: theme.colors.primary,
     fontWeight: "800",
   },
   center: {
@@ -827,7 +828,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   retryButton: {
-    backgroundColor: "#059669",
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
@@ -869,7 +870,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   clearFiltersBtn: {
-    backgroundColor: "#059669",
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 20,

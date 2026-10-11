@@ -22,6 +22,7 @@ import WebCropper from '../../../components/WebCropper';
 import ModernSwitch from '../../../components/ModernSwitch';
 import { useAuth } from '../../../context/AuthContext';
 import { useAppTheme } from '../../../context/ThemeContext';
+import { theme } from '@/constants/theme';
 import api, { cachedGet, getErrorMessage } from '../../../services/api';
 import { showAlert, showConfirm } from '../../../utils/alerts';
 import { checkAndDownloadOtaUpdateSilently, applyOtaUpdate } from '../../../services/otaService';
@@ -222,14 +223,14 @@ export default function ProfileScreen() {
           title: 'Product Categories',
           icon: 'pricetags-outline',
           route: '/(tabs)/more/categories',
-          color: '#10b981',
+          color: colors.primary,
         },
         {
           id: 'showcase',
           title: 'Visual Showcase',
           icon: 'images-outline',
           route: '/(tabs)/more/showcase',
-          color: '#059669',
+          color: colors.primaryDark,
         },
         {
           id: 'offers',
@@ -299,7 +300,7 @@ export default function ProfileScreen() {
                 icon: 'shield-checkmark-outline' as const,
                 route: '/(tabs)/more/agents',
                 ownerOnly: true,
-                color: '#10b981',
+                color: colors.primary,
               },
             ]
           : []),
@@ -455,12 +456,12 @@ export default function ProfileScreen() {
                     <Ionicons
                       name={isOwner ? 'shield-checkmark' : 'person-circle'}
                       size={11.5}
-                      color={isOwner ? '#10b981' : '#6366f1'}
+                      color={isOwner ? colors.primary : '#6366f1'}
                     />
                     <Text
                       style={[
                         styles.rolePillText,
-                        { color: isOwner ? '#10b981' : '#6366f1' },
+                        { color: isOwner ? colors.primary : '#6366f1' },
                       ]}
                     >
                       {isOwner ? 'STORE OWNER' : 'STAFF OPERATOR'}
@@ -1162,7 +1163,7 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: '#10b981',
+    backgroundColor: theme.colors.primary,
   },
   statusTitle: {
     fontSize: 12.5,
@@ -1231,7 +1232,7 @@ const styles = StyleSheet.create({
   ownerBadgePillText: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#10b981',
+    color: theme.colors.primary,
     letterSpacing: 0.5,
   },
   menuChevron: {

@@ -2,6 +2,8 @@ import React, { useEffect, useRef } from "react";
 import { StyleSheet, View, Animated, Dimensions } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
+import { useTheme } from "../../context/ThemeContext";
+
 interface Props {
   isDark: boolean;
 }
@@ -180,7 +182,8 @@ const NODES_CONFIG: FloatingNodeConfig[] = [
 ];
 
 export function AnimatedAuthBackground({ isDark }: Props) {
-  const iconColor = isDark ? "#60A5FA" : "#059669";
+  const { colors } = useTheme();
+  const iconColor = isDark ? "#60A5FA" : colors.primary;
   const auraColor = isDark
     ? "rgba(16, 185, 129, 0.08)"
     : "rgba(16, 185, 129, 0.05)";

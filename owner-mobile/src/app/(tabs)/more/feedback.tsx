@@ -77,7 +77,7 @@ export default function FeedbackScreen() {
       />
 
       {loading && !refreshing ? (
-        <ActivityIndicator size="large" color="#10b981" style={{ marginTop: 40 }} />
+        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
       ) : (
         <FlatList
           data={feedbacks}
@@ -94,7 +94,7 @@ export default function FeedbackScreen() {
                 setRefreshing(true);
                 fetchFeedbacks(true);
               }}
-              tintColor="#10b981"
+              tintColor={colors.primary}
             />
           }
           renderItem={({ item }) => {

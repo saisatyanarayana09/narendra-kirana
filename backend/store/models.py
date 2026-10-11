@@ -55,6 +55,20 @@ class StoreSettings(models.Model):
     announcement_bg_color = models.CharField(max_length=20, default="#ef4444")
     announcement_text_color = models.CharField(max_length=20, default="#ffffff")
 
+    # Storefront Branding & Theme Preset
+    brand_theme_preset = models.CharField(
+        max_length=50,
+        default="vacation",
+        help_text="Active storefront visual theme preset ('vacation', 'emerald', 'indigo', 'warm_sun', 'custom')"
+    )
+    palette_mode = models.IntegerField(default=5, help_text="Active color palette mode complexity (2, 3, 4, or 5)")
+    custom_primary_color = models.CharField(max_length=20, default="#5ba8a6", blank=True)
+    custom_secondary_color = models.CharField(max_length=20, default="#4d69a5", blank=True)
+    custom_accent_color = models.CharField(max_length=20, default="#ecd386", blank=True)
+    custom_canvas_color = models.CharField(max_length=20, default="#eae6dd", blank=True)
+    custom_text_color = models.CharField(max_length=20, default="#323232", blank=True)
+    apply_theme_to_owner_app = models.BooleanField(default=False, help_text="Sync theme to store owner app as well")
+
     # UPI
     upi_id = models.CharField(max_length=100, blank=True, default="")
     upi_payee_name = models.CharField(max_length=100, blank=True, default="Narendra Kirana")
@@ -167,6 +181,7 @@ class StoreSettings(models.Model):
         from django.core.cache import cache
         cache.delete('store_settings')
         cache.delete('store_settings_serialized')
+        cache.delete('store_public_settings_serialized')
 
     @classmethod
     def load(cls):

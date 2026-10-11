@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import api, { ApiInstance, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
+import { theme } from '@/constants/theme';
 import { showAlert } from '../../../utils/alerts';
 import ScreenHeader from '../../../components/ScreenHeader';
 
@@ -161,7 +162,7 @@ export default function MapScreen() {
   if (loading) {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: colors.bg }]}>
-        <ActivityIndicator size="large" color="#10b981" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -178,7 +179,7 @@ export default function MapScreen() {
         subtitle={`${radiusKm} km delivery geofence radius`}
         rightAction={
           <TouchableOpacity
-            style={[styles.headerSaveBtn, { backgroundColor: '#10b981', opacity: saving ? 0.7 : 1 }]}
+            style={[styles.headerSaveBtn, { backgroundColor: colors.primary, opacity: saving ? 0.7 : 1 }]}
             onPress={handleSave}
             disabled={saving}
           >
@@ -235,7 +236,7 @@ export default function MapScreen() {
                 center={storeLocation}
                 radius={radiusKm * 1000}
                 fillColor="rgba(16, 185, 129, 0.2)"
-                strokeColor="#10b981"
+                strokeColor={colors.primary}
                 strokeWidth={2}
               />
             ) : null}
@@ -243,7 +244,7 @@ export default function MapScreen() {
 
           {/* Floating Helper Hint Banner */}
           <View style={styles.mapOverlayHint}>
-            <Ionicons name="hand-left-outline" size={13} color="#10b981" />
+            <Ionicons name="hand-left-outline" size={13} color={colors.primary} />
             <Text style={styles.mapOverlayHintText}>
               Drag pin or tap map to position store hub
             </Text>
@@ -257,13 +258,13 @@ export default function MapScreen() {
           ]}
         >
           <View style={styles.webIconCircle}>
-            <Ionicons name="location" size={28} color="#10b981" />
+            <Ionicons name="location" size={28} color={colors.primary} />
           </View>
           <Text style={[styles.webZoneTitle, { color: colors.text }]}>
             Store Delivery Radar Zone
           </Text>
           <Text style={[styles.webZoneSub, { color: colors.textMuted }]}>
-            Active Radius: <Text style={{ color: '#10b981', fontWeight: 'bold' }}>{radiusKm} km</Text> around store coordinates
+            Active Radius: <Text style={{ color: colors.primary, fontWeight: 'bold' }}>{radiusKm} km</Text> around store coordinates
           </Text>
         </View>
       )}
@@ -309,7 +310,7 @@ export default function MapScreen() {
         {/* Detected Address Preview Chip */}
         {addressPreview ? (
           <View style={[styles.addressBadge, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
-            <Ionicons name="business-outline" size={14} color="#10b981" />
+            <Ionicons name="business-outline" size={14} color={colors.primary} />
             <Text style={[styles.addressBadgeText, { color: colors.textMuted }]} numberOfLines={2}>
               {addressPreview}
             </Text>
@@ -322,7 +323,7 @@ export default function MapScreen() {
           onPress={handleUseCurrentLocation}
           accessibilityLabel="Use Current GPS Device Location"
         >
-          <Ionicons name="navigate-outline" size={16} color="#10b981" />
+          <Ionicons name="navigate-outline" size={16} color={colors.primary} />
           <Text style={[styles.gpsActionBtnText, { color: colors.text }]}>
             Use Current Device GPS Location
           </Text>
@@ -330,7 +331,7 @@ export default function MapScreen() {
 
         {/* Delivery Radius Presets */}
         <Text style={[styles.label, { color: colors.textMuted, marginTop: 12 }]}>
-          Delivery Radius: <Text style={{ color: '#10b981', fontWeight: 'bold' }}>{radiusKm} km</Text>
+          Delivery Radius: <Text style={{ color: colors.primary, fontWeight: 'bold' }}>{radiusKm} km</Text>
         </Text>
         <View style={styles.presetsRow}>
           {RADIUS_PRESETS.map((preset) => {
@@ -341,7 +342,7 @@ export default function MapScreen() {
                 style={[
                   styles.presetBtn,
                   {
-                    borderColor: isSelected ? '#10b981' : colors.border,
+                    borderColor: isSelected ? colors.primary : colors.border,
                     backgroundColor: isSelected ? (isDark ? '#064e3b' : '#ecfdf5') : colors.cardAlt,
                   },
                 ]}
@@ -351,7 +352,7 @@ export default function MapScreen() {
                   style={[
                     styles.presetBtnText,
                     {
-                      color: isSelected ? '#10b981' : colors.textMuted,
+                      color: isSelected ? colors.primary : colors.textMuted,
                       fontWeight: isSelected ? '700' : '500',
                     },
                   ]}
@@ -565,7 +566,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#10b981',
+    backgroundColor: theme.colors.primary,
     paddingVertical: 13,
     borderRadius: 10,
     marginTop: 6,

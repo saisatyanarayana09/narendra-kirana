@@ -10,6 +10,7 @@ import {
   StatusBar,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { theme } from "../constants/theme";
 
 interface OtaLaunchScreenProps {
   onSkip?: () => void;
@@ -96,7 +97,7 @@ const styles = StyleSheet.create({
     width: 88,
     height: 88,
     borderRadius: 24,
-    backgroundColor: "#047857",
+    backgroundColor: theme.colors.primaryDark,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 24,

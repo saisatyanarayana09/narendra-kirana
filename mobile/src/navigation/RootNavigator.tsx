@@ -992,7 +992,7 @@ function ForceUpdateView({
             <Feather
               name={downloadedUri ? "check-circle" : "arrow-up-circle"}
               size={44}
-              color="#059669"
+              color={colors.primary}
             />
           </View>
 
@@ -1144,11 +1144,11 @@ function ForceUpdateView({
                 },
               ]}
             >
-              <Feather name="check-circle" size={20} color="#059669" />
+              <Feather name="check-circle" size={20} color={colors.primary} />
               <Text
                 style={[
                   styles.readyCardText,
-                  { color: isDark ? "#34D399" : "#047857" },
+                  { color: isDark ? colors.primaryLight : colors.primaryDark },
                 ]}
               >
                 Update package downloaded. Tap below to launch installation.

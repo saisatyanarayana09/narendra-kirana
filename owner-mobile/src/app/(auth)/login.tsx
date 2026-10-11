@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useAuth } from '../../context/AuthContext';
 import { useAppTheme } from '../../context/ThemeContext';
+import { theme } from '@/constants/theme';
 import api, { getErrorMessage } from '../../services/api';
 import { safeStorage } from '../../utils/storage';
 import { GoogleSignin } from '../../utils/GoogleSigninWrapper';
@@ -197,7 +198,7 @@ export default function LoginScreen() {
               <Ionicons
                 name={isDark ? 'sunny' : 'moon'}
                 size={16}
-                color={isDark ? '#fbbf24' : '#10b981'}
+                color={isDark ? '#fbbf24' : colors.primary}
               />
             </TouchableOpacity>
           </View>
@@ -433,7 +434,7 @@ export default function LoginScreen() {
 
           {/* Security Badge Footer */}
           <View style={styles.securityFooter}>
-            <Ionicons name="shield-checkmark-outline" size={14} color="#10b981" />
+            <Ionicons name="shield-checkmark-outline" size={14} color={colors.primary} />
             <Text style={[styles.securityText, { color: colors.textMuted }]}>
               Secure 256-Bit Encrypted Owner Console
             </Text>
@@ -642,7 +643,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 4,
-    shadowColor: '#10b981',
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

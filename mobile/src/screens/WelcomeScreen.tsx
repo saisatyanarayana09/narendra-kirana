@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { theme } from "../constants/theme";
 import { useTheme } from "../context/ThemeContext";
 import type { AuthStackParamList } from "../navigation/AuthStack";
 
@@ -85,9 +86,7 @@ export function WelcomeScreen({ navigation }: Props) {
     </Animated.View>
   );
 
-  const gradientColors = isDark
-    ? (["#0F172A", "#064E3B", "#022C22"] as const)
-    : (["#FFFFFF", "#F0FDF4", "#ECFDF5"] as const);
+  const gradientColors = colors.welcomeGradient;
 
   return (
     <LinearGradient colors={gradientColors} style={styles.container}>
@@ -123,10 +122,10 @@ export function WelcomeScreen({ navigation }: Props) {
             {wrapAnimated(
               brandAnim,
               <Text style={styles.brandTitle}>
-                <Text style={{ color: isDark ? "#34D399" : "#064E3B" }}>
+                <Text style={{ color: isDark ? colors.primaryLight : colors.primaryDark }}>
                   NARENDRA{" "}
                 </Text>
-                <Text style={{ color: isDark ? "#10B981" : "#16A34A" }}>
+                <Text style={{ color: colors.primary }}>
                   KIRANA
                 </Text>
               </Text>,
@@ -148,7 +147,7 @@ export function WelcomeScreen({ navigation }: Props) {
                     {
                       backgroundColor: isDark
                         ? "rgba(5, 150, 105, 0.2)"
-                        : "#F0FDF4",
+                        : colors.primaryLight,
                     },
                   ]}
                 >
@@ -156,7 +155,7 @@ export function WelcomeScreen({ navigation }: Props) {
                   <Text
                     style={[
                       styles.pillText,
-                      { color: isDark ? "#34D399" : "#064E3B" },
+                      { color: isDark ? colors.primaryLight : colors.primaryDark },
                     ]}
                   >
                     Express Delivery
@@ -359,7 +358,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   primaryButton: {
-    backgroundColor: "#059669",
+    backgroundColor: theme.colors.primary,
     paddingVertical: 16,
     borderRadius: 16,
     alignItems: "center",

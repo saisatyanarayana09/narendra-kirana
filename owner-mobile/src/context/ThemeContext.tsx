@@ -1,64 +1,102 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import { AppState } from 'react-native';
 import { safeStorage } from '../utils/storage';
+import api from '../services/api';
 
-export type ThemeMode = 'light' | 'dark';
+import {
+  ThemeMode,
+  ThemeColors,
+  LIGHT_COLORS,
+  DARK_COLORS,
+  THEME_PRESETS,
+  theme as globalTheme,
+  HexColor,
+} from '../constants/theme';
 
-interface ThemeColors {
-  bg: string;
-  headerBg: string;
-  card: string;
-  cardAlt: string;
-  text: string;
-  textMuted: string;
-  border: string;
-  primary: string;
-  indigo: string;
+export type { ThemeMode, ThemeColors };
+
+export function normalizeHex(hex?: string | null, fallback = '#10b981'): string {
+  if (!hex || typeof hex !== 'string') return fallback;
+  const clean = hex.trim().replace(/[^0-9a-fA-F#]/g, '');
+  const withHash = clean.startsWith('#') ? clean : `#${clean}`;
+  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(withHash) ? withHash : fallback;
 }
 
-interface ThemeContextType {
+export function adjustLuminance(hex: string, percent: number): string {
+  if (!hex || typeof hex !== 'string') return hex;
+  const clean = hex.trim().replace(/^#/, '');
+  if (!/^[0-9a-fA-F]{6}$/.test(clean)) return hex;
+  const num = parseInt(clean, 16);
+  const amt = Math.round(2.55 * percent);
+  const R = Math.max(0, Math.min(255, (num >> 16) + amt));
+  const G = Math.max(0, Math.min(255, ((num >> 8) & 0x00ff) + amt));
+  const B = Math.max(0, Math.min(255, (num & 0x0000ff) + amt));
+  return `#${(0x1000000 + (R << 16) + (G << 8) + B).toString(16).slice(1)}`;
+}
+
+export interface ThemeContextType {
   theme: ThemeMode;
   isDark: boolean;
   toggleTheme: () => void;
   colors: ThemeColors;
+  refreshTheme: (override?: any) => Promise<void>;
 }
 
-const LIGHT_COLORS: ThemeColors = {
-  bg: '#f8fafc',       // slate-50
-  headerBg: '#ffffff', // white
-  card: '#ffffff',     // white
-  cardAlt: '#f1f5f9',  // slate-100
-  text: '#0f172a',     // slate-900
-  textMuted: '#64748b',// slate-500
-  border: '#e2e8f0',   // slate-200
-  primary: '#10b981',  // emerald-500
-  indigo: '#4f46e5',   // indigo-600
-};
-
-const DARK_COLORS: ThemeColors = {
-  bg: '#090d16',       // web app dark main bg
-  headerBg: '#0d1322', // web app dark header bg
-  card: '#0f172a',     // slate-900
-  cardAlt: '#1e293b',  // slate-800
-  text: '#f8fafc',     // slate-50
-  textMuted: '#94a3b8',// slate-400
-  border: '#1e293b',   // slate-800
-  primary: '#10b981',  // emerald-500
-  indigo: '#6366f1',   // indigo-500
-};
-
 const THEME_KEY = 'smart-kirana-owner-theme';
+const STORE_THEME_KEY = 'smart-kirana-owner-store-theme';
 
 const ThemeContext = createContext<ThemeContextType>({
   theme: 'light',
   isDark: false,
   toggleTheme: () => {},
   colors: LIGHT_COLORS,
+  refreshTheme: async () => {},
 });
 
 export const useAppTheme = () => useContext(ThemeContext);
 
 export const AppThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const [theme, setTheme] = useState<ThemeMode>('light');
+  const [storeTheme, setStoreTheme] = useState<{
+    applyToOwner?: boolean;
+    primary?: string;
+    primaryDark?: string;
+    secondary?: string;
+    accent?: string;
+  } | null>(null);
+
+  const parseThemeFromData = useCallback((d: any) => {
+    if (!d) return null;
+    const applyToOwner = Boolean(d.apply_theme_to_owner_app);
+    if (!applyToOwner) {
+      return { applyToOwner: false };
+    }
+    const preset = (THEME_PRESETS as any)[d.brand_theme_preset] || THEME_PRESETS.vacation;
+    const isCustom = d.brand_theme_preset === 'custom';
+    const primary = normalizeHex(
+      isCustom ? d.custom_primary_color : (preset?.primary || d.custom_primary_color || '#5ba8a6'),
+      '#5ba8a6'
+    );
+    const primaryDark = isCustom
+      ? adjustLuminance(primary, -15)
+      : normalizeHex(preset?.primaryDark, adjustLuminance(primary, -15));
+    const secondary = normalizeHex(
+      isCustom ? d.custom_secondary_color : (preset?.secondary || d.custom_secondary_color || '#4d69a5'),
+      '#4d69a5'
+    );
+    const accent = normalizeHex(
+      isCustom ? d.custom_accent_color : (preset?.accent || d.custom_accent_color || '#ecd386'),
+      '#ecd386'
+    );
+
+    return {
+      applyToOwner: true,
+      primary,
+      primaryDark,
+      secondary,
+      accent,
+    };
+  }, []);
 
   useEffect(() => {
     safeStorage.getItem(THEME_KEY).then((saved) => {
@@ -66,7 +104,63 @@ export const AppThemeProvider = ({ children }: { children: React.ReactNode }) =>
         setTheme(saved);
       }
     });
+
+    safeStorage.getItem(STORE_THEME_KEY).then((saved) => {
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed) setStoreTheme(parsed);
+        } catch {}
+      }
+    });
   }, []);
+
+  const loadStoreTheme = useCallback(async (overrideData?: any) => {
+    if (overrideData) {
+      const parsed = parseThemeFromData(overrideData);
+      if (parsed) {
+        setStoreTheme(parsed);
+        safeStorage.setItem(STORE_THEME_KEY, JSON.stringify(parsed));
+      }
+      return;
+    }
+    try {
+      const res = await api.get('/store/settings/', { params: { t: Date.now() } });
+      const d = res.data;
+      if (d) {
+        const parsed = parseThemeFromData(d);
+        if (parsed) {
+          setStoreTheme(parsed);
+          safeStorage.setItem(STORE_THEME_KEY, JSON.stringify(parsed));
+        }
+      }
+    } catch {}
+  }, [parseThemeFromData]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchTheme = async () => {
+      if (isMounted) {
+        await loadStoreTheme();
+      }
+    };
+    fetchTheme();
+    return () => {
+      isMounted = false;
+    };
+  }, [loadStoreTheme]);
+
+  // Sync theme when owner app is brought back to the foreground
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        loadStoreTheme();
+      }
+    });
+    return () => {
+      sub.remove();
+    };
+  }, [loadStoreTheme]);
 
   const toggleTheme = () => {
     setTheme((prev) => {
@@ -77,10 +171,32 @@ export const AppThemeProvider = ({ children }: { children: React.ReactNode }) =>
   };
 
   const isDark = theme === 'dark';
-  const colors = isDark ? DARK_COLORS : LIGHT_COLORS;
+
+  const colors = useMemo(() => {
+    const base = { ...(isDark ? DARK_COLORS : LIGHT_COLORS) };
+    if (storeTheme?.applyToOwner && storeTheme.primary) {
+      base.primary = storeTheme.primary;
+      base.primaryDark = storeTheme.primaryDark || base.primaryDark;
+      if (storeTheme.accent) {
+        base.accent = storeTheme.accent;
+      }
+      if (storeTheme.secondary) {
+        base.indigo = storeTheme.secondary;
+        base.secondary = storeTheme.secondary;
+      }
+    }
+    // Synchronize static globalTheme for any components that import it directly
+    globalTheme.colors.primary = base.primary as HexColor;
+    globalTheme.colors.primaryDark = base.primaryDark as HexColor;
+    globalTheme.colors.indigo = base.indigo as HexColor;
+    if (base.accent) globalTheme.colors.accent = base.accent as HexColor;
+    if (base.secondary) globalTheme.colors.secondary = base.secondary as HexColor;
+
+    return base;
+  }, [isDark, storeTheme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, isDark, toggleTheme, colors }}>
+    <ThemeContext.Provider value={{ theme, isDark, toggleTheme, colors, refreshTheme: loadStoreTheme }}>
       {children}
     </ThemeContext.Provider>
   );

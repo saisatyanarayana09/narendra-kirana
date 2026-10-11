@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import api, { getErrorMessage } from '../../services/api';
 import { showAlert } from '../../utils/alerts';
 import { useAppTheme } from '../../context/ThemeContext';
+import { theme } from '@/constants/theme';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -220,7 +221,7 @@ export default function ForgotPasswordScreen() {
                 onPress={handleResendOtp}
                 disabled={countdown > 0 || resending}
               >
-                <Text style={[styles.resendText, { color: countdown > 0 ? '#94a3b8' : '#10b981' }]}>
+                <Text style={[styles.resendText, { color: countdown > 0 ? '#94a3b8' : colors.primary }]}>
                   {resending ? 'Resending...' : countdown > 0 ? `Resend OTP in ${countdown}s` : 'Resend OTP Code'}
                 </Text>
               </TouchableOpacity>
@@ -228,7 +229,7 @@ export default function ForgotPasswordScreen() {
           ) : null}
 
           <TouchableOpacity
-            style={[styles.button, { backgroundColor: isDark ? '#10b981' : '#059669' }]}
+            style={[styles.button, { backgroundColor: isDark ? colors.primary : colors.primaryDark }]}
             onPress={step === 'request' ? handleRequestOtp : handleResetPassword}
             disabled={loading}
           >
@@ -273,7 +274,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: '800',
-    color: '#10b981',
+    color: theme.colors.primary,
     marginBottom: 8,
   },
   subtitle: {

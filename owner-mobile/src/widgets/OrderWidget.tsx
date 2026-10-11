@@ -1,5 +1,6 @@
 import React from 'react';
 import { FlexWidget, TextWidget } from 'react-native-android-widget';
+import { theme } from '@/constants/theme';
 
 export function OrderWidget({ order }: { order: any }) {
   if (!order) {
@@ -13,7 +14,7 @@ export function OrderWidget({ order }: { order: any }) {
   return (
     <FlexWidget style={{ flex: 1, backgroundColor: '#ffffff', padding: 16, borderRadius: 16, flexDirection: 'column' }}>
       <TextWidget text={`Order #${order.id} - ${order.customer_name || 'Guest'}`} style={{ fontSize: 18, fontWeight: 'bold', color: '#000000' }} />
-      <TextWidget text={`Total: Rs. ${order.total_amount}`} style={{ fontSize: 14, color: '#10b981' }} />
+      <TextWidget text={`Total: Rs. ${order.total_amount}`} style={{ fontSize: 14, color: theme.colors.primary }} />
       
       <FlexWidget style={{ flexDirection: 'row', marginTop: 12, justifyContent: 'space-between' }}>
         <FlexWidget 
@@ -27,7 +28,7 @@ export function OrderWidget({ order }: { order: any }) {
         <FlexWidget 
           clickAction="ACCEPT_ORDER"
           clickActionData={{ orderId: order.id }}
-          style={{ backgroundColor: '#10b981', padding: 8, borderRadius: 8, width: 100, alignItems: 'center' }}
+          style={{ backgroundColor: theme.colors.primary, padding: 8, borderRadius: 8, width: 100, alignItems: 'center' }}
         >
           <TextWidget text="Accept" style={{ color: '#ffffff', fontWeight: 'bold' }} />
         </FlexWidget>

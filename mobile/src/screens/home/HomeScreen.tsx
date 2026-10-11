@@ -35,6 +35,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { useTheme } from "../../context/ThemeContext";
+import { theme } from "../../constants/theme";
 import { AppNavigationProp } from "../../navigation/types";
 import {
   loadHomeData,
@@ -925,7 +926,7 @@ export function HomeScreen({ navigation }: Props) {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={["#059669"]}
+            colors={[colors.primary]}
           />
         }
       >
@@ -1282,7 +1283,7 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: "#10B981",
+    backgroundColor: theme.colors.success,
   },
   deliverySpeedBadge: {
     flexDirection: "row",
@@ -1296,7 +1297,7 @@ const styles = StyleSheet.create({
   deliverySpeedText: {
     fontSize: 10,
     fontWeight: "900",
-    color: "#047857",
+    color: theme.colors.primaryDark,
     letterSpacing: 0.5,
   },
   headerActionsRow: {

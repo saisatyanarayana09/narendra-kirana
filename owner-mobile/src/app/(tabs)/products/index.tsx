@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useAuth } from '../../../context/AuthContext';
 import { useAppTheme } from '../../../context/ThemeContext';
+import { theme } from '../../../constants/theme';
 import { showAlert, showConfirm } from '../../../utils/alerts';
 import UniversalCameraScanner from '../../../components/UniversalCameraScanner';
 import { DraggableItem } from '../../../components/DraggableItem';
@@ -193,7 +194,7 @@ const ProductCard = memo(
         ? `Low (${qty})`
         : `${qty} in stock`;
 
-    const stockDotColor = !inStock ? '#f43f5e' : isLowStock ? '#f59e0b' : '#10b981';
+    const stockDotColor = !inStock ? '#f43f5e' : isLowStock ? '#f59e0b' : colors.primary;
 
     const stockBadgeBg = !inStock
       ? isDark
@@ -217,7 +218,7 @@ const ProductCard = memo(
           : '#b45309'
         : isDark
           ? '#6ee7b7'
-          : '#047857';
+          : colors.primaryDark;
 
     return (
       <View
@@ -225,7 +226,7 @@ const ProductCard = memo(
           styles.productCard,
           {
             backgroundColor: colors.card,
-            borderColor: isDragging || isHoveredTarget ? '#10b981' : colors.border,
+            borderColor: isDragging || isHoveredTarget ? colors.primary : colors.border,
             borderWidth: isDragging || isHoveredTarget ? 2 : 1,
           },
         ]}
@@ -337,7 +338,7 @@ const ProductCard = memo(
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               accessibilityLabel="Increase stock by 1"
             >
-              <Ionicons name="add" size={14} color="#10b981" />
+              <Ionicons name="add" size={14} color={colors.primary} />
             </TouchableOpacity>
           </View>
 
@@ -376,12 +377,12 @@ const ProductCard = memo(
                 styles.reorderRankBox,
                 {
                   backgroundColor: isDragging
-                    ? '#10b981'
+                    ? colors.primary
                     : isDark
                       ? 'rgba(16, 185, 129, 0.2)'
                       : '#dcfce7',
                   borderColor: isDragging
-                    ? '#059669'
+                    ? colors.primaryDark
                     : isDark
                       ? 'rgba(16, 185, 129, 0.35)'
                       : '#bbf7d0',
@@ -392,7 +393,7 @@ const ProductCard = memo(
               <Ionicons
                 name="reorder-two-outline"
                 size={18}
-                color={isDragging ? '#ffffff' : '#10b981'}
+                color={isDragging ? '#ffffff' : colors.primary}
               />
               <Text
                 style={[
@@ -405,7 +406,7 @@ const ProductCard = memo(
               <Text
                 style={[
                   styles.dragGripLabel,
-                  { color: isDragging ? '#ffffff' : '#10b981' },
+                  { color: isDragging ? '#ffffff' : colors.primary },
                 ]}
               >
                 Drag
@@ -429,7 +430,7 @@ const ProductCard = memo(
                 <Ionicons
                   name="arrow-up"
                   size={14}
-                  color={index === 0 ? colors.textMuted : '#10b981'}
+                  color={index === 0 ? colors.textMuted : colors.primary}
                 />
               </TouchableOpacity>
 
@@ -463,7 +464,7 @@ const ProductCard = memo(
                     typeof totalCount === 'number' &&
                     index >= totalCount - 1
                       ? colors.textMuted
-                      : '#10b981'
+                      : colors.primary
                   }
                 />
               </TouchableOpacity>
@@ -934,8 +935,8 @@ export default function ProductsListScreen() {
               style={[
                 styles.reorderToggleBtn,
                 {
-                  backgroundColor: reorderMode ? '#10b981' : colors.card,
-                  borderColor: reorderMode ? '#10b981' : colors.border,
+                  backgroundColor: reorderMode ? colors.primary : colors.card,
+                  borderColor: reorderMode ? colors.primary : colors.border,
                 },
               ]}
               onPress={toggleReorderMode}
@@ -957,7 +958,7 @@ export default function ProductsListScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.primaryAddBtn, { backgroundColor: '#10b981' }]}
+              style={[styles.primaryAddBtn, { backgroundColor: colors.primary }]}
               onPress={() => router.push('/(tabs)/products/new')}
               accessibilityLabel="Add New Product"
             >
@@ -997,7 +998,7 @@ export default function ProductsListScreen() {
               onPress={() => setShowScanner(true)}
               accessibilityLabel="Scan Barcode"
             >
-              <Ionicons name="barcode-outline" size={20} color="#10b981" />
+              <Ionicons name="barcode-outline" size={20} color={colors.primary} />
             </TouchableOpacity>
           </View>
 
@@ -1207,11 +1208,11 @@ export default function ProductsListScreen() {
               styles.reorderActiveBanner,
               {
                 backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ecfdf5',
-                borderColor: '#10b981',
+                borderColor: colors.primary,
               },
             ]}
           >
-            <Ionicons name="swap-vertical" size={18} color="#10b981" />
+            <Ionicons name="swap-vertical" size={18} color={colors.primary} />
             <Text
               style={{
                 fontSize: 13,
@@ -1223,7 +1224,7 @@ export default function ProductsListScreen() {
               Reorder Mode: Hold & drag items to arrange, or tap arrows.
             </Text>
             <TouchableOpacity onPress={toggleReorderMode} style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
-              <Text style={{ color: '#10b981', fontWeight: '700', fontSize: 13 }}>Done</Text>
+              <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 13 }}>Done</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -1353,7 +1354,7 @@ export default function ProductsListScreen() {
 
         {loading && !refreshing ? (
           <View style={styles.centered}>
-            <ActivityIndicator size="large" color="#10b981" />
+            <ActivityIndicator size="large" color={colors.primary} />
             <Text style={[styles.loadingText, { color: colors.textMuted }]}>
               Loading inventory...
             </Text>
@@ -1375,7 +1376,7 @@ export default function ProductsListScreen() {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                tintColor="#10b981"
+                tintColor={colors.primary}
               />
             }
             initialNumToRender={8}
@@ -1402,7 +1403,7 @@ export default function ProductsListScreen() {
                       setSelectedCatId('ALL');
                     }}
                   >
-                    <Text style={{ color: '#10b981', fontWeight: '700', fontSize: 13 }}>
+                    <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 13 }}>
                       Reset All Filters
                     </Text>
                   </TouchableOpacity>
@@ -1508,7 +1509,7 @@ export default function ProductsListScreen() {
                       setQeStock(String(cur + 1));
                     }}
                   >
-                    <Ionicons name="add" size={18} color="#10b981" />
+                    <Ionicons name="add" size={18} color={colors.primary} />
                   </TouchableOpacity>
                 </View>
 
@@ -1595,7 +1596,7 @@ export default function ProductsListScreen() {
               {/* Primary Action Button */}
               <View style={styles.sheetBtnsRow}>
                 <TouchableOpacity
-                  style={[styles.sheetSaveBtn, { backgroundColor: '#10b981' }]}
+                  style={[styles.sheetSaveBtn, { backgroundColor: colors.primary }]}
                   onPress={handleSaveQuickEdit}
                   disabled={savingQuickEdit}
                 >
@@ -1929,7 +1930,7 @@ const styles = StyleSheet.create({
   offerPriceText: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#10b981',
+    color: theme.colors.primary,
   },
   strikeThroughPrice: {
     fontSize: 11.5,

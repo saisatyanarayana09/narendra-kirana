@@ -14,12 +14,13 @@ import api, { getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { showAlert } from '../../../utils/alerts';
 import ScreenHeader from '../../../components/ScreenHeader';
+import { theme } from '@/constants/theme';
 
 type BroadcastCategory = 'PROMO' | 'ORDER' | 'WALLET' | 'SYSTEM';
 
 const CATEGORIES: { id: BroadcastCategory; label: string; icon: keyof typeof Ionicons.glyphMap; color: string }[] = [
   { id: 'PROMO', label: 'Offer / Deal', icon: 'flame', color: '#f59e0b' },
-  { id: 'ORDER', label: 'Order Status', icon: 'cube', color: '#10b981' },
+  { id: 'ORDER', label: 'Order Status', icon: 'cube', color: theme.colors.primary },
   { id: 'WALLET', label: 'Payment', icon: 'card', color: '#6366f1' },
   { id: 'SYSTEM', label: 'System Alert', icon: 'megaphone', color: '#0ea5e9' },
 ];

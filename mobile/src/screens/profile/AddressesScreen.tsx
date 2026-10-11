@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { apiClient } from "../../api/client";
+import { theme } from "../../constants/theme";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { AppNavigationProp } from "../../navigation/types";
@@ -515,7 +516,7 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#059669",
+    color: theme.colors.primary,
   },
   headerRow: {
     flexDirection: "row",
@@ -540,7 +541,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#059669",
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 12,
@@ -595,7 +596,7 @@ const styles = StyleSheet.create({
     maxWidth: 280,
   },
   addFirstBtn: {
-    backgroundColor: "#059669",
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 12,
@@ -640,7 +641,7 @@ const styles = StyleSheet.create({
     color: "#0F172A",
   },
   defaultBadge: {
-    backgroundColor: "#059669",
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -715,7 +716,7 @@ const styles = StyleSheet.create({
   gpsSecuredText: {
     fontSize: 10,
     fontWeight: "800",
-    color: "#059669",
+    color: theme.colors.primary,
   },
   guestStateContainer: {
     flex: 1,

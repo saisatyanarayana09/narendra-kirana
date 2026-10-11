@@ -18,6 +18,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { apiClient } from "../../api/client";
+import { theme } from "../../constants/theme";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { AppNavigationProp } from "../../navigation/types";
@@ -401,7 +402,7 @@ export function AccountSettingsScreen({
                       cx={34}
                       cy={34}
                       r={31}
-                      stroke="#059669"
+                      stroke={colors.primary}
                       strokeWidth={3}
                       strokeDasharray={`${2 * Math.PI * 31}`}
                       strokeDashoffset={`${2 * Math.PI * 31 * (1 - completion / 100)}`}
@@ -933,7 +934,7 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#059669",
+    color: theme.colors.primary,
   },
   headerTitle: {
     fontSize: 24,
@@ -1002,7 +1003,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: -2,
     right: -2,
-    backgroundColor: "#059669",
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 4,
     paddingVertical: 1,
     borderRadius: 8,
@@ -1070,7 +1071,7 @@ const styles = StyleSheet.create({
   verifiedBadgeText: {
     fontSize: 10,
     fontWeight: "800",
-    color: "#059669",
+    color: theme.colors.primary,
   },
   readOnlyBadge: {
     fontSize: 11,
@@ -1142,7 +1143,7 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   saveBtn: {
-    backgroundColor: "#059669",
+    backgroundColor: theme.colors.primary,
     borderRadius: 14,
     height: 48,
     justifyContent: "center",

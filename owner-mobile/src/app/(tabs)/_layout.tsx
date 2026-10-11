@@ -14,6 +14,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useAppTheme } from '../../context/ThemeContext';
+import { theme } from '@/constants/theme';
 import api, { cachedGet } from '../../services/api';
 import { safeStorage } from '../../utils/storage';
 
@@ -43,7 +44,7 @@ export const OWNER_NAVIGATION: NavSection[] = [
     matchKey: '/orders',
     icon: 'cart-outline',
     desc: 'Manage & pack orders',
-    color: '#10b981',
+    color: theme.colors.primary,
     badge: 'Live',
   },
   {
@@ -61,7 +62,7 @@ export const OWNER_NAVIGATION: NavSection[] = [
     matchKey: '/delivery',
     icon: 'bicycle-outline',
     desc: 'Manage delivery riders & live orders',
-    color: '#059669',
+    color: theme.colors.primaryDark,
     badge: 'Fleet',
   },
   {
@@ -133,7 +134,7 @@ export const OWNER_NAVIGATION: NavSection[] = [
     matchKey: '/scanner',
     icon: 'qr-code-outline',
     desc: 'Scan referral QR & barcodes',
-    color: '#10b981',
+    color: theme.colors.primary,
     badge: 'POS',
   },
   {
@@ -440,7 +441,7 @@ export default function TabLayout() {
                     OWNER PORTAL
                   </Text>
                   <Text style={{ color: colors.border, marginHorizontal: 6 }}>/</Text>
-                  <Ionicons name={currentSection.icon} size={16} color="#10b981" />
+                  <Ionicons name={currentSection.icon} size={16} color={colors.primary} />
                   <Text style={[styles.breadcrumbSection, { color: colors.text }]}>
                     {currentSection.name}
                   </Text>
@@ -459,7 +460,7 @@ export default function TabLayout() {
                   </View>
                   <Text style={styles.mobileBrandTitle}>
                     <Text style={{ color: colors.text }}>Narendra </Text>
-                    <Text style={{ color: '#10b981' }}>Kirana</Text>
+                    <Text style={{ color: colors.primary }}>Kirana</Text>
                   </Text>
                 </TouchableOpacity>
               )}
@@ -504,7 +505,7 @@ export default function TabLayout() {
                 <View
                   style={[
                     styles.tabActiveTopBar,
-                    { backgroundColor: isHomeTab ? '#10b981' : 'transparent' },
+                    { backgroundColor: isHomeTab ? colors.primary : 'transparent' },
                   ]}
                 />
                 <View
@@ -520,14 +521,14 @@ export default function TabLayout() {
                   <Ionicons
                     name={isHomeTab ? 'home' : 'home-outline'}
                     size={20}
-                    color={isHomeTab ? '#10b981' : colors.textMuted}
+                    color={isHomeTab ? colors.primary : colors.textMuted}
                   />
                 </View>
                 <Text
                   style={[
                     styles.bottomTabText,
                     {
-                      color: isHomeTab ? '#10b981' : colors.textMuted,
+                      color: isHomeTab ? colors.primary : colors.textMuted,
                       fontWeight: isHomeTab ? '800' : '600',
                     },
                   ]}
@@ -545,7 +546,7 @@ export default function TabLayout() {
                 <View
                   style={[
                     styles.tabActiveTopBar,
-                    { backgroundColor: isOrdersTab ? '#10b981' : 'transparent' },
+                    { backgroundColor: isOrdersTab ? colors.primary : 'transparent' },
                   ]}
                 />
                 <View
@@ -561,7 +562,7 @@ export default function TabLayout() {
                   <Ionicons
                     name={isOrdersTab ? 'receipt' : 'receipt-outline'}
                     size={20}
-                    color={isOrdersTab ? '#10b981' : colors.textMuted}
+                    color={isOrdersTab ? colors.primary : colors.textMuted}
                   />
                   {activeOrdersBadge > 0 && (
                     <View
@@ -569,7 +570,7 @@ export default function TabLayout() {
                         styles.tabBadgePill,
                         {
                           backgroundColor:
-                            newOrdersBadge > 0 ? '#e11d48' : '#10b981',
+                            newOrdersBadge > 0 ? '#e11d48' : colors.primary,
                           borderColor: colors.headerBg,
                         },
                       ]}
@@ -590,7 +591,7 @@ export default function TabLayout() {
                   style={[
                     styles.bottomTabText,
                     {
-                      color: isOrdersTab ? '#10b981' : colors.textMuted,
+                      color: isOrdersTab ? colors.primary : colors.textMuted,
                       fontWeight: isOrdersTab ? '800' : '600',
                     },
                   ]}
@@ -607,7 +608,7 @@ export default function TabLayout() {
                     styles.centerScanDock,
                     {
                       borderColor: colors.headerBg,
-                      backgroundColor: isScanTab ? '#059669' : '#10b981',
+                      backgroundColor: isScanTab ? colors.primaryDark : colors.primary,
                     },
                   ]}
                   onPress={() => navigateTo('/(tabs)/more/scanner')}
@@ -622,7 +623,7 @@ export default function TabLayout() {
                   style={[
                     styles.bottomTabText,
                     {
-                      color: isScanTab ? '#10b981' : colors.textMuted,
+                      color: isScanTab ? colors.primary : colors.textMuted,
                       fontWeight: isScanTab ? '800' : '700',
                       marginTop: 2,
                     },
@@ -642,7 +643,7 @@ export default function TabLayout() {
                   style={[
                     styles.tabActiveTopBar,
                     {
-                      backgroundColor: isProductsTab ? '#10b981' : 'transparent',
+                      backgroundColor: isProductsTab ? colors.primary : 'transparent',
                     },
                   ]}
                 />
@@ -659,14 +660,14 @@ export default function TabLayout() {
                   <Ionicons
                     name={isProductsTab ? 'cube' : 'cube-outline'}
                     size={20}
-                    color={isProductsTab ? '#10b981' : colors.textMuted}
+                    color={isProductsTab ? colors.primary : colors.textMuted}
                   />
                 </View>
                 <Text
                   style={[
                     styles.bottomTabText,
                     {
-                      color: isProductsTab ? '#10b981' : colors.textMuted,
+                      color: isProductsTab ? colors.primary : colors.textMuted,
                       fontWeight: isProductsTab ? '800' : '600',
                     },
                   ]}
@@ -684,7 +685,7 @@ export default function TabLayout() {
                 <View
                   style={[
                     styles.tabActiveTopBar,
-                    { backgroundColor: isProfileTab ? '#10b981' : 'transparent' },
+                    { backgroundColor: isProfileTab ? colors.primary : 'transparent' },
                   ]}
                 />
                 <View
@@ -700,14 +701,14 @@ export default function TabLayout() {
                   <Ionicons
                     name={isProfileTab ? 'person' : 'person-outline'}
                     size={22}
-                    color={isProfileTab ? '#10b981' : colors.textMuted}
+                    color={isProfileTab ? colors.primary : colors.textMuted}
                   />
                 </View>
                 <Text
                   style={[
                     { fontSize: 10, marginTop: 4 },
                     {
-                      color: isProfileTab ? '#10b981' : colors.textMuted,
+                      color: isProfileTab ? colors.primary : colors.textMuted,
                       fontWeight: isProfileTab ? '800' : '600',
                     },
                   ]}
@@ -1018,7 +1019,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#10b981',
+    backgroundColor: theme.colors.primary,
     borderWidth: 1.5,
   },
   bottomTabText: {

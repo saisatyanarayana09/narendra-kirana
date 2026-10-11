@@ -10,6 +10,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '@/constants/theme';
 
 export interface DraggableItemProps {
   index: number;
@@ -275,7 +276,7 @@ export function DraggableItem({
         <View style={styles.dropGuideContainer}>
           <View style={styles.dropGuideLine} />
           <View style={styles.dropGuideBadge}>
-            <Ionicons name="arrow-down-circle" size={13} color="#10b981" />
+            <Ionicons name="arrow-down-circle" size={13} color={theme.colors.primary} />
             <Text style={styles.dropGuideText}>
               {`Move to Slot #${index + 1}`}
             </Text>
@@ -311,7 +312,7 @@ const styles = StyleSheet.create({
   dropGuideLine: {
     flex: 1,
     height: 2,
-    backgroundColor: '#10b981',
+    backgroundColor: theme.colors.primary,
     borderRadius: 1,
   },
   dropGuideBadge: {
@@ -319,7 +320,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 5,
     backgroundColor: '#ecfdf5',
-    borderColor: '#10b981',
+    borderColor: theme.colors.primary,
     borderWidth: 1,
     paddingHorizontal: 10,
     paddingVertical: 3,

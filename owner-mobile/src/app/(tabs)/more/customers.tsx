@@ -118,8 +118,8 @@ const CustomerCard = React.memo<CustomerCardProps>(
               </View>
             ) : item?.is_active ? (
               <View style={[styles.badge, { backgroundColor: '#d1fae5', borderColor: '#a7f3d0' }]}>
-                <View style={[styles.badgeDot, { backgroundColor: '#059669' }]} />
-                <Text style={[styles.badgeText, { color: '#059669' }]}>Active</Text>
+                <View style={[styles.badgeDot, { backgroundColor: colors.primaryDark }]} />
+                <Text style={[styles.badgeText, { color: colors.primaryDark }]}>Active</Text>
               </View>
             ) : (
               <View style={[styles.badge, { backgroundColor: '#f1f5f9', borderColor: '#e2e8f0' }]}>
@@ -159,8 +159,8 @@ const CustomerCard = React.memo<CustomerCardProps>(
               onPress={() => onActivate(item.id, item.username)}
               disabled={isBusy}
             >
-              <Ionicons name="checkmark-circle-outline" size={14} color="#059669" />
-              <Text style={[styles.actionText, { color: '#059669' }]}>Activate</Text>
+              <Ionicons name="checkmark-circle-outline" size={14} color={colors.primaryDark} />
+              <Text style={[styles.actionText, { color: colors.primaryDark }]}>Activate</Text>
             </TouchableOpacity>
           )}
 
@@ -171,8 +171,8 @@ const CustomerCard = React.memo<CustomerCardProps>(
               onPress={() => onUnlock(item.id, item.username)}
               disabled={isBusy}
             >
-              <Ionicons name="lock-open-outline" size={14} color="#059669" />
-              <Text style={[styles.actionText, { color: '#059669' }]}>Unlock</Text>
+              <Ionicons name="lock-open-outline" size={14} color={colors.primaryDark} />
+              <Text style={[styles.actionText, { color: colors.primaryDark }]}>Unlock</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
@@ -552,7 +552,7 @@ export default function CustomersScreen() {
               setRefreshing(true);
               fetchCustomers(true);
             }}
-            tintColor="#10b981"
+            tintColor={colors.primary}
           />
         }
         ListHeaderComponent={
@@ -593,26 +593,26 @@ export default function CustomersScreen() {
                 style={[
                   styles.kpiCard,
                   { backgroundColor: colors.card, borderColor: colors.border },
-                  activeTab === 'active' && [styles.kpiCardActive, { borderColor: '#10b981' }],
+                  activeTab === 'active' && [styles.kpiCardActive, { borderColor: colors.primary }],
                 ]}
                 activeOpacity={0.8}
                 onPress={() => setActiveTab('active')}
               >
                 <View style={styles.kpiContent}>
-                  <Text style={[styles.kpiLabel, { color: '#059669' }]}>ACTIVE</Text>
-                  <Text style={[styles.kpiValue, { color: '#059669' }]}>{activeCount}</Text>
+                  <Text style={[styles.kpiLabel, { color: colors.primaryDark }]}>ACTIVE</Text>
+                  <Text style={[styles.kpiValue, { color: colors.primaryDark }]}>{activeCount}</Text>
                   <Text style={[styles.kpiSub, { color: colors.textMuted }]}>Shopping active</Text>
                 </View>
                 <View
                   style={[
                     styles.kpiIconBox,
-                    { backgroundColor: activeTab === 'active' ? '#10b981' : isDark ? '#064e3b' : '#d1fae5' },
+                    { backgroundColor: activeTab === 'active' ? colors.primary : isDark ? '#064e3b' : '#d1fae5' },
                   ]}
                 >
                   <Ionicons
                     name="checkmark-circle"
                     size={20}
-                    color={activeTab === 'active' ? '#ffffff' : '#059669'}
+                    color={activeTab === 'active' ? '#ffffff' : colors.primaryDark}
                   />
                 </View>
               </TouchableOpacity>
@@ -762,7 +762,7 @@ export default function CustomersScreen() {
         renderItem={renderCustomerItem}
         ListEmptyComponent={
           loading && !refreshing ? (
-            <ActivityIndicator size="large" color="#10b981" style={{ marginTop: 40 }} />
+            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
           ) : (
             <View style={styles.emptyContainer}>
               <View style={[styles.emptyIconBox, { backgroundColor: colors.cardAlt }]}>
@@ -819,7 +819,7 @@ export default function CustomersScreen() {
                     </Text>
                     {customerDetails?.is_active ? (
                       <View style={[styles.badge, { backgroundColor: '#d1fae5' }]}>
-                        <Text style={[styles.badgeText, { color: '#059669' }]}>Active</Text>
+                        <Text style={[styles.badgeText, { color: colors.primaryDark }]}>Active</Text>
                       </View>
                     ) : (
                       <View style={[styles.badge, { backgroundColor: '#f1f5f9' }]}>
@@ -841,7 +841,7 @@ export default function CustomersScreen() {
             </View>
 
             {detailsLoading ? (
-              <ActivityIndicator size="large" color="#10b981" style={{ marginVertical: 40 }} />
+              <ActivityIndicator size="large" color={colors.primary} style={{ marginVertical: 40 }} />
             ) : (
               <ScrollView style={styles.profileBody} showsVerticalScrollIndicator={false}>
                 {/* 3-Column Metrics Grid */}
@@ -863,8 +863,8 @@ export default function CustomersScreen() {
                       { backgroundColor: isDark ? '#064e3b' : '#ecfdf5', borderColor: '#a7f3d0' },
                     ]}
                   >
-                    <Text style={[styles.profileMetricLabel, { color: '#059669' }]}>TOTAL ORDERS</Text>
-                    <Text style={[styles.profileMetricVal, { color: '#059669' }]}>
+                    <Text style={[styles.profileMetricLabel, { color: colors.primaryDark }]}>TOTAL ORDERS</Text>
+                    <Text style={[styles.profileMetricVal, { color: colors.primaryDark }]}>
                       {customerDetails?.total_orders ?? 0}
                     </Text>
                   </View>
@@ -899,7 +899,7 @@ export default function CustomersScreen() {
                         </Text>
                       </View>
                       <TouchableOpacity
-                        style={[styles.smallActionBtn, { backgroundColor: '#059669' }]}
+                        style={[styles.smallActionBtn, { backgroundColor: colors.primaryDark }]}
                         onPress={() => handleActivate(customerDetails.id, customerDetails.username)}
                       >
                         <Ionicons name="checkmark-circle-outline" size={14} color="#fff" />
@@ -935,7 +935,7 @@ export default function CustomersScreen() {
                           </TouchableOpacity>
                         </View>
                         <TouchableOpacity
-                          style={[styles.whatsappShareBtn, { backgroundColor: '#10b981' }]}
+                          style={[styles.whatsappShareBtn, { backgroundColor: colors.primary }]}
                           onPress={() =>
                             handleShareWhatsAppActivation(
                               customerDetails.activation_link,
@@ -970,7 +970,7 @@ export default function CustomersScreen() {
                       <Ionicons
                         name="shield-checkmark"
                         size={18}
-                        color={customerDetails?.is_locked ? '#dc2626' : '#059669'}
+                        color={customerDetails?.is_locked ? '#dc2626' : colors.primaryDark}
                       />
                       <Text style={[styles.sectionCardTitle, { color: colors.text }]}>
                         Account Security & Lockout Status
@@ -978,7 +978,7 @@ export default function CustomersScreen() {
                     </View>
                     {customerDetails?.is_locked ? (
                       <TouchableOpacity
-                        style={[styles.smallActionBtn, { backgroundColor: '#059669' }]}
+                        style={[styles.smallActionBtn, { backgroundColor: colors.primaryDark }]}
                         onPress={() => handleUnlock(customerDetails.id, customerDetails.username)}
                       >
                         <Ionicons name="lock-open-outline" size={14} color="#fff" />
@@ -1001,7 +1001,7 @@ export default function CustomersScreen() {
                       <Text
                         style={[
                           styles.securityValue,
-                          { color: customerDetails?.is_locked ? '#dc2626' : '#059669' },
+                          { color: customerDetails?.is_locked ? '#dc2626' : colors.primaryDark },
                         ]}
                       >
                         {customerDetails?.is_locked ? 'Locked (Blocked)' : 'Normal (Granted)'}
@@ -1128,7 +1128,7 @@ export default function CustomersScreen() {
                         <Text style={styles.shortcutBtnText}>Call Customer</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
-                        style={[styles.shortcutBtn, { backgroundColor: '#10b981' }]}
+                        style={[styles.shortcutBtn, { backgroundColor: colors.primary }]}
                         onPress={() => {
                           const cleanDigits = String(
                             customerDetails.customer_profile.mobile_number
@@ -1219,7 +1219,7 @@ export default function CustomersScreen() {
                                 {
                                   color:
                                     ord.status === 'DELIVERED'
-                                      ? '#059669'
+                                      ? colors.primaryDark
                                       : ord.status === 'CANCELLED' || ord.status === 'REJECTED'
                                       ? '#dc2626'
                                       : '#b45309',

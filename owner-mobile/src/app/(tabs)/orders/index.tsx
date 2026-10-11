@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import api, { ApiInstance, getErrorMessage } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { useAppTheme } from '../../../context/ThemeContext';
+import { theme } from '../../../constants/theme';
 import { showAlert, showConfirm } from '../../../utils/alerts';
 
 const STATUS_TABS = [
@@ -28,7 +29,7 @@ const STATUS_TABS = [
   { key: 'PREPARING', label: 'Packing', dot: '#f59e0b' },
   { key: 'READY', label: 'Ready', dot: '#8b5cf6' },
   { key: 'OUT_FOR_DELIVERY', label: 'Dispatched', dot: '#06b6d4' },
-  { key: 'COMPLETED', label: 'Done', dot: '#10b981' },
+  { key: 'COMPLETED', label: 'Done', dot: theme.colors.primary },
   { key: 'REJECTED', label: 'Rejected', dot: '#64748b' },
 ];
 
@@ -42,7 +43,7 @@ const getStatusMeta = (status: string, orderType: string | undefined, isDark: bo
         text: isDark ? '#fda4af' : '#e11d48',
         nextLabel: 'Accept',
         nextStatus: 'ACCEPTED',
-        nextColor: '#10b981',
+        nextColor: colors.primary,
       };
     case 'ACCEPTED':
       return {
@@ -73,7 +74,7 @@ const getStatusMeta = (status: string, orderType: string | undefined, isDark: bo
         text: isDark ? '#c4b5fd' : '#7c3aed',
         nextLabel: orderType === 'PICKUP' ? 'Complete Pickup' : 'Dispatch',
         nextStatus: orderType === 'PICKUP' ? 'COMPLETED' : 'OUT_FOR_DELIVERY',
-        nextColor: '#059669',
+        nextColor: colors.primaryDark,
       };
     case 'OUT_FOR_DELIVERY':
       return {
@@ -83,17 +84,17 @@ const getStatusMeta = (status: string, orderType: string | undefined, isDark: bo
         text: isDark ? '#67e8f9' : '#0891b2',
         nextLabel: 'Complete',
         nextStatus: 'COMPLETED',
-        nextColor: '#10b981',
+        nextColor: colors.primary,
       };
     case 'COMPLETED':
       return {
         label: 'Completed',
-        dot: '#10b981',
+        dot: colors.primary,
         bg: isDark ? 'rgba(16, 185, 129, 0.12)' : '#f0fdf4',
         text: isDark ? '#6ee7b7' : '#15803d',
         nextLabel: null,
         nextStatus: null,
-        nextColor: '#10b981',
+        nextColor: colors.primary,
       };
     case 'REJECTED':
       return {
@@ -156,7 +157,7 @@ const OrderCard = React.memo(({
         styles.card,
         {
           backgroundColor: colors.card,
-          borderColor: isExpanded ? '#10b981' : colors.border,
+          borderColor: isExpanded ? colors.primary : colors.border,
         },
       ]}
     >
@@ -211,7 +212,7 @@ const OrderCard = React.memo(({
 
           <View style={styles.inlineActionsRight}>
             {updatingOrderId === order.id ? (
-              <ActivityIndicator size="small" color="#10b981" />
+              <ActivityIndicator size="small" color={colors.primary} />
             ) : (
               <>
                 {order.status === 'NEW' && (
@@ -293,7 +294,7 @@ const OrderCard = React.memo(({
         >
           {loadingDetailId === order.id ? (
             <View style={styles.drawerLoadingRow}>
-              <ActivityIndicator size="small" color="#10b981" />
+              <ActivityIndicator size="small" color={colors.primary} />
               <Text
                 style={[
                   styles.drawerLoadingText,
@@ -313,7 +314,7 @@ const OrderCard = React.memo(({
                   <Text
                     style={[
                       styles.drawerItemQty,
-                      { color: '#10b981' },
+                      { color: colors.primary },
                     ]}
                   >
                     {item.quantity}×
@@ -380,7 +381,7 @@ const OrderCard = React.memo(({
                   ).catch(() => {})
                 }
               >
-                <Ionicons name="call-outline" size={14} color="#10b981" />
+                <Ionicons name="call-outline" size={14} color={colors.primary} />
                 <Text
                   style={[styles.drawerChipText, { color: colors.text }]}
                 >
@@ -410,7 +411,7 @@ const OrderCard = React.memo(({
               <Ionicons
                 name="arrow-forward"
                 size={14}
-                color="#10b981"
+                color={colors.primary}
               />
             </TouchableOpacity>
           </View>
@@ -772,7 +773,7 @@ export default function OrdersListScreen() {
               onPress={onRefresh}
             >
               {refreshing ? (
-                <ActivityIndicator size="small" color="#10b981" />
+                <ActivityIndicator size="small" color={colors.primary} />
               ) : (
                 <Ionicons name="refresh-outline" size={18} color={colors.text} />
               )}
@@ -824,7 +825,7 @@ export default function OrdersListScreen() {
         {/* 3. Interactive Minimalist Order Cards */}
         {loading && !refreshing ? (
           <View style={styles.emptyWrap}>
-            <ActivityIndicator size="large" color="#10b981" />
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
         ) : (
           <FlatList
@@ -845,7 +846,7 @@ export default function OrdersListScreen() {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                tintColor="#10b981"
+                tintColor={colors.primary}
               />
             }
             ListEmptyComponent={
@@ -870,7 +871,7 @@ export default function OrdersListScreen() {
             ListFooterComponent={
               loadingMore ? (
                 <View style={{ paddingVertical: 18, alignItems: 'center' }}>
-                  <ActivityIndicator size="small" color="#10b981" />
+                  <ActivityIndicator size="small" color={colors.primary} />
                 </View>
               ) : null
             }

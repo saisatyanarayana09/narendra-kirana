@@ -19,6 +19,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import { Ionicons } from '@expo/vector-icons';
 import api, { ApiInstance, cachedGet, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
+import { theme } from '@/constants/theme';
 import { showAlert, showConfirm } from '../../../utils/alerts';
 import ScreenHeader from '../../../components/ScreenHeader';
 import ModernSwitch from '../../../components/ModernSwitch';
@@ -85,7 +86,7 @@ const CategoryItem = React.memo<CategoryItemProps>(
               styles.categoryCard,
               {
                 backgroundColor: colors.card,
-                borderColor: isDragging || isHoveredTarget ? '#10b981' : colors.border,
+                borderColor: isDragging || isHoveredTarget ? colors.primary : colors.border,
                 borderWidth: isDragging || isHoveredTarget ? 2 : 1,
               },
             ]}
@@ -109,7 +110,7 @@ const CategoryItem = React.memo<CategoryItemProps>(
                     contentFit="cover"
                   />
                 ) : (
-                  <Ionicons name="pricetag-outline" size={20} color="#10b981" />
+                  <Ionicons name="pricetag-outline" size={20} color={colors.primary} />
                 )}
               </View>
 
@@ -121,7 +122,7 @@ const CategoryItem = React.memo<CategoryItemProps>(
                   <View
                     style={[
                       styles.statusDot,
-                      { backgroundColor: item.is_active ? '#10b981' : '#64748b' },
+                      { backgroundColor: item.is_active ? colors.primary : '#64748b' },
                     ]}
                   />
                   <Text style={[styles.statusText, { color: colors.textMuted }]}>
@@ -145,12 +146,12 @@ const CategoryItem = React.memo<CategoryItemProps>(
                   styles.dragHandleGrip,
                   {
                     backgroundColor: isDragging
-                      ? '#10b981'
+                      ? colors.primary
                       : isDark
                         ? 'rgba(16, 185, 129, 0.15)'
                         : '#ecfdf5',
                     borderColor: isDragging
-                      ? '#059669'
+                      ? colors.primaryDark
                       : isDark
                         ? 'rgba(16, 185, 129, 0.3)'
                         : '#a7f3d0',
@@ -161,7 +162,7 @@ const CategoryItem = React.memo<CategoryItemProps>(
                 <Ionicons
                   name="reorder-two-outline"
                   size={18}
-                  color={isDragging ? '#ffffff' : '#10b981'}
+                  color={isDragging ? '#ffffff' : colors.primary}
                 />
               </View>
 
@@ -575,7 +576,7 @@ export default function CategoriesScreen() {
       {/* Main List */}
       {loading ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#10b981" />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={[styles.loadingText, { color: colors.textMuted }]}>
             Loading categories...
           </Text>
@@ -598,7 +599,7 @@ export default function CategoriesScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#10b981"
+              tintColor={colors.primary}
             />
           }
           renderItem={renderCategoryItem}
@@ -709,7 +710,7 @@ export default function CategoriesScreen() {
                     />
                   ) : (
                     <View style={styles.imagePlaceholder}>
-                      <Ionicons name="camera-outline" size={24} color="#10b981" />
+                      <Ionicons name="camera-outline" size={24} color={colors.primary} />
                       <Text style={[styles.imagePlaceholderText, { color: colors.textMuted }]}>
                         Tap to choose image
                       </Text>
@@ -805,7 +806,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#10b981',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 8,
@@ -947,7 +948,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#10b981',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 10,
@@ -1086,7 +1087,7 @@ const styles = StyleSheet.create({
     flex: 2,
     height: 44,
     borderRadius: 10,
-    backgroundColor: '#10b981',
+    backgroundColor: theme.colors.primary,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',

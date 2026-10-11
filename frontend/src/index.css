@@ -5,20 +5,49 @@
 
 @theme {
   --font-sans: "Nunito", sans-serif;
-  --color-primary-50: #f0fdf4;
-  --color-primary-100: #dcfce7;
-  --color-primary-500: #22c55e;
-  --color-primary-600: #16a34a;
-  --color-primary-700: #15803d;
+  
+  /* Vacation Primary Palette (Seafoam Teal) */
+  --color-primary-50: #f4faf9;
+  --color-primary-100: #d8eeed;
+  --color-primary-200: #b5dedc;
+  --color-primary-300: #88c8c6;
+  --color-primary-400: #5ba8a6;
+  --color-primary-500: #5ba8a6;
+  --color-primary-600: #3d8b89;
+  --color-primary-700: #2c6e6c;
+  --color-primary-800: #245856;
+  --color-primary-900: #1f4948;
+
+  /* Aliasing emerald to Vacation Seafoam Teal so existing classes adopt the new brand identity */
+  --color-emerald-50: #f4faf9;
+  --color-emerald-100: #d8eeed;
+  --color-emerald-200: #b5dedc;
+  --color-emerald-300: #88c8c6;
+  --color-emerald-400: #5ba8a6;
+  --color-emerald-500: #5ba8a6;
+  --color-emerald-600: #3d8b89;
+  --color-emerald-700: #2c6e6c;
+  --color-emerald-800: #245856;
+  --color-emerald-900: #1f4948;
+
+  /* Vacation Palette Distinct Tokens */
+  --color-vacation-teal: #5ba8a6;
+  --color-vacation-blue: #4d69a5;
+  --color-vacation-gold: #ecd386;
+  --color-vacation-cream: #eae6dd;
+  --color-vacation-charcoal: #323232;
 }
 
 @layer base {
   html {
-    @apply bg-slate-50;
+    background-color: var(--color-vacation-cream, #f7f5f0);
     scroll-behavior: smooth;
   }
   body {
-    @apply bg-slate-50 text-slate-900 font-sans antialiased;
+    background-color: var(--color-vacation-cream, #f7f5f0);
+    color: var(--color-vacation-charcoal, #323232);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
   }
 }
 
@@ -165,20 +194,20 @@ html.dark .text-primary-800,
 html.dark .text-emerald-700,
 html.dark .text-emerald-800,
 html.dark .text-emerald-900 {
-  color: #34d399 !important;
+  color: var(--color-emerald-300, #88c8c6) !important;
 }
 
 html.dark .bg-primary-50,
 html.dark .bg-emerald-50,
 html.dark .bg-green-50 {
-  background-color: rgba(16, 185, 129, 0.15) !important;
-  color: #34d399 !important;
+  background-color: color-mix(in srgb, var(--color-emerald-500, #5ba8a6) 18%, transparent) !important;
+  color: var(--color-emerald-300, #88c8c6) !important;
 }
 
 html.dark .border-emerald-100,
 html.dark .border-emerald-200,
 html.dark .border-green-100 {
-  border-color: rgba(16, 185, 129, 0.3) !important;
+  border-color: color-mix(in srgb, var(--color-emerald-500, #5ba8a6) 30%, transparent) !important;
 }
 
 /* Pastel Tint Box Adaptations (Indigo, Red, Rose, Amber, Blue, Violet, Teal) */
@@ -706,8 +735,16 @@ html.dark textarea::placeholder {
 html.dark input:focus,
 html.dark select:focus,
 html.dark textarea:focus {
-  border-color: #10b981 !important;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2) !important;
+  border-color: var(--color-emerald-500, #5ba8a6) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-emerald-500, #5ba8a6) 25%, transparent) !important;
+}
+
+/* High-contrast text support for primary buttons */
+button.bg-emerald-600,
+button.bg-primary-600,
+a.bg-emerald-600,
+a.bg-primary-600 {
+  color: var(--color-primary-contrast, #ffffff);
 }
 
 /* Popups, Menus, Modals & Dropdown Autocomplete */

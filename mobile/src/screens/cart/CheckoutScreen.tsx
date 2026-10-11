@@ -23,6 +23,7 @@ import { apiClient } from "../../api/client";
 import { FormInput } from "../../components/FormInput";
 import { MapLocationPicker } from "../../components/MapLocationPicker";
 import { SlideToConfirm } from "../../components/SlideToConfirm";
+import { theme } from "../../constants/theme";
 import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
 import { useTheme } from "../../context/ThemeContext";
@@ -940,7 +941,7 @@ export function CheckoutScreen({
                         onPress={() => setShowMapPicker(true)}
                         activeOpacity={0.85}
                       >
-                        <Feather name="map-pin" size={15} color="#059669" />
+                        <Feather name="map-pin" size={15} color={colors.primary} />
                         <Text style={styles.osmPinMapBtnText}>
                           Pin on Map (OSM)
                         </Text>
@@ -974,7 +975,7 @@ export function CheckoutScreen({
                         <Feather
                           name="check-circle"
                           size={16}
-                          color="#059669"
+                          color={colors.primary}
                         />
                         <Text style={styles.gpsSecuredText}>
                           📍 Pinned ({Number(addressForm.latitude).toFixed(4)},{" "}
@@ -986,7 +987,7 @@ export function CheckoutScreen({
                         onPress={() => setShowMapPicker(true)}
                         activeOpacity={0.8}
                       >
-                        <Feather name="edit-2" size={12} color="#059669" />
+                        <Feather name="edit-2" size={12} color={colors.primary} />
                         <Text style={styles.relocateBtnText}>Edit Pin</Text>
                       </TouchableOpacity>
                     </View>
@@ -1212,7 +1213,7 @@ export function CheckoutScreen({
                                 <Feather
                                   name="check-circle"
                                   size={11}
-                                  color="#059669"
+                                  color={colors.primary}
                                 />
                                 <Text style={styles.addrGpsTagText}>
                                   GPS Secured
@@ -1485,17 +1486,17 @@ export function CheckoutScreen({
                   backgroundColor: isDark
                     ? "rgba(16, 185, 129, 0.15)"
                     : "#ECFDF5",
-                  borderColor: "#10B981",
+                  borderColor: colors.success,
                 },
               ]}
             >
-              <Feather name="check-circle" size={18} color="#10B981" />
+              <Feather name="check-circle" size={18} color={colors.success} />
               <View style={{ flex: 1 }}>
                 <Text
                   style={{
                     fontSize: 14,
                     fontWeight: "700",
-                    color: isDark ? "#34D399" : "#047857",
+                    color: isDark ? "#34D399" : colors.primaryDark,
                   }}
                 >
                   Order 100% Covered by Wallet
@@ -1581,12 +1582,12 @@ export function CheckoutScreen({
                   <Feather
                     name={copiedUpi ? "check" : "copy"}
                     size={14}
-                    color={copiedUpi ? "#059669" : colors.textSecondary}
+                    color={copiedUpi ? colors.primary : colors.textSecondary}
                   />
                   <Text
                     style={[
                       styles.upiSecondaryBtnText,
-                      { color: copiedUpi ? "#059669" : colors.textSecondary },
+                      { color: copiedUpi ? colors.primary : colors.textSecondary },
                     ]}
                   >
                     {copiedUpi ? "Copied!" : "Copy UPI ID"}
@@ -1746,7 +1747,7 @@ export function CheckoutScreen({
                 },
               ]}
             >
-              <Feather name="gift" size={14} color="#059669" />
+              <Feather name="gift" size={14} color={colors.primary} />
               <Text style={styles.savingsHighlightText}>
                 You are saving ₹
                 {(
@@ -1930,7 +1931,7 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#059669",
+    color: theme.colors.primary,
   },
   headerTitle: {
     fontSize: 24,
@@ -2058,7 +2059,7 @@ const styles = StyleSheet.create({
     color: "#64748B",
   },
   typeTextActivePickup: {
-    color: "#059669",
+    color: theme.colors.primary,
   },
   typeTextActiveDelivery: {
     color: "#4F46E5",
@@ -2108,7 +2109,7 @@ const styles = StyleSheet.create({
   osmPinMapBtnText: {
     fontSize: 12,
     fontWeight: "800",
-    color: "#047857",
+    color: theme.colors.primaryDark,
   },
   gpsCaptureBtnSmall: {
     flex: 1,
@@ -2164,7 +2165,7 @@ const styles = StyleSheet.create({
   gpsSecuredText: {
     fontSize: 13,
     fontWeight: "800",
-    color: "#059669",
+    color: theme.colors.primary,
   },
   relocateBtn: {
     flexDirection: "row",
@@ -2180,7 +2181,7 @@ const styles = StyleSheet.create({
   relocateBtnText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#059669",
+    color: theme.colors.primary,
   },
   formGrid: {
     gap: 10,
@@ -2258,7 +2259,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   addFirstAddrBtn: {
-    backgroundColor: "#059669",
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 10,
@@ -2354,7 +2355,7 @@ const styles = StyleSheet.create({
   addrGpsTagText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#059669",
+    color: theme.colors.primary,
   },
   minDeliveryWarning: {
     flexDirection: "row",
@@ -2389,7 +2390,7 @@ const styles = StyleSheet.create({
   },
   pickupSlotPillActive: {
     backgroundColor: "#ECFDF5",
-    borderColor: "#059669",
+    borderColor: theme.colors.primary,
   },
   pickupSlotText: {
     fontSize: 13,
@@ -2397,7 +2398,7 @@ const styles = StyleSheet.create({
     color: "#64748B",
   },
   pickupSlotTextActive: {
-    color: "#059669",
+    color: theme.colors.primary,
     fontWeight: "800",
   },
   storeAddressHint: {
@@ -2447,7 +2448,7 @@ const styles = StyleSheet.create({
   },
   walletBalanceText: {
     fontSize: 12,
-    color: "#059669",
+    color: theme.colors.primary,
     fontWeight: "600",
   },
   cardTitle: {
@@ -2473,12 +2474,12 @@ const styles = StyleSheet.create({
   },
   savingsLabel: {
     fontSize: 14,
-    color: "#059669",
+    color: theme.colors.primary,
     fontWeight: "600",
   },
   savingsValue: {
     fontSize: 14,
-    color: "#059669",
+    color: theme.colors.primary,
     fontWeight: "700",
   },
   mrpStrikeText: {
@@ -2502,11 +2503,11 @@ const styles = StyleSheet.create({
   savingsHighlightText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#059669",
+    color: theme.colors.primary,
     flex: 1,
   },
   freeText: {
-    color: "#059669",
+    color: theme.colors.primary,
     fontWeight: "800",
   },
   totalRow: {
@@ -2582,7 +2583,7 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   placeOrderBtn: {
-    backgroundColor: "#059669",
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
     minHeight: 46,
@@ -2729,7 +2730,7 @@ const styles = StyleSheet.create({
   },
   walletLimitText: {
     fontSize: 11,
-    color: "#059669",
+    color: theme.colors.primary,
     fontWeight: "600",
     marginTop: 2,
   },
@@ -2967,7 +2968,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#059669",
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,

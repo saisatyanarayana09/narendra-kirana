@@ -20,6 +20,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import api, { ApiInstance, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
+import { theme } from '../../../constants/theme';
 import { showAlert, showConfirm } from '../../../utils/alerts';
 
 type SectionTab =
@@ -447,7 +448,7 @@ export default function AdvancedSettingsScreen() {
       <View style={[styles.screen, { backgroundColor: colors.bg }]}>
         <ScreenHeader title="Configurations" subtitle="UPI, slots, compliance & backups" />
         <View style={[styles.center, { backgroundColor: colors.bg }]}>
-          <ActivityIndicator size="large" color="#10b981" />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={[styles.loadingText, { color: colors.textMuted }]}>
             Loading advanced settings...
           </Text>
@@ -490,14 +491,14 @@ export default function AdvancedSettingsScreen() {
           </Text>
           <TouchableOpacity
             style={{
-              backgroundColor: '#10b981',
+              backgroundColor: colors.primary,
               paddingHorizontal: 24,
               paddingVertical: 12,
               borderRadius: 10,
               flexDirection: 'row',
               alignItems: 'center',
               gap: 8,
-              shadowColor: '#10b981',
+              shadowColor: colors.primary,
               shadowOffset: { width: 0, height: 3 },
               shadowOpacity: 0.25,
               shadowRadius: 6,
@@ -521,7 +522,7 @@ export default function AdvancedSettingsScreen() {
         subtitle="UPI, slots, compliance & backups"
         rightAction={
           <TouchableOpacity
-            style={[styles.saveHeaderBtn, { backgroundColor: '#10b981', opacity: saving ? 0.7 : 1 }]}
+            style={[styles.saveHeaderBtn, { backgroundColor: colors.primary, opacity: saving ? 0.7 : 1 }]}
             onPress={handleSave}
             disabled={saving}
           >
@@ -548,8 +549,8 @@ export default function AdvancedSettingsScreen() {
                 style={[
                   styles.tabPill,
                   {
-                    backgroundColor: isActive ? '#10b981' : colors.cardAlt,
-                    borderColor: isActive ? '#10b981' : colors.border,
+                    backgroundColor: isActive ? colors.primary : colors.cardAlt,
+                    borderColor: isActive ? colors.primary : colors.border,
                   },
                 ]}
                 onPress={() => setActiveTab(tab.key)}
@@ -580,8 +581,8 @@ export default function AdvancedSettingsScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => fetchSettings(true)}
-            colors={['#10b981']}
-            tintColor="#10b981"
+            colors={[colors.primary]}
+            tintColor={colors.primary}
           />
         }
       >
@@ -619,7 +620,7 @@ export default function AdvancedSettingsScreen() {
             <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <View style={styles.cardHeader}>
                 <View style={[styles.cardIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
-                  <Ionicons name="qr-code-outline" size={20} color="#10b981" />
+                  <Ionicons name="qr-code-outline" size={20} color={colors.primary} />
                 </View>
                 <View>
                   <Text style={[styles.cardTitle, { color: colors.text }]}>UPI & Payment Gateway</Text>
@@ -667,7 +668,7 @@ export default function AdvancedSettingsScreen() {
                   <Image source={{ uri: upiQrUri }} style={styles.squareImage} contentFit="contain" />
                   <View style={styles.imageActionRow}>
                     <TouchableOpacity
-                      style={[styles.smallBtn, { backgroundColor: '#10b981' }]}
+                      style={[styles.smallBtn, { backgroundColor: colors.primary }]}
                       onPress={() =>
                         pickImageFile((uri) => {
                           setUpiQrUri(uri);
@@ -700,7 +701,7 @@ export default function AdvancedSettingsScreen() {
                     })
                   }
                 >
-                  <Ionicons name="qr-code-outline" size={28} color="#10b981" />
+                  <Ionicons name="qr-code-outline" size={28} color={colors.primary} />
                   <Text style={[styles.imagePlaceholderTitle, { color: colors.text }]}>Upload Store UPI QR Code</Text>
                   <Text style={[styles.imagePlaceholderSub, { color: colors.textMuted }]}>
                     Tap to select QR image from gallery
@@ -848,7 +849,7 @@ export default function AdvancedSettingsScreen() {
                   >
                     <View style={styles.dayLabelCol}>
                       <Text style={[styles.dayTitle, { color: colors.text }]}>{dayLabel}</Text>
-                      <Text style={[styles.dayStatus, { color: dayData.is_closed ? '#ef4444' : '#10b981' }]}>
+                      <Text style={[styles.dayStatus, { color: dayData.is_closed ? '#ef4444' : colors.primary }]}>
                         {dayData.is_closed ? 'Closed' : `${dayData.open} - ${dayData.close}`}
                       </Text>
                     </View>
@@ -1008,7 +1009,7 @@ export default function AdvancedSettingsScreen() {
                 />
 
                 <TouchableOpacity
-                  style={[styles.addSlotBtn, { backgroundColor: '#10b981' }]}
+                  style={[styles.addSlotBtn, { backgroundColor: colors.primary }]}
                   onPress={handleAddSlot}
                 >
                   <Ionicons name="add" size={18} color="#fff" />
@@ -1306,7 +1307,7 @@ export default function AdvancedSettingsScreen() {
                       <Image source={{ uri: festiveImageUri }} style={styles.bannerImage} contentFit="cover" />
                       <View style={styles.imageActionRow}>
                         <TouchableOpacity
-                          style={[styles.smallBtn, { backgroundColor: '#10b981' }]}
+                          style={[styles.smallBtn, { backgroundColor: colors.primary }]}
                           onPress={() =>
                             pickImageFile((uri) => {
                               setFestiveImageUri(uri);
@@ -1493,7 +1494,7 @@ export default function AdvancedSettingsScreen() {
               {/* Live Database Stats Cards */}
               <View style={styles.statsGrid}>
                 <View style={[styles.statCard, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
-                  <Text style={[styles.statValue, { color: '#10b981' }]}>
+                  <Text style={[styles.statValue, { color: colors.primary }]}>
                     {backupStats?.products_count ?? '—'}
                   </Text>
                   <Text style={[styles.statLabel, { color: colors.textMuted }]}>Products</Text>
@@ -1530,7 +1531,7 @@ export default function AdvancedSettingsScreen() {
 
               {/* Download Backup Button */}
               <TouchableOpacity
-                style={[styles.backupDownloadBtn, { backgroundColor: '#10b981' }]}
+                style={[styles.backupDownloadBtn, { backgroundColor: colors.primary }]}
                 onPress={handleDownloadBackup}
                 disabled={downloadingBackup}
               >
@@ -1554,7 +1555,7 @@ export default function AdvancedSettingsScreen() {
           {/* Bottom Save Button for all tabs */}
           {activeTab !== 'backup' && (
             <TouchableOpacity
-              style={[styles.saveAllBtn, { backgroundColor: '#10b981' }]}
+              style={[styles.saveAllBtn, { backgroundColor: colors.primary }]}
               onPress={handleSave}
               disabled={saving}
             >
@@ -1808,7 +1809,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   slotBadge: {
-    backgroundColor: '#10b981',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -1971,7 +1972,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 10,
     marginTop: 10,
-    shadowColor: '#10b981',
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,

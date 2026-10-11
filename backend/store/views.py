@@ -65,6 +65,51 @@ class BackendHealthView(View):
         }, status=200 if is_healthy else 503)
 
 
+class StorePublicSettingsView(views.APIView):
+    """
+    Public storefront settings endpoint accessible without authentication.
+    Consumed by customer web storefront and customer mobile app.
+    Guarantees theme colors, branding presets, and customer-facing operational flags.
+    """
+    def get_authenticators(self):
+        return []
+
+    def get_permissions(self):
+        return [AllowAny()]
+
+    def get(self, request):
+        from django.core.cache import cache
+        cached_data = cache.get('store_public_settings_serialized')
+        if cached_data is not None:
+            resp = response.Response(cached_data)
+            resp['Cache-Control'] = 'no-cache, must-revalidate, max-age=0'
+            return resp
+
+        settings = StoreSettings.load()
+        serializer = StoreSettingsSerializer(settings, context={'request': request})
+        data = dict(serializer.data)
+
+        # Explicitly ensure all theme fields are present with safe defaults
+        theme_defaults = [
+            ('brand_theme_preset', settings.brand_theme_preset or 'vacation'),
+            ('palette_mode', settings.palette_mode or 5),
+            ('custom_primary_color', settings.custom_primary_color or '#5ba8a6'),
+            ('custom_secondary_color', settings.custom_secondary_color or '#4d69a5'),
+            ('custom_accent_color', settings.custom_accent_color or '#ecd386'),
+            ('custom_canvas_color', settings.custom_canvas_color or '#eae6dd'),
+            ('custom_text_color', settings.custom_text_color or '#323232'),
+            ('apply_theme_to_owner_app', settings.apply_theme_to_owner_app),
+        ]
+        for key, val in theme_defaults:
+            if not data.get(key) and data.get(key) != False:
+                data[key] = val
+
+        cache.set('store_public_settings_serialized', data, 300)
+        resp = response.Response(data)
+        resp['Cache-Control'] = 'no-cache, must-revalidate, max-age=0'
+        return resp
+
+
 class StoreSettingsView(views.APIView):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
@@ -87,8 +132,22 @@ class StoreSettingsView(views.APIView):
             return resp
         settings = StoreSettings.load()
         serializer = StoreSettingsSerializer(settings, context={'request': request})
-        cache.set('store_settings_serialized', serializer.data, 300)
-        resp = response.Response(serializer.data)
+        data = dict(serializer.data)
+        theme_defaults = [
+            ('brand_theme_preset', settings.brand_theme_preset or 'vacation'),
+            ('palette_mode', settings.palette_mode or 5),
+            ('custom_primary_color', settings.custom_primary_color or '#5ba8a6'),
+            ('custom_secondary_color', settings.custom_secondary_color or '#4d69a5'),
+            ('custom_accent_color', settings.custom_accent_color or '#ecd386'),
+            ('custom_canvas_color', settings.custom_canvas_color or '#eae6dd'),
+            ('custom_text_color', settings.custom_text_color or '#323232'),
+            ('apply_theme_to_owner_app', settings.apply_theme_to_owner_app),
+        ]
+        for key, val in theme_defaults:
+            if not data.get(key) and data.get(key) != False:
+                data[key] = val
+        cache.set('store_settings_serialized', data, 300)
+        resp = response.Response(data)
         resp['Cache-Control'] = 'no-cache, must-revalidate, max-age=0'
         return resp
 
@@ -99,6 +158,7 @@ class StoreSettingsView(views.APIView):
         if serializer.is_valid():
             serializer.save()
             cache.delete('store_settings_serialized')
+            cache.delete('store_public_settings_serialized')
             cache.delete('store_settings')
             return response.Response(serializer.data)
         return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

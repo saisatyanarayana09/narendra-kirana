@@ -804,7 +804,7 @@ export function CustomerLayout({ children }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#090d16] flex flex-col justify-start text-slate-900 dark:text-slate-100 transition-colors duration-200 antialiased pb-20 md:pb-0">
+    <div className="min-h-screen bg-[var(--color-vacation-cream,#f7f5f0)] dark:bg-[#090d16] flex flex-col justify-start text-[var(--color-vacation-charcoal,#323232)] dark:text-slate-100 transition-colors duration-200 antialiased pb-20 md:pb-0">
       <TopAnnouncementMarquee settings={storeSettings} />
       <WelcomeScreen />
       <FestivePopupModal settings={storeSettings} />

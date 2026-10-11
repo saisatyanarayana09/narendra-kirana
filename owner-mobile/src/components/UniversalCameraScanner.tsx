@@ -14,6 +14,7 @@ import {
 import { Camera, CameraView, BarcodeScanningResult, BarcodeType } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import jsQR from 'jsqr';
+import { theme } from '@/constants/theme';
 
 interface UniversalCameraScannerProps {
   onScan: (data: string) => void;
@@ -416,7 +417,7 @@ export default function UniversalCameraScanner({
       <View style={[styles.cameraBox, { height: height as any }]}>
         {hasPermission === null && !cameraError && (
           <View style={styles.statusCenter}>
-            <ActivityIndicator size="large" color="#10b981" />
+            <ActivityIndicator size="large" color={theme.colors.primary} />
             <Text style={styles.statusText}>Starting camera...</Text>
           </View>
         )}
@@ -585,7 +586,7 @@ export default function UniversalCameraScanner({
                 <View
                   style={[
                     styles.reticleDot,
-                    { backgroundColor: scanned ? '#34d399' : '#10b981' },
+                    { backgroundColor: scanned ? '#34d399' : theme.colors.primary },
                   ]}
                 />
                 <Text style={styles.reticleBadgeText}>
@@ -731,7 +732,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   modeSegmentBtnActive: {
-    backgroundColor: '#10b981',
+    backgroundColor: theme.colors.primary,
   },
   modeSegmentText: {
     color: '#94a3b8',
@@ -810,7 +811,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 26,
     height: 26,
-    borderColor: '#10b981',
+    borderColor: theme.colors.primary,
   },
   cornerScanned: {
     borderColor: '#34d399',
@@ -857,7 +858,7 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#34d399',
     borderRadius: 2,
-    shadowColor: '#10b981',
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.95,
     shadowRadius: 8,
@@ -913,11 +914,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    backgroundColor: '#10b981',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 20,
-    shadowColor: '#10b981',
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 10,

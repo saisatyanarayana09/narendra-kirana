@@ -16,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { apiClient } from "../../api/client";
 import { useTheme } from "../../context/ThemeContext";
+import { theme } from "../../constants/theme";
 
 interface Props {
   navigation: any;
@@ -398,7 +399,7 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
           >
             {isSuccess ? (
               <View style={styles.successBox}>
-                <Feather name="check-circle" size={44} color="#10B981" />
+                <Feather name="check-circle" size={44} color={colors.success} />
                 <Text style={[styles.successTitle, { color: colors.text }]}>
                   Password Changed!
                 </Text>
@@ -853,7 +854,7 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
                           <Feather
                             name="check-circle"
                             size={16}
-                            color="#10B981"
+                            color={colors.success}
                           />
                           <Text
                             style={[
@@ -1163,7 +1164,7 @@ const styles = StyleSheet.create({
   },
   passwordMatchText: {
     fontSize: 12,
-    color: "#10B981",
+    color: theme.colors.success,
     fontWeight: "600",
     marginTop: 4,
   },

@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { apiClient } from "../../api/client";
+import { theme } from "../../constants/theme";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { AppNavigationProp } from "../../navigation/types";
@@ -101,7 +102,7 @@ type StatusMeta = {
 const STATUS_MAP_LIGHT: Record<string, StatusMeta> = {
   COMPLETED: {
     bg: "#ECFDF5",
-    text: "#047857",
+    text: theme.colors.primaryDark,
     border: "#A7F3D0",
     icon: "check-circle",
     label: "Delivered",

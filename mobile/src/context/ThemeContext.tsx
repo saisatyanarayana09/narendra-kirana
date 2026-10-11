@@ -7,62 +7,50 @@ import React, {
   useCallback,
   ReactNode,
 } from "react";
-import { useColorScheme } from "react-native";
+import { useColorScheme, AppState } from "react-native";
 
 import { getItem, saveItem } from "../utils/storage";
 
-export type ThemeMode = "light" | "dark" | "system";
+import {
+  ThemeColors,
+  ThemeMode,
+  lightColors,
+  darkColors,
+  THEME_PRESETS,
+} from "../constants/theme";
+import { storeApi } from "../api/store";
 
-export interface ThemeColors {
-  background: string;
-  surface: string;
-  text: string;
-  textSecondary: string;
-  border: string;
-  cardBg: string;
-  primary: string;
-  primaryDark: string;
-  primaryLight: string;
-  success: string;
-  error: string;
-  inputBg: string;
-  divider: string;
-  mutedSurface: string;
+export type { ThemeMode, ThemeColors };
+
+export function normalizeHex(hex?: string | null, fallback = "#5ba8a6"): string {
+  if (!hex || typeof hex !== "string") return fallback;
+  const clean = hex.trim().replace(/[^0-9a-fA-F#]/g, "");
+  const withHash = clean.startsWith("#") ? clean : `#${clean}`;
+  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(withHash) ? withHash : fallback;
 }
 
-const lightColors: ThemeColors = {
-  background: "#F8FAFC",
-  surface: "#FFFFFF",
-  text: "#0F172A",
-  textSecondary: "#64748B",
-  border: "#E2E8F0",
-  cardBg: "#FFFFFF",
-  primary: "#059669",
-  primaryDark: "#047857",
-  primaryLight: "#D1FAE5",
-  success: "#10B981",
-  error: "#EF4444",
-  inputBg: "#F1F5F9",
-  divider: "#F1F5F9",
-  mutedSurface: "#F8FAFC",
-};
+export function adjustLuminance(hex: string, percent: number): string {
+  if (!hex || typeof hex !== "string") return hex;
+  const clean = hex.trim().replace(/^#/, "");
+  if (!/^[0-9a-fA-F]{6}$/.test(clean)) return hex;
+  const num = parseInt(clean, 16);
+  const amt = Math.round(2.55 * percent);
+  const R = Math.max(0, Math.min(255, (num >> 16) + amt));
+  const G = Math.max(0, Math.min(255, ((num >> 8) & 0x00ff) + amt));
+  const B = Math.max(0, Math.min(255, (num & 0x0000ff) + amt));
+  return `#${(0x1000000 + (R << 16) + (G << 8) + B).toString(16).slice(1)}`;
+}
 
-const darkColors: ThemeColors = {
-  background: "#090D16",
-  surface: "#131B2E",
-  text: "#F8FAFC",
-  textSecondary: "#94A3B8",
-  border: "#24334C",
-  cardBg: "#131B2E",
-  primary: "#10B981",
-  primaryDark: "#059669",
-  primaryLight: "#064E3B",
-  success: "#10B981",
-  error: "#F87171",
-  inputBg: "#162032",
-  divider: "#1E293B",
-  mutedSurface: "#0E1626",
-};
+export function getContrastTextColor(hexColor: string): "#ffffff" | "#0f172a" {
+  if (!hexColor || typeof hexColor !== "string") return "#ffffff";
+  const clean = hexColor.trim().replace(/^#/, "");
+  if (!/^[0-9a-fA-F]{6}$/.test(clean)) return "#ffffff";
+  const r = parseInt(clean.substring(0, 2), 16) || 0;
+  const g = parseInt(clean.substring(2, 4), 16) || 0;
+  const b = parseInt(clean.substring(4, 6), 16) || 0;
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  return yiq >= 165 ? "#0f172a" : "#ffffff";
+}
 
 interface ThemeContextType {
   theme: ThemeMode;
@@ -82,6 +70,15 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({
 }) => {
   const systemColorScheme = useColorScheme();
   const [themeMode, setThemeModeState] = useState<ThemeMode>("light");
+  const [activePreset, setActivePreset] = useState<string>("vacation");
+  const [paletteMode, setPaletteMode] = useState<number>(5);
+  const [customColors, setCustomColors] = useState<{
+    primary?: string;
+    secondary?: string;
+    accent?: string;
+    canvas?: string;
+    text?: string;
+  }>({});
 
   useEffect(() => {
     async function loadPreferences() {
@@ -101,6 +98,52 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({
     loadPreferences();
   }, []);
 
+  const applyThemeSettings = useCallback((settings: any) => {
+    if (!settings) return;
+    if (settings.brand_theme_preset) {
+      setActivePreset(settings.brand_theme_preset);
+    }
+    if (settings.palette_mode) {
+      setPaletteMode(Number(settings.palette_mode) || 5);
+    }
+    setCustomColors({
+      primary: settings.custom_primary_color,
+      secondary: settings.custom_secondary_color,
+      accent: settings.custom_accent_color,
+      canvas: settings.custom_canvas_color,
+      text: settings.custom_text_color,
+    });
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = storeApi.subscribe((settings) => {
+      applyThemeSettings(settings);
+    });
+
+    // Proactively fetch latest published theme
+    storeApi.getSettings(true).then((s) => {
+      if (s) applyThemeSettings(s);
+    }).catch(() => {});
+
+    return () => {
+      unsubscribe();
+    };
+  }, [applyThemeSettings]);
+
+  // Over-the-air theme synchronization when app returns to foreground
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") {
+        storeApi.getSettings(true).then((s) => {
+          if (s) applyThemeSettings(s);
+        }).catch(() => {});
+      }
+    });
+    return () => {
+      sub.remove();
+    };
+  }, [applyThemeSettings]);
+
   const toggleThemeMode = useCallback(async (mode: ThemeMode) => {
     setThemeModeState(mode);
     await saveItem(STORAGE_THEME_KEY, mode);
@@ -110,7 +153,84 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({
     themeMode === "system"
       ? systemColorScheme === "dark"
       : themeMode === "dark";
-  const colors = isDark ? darkColors : lightColors;
+
+  const colors = useMemo(() => {
+    const base = isDark ? { ...darkColors } : { ...lightColors };
+    const preset = (THEME_PRESETS as any)[activePreset] || THEME_PRESETS.vacation;
+    const isCustom = activePreset === "custom";
+
+    const pPrimary = normalizeHex(isCustom ? (customColors.primary || preset.primary) : preset.primary, "#5ba8a6");
+    const pSecondary = normalizeHex(isCustom ? (customColors.secondary || preset.secondary) : preset.secondary, "#4d69a5");
+    const pAccent = normalizeHex(isCustom ? (customColors.accent || preset.accent) : preset.accent, "#ecd386");
+    const pCanvas = normalizeHex(isCustom ? (customColors.canvas || preset.canvas || "#f7f5f0") : (preset.canvas || "#f7f5f0"), "#f7f5f0");
+    const pText = normalizeHex(isCustom ? (customColors.text || preset.text || "#323232") : (preset.text || "#323232"), "#323232");
+
+    base.primary = pPrimary;
+    base.primaryDark = isCustom
+      ? adjustLuminance(pPrimary, -15)
+      : (preset.primaryDark || adjustLuminance(pPrimary, -15));
+    base.primaryLight = isCustom ? adjustLuminance(pPrimary, 80) : (preset.primaryLight || "#d8eeed");
+
+    base.accent = pAccent;
+    base.accentLight = isCustom ? adjustLuminance(pAccent, 40) : (preset.accentLight || "#fbf6e7");
+
+    // Lift secondary luminance in dark mode for WCAG AA readability against dark surfaces
+    const effectiveSecondary = isDark ? adjustLuminance(pSecondary, 25) : pSecondary;
+
+    if (paletteMode === 2) {
+      // 2-Color Mode: Minimalist Dual-Tone
+      if (!isDark) {
+        base.background = "#ffffff";
+        base.surface = "#ffffff";
+        base.inputBg = "#f8fafc";
+        base.border = "#e2e8f0";
+        base.text = "#0f172a";
+        base.mutedSurface = "#f8fafc";
+      }
+      base.secondary = pPrimary;
+      base.indigo = pPrimary;
+    } else if (paletteMode === 3) {
+      // 3-Color Mode: Standard Trio (Primary + Delivery/Secondary + Accent)
+      base.secondary = effectiveSecondary;
+      base.indigo = effectiveSecondary;
+      if (!isDark) {
+        base.background = "#f8fafc";
+        base.surface = "#ffffff";
+        base.inputBg = "#f1f5f9";
+        base.border = "#e2e8f0";
+        base.text = "#0f172a";
+        base.mutedSurface = "#f1f5f9";
+      }
+    } else if (paletteMode === 4) {
+      // 4-Color Mode: Rich Ambient (Canvas Surface Tint is custom)
+      base.secondary = effectiveSecondary;
+      base.indigo = effectiveSecondary;
+      if (!isDark) {
+        base.background = pCanvas;
+        base.inputBg = pCanvas;
+        base.border = adjustLuminance(pCanvas, -12);
+        base.text = "#0f172a";
+        base.mutedSurface = adjustLuminance(pCanvas, -4);
+      }
+    } else {
+      // 5-Color Mode (Full Atmosphere Master): All 5 Vacation tokens
+      base.secondary = effectiveSecondary;
+      base.indigo = effectiveSecondary;
+      if (!isDark) {
+        base.background = pCanvas;
+        base.inputBg = pCanvas;
+        base.border = adjustLuminance(pCanvas, -12);
+        base.text = pText;
+        base.mutedSurface = adjustLuminance(pCanvas, -4);
+      }
+    }
+
+    base.welcomeGradient = isDark
+      ? [base.background, adjustLuminance(pPrimary, -75), base.background]
+      : ["#ffffff", base.accentLight || "#fbf6e7", base.primaryLight];
+
+    return base;
+  }, [isDark, activePreset, paletteMode, customColors]);
 
   const contextValue = useMemo(
     () => ({

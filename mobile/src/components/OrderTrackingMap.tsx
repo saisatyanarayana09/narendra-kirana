@@ -13,6 +13,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 
+import { theme } from "../constants/theme";
+
 interface OrderTrackingMapProps {
   order: any;
   storeSettings?: any;
@@ -170,7 +172,7 @@ export function OrderTrackingMap({
               cursor: pointer;
             }
             .eta-dot {
-              width: 8px; height: 8px; border-radius: 50%; background: #10B981;
+              width: 8px; height: 8px; border-radius: 50%; background: ${theme.colors.success};
             }
 
             
@@ -181,7 +183,7 @@ export function OrderTrackingMap({
 
           <!-- Top Status ETA Badge -->
           <div class="eta-pill" id="eta-pill" onclick="recenterMap()">
-            <span class="eta-dot" style="background: ${hasRiderPosition ? "#4F46E5" : "#10B981"};"></span>
+            <span class="eta-dot" style="background: ${hasRiderPosition ? "#4F46E5" : theme.colors.success};"></span>
             <span id="eta-text">${
               hasRiderPosition
                 ? "Connecting live rider route..."
@@ -253,7 +255,7 @@ export function OrderTrackingMap({
                   popupAnchor: [0, -24]
                 });
                 riderMarker = L.marker([${riderLat}, ${riderLng}], { icon: riderIcon }).addTo(map);
-                riderMarker.bindPopup('<div style="font-size:12px; line-height:1.4;"><b style="color:#4F46E5;">🛵 ${riderName}</b><br/><span style="color:#059669; font-weight:700;">● Live GPS Active</span><br/><span style="color:#475569;">On the way to your doorstep</span></div>');
+                riderMarker.bindPopup('<div style="font-size:12px; line-height:1.4;"><b style="color:#4F46E5;">🛵 ${riderName}</b><br/><span style="color:${theme.colors.primary}; font-weight:700;">● Live GPS Active</span><br/><span style="color:#475569;">On the way to your doorstep</span></div>');
                 riderMarker.openPopup();
               `
                   : ""
@@ -307,8 +309,8 @@ export function OrderTrackingMap({
                       if (activePolyline) map.removeLayer(activePolyline);
                       if (activeStraightLine) map.removeLayer(activeStraightLine);
 
-                      activePolylineCasing = L.polyline(coords, { color: '#047857', weight: 6.5, opacity: 0.3 }).addTo(map);
-                      activePolyline = L.polyline(coords, { color: '#10B981', weight: 4.5, opacity: 0.95 }).addTo(map);
+                      activePolylineCasing = L.polyline(coords, { color: '${theme.colors.primaryDark}', weight: 6.5, opacity: 0.3 }).addTo(map);
+                      activePolyline = L.polyline(coords, { color: '${theme.colors.success}', weight: 4.5, opacity: 0.95 }).addTo(map);
 
                       routeBounds = activePolyline.getBounds();
                     } else {
@@ -326,7 +328,7 @@ export function OrderTrackingMap({
                 if (activeStraightLine) map.removeLayer(activeStraightLine);
 
                 activeStraightLine = L.polyline([[oLat, oLng], [dLat, dLng]], {
-                  color: '#10B981', weight: 3.5, dashArray: '5, 8'
+                  color: '${theme.colors.success}', weight: 3.5, dashArray: '5, 8'
                 }).addTo(map);
                 routeBounds = activeStraightLine.getBounds();
               }
@@ -349,7 +351,7 @@ export function OrderTrackingMap({
                     popupAnchor: [0, -24]
                   });
                   riderMarker = L.marker([lat, lng], { icon: riderIcon }).addTo(map);
-                  riderMarker.bindPopup('<div style="font-size:12px; line-height:1.4;"><b style="color:#4F46E5;">🛵 ${riderName}</b><br/><span style="color:#059669; font-weight:700;">● Live GPS Active</span><br/><span style="color:#475569;">On the way to your doorstep</span></div>');
+                  riderMarker.bindPopup('<div style="font-size:12px; line-height:1.4;"><b style="color:#4F46E5;">🛵 ${riderName}</b><br/><span style="color:${theme.colors.primary}; font-weight:700;">● Live GPS Active</span><br/><span style="color:#475569;">On the way to your doorstep</span></div>');
                   riderMarker.openPopup();
                 } else {
                   riderMarker.setLatLng([lat, lng]);
@@ -427,7 +429,7 @@ export function OrderTrackingMap({
           onPress={handleOpenMaps}
           activeOpacity={0.85}
         >
-          <Ionicons name="compass" size={14} color="#059669" />
+          <Ionicons name="compass" size={14} color={theme.colors.primary} />
           <Text style={styles.navButtonText}>
             {isPickup ? "Directions to Store" : "Open in Google Maps"}
           </Text>
@@ -570,7 +572,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: "#10B981",
+    backgroundColor: theme.colors.success,
   },
   modalTitle: {
     fontSize: 15,
@@ -605,7 +607,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#059669",
+    backgroundColor: theme.colors.primary,
     paddingVertical: 14,
     borderRadius: 14,
     boxShadow: "0px 3px 6px rgba(5, 150, 105, 0.3)",

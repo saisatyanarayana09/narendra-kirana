@@ -119,8 +119,40 @@ class StoreSettingsSerializer(serializers.ModelSerializer):
             if dec_field in clean_data and (clean_data.get(dec_field) is None or clean_data.get(dec_field) == ''):
                 clean_data[dec_field] = '0.00'
 
+        if 'palette_mode' in clean_data:
+            try:
+                val = int(clean_data['palette_mode'])
+                clean_data['palette_mode'] = val if val in (2, 3, 4, 5) else 5
+            except (ValueError, TypeError):
+                clean_data['palette_mode'] = 5
+
+        import re
+        hex_fields = [
+            'custom_primary_color', 
+            'custom_secondary_color', 
+            'custom_accent_color', 
+            'custom_canvas_color', 
+            'custom_text_color'
+        ]
+        for hf in hex_fields:
+            if hf in clean_data and isinstance(clean_data.get(hf), str):
+                raw = clean_data[hf].strip()
+                if raw and not raw.startswith('#'):
+                    raw = f"#{raw}"
+                if re.match(r'^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$', raw):
+                    clean_data[hf] = raw
+                else:
+                    clean_data.pop(hf, None)
+
         if 'delivery_radius_km' in clean_data and (clean_data.get('delivery_radius_km') is None or clean_data.get('delivery_radius_km') == ''):
             clean_data['delivery_radius_km'] = '5.00'
+
+        if 'apply_theme_to_owner_app' in clean_data:
+            val = clean_data.get('apply_theme_to_owner_app')
+            clean_data['apply_theme_to_owner_app'] = str(val).lower() in ('true', '1', 'yes') if val is not None else False
+
+        if 'brand_theme_preset' in clean_data and isinstance(clean_data.get('brand_theme_preset'), str):
+            clean_data['brand_theme_preset'] = clean_data['brand_theme_preset'].strip()
 
         if 'enforce_delivery_radius' in clean_data:
             val = clean_data.get('enforce_delivery_radius')

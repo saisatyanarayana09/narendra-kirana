@@ -3,6 +3,7 @@ import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { useRouter, useSegments } from 'expo-router';
 import api, { TOKEN_KEY, REFRESH_TOKEN_KEY, setInMemoryToken } from '../services/api';
 import { safeStorage } from '../utils/storage';
+import { theme } from '@/constants/theme';
 
 interface AuthContextType {
   token: string | null;
@@ -133,7 +134,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#10b981" />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }

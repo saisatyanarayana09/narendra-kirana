@@ -249,7 +249,7 @@ export const SlideToConfirm: React.FC<SlideToConfirmProps> = ({
             styles.trackFill,
             {
               width: trackFillWidth,
-              backgroundColor: isDark ? "#047857" : "#047857",
+              backgroundColor: colors.primaryDark,
             },
           ]}
         />

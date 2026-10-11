@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet, ScrollView } from 'react-native';
 import Cropper from 'react-easy-crop';
 import { getCroppedImg } from '../utils/cropImage';
+import { theme } from '@/constants/theme';
 
 export default function WebCropper({ imageSrc, initialAspect = 1, onCropComplete, onCancel }: any) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -115,8 +116,8 @@ const styles = StyleSheet.create({
     borderColor: '#334155',
   },
   ratioBtnActive: {
-    backgroundColor: '#10b981',
-    borderColor: '#10b981',
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
   },
   ratioBtnText: {
     color: '#cbd5e1',
@@ -141,7 +142,7 @@ const styles = StyleSheet.create({
   saveBtn: {
     paddingHorizontal: 18,
     paddingVertical: 10,
-    backgroundColor: '#10b981',
+    backgroundColor: theme.colors.primary,
     borderRadius: 10,
   },
   btnText: { color: '#94a3b8', fontSize: 14, fontWeight: '600' },

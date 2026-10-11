@@ -151,8 +151,8 @@ export default function AgentsScreen() {
                     <Ionicons name="call-outline" size={14} /> {agent.phone_number}
                   </Text>
                 )}
-                <View style={[styles.roleBadge, { backgroundColor: (agent.is_owner || agent.is_staff) ? '#8b5cf620' : '#05966920' }]}>
-                  <Text style={[styles.roleText, { color: (agent.is_owner || agent.is_staff) ? '#8b5cf6' : '#059669' }]}>
+                <View style={[styles.roleBadge, { backgroundColor: (agent.is_owner || agent.is_staff) ? '#8b5cf620' : `${colors.primaryDark}20` }]}>
+                  <Text style={[styles.roleText, { color: (agent.is_owner || agent.is_staff) ? '#8b5cf6' : colors.primaryDark }]}>
                     {(agent.is_owner || agent.is_staff) ? 'Store Staff' : 'Delivery Partner'}
                   </Text>
                 </View>
@@ -224,10 +224,10 @@ export default function AgentsScreen() {
                 <Text style={{ color: formData.role === 'staff' ? '#8b5cf6' : colors.textMuted, fontWeight: '600' }}>Store Staff</Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                style={[styles.roleOption, formData.role === 'delivery' && [styles.activeRoleOption, { backgroundColor: '#05966920', borderColor: '#059669' }]]}
+                style={[styles.roleOption, formData.role === 'delivery' && [styles.activeRoleOption, { backgroundColor: `${colors.primaryDark}20`, borderColor: colors.primaryDark }]]}
                 onPress={() => setFormData({ ...formData, role: 'delivery' })}
               >
-                <Text style={{ color: formData.role === 'delivery' ? '#059669' : colors.textMuted, fontWeight: '600' }}>Delivery Fleet</Text>
+                <Text style={{ color: formData.role === 'delivery' ? colors.primaryDark : colors.textMuted, fontWeight: '600' }}>Delivery Fleet</Text>
               </TouchableOpacity>
             </View>
 

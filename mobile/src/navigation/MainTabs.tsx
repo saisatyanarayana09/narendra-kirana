@@ -373,7 +373,7 @@ export function MainTabs() {
             tabBarLabel: t("cart"),
             tabBarBadge: cartItemCount > 0 ? cartItemCount : undefined,
             tabBarBadgeStyle: {
-              backgroundColor: "#059669",
+              backgroundColor: colors.primary,
               color: "#FFFFFF",
               fontSize: 10,
               fontWeight: "900",

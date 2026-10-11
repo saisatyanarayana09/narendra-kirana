@@ -21,6 +21,7 @@ import * as Sharing from 'expo-sharing';
 import * as Clipboard from 'expo-clipboard';
 import api, { ApiInstance, cachedGet, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
+import { theme } from '../../../constants/theme';
 import { showAlert } from '../../../utils/alerts';
 import ScreenHeader from '../../../components/ScreenHeader';
 
@@ -173,7 +174,7 @@ const InvoiceCard = memo(
               <Text
                 style={[
                   styles.orderTypeText,
-                  { color: isDelivery ? '#6366f1' : '#10b981' },
+                  { color: isDelivery ? '#6366f1' : colors.primary },
                 ]}
               >
                 {isDelivery ? 'HOME DELIVERY' : 'STORE PICKUP'}
@@ -230,8 +231,8 @@ const InvoiceCard = memo(
                     },
                   ]}
                 >
-                  <Ionicons name="card-outline" size={11} color="#10b981" />
-                  <Text style={[styles.methodBadgeText, { color: '#10b981' }]}>UPI</Text>
+                  <Ionicons name="card-outline" size={11} color={colors.primary} />
+                  <Text style={[styles.methodBadgeText, { color: colors.primary }]}>UPI</Text>
                 </View>
               ) : (
                 <View
@@ -280,7 +281,7 @@ const InvoiceCard = memo(
                     styles.statusBadgeText,
                     {
                       color: isCompleted
-                        ? '#10b981'
+                        ? colors.primary
                         : isReady
                           ? '#3b82f6'
                           : isPreparing
@@ -675,7 +676,7 @@ export default function InvoicesScreen() {
     .cancelled-stamp { position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%) rotate(-15deg); border: 6px solid #e11d48; color: #e11d48; font-size: 54px; font-weight: 900; letter-spacing: 6px; padding: 10px 30px; border-radius: 12px; opacity: 0.25; pointer-events: none; }
     .hdr { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px; margin-bottom: 14px; gap: 16px; }
     .store-info h1 { font-size: 19px; font-weight: 900; color: #0f172a; line-height: 1.2; }
-    .store-info .tag { font-size: 9.5px; font-weight: 800; color: #047857; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+    .store-info .tag { font-size: 9.5px; font-weight: 800; color: ${theme.colors.primaryDark}; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
     .store-info p { font-size: 10.5px; color:#475569; margin-top: 3px; line-height: 1.4; }
     .meta-box { text-align: right; }
     .meta-box h2 { font-size: 22px; font-weight: 900; color: #0f172a; letter-spacing: -0.5px; }
@@ -697,8 +698,8 @@ export default function InvoicesScreen() {
     .totals-wrap { display: flex; justify-content: flex-end; margin-bottom: 16px; }
     .totals-box { width: 280px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #ffffff; }
     .tot-row { display: flex; justify-content: space-between; padding: 5px 10px; font-size: 10.5px; color: #475569; }
-    .tot-grand { background: #ecfdf5; border-top: 2px solid #10b981; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; color: #065f46; font-size: 11px; font-weight: 800; }
-    .tot-grand .big { font-size: 16px; font-weight: 900; color: #047857; }
+    .tot-grand { background: #ecfdf5; border-top: 2px solid ${theme.colors.primary}; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; color: #065f46; font-size: 11px; font-weight: 800; }
+    .tot-grand .big { font-size: 16px; font-weight: 900; color: ${theme.colors.primaryDark}; }
     .ftr { border-top: 1px solid #e2e8f0; padding-top: 12px; display: flex; justify-content: space-between; align-items: flex-end; font-size: 10px; }
     .ftr-terms { max-width: 420px; color: #64748b; }
     .ftr-sig { text-align: right; }
@@ -758,8 +759,8 @@ export default function InvoicesScreen() {
         <div class="grid-hdr">Fulfillment Details</div>
         <div class="grid-row"><span>Mode:</span><b>${inv.order_type === 'DELIVERY' ? 'Home Delivery' : 'Store Pickup'}</b></div>
         ${inv.delivery_slot_label ? `<div class="grid-row"><span>Slot:</span><b style="color:#4f46e5;">${inv.delivery_slot_date || ''} (${inv.delivery_slot_label})</b></div>` : ''}
-        <div class="grid-row"><span>Order Status:</span><b style="color:${inv.status === 'COMPLETED' ? '#059669' : inv.status === 'REJECTED' ? '#e11d48' : '#334155'};">${inv.status}</b></div>
-        <div class="grid-row"><span>Payment Status:</span><b style="color:#059669;">${inv.status === 'COMPLETED' ? 'PAID' : inv.status === 'REJECTED' ? 'CANCELLED' : 'DUE AT DELIVERY'}</b></div>
+        <div class="grid-row"><span>Order Status:</span><b style="color:${inv.status === 'COMPLETED' ? theme.colors.primaryDark : inv.status === 'REJECTED' ? '#e11d48' : '#334155'};">${inv.status}</b></div>
+        <div class="grid-row"><span>Payment Status:</span><b style="color:${theme.colors.primaryDark};">${inv.status === 'COMPLETED' ? 'PAID' : inv.status === 'REJECTED' ? 'CANCELLED' : 'DUE AT DELIVERY'}</b></div>
       </div>
     </div>
 
@@ -785,10 +786,10 @@ export default function InvoicesScreen() {
           <b>₹${items.filter((i: any) => i.status !== 'REJECTED').reduce((acc: number, item: any) => acc + (parseFloat(item.subtotal) || 0), 0).toFixed(2)}</b>
         </div>
         ${parseFloat(inv.discount_applied || '0') > 0 ? `<div class="tot-row" style="color:#4f46e5;"><span>Product Savings</span><b>-₹${parseFloat(inv.discount_applied).toFixed(2)}</b></div>` : ''}
-        ${parseFloat(inv.promo_discount || '0') > 0 ? `<div class="tot-row" style="color:#059669;"><span>Promo Code Discount</span><b>-₹${parseFloat(inv.promo_discount).toFixed(2)}</b></div>` : ''}
+        ${parseFloat(inv.promo_discount || '0') > 0 ? `<div class="tot-row" style="color:${theme.colors.primaryDark};"><span>Promo Code Discount</span><b>-₹${parseFloat(inv.promo_discount).toFixed(2)}</b></div>` : ''}
         ${parseFloat(inv.packaging_fee || '0') > 0 ? `<div class="tot-row"><span>Packaging Charges</span><b>₹${parseFloat(inv.packaging_fee).toFixed(2)}</b></div>` : ''}
         ${inv.order_type === 'DELIVERY' ? `<div class="tot-row"><span>Delivery Charges</span><b>${parseFloat(inv.delivery_fee || '0') > 0 ? `₹${parseFloat(inv.delivery_fee).toFixed(2)}` : 'FREE'}</b></div>` : ''}
-        ${parseFloat(inv.wallet_discount || '0') > 0 ? `<div class="tot-row" style="color:#059669;font-weight:700;"><span>Wallet Applied</span><b>-₹${parseFloat(inv.wallet_discount).toFixed(2)}</b></div>` : ''}
+        ${parseFloat(inv.wallet_discount || '0') > 0 ? `<div class="tot-row" style="color:${theme.colors.primaryDark};font-weight:700;"><span>Wallet Applied</span><b>-₹${parseFloat(inv.wallet_discount).toFixed(2)}</b></div>` : ''}
         <div class="tot-row" style="border-top:1px solid #f1f5f9;padding-top:6px;">
           <span>Payment Mode</span>
           <b style="text-align:right;">${methodText}</b>
@@ -804,7 +805,7 @@ export default function InvoicesScreen() {
       <div class="ftr-terms">
         <div style="font-weight:900;text-transform:uppercase;margin-bottom:3px;color:#334155;">Terms & Conditions</div>
         ${termsHtml}
-        <div style="margin-top:4px;font-weight:700;color:#047857;">Thank you for shopping with ${storeName}!</div>
+        <div style="margin-top:4px;font-weight:700;color:${theme.colors.primaryDark};">Thank you for shopping with ${storeName}!</div>
       </div>
       <div class="ftr-sig">
         <div style="font-weight:700;color:#64748b;margin-bottom:2px;">For ${storeName}</div>
@@ -992,9 +993,9 @@ export default function InvoicesScreen() {
             >
               <View style={styles.metricCardHead}>
                 <Text style={styles.metricCardLabel}>SETTLED VIA UPI</Text>
-                <Ionicons name="card" size={16} color="#10b981" />
+                <Ionicons name="card" size={16} color={colors.primary} />
               </View>
-              <Text style={[styles.metricCardVal, { color: '#10b981' }]}>
+              <Text style={[styles.metricCardVal, { color: colors.primary }]}>
                 ₹{metrics.upiTotal}
               </Text>
               <Text style={[styles.metricCardSub, { color: colors.textMuted }]}>
@@ -1292,7 +1293,7 @@ export default function InvoicesScreen() {
             <View style={styles.modalHeaderBar}>
               <View style={styles.modalHeaderLeft}>
                 <View style={styles.modalIconBadge}>
-                  <Ionicons name="document-text" size={16} color="#10b981" />
+                  <Ionicons name="document-text" size={16} color={colors.primary} />
                 </View>
                 <View>
                   <View style={styles.modalTitleRow}>
@@ -1470,7 +1471,7 @@ export default function InvoicesScreen() {
                           ) : null}
                           {storeSettings?.fssai_license_number ? (
                             <View style={styles.complianceItem}>
-                              <Ionicons name="checkmark-circle" size={13} color="#059669" />
+                              <Ionicons name="checkmark-circle" size={13} color={colors.primaryDark} />
                               <Text style={styles.complianceLabel}>FSSAI Lic. No:</Text>
                               <Text style={styles.complianceVal}>{storeSettings.fssai_license_number}</Text>
                               <View style={styles.govtRegPill}>
@@ -1539,7 +1540,7 @@ export default function InvoicesScreen() {
                               style={[
                                 styles.infoDetailVal,
                                 {
-                                  color: isCompleted ? '#047857' : isRejected ? '#e11d48' : '#1e293b',
+                                  color: isCompleted ? colors.primaryDark : isRejected ? '#e11d48' : '#1e293b',
                                   fontWeight: '800',
                                 },
                               ]}
@@ -1553,7 +1554,7 @@ export default function InvoicesScreen() {
                               style={[
                                 styles.infoDetailVal,
                                 {
-                                  color: isCompleted ? '#047857' : isRejected ? '#e11d48' : '#047857',
+                                  color: isCompleted ? colors.primaryDark : isRejected ? '#e11d48' : colors.primaryDark,
                                   fontWeight: '800',
                                 },
                               ]}
@@ -1643,10 +1644,10 @@ export default function InvoicesScreen() {
 
                             {parseFloat(selectedInvoice.promo_discount || '0') > 0 ? (
                               <View style={styles.totalLineRow}>
-                                <Text style={[styles.totalLineLabel, { color: '#059669' }]}>
+                                <Text style={[styles.totalLineLabel, { color: colors.primaryDark }]}>
                                   Promo Code Discount
                                 </Text>
-                                <Text style={[styles.totalLineVal, { color: '#059669', fontWeight: '800' }]}>
+                                <Text style={[styles.totalLineVal, { color: colors.primaryDark, fontWeight: '800' }]}>
                                   -₹{parseFloat(selectedInvoice.promo_discount).toFixed(2)}
                                 </Text>
                               </View>
@@ -1674,10 +1675,10 @@ export default function InvoicesScreen() {
 
                             {parseFloat(selectedInvoice.wallet_discount || '0') > 0 ? (
                               <View style={[styles.totalLineRow, styles.totalDividerTop]}>
-                                <Text style={[styles.totalLineLabel, { color: '#047857', fontWeight: '800' }]}>
+                                <Text style={[styles.totalLineLabel, { color: colors.primaryDark, fontWeight: '800' }]}>
                                   Wallet Applied
                                 </Text>
-                                <Text style={[styles.totalLineVal, { color: '#047857', fontWeight: '800' }]}>
+                                <Text style={[styles.totalLineVal, { color: colors.primaryDark, fontWeight: '800' }]}>
                                   -₹{parseFloat(selectedInvoice.wallet_discount).toFixed(2)}
                                 </Text>
                               </View>
@@ -1708,7 +1709,7 @@ export default function InvoicesScreen() {
                         {/* Terms & Conditions */}
                         <View style={styles.termsCol}>
                           <View style={styles.termsHeadRow}>
-                            <Ionicons name="checkmark-circle" size={13} color="#059669" />
+                            <Ionicons name="checkmark-circle" size={13} color={colors.primaryDark} />
                             <Text style={styles.termsHeadText}>TERMS & CONDITIONS</Text>
                           </View>
                           <View style={styles.termsList}>
@@ -2064,7 +2065,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   walletDiscountText: {
-    color: '#10b981',
+    color: theme.colors.primary,
     fontSize: 10.5,
     fontWeight: '700',
   },
@@ -2218,7 +2219,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: '#059669',
+    backgroundColor: theme.colors.primaryDark,
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 9,
@@ -2335,7 +2336,7 @@ const styles = StyleSheet.create({
   docStoreTag: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#047857',
+    color: theme.colors.primaryDark,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
     marginTop: 1,
@@ -2667,7 +2668,7 @@ const styles = StyleSheet.create({
   grandTotalBanner: {
     backgroundColor: '#ecfdf5',
     borderTopWidth: 2,
-    borderTopColor: '#059669',
+    borderTopColor: theme.colors.primaryDark,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -2684,7 +2685,7 @@ const styles = StyleSheet.create({
   grandTotalVal: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#047857',
+    color: theme.colors.primaryDark,
   },
 
   // Footer: Terms & Signature
@@ -2721,7 +2722,7 @@ const styles = StyleSheet.create({
   termsGreeting: {
     fontSize: 10.5,
     fontWeight: '700',
-    color: '#047857',
+    color: theme.colors.primaryDark,
     marginTop: 4,
   },
   signatureCol: {

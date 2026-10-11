@@ -356,7 +356,7 @@ export function LoginScreen({ navigation, route }: Props) {
                 <Text
                   style={[
                     styles.invitePillText,
-                    { color: isDark ? "#34D399" : "#059669" },
+                    { color: isDark ? colors.primaryLight : colors.primary },
                   ]}
                 >
                   Invited by {referrerName || referralCode}
@@ -372,7 +372,7 @@ export function LoginScreen({ navigation, route }: Props) {
                   <Feather
                     name="x"
                     size={11}
-                    color={isDark ? "#34D399" : "#059669"}
+                    color={isDark ? colors.primaryLight : colors.primary}
                   />
                 </TouchableOpacity>
               </View>
@@ -562,7 +562,7 @@ export function LoginScreen({ navigation, route }: Props) {
                 <Text
                   style={[
                     styles.modalInviteText,
-                    { color: isDark ? "#34D399" : "#059669" },
+                    { color: isDark ? colors.primaryLight : colors.primary },
                   ]}
                 >
                   Invited by {referrerName || referralCode}

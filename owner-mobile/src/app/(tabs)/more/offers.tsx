@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import api, { ApiInstance, cachedGet, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
+import { theme } from '../../../constants/theme';
 import { showAlert, showConfirm } from '../../../utils/alerts';
 import ScreenHeader from '../../../components/ScreenHeader';
 import ModernSwitch from '../../../components/ModernSwitch';
@@ -55,14 +56,14 @@ const OfferCard = React.memo<OfferCardProps>(
             ]}
             onPress={() => onCopyCode(item.code)}
           >
-            <Ionicons name="ticket-outline" size={16} color="#10b981" />
+            <Ionicons name="ticket-outline" size={16} color={colors.primary} />
             <Text style={[styles.codeText, { color: colors.text }]}>
               {item.code}
             </Text>
             <Ionicons
               name={isCopied ? 'checkmark-circle' : 'copy-outline'}
               size={14}
-              color={isCopied ? '#10b981' : colors.textMuted}
+              color={isCopied ? colors.primary : colors.textMuted}
             />
           </TouchableOpacity>
 
@@ -107,7 +108,7 @@ const OfferCard = React.memo<OfferCardProps>(
             <View
               style={[
                 styles.statusDot,
-                { backgroundColor: item.is_active ? '#10b981' : '#64748b' },
+                { backgroundColor: item.is_active ? colors.primary : '#64748b' },
               ]}
             />
             <Text style={[styles.statusLabel, { color: colors.textMuted }]}>
@@ -416,7 +417,7 @@ export default function OffersScreen() {
                         ? '#064e3b'
                         : '#d1fae5'
                       : colors.card,
-                    borderColor: active ? '#10b981' : colors.border,
+                    borderColor: active ? colors.primary : colors.border,
                   },
                 ]}
                 onPress={() => setActiveFilter(f)}
@@ -425,7 +426,7 @@ export default function OffersScreen() {
                   style={[
                     styles.tabChipText,
                     {
-                      color: active ? '#10b981' : colors.textMuted,
+                      color: active ? colors.primary : colors.textMuted,
                       fontWeight: active ? '800' : '600',
                     },
                   ]}
@@ -463,7 +464,7 @@ export default function OffersScreen() {
       {/* Promos List */}
       {loading ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#10b981" />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={[styles.loadingText, { color: colors.textMuted }]}>
             Loading promo codes...
           </Text>
@@ -481,7 +482,7 @@ export default function OffersScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#10b981"
+              tintColor={colors.primary}
             />
           }
           renderItem={renderOfferItem}
@@ -559,7 +560,7 @@ export default function OffersScreen() {
                   Coupon Code *
                 </Text>
                 <TouchableOpacity onPress={generateRandomCode} style={styles.magicBtn}>
-                  <Ionicons name="sparkles-outline" size={13} color="#10b981" />
+                  <Ionicons name="sparkles-outline" size={13} color={colors.primary} />
                   <Text style={styles.magicBtnText}>Auto-Suggest</Text>
                 </TouchableOpacity>
               </View>
@@ -591,7 +592,7 @@ export default function OffersScreen() {
                     styles.typeBtn,
                     {
                       backgroundColor:
-                        discountType === 'PERCENTAGE' ? '#10b981' : colors.cardAlt,
+                        discountType === 'PERCENTAGE' ? colors.primary : colors.cardAlt,
                       borderColor: colors.border,
                     },
                   ]}
@@ -617,7 +618,7 @@ export default function OffersScreen() {
                     styles.typeBtn,
                     {
                       backgroundColor:
-                        discountType === 'FIXED' ? '#10b981' : colors.cardAlt,
+                        discountType === 'FIXED' ? colors.primary : colors.cardAlt,
                       borderColor: colors.border,
                     },
                   ]}
@@ -700,7 +701,7 @@ export default function OffersScreen() {
                         styles.catChip,
                         {
                           backgroundColor:
-                            selectedCategory === null ? '#10b981' : colors.cardAlt,
+                            selectedCategory === null ? colors.primary : colors.cardAlt,
                           borderColor: colors.border,
                         },
                       ]}
@@ -723,7 +724,7 @@ export default function OffersScreen() {
                           style={[
                             styles.catChip,
                             {
-                              backgroundColor: sel ? '#10b981' : colors.cardAlt,
+                              backgroundColor: sel ? colors.primary : colors.cardAlt,
                               borderColor: colors.border,
                             },
                           ]}
@@ -817,7 +818,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#10b981',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 8,
@@ -926,7 +927,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   discountBadgeText: {
-    color: '#10b981',
+    color: theme.colors.primary,
     fontSize: 12,
     fontWeight: '800',
   },
@@ -1003,7 +1004,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#10b981',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 10,
@@ -1068,7 +1069,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   magicBtnText: {
-    color: '#10b981',
+    color: theme.colors.primary,
     fontSize: 11,
     fontWeight: '700',
   },
@@ -1155,7 +1156,7 @@ const styles = StyleSheet.create({
     flex: 2,
     height: 44,
     borderRadius: 10,
-    backgroundColor: '#10b981',
+    backgroundColor: theme.colors.primary,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',

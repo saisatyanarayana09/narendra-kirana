@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api, { ApiInstance, cachedGet, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
+import { theme } from '@/constants/theme';
 import { showAlert } from '../../../utils/alerts';
 import UniversalCameraScanner from '../../../components/UniversalCameraScanner';
 import WebCropper from '../../../components/WebCropper';
@@ -486,7 +487,7 @@ export default function AddProductScreen() {
         </Text>
 
         <TouchableOpacity
-          style={[styles.navSaveBtn, { backgroundColor: '#10b981' }]}
+          style={[styles.navSaveBtn, { backgroundColor: colors.primary }]}
           onPress={handleSave}
           disabled={loading}
           accessibilityLabel="Save product"
@@ -621,7 +622,7 @@ export default function AddProductScreen() {
                   style={[
                     styles.catPill,
                     active
-                      ? { backgroundColor: '#10b981', borderColor: '#10b981' }
+                      ? { backgroundColor: colors.primary, borderColor: colors.primary }
                       : { backgroundColor: colors.cardAlt, borderColor: colors.border },
                   ]}
                   onPress={() => setSelectedCategory(cat.id)}
@@ -764,7 +765,7 @@ export default function AddProductScreen() {
               onPress={() => setShowBarcodeScanner(true)}
               accessibilityLabel="Scan with Camera"
             >
-              <Ionicons name="barcode-outline" size={18} color="#10b981" />
+              <Ionicons name="barcode-outline" size={18} color={colors.primary} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.lookupBtn}
@@ -850,7 +851,7 @@ export default function AddProductScreen() {
                 style={[styles.modalOptionBtn, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}
                 onPress={() => handleAIVisionScan('library')}
               >
-                <Ionicons name="images" size={20} color="#10b981" />
+                <Ionicons name="images" size={20} color={colors.primary} />
                 <Text style={[styles.modalOptionText, { color: colors.text }]}>Photo Gallery</Text>
               </TouchableOpacity>
             </View>
@@ -1014,7 +1015,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#10b981',
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },

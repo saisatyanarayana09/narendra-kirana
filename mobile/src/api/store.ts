@@ -83,6 +83,16 @@ export interface StoreSettings {
   is_maintenance_mode?: boolean;
   maintenance_message?: string;
   maintenance_estimated_end?: string;
+
+  // Storefront Branding & Theme Preset
+  brand_theme_preset?: string;
+  palette_mode?: number;
+  custom_primary_color?: string;
+  custom_secondary_color?: string;
+  custom_accent_color?: string;
+  custom_canvas_color?: string;
+  custom_text_color?: string;
+  apply_theme_to_owner_app?: boolean;
 }
 
 const SETTINGS_CACHE_KEY = "sk_store_settings_cache";
@@ -115,7 +125,30 @@ function loadDiskCache(): Promise<void> {
 // Start loading disk cache immediately at module init
 loadDiskCache();
 
+type SettingsListener = (settings: StoreSettings) => void;
+const settingsListeners = new Set<SettingsListener>();
+
+function notifyListeners(settings: StoreSettings) {
+  settingsListeners.forEach((fn) => {
+    try {
+      fn(settings);
+    } catch {}
+  });
+}
+
 export const storeApi = {
+  subscribe: (listener: SettingsListener) => {
+    settingsListeners.add(listener);
+    if (cachedSettings) {
+      try {
+        listener(cachedSettings);
+      } catch {}
+    }
+    return () => {
+      settingsListeners.delete(listener);
+    };
+  },
+
   getSettings: async (forceRefresh = false): Promise<StoreSettings> => {
     const now = Date.now();
 
@@ -149,12 +182,16 @@ function fetchAndCacheSettings(): Promise<StoreSettings> {
 
   inFlightSettingsPromise = (async () => {
     try {
-      const res = await apiClient.get("/store/settings/");
-      const data = res.data
-        ? Array.isArray(res.data)
-          ? res.data[0]
-          : res.data
-        : null;
+      let data: StoreSettings | null = null;
+
+      try {
+        const res = await apiClient.get("/store/public-settings/");
+        data = res.data ? (Array.isArray(res.data) ? res.data[0] : res.data) : null;
+      } catch {
+        const res = await apiClient.get("/store/settings/");
+        data = res.data ? (Array.isArray(res.data) ? res.data[0] : res.data) : null;
+      }
+
       if (data) {
         cachedSettings = data;
         cacheExpiry = Date.now() + 15000; // 15s fresh cache
@@ -163,36 +200,47 @@ function fetchAndCacheSettings(): Promise<StoreSettings> {
         AsyncStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(data)).catch(
           () => {},
         );
+        notifyListeners(data);
       }
 
-      return data;
+      return data as StoreSettings;
     } catch (err: any) {
-      // If apiClient failed with 401, fallback to unauthenticated request
-      if (err?.response?.status === 401) {
+      // If apiClient failed with 401 or network error, fallback to unauthenticated request
+      try {
+        let fallbackRes;
         try {
-          const fallbackRes = await axios.get(
+          fallbackRes = await axios.get(
+            `${API_BASE_URL}/store/public-settings/`,
+            {
+              timeout: 30000,
+              headers: { "Content-Type": "application/json" },
+            },
+          );
+        } catch {
+          fallbackRes = await axios.get(
             `${API_BASE_URL}/store/settings/`,
             {
               timeout: 30000,
               headers: { "Content-Type": "application/json" },
             },
           );
-          const data = fallbackRes.data
-            ? Array.isArray(fallbackRes.data)
-              ? fallbackRes.data[0]
-              : fallbackRes.data
-            : null;
-          if (data) {
-            cachedSettings = data;
-            cacheExpiry = Date.now() + 15000;
-          }
+        }
+        const data = fallbackRes.data
+          ? Array.isArray(fallbackRes.data)
+            ? fallbackRes.data[0]
+            : fallbackRes.data
+          : null;
+        if (data) {
+          cachedSettings = data;
+          cacheExpiry = Date.now() + 15000;
           AsyncStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(data)).catch(
             () => {},
           );
+          notifyListeners(data);
           return data;
-        } catch {
-          // Bubble original error if unauthenticated fallback also fails
         }
+      } catch {
+        // Bubble original error if unauthenticated fallback also fails
       }
       // If we have stale cache, return it rather than throwing
       if (cachedSettings) {

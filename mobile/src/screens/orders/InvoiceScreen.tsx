@@ -279,7 +279,7 @@ export function InvoiceScreen({
     .cancelled-stamp { position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%) rotate(-15deg); border: 6px solid #e11d48; color: #e11d48; font-size: 54px; font-weight: 900; letter-spacing: 6px; padding: 10px 30px; border-radius: 12px; opacity: 0.25; pointer-events: none; }
     .hdr { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px; margin-bottom: 14px; gap: 16px; }
     .store-info h1 { font-size: 19px; font-weight: 900; color: #0f172a; line-height: 1.2; }
-    .store-info .tag { font-size: 9.5px; font-weight: 800; color: #047857; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+    .store-info .tag { font-size: 9.5px; font-weight: 800; color: ${theme.colors.primaryDark}; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
     .store-info p { font-size: 10.5px; color:#475569; margin-top: 3px; line-height: 1.4; }
     .meta-box { text-align: right; }
     .meta-box h2 { font-size: 22px; font-weight: 900; color: #0f172a; letter-spacing: -0.5px; }
@@ -301,8 +301,8 @@ export function InvoiceScreen({
     .totals-wrap { display: flex; justify-content: flex-end; margin-bottom: 16px; }
     .totals-box { width: 280px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #ffffff; }
     .tot-row { display: flex; justify-content: space-between; padding: 5px 10px; font-size: 10.5px; color: #475569; }
-    .tot-grand { background: #ecfdf5; border-top: 2px solid #10b981; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; color: #065f46; font-size: 11px; font-weight: 800; }
-    .tot-grand .big { font-size: 16px; font-weight: 900; color: #047857; }
+    .tot-grand { background: #ecfdf5; border-top: 2px solid ${theme.colors.success}; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; color: #065f46; font-size: 11px; font-weight: 800; }
+    .tot-grand .big { font-size: 16px; font-weight: 900; color: ${theme.colors.primaryDark}; }
     .ftr { border-top: 1px solid #e2e8f0; padding-top: 12px; display: flex; justify-content: space-between; align-items: flex-end; font-size: 10px; }
     .ftr-terms { max-width: 420px; color: #64748b; }
     .ftr-sig { text-align: right; }
@@ -362,8 +362,8 @@ export function InvoiceScreen({
         <div class="grid-hdr">Fulfillment Details</div>
         <div class="grid-row"><span>Mode:</span><b>${isDelivery ? "Home Delivery" : "Store Pickup"}</b></div>
         ${order?.delivery_slot_label ? `<div class="grid-row"><span>Slot:</span><b style="color:#4f46e5;">${order?.delivery_slot_date || ""} (${order.delivery_slot_label})</b></div>` : ""}
-        <div class="grid-row"><span>Order Status:</span><b style="color:${order?.status === "COMPLETED" ? "#059669" : isRejected ? "#e11d48" : "#334155"};">${order?.status}</b></div>
-        <div class="grid-row"><span>Payment Status:</span><b style="color:#059669;">${order?.status === "COMPLETED" ? "PAID" : isRejected ? "CANCELLED" : "DUE AT DELIVERY"}</b></div>
+        <div class="grid-row"><span>Order Status:</span><b style="color:${order?.status === "COMPLETED" ? theme.colors.primary : isRejected ? "#e11d48" : "#334155"};">${order?.status}</b></div>
+        <div class="grid-row"><span>Payment Status:</span><b style="color:${theme.colors.primary};">${order?.status === "COMPLETED" ? "PAID" : isRejected ? "CANCELLED" : "DUE AT DELIVERY"}</b></div>
       </div>
     </div>
 
@@ -389,10 +389,10 @@ export function InvoiceScreen({
           <b>₹${(subtotal || 0).toFixed(2)}</b>
         </div>
         ${parseFloat(order?.discount_applied || "0") > 0 ? `<div class="tot-row" style="color:#4f46e5;"><span>Product Savings</span><b>-₹${parseFloat(order.discount_applied).toFixed(2)}</b></div>` : ""}
-        ${parseFloat(order?.promo_discount || "0") > 0 ? `<div class="tot-row" style="color:#059669;"><span>Promo Code Discount</span><b>-₹${parseFloat(order.promo_discount).toFixed(2)}</b></div>` : ""}
+        ${parseFloat(order?.promo_discount || "0") > 0 ? `<div class="tot-row" style="color:${theme.colors.primary};"><span>Promo Code Discount</span><b>-₹${parseFloat(order.promo_discount).toFixed(2)}</b></div>` : ""}
         ${parseFloat(order?.packaging_fee || "0") > 0 ? `<div class="tot-row"><span>Packaging Charges</span><b>₹${parseFloat(order.packaging_fee).toFixed(2)}</b></div>` : ""}
         ${isDelivery ? `<div class="tot-row"><span>Delivery Charges</span><b>${parseFloat(order?.delivery_fee || "0") > 0 ? `₹${parseFloat(order.delivery_fee).toFixed(2)}` : "FREE"}</b></div>` : ""}
-        ${parseFloat(order?.wallet_discount || "0") > 0 ? `<div class="tot-row" style="color:#059669;font-weight:700;"><span>Wallet Applied</span><b>-₹${parseFloat(order.wallet_discount).toFixed(2)}</b></div>` : ""}
+        ${parseFloat(order?.wallet_discount || "0") > 0 ? `<div class="tot-row" style="color:${theme.colors.primary};font-weight:700;"><span>Wallet Applied</span><b>-₹${parseFloat(order.wallet_discount).toFixed(2)}</b></div>` : ""}
         <div class="tot-row" style="border-top:1px solid #f1f5f9;padding-top:6px;">
           <span>Payment Mode</span>
           <b style="text-align:right;">${methodText}</b>
@@ -408,7 +408,7 @@ export function InvoiceScreen({
       <div class="ftr-terms">
         <div style="font-weight:900;text-transform:uppercase;margin-bottom:3px;color:#334155;">Terms & Conditions</div>
         ${termsHtml}
-        <div style="margin-top:4px;font-weight:700;color:#047857;">Thank you for shopping with ${storeName}!</div>
+        <div style="margin-top:4px;font-weight:700;color:${theme.colors.primaryDark};">Thank you for shopping with ${storeName}!</div>
       </div>
       <div class="ftr-sig">
         <div style="font-weight:700;color:#64748b;margin-bottom:2px;">For ${storeName}</div>
@@ -671,7 +671,7 @@ export function InvoiceScreen({
         </View>
         <View style={styles.guestStateContainer}>
           <View style={[styles.guestIconBox, { backgroundColor: "#ECFDF5" }]}>
-            <Feather name="file-text" size={44} color="#059669" />
+            <Feather name="file-text" size={44} color={theme.colors.primary} />
           </View>
           <Text style={[styles.guestTitle, { color: "#0F172A" }]}>
             Sign In to View Invoice
@@ -681,7 +681,7 @@ export function InvoiceScreen({
             your purchases.
           </Text>
           <TouchableOpacity
-            style={[styles.guestSignInBtn, { backgroundColor: "#059669" }]}
+            style={[styles.guestSignInBtn, { backgroundColor: theme.colors.primary }]}
             onPress={() => navigation.navigate("Login")}
             activeOpacity={0.85}
           >
@@ -738,12 +738,12 @@ export function InvoiceScreen({
               </Text>
             </View>
             <View style={[styles.shareIconButton, { opacity: 0.4 }]}>
-              <Feather name="share-2" size={15} color="#059669" />
+              <Feather name="share-2" size={15} color={theme.colors.primary} />
             </View>
           </View>
         </View>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#059669" />
+          <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text style={[styles.loadingText, { color: "#64748B" }]}>
             Loading invoice...
           </Text>
@@ -850,7 +850,7 @@ export function InvoiceScreen({
             disabled={downloading}
             activeOpacity={0.75}
           >
-            <Feather name="share-2" size={15} color="#059669" />
+            <Feather name="share-2" size={15} color={theme.colors.primary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -998,7 +998,7 @@ export function InvoiceScreen({
                     <Ionicons
                       name="checkmark-circle"
                       size={13}
-                      color="#059669"
+                      color={theme.colors.primary}
                     />
                     <Text style={styles.complianceLabel}>FSSAI Lic. No:</Text>
                     <Text style={styles.complianceVal}>
@@ -1088,7 +1088,7 @@ export function InvoiceScreen({
                       {
                         color:
                           order.status === "COMPLETED"
-                            ? "#047857"
+                            ? theme.colors.primaryDark
                             : isRejected
                               ? "#e11d48"
                               : "#1e293b",
@@ -1107,10 +1107,10 @@ export function InvoiceScreen({
                       {
                         color:
                           order.status === "COMPLETED"
-                            ? "#047857"
+                            ? theme.colors.primaryDark
                             : isRejected
                               ? "#e11d48"
-                              : "#047857",
+                              : theme.colors.primaryDark,
                         fontWeight: "800",
                       },
                     ]}
@@ -1283,11 +1283,11 @@ export function InvoiceScreen({
                   {parseFloat(order.promo_discount || "0") > 0 ? (
                     <View style={styles.totalLineRow}>
                       <Text
-                        style={[styles.totalLineLabel, { color: "#047857" }]}
+                        style={[styles.totalLineLabel, { color: theme.colors.primaryDark }]}
                       >
                         Promo Discount
                       </Text>
-                      <Text style={[styles.totalLineVal, { color: "#047857" }]}>
+                      <Text style={[styles.totalLineVal, { color: theme.colors.primaryDark }]}>
                         -₹{parseFloat(order.promo_discount).toFixed(2)}
                       </Text>
                     </View>
@@ -1316,11 +1316,11 @@ export function InvoiceScreen({
                   {parseFloat(order.wallet_discount || "0") > 0 ? (
                     <View style={styles.totalLineRow}>
                       <Text
-                        style={[styles.totalLineLabel, { color: "#047857" }]}
+                        style={[styles.totalLineLabel, { color: theme.colors.primaryDark }]}
                       >
                         Wallet Applied
                       </Text>
-                      <Text style={[styles.totalLineVal, { color: "#047857" }]}>
+                      <Text style={[styles.totalLineVal, { color: theme.colors.primaryDark }]}>
                         -₹{parseFloat(order.wallet_discount).toFixed(2)}
                       </Text>
                     </View>
@@ -1363,7 +1363,7 @@ export function InvoiceScreen({
                   <Ionicons
                     name="checkmark-circle-outline"
                     size={13}
-                    color="#059669"
+                    color={theme.colors.primary}
                   />
                   <Text style={styles.docTermsTitle}>TERMS & CONDITIONS</Text>
                 </View>
@@ -1505,7 +1505,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#059669", // emerald-600 matching web
+    backgroundColor: theme.colors.primary, // emerald-600 matching web
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 8,
@@ -1614,7 +1614,7 @@ const styles = StyleSheet.create({
   docStoreTag: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#047857",
+    color: theme.colors.primaryDark,
     letterSpacing: 0.8,
     textTransform: "uppercase",
     marginTop: 1,
@@ -1939,7 +1939,7 @@ const styles = StyleSheet.create({
   grandTotalBanner: {
     backgroundColor: "#ECFDF5",
     borderTopWidth: 2,
-    borderTopColor: "#059669",
+    borderTopColor: theme.colors.primary,
     paddingHorizontal: 10,
     paddingVertical: 8,
     flexDirection: "row",
@@ -1955,7 +1955,7 @@ const styles = StyleSheet.create({
   grandTotalBannerAmount: {
     fontSize: 16,
     fontWeight: "900",
-    color: "#047857",
+    color: theme.colors.primaryDark,
   },
 
   // Footer & Signature
@@ -1992,7 +1992,7 @@ const styles = StyleSheet.create({
   docStoreGreeting: {
     fontSize: 9.5,
     fontWeight: "700",
-    color: "#047857",
+    color: theme.colors.primaryDark,
     marginTop: 4,
   },
   docSigCol: {
@@ -2095,7 +2095,7 @@ const styles = StyleSheet.create({
   fssaiBadgeText: {
     fontSize: 10,
     fontWeight: "800",
-    color: "#047857",
+    color: theme.colors.primaryDark,
   },
   gstinText: {
     fontSize: 11,

@@ -119,7 +119,7 @@ export function InAppNotificationBanner() {
       case "ORDER":
         return {
           icon: "shopping-bag" as const,
-          color: "#10B981",
+          color: colors.success,
           bgColor: isDark ? "rgba(16, 185, 129, 0.2)" : "#ECFDF5",
           label: "ORDER UPDATE",
         };

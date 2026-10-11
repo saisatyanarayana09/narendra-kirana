@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { apiClient } from "../../api/client";
+import { theme } from "../../constants/theme";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { AppNavigationProp } from "../../navigation/types";
@@ -249,7 +250,7 @@ export function WalletScreen({
           <View style={styles.headerComponent}>
             {/* Emerald to Teal Gradient Hero Balance Card matching web Wallet.jsx */}
             <LinearGradient
-              colors={["#10B981", "#0D9488"]}
+              colors={[colors.primary, colors.primaryDark]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.heroCard}
@@ -327,7 +328,7 @@ export function WalletScreen({
                   <Feather
                     name={isCredit ? "arrow-down-left" : "arrow-up-right"}
                     size={18}
-                    color={isCredit ? "#10B981" : "#EF4444"}
+                    color={isCredit ? colors.success : "#EF4444"}
                   />
                 </View>
                 <View style={styles.txDetails}>
@@ -355,7 +356,7 @@ export function WalletScreen({
               <Text
                 style={[
                   styles.txAmount,
-                  { color: isCredit ? "#10B981" : "#EF4444" },
+                  { color: isCredit ? colors.success : "#EF4444" },
                 ]}
               >
                 {isCredit ? "+" : "-"}₹{(Math.abs(amt) || 0).toFixed(2)}
@@ -389,7 +390,7 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#059669",
+    color: theme.colors.primary,
   },
   headerTitle: {
     fontSize: 24,

@@ -21,6 +21,7 @@ import {
 import { AnimatedFadeIn } from "../../components/AnimatedFadeIn";
 import { CartItemCard } from "../../components/CartItemCard";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { theme } from "../../constants/theme";
 import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
 import { useTheme } from "../../context/ThemeContext";
@@ -461,7 +462,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
                     <Feather
                       name="truck"
                       size={15}
-                      color={freeDeliveryGap === 0 ? "#10B981" : colors.primary}
+                      color={freeDeliveryGap === 0 ? colors.success : colors.primary}
                     />
                     <Text
                       style={[styles.freeDeliveryText, { color: colors.text }]}
@@ -477,7 +478,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
                       fontWeight: "700",
                       color:
                         freeDeliveryGap === 0
-                          ? "#10B981"
+                          ? colors.success
                           : colors.textSecondary,
                     }}
                   >
@@ -498,7 +499,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
                       {
                         width: `${freeDeliveryProgress}%`,
                         backgroundColor:
-                          freeDeliveryGap === 0 ? "#10B981" : colors.primary,
+                          freeDeliveryGap === 0 ? colors.success : colors.primary,
                       },
                     ]}
                   />
@@ -787,7 +788,7 @@ const styles: any = StyleSheet.create({
   savingsHighlightText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#059669",
+    color: theme.colors.primary,
     flex: 1,
   },
   outOfStockBanner: {
@@ -836,7 +837,7 @@ const styles: any = StyleSheet.create({
   backButtonText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#059669",
+    color: theme.colors.primary,
   },
   headerTitle: {
     fontSize: 18,
@@ -893,7 +894,7 @@ const styles: any = StyleSheet.create({
     maxWidth: 280,
   },
   startShoppingBtn: {
-    backgroundColor: "#059669",
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 14,
@@ -1056,7 +1057,7 @@ const styles: any = StyleSheet.create({
   appliedPromoTag: {
     fontSize: 10,
     fontWeight: "800",
-    color: "#059669",
+    color: theme.colors.primary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
@@ -1077,7 +1078,7 @@ const styles: any = StyleSheet.create({
   removePromoText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#059669",
+    color: theme.colors.primary,
   },
   summaryRow: {
     flexDirection: "row",
@@ -1096,12 +1097,12 @@ const styles: any = StyleSheet.create({
   },
   savingsLabel: {
     fontSize: 14,
-    color: "#059669",
+    color: theme.colors.primary,
     fontWeight: "600",
   },
   savingsValue: {
     fontSize: 14,
-    color: "#059669",
+    color: theme.colors.primary,
     fontWeight: "700",
   },
   totalRow: {
@@ -1183,7 +1184,7 @@ const styles: any = StyleSheet.create({
   summaryTrustText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#059669",
+    color: theme.colors.primary,
   },
   checkoutBtnContent: {
     flexDirection: "row",
@@ -1220,7 +1221,7 @@ const styles: any = StyleSheet.create({
     fontVariant: ["tabular-nums"],
   },
   checkoutBtn: {
-    backgroundColor: "#059669",
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 22,
     paddingVertical: 12,
     minHeight: 46,

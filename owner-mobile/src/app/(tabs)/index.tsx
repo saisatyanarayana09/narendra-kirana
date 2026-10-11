@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import api, { ApiInstance, getErrorMessage } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useAppTheme } from '../../context/ThemeContext';
+import { theme } from '@/constants/theme';
 import { showAlert } from '../../utils/alerts';
 import { safeStorage } from '../../utils/storage';
 
@@ -41,7 +42,7 @@ const BENTO_ACTIONS: BentoAction[] = [
     label: 'Delivery Fleet',
     sub: 'Riders & dispatches',
     icon: 'bicycle',
-    color: '#059669',
+    color: theme.colors.primaryDark,
     bgLight: '#ecfdf5',
     bgDark: 'rgba(5, 150, 105, 0.18)',
     route: '/(tabs)/more/delivery',
@@ -222,7 +223,7 @@ const LowStockRowItem = React.memo(
           {isBusy ? (
             <ActivityIndicator
               size="small"
-              color="#10b981"
+              color={colors.primary}
               style={{ paddingHorizontal: 16 }}
             />
           ) : (
@@ -237,7 +238,7 @@ const LowStockRowItem = React.memo(
                 ]}
                 onPress={() => onRestock(item, 5)}
               >
-                <Ionicons name="add" size={13} color="#10b981" />
+                <Ionicons name="add" size={13} color={colors.primary} />
                 <Text
                   style={[
                     styles.restockBtnText,
@@ -257,7 +258,7 @@ const LowStockRowItem = React.memo(
                 ]}
                 onPress={() => onRestock(item, 10)}
               >
-                <Ionicons name="add" size={13} color="#10b981" />
+                <Ionicons name="add" size={13} color={colors.primary} />
                 <Text
                   style={[
                     styles.restockBtnText,
@@ -460,7 +461,7 @@ export default function DashboardScreen() {
       style={[styles.container, { backgroundColor: colors.bg }]}
       contentContainerStyle={styles.content}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#10b981" />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
       }
     >
       <View style={styles.maxContainer}>

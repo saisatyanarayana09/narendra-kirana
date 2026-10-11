@@ -18,6 +18,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { apiClient } from "../../api/client";
+import { theme } from "../../constants/theme";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { AppNavigationProp } from "../../navigation/types";
@@ -1293,7 +1294,7 @@ export function ReferAndEarnScreen({
               ) : (
                 <ActivityIndicator
                   size="large"
-                  color="#059669"
+                  color={colors.primary}
                   style={{ marginVertical: 30 }}
                 />
               )}
@@ -1351,7 +1352,7 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#059669",
+    color: theme.colors.primary,
   },
   headerTitle: {
     fontSize: 24,
@@ -1456,8 +1457,8 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.1)",
   },
   copyBtnSuccess: {
-    backgroundColor: "#10B981",
-    borderColor: "#059669",
+    backgroundColor: theme.colors.success,
+    borderColor: theme.colors.primaryDark,
   },
   copyBtnText: {
     color: "#FFFFFF",
@@ -1567,7 +1568,7 @@ const styles = StyleSheet.create({
     borderColor: "#FFFFFF",
   },
   checkpointAchieved: {
-    backgroundColor: "#10B981",
+    backgroundColor: theme.colors.success,
   },
   checkpointNext: {
     backgroundColor: "#FFFFFF",
@@ -1808,7 +1809,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   statusTextCompleted: {
-    color: "#059669",
+    color: theme.colors.primary,
   },
   statusTextPending: {
     color: "#D97706",
@@ -1848,7 +1849,7 @@ const styles = StyleSheet.create({
   ledgerCashAmount: {
     fontSize: 16,
     fontWeight: "900",
-    color: "#059669",
+    color: theme.colors.primary,
   },
   productBadge: {
     backgroundColor: "#EEF2FF",

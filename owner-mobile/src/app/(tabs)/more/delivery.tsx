@@ -15,6 +15,7 @@ import {
 import api, { cachedGet, getErrorMessage } from '../../../services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../context/ThemeContext';
+import { theme } from '@/constants/theme';
 import { showAlert } from '../../../utils/alerts';
 import ScreenHeader from '../../../components/ScreenHeader';
 
@@ -57,7 +58,7 @@ const PartnerCard = memo(
             <View
               style={[
                 styles.onlinePill,
-                { backgroundColor: item?.is_online ? '#059669' : '#475569' },
+                { backgroundColor: item?.is_online ? colors.primaryDark : '#475569' },
               ]}
             >
               <Text style={styles.onlineText}>{item?.is_online ? 'ONLINE' : 'OFFLINE'}</Text>
@@ -69,7 +70,7 @@ const PartnerCard = memo(
             {item?.vehicle_number ? ` (${item.vehicle_number})` : ''}
           </Text>
           <Text style={[styles.meta, { color: colors.textMuted }]}>
-            Active: <Text style={{ color: '#10b981', fontWeight: 'bold' }}>{item?.active_orders_count ?? 0}</Text> •
+            Active: <Text style={{ color: colors.primary, fontWeight: 'bold' }}>{item?.active_orders_count ?? 0}</Text> •
             Completed: <Text style={{ color: colors.text, fontWeight: 'bold' }}>{item?.total_deliveries ?? 0}</Text>
           </Text>
         </View>
@@ -81,7 +82,7 @@ const PartnerCard = memo(
             <Ionicons name="call" size={17} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: '#10b981' }]}
+            style={[styles.actionBtn, { backgroundColor: colors.primary }]}
             onPress={() => onWhatsapp(item?.phone)}
           >
             <Ionicons name="logo-whatsapp" size={17} color="#fff" />
@@ -260,7 +261,7 @@ export default function DeliveryPartnersScreen() {
         subtitle={`${partners.length} drivers • ${onlineCount} online`}
         rightAction={
           <TouchableOpacity
-            style={[styles.addToggleBtn, { backgroundColor: showAddForm ? colors.cardAlt : '#10b981' }]}
+            style={[styles.addToggleBtn, { backgroundColor: showAddForm ? colors.cardAlt : colors.primary }]}
             onPress={() => setShowAddForm((prev) => !prev)}
           >
             <Ionicons
@@ -366,7 +367,7 @@ export default function DeliveryPartnersScreen() {
                 style={[
                   styles.vehicleChip,
                   {
-                    borderColor: vehicleType === v ? '#10b981' : colors.border,
+                    borderColor: vehicleType === v ? colors.primary : colors.border,
                     backgroundColor: vehicleType === v ? (isDark ? '#064e3b' : '#ecfdf5') : colors.cardAlt,
                   },
                 ]}
@@ -376,7 +377,7 @@ export default function DeliveryPartnersScreen() {
                   style={[
                     styles.vehicleChipText,
                     {
-                      color: vehicleType === v ? '#10b981' : colors.textMuted,
+                      color: vehicleType === v ? colors.primary : colors.textMuted,
                       fontWeight: vehicleType === v ? '700' : '500',
                     },
                   ]}
@@ -423,7 +424,7 @@ export default function DeliveryPartnersScreen() {
 
       {/* Driver List */}
       {loading && !refreshing ? (
-        <ActivityIndicator size="large" color="#10b981" style={{ marginTop: 40 }} />
+        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
       ) : (
         <FlatList
           data={filteredPartners}
@@ -437,7 +438,7 @@ export default function DeliveryPartnersScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#10b981"
+              tintColor={colors.primary}
             />
           }
           renderItem={renderPartnerItem}
@@ -530,7 +531,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#10b981',
+    backgroundColor: theme.colors.primary,
     paddingVertical: 12,
     borderRadius: 8,
     marginBottom: 16,

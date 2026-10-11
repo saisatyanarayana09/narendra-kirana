@@ -18,6 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { apiClient } from "../../api/client";
 import { storeApi, StoreSettings } from "../../api/store";
 import { OrderTrackingMap } from "../../components/OrderTrackingMap";
+import { theme } from "../../constants/theme";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { useWebSocket } from "../../hooks/useWebSocket";
@@ -307,12 +308,12 @@ export function OrderTrackingScreen({
                 : navigation.navigate("Main")
             }
           >
-            <Feather name="arrow-left" size={18} color="#059669" />
+            <Feather name="arrow-left" size={18} color={colors.primary} />
             <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#059669" />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Loading order...</Text>
         </View>
       </SafeAreaView>
@@ -331,7 +332,7 @@ export function OrderTrackingScreen({
                 : navigation.navigate("Main")
             }
           >
-            <Feather name="arrow-left" size={18} color="#059669" />
+            <Feather name="arrow-left" size={18} color={colors.primary} />
             <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
         </View>
@@ -472,19 +473,20 @@ export function OrderTrackingScreen({
           };
       }
     }
+    const successBg = isDark ? "rgba(91, 168, 166, 0.15)" : colors.primaryLight;
     switch (status) {
       case "REJECTED":
         return { label: "Order Cancelled", bg: "#FFF1F2", text: "#E11D48" };
       case "COMPLETED":
-        return { label: "Order Completed", bg: "#ECFDF5", text: "#059669" };
+        return { label: "Order Completed", bg: successBg, text: colors.primary };
       case "READY":
         return { label: "Order Ready", bg: "#EFF6FF", text: "#2563EB" };
       case "PREPARING":
         return { label: "Order Preparing", bg: "#FFFBEB", text: "#D97706" };
       case "NEW":
-        return { label: "Order Placed", bg: "#ECFDF5", text: "#059669" };
+        return { label: "Order Placed", bg: successBg, text: colors.primary };
       default:
-        return { label: "Order Confirmed", bg: "#ECFDF5", text: "#059669" };
+        return { label: "Order Confirmed", bg: successBg, text: colors.primary };
     }
   };
 
@@ -533,7 +535,7 @@ export function OrderTrackingScreen({
             <Text
               style={[
                 styles.liveBadgeText,
-                { color: isDark ? "#34D399" : "#047857" },
+                { color: isDark ? "#34D399" : colors.primaryDark },
               ]}
             >
               LIVE SYNC
@@ -1455,7 +1457,7 @@ const styles = StyleSheet.create({
   liveBadgeText: {
     fontSize: 11,
     fontWeight: "800",
-    color: "#047857",
+    color: theme.colors.primaryDark,
     letterSpacing: 0.5,
   },
   backButton: {
@@ -1467,7 +1469,7 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#059669",
+    color: theme.colors.primary,
   },
   center: {
     flex: 1,
@@ -1490,7 +1492,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   retryBtn: {
-    backgroundColor: "#059669",
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
@@ -1528,7 +1530,7 @@ const styles = StyleSheet.create({
   orderConfirmedBadge: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#059669",
+    color: theme.colors.primary,
   },
   orderIdText: {
     fontSize: 26,
@@ -1618,13 +1620,13 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   stepBadgeCompleted: {
-    backgroundColor: "#059669",
+    backgroundColor: theme.colors.primary,
   },
   stepBadgePending: {
     backgroundColor: "#E2E8F0",
   },
   stepBadgeActive: {
-    backgroundColor: "#059669",
+    backgroundColor: theme.colors.primary,
     borderColor: "#D1FAE5",
     borderWidth: 4,
   },
@@ -1636,7 +1638,7 @@ const styles = StyleSheet.create({
     marginVertical: 2,
   },
   stepConnectorLineCompleted: {
-    backgroundColor: "#059669",
+    backgroundColor: theme.colors.primary,
   },
   stepDetailsCol: {
     flex: 1,
@@ -1648,7 +1650,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   stepTitleActive: {
-    color: "#047857",
+    color: theme.colors.primaryDark,
     fontWeight: "800",
   },
   stepTitleCompleted: {
@@ -1694,7 +1696,7 @@ const styles = StyleSheet.create({
   ownerNoteTitle: {
     fontSize: 11,
     fontWeight: "800",
-    color: "#047857",
+    color: theme.colors.primaryDark,
     letterSpacing: 0.5,
     marginBottom: 4,
     textTransform: "uppercase",
@@ -1805,7 +1807,7 @@ const styles = StyleSheet.create({
   totalRowVal: {
     fontSize: 20,
     fontWeight: "900",
-    color: "#059669",
+    color: theme.colors.primary,
   },
   viewInvoiceBottomBtn: {
     marginTop: 18,
@@ -1852,7 +1854,7 @@ const styles = StyleSheet.create({
   },
   deliveryCardPincode: {
     fontSize: 13,
-    color: "#059669",
+    color: theme.colors.primary,
     fontWeight: "600",
     marginTop: 2,
   },
@@ -2013,7 +2015,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: "#10B981",
+    backgroundColor: theme.colors.success,
   },
   liveStatusTitle: {
     fontSize: 13,

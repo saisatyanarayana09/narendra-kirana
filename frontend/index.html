@@ -14,7 +14,7 @@
  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
  <title>Narendra Kirana</title>
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#059669" />
+    <meta name="theme-color" content="#5ba8a6" />
     <link rel="apple-touch-icon" href="/favicon.jpg" />
     <script>
       (function() {
@@ -27,17 +27,19 @@
             document.documentElement.setAttribute('data-theme', 'dark');
             document.documentElement.style.colorScheme = 'dark';
             var meta = document.querySelector('meta[name="theme-color"]');
-            if (meta) meta.setAttribute('content', '#090d16');
+            if (meta) meta.setAttribute('content', '#181a1b');
           } else {
             document.documentElement.classList.remove('dark');
             document.documentElement.setAttribute('data-theme', 'light');
             document.documentElement.style.colorScheme = 'light';
+            var meta = document.querySelector('meta[name="theme-color"]');
+            if (meta) meta.setAttribute('content', '#5ba8a6');
           }
         } catch (e) {}
       })();
     </script>
  </head>
- <body class="bg-slate-50 dark:bg-[#090d16] text-slate-900 dark:text-slate-100 font-sans antialiased tracking-tight" style="-webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;">
+ <body class="bg-[#f7f5f0] dark:bg-[#181a1b] text-[#323232] dark:text-[#f3efe6] font-sans antialiased tracking-tight" style="-webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;">
  <div id="root"></div>
  <script type="module" src="/src/main.jsx"></script>
 

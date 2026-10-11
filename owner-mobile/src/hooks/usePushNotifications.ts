@@ -6,6 +6,7 @@ import Constants, { ExecutionEnvironment } from 'expo-constants';
 import type * as NotificationsType from 'expo-notifications';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { theme } from '@/constants/theme';
 
 /**
  * Detect if currently running inside the Expo Go client app.
@@ -149,7 +150,7 @@ async function registerForPushNotificationsAsync(
         name: 'New Orders & Store Alerts',
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#10b981',
+        lightColor: theme.colors.primary,
         sound: 'default',
         enableVibrate: true,
         enableLights: true,

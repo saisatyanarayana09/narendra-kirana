@@ -20,6 +20,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 
+import { theme } from "../constants/theme";
+
 interface MapLocationPickerProps {
   visible: boolean;
   onClose: () => void;
@@ -231,7 +233,7 @@ export function MapLocationPicker({
           }
           .pin-shape {
             width: 34px; height: 34px;
-            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            background: linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.primaryDark} 100%);
             border: 2.5px solid #ffffff;
             border-radius: 50% 50% 50% 0;
             transform: rotate(-45deg);
@@ -357,8 +359,8 @@ export function MapLocationPicker({
 
           L.circle([${storeLat}, ${storeLng}], {
             radius: ${maxRadiusKm * 1000},
-            color: '#059669',
-            fillColor: '#10b981',
+            color: '${theme.colors.primary}',
+            fillColor: '${theme.colors.success}',
             fillOpacity: 0.12,
             weight: 2,
             dashArray: '5, 5'
@@ -417,7 +419,7 @@ export function MapLocationPicker({
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <View style={styles.iconCircle}>
-              <Feather name="map-pin" size={18} color="#059669" />
+              <Feather name="map-pin" size={18} color={theme.colors.primary} />
             </View>
             <View>
               <Text style={styles.headerTitle}>{title}</Text>
@@ -455,10 +457,10 @@ export function MapLocationPicker({
             activeOpacity={0.85}
           >
             {isLocating ? (
-              <ActivityIndicator size="small" color="#059669" />
+              <ActivityIndicator size="small" color={theme.colors.primary} />
             ) : (
               <>
-                <Ionicons name="navigate" size={16} color="#059669" />
+                <Ionicons name="navigate" size={16} color={theme.colors.primary} />
                 <Text style={styles.locateMeText}>Locate Me</Text>
               </>
             )}
@@ -478,7 +480,7 @@ export function MapLocationPicker({
               {isGeocoding && (
                 <ActivityIndicator
                   size="small"
-                  color="#059669"
+                  color={theme.colors.primary}
                   style={{ marginLeft: 6 }}
                 />
               )}
@@ -616,7 +618,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1,
-    color: "#059669",
+    color: theme.colors.primary,
   },
   displayNameText: {
     fontSize: 13,
@@ -657,7 +659,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: "#059669",
+    backgroundColor: theme.colors.primary,
     boxShadow: "0px 3px 6px rgba(5, 150, 105, 0.25)",
     elevation: 3,
   },

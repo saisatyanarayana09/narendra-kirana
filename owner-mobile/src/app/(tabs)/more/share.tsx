@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../../../context/ThemeContext';
 import * as Clipboard from 'expo-clipboard';
 import api from '../../../services/api';
+import { theme } from '@/constants/theme';
 
 export default function ShareAppsScreen() {
   const router = useRouter();
@@ -45,7 +46,7 @@ export default function ShareAppsScreen() {
       description: 'For your buyers to order groceries.',
       url: settings?.app_update_url || 'https://narendra-kirana.vercel.app/download-apk/customer',
       icon: 'basket-outline' as const,
-      color: '#10b981',
+      color: theme.colors.primary,
     },
     {
       name: 'Delivery App',

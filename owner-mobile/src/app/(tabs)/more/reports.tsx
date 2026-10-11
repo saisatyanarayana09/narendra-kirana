@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import api, { ApiInstance, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
+import { theme } from '@/constants/theme';
 import { showAlert } from '../../../utils/alerts';
 import ScreenHeader from '../../../components/ScreenHeader';
 
@@ -167,7 +168,7 @@ export default function ReportsScreen() {
   if (loading && !refreshing) {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: colors.bg }]}>
-        <ActivityIndicator size="large" color="#10b981" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -197,7 +198,7 @@ export default function ReportsScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#10b981"
+            tintColor={colors.primary}
           />
         }
       >
@@ -220,7 +221,7 @@ export default function ReportsScreen() {
               styles.timeframeBtn,
               timeframe === t.key && {
                 backgroundColor: isDark ? '#064e3b' : '#ecfdf5',
-                borderColor: '#10b981',
+                borderColor: colors.primary,
               },
             ]}
             onPress={() => setTimeframe(t.key as Timeframe)}
@@ -229,7 +230,7 @@ export default function ReportsScreen() {
               style={[
                 styles.timeframeText,
                 {
-                  color: timeframe === t.key ? '#10b981' : colors.textMuted,
+                  color: timeframe === t.key ? colors.primary : colors.textMuted,
                   fontWeight: timeframe === t.key ? '700' : '500',
                 },
               ]}
@@ -244,7 +245,7 @@ export default function ReportsScreen() {
       <View style={styles.metricsGrid}>
         <View style={[styles.metricCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={[styles.metricIcon, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
-            <Ionicons name="cash-outline" size={20} color="#10b981" />
+            <Ionicons name="cash-outline" size={20} color={colors.primary} />
           </View>
           <Text style={[styles.metricLabel, { color: colors.textMuted }]}>Total Revenue</Text>
           <Text style={[styles.metricValue, { color: colors.text }]}>₹{totalSales}</Text>
@@ -270,7 +271,7 @@ export default function ReportsScreen() {
       {/* Sales Performance Chart Card */}
       <View style={[styles.chartCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <View style={styles.chartHeader}>
-          <Ionicons name="bar-chart-outline" size={18} color="#10b981" />
+          <Ionicons name="bar-chart-outline" size={18} color={colors.primary} />
           <Text style={[styles.chartTitle, { color: colors.text }]}>
             Revenue Timeline ({timeframe === '7' ? '7 Days' : timeframe === '30' ? '14 Days' : 'Recent'})
           </Text>
@@ -289,7 +290,7 @@ export default function ReportsScreen() {
                     <View
                       style={[
                         styles.barFill,
-                        { height: `${Math.max(6, heightPercent)}%`, backgroundColor: '#10b981' },
+                        { height: `${Math.max(6, heightPercent)}%`, backgroundColor: colors.primary },
                       ]}
                     />
                   </View>
@@ -335,7 +336,7 @@ export default function ReportsScreen() {
                   {p.quantity} units sold
                 </Text>
               </View>
-              <Text style={[styles.sellerRev, { color: '#10b981' }]}>
+              <Text style={[styles.sellerRev, { color: colors.primary }]}>
                 ₹{p.revenue.toFixed(2)}
               </Text>
             </View>
@@ -355,7 +356,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#059669',
+    backgroundColor: theme.colors.primaryDark,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,

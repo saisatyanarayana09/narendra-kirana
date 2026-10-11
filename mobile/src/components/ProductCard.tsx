@@ -11,6 +11,7 @@ import {
 } from "react-native";
 
 import { BouncyTouchable } from "./BouncyTouchable";
+import { theme } from "../constants/theme";
 import { useTheme } from "../context/ThemeContext";
 import { getOptimizedImageUrl } from "../utils/image";
 
@@ -391,7 +392,7 @@ function ProductCardComponent({
               {isMaxReached ? (
                 <Text style={styles.maxReachedText}>Max in cart</Text>
               ) : added ? (
-                <Text style={[styles.addedText, { color: "#059669" }]}>
+                <Text style={[styles.addedText, { color: colors.primary }]}>
                   ✓ Added!
                 </Text>
               ) : updating ? (
@@ -660,7 +661,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   addedText: {
-    color: "#059669",
+    color: theme.colors.primary,
     fontSize: 13,
     lineHeight: 16,
     fontWeight: "800",

@@ -3,6 +3,7 @@ import { Image } from "expo-image";
 import React, { memo, useState, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 
+import { theme } from "../constants/theme";
 import { CartItem } from "../context/CartContext";
 import { useTheme } from "../context/ThemeContext";
 import { triggerHaptic } from "../utils/haptics";
@@ -255,7 +256,7 @@ const styles = StyleSheet.create({
   placeholderLetter: {
     fontSize: 18,
     fontWeight: "900",
-    color: "#059669",
+    color: theme.colors.primary,
   },
   details: {
     flex: 1,

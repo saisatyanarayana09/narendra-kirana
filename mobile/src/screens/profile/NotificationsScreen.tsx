@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { apiClient } from "../../api/client";
 import { BouncyTouchable } from "../../components/BouncyTouchable";
+import { theme } from "../../constants/theme";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { AppNavigationProp } from "../../navigation/types";
@@ -198,7 +199,7 @@ export function NotificationsScreen({
       case "ORDER":
         return {
           icon: "shopping-bag" as const,
-          color: "#10B981",
+          color: colors.success,
           bgColor: isDark ? "rgba(16, 185, 129, 0.15)" : "#ECFDF5",
           badgeLabel: "ORDER UPDATE",
           actionText: "Track Order",
@@ -734,7 +735,7 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: "#10B981",
+    backgroundColor: theme.colors.success,
   },
   catIconCircle: {
     width: 22,

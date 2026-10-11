@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { apiClient } from "../../api/client";
+import { theme } from "../../constants/theme";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { useLocation } from "../../hooks/useLocation";
@@ -656,7 +657,7 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#059669",
+    color: theme.colors.primary,
   },
   headerTitle: {
     fontSize: 22,
@@ -711,7 +712,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   gpsBtnTextSecured: {
-    color: "#059669",
+    color: theme.colors.primary,
   },
   formCard: {
     backgroundColor: "#FFFFFF",
@@ -744,7 +745,7 @@ const styles = StyleSheet.create({
   },
   labelPillActive: {
     backgroundColor: "#ECFDF5",
-    borderColor: "#059669",
+    borderColor: theme.colors.primary,
   },
   labelPillText: {
     fontSize: 13,
@@ -752,7 +753,7 @@ const styles = StyleSheet.create({
     color: "#64748B",
   },
   labelPillTextActive: {
-    color: "#059669",
+    color: theme.colors.primary,
     fontWeight: "800",
   },
   textInput: {
@@ -771,7 +772,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   saveBtn: {
-    backgroundColor: "#059669",
+    backgroundColor: theme.colors.primary,
     borderRadius: 14,
     height: 48,
     justifyContent: "center",

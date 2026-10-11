@@ -14,6 +14,7 @@ import {
 
 import { apiClient } from "../api/client";
 import { APP_VERSION } from "../constants/config";
+import { theme } from "../constants/theme";
 import { navigationRef } from "../navigation/navigationRef";
 import { triggerHaptic } from "../utils/haptics";
 
@@ -246,7 +247,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
                   <Feather
                     name="refresh-cw"
                     size={18}
-                    color="#059669"
+                    color={theme.colors.primary}
                     style={styles.buttonIcon}
                   />
                   <Text style={styles.secondaryButtonText}>Try Again</Text>
@@ -324,7 +325,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
                         <Feather
                           name={this.state.copied ? "check" : "copy"}
                           size={13}
-                          color="#059669"
+                          color={theme.colors.primary}
                           style={{ marginRight: 6 }}
                         />
                         <Text style={styles.copyErrorBtnText}>
@@ -397,7 +398,7 @@ const styles = StyleSheet.create({
   safeNote: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#059669",
+    color: theme.colors.primary,
     textAlign: "center",
     marginBottom: 8,
     backgroundColor: "#ECFDF5",
@@ -420,7 +421,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   primaryButton: {
-    backgroundColor: "#059669",
+    backgroundColor: theme.colors.primary,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -441,7 +442,7 @@ const styles = StyleSheet.create({
   secondaryButton: {
     backgroundColor: "#FFFFFF",
     borderWidth: 1.5,
-    borderColor: "#059669",
+    borderColor: theme.colors.primary,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -450,7 +451,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   secondaryButtonText: {
-    color: "#059669",
+    color: theme.colors.primary,
     fontSize: 15,
     fontWeight: "700",
   },
@@ -517,7 +518,7 @@ const styles = StyleSheet.create({
     borderColor: "#A7F3D0",
   },
   copyErrorBtnText: {
-    color: "#059669",
+    color: theme.colors.primary,
     fontSize: 12,
     fontWeight: "700",
   },

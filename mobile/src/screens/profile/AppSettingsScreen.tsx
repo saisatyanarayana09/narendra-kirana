@@ -566,11 +566,11 @@ export function AppSettingsScreen({
                   },
                 ]}
               >
-                <Feather name="check-circle" size={16} color="#059669" />
+                <Feather name="check-circle" size={16} color={colors.primary} />
                 <Text
                   style={[
                     styles.readyCardSmallText,
-                    { color: isDark ? "#34D399" : "#047857" },
+                    { color: isDark ? "#34D399" : colors.primaryDark },
                   ]}
                 >
                   Update package downloaded & ready to install!

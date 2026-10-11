@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { theme } from "../../constants/theme";
 import { useTheme } from "../../context/ThemeContext";
 import { AppNavigationProp } from "../../navigation/types";
 import { triggerHaptic } from "../../utils/haptics";
@@ -171,7 +172,7 @@ export function OrderSuccessScreen({ navigation, route }: Props) {
           <Animated.View
             style={[
               styles.iconContainer,
-              { transform: [{ scale: scaleAnim }] },
+              { backgroundColor: colors.primary, transform: [{ scale: scaleAnim }] },
             ]}
           >
             <Feather name="check" size={50} color="#FFFFFF" />
@@ -271,7 +272,7 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 45,
-    backgroundColor: "#059669", // Emerald-600
+    backgroundColor: theme.colors.primary, // Emerald-600
     justifyContent: "center",
     alignItems: "center",
     boxShadow: "0px 8px 12px rgba(5, 150, 105, 0.35)",
@@ -320,7 +321,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   primaryButton: {
-    backgroundColor: "#059669",
+    backgroundColor: theme.colors.primary,
     width: "100%",
     paddingVertical: 15,
     borderRadius: 16,

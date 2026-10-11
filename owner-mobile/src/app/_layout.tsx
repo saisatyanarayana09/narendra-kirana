@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, LogBox, Platform, UIManager }
 import { Stack } from 'expo-router';
 import { AuthProvider } from '../context/AuthContext';
 import { AppThemeProvider, useAppTheme } from '../context/ThemeContext';
+import { theme } from '@/constants/theme';
 import { StatusBar } from 'expo-status-bar';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { checkAndDownloadOtaUpdateSilently } from '../services/otaService';
@@ -145,7 +146,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   retryBtn: {
-    backgroundColor: '#10b981',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,

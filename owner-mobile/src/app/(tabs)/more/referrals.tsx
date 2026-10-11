@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import api, { cachedGet, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
+import { theme } from '../../../constants/theme';
 import { showAlert, showConfirm } from '../../../utils/alerts';
 import ScreenHeader from '../../../components/ScreenHeader';
 
@@ -193,7 +194,7 @@ export default function ReferralsScreen() {
         rightAction={
           activeTab === 'settings' ? (
             <TouchableOpacity
-              style={[styles.headerSaveBtn, { backgroundColor: '#10b981', opacity: saving ? 0.7 : 1 }]}
+              style={[styles.headerSaveBtn, { backgroundColor: colors.primary, opacity: saving ? 0.7 : 1 }]}
               onPress={handleSaveSettings}
               disabled={saving}
             >
@@ -228,7 +229,7 @@ export default function ReferralsScreen() {
                   style={[
                     styles.segmentText,
                     {
-                      color: active ? '#10b981' : colors.textMuted,
+                      color: active ? colors.primary : colors.textMuted,
                       fontWeight: active ? '800' : '600',
                     },
                   ]}
@@ -243,7 +244,7 @@ export default function ReferralsScreen() {
 
       {loading && !refreshing ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#10b981" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
         <ScrollView
@@ -255,7 +256,7 @@ export default function ReferralsScreen() {
                 setRefreshing(true);
                 fetchData(true);
               }}
-              tintColor="#10b981"
+              tintColor={colors.primary}
             />
           }
         >
@@ -285,7 +286,7 @@ export default function ReferralsScreen() {
                   style={[
                     styles.radioBtn,
                     {
-                      borderColor: rewardType === 'money' ? '#10b981' : colors.border,
+                      borderColor: rewardType === 'money' ? colors.primary : colors.border,
                       backgroundColor: rewardType === 'money' ? (isDark ? '#064e3b' : '#ecfdf5') : colors.cardAlt,
                     },
                   ]}
@@ -297,7 +298,7 @@ export default function ReferralsScreen() {
                   <Ionicons
                     name={rewardType === 'money' ? 'radio-button-on' : 'radio-button-off'}
                     size={18}
-                    color={rewardType === 'money' ? '#10b981' : colors.textMuted}
+                    color={rewardType === 'money' ? colors.primary : colors.textMuted}
                   />
                   <Text style={[styles.radioText, { color: colors.text }]}>Cash Wallet Reward</Text>
                 </TouchableOpacity>
@@ -306,7 +307,7 @@ export default function ReferralsScreen() {
                   style={[
                     styles.radioBtn,
                     {
-                      borderColor: rewardType === 'product' ? '#10b981' : colors.border,
+                      borderColor: rewardType === 'product' ? colors.primary : colors.border,
                       backgroundColor: rewardType === 'product' ? (isDark ? '#064e3b' : '#ecfdf5') : colors.cardAlt,
                     },
                   ]}
@@ -318,7 +319,7 @@ export default function ReferralsScreen() {
                   <Ionicons
                     name={rewardType === 'product' ? 'radio-button-on' : 'radio-button-off'}
                     size={18}
-                    color={rewardType === 'product' ? '#10b981' : colors.textMuted}
+                    color={rewardType === 'product' ? colors.primary : colors.textMuted}
                   />
                   <Text style={[styles.radioText, { color: colors.text }]}>Free Product Reward</Text>
                 </TouchableOpacity>
@@ -405,7 +406,7 @@ export default function ReferralsScreen() {
                         style={[
                           styles.periodBtn,
                           {
-                            borderColor: settings.min_spend_period === p.key ? '#10b981' : colors.border,
+                            borderColor: settings.min_spend_period === p.key ? colors.primary : colors.border,
                             backgroundColor:
                               settings.min_spend_period === p.key
                                 ? (isDark ? '#064e3b' : '#ecfdf5')
@@ -420,7 +421,7 @@ export default function ReferralsScreen() {
                             {
                               color:
                                 settings.min_spend_period === p.key
-                                  ? (isDark ? '#a7f3d0' : '#047857')
+                                  ? (isDark ? '#a7f3d0' : colors.primaryDark)
                                   : colors.textMuted,
                               fontWeight: settings.min_spend_period === p.key ? '700' : '500',
                             },
@@ -523,7 +524,7 @@ export default function ReferralsScreen() {
                       <Text style={[styles.itemTitle, { color: colors.text }]}>
                         {m?.required_referrals} Successful Referrals
                       </Text>
-                      <Text style={[styles.bonusTag, { color: '#10b981' }]}>
+                      <Text style={[styles.bonusTag, { color: colors.primary }]}>
                         Bonus: ₹{m?.bonus_reward}
                       </Text>
                     </View>
@@ -569,7 +570,7 @@ export default function ReferralsScreen() {
                             {
                               color:
                                 item?.status === 'COMPLETED'
-                                  ? '#10b981'
+                                  ? colors.primary
                                   : item?.status === 'AWAITING_APPROVAL'
                                   ? '#f59e0b'
                                   : '#64748b',
@@ -628,7 +629,7 @@ export default function ReferralsScreen() {
                     style={[
                       styles.productOption,
                       {
-                        borderColor: isSelected ? '#10b981' : colors.border,
+                        borderColor: isSelected ? colors.primary : colors.border,
                         backgroundColor: isSelected ? (isDark ? '#064e3b' : '#ecfdf5') : colors.cardAlt,
                       },
                     ]}
@@ -643,11 +644,11 @@ export default function ReferralsScreen() {
                   >
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.prodName, { color: colors.text }]}>{p.name}</Text>
-                      <Text style={[styles.prodPrice, { color: '#10b981' }]}>
+                      <Text style={[styles.prodPrice, { color: colors.primary }]}>
                         Regular Price: ₹{p.regular_price || p.price}
                       </Text>
                     </View>
-                    {isSelected && <Ionicons name="checkmark-circle" size={20} color="#10b981" />}
+                    {isSelected && <Ionicons name="checkmark-circle" size={20} color={colors.primary} />}
                   </TouchableOpacity>
                 );
               })}
@@ -816,7 +817,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#10b981',
+    backgroundColor: theme.colors.primary,
     paddingVertical: 13,
     borderRadius: 10,
     marginTop: 10,
@@ -885,7 +886,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#10b981',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 10,
     paddingVertical: 7,
     borderRadius: 6,

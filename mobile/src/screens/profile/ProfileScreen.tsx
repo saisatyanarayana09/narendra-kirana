@@ -18,6 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { apiClient } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import { useLanguage } from "../../context/LanguageContext";
+import { theme } from "../../constants/theme";
 import { useTheme } from "../../context/ThemeContext";
 import { AppNavigationProp } from "../../navigation/types";
 import { triggerHaptic } from "../../utils/haptics";
@@ -128,7 +129,7 @@ export function ProfileScreen({
       desc: t("walletDesc"),
       icon: "currency-rupee" as const,
       isRupee: true, // Use Indian Rupee symbol
-      color: "#059669", // emerald-600
+      color: colors.primary,
       bg: "#ECFDF5", // emerald-50
       isProtected: true,
       badge: walletBalance > 0 ? `₹${walletBalance.toFixed(0)}` : undefined,
@@ -210,7 +211,7 @@ export function ProfileScreen({
       desc: t("accountSettingsDesc"),
       icon: "user" as const,
       isRupee: false,
-      color: "#059669", // primary-600
+      color: colors.primary,
       bg: "#ECFDF5", // primary-50
       isProtected: true,
       onPress: () => navigation.navigate("AccountSettingsScreen"),
@@ -270,14 +271,14 @@ export function ProfileScreen({
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={["#059669"]}
-            tintColor="#059669"
+            colors={[colors.primary]}
+            tintColor={colors.primary}
           />
         }
       >
         {/* Improved Customer Name Hero Background */}
         <LinearGradient
-          colors={["#064E3B", "#065F46", "#047857"]}
+          colors={[colors.primaryDark, colors.primary]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.customerHeroCard}
@@ -352,7 +353,7 @@ export function ProfileScreen({
                 ) : user ? (
                   <Text style={styles.avatarText}>{getInitials()}</Text>
                 ) : (
-                  <Feather name="user" size={26} color="#059669" />
+                  <Feather name="user" size={26} color={colors.primary} />
                 )}
                 {user && (
                   <View style={styles.avatarCameraBadge}>
@@ -779,7 +780,7 @@ export function ProfileScreen({
                     },
                   ]}
                 >
-                  <Feather name="log-in" size={20} color="#059669" />
+                  <Feather name="log-in" size={20} color={colors.primary} />
                 </View>
                 <View style={styles.cardTextGroup}>
                   <Text
@@ -895,7 +896,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: -2,
     right: -2,
-    backgroundColor: "#059669",
+    backgroundColor: theme.colors.primary,
     width: 18,
     height: 18,
     borderRadius: 9,
@@ -921,7 +922,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: -2,
     right: -2,
-    backgroundColor: "#059669",
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 4,
     paddingVertical: 1,
     borderRadius: 8,
@@ -1006,7 +1007,7 @@ const styles = StyleSheet.create({
   loyaltyValue: {
     fontSize: 16,
     fontWeight: "900",
-    color: "#059669",
+    color: theme.colors.primary,
     letterSpacing: -0.3,
   },
   loyaltyLabel: {

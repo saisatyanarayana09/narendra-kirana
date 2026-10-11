@@ -19,6 +19,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import { Ionicons } from '@expo/vector-icons';
 import api, { ApiInstance, cachedGet, getErrorMessage } from '../../../services/api';
 import { useAppTheme } from '../../../context/ThemeContext';
+import { theme } from '../../../constants/theme';
 import { showAlert, showConfirm } from '../../../utils/alerts';
 import ScreenHeader from '../../../components/ScreenHeader';
 import ModernSwitch from '../../../components/ModernSwitch';
@@ -83,7 +84,7 @@ const BannerCard = React.memo<BannerCardProps>(
               styles.bannerCard,
               {
                 backgroundColor: colors.card,
-                borderColor: isDragging || isHoveredTarget ? '#10b981' : colors.border,
+                borderColor: isDragging || isHoveredTarget ? colors.primary : colors.border,
                 borderWidth: isDragging || isHoveredTarget ? 2 : 1,
               },
             ]}
@@ -126,12 +127,12 @@ const BannerCard = React.memo<BannerCardProps>(
                     styles.dragHandleGrip,
                     {
                       backgroundColor: isDragging
-                        ? '#10b981'
+                        ? colors.primary
                         : isDark
                           ? 'rgba(16, 185, 129, 0.15)'
                           : '#ecfdf5',
                       borderColor: isDragging
-                        ? '#059669'
+                        ? colors.primaryDark
                         : isDark
                           ? 'rgba(16, 185, 129, 0.3)'
                           : '#a7f3d0',
@@ -142,7 +143,7 @@ const BannerCard = React.memo<BannerCardProps>(
                   <Ionicons
                     name="reorder-two-outline"
                     size={18}
-                    color={isDragging ? '#ffffff' : '#10b981'}
+                    color={isDragging ? '#ffffff' : colors.primary}
                   />
                 </View>
 
@@ -260,7 +261,7 @@ const SectionCard = React.memo<SectionCardProps>(
               styles.sectionCard,
               {
                 backgroundColor: colors.card,
-                borderColor: isDragging || isHoveredTarget ? '#10b981' : colors.border,
+                borderColor: isDragging || isHoveredTarget ? colors.primary : colors.border,
                 borderWidth: isDragging || isHoveredTarget ? 2 : 1,
               },
             ]}
@@ -342,7 +343,7 @@ const SectionCard = React.memo<SectionCardProps>(
                 style={[styles.curateBtn, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}
                 onPress={() => onOpenCurator(item)}
               >
-                <Ionicons name="layers-outline" size={15} color="#10b981" />
+                <Ionicons name="layers-outline" size={15} color={colors.primary} />
                 <Text style={[styles.curateBtnText, { color: colors.text }]}>
                   Curate Products
                 </Text>
@@ -358,12 +359,12 @@ const SectionCard = React.memo<SectionCardProps>(
                       styles.dragHandleGrip,
                       {
                         backgroundColor: isDragging
-                          ? '#10b981'
+                          ? colors.primary
                           : isDark
                             ? 'rgba(16, 185, 129, 0.15)'
                             : '#ecfdf5',
                         borderColor: isDragging
-                          ? '#059669'
+                          ? colors.primaryDark
                           : isDark
                             ? 'rgba(16, 185, 129, 0.3)'
                             : '#a7f3d0',
@@ -374,7 +375,7 @@ const SectionCard = React.memo<SectionCardProps>(
                     <Ionicons
                       name="reorder-two-outline"
                       size={18}
-                      color={isDragging ? '#ffffff' : '#10b981'}
+                      color={isDragging ? '#ffffff' : colors.primary}
                     />
                   </View>
 
@@ -455,7 +456,7 @@ const CatalogProductRow = React.memo<CatalogProductRowProps>(
                 ? 'rgba(16, 185, 129, 0.15)'
                 : '#ecfdf5'
               : colors.cardAlt,
-            borderColor: isSelected ? '#10b981' : colors.border,
+            borderColor: isSelected ? colors.primary : colors.border,
           },
         ]}
         activeOpacity={0.7}
@@ -487,8 +488,8 @@ const CatalogProductRow = React.memo<CatalogProductRowProps>(
           style={[
             styles.checkCircle,
             {
-              backgroundColor: isSelected ? '#10b981' : 'transparent',
-              borderColor: isSelected ? '#10b981' : colors.border,
+              backgroundColor: isSelected ? colors.primary : 'transparent',
+              borderColor: isSelected ? colors.primary : colors.border,
             },
           ]}
         >
@@ -1045,13 +1046,13 @@ export default function ShowcaseScreen() {
             <Ionicons
               name="images-outline"
               size={16}
-              color={activeTab === 'banners' ? '#10b981' : colors.textMuted}
+              color={activeTab === 'banners' ? colors.primary : colors.textMuted}
             />
             <Text
               style={[
                 styles.segmentText,
                 {
-                  color: activeTab === 'banners' ? '#10b981' : colors.textMuted,
+                  color: activeTab === 'banners' ? colors.primary : colors.textMuted,
                   fontWeight: activeTab === 'banners' ? '800' : '600',
                 },
               ]}
@@ -1072,13 +1073,13 @@ export default function ShowcaseScreen() {
             <Ionicons
               name="grid-outline"
               size={16}
-              color={activeTab === 'sections' ? '#10b981' : colors.textMuted}
+              color={activeTab === 'sections' ? colors.primary : colors.textMuted}
             />
             <Text
               style={[
                 styles.segmentText,
                 {
-                  color: activeTab === 'sections' ? '#10b981' : colors.textMuted,
+                  color: activeTab === 'sections' ? colors.primary : colors.textMuted,
                   fontWeight: activeTab === 'sections' ? '800' : '600',
                 },
               ]}
@@ -1092,7 +1093,7 @@ export default function ShowcaseScreen() {
       {/* Main Content Area */}
       {loading ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#10b981" />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={[styles.loadingText, { color: colors.textMuted }]}>
             Loading showcase data...
           </Text>
@@ -1116,7 +1117,7 @@ export default function ShowcaseScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#10b981"
+              tintColor={colors.primary}
             />
           }
           renderItem={renderBannerItem}
@@ -1158,7 +1159,7 @@ export default function ShowcaseScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#10b981"
+              tintColor={colors.primary}
             />
           }
           renderItem={renderSectionItem}
@@ -1239,7 +1240,7 @@ export default function ShowcaseScreen() {
                   />
                 ) : (
                   <View style={styles.bannerPlaceholder}>
-                    <Ionicons name="cloud-upload-outline" size={32} color="#10b981" />
+                    <Ionicons name="cloud-upload-outline" size={32} color={colors.primary} />
                     <Text style={[styles.bannerPlaceholderTitle, { color: colors.text }]}>
                       Tap to select 16:9 banner
                     </Text>
@@ -1493,7 +1494,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#10b981',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 8,
@@ -1721,7 +1722,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#10b981',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 10,
@@ -1831,7 +1832,7 @@ const styles = StyleSheet.create({
     flex: 2,
     height: 44,
     borderRadius: 10,
-    backgroundColor: '#10b981',
+    backgroundColor: theme.colors.primary,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
