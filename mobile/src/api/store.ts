@@ -115,6 +115,9 @@ function loadDiskCache(): Promise<void> {
         cachedSettings = JSON.parse(raw);
         // Give disk cache a 5-minute expiry so we don't serve very stale data
         cacheExpiry = Date.now() + 300000;
+        if (cachedSettings) {
+          notifyListeners(cachedSettings);
+        }
       }
     } catch {}
     diskCacheLoaded = true;
@@ -143,6 +146,14 @@ export const storeApi = {
       try {
         listener(cachedSettings);
       } catch {}
+    } else {
+      loadDiskCache().then(() => {
+        if (cachedSettings) {
+          try {
+            listener(cachedSettings);
+          } catch {}
+        }
+      }).catch(() => {});
     }
     return () => {
       settingsListeners.delete(listener);

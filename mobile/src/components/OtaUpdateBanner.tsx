@@ -13,11 +13,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { subscribeOtaState, applyOtaUpdate } from "../services/otaService";
 import { triggerHaptic } from "../utils/haptics";
+import { useTheme } from "../context/ThemeContext";
 
 const USE_NATIVE_DRIVER = Platform.OS !== "web";
 const AUTO_DISMISS_MS = 7000;
 
 export function OtaUpdateBanner() {
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [isPending, setIsPending] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -102,14 +104,29 @@ export function OtaUpdateBanner() {
         },
       ]}
     >
-      <View style={styles.banner}>
+      <View
+        style={[
+          styles.banner,
+          {
+            backgroundColor: colors.primaryDark || colors.primary,
+            borderColor: colors.primaryLight || colors.primary,
+            boxShadow: `0px 6px 12px ${colors.primary}4D`,
+          },
+        ]}
+      >
         <View style={styles.leftGroup}>
           <View style={styles.iconCircle}>
             <Text style={styles.emojiIcon}>✨</Text>
           </View>
           <View style={styles.textContainer}>
             <Text style={styles.title}>Update Ready</Text>
-            <Text style={styles.subtitle} numberOfLines={1}>
+            <Text
+              style={[
+                styles.subtitle,
+                { color: colors.primaryLight || "#A7F3D0" },
+              ]}
+              numberOfLines={1}
+            >
               Restart app to apply new features
             </Text>
           </View>
@@ -117,17 +134,27 @@ export function OtaUpdateBanner() {
 
         <View style={styles.rightGroup}>
           <TouchableOpacity
-            style={styles.restartBtn}
+            style={[
+              styles.restartBtn,
+              { backgroundColor: colors.accent || "#FDE047" },
+            ]}
             onPress={handleRestart}
             activeOpacity={0.85}
           >
             <Feather
               name="refresh-cw"
               size={12}
-              color="#064E3B"
+              color={colors.primaryDark || colors.primary}
               style={{ marginRight: 4 }}
             />
-            <Text style={styles.restartBtnText}>Restart</Text>
+            <Text
+              style={[
+                styles.restartBtnText,
+                { color: colors.primaryDark || colors.primary },
+              ]}
+            >
+              Restart
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -146,6 +173,7 @@ export function OtaUpdateBanner() {
             style={[
               styles.progressBarFill,
               {
+                backgroundColor: colors.accent || "#FDE047",
                 transform: [{ scaleX: countdownAnim }],
               },
             ]}

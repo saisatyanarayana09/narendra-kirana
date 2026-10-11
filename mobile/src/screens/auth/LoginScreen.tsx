@@ -330,7 +330,7 @@ export function LoginScreen({ navigation, route }: Props) {
               <Text style={[styles.brandSlate, { color: colors.text }]}>
                 Narendra{" "}
               </Text>
-              <Text style={styles.brandRed}>Kirana</Text>
+              <Text style={[styles.brandRed, { color: colors.primary }]}>Kirana</Text>
             </Text>
 
             {/* Contextual Subline (Only if redirected from checkout) */}
@@ -345,11 +345,11 @@ export function LoginScreen({ navigation, route }: Props) {
                   styles.invitePill,
                   {
                     backgroundColor: isDark
-                      ? "rgba(16, 185, 129, 0.12)"
-                      : "rgba(16, 185, 129, 0.08)",
+                      ? `${colors.primary}26`
+                      : `${colors.primary}14`,
                     borderColor: isDark
-                      ? "rgba(16, 185, 129, 0.25)"
-                      : "rgba(16, 185, 129, 0.2)",
+                      ? `${colors.primary}4D`
+                      : `${colors.primary}33`,
                   },
                 ]}
               >
@@ -554,8 +554,8 @@ export function LoginScreen({ navigation, route }: Props) {
                   styles.modalInviteBadge,
                   {
                     backgroundColor: isDark
-                      ? "rgba(16, 185, 129, 0.12)"
-                      : "rgba(16, 185, 129, 0.08)",
+                      ? `${colors.primary}26`
+                      : `${colors.primary}14`,
                   },
                 ]}
               >

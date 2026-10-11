@@ -8,9 +8,12 @@ import {
   Platform,
 } from "react-native";
 
+import { useTheme } from "../context/ThemeContext";
+
 const USE_NATIVE_DRIVER = Platform.OS !== "web";
 
 export function SplashScreen() {
+  const { colors, isDark } = useTheme();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
@@ -30,14 +33,14 @@ export function SplashScreen() {
   }, []);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Animated.View
         style={[
           styles.content,
           { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
         ]}
       >
-        <View style={styles.logoBox}>
+        <View style={[styles.logoBox, { backgroundColor: colors.surface }]}>
           <Image
             source={require("../../assets/logo.jpg")}
             style={styles.logoImage}
@@ -45,10 +48,25 @@ export function SplashScreen() {
           />
         </View>
         <View style={styles.brandRow}>
-          <Text style={styles.brandEmerald}>NARENDRA</Text>
-          <Text style={styles.brandRed}> KIRANA</Text>
+          <Text
+            style={[
+              styles.brandEmerald,
+              {
+                color: isDark
+                  ? colors.primaryLight
+                  : (colors.primaryDark || colors.primary),
+              },
+            ]}
+          >
+            NARENDRA
+          </Text>
+          <Text style={[styles.brandRed, { color: colors.primary }]}>
+            {" "}KIRANA
+          </Text>
         </View>
-        <Text style={styles.tagline}>Fresh Daily Groceries & Essentials</Text>
+        <Text style={[styles.tagline, { color: colors.textSecondary }]}>
+          Fresh Daily Groceries & Essentials
+        </Text>
       </Animated.View>
     </View>
   );

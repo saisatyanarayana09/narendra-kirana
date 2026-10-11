@@ -296,8 +296,8 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
                 styles.iconBox,
                 {
                   backgroundColor: isDark
-                    ? "rgba(5, 150, 105, 0.15)"
-                    : "#ECFDF5",
+                    ? `${colors.primary}26`
+                    : colors.primaryLight,
                 },
               ]}
             >
@@ -550,15 +550,19 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
                           styles.stepBadge,
                           {
                             backgroundColor: isDark
-                              ? "rgba(5, 150, 105, 0.2)"
-                              : "#DCFCE7",
+                              ? `${colors.primary}33`
+                              : colors.primaryLight,
                           },
                         ]}
                       >
                         <Text
                           style={[
                             styles.stepBadgeText,
-                            { color: isDark ? "#34D399" : "#15803D" },
+                            {
+                              color: isDark
+                                ? colors.primaryLight
+                                : (colors.primaryDark || colors.primary),
+                            },
                           ]}
                         >
                           STEP 1 OF 2: VERIFY CODE
@@ -823,15 +827,19 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
                               styles.stepBadge,
                               {
                                 backgroundColor: isDark
-                                  ? "rgba(5, 150, 105, 0.2)"
-                                  : "#DCFCE7",
+                                  ? `${colors.primary}33`
+                                  : colors.primaryLight,
                               },
                             ]}
                           >
                             <Text
                               style={[
                                 styles.stepBadgeText,
-                                { color: isDark ? "#34D399" : "#15803D" },
+                                {
+                                  color: isDark
+                                    ? colors.primaryLight
+                                    : (colors.primaryDark || colors.primary),
+                                },
                               ]}
                             >
                               STEP 2 OF 2: CREATE NEW PASSWORD
@@ -843,11 +851,11 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
                             styles.verifiedBanner,
                             {
                               backgroundColor: isDark
-                                ? "rgba(16, 185, 129, 0.15)"
-                                : "#ECFDF5",
+                                ? `${colors.primary}26`
+                                : colors.primaryLight,
                               borderColor: isDark
-                                ? "rgba(16, 185, 129, 0.3)"
-                                : "#A7F3D0",
+                                ? `${colors.primary}4D`
+                                : `${colors.primary}33`,
                             },
                           ]}
                         >

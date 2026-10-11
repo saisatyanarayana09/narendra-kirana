@@ -138,12 +138,14 @@ function MainApp() {
 
   if (isUpdatingOnStartup) {
     return (
-      <OtaLaunchScreen 
-        title="Updating"
-        subtitle="Please wait while the update is applied..."
-        statusMessage={otaStatusText}
-        onSkip={() => setIsUpdatingOnStartup(false)} 
-      />
+      <ThemeProvider>
+        <OtaLaunchScreen 
+          title="Updating"
+          subtitle="Please wait while the update is applied..."
+          statusMessage={otaStatusText}
+          onSkip={() => setIsUpdatingOnStartup(false)} 
+        />
+      </ThemeProvider>
     );
   }
 

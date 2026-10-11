@@ -183,10 +183,20 @@ const NODES_CONFIG: FloatingNodeConfig[] = [
 
 export function AnimatedAuthBackground({ isDark }: Props) {
   const { colors } = useTheme();
-  const iconColor = isDark ? "#60A5FA" : colors.primary;
-  const auraColor = isDark
-    ? "rgba(16, 185, 129, 0.08)"
-    : "rgba(16, 185, 129, 0.05)";
+  const iconColor = isDark ? (colors.primaryLight || colors.primary) : colors.primary;
+
+  const hexToRgba = (hex: string, alpha: number) => {
+    const clean = (hex || "").replace("#", "");
+    if (clean.length === 6) {
+      const r = parseInt(clean.substring(0, 2), 16);
+      const g = parseInt(clean.substring(2, 4), 16);
+      const b = parseInt(clean.substring(4, 6), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+    return `rgba(16, 185, 129, ${alpha})`;
+  };
+
+  const auraColor = hexToRgba(colors.primary, isDark ? 0.12 : 0.08);
 
   // Ambient pulsing aura
   const auraScale = useRef(new Animated.Value(1)).current;

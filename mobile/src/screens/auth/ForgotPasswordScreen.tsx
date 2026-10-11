@@ -141,8 +141,8 @@ export function ForgotPasswordScreen({ navigation }: Props) {
                 styles.iconBox,
                 {
                   backgroundColor: isDark
-                    ? "rgba(5, 150, 105, 0.15)"
-                    : "#ECFDF5",
+                    ? `${colors.primary}26`
+                    : colors.primaryLight,
                 },
               ]}
             >
@@ -170,8 +170,8 @@ export function ForgotPasswordScreen({ navigation }: Props) {
                     styles.iconCircle,
                     {
                       backgroundColor: isDark
-                        ? "rgba(16, 185, 129, 0.15)"
-                        : "#ECFDF5",
+                        ? `${colors.primary}26`
+                        : colors.primaryLight,
                     },
                   ]}
                 >
@@ -348,8 +348,8 @@ export function ForgotPasswordScreen({ navigation }: Props) {
                         },
                         method === "link" && {
                           backgroundColor: isDark
-                            ? "rgba(5, 150, 105, 0.15)"
-                            : "#ECFDF5",
+                            ? `${colors.primary}26`
+                            : colors.primaryLight,
                         },
                       ]}
                       onPress={() => setMethod("link")}
@@ -392,8 +392,8 @@ export function ForgotPasswordScreen({ navigation }: Props) {
                             {
                               borderColor:
                                 method === "link"
-                                  ? colors.primary
-                                  : colors.border,
+                                    ? colors.primary
+                                    : colors.border,
                             },
                           ]}
                         >
@@ -420,15 +420,19 @@ export function ForgotPasswordScreen({ navigation }: Props) {
                             styles.defaultBadge,
                             {
                               backgroundColor: isDark
-                                ? "rgba(5, 150, 105, 0.25)"
-                                : "#DCFCE7",
+                                ? `${colors.primary}33`
+                                : colors.primaryLight,
                             },
                           ]}
                         >
                           <Text
                             style={[
                               styles.defaultBadgeText,
-                              { color: isDark ? "#34D399" : "#15803D" },
+                              {
+                                color: isDark
+                                  ? colors.primaryLight
+                                  : (colors.primaryDark || colors.primary),
+                              },
                             ]}
                           >
                             DEFAULT
@@ -455,8 +459,8 @@ export function ForgotPasswordScreen({ navigation }: Props) {
                         },
                         method === "otp" && {
                           backgroundColor: isDark
-                            ? "rgba(5, 150, 105, 0.15)"
-                            : "#ECFDF5",
+                            ? `${colors.primary}26`
+                            : colors.primaryLight,
                         },
                       ]}
                       onPress={() => setMethod("otp")}

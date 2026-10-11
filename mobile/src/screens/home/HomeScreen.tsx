@@ -710,7 +710,7 @@ export function HomeScreen({ navigation }: Props) {
                   <Text style={[styles.brandSlate, { color: colors.text }]}>
                     Narendra{" "}
                   </Text>
-                  <Text style={styles.brandRed}>Kirana</Text>
+                  <Text style={[styles.brandRed, { color: colors.primary }]}>Kirana</Text>
                 </Text>
               </View>
             </View>
@@ -802,7 +802,7 @@ export function HomeScreen({ navigation }: Props) {
                 <Text style={[styles.brandSlate, { color: colors.text }]}>
                   Narendra{" "}
                 </Text>
-                <Text style={styles.brandRed}>Kirana</Text>
+                <Text style={[styles.brandRed, { color: colors.primary }]}>Kirana</Text>
               </Text>
             </View>
           </View>

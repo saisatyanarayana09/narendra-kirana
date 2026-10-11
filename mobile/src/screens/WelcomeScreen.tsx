@@ -14,7 +14,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { theme } from "../constants/theme";
 import { useTheme } from "../context/ThemeContext";
 import type { AuthStackParamList } from "../navigation/AuthStack";
 
@@ -106,7 +105,11 @@ export function WelcomeScreen({ navigation }: Props) {
                 <View
                   style={[
                     styles.glow,
-                    isDark && { backgroundColor: "rgba(16, 185, 129, 0.15)" },
+                    {
+                      backgroundColor: isDark
+                        ? `${colors.primary}26`
+                        : `${colors.primary}18`,
+                    },
                   ]}
                 />
                 <View style={styles.logoWrapper}>
@@ -122,7 +125,7 @@ export function WelcomeScreen({ navigation }: Props) {
             {wrapAnimated(
               brandAnim,
               <Text style={styles.brandTitle}>
-                <Text style={{ color: isDark ? colors.primaryLight : colors.primaryDark }}>
+                <Text style={{ color: isDark ? colors.primaryLight : (colors.primaryDark || colors.primary) }}>
                   NARENDRA{" "}
                 </Text>
                 <Text style={{ color: colors.primary }}>
@@ -146,7 +149,7 @@ export function WelcomeScreen({ navigation }: Props) {
                     styles.pill,
                     {
                       backgroundColor: isDark
-                        ? "rgba(5, 150, 105, 0.2)"
+                        ? `${colors.primary}33`
                         : colors.primaryLight,
                     },
                   ]}
@@ -155,7 +158,7 @@ export function WelcomeScreen({ navigation }: Props) {
                   <Text
                     style={[
                       styles.pillText,
-                      { color: isDark ? colors.primaryLight : colors.primaryDark },
+                      { color: isDark ? colors.primaryLight : (colors.primaryDark || colors.primary) },
                     ]}
                   >
                     Express Delivery
@@ -166,16 +169,24 @@ export function WelcomeScreen({ navigation }: Props) {
                     styles.pill,
                     {
                       backgroundColor: isDark
-                        ? "rgba(37, 99, 235, 0.2)"
-                        : "#EFF6FF",
+                        ? `${(colors.secondary || colors.indigo)}33`
+                        : (colors.indigoLight || colors.primaryLight),
                     },
                   ]}
                 >
-                  <Feather name="check-circle" size={14} color="#2563EB" />
+                  <Feather
+                    name="check-circle"
+                    size={14}
+                    color={colors.secondary || colors.indigo}
+                  />
                   <Text
                     style={[
                       styles.pillText,
-                      { color: isDark ? "#93C5FD" : "#1E3A8A" },
+                      {
+                        color: isDark
+                          ? (colors.indigoLight || colors.primaryLight)
+                          : (colors.secondary || colors.indigo),
+                      },
                     ]}
                   >
                     100% Fresh
@@ -186,16 +197,24 @@ export function WelcomeScreen({ navigation }: Props) {
                     styles.pill,
                     {
                       backgroundColor: isDark
-                        ? "rgba(217, 119, 6, 0.2)"
-                        : "#FFFBEB",
+                        ? `${(colors.accent || colors.primary)}33`
+                        : (colors.accentLight || colors.primaryLight),
                     },
                   ]}
                 >
-                  <Feather name="tag" size={14} color="#D97706" />
+                  <Feather
+                    name="tag"
+                    size={14}
+                    color={colors.accent || colors.primary}
+                  />
                   <Text
                     style={[
                       styles.pillText,
-                      { color: isDark ? "#FCD34D" : "#92400E" },
+                      {
+                        color: isDark
+                          ? (colors.accentLight || colors.primaryLight)
+                          : (colors.accent || colors.primary),
+                      },
                     ]}
                   >
                     Best Prices
@@ -224,7 +243,10 @@ export function WelcomeScreen({ navigation }: Props) {
             <TouchableOpacity
               style={[
                 styles.primaryButton,
-                { backgroundColor: colors.primary },
+                {
+                  backgroundColor: colors.primary,
+                  boxShadow: `0px 4px 12px ${colors.primary}4D`,
+                },
               ]}
               onPress={() => navigation.navigate("Login")}
               activeOpacity={0.85}
@@ -302,7 +324,6 @@ const styles = StyleSheet.create({
     width: 180,
     height: 180,
     borderRadius: 90,
-    backgroundColor: "rgba(16, 185, 129, 0.08)",
   },
   logoWrapper: {
     width: 120,
@@ -358,11 +379,9 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   primaryButton: {
-    backgroundColor: theme.colors.primary,
     paddingVertical: 16,
     borderRadius: 16,
     alignItems: "center",
-    boxShadow: "0px 4px 8px rgba(5, 150, 105, 0.3)",
     elevation: 6,
   },
   primaryButtonText: {

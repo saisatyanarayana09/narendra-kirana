@@ -119,22 +119,22 @@ export function InAppNotificationBanner() {
       case "ORDER":
         return {
           icon: "shopping-bag" as const,
-          color: colors.success,
-          bgColor: isDark ? "rgba(16, 185, 129, 0.2)" : "#ECFDF5",
+          color: colors.primary,
+          bgColor: isDark ? `${colors.primary}33` : colors.primaryLight,
           label: "ORDER UPDATE",
         };
       case "PROMO":
         return {
           icon: "gift" as const,
-          color: "#F59E0B",
-          bgColor: isDark ? "rgba(245, 158, 11, 0.2)" : "#FEF3C7",
+          color: colors.accent || "#F59E0B",
+          bgColor: isDark ? `${colors.accent || "#F59E0B"}33` : (colors.accentLight || "#FEF3C7"),
           label: "OFFER",
         };
       case "WALLET":
         return {
           icon: "credit-card" as const,
-          color: "#6366F1",
-          bgColor: isDark ? "rgba(99, 102, 241, 0.2)" : "#EEF2FF",
+          color: colors.secondary || colors.indigo,
+          bgColor: isDark ? `${(colors.secondary || colors.indigo)}33` : (colors.indigoLight || "#EEF2FF"),
           label: "WALLET",
         };
       default:

@@ -62,6 +62,7 @@ interface ThemeContextType {
 }
 
 const STORAGE_THEME_KEY = "sk_theme_mode";
+const STORAGE_BRAND_THEME_KEY = "sk_brand_theme_settings";
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
@@ -80,24 +81,6 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({
     text?: string;
   }>({});
 
-  useEffect(() => {
-    async function loadPreferences() {
-      try {
-        const savedMode = await getItem(STORAGE_THEME_KEY);
-        if (
-          savedMode === "light" ||
-          savedMode === "dark" ||
-          savedMode === "system"
-        ) {
-          setThemeModeState(savedMode);
-        }
-      } catch (error) {
-        console.error("Failed to load theme preferences:", error);
-      }
-    }
-    loadPreferences();
-  }, []);
-
   const applyThemeSettings = useCallback((settings: any) => {
     if (!settings) return;
     if (settings.brand_theme_preset) {
@@ -113,7 +96,34 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({
       canvas: settings.custom_canvas_color,
       text: settings.custom_text_color,
     });
+    // Persist brand theme for instant next cold start
+    saveItem(STORAGE_BRAND_THEME_KEY, JSON.stringify(settings)).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    async function loadPreferences() {
+      try {
+        const savedMode = await getItem(STORAGE_THEME_KEY);
+        if (
+          savedMode === "light" ||
+          savedMode === "dark" ||
+          savedMode === "system"
+        ) {
+          setThemeModeState(savedMode);
+        }
+
+        const savedBrand = await getItem(STORAGE_BRAND_THEME_KEY);
+        if (savedBrand) {
+          try {
+            applyThemeSettings(JSON.parse(savedBrand));
+          } catch {}
+        }
+      } catch (error) {
+        console.error("Failed to load theme preferences:", error);
+      }
+    }
+    loadPreferences();
+  }, [applyThemeSettings]);
 
   useEffect(() => {
     const unsubscribe = storeApi.subscribe((settings) => {
@@ -227,7 +237,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({
 
     base.welcomeGradient = isDark
       ? [base.background, adjustLuminance(pPrimary, -75), base.background]
-      : ["#ffffff", base.accentLight || "#fbf6e7", base.primaryLight];
+      : [base.background, base.accentLight || "#fbf6e7", base.primaryLight];
 
     return base;
   }, [isDark, activePreset, paletteMode, customColors]);

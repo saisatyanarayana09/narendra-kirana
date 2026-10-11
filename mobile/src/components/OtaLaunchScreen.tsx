@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { theme } from "../constants/theme";
+import { useTheme } from "../context/ThemeContext";
 
 interface OtaLaunchScreenProps {
   onSkip?: () => void;
@@ -27,6 +28,16 @@ export function OtaLaunchScreen({
 }: OtaLaunchScreenProps) {
   const [showSkip, setShowSkip] = useState(false);
 
+  let themeColors = theme.colors;
+  try {
+    const t = useTheme();
+    if (t?.colors) themeColors = t.colors;
+  } catch {}
+
+  const bgPrimaryDark = themeColors.primaryDark || themeColors.primary;
+  const accentColor = themeColors.accent || "#FDE047";
+  const lightSubColor = themeColors.primaryLight || "#A7F3D0";
+
   useEffect(() => {
     // Show a graceful "Skip & Open App" button if download takes > 4 seconds
     const timer = setTimeout(() => {
@@ -36,8 +47,8 @@ export function OtaLaunchScreen({
   }, []);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#064E3B" />
+    <SafeAreaView style={[styles.container, { backgroundColor: bgPrimaryDark }]}>
+      <StatusBar barStyle="light-content" backgroundColor={bgPrimaryDark} />
 
       <View style={styles.content}>
         {/* Brand Icon */}
@@ -51,12 +62,12 @@ export function OtaLaunchScreen({
 
         {/* Title */}
         <Text style={styles.title}>{title}</Text>
-        <Text style={styles.subtitle}>{subtitle}</Text>
+        <Text style={[styles.subtitle, { color: lightSubColor }]}>{subtitle}</Text>
 
         {/* Loading Indicator */}
         <View style={styles.indicatorRow}>
-          <ActivityIndicator size="small" color="#FDE047" />
-          <Text style={styles.statusText}>{statusMessage}</Text>
+          <ActivityIndicator size="small" color={accentColor} />
+          <Text style={[styles.statusText, { color: accentColor }]}>{statusMessage}</Text>
         </View>
 
         {/* Skip button if slow network */}
@@ -66,8 +77,8 @@ export function OtaLaunchScreen({
             onPress={onSkip}
             activeOpacity={0.8}
           >
-            <Text style={styles.skipButtonText}>Skip & Open App</Text>
-            <Feather name="arrow-right" size={14} color="#A7F3D0" />
+            <Text style={[styles.skipButtonText, { color: lightSubColor }]}>Skip & Open App</Text>
+            <Feather name="arrow-right" size={14} color={lightSubColor} />
           </TouchableOpacity>
         )}
       </View>
