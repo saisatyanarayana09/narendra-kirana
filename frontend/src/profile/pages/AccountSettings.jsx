@@ -110,7 +110,7 @@ export default function AccountSettings() {
         {/* Photo Upload Section */}
         <div className="flex items-center gap-4 pb-6 border-b border-slate-100 dark:border-slate-800">
           {!isComplete ? (
-            <div className="relative size-18 flex items-center justify-center shrink-0">
+            <div className="relative size-16 flex items-center justify-center shrink-0">
               <svg className="absolute inset-0 size-full -rotate-90 pointer-events-none" viewBox="0 0 100 100">
                 <circle
                   cx="50"
@@ -141,7 +141,7 @@ export default function AccountSettings() {
                   initials
                 )}
               </div>
-              <div className="absolute -bottom-1 -right-1 px-1.5 py-0.2 rounded-full bg-emerald-600 text-white text-[10px] font-bold shadow-xs">
+              <div className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-bold shadow-xs">
                 {completion}%
               </div>
             </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, TextInput, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import ScreenHeader from '../../../components/ScreenHeader';
 import { useAppTheme } from '../../../context/ThemeContext';
 import api, { cachedGet } from '../../../services/api';
 import { showAlert } from '../../../utils/alerts';
@@ -107,6 +108,8 @@ export default function AgentsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#020617' : '#f8fafc' }]}>
+      <ScreenHeader title="Store Staff & Fleet" subtitle="Manage permissions & roles" />
+
       {/* Top Tabs */}
       <View style={[styles.tabContainer, { backgroundColor: isDark ? '#0f172a' : '#ffffff', borderColor: isDark ? '#1e293b' : '#e2e8f0' }]}>
         <TouchableOpacity 
@@ -157,7 +160,13 @@ export default function AgentsScreen() {
                   </Text>
                 </View>
               </View>
-              <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDeleteAgent(agent.id)}>
+              <TouchableOpacity
+                style={styles.deleteBtn}
+                onPress={() => handleDeleteAgent(agent.id)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Remove agent"
+              >
                 <Ionicons name="trash-outline" size={20} color="#ef4444" />
               </TouchableOpacity>
             </View>

@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { useAuth } from '../../context/AuthContext';
 import { useAppTheme } from '../../context/ThemeContext';
@@ -164,10 +165,14 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.main, { backgroundColor: isDark ? '#090d16' : '#f8fafc' }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <SafeAreaView
+      edges={['top', 'bottom']}
+      style={[styles.safeArea, { backgroundColor: isDark ? '#090d16' : '#f8fafc' }]}
     >
+      <KeyboardAvoidingView
+        style={[styles.main, { backgroundColor: isDark ? '#090d16' : '#f8fafc' }]}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
       <ScrollView
         style={styles.scrollCol}
         contentContainerStyle={styles.scrollContent}
@@ -484,11 +489,15 @@ export default function LoginScreen() {
           </View>
         </View>
       )}
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   main: {
     flex: 1,
     flexDirection: 'row',

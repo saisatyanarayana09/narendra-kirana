@@ -908,6 +908,7 @@ export function CheckoutScreen({
                 <TouchableOpacity
                   onPress={handleAddNewAddress}
                   activeOpacity={0.7}
+                  hitSlop={{ top: 12, bottom: 12, left: 10, right: 10 }}
                 >
                   <Text style={styles.addNewAddrText}>+ Add New</Text>
                 </TouchableOpacity>
@@ -927,6 +928,7 @@ export function CheckoutScreen({
                       setEditingAddressId(null);
                     }}
                     activeOpacity={0.7}
+                    hitSlop={{ top: 12, bottom: 12, left: 10, right: 10 }}
                   >
                     <Text style={styles.cancelFormText}>Cancel</Text>
                   </TouchableOpacity>

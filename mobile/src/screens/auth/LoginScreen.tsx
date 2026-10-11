@@ -367,7 +367,7 @@ export function LoginScreen({ navigation, route }: Props) {
                     setReferralCode("");
                     setReferrerName("");
                   }}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 >
                   <Feather
                     name="x"
@@ -499,6 +499,7 @@ export function LoginScreen({ navigation, route }: Props) {
                   <TouchableOpacity
                     onPress={() => setShowInviteInput(false)}
                     style={{ padding: 6 }}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                   >
                     <Feather name="x" size={14} color={colors.textSecondary} />
                   </TouchableOpacity>
@@ -542,7 +543,7 @@ export function LoginScreen({ navigation, route }: Props) {
               </View>
               <TouchableOpacity
                 onPress={() => setShowMobileModal(false)}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               >
                 <Feather name="x" size={16} color={colors.textSecondary} />
               </TouchableOpacity>
@@ -807,6 +808,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
+    minHeight: 44,
+    justifyContent: "center",
+    alignItems: "center",
   },
   inlineApplyText: {
     color: "#FFFFFF",

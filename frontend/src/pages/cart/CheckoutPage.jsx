@@ -305,10 +305,10 @@ export function CheckoutPage() {
         </div>
       )}
 
-      <main className="mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-5 sm:py-8 pb-36 sm:pb-16">
+      <main className="mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-5 sm:py-8 pb-36 md:pb-16">
         <button
           onClick={() => navigate(-1)}
-          className="mb-3 inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400 hover:underline bg-transparent border-0 cursor-pointer"
+          className="mb-3 inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400 hover:underline bg-transparent border-0 cursor-pointer py-2 px-1"
         >
           <ArrowLeft size={16} /> Back to Cart
         </button>
@@ -638,7 +638,7 @@ export function CheckoutPage() {
               value={note}
               onChange={(event) => setNote(event.target.value)}
               placeholder="E.g., Please pack fragile items carefully..."
-              className="w-full rounded-xl border border-slate-200 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-all resize-none h-18"
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-all resize-none h-20"
             />
           </div>
 

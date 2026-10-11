@@ -237,6 +237,8 @@ const LowStockRowItem = React.memo(
                   },
                 ]}
                 onPress={() => onRestock(item, 5)}
+                hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                accessibilityLabel="Restock 5 units"
               >
                 <Ionicons name="add" size={13} color={colors.primary} />
                 <Text
@@ -257,6 +259,8 @@ const LowStockRowItem = React.memo(
                   },
                 ]}
                 onPress={() => onRestock(item, 10)}
+                hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                accessibilityLabel="Restock 10 units"
               >
                 <Ionicons name="add" size={13} color={colors.primary} />
                 <Text
@@ -916,14 +920,14 @@ const styles = StyleSheet.create({
   restockButtonsWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 10,
   },
   restockBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
-    paddingHorizontal: 7,
-    paddingVertical: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
     borderRadius: 6,
     borderWidth: 1,
   },

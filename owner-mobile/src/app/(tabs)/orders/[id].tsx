@@ -13,6 +13,7 @@ import {
   Share,
 } from 'react-native';
 import { useLocalSearchParams as useExpoParams, useRouter as useExpoRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import api, { ApiInstance, cachedGet, getErrorMessage } from '../../../services/api';
 import { Ionicons } from '@expo/vector-icons';
@@ -72,6 +73,7 @@ const PIPELINE_STEPS = [
 ];
 
 export default function OrderDetailsScreen() {
+  const insets = useSafeAreaInsets();
   const { id } = useExpoParams();
   const router = useExpoRouter();
   const { isDark, colors } = useAppTheme();
@@ -583,7 +585,7 @@ export default function OrderDetailsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: Math.max(insets.top + 6, 14) }]}>
         <View style={styles.maxContainer}>
           {/* 1. Sleek Compact Top Navigation Bar */}
           <View style={styles.compactNavRow}>
@@ -593,6 +595,7 @@ export default function OrderDetailsScreen() {
                 { backgroundColor: colors.card, borderColor: colors.border },
               ]}
               onPress={() => router.back()}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               accessibilityLabel="Back to orders"
             >
               <Ionicons name="arrow-back" size={16} color={colors.text} />
@@ -1990,7 +1993,7 @@ const styles: any = StyleSheet.create({
   },
   scrollContent: {
     padding: 14,
-    paddingBottom: 32,
+    paddingBottom: 90,
   },
   maxContainer: {
     maxWidth: 780,
@@ -2013,9 +2016,9 @@ const styles: any = StyleSheet.create({
   compactBackBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    gap: 6,
+    paddingHorizontal: 12,
+    minHeight: 44,
     borderRadius: 10,
     borderWidth: 1,
   },

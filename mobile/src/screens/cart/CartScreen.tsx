@@ -331,7 +331,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
                   ],
                 );
               }}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Text style={styles.clearAllText}>Clear All</Text>
             </TouchableOpacity>
@@ -601,6 +601,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
                         borderColor: colors.border,
                       },
                     ]}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     onPress={async () => {
                       setPromoError("");
                       await removePromo();
@@ -633,7 +634,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
               backgroundColor: colors.surface,
               borderTopColor: colors.border,
               paddingTop: 12,
-              paddingBottom: 12,
+              paddingBottom: Math.max(insets.bottom, 12),
             },
           ]}
         >

@@ -346,6 +346,7 @@ export function ProductListScreen({
               triggerHaptic("selection");
               setSelectedCategory(null);
             }}
+            hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
             activeOpacity={0.8}
           >
             <Text
@@ -372,6 +373,7 @@ export function ProductListScreen({
                   },
                   isSelected && styles.categoryPillActive,
                 ]}
+                hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
                 onPress={() => {
                   triggerHaptic("selection");
                   setSelectedCategory(cat.id);
@@ -428,6 +430,7 @@ export function ProductListScreen({
                 triggerHaptic("selection");
                 setSortOption(opt.id);
               }}
+              hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
               activeOpacity={0.8}
             >
               <Text
@@ -523,11 +526,7 @@ export function ProductListScreen({
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           onPress={() => {
             if (navigation.canGoBack()) {
-              if (navigation.canGoBack()) {
-                navigation.goBack();
-              } else {
-                navigation.navigate("Main");
-              }
+              navigation.goBack();
             } else {
               navigation.navigate("HomeTab");
             }
@@ -751,7 +750,7 @@ const styles = StyleSheet.create({
   },
   categoryPill: {
     paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingVertical: 10,
     borderRadius: 20,
     backgroundColor: "#F8FAFC",
     borderWidth: 1,
@@ -797,7 +796,7 @@ const styles = StyleSheet.create({
   },
   sortChip: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 10,
     borderRadius: 8,
     backgroundColor: "#F1F5F9",
     borderWidth: 1,

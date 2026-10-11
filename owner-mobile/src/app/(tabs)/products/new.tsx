@@ -477,7 +477,9 @@ export default function AddProductScreen() {
         <TouchableOpacity
           style={[styles.backBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
           onPress={() => router.back()}
+          accessibilityRole="button"
           accessibilityLabel="Go back"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <Ionicons name="chevron-back" size={20} color={colors.text} />
         </TouchableOpacity>
@@ -908,9 +910,9 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',

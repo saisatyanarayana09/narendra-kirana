@@ -128,7 +128,6 @@ export const CategoryCard = memo(function CategoryCard({
 const styles = StyleSheet.create({
   container: {
     width: CARD_SIZE,
-    marginRight: 10,
   },
   card: {
     width: "100%",

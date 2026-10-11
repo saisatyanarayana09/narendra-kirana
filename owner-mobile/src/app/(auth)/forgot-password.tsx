@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import api, { getErrorMessage } from '../../services/api';
 import { showAlert } from '../../utils/alerts';
 import { useAppTheme } from '../../context/ThemeContext';
@@ -125,10 +126,14 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: isDark ? '#020617' : '#f8fafc' }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <SafeAreaView
+      edges={['top', 'bottom']}
+      style={[styles.safeArea, { backgroundColor: isDark ? '#020617' : '#f8fafc' }]}
     >
+      <KeyboardAvoidingView
+        style={[styles.container, { backgroundColor: isDark ? '#020617' : '#f8fafc' }]}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={[styles.card, { backgroundColor: isDark ? '#0f172a' : '#ffffff', borderColor: isDark ? '#1e293b' : '#e2e8f0' }]}>
           <Text style={styles.title}>Reset Password</Text>
@@ -242,17 +247,27 @@ export default function ForgotPasswordScreen() {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={() => router.back()}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityRole="button"
+            accessibilityLabel="Back to sign in"
+          >
             <Ionicons name="arrow-back" size={16} color={isDark ? '#94a3b8' : '#64748b'} />
             <Text style={[styles.backText, { color: isDark ? '#94a3b8' : '#64748b' }]}>Back to Sign In</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
   },
@@ -356,6 +371,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
+    minHeight: 44,
+    paddingVertical: 10,
   },
   backText: {
     fontSize: 14,

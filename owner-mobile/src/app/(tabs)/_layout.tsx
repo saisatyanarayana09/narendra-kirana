@@ -332,7 +332,10 @@ export default function TabLayout() {
   );
   const isProfileTab = isMoreSection;
   const isSubScreen =
-    !isDesktop && isMoreSection && pathname !== '/(tabs)/more' && pathname !== '/more';
+    !isDesktop &&
+    ((isMoreSection && pathname !== '/(tabs)/more' && pathname !== '/more') ||
+      pathname.includes('/products/new') ||
+      (pathname.includes('/orders/') && pathname !== '/(tabs)/orders/' && pathname !== '/orders/'));
 
   const handleToggleStore = async () => {
     const nextState = !storeOpen;

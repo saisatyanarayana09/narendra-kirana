@@ -306,7 +306,7 @@ const Invoice = () => {
                   <BadgeCheck size={14} className="text-emerald-600 shrink-0" />
                   <span className="font-bold text-slate-600">FSSAI Lic. No:</span>
                   <span className="font-mono font-bold text-slate-900 tracking-wider">{settings.fssai_license_number}</span>
-                  <span className="text-[9px] uppercase font-extrabold bg-emerald-100 text-emerald-800 px-1 py-0.2 rounded">Govt Reg.</span>
+                  <span className="text-[9px] uppercase font-extrabold bg-emerald-100 text-emerald-800 px-1 py-0.5 rounded">Govt Reg.</span>
                 </div>
               )}
               <div className="text-[11px] text-slate-500">
@@ -413,7 +413,7 @@ const Invoice = () => {
                             {item.product_name_snapshot}
                           </span>
                           {isRejected && (
-                            <span className="text-[9px] font-black text-rose-700 bg-rose-100 border border-rose-200 px-1.5 py-0.2 rounded uppercase">
+                            <span className="text-[9px] font-black text-rose-700 bg-rose-100 border border-rose-200 px-1.5 py-0.5 rounded uppercase">
                               Unavailable
                             </span>
                           )}

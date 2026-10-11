@@ -233,11 +233,7 @@ export function ProductDetailScreen({
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           onPress={() => {
             if (navigation.canGoBack()) {
-              if (navigation.canGoBack()) {
-                navigation.goBack();
-              } else {
-                navigation.navigate("Main");
-              }
+              navigation.goBack();
             } else {
               navigation.navigate("HomeTab");
             }

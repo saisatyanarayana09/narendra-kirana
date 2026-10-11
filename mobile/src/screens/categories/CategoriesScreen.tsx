@@ -185,11 +185,7 @@ export function CategoriesScreen({
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           onPress={() => {
             if (navigation.canGoBack()) {
-              if (navigation.canGoBack()) {
-                navigation.goBack();
-              } else {
-                navigation.navigate("Main");
-              }
+              navigation.goBack();
             } else {
               navigation.navigate("HomeTab");
             }

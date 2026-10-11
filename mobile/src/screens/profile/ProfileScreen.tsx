@@ -293,11 +293,7 @@ export function ProfileScreen({
             onPress={() => {
               triggerHaptic("light");
               if (navigation.canGoBack()) {
-                if (navigation.canGoBack()) {
-                  navigation.goBack();
-                } else {
-                  navigation.navigate("Main");
-                }
+                navigation.goBack();
               } else {
                 navigation.navigate("HomeTab");
               }
@@ -384,6 +380,7 @@ export function ProfileScreen({
                     navigation.navigate("AccountSettingsScreen");
                   }}
                   activeOpacity={0.8}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 >
                   <Text style={styles.milestonePromptText}>
                     Add date of birth to complete profile
@@ -966,6 +963,8 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    minHeight: 44,
     gap: 6,
     backgroundColor: "#FFFFFF",
     paddingHorizontal: 14,

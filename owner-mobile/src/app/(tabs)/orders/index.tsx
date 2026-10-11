@@ -222,8 +222,10 @@ const OrderCard = React.memo(({
                       { borderColor: 'rgba(244, 63, 94, 0.3)' },
                     ]}
                     onPress={() => onRejectOrder(order)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    accessibilityLabel="Reject order"
                   >
-                    <Ionicons name="close" size={15} color="#f43f5e" />
+                    <Ionicons name="close" size={18} color="#f43f5e" />
                   </TouchableOpacity>
                 )}
 
@@ -984,7 +986,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 13,
-    paddingVertical: 7,
+    paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
   },
@@ -1124,9 +1126,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   rejectIconBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',

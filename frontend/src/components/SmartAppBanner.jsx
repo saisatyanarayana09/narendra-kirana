@@ -87,15 +87,18 @@ export function SmartAppBanner() {
 
       <div className="flex items-center gap-2 flex-shrink-0 ml-2">
         <button
+          type="button"
           onClick={handleOpenApp}
-          className="px-3 py-1.5 bg-white text-emerald-800 font-extrabold rounded-lg shadow-sm hover:bg-emerald-50 active:scale-95 transition-all text-xs flex items-center gap-1 cursor-pointer"
+          className="px-3.5 py-2 min-h-[40px] bg-white text-emerald-800 font-extrabold rounded-lg shadow-sm hover:bg-emerald-50 active:scale-95 transition-all text-xs flex items-center justify-center gap-1 cursor-pointer"
         >
           Open App <ExternalLink size={12} />
         </button>
         <button
+          type="button"
           onClick={handleDismiss}
-          className="p-1 text-emerald-200 hover:text-white transition-colors cursor-pointer"
+          className="p-2.5 min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg text-emerald-200 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
           title="Dismiss banner"
+          aria-label="Dismiss banner"
         >
           <X size={16} />
         </button>

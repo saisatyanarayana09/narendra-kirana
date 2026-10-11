@@ -16,6 +16,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import api, { ApiInstance, getErrorMessage } from '../../../services/api';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { theme } from '../../../constants/theme';
 import { showAlert } from '../../../utils/alerts';
@@ -50,6 +51,7 @@ interface RecentScanItem {
 }
 
 export default function CommonSmartScannerScreen() {
+  const insets = useSafeAreaInsets();
   const { isDark, colors } = useAppTheme();
   const router = useRouter();
 
@@ -318,6 +320,7 @@ export default function CommonSmartScannerScreen() {
           {
             backgroundColor: isDark ? '#0f172a' : '#ffffff',
             borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+            paddingTop: Math.max(insets.top, 12),
           },
         ]}
       >
@@ -331,7 +334,9 @@ export default function CommonSmartScannerScreen() {
             },
           ]}
           onPress={handleClose}
+          accessibilityRole="button"
           accessibilityLabel="Close Scanner"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <Ionicons name="close" size={20} color={colors.text} />
         </TouchableOpacity>
@@ -1073,7 +1078,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 12 : 8,
     paddingBottom: 10,
     borderBottomWidth: 1,
     zIndex: 20,

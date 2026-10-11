@@ -638,11 +638,12 @@ export default function DeliveryDashboard() {
                     type="text"
                     inputMode="numeric"
                     maxLength={1}
+                    aria-label={`PIN digit ${idx + 1}`}
                     value={digit}
                     onChange={(e) => handleOtpDigitChange(idx, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(idx, e)}
                     onPaste={handleOtpPaste}
-                    className="size-13 bg-slate-950 border-2 border-slate-700 focus:border-emerald-500 rounded-xl text-center text-2xl font-mono font-black text-white outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                    className="size-12 bg-slate-950 border-2 border-slate-700 focus:border-emerald-500 rounded-xl text-center text-2xl font-mono font-black text-white outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
                   />
                 ))}
               </div>

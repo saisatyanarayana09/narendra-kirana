@@ -690,13 +690,13 @@ function WhatsAppSupportWidget({ settings }) {
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Chat with us on WhatsApp"
-        className={`fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-40 ${isCartPage ? 'hidden sm:flex' : 'flex'} items-center gap-2 group cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95`}
+        className={`fixed bottom-20 md:bottom-6 right-4 md:right-6 z-40 ${isCartPage ? 'hidden md:flex' : 'flex'} items-center gap-2 group cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95`}
       >
-        <div className="hidden sm:flex items-center px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full shadow-lg text-xs font-bold text-slate-700 dark:text-slate-200 group-hover:text-emerald-600 transition-colors">
+        <div className="hidden md:flex items-center px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full shadow-lg text-xs font-bold text-slate-700 dark:text-slate-200 group-hover:text-emerald-600 transition-colors">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping mr-1.5" />
           WhatsApp Support
         </div>
-        <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-[#25D366] hover:bg-[#20ba59] text-white flex items-center justify-center shadow-xl shadow-emerald-600/30 ring-4 ring-emerald-500/20 group-hover:ring-emerald-500/40 transition-all">
+        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#25D366] hover:bg-[#20ba59] text-white flex items-center justify-center shadow-xl shadow-emerald-600/30 ring-4 ring-emerald-500/20 group-hover:ring-emerald-500/40 transition-all">
           <svg
             className="w-7 h-7 sm:w-8 sm:h-8 fill-current"
             viewBox="0 0 24 24"

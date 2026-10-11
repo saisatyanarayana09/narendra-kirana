@@ -72,7 +72,7 @@ export function FloatingCartBar() {
   };
 
   return (
-    <div className="fixed bottom-18 sm:bottom-20 md:bottom-6 md:right-6 md:left-auto md:translate-x-0 inset-x-3 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 w-auto sm:w-[460px] md:w-[420px] max-w-[calc(100vw-1.5rem)] z-50 animate-in fade-in slide-in-from-bottom-6 duration-300">
+    <div className="fixed bottom-20 md:bottom-6 md:right-6 md:left-auto md:translate-x-0 inset-x-3 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 w-auto sm:w-[460px] md:w-[420px] max-w-[calc(100vw-1.5rem)] z-50 animate-in fade-in slide-in-from-bottom-6 duration-300">
       <style>{`
         @keyframes cartBarShrink {
           from { transform: scaleX(1); }
@@ -144,7 +144,8 @@ export function FloatingCartBar() {
               type="button"
               onClick={handleDismiss}
               title="Dismiss"
-              className="p-1 rounded-lg text-emerald-200/70 hover:text-white hover:bg-white/10 transition-colors"
+              aria-label="Dismiss cart bar"
+              className="p-2.5 min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg text-emerald-200/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
             >
               <X size={16} />
             </button>

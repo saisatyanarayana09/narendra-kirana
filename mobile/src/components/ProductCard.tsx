@@ -630,10 +630,10 @@ const styles = StyleSheet.create({
   },
   actionContainer: {
     marginTop: "auto",
-    height: 38,
+    height: 44,
   },
   addToCartButton: {
-    height: 38,
+    height: 44,
     borderRadius: 10,
     flexDirection: "row",
     alignItems: "center",
@@ -667,7 +667,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   addButton: {
-    height: 38,
+    height: 44,
     borderRadius: 10,
     borderWidth: 1.5,
     flexDirection: "row",
@@ -692,7 +692,7 @@ const styles = StyleSheet.create({
     marginLeft: 3,
   },
   stepperContainer: {
-    height: 38,
+    height: 44,
     borderRadius: 10,
     flexDirection: "row",
     alignItems: "center",

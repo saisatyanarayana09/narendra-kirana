@@ -353,9 +353,10 @@ const ProductCard = memo(
                 },
               ]}
               onPress={() => item?.id && onDelete(item.id, item?.name || 'Product')}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               accessibilityLabel="Delete Product"
             >
-              <Ionicons name="trash-outline" size={15} color="#f43f5e" />
+              <Ionicons name="trash-outline" size={17} color="#f43f5e" />
             </TouchableOpacity>
           </View>
         </View>
@@ -1993,9 +1994,9 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   miniActionBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 10,
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',

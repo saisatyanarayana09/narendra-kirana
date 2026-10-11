@@ -632,8 +632,8 @@ export function HomeScreen({ navigation }: Props) {
   const categoryCardSize = width > 400 ? 104 : 96;
   const getCategoryItemLayout = useCallback(
     (_: any, index: number) => ({
-      length: categoryCardSize + 10,
-      offset: 16 + (categoryCardSize + 10) * index,
+      length: categoryCardSize + 12,
+      offset: 16 + (categoryCardSize + 12) * index,
       index,
     }),
     [categoryCardSize],
@@ -1004,6 +1004,7 @@ export function HomeScreen({ navigation }: Props) {
                 </Text>
                 <TouchableOpacity
                   style={styles.seeAllBtn}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                   onPress={() => navigation.navigate("CategoriesTab")}
                 >
                   <Text
@@ -1089,6 +1090,7 @@ export function HomeScreen({ navigation }: Props) {
                     </View>
                     <TouchableOpacity
                       style={styles.seeAllBtn}
+                      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                       onPress={() => {
                         const cleanTitle = stripEmojis(section.title);
                         const categoryId =
@@ -1512,6 +1514,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 2,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
   },
   seeAllText: {
     fontSize: 13,

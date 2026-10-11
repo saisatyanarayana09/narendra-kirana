@@ -354,7 +354,7 @@ export default function ProfileScreen() {
         contentContainerStyle={[
           styles.scrollContainer,
           {
-            paddingTop: Math.max(insets.top + 10, 16),
+            paddingTop: 14,
             paddingBottom: Math.max(insets.bottom + 90, 110),
           },
         ]}

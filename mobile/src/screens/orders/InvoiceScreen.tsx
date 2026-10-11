@@ -16,6 +16,7 @@ import {
   Alert,
   StatusBar,
   Linking as RNLinking,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -40,6 +41,7 @@ export function InvoiceScreen({
   navigation: AppNavigationProp;
   route: any;
 }) {
+  const { width: windowWidth } = useWindowDimensions();
   const { user } = useAuth();
   const { orderId, initialOrder } = route.params || {};
   const cachedOrder =
@@ -821,8 +823,8 @@ export function InvoiceScreen({
           activeOpacity={0.7}
         >
           <Feather name="arrow-left" size={15} color="#334155" />
-          <Text style={[styles.backToOrderText, { color: "#334155" }]}>
-            Back to Order
+          <Text style={[styles.backToOrderText, { color: "#334155" }]} numberOfLines={1}>
+            {windowWidth < 415 ? "Back" : "Back to Order"}
           </Text>
         </TouchableOpacity>
 
@@ -838,8 +840,8 @@ export function InvoiceScreen({
             ) : (
               <Feather name="printer" size={15} color="#FFFFFF" />
             )}
-            <Text style={styles.downloadPdfButtonText}>
-              {downloading ? "Saving..." : "Download / Print PDF"}
+            <Text style={styles.downloadPdfButtonText} numberOfLines={1}>
+              {downloading ? "Saving..." : windowWidth < 415 ? "Download PDF" : "Download / Print PDF"}
             </Text>
           </TouchableOpacity>
 
@@ -1477,6 +1479,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
     borderBottomColor: "#E2E8F0",
+    gap: 8,
+    flexShrink: 1,
   },
   backToOrderBtn: {
     flexDirection: "row",
@@ -1484,12 +1488,13 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: "#F8FAFC",
     paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#E2E8F0",
     boxShadow: "0px 1px 2px rgba(0, 0, 0, 0.05)",
     elevation: 1,
+    flexShrink: 1,
   },
   backToOrderText: {
     color: "#334155",
@@ -1500,6 +1505,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    flexShrink: 1,
   },
   downloadPdfButton: {
     flexDirection: "row",
@@ -1507,10 +1513,11 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: theme.colors.primary, // emerald-600 matching web
     paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingHorizontal: 10,
     borderRadius: 8,
     boxShadow: "0px 2px 4px rgba(5, 150, 105, 0.18)",
     elevation: 2,
+    flexShrink: 1,
   },
   downloadPdfButtonText: {
     color: "#FFFFFF",

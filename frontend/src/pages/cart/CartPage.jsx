@@ -63,8 +63,8 @@ export function CartPage() {
 
   return (
     <CustomerLayout>
-      <main className="mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-6 pb-36 lg:pb-16">
-        <button onClick={() => navigate(-1)} className="mb-3 flex items-center gap-1.5 text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400 hover:underline bg-transparent border-0 cursor-pointer p-0">
+      <main className="mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-6 pb-36 md:pb-16">
+        <button onClick={() => navigate(-1)} className="mb-3 flex items-center gap-1.5 text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400 hover:underline bg-transparent border-0 cursor-pointer py-2 px-1">
           <ArrowLeft size={16} /> Back
         </button>
         <div className="mb-5">
@@ -296,7 +296,7 @@ export function CartPage() {
 
             {/* Mobile Sticky Checkout Bar (strictly mobile: lg:hidden) */}
             {storeSettings?.is_open !== false && !isEmergencyPaused && !isClosedHours && !hasOutOfStock && !isBelowMinOrder && items.length > 0 && (
-              <div className="lg:hidden fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] inset-x-0 z-30 bg-white/95 dark:bg-[#0c1220]/95 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 py-3 px-4 shadow-[0_-10px_20px_-3px_rgba(0,0,0,0.1)]">
+              <div className="md:hidden fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] inset-x-0 z-30 bg-white/95 dark:bg-[#0c1220]/95 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 py-3 px-4 shadow-[0_-10px_20px_-3px_rgba(0,0,0,0.1)]">
                 <div className="flex items-center justify-between gap-4 w-full">
                   <div>
                     <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Payable</p>

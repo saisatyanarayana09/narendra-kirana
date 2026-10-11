@@ -235,7 +235,7 @@ export function OrderTrackingScreen({
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={["top"]}
+        edges={["top", "bottom"]}
       >
         <View
           style={[
@@ -298,7 +298,7 @@ export function OrderTrackingScreen({
 
   if (loading && !order) {
     return (
-      <SafeAreaView style={styles.container} edges={["top"]}>
+      <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
@@ -322,7 +322,7 @@ export function OrderTrackingScreen({
 
   if (error && !order) {
     return (
-      <SafeAreaView style={styles.container} edges={["top"]}>
+      <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
@@ -495,7 +495,7 @@ export function OrderTrackingScreen({
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={["top"]}
+      edges={["top", "bottom"]}
     >
       {/* Top Navigation Bar */}
       <View

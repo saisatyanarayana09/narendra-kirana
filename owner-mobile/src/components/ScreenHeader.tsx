@@ -66,6 +66,7 @@ export default function ScreenHeader({
               onPress={handleBack}
               accessibilityRole="button"
               accessibilityLabel="Go back"
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons name="arrow-back" size={20} color={colors.text} />
             </TouchableOpacity>
@@ -113,9 +114,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   backBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
   },

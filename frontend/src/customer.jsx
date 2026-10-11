@@ -182,8 +182,10 @@ export const ProductCard = React.memo(function ProductCard({ product, priority =
 
       {isCustomer && (
         <button 
+          type="button"
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(product.id); }} 
-          className="absolute top-2 right-2 z-10 p-1.5 rounded-full bg-white/90 backdrop-blur shadow-md transition-all hover:scale-125 hover:bg-white active:scale-95"
+          aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
+          className="absolute top-2 right-2 z-10 p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full bg-white/90 backdrop-blur shadow-md transition-all hover:scale-125 hover:bg-white active:scale-95 cursor-pointer"
         >
           <Heart size={18} fill={isFav ? "currentColor" : "none"} className={isFav ? "text-rose-500 drop-shadow-sm" : "text-slate-300"} />
         </button>
@@ -742,7 +744,7 @@ export function CategoriesPage() {
   <CustomerLayout>
     <main className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-6 pb-24 md:pb-12">
     <div className="w-full mb-6 flex flex-col items-start gap-2">
-      <button onClick={() => navigate(-1)} className="text-xs sm:text-sm font-bold text-slate-600 hover:underline bg-transparent border-none cursor-pointer p-0 flex items-center gap-1"><ArrowLeft size={16} /> Back</button>
+      <button onClick={() => navigate(-1)} className="text-xs sm:text-sm font-bold text-slate-600 hover:underline bg-transparent border-none cursor-pointer py-2 px-1 flex items-center gap-1"><ArrowLeft size={16} /> Back</button>
       <h1 className="text-xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">All Categories</h1>
     </div>
     {loading ? (
@@ -1077,7 +1079,7 @@ export function ProductDetailPage() {
         <main className="w-full px-4 py-8 sm:px-6 lg:px-8 xl:px-12">
           <button
             onClick={() => navigate(-1)}
-            className="group inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 transition-colors mb-6 bg-transparent border-none cursor-pointer"
+            className="group inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 transition-colors mb-6 bg-transparent border-none cursor-pointer py-2 px-1"
           >
             <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" /> Back
           </button>
@@ -1143,7 +1145,7 @@ export function ProductDetailPage() {
       <main className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-6 pb-36 md:pb-12">
         <button
           onClick={() => navigate(-1)}
-          className="group inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 transition-colors mb-4 bg-transparent border-none cursor-pointer"
+          className="group inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 transition-colors mb-4 bg-transparent border-none cursor-pointer py-2 px-1"
         >
           <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" /> Back
         </button>
@@ -1180,17 +1182,21 @@ export function ProductDetailPage() {
                 </div>
                 <div className="flex items-center gap-1">
                   <button
+                    type="button"
                     onClick={handleShare}
-                    className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                    className="p-2.5 min-w-[40px] min-h-[40px] flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
                     title="Share product"
+                    aria-label="Share product"
                   >
                     <Share2 size={20} className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300" />
                   </button>
                   {isCustomer && (
                     <button
+                      type="button"
                       onClick={() => toggleFavorite(product.id)}
-                      className="p-2 -mr-2 rounded-full hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
+                      className="p-2.5 min-w-[40px] min-h-[40px] flex items-center justify-center rounded-full hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
                       title={isFav ? 'Remove from favorites' : 'Add to favorites'}
+                      aria-label={isFav ? 'Remove from favorites' : 'Add to favorites'}
                     >
                       <Heart
                         size={22}
@@ -1334,7 +1340,8 @@ export function ProductDetailPage() {
                 <button
                   type="button"
                   onClick={() => update(cartItem, cartItem.quantity - 1)}
-                  className="w-8 h-8 rounded-lg bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 flex items-center justify-center font-bold"
+                  aria-label="Decrease quantity"
+                  className="w-10 h-10 rounded-lg bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 flex items-center justify-center font-bold cursor-pointer"
                 >
                   <Minus size={14} />
                 </button>
@@ -1345,7 +1352,8 @@ export function ProductDetailPage() {
                   type="button"
                   onClick={() => update(cartItem, cartItem.quantity + 1)}
                   disabled={isMaxReached}
-                  className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold disabled:opacity-40"
+                  aria-label="Increase quantity"
+                  className="w-10 h-10 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold disabled:opacity-40 cursor-pointer"
                 >
                   <Plus size={14} />
                 </button>

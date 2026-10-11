@@ -280,11 +280,7 @@ export function SearchScreen({ navigation, route }: Props) {
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           onPress={() => {
             if (navigation.canGoBack()) {
-              if (navigation.canGoBack()) {
-                navigation.goBack();
-              } else {
-                navigation.navigate("Main");
-              }
+              navigation.goBack();
             } else {
               navigation.navigate("HomeTab");
             }
@@ -339,6 +335,7 @@ export function SearchScreen({ navigation, route }: Props) {
                   }
                 }}
                 style={styles.rightIconBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 activeOpacity={0.7}
               >
                 <Feather
@@ -357,6 +354,7 @@ export function SearchScreen({ navigation, route }: Props) {
                   if (isSpeaking) stopSpeaking();
                 }}
                 style={styles.rightIconBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 activeOpacity={0.7}
               >
                 <Feather name="x" size={16} color={colors.textSecondary} />
@@ -383,6 +381,7 @@ export function SearchScreen({ navigation, route }: Props) {
                   isDark && { backgroundColor: colors.inputBg },
                   isListening && styles.micBtnActive,
                 ]}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 activeOpacity={0.75}
                 accessibilityRole="button"
                 accessibilityLabel="Voice Search"

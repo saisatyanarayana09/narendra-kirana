@@ -146,7 +146,7 @@ export default function DashboardHome() {
         <div className="absolute top-0 right-0 -mt-10 -mr-10 w-48 h-48 rounded-full bg-white/10 blur-2xl pointer-events-none"></div>
         <div className="relative z-10 flex items-center gap-4 sm:gap-5">
           {!isComplete ? (
-            <div className="relative size-16 sm:size-18 flex items-center justify-center shrink-0">
+            <div className="relative size-16 sm:size-20 flex items-center justify-center shrink-0">
               <svg className="absolute inset-0 size-full -rotate-90 pointer-events-none" viewBox="0 0 100 100">
                 <circle
                   cx="50"
@@ -169,14 +169,14 @@ export default function DashboardHome() {
                   className="transition-all duration-700 ease-out"
                 />
               </svg>
-              <div className="size-13 sm:size-15 rounded-full bg-white text-emerald-900 flex items-center justify-center text-lg sm:text-xl font-black shadow-md overflow-hidden">
+              <div className="size-12 sm:size-14 rounded-full bg-white text-emerald-900 flex items-center justify-center text-lg sm:text-xl font-black shadow-md overflow-hidden">
                 {avatarUrl ? (
                   <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
                   initials
                 )}
               </div>
-              <div className="absolute -bottom-1 -right-1 px-1.5 py-0.2 rounded-full bg-emerald-500 text-white text-[10px] font-bold shadow-xs border border-white">
+              <div className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-bold shadow-xs border border-white">
                 {completion}%
               </div>
             </div>
