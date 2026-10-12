@@ -182,3 +182,32 @@ class CartWebSocketIntegrationTests(TestCase):
         self.assertEqual(sugar_item['quantity'], 3)
 
         await communicator.disconnect()
+
+    async def test_clear_cart_over_websocket(self):
+        """Clearing the cart via WebSocket broadcasts empty cart state."""
+        communicator = WebsocketCommunicator(application, f"/ws/cart/?token={self.token}")
+        await communicator.connect()
+        await communicator.receive_json_from()  # INITIAL_STATE
+
+        await communicator.send_json_to({'type': 'CLEAR_CART'})
+        msg = await communicator.receive_json_from()
+        self.assertEqual(msg.get('type'), 'CART_UPDATED')
+        self.assertEqual(len(msg['cart']['items']), 0)
+        await communicator.disconnect()
+
+    async def test_update_quantity_by_product_id_only(self):
+        """When client sends product_id with null item_id, consumer handles it correctly."""
+        communicator = WebsocketCommunicator(application, f"/ws/cart/?token={self.token}")
+        await communicator.connect()
+        await communicator.receive_json_from()  # INITIAL_STATE
+
+        await communicator.send_json_to({
+            'type': 'UPDATE_QUANTITY',
+            'product_id': self.product.id,
+            'item_id': None,
+            'quantity': 4,
+        })
+        msg = await communicator.receive_json_from()
+        self.assertEqual(msg.get('type'), 'CART_UPDATED')
+        self.assertEqual(msg['cart']['items'][0]['quantity'], 4)
+        await communicator.disconnect()
