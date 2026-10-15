@@ -1,6 +1,6 @@
 import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, MapPin, Edit2, Sparkles, AlertCircle, AlertTriangle, Clock, Calendar, QrCode, Smartphone, RefreshCw, Lock, ShieldCheck, Check, Copy } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, MapPin, Edit2, Sparkles, AlertCircle, AlertTriangle, Clock, Calendar, QrCode, Smartphone, RefreshCw, Lock, ShieldCheck, Check, Copy, Tag } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import { CustomerLayout } from '../../customer-layout';
@@ -13,7 +13,38 @@ const MapLocationPicker = lazy(() => import('../../components/MapLocationPicker'
 
 export function CheckoutPage() {
    const navigate = useNavigate(); 
-   const { cart, isCustomer, storeSettings, refresh, clearCart, flushCartSync } = useCart(); 
+   const { cart, isCustomer, storeSettings, refresh, clearCart, flushCartSync, applyPromo } = useCart();
+   // Promo / Coupon State & Handlers
+   const [promoInput, setPromoInput] = useState('');
+   const [promoError, setPromoError] = useState('');
+   const [promoApplying, setPromoApplying] = useState(false);
+
+   async function handleApplyPromo(e) {
+     if (e) e.preventDefault();
+     if (!promoInput.trim()) return;
+     setPromoError('');
+     setPromoApplying(true);
+     try {
+       await applyPromo(promoInput.trim().toUpperCase());
+       setPromoInput('');
+       toast.success('Coupon applied successfully!');
+     } catch(err) {
+       setPromoError(err?.response?.data?.detail || err?.response?.data?.error || 'Invalid promo code');
+     } finally {
+       setPromoApplying(false);
+     }
+   }
+
+   async function handleRemovePromo() {
+     setPromoError('');
+     try {
+       await applyPromo('');
+       toast.success('Coupon removed');
+     } catch {
+       setPromoError('Failed to remove coupon');
+     }
+   }
+ 
 
    useEffect(() => {
      if (flushCartSync) {
@@ -794,6 +825,64 @@ export function CheckoutPage() {
               </label>
             </div>
           )}
+
+          {/* Coupons & Offers Section */}
+          <div className="mt-5 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+                <Tag size={16} />
+              </span>
+              <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">Coupons & Offers</h3>
+            </div>
+
+            {cart?.promo_code ? (
+              <div className="flex items-center justify-between rounded-xl bg-emerald-50 dark:bg-emerald-950/40 p-3 border border-emerald-200 dark:border-emerald-800/60 text-xs sm:text-sm text-emerald-800 dark:text-emerald-300 shadow-xs">
+                <div>
+                  <span className="font-extrabold uppercase tracking-wider text-[10px] block text-emerald-600 dark:text-emerald-400 mb-0.5">Coupon Applied</span>
+                  <span className="font-black text-slate-900 dark:text-white">{cart.promo_code}</span>
+                  {parseFloat(cart?.promo_discount || 0) > 0 && (
+                    <span className="block text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 mt-0.5">
+                      Saved ₹{parseFloat(cart.promo_discount).toFixed(2)} with this coupon
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRemovePromo}
+                  className="text-xs font-bold bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg shadow-xs border border-emerald-200 dark:border-emerald-700 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <div>
+                <form onSubmit={handleApplyPromo} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={promoInput}
+                    onChange={(e) => {
+                      setPromoInput(e.target.value.toUpperCase());
+                      if (promoError) setPromoError('');
+                    }}
+                    placeholder="Enter coupon code"
+                    className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3.5 py-2.5 outline-none focus:ring-2 focus:ring-emerald-500 text-xs sm:text-sm font-semibold uppercase transition-all"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!promoInput.trim() || promoApplying}
+                    className="rounded-xl bg-slate-900 dark:bg-slate-800 dark:border dark:border-slate-700 px-4 py-2.5 font-bold text-xs sm:text-sm text-white disabled:bg-slate-300 dark:disabled:bg-slate-800 dark:disabled:text-slate-500 hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors shadow-xs active:scale-95 disabled:active:scale-100 cursor-pointer"
+                  >
+                    {promoApplying ? 'Applying...' : 'Apply'}
+                  </button>
+                </form>
+                {promoError && (
+                  <p className="mt-2 text-xs text-rose-600 dark:text-rose-400 font-bold flex items-center gap-1">
+                    <AlertCircle size={13} /> {promoError}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Order Summary breakdown */}
           <div className="mt-5 space-y-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300 border-t border-slate-100 dark:border-slate-800 pt-4">

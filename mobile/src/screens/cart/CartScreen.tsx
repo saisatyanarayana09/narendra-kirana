@@ -46,26 +46,10 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
     isLoading,
     updateQuantity,
     removeFromCart,
-    clearCart,
-    applyPromo,
-    removePromo,
     storeSettings,
     flushCartSync,
   } = useCart();
   const { colors, isDark } = useTheme();
-  const [promoCode, setPromoCode] = useState("");
-  const [promoError, setPromoError] = useState("");
-  const [promoApplying, setPromoApplying] = useState(false);
-  const [selectedInstructions, setSelectedInstructions] = useState<string[]>(
-    [],
-  );
-
-  const toggleInstruction = (id: string) => {
-    triggerHaptic("selection");
-    setSelectedInstructions((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
-  };
 
   const items = cart?.items || [];
 
@@ -134,24 +118,6 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
     storeSettings?.free_delivery_threshold,
     items,
   ]);
-
-  const handleApplyPromo = async () => {
-    if (!promoCode.trim()) return;
-    setPromoError("");
-    setPromoApplying(true);
-    try {
-      await applyPromo(promoCode.trim().toUpperCase());
-      setPromoCode("");
-    } catch (error: any) {
-      setPromoError(
-        error.response?.data?.detail ||
-          error.response?.data?.error ||
-          "Invalid promo code",
-      );
-    } finally {
-      setPromoApplying(false);
-    }
-  };
 
   const handleRemoveItem = useCallback(
     (itemId: number) => {
@@ -294,48 +260,38 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
                 Back
               </Text>
             </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>
-              Your Cart
+            <View style={styles.headerTitleGroup}>
+              <Text style={[styles.headerTitle, { color: colors.text }]}>
+                Your Cart
+              </Text>
               {items.length > 0 && (
-                <Text
+                <View
                   style={[
-                    styles.headerItemCount,
-                    { color: colors.textSecondary },
+                    styles.itemCountBadge,
+                    { backgroundColor: colors.inputBg },
                   ]}
                 >
-                  {" "}
-                  (
-                  {items.reduce(
-                    (s: number, i: any) => s + (i.quantity || 1),
-                    0,
-                  )}
-                  )
-                </Text>
+                  <Text
+                    style={[
+                      styles.itemCountBadgeText,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    {items.reduce(
+                      (s: number, i: any) => s + (i.quantity || 1),
+                      0,
+                    )}{" "}
+                    {items.reduce(
+                      (s: number, i: any) => s + (i.quantity || 1),
+                      0,
+                    ) === 1
+                      ? "item"
+                      : "items"}
+                  </Text>
+                </View>
               )}
-            </Text>
+            </View>
           </View>
-          {items.length > 0 && (
-            <TouchableOpacity
-              style={styles.clearAllBtn}
-              onPress={() => {
-                Alert.alert(
-                  "Clear Cart",
-                  "Are you sure you want to remove all items from your cart?",
-                  [
-                    { text: "Cancel", style: "cancel" },
-                    {
-                      text: "Clear All",
-                      style: "destructive",
-                      onPress: () => clearCart(),
-                    },
-                  ],
-                );
-              }}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Text style={styles.clearAllText}>Clear All</Text>
-            </TouchableOpacity>
-          )}
         </View>
       </View>
 
@@ -512,114 +468,181 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
         }
         renderItem={renderCartItem}
         ListFooterComponent={
-          <View>
-            {/* Promo Code Card */}
+          <View style={{ gap: 14, marginTop: 4 }}>
+            {/* Bill Details / Price Breakdown Card */}
             <View
               style={[
-                styles.card,
+                styles.billCard,
                 { backgroundColor: colors.surface, borderColor: colors.border },
               ]}
             >
-              <View style={styles.promoForm}>
-                <TextInput
-                  style={[
-                    styles.promoInput,
-                    {
-                      backgroundColor: colors.inputBg,
-                      borderColor: colors.border,
-                      color: colors.text,
-                    },
-                  ]}
-                  placeholder="Enter promo code"
-                  placeholderTextColor={colors.textSecondary}
-                  value={promoCode}
-                  onChangeText={(t) => {
-                    setPromoCode(t.toUpperCase());
-                    if (promoError) setPromoError("");
-                  }}
-                  autoCapitalize="characters"
-                />
-                <TouchableOpacity
-                  style={[
-                    styles.applyBtn,
-                    isDark && { backgroundColor: colors.primary },
-                    (!promoCode.trim() || promoApplying) &&
-                      styles.disabledApplyBtn,
-                  ]}
-                  onPress={handleApplyPromo}
-                  disabled={!promoCode.trim() || promoApplying || isLoading}
-                  activeOpacity={0.8}
-                >
-                  {promoApplying ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <Text style={styles.applyBtnText}>Apply</Text>
-                  )}
-                </TouchableOpacity>
+              <View style={styles.billCardHeader}>
+                <Feather name="file-text" size={16} color={colors.primary} />
+                <Text style={[styles.billCardTitle, { color: colors.text }]}>
+                  Bill Details
+                </Text>
               </View>
 
-              {promoError ? (
-                <View style={styles.promoErrorRow}>
-                  <Feather name="alert-circle" size={13} color="#DC2626" />
-                  <Text style={styles.promoErrorText}>{promoError}</Text>
+              {discount > 0 && (
+                <View style={styles.summaryRow}>
+                  <Text
+                    style={[
+                      styles.summaryLabel,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Item MRP Total
+                  </Text>
+                  <Text
+                    style={[
+                      styles.mrpStrikeText,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    ₹{mrpTotal.toFixed(2)}
+                  </Text>
                 </View>
-              ) : null}
+              )}
 
-              {cart.promo_code ? (
+              {discount > 0 && (
+                <View style={styles.summaryRow}>
+                  <Text
+                    style={[styles.savingsLabel, { color: colors.success }]}
+                  >
+                    Product Discount
+                  </Text>
+                  <Text
+                    style={[styles.savingsValue, { color: colors.success }]}
+                  >
+                    -₹{discount.toFixed(2)}
+                  </Text>
+                </View>
+              )}
+
+              <View style={styles.summaryRow}>
+                <Text
+                  style={[
+                    styles.summaryLabel,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Item Subtotal
+                </Text>
+                <Text style={[styles.summaryValue, { color: colors.text }]}>
+                  ₹{itemsTotal.toFixed(2)}
+                </Text>
+              </View>
+
+              {parseFloat(cart?.packaging_fee || "0") > 0 && (
+                <View style={styles.summaryRow}>
+                  <Text
+                    style={[
+                      styles.summaryLabel,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Packaging Fee
+                  </Text>
+                  <Text style={[styles.summaryValue, { color: colors.text }]}>
+                    ₹{(parseFloat(cart?.packaging_fee || "0") || 0).toFixed(2)}
+                  </Text>
+                </View>
+              )}
+
+              {discount > 0 && (
                 <View
                   style={[
-                    styles.appliedPromoRow,
-                    isDark && {
-                      backgroundColor: "rgba(16, 185, 129, 0.15)",
-                      borderColor: "rgba(16, 185, 129, 0.3)",
+                    styles.savingsHighlightCard,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(16, 185, 129, 0.12)"
+                        : "#ECFDF5",
+                      borderColor: isDark
+                        ? "rgba(16, 185, 129, 0.25)"
+                        : "#A7F3D0",
                     },
                   ]}
                 >
-                  <View>
-                    <Text
-                      style={[
-                        styles.appliedPromoTag,
-                        isDark && { color: "#34D399" },
-                      ]}
-                    >
-                      Code Applied
-                    </Text>
-                    <Text
-                      style={[
-                        styles.appliedPromoCode,
-                        isDark && { color: colors.text },
-                      ]}
-                    >
-                      {cart.promo_code}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
+                  <Feather name="tag" size={14} color={colors.primary} />
+                  <Text
                     style={[
-                      styles.removePromoBtn,
-                      isDark && {
-                        backgroundColor: colors.surface,
-                        borderColor: colors.border,
-                      },
+                      styles.savingsHighlightText,
+                      { color: colors.primary },
                     ]}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    onPress={async () => {
-                      setPromoError("");
-                      await removePromo();
-                    }}
-                    disabled={isLoading}
-                    activeOpacity={0.8}
                   >
-                    <Text
-                      style={[
-                        styles.removePromoText,
-                        isDark && { color: colors.text },
-                      ]}
-                    >
-                      Remove
-                    </Text>
-                  </TouchableOpacity>
+                    You save ₹{discount.toFixed(2)} on this order!
+                  </Text>
                 </View>
-              ) : null}
+              )}
+            </View>
+
+            {/* Micro Trust & Speed Guarantee Badges */}
+            <View style={styles.trustBadgesRow}>
+              <View
+                style={[
+                  styles.trustBadge,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <Feather name="zap" size={13} color={colors.primary} />
+                <Text
+                  style={[
+                    styles.trustBadgeText,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Express Delivery
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.trustBadge,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <Feather
+                  name="shield"
+                  size={13}
+                  color={colors.secondary || colors.primary}
+                />
+                <Text
+                  style={[
+                    styles.trustBadgeText,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Safe Packaging
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.trustBadge,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <Feather
+                  name="check-circle"
+                  size={13}
+                  color={colors.accent || colors.primary}
+                />
+                <Text
+                  style={[
+                    styles.trustBadgeText,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  100% Genuine
+                </Text>
+              </View>
             </View>
           </View>
         }
@@ -734,7 +757,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
                 <View style={styles.checkoutBtnContent}>
-                  <Text style={styles.checkoutBtnText}>Checkout</Text>
+                  <Text style={styles.checkoutBtnText}>Proceed to Checkout</Text>
                   <Feather name="arrow-right" size={16} color="#FFFFFF" />
                 </View>
               )}
@@ -847,18 +870,19 @@ const styles: any = StyleSheet.create({
     color: "#0F172A",
     letterSpacing: -0.4,
   },
-  headerItemCount: {
-    fontSize: 14,
-    fontWeight: "600",
+  headerTitleGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
-  clearAllBtn: {
-    paddingVertical: 4,
+  itemCountBadge: {
     paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
   },
-  clearAllText: {
-    fontSize: 13,
+  itemCountBadgeText: {
+    fontSize: 12,
     fontWeight: "700",
-    color: "#EF4444",
   },
   scrollContent: {
     paddingHorizontal: 16,
@@ -997,89 +1021,45 @@ const styles: any = StyleSheet.create({
     color: "#0F172A",
     marginBottom: 14,
   },
-  promoForm: {
+  billCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 4,
+  },
+  billCardHeader: {
     flexDirection: "row",
+    alignItems: "center",
     gap: 8,
+    marginBottom: 12,
   },
-  promoInput: {
-    flex: 1,
-    backgroundColor: "#F8FAFC",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    height: 44,
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#0F172A",
-  },
-  applyBtn: {
-    backgroundColor: "#0F172A",
-    borderRadius: 12,
-    paddingHorizontal: 18,
-    height: 44,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  disabledApplyBtn: {
-    backgroundColor: "#CBD5E1",
-  },
-  applyBtnText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-    fontSize: 14,
-  },
-  promoErrorRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 8,
-    backgroundColor: "#FEF2F2",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  promoErrorText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#DC2626",
-    flex: 1,
-  },
-  appliedPromoRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#ECFDF5",
-    borderWidth: 1,
-    borderColor: "#A7F3D0",
-    padding: 12,
-    borderRadius: 12,
-  },
-  appliedPromoTag: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: theme.colors.primary,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  appliedPromoCode: {
+  billCardTitle: {
     fontSize: 15,
     fontWeight: "800",
-    color: "#064E3B",
-    marginTop: 2,
+    letterSpacing: -0.2,
   },
-  removePromoBtn: {
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+  trustBadgesRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    paddingHorizontal: 2,
+    marginBottom: 8,
+  },
+  trustBadge: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#A7F3D0",
   },
-  removePromoText: {
-    fontSize: 12,
+  trustBadgeText: {
+    fontSize: 10.5,
     fontWeight: "700",
-    color: theme.colors.primary,
   },
   summaryRow: {
     flexDirection: "row",

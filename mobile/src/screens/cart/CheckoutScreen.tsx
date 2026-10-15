@@ -5,6 +5,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   View,
   Text,
+  TextInput,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
@@ -59,8 +60,16 @@ export function CheckoutScreen({
 }) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { cart, refreshCart, clearCart, storeSettings, flushCartSync } =
-    useCart();
+  const {
+    cart,
+    refreshCart,
+    clearCart,
+    storeSettings,
+    flushCartSync,
+    applyPromo,
+    removePromo,
+    isLoading: isCartLoading,
+  } = useCart();
   const { colors, isDark } = useTheme();
   const { requestLocation, isRequesting: gpsLoading } = useLocation();
 
@@ -69,6 +78,41 @@ export function CheckoutScreen({
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(
     null,
   );
+
+  // Promo Code State & Handlers
+  const [promoCode, setPromoCode] = useState("");
+  const [promoError, setPromoError] = useState("");
+  const [promoApplying, setPromoApplying] = useState(false);
+
+  const handleApplyPromo = async () => {
+    if (!promoCode.trim()) return;
+    setPromoApplying(true);
+    setPromoError("");
+    try {
+      await applyPromo(promoCode.trim().toUpperCase());
+      setPromoCode("");
+      triggerHaptic("success");
+    } catch (err: any) {
+      triggerHaptic("error");
+      setPromoError(
+        err?.response?.data?.error ||
+          err?.response?.data?.detail ||
+          "Invalid promo code",
+      );
+    } finally {
+      setPromoApplying(false);
+    }
+  };
+
+  const handleRemovePromo = async () => {
+    setPromoError("");
+    try {
+      await removePromo();
+      triggerHaptic("light");
+    } catch (err: any) {
+      setPromoError("Failed to remove promo code");
+    }
+  };
 
   // Address Form State (inline address management matching web cart.jsx)
   const [showAddressForm, setShowAddressForm] = useState(false);
@@ -1647,6 +1691,182 @@ export function CheckoutScreen({
           )}
         </View>
 
+        {/* Coupons & Offers Card */}
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
+          <View style={styles.promoCardHeader}>
+            <View
+              style={[
+                styles.promoIconBadge,
+                { backgroundColor: colors.primary + "1A" },
+              ]}
+            >
+              <Feather name="percent" size={15} color={colors.primary} />
+            </View>
+            <Text
+              style={[
+                styles.cardTitle,
+                { color: colors.text, marginBottom: 0 },
+              ]}
+            >
+              Coupons & Offers
+            </Text>
+          </View>
+
+          {cart?.promo_code ? (
+            <View
+              style={[
+                styles.appliedPromoRow,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(16, 185, 129, 0.12)"
+                    : "#ECFDF5",
+                  borderColor: isDark
+                    ? "rgba(16, 185, 129, 0.3)"
+                    : "#A7F3D0",
+                },
+              ]}
+            >
+              <View style={{ flex: 1 }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <Feather name="check-circle" size={14} color="#10B981" />
+                  <Text
+                    style={[
+                      styles.appliedPromoTag,
+                      { color: isDark ? "#34D399" : "#059669" },
+                    ]}
+                  >
+                    Coupon Applied
+                  </Text>
+                </View>
+                <Text
+                  style={[
+                    styles.appliedPromoCode,
+                    { color: colors.text },
+                  ]}
+                >
+                  {cart.promo_code}
+                </Text>
+                {parseFloat(cart?.promo_discount || "0") > 0 && (
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontWeight: "600",
+                      color: isDark ? "#34D399" : "#059669",
+                      marginTop: 2,
+                    }}
+                  >
+                    Saved ₹
+                    {(
+                      parseFloat(cart?.promo_discount || "0") || 0
+                    ).toFixed(2)}{" "}
+                    with this coupon
+                  </Text>
+                )}
+              </View>
+              <TouchableOpacity
+                style={[
+                  styles.removePromoBtn,
+                  {
+                    backgroundColor: isDark ? colors.surface : "#FFFFFF",
+                    borderColor: isDark ? colors.border : "#CBD5E1",
+                  },
+                ]}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                onPress={handleRemovePromo}
+                disabled={promoApplying || isCartLoading}
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={[
+                    styles.removePromoText,
+                    { color: isDark ? "#F87171" : "#EF4444" },
+                  ]}
+                >
+                  Remove
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View>
+              <View style={styles.promoForm}>
+                <TextInput
+                  style={[
+                    styles.promoInput,
+                    {
+                      backgroundColor: isDark ? "#1E293B" : "#F8FAFC",
+                      borderColor: colors.border,
+                      color: colors.text,
+                    },
+                  ]}
+                  placeholder="Enter coupon code"
+                  placeholderTextColor={colors.textSecondary}
+                  value={promoCode}
+                  onChangeText={(t) => {
+                    setPromoCode(t);
+                    if (promoError) setPromoError("");
+                  }}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  maxLength={20}
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.applyBtn,
+                    { backgroundColor: colors.primary },
+                    (!promoCode.trim() || promoApplying) && { opacity: 0.6 },
+                  ]}
+                  onPress={handleApplyPromo}
+                  disabled={!promoCode.trim() || promoApplying}
+                  activeOpacity={0.8}
+                >
+                  {promoApplying ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.applyBtnText}>Apply</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              {promoError ? (
+                <View
+                  style={[
+                    styles.promoErrorRow,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(239, 68, 68, 0.15)"
+                        : "#FEF2F2",
+                      borderColor: isDark
+                        ? "rgba(239, 68, 68, 0.3)"
+                        : "#FCA5A5",
+                    },
+                  ]}
+                >
+                  <Feather name="alert-circle" size={13} color="#EF4444" />
+                  <Text
+                    style={[
+                      styles.promoErrorText,
+                      { color: isDark ? "#F87171" : "#DC2626" },
+                    ]}
+                  >
+                    {promoError}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          )}
+        </View>
+
         {/* Full Billing Summary Card */}
         <View
           style={[
@@ -3000,6 +3220,87 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginTop: 10,
     marginBottom: 10,
+  },
+  promoCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 14,
+  },
+  promoIconBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  promoForm: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  promoInput: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    height: 44,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  applyBtn: {
+    borderRadius: 12,
+    paddingHorizontal: 18,
+    height: 44,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  applyBtnText: {
+    color: "#FFFFFF",
+    fontWeight: "800",
+    fontSize: 14,
+  },
+  promoErrorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  promoErrorText: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  appliedPromoRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  appliedPromoTag: {
+    fontSize: 10,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  appliedPromoCode: {
+    fontSize: 15,
+    fontWeight: "800",
+    marginTop: 2,
+  },
+  removePromoBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  removePromoText: {
+    fontSize: 12,
+    fontWeight: "700",
   },
 });
 

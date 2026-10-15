@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Minus, Plus, Trash2, ShoppingBasket, ArrowLeft, AlertCircle, AlertTriangle, Clock } from 'lucide-react';
+import { Minus, Plus, Trash2, ShoppingBasket, ArrowLeft, AlertCircle, AlertTriangle, Clock, Zap, Shield, CheckCircle } from 'lucide-react';
 import { CustomerLayout } from '../../customer-layout';
 import { useCart } from '../../cart-context';
 import { checkOperatingHours } from '../../utils/operatingHours';
 
 export function CartPage() {
   const navigate = useNavigate();
-  const { cart, isCustomer, storeSettings, update, applyPromo, clearCart, flushCartSync } = useCart();
+  const { cart, isCustomer, storeSettings, update, flushCartSync } = useCart();
   const [error, setError] = useState('');
-  const [promoInput, setPromoInput] = useState('');
-  const [promoError, setPromoError] = useState('');
+
+
   const items = cart?.items || [];
 
   if (!isCustomer) return <CustomerLayout><main className="mx-auto max-w-xl p-6 text-center"><h1 className="text-2xl font-extrabold">Your cart</h1><p className="mt-3 text-slate-600">Sign in to add products and place a pickup order.</p><Link to="/login" className="mt-5 inline-block rounded-xl bg-primary-600 px-5 py-3 font-bold text-white transition-all hover:bg-primary-700 active:scale-[0.98]">Sign in</Link></main></CustomerLayout>;
@@ -30,16 +30,6 @@ export function CartPage() {
     navigate('/checkout');
   }
 
-  async function handleApplyPromo(e) {
-    e.preventDefault();
-    setPromoError('');
-    try {
-      await applyPromo(promoInput);
-      setPromoInput('');
-    } catch(err) {
-      setPromoError(err.response?.data?.detail || 'Invalid promo code');
-    }
-  }
 
   const isEmergencyPaused = Boolean(storeSettings?.is_emergency_paused);
   const emergencyPauseMsg = storeSettings?.emergency_pause_message || 'Online order placement is temporarily paused by the store due to high volume. We apologize for the inconvenience.';
@@ -186,13 +176,26 @@ export function CartPage() {
                       )}
                     </div>
                     <div className={`flex items-center rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 shadow-xs shrink-0 overflow-hidden ${isItemOutOfStock ? 'opacity-50' : ''}`}>
-                      <button onClick={() => change(item, item.quantity - 1)} disabled={isItemOutOfStock} className="p-2 text-slate-600 dark:text-slate-300 hover:text-emerald-700 hover:bg-emerald-100 transition-colors active:bg-emerald-200 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"><Minus size={15} /></button>
+                      <button
+                        onClick={() => change(item, item.quantity - 1)}
+                        disabled={isItemOutOfStock}
+                        title={item.quantity === 1 ? 'Remove item' : 'Decrease quantity'}
+                        aria-label={item.quantity === 1 ? 'Remove item' : 'Decrease quantity'}
+                        className={`p-2 transition-colors active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
+                          item.quantity === 1
+                            ? 'text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40'
+                            : 'text-slate-600 dark:text-slate-300 hover:text-emerald-700 hover:bg-emerald-100 dark:hover:bg-slate-700 active:bg-emerald-200'
+                        }`}
+                      >
+                        {item.quantity === 1 ? (
+                          <Trash2 size={15} className="text-rose-500 hover:text-rose-600 transition-transform active:scale-110" />
+                        ) : (
+                          <Minus size={15} />
+                        )}
+                      </button>
                       <span className="w-7 text-center text-xs font-black text-slate-900 dark:text-white">{item.quantity}</span>
                       <button onClick={() => change(item, item.quantity + 1)} disabled={isMaxReached || isItemOutOfStock} className={`p-2 transition-colors shrink-0 ${isMaxReached ? 'text-slate-300 cursor-not-allowed bg-slate-50' : 'text-slate-600 dark:text-slate-300 hover:text-emerald-700 hover:bg-emerald-100 active:bg-emerald-200 cursor-pointer'}`}><Plus size={15} /></button>
                     </div>
-                    <button onClick={() => change(item, 0)} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-colors shrink-0 cursor-pointer">
-                      <Trash2 size={17} />
-                    </button>
                   </article>
                 );
               })}
@@ -200,20 +203,6 @@ export function CartPage() {
 
             {/* Promo Code & Order Summary Section (Sticky Sidebar on Desktop) */}
             <div className="w-full lg:w-96 shrink-0 lg:sticky lg:top-24 space-y-4">
-              {/* Promo Code Section */}
-              <section className="rounded-2xl bg-white dark:bg-slate-900 p-4 sm:p-5 shadow-xs border border-slate-200/80 dark:border-slate-800">
-                <form onSubmit={handleApplyPromo} className="flex gap-2">
-                  <input value={promoInput} onChange={e => setPromoInput(e.target.value.toUpperCase())} placeholder="Enter promo code" className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3.5 py-2.5 outline-none focus:ring-2 focus:ring-emerald-500 text-xs sm:text-sm font-semibold transition-all"/>
-                  <button type="submit" disabled={!promoInput} className="rounded-xl bg-slate-900 dark:bg-slate-800 dark:border dark:border-slate-700 px-4 py-2.5 font-bold text-xs sm:text-sm text-white disabled:bg-slate-300 dark:disabled:bg-slate-800 dark:disabled:text-slate-500 hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors shadow-xs active:scale-95 disabled:active:scale-100 cursor-pointer">Apply</button>
-                </form>
-                {promoError && <p className="mt-2 text-xs text-red-600 dark:text-red-400 font-bold">{promoError}</p>}
-                {cart?.promo_code && (
-                  <div className="mt-3 flex items-center justify-between rounded-xl bg-emerald-50 dark:bg-emerald-950/40 p-3 border border-emerald-100 dark:border-emerald-800/50 text-xs sm:text-sm text-emerald-800 dark:text-emerald-300 shadow-xs">
-                    <div><span className="font-extrabold uppercase tracking-wider text-[10px] block text-emerald-600 dark:text-emerald-400 mb-0.5">Code Applied</span><span className="font-bold">{cart.promo_code}</span></div>
-                    <button onClick={() => applyPromo('')} className="text-xs font-bold bg-white dark:bg-slate-800 px-2.5 py-1 rounded-lg shadow-xs border border-emerald-200 dark:border-emerald-700 text-slate-800 dark:text-slate-200 hover:bg-emerald-100 dark:hover:bg-slate-700 transition-colors cursor-pointer">Remove</button>
-                  </div>
-                )}
-              </section>
 
               {/* Order Summary Section */}
               <section className="rounded-2xl bg-white dark:bg-slate-900 p-4 sm:p-5 shadow-xs border border-slate-200/80 dark:border-slate-800">
@@ -292,6 +281,22 @@ export function CartPage() {
                   </>
                 )}
               </section>
+
+              {/* Trust & Speed Guarantee Badges */}
+              <div className="grid grid-cols-3 gap-2 pt-1">
+                <div className="flex items-center justify-center gap-1.5 p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 shadow-xs text-center">
+                  <Zap size={14} className="text-amber-500 shrink-0" />
+                  <span>Express</span>
+                </div>
+                <div className="flex items-center justify-center gap-1.5 p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 shadow-xs text-center">
+                  <Shield size={14} className="text-emerald-500 shrink-0" />
+                  <span>Safe Pack</span>
+                </div>
+                <div className="flex items-center justify-center gap-1.5 p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 shadow-xs text-center">
+                  <CheckCircle size={14} className="text-blue-500 shrink-0" />
+                  <span>100% Genuine</span>
+                </div>
+              </div>
             </div>
 
             {/* Mobile Sticky Checkout Bar (strictly mobile: lg:hidden) */}

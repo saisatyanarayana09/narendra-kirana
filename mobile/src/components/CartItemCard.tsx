@@ -57,11 +57,16 @@ export const CartItemCard = memo(function CartItemCard({
   };
 
   const handleDecrement = () => {
+    if (localQtyRef.current <= 1) {
+      triggerHaptic("warning");
+      onRemove(item.id);
+      return;
+    }
     triggerHaptic("medium");
     const nextQty = localQtyRef.current - 1;
     localQtyRef.current = Math.max(0, nextQty);
     setLocalQty(Math.max(0, nextQty));
-    onUpdateQuantity(item.id, nextQty); // let context handle qty <= 0 → remove
+    onUpdateQuantity(item.id, nextQty);
   };
 
   const rawImage = item.product_image || item.product?.image;
@@ -155,17 +160,32 @@ export const CartItemCard = memo(function CartItemCard({
         ]}
       >
         <TouchableOpacity
-          style={styles.stepperButton}
+          style={[
+            styles.stepperButton,
+            localQty === 1 && {
+              backgroundColor: isDark
+                ? "rgba(239, 68, 68, 0.18)"
+                : "#FEE2E2",
+            },
+          ]}
           hitSlop={{ top: 12, bottom: 12, left: 10, right: 10 }}
           onPress={handleDecrement}
           disabled={isLoading || isOutOfStock}
           activeOpacity={0.7}
         >
-          <Feather
-            name="minus"
-            size={16}
-            color={isDark ? colors.text : "#334155"}
-          />
+          {localQty === 1 ? (
+            <Feather
+              name="trash-2"
+              size={15}
+              color={isDark ? "#F87171" : "#EF4444"}
+            />
+          ) : (
+            <Feather
+              name="minus"
+              size={16}
+              color={isDark ? colors.text : "#334155"}
+            />
+          )}
         </TouchableOpacity>
 
         <Text style={[styles.quantityText, { color: colors.text }]}>
@@ -197,24 +217,6 @@ export const CartItemCard = memo(function CartItemCard({
           />
         </TouchableOpacity>
       </View>
-
-      {/* Delete / Remove Action */}
-      <TouchableOpacity
-        style={styles.deleteButton}
-        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-        onPress={() => {
-          triggerHaptic("warning");
-          onRemove(item.id);
-        }}
-        disabled={isLoading}
-        activeOpacity={0.7}
-      >
-        <Feather
-          name="trash-2"
-          size={18}
-          color={isOutOfStock ? "#EF4444" : isDark ? "#F87171" : "#94A3B8"}
-        />
-      </TouchableOpacity>
     </View>
   );
 });
@@ -308,14 +310,6 @@ const styles = StyleSheet.create({
     minWidth: 24,
     textAlign: "center",
     fontVariant: ["tabular-nums"],
-  },
-  deleteButton: {
-    padding: 8,
-    minWidth: 36,
-    minHeight: 36,
-    marginLeft: 8,
-    justifyContent: "center",
-    alignItems: "center",
   },
   outOfStockBadge: {
     position: "absolute",
