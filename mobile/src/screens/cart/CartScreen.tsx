@@ -303,7 +303,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: items.length > 0 ? 100 : 24 },
+          { paddingBottom: items.length > 0 ? 76 : 24 },
         ]}
         initialNumToRender={8}
         maxToRenderPerBatch={10}
@@ -413,6 +413,8 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
                       flexDirection: "row",
                       alignItems: "center",
                       gap: 6,
+                      flex: 1,
+                      marginRight: 8,
                     }}
                   >
                     <Feather
@@ -421,7 +423,8 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
                       color={freeDeliveryGap === 0 ? colors.success : colors.primary}
                     />
                     <Text
-                      style={[styles.freeDeliveryText, { color: colors.text }]}
+                      style={[styles.freeDeliveryText, { color: colors.text, flexShrink: 1 }]}
+                      numberOfLines={1}
                     >
                       {freeDeliveryGap === 0
                         ? "🎉 You unlocked FREE Delivery!"
@@ -467,185 +470,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
           </View>
         }
         renderItem={renderCartItem}
-        ListFooterComponent={
-          <View style={{ gap: 14, marginTop: 4 }}>
-            {/* Bill Details / Price Breakdown Card */}
-            <View
-              style={[
-                styles.billCard,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-              ]}
-            >
-              <View style={styles.billCardHeader}>
-                <Feather name="file-text" size={16} color={colors.primary} />
-                <Text style={[styles.billCardTitle, { color: colors.text }]}>
-                  Bill Details
-                </Text>
-              </View>
-
-              {discount > 0 && (
-                <View style={styles.summaryRow}>
-                  <Text
-                    style={[
-                      styles.summaryLabel,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    Item MRP Total
-                  </Text>
-                  <Text
-                    style={[
-                      styles.mrpStrikeText,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    ₹{mrpTotal.toFixed(2)}
-                  </Text>
-                </View>
-              )}
-
-              {discount > 0 && (
-                <View style={styles.summaryRow}>
-                  <Text
-                    style={[styles.savingsLabel, { color: colors.success }]}
-                  >
-                    Product Discount
-                  </Text>
-                  <Text
-                    style={[styles.savingsValue, { color: colors.success }]}
-                  >
-                    -₹{discount.toFixed(2)}
-                  </Text>
-                </View>
-              )}
-
-              <View style={styles.summaryRow}>
-                <Text
-                  style={[
-                    styles.summaryLabel,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  Item Subtotal
-                </Text>
-                <Text style={[styles.summaryValue, { color: colors.text }]}>
-                  ₹{itemsTotal.toFixed(2)}
-                </Text>
-              </View>
-
-              {parseFloat(cart?.packaging_fee || "0") > 0 && (
-                <View style={styles.summaryRow}>
-                  <Text
-                    style={[
-                      styles.summaryLabel,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    Packaging Fee
-                  </Text>
-                  <Text style={[styles.summaryValue, { color: colors.text }]}>
-                    ₹{(parseFloat(cart?.packaging_fee || "0") || 0).toFixed(2)}
-                  </Text>
-                </View>
-              )}
-
-              {discount > 0 && (
-                <View
-                  style={[
-                    styles.savingsHighlightCard,
-                    {
-                      backgroundColor: isDark
-                        ? "rgba(16, 185, 129, 0.12)"
-                        : "#ECFDF5",
-                      borderColor: isDark
-                        ? "rgba(16, 185, 129, 0.25)"
-                        : "#A7F3D0",
-                    },
-                  ]}
-                >
-                  <Feather name="tag" size={14} color={colors.primary} />
-                  <Text
-                    style={[
-                      styles.savingsHighlightText,
-                      { color: colors.primary },
-                    ]}
-                  >
-                    You save ₹{discount.toFixed(2)} on this order!
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            {/* Micro Trust & Speed Guarantee Badges */}
-            <View style={styles.trustBadgesRow}>
-              <View
-                style={[
-                  styles.trustBadge,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <Feather name="zap" size={13} color={colors.primary} />
-                <Text
-                  style={[
-                    styles.trustBadgeText,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  Express Delivery
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.trustBadge,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <Feather
-                  name="shield"
-                  size={13}
-                  color={colors.secondary || colors.primary}
-                />
-                <Text
-                  style={[
-                    styles.trustBadgeText,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  Safe Packaging
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.trustBadge,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <Feather
-                  name="check-circle"
-                  size={13}
-                  color={colors.accent || colors.primary}
-                />
-                <Text
-                  style={[
-                    styles.trustBadgeText,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  100% Genuine
-                </Text>
-              </View>
-            </View>
-          </View>
-        }
+        ListFooterComponent={null}
       />
 
       {/* Sticky Bottom Checkout Bar – Always visible with clear disabled state */}
@@ -656,8 +481,8 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
             {
               backgroundColor: colors.surface,
               borderTopColor: colors.border,
-              paddingTop: 12,
-              paddingBottom: Math.max(insets.bottom, 12),
+              paddingTop: 10,
+              paddingBottom: 10,
             },
           ]}
         >
@@ -665,7 +490,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
             <Text
               style={[styles.bottomTotalLabel, { color: colors.textSecondary }]}
             >
-              TOTAL DUE
+              Total
             </Text>
             <Text style={[styles.bottomTotalValue, { color: colors.text }]}>
               ₹{(parseFloat(cart.total || "0") || 0).toFixed(2)}
@@ -757,8 +582,7 @@ export function CartScreen({ navigation }: { navigation: AppNavigationProp }) {
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
                 <View style={styles.checkoutBtnContent}>
-                  <Text style={styles.checkoutBtnText}>Proceed to Checkout</Text>
-                  <Feather name="arrow-right" size={16} color="#FFFFFF" />
+                  <Text style={styles.checkoutBtnText}>Checkout</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -985,8 +809,8 @@ const styles: any = StyleSheet.create({
   freeDeliveryCard: {
     borderRadius: 14,
     borderWidth: 1,
-    padding: 12,
-    marginBottom: 14,
+    padding: 10,
+    marginBottom: 10,
   },
   freeDeliveryText: {
     fontSize: 12,
@@ -1182,20 +1006,20 @@ const styles: any = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
+    paddingTop: 10,
+    paddingBottom: 10,
     borderTopWidth: 1,
     borderTopColor: "#E2E8F0",
     boxShadow: "0px -3px 6px rgba(0, 0, 0, 0.05)",
   },
   bottomTotalLabel: {
-    fontSize: 9,
-    fontWeight: "800",
+    fontSize: 10,
+    fontWeight: "700",
     color: "#64748B",
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
   bottomTotalValue: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "900",
     color: "#0F172A",
     marginTop: 1,
@@ -1203,10 +1027,10 @@ const styles: any = StyleSheet.create({
   },
   checkoutBtn: {
     backgroundColor: theme.colors.primary,
-    paddingHorizontal: 22,
-    paddingVertical: 12,
-    minHeight: 46,
-    borderRadius: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    minHeight: 42,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
     boxShadow: "0px 2px 3px rgba(5, 150, 105, 0.2)",

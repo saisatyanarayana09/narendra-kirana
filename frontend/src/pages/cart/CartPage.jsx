@@ -281,22 +281,6 @@ export function CartPage() {
                   </>
                 )}
               </section>
-
-              {/* Trust & Speed Guarantee Badges */}
-              <div className="grid grid-cols-3 gap-2 pt-1">
-                <div className="flex items-center justify-center gap-1.5 p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 shadow-xs text-center">
-                  <Zap size={14} className="text-amber-500 shrink-0" />
-                  <span>Express</span>
-                </div>
-                <div className="flex items-center justify-center gap-1.5 p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 shadow-xs text-center">
-                  <Shield size={14} className="text-emerald-500 shrink-0" />
-                  <span>Safe Pack</span>
-                </div>
-                <div className="flex items-center justify-center gap-1.5 p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 shadow-xs text-center">
-                  <CheckCircle size={14} className="text-blue-500 shrink-0" />
-                  <span>100% Genuine</span>
-                </div>
-              </div>
             </div>
 
             {/* Mobile Sticky Checkout Bar (strictly mobile: lg:hidden) */}
