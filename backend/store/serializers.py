@@ -72,16 +72,6 @@ class StoreEmailSettingsSerializer(serializers.ModelSerializer):
         if host_or_sender_changed and not password_updated:
             instance.encrypted_app_password = ""
         return super().update(instance, validated_data)
-        raw_password = validated_data.pop('app_password', None)
-        if raw_password is not None:
-            raw_password_str = raw_password.strip()
-            if raw_password_str:
-                # Avoid overwriting if masked placeholder bullets are submitted
-                if not all(c in ('•', '*') for c in raw_password_str):
-                    instance.set_app_password(raw_password_str)
-            else:
-                instance.encrypted_app_password = ""
-        return super().update(instance, validated_data)
 
 
 

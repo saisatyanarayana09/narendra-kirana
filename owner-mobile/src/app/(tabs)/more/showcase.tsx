@@ -963,6 +963,7 @@ export default function ShowcaseScreen() {
       }));
       await api.post(`/store/homepage-sections/${curatingSection.id}/set-products/`, {
         products: itemsPayload,
+        product_ids: curatedItems.map((p) => p.id),
       });
       (api as ApiInstance).clearCache();
       setCuratingSection(null);

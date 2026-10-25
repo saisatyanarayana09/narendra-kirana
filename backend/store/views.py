@@ -302,8 +302,8 @@ class HomepageSectionViewSet(viewsets.ModelViewSet):
 
     def _sync_products(self, section):
         from django.core.cache import cache
-        if 'product_ids' in self.request.data:
-            product_ids = self.request.data.get('product_ids', [])
+        if 'product_ids' in self.request.data or 'products' in self.request.data:
+            product_ids = self.request.data.get('product_ids') if 'product_ids' in self.request.data else [p.get('product_id') for p in sorted([p for p in (self.request.data.get('products') or []) if isinstance(p, dict) and 'product_id' in p], key=lambda x: x.get('position', 0))]
             if isinstance(product_ids, list):
                 from .models import HomepageSectionProduct
                 from products.models import Product
@@ -327,6 +327,12 @@ class HomepageSectionViewSet(viewsets.ModelViewSet):
                     if to_create:
                         HomepageSectionProduct.objects.bulk_create(to_create)
                 cache.delete(HOMEPAGE_SECTIONS_CACHE_KEY)
+
+    @action(detail=True, methods=['post'], url_path='set-products')
+    def set_products(self, request, pk=None):
+        section = self.get_object()
+        self._sync_products(section)
+        return response.Response(self.get_serializer(section).data)
 
     @action(detail=False, methods=['post'])
     def reorder(self, request):

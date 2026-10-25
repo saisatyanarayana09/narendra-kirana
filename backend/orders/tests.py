@@ -412,4 +412,20 @@ class StoreSettingsAndOrderFeaturesTest(TestCase):
         referrer_wallet = Wallet.objects.get(user=referrer)
         self.assertEqual(referrer_wallet.balance, Decimal("40.00"))
 
+    def test_homepage_section_set_products_action(self):
+        from store.models import HomepageSection
+        from store.views import HomepageSectionViewSet
+        section = HomepageSection.objects.create(title="Featured Deals", display_order=0, is_active=True)
+        view = HomepageSectionViewSet.as_view({'post': 'set_products'})
+        req = self.factory.post(
+            f'/api/v1/store/homepage-sections/{section.id}/set-products/',
+            {'products': [{'product_id': self.product.id, 'position': 0}]},
+            format='json'
+        )
+        force_authenticate(req, user=self.owner)
+        resp = view(req, pk=section.id)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(section.section_products.count(), 1)
+        self.assertEqual(section.section_products.first().product_id, self.product.id)
+
 

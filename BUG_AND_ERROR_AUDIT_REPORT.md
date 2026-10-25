@@ -1,9 +1,9 @@
 # Smart Kirana — Bug, Error & QA Audit Report
 
 > [!IMPORTANT]
-> **Audit Status**: Completed & Remediated (`10` bugs fixed across `backend/`, `frontend/`, `mobile/`, and `owner-mobile/` in 2 passes)  
+> **Audit Status**: Completed & Remediated (`12` bugs fixed across `backend/`, `frontend/`, `mobile/`, and `owner-mobile/` in 3 passes)  
 > **Skills Installed**: `8` open-source bug-hunting, debugging, differential review, and React/React Native QA skills in `.agent/skills/`  
-> **Automated Verification**: `0` unapplied Django migrations, `40/40` Django tests passing, `50/50` Mobile Jest tests passing (`45/45` suites), `0` TypeScript errors (`mobile` & `owner-mobile`), Vite production build passing (`frontend`)
+> **Automated Verification**: `347/347` client API calls verified against Django URL resolver, `0` unapplied Django migrations, `41/41` Django tests passing, `50/50` Mobile Jest tests passing (`45/45` suites), `0` TypeScript errors (`mobile` & `owner-mobile`), Vite production build passing (`frontend`)
 
 ---
 
@@ -38,6 +38,8 @@ To complement the existing Cloudflare security audit skill (`.agent/skills/secur
 | **BUG-08** | **High** | `backend/` | [`accounts/models.py`](file:///s:/smart-kirana/backend/accounts/models.py#L83), [`offers/models.py`](file:///s:/smart-kirana/backend/offers/models.py#L69-L75), [`store/models.py`](file:///s:/smart-kirana/backend/store/models.py#L18-L33) | `DecimalField`s defined with Python `float` defaults (`default=0.00`, `default=50.00`) caused `TypeError: unsupported operand type(s) for +=: 'float' and 'decimal.Decimal'` on newly created `Wallet` / settings rows | **Fixed** |
 | **BUG-09** | **Medium** | `frontend/` | [`DeliveryLiveMap.jsx`](file:///s:/smart-kirana/frontend/src/delivery/DeliveryLiveMap.jsx#L281-L293), [`usePasswordReset.js`](file:///s:/smart-kirana/frontend/src/hooks/usePasswordReset.js#L68-L70) | Stale closure in `updateRoute` omitted `autoFollow` and `gpsAccuracy` from `useCallback` deps and unconditionally called `map.fitBounds` even when `autoFollow` was disabled | **Fixed** |
 | **BUG-10** | **Low** | `backend/`, `mobile/` | [`store/models.py`](file:///s:/smart-kirana/backend/store/models.py#L31-L32), [`CartContext.tsx`](file:///s:/smart-kirana/mobile/src/context/CartContext.tsx#L1087-L1093), [`AuthContext.tsx`](file:///s:/smart-kirana/mobile/src/context/AuthContext.tsx#L124-L138), [`LoginScreen.tsx`](file:///s:/smart-kirana/mobile/src/screens/auth/LoginScreen.tsx#L284-L289) | Migration drift on `store_latitude`/`store_longitude` defaults (`makemigrations --check`), plus redundant re-throw `try/catch` blocks and unused ternary expression in `mobile/` | **Fixed** |
+| **BUG-11** | **High** | `backend/`, `owner-mobile/` | [`store/views.py`](file:///s:/smart-kirana/backend/store/views.py#L303-L337), [`showcase.tsx`](file:///s:/smart-kirana/owner-mobile/src/app/(tabs)/more/showcase.tsx#L964-L968) | `owner-mobile` Showcase curator called `POST /store/homepage-sections/{id}/set-products/` with `{products: [{product_id, position}]}`, which did not exist on `HomepageSectionViewSet` (HTTP 404) | **Fixed** |
+| **BUG-12** | **Low** | `backend/` | [`store/serializers.py`](file:///s:/smart-kirana/backend/store/serializers.py#L54-L74) | Unreachable duplicate `update()` block after `return super().update(...)` in `StoreEmailSettingsSerializer` | **Fixed** |
 
 ---
 
