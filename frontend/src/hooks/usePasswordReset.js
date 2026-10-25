@@ -65,8 +65,8 @@ export function usePasswordReset({ portal = 'customer', loginRedirect = '/login'
         .then((res) => {
           if (!isMounted) return;
           setTokenStatus('valid');
-          if (res.data?.email && !email) {
-            setEmail(res.data.email);
+          if (res.data?.email) {
+            setEmail((prev) => prev || res.data.email);
           }
         })
         .catch((err) => {

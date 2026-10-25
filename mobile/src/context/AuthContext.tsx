@@ -121,23 +121,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (data: any) => {
     isLoggingOutRef.current = false;
-    try {
-      const response = await apiClient.post("/auth/login/", data);
+    const response = await apiClient.post("/auth/login/", data);
 
-      if (!response.data) throw new Error("Invalid response from server");
+    if (!response.data) throw new Error("Invalid response from server");
 
-      const { access, refresh, user: loggedUser } = response.data;
+    const { access, refresh, user: loggedUser } = response.data;
 
-      await saveItem(STORAGE_KEYS.TOKEN, access);
-      await saveItem(STORAGE_KEYS.REFRESH, refresh);
-      await saveItem(STORAGE_KEYS.USER, JSON.stringify(loggedUser));
+    await saveItem(STORAGE_KEYS.TOKEN, access);
+    await saveItem(STORAGE_KEYS.REFRESH, refresh);
+    await saveItem(STORAGE_KEYS.USER, JSON.stringify(loggedUser));
 
-      resetWelcomeSession();
-      setUser(loggedUser);
-      registerForPushNotificationsAsync().catch(() => {});
-    } catch (error) {
-      throw error;
-    }
+    resetWelcomeSession();
+    setUser(loggedUser);
+    registerForPushNotificationsAsync().catch(() => {});
   }, []);
 
   const loginWithGoogle = useCallback(

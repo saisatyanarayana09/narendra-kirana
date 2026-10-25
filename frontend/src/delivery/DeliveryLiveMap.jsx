@@ -278,9 +278,11 @@ export default function DeliveryLiveMap({
 
               polylineRef.current = polyline;
 
-              // Auto-fit bounds to both rider and customer
-              const bounds = L.latLngBounds([riderLatLng, [custLat, custLng]]);
-              map.fitBounds(bounds, { padding: [40, 40], maxZoom: 17 });
+              // Auto-fit bounds to both rider and customer when auto-follow is active
+              if (autoFollow) {
+                const bounds = L.latLngBounds([riderLatLng, [custLat, custLng]]);
+                map.fitBounds(bounds, { padding: [40, 40], maxZoom: 17 });
+              }
             }
           })
           .catch(() => {
@@ -288,7 +290,7 @@ export default function DeliveryLiveMap({
           });
       }
     }
-  }, [riderCoords, hasCustCoords, custLat, custLng]);
+  }, [riderCoords, hasCustCoords, custLat, custLng, autoFollow, gpsAccuracy]);
 
   useEffect(() => {
     updateRoute();

@@ -282,9 +282,11 @@ export function LoginScreen({ navigation, route }: Props) {
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            navigation.canGoBack()
-              ? navigation.goBack()
-              : (navigation as any).navigate("Main");
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              (navigation as any).navigate("Main");
+            }
           }}
           activeOpacity={0.75}
         >

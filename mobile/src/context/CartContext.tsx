@@ -1087,8 +1087,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
         setIsLoading(true);
         await apiClient.post("/cart/apply-promo/", { code });
         await refreshCart();
-      } catch (error: any) {
-        throw error;
       } finally {
         setIsLoading(false);
       }
