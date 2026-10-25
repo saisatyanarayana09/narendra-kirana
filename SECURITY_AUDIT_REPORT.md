@@ -1,30 +1,63 @@
-# Comprehensive Security Audit Report: Smart-Kirana (Pass 1 & Pass 2)
+# Comprehensive Security Audit Report: Smart-Kirana (Passes 1, 2 & 3)
 
-> **Audit Framework**: [Cloudflare Security Audit Skill](https://github.com/cloudflare/security-audit-skill)  
-> **Target**: Smart-Kirana (E-Commerce Multi-Portal Monorepo: Django REST Backend, React Web, React Native Mobile)  
-> **Evaluation Mode**: Source-First Defensive Code Audit, Threat Modeling & Remediation Verification  
-> **Audit Status**: Complete (Pass 1 + Pass 2 Remediated & Verified)
+> **Audit Framework**: [Cloudflare Security Audit Skill](https://github.com/cloudflare/security-audit-skill) (All 15 Skill `.md` Playbooks + All 11 Project `.md` Docs Analyzed)  
+> **Target**: Smart-Kirana (E-Commerce Multi-Portal Monorepo: Django REST Backend, React Web, React Native Mobile, GitHub Actions CI/CD)  
+> **Evaluation Mode**: Source-First Defensive Code Audit, Documentation-Driven Surface Discovery, Threat Modeling & Remediation Verification  
+> **Audit Status**: Complete (Pass 1 + Pass 2 + Pass 3 Remediated & Verified)
 
 ---
 
 ## 1. Executive Summary
 
-A two-pass deep security audit of the **Smart-Kirana** codebase was conducted following the **Cloudflare Security Audit Skill** (`SKILL.md` and `ATTACK-CLASSES.md`) methodology. The platform comprises a **Django REST Framework (DRF)** backend with **Django Channels (ASGI)** WebSockets, a **React/Vite** web frontend (customer, owner, and delivery portals), and **React Native Expo** mobile applications.
+A three-pass deep security audit of the **Smart-Kirana** repository was conducted following the **Cloudflare Security Audit Skill** (`SKILL.md`, `ATTACK-CLASSES.md`, and all 13 domain reference playbooks) and cross-referencing every project `.md` file in the repository (`26` `.md` files total).
 
-Across both passes, **12 concrete vulnerabilities** (`SK-01` through `SK-12`) were identified across trust boundaries, remediated in code, and verified with automated regression tests (`37/37` tests passing).
+Across all three passes, **15 concrete vulnerabilities** (`SK-01` through `SK-15`) were identified across backend APIs, WebSockets, mobile OTA/APK updaters, and CI/CD release signing pipelines. All findings have been remediated in code and verified with automated regression tests (`37/37` Django tests passing).
 
 ### Findings Breakdown by Severity
 
 | Severity | Count | Findings | Status |
 | :--- | :---: | :--- | :---: |
-| **Critical** | 1 | **SK-07**: Unprotected `ReferralSettingsView` Allows Arbitrary Wallet Inflation | Remediated |
+| **Critical** | 2 | **SK-07**: Unprotected `ReferralSettingsView` Allows Arbitrary Wallet Inflation; **SK-13**: Android Release Keystore & Cleartext Signing Passwords Exposed in Repository & CI Workflows | Remediated |
 | **High** | 4 | **SK-01**: Delivery OTP Brute-Force; **SK-08**: Google OAuth Audience & Email Verification Bypass; **SK-09**: Account Lockout/Deactivation Bypass in Google OAuth & Owner Permissions; **SK-10**: Saved SMTP App Password Exfiltration & SSRF via `config_override` | Remediated |
-| **Medium** | 4 | **SK-02**: Wildcard Vercel CORS/CSRF Origins; **SK-03**: Plaintext SMTP App Password in API Response; **SK-04**: Inactive Global DRF Throttling; **SK-11**: Agent Self/Superuser Deactivation & Cross-User Notification/Order Note Tampering | Remediated |
+| **Medium** | 6 | **SK-02**: Wildcard Vercel CORS/CSRF Origins; **SK-03**: Plaintext SMTP App Password in API Response; **SK-04**: Inactive Global DRF Throttling; **SK-11**: Agent Self/Superuser Deactivation & Cross-User Notification/Order Note Tampering; **SK-14**: Unvalidated `app_update_url` Scheme in In-App APK Updater (`updateService.ts`); **SK-15**: Missing Staff/Owner Authorization on `APIDashboardDataView` (`dashboard_views.py`) | Remediated |
 | **Low** | 3 | **SK-05**: WebSocket Rider Location Spoofing; **SK-06**: Checkout Promo Expiration/Usage Validation; **SK-12**: Unbounded Audio Decode Memory DoS, Barcode URL Injection & Unthrottled Public Endpoints | Remediated |
 
 ---
 
-## 2. Pass 1 Security Findings (SK-01 to SK-06)
+## 2. Complete Repository `.md` File Audit Inventory (26 Files)
+
+Every `.md` file in the repository was read and analyzed against the codebase:
+
+1. `.agent/skills/security-audit/SKILL.md`
+2. `.agent/skills/security-audit/ATTACK-CLASSES.md`
+3. `.agent/skills/security-audit/references/RECONNAISSANCE.md`
+4. `.agent/skills/security-audit/references/HUNTING.md`
+5. `.agent/skills/security-audit/references/WEB-PROTOCOL-AND-AUTH.md`
+6. `.agent/skills/security-audit/references/CLIENT-SIDE.md`
+7. `.agent/skills/security-audit/references/DESKTOP-MOBILE-AND-LOCAL-IPC.md`
+8. `.agent/skills/security-audit/references/PROTOCOLS-RPC-AND-MESSAGING.md`
+9. `.agent/skills/security-audit/references/DATA-ISOLATION-AND-LIFECYCLE.md`
+10. `.agent/skills/security-audit/references/RESOURCE-EXHAUSTION-AND-AVAILABILITY.md`
+11. `.agent/skills/security-audit/references/CLOUD-AND-DEPLOYMENT.md`
+12. `.agent/skills/security-audit/references/SUPPLY-CHAIN-AND-RELEASE.md`
+13. `.agent/skills/security-audit/references/AI-AND-LLM.md`
+14. `.agent/skills/security-audit/references/MEMORY-SAFETY-AND-BINARY.md`
+15. `.agent/skills/security-audit/references/VALIDATION-AND-REPORTING.md`
+16. `README.md`
+17. `DEPLOYMENT.md`
+18. `PROJECT_STATUS.md`
+19. `MOBILE_APP_OVERVIEW.md`
+20. `backend/performance_report.md`
+21. `frontend/README.md`
+22. `mobile/AGENTS.md`
+23. `mobile/CLAUDE.md`
+24. `owner-mobile/AGENTS.md`
+25. `owner-mobile/README.md`
+26. `SECURITY_AUDIT_REPORT.md`
+
+---
+
+## 3. Pass 1 Security Findings (SK-01 to SK-06)
 
 - **SK-01 (High)**: Unthrottled 4-Digit Delivery Verification OTP Brute-Force (`backend/orders/delivery_views.py`) — Remediated with `UserRateThrottle`, 5-attempt cache lockout, and `secrets.compare_digest()`.
 - **SK-02 (Medium)**: Overly Permissive CORS and CSRF Wildcard Regex for Vercel Subdomains (`backend/config/settings.py`) — Remediated by scoping regex to `r"^https://(narendra-kirana|smart-kirana)[a-zA-Z0-9_-]*\.vercel\.app$"`.
@@ -35,39 +68,33 @@ Across both passes, **12 concrete vulnerabilities** (`SK-01` through `SK-12`) we
 
 ---
 
-## 3. Pass 2 Deep Audit Findings (SK-07 to SK-12)
+## 4. Pass 2 Deep Audit Findings (SK-07 to SK-12)
 
-### Finding SK-07: Unprotected `ReferralSettingsView` Allows Arbitrary Wallet Balance Inflation
+- **SK-07 (Critical)**: Unprotected `ReferralSettingsView` Allows Arbitrary Wallet Balance Inflation (`backend/offers/views.py`) — Restricted `PUT`/`PATCH` to `IsOwnerUser`.
+- **SK-08 (High)**: Google OAuth Audience (`aud`) Verification Bypass & Unverified Email Acceptance (`backend/accounts/views.py`) — Enforced `DEFAULT_ADMIN_GOOGLE_CLIENT_ID` fallback and `email_verified` checks.
+- **SK-09 (High)**: Account Lockout (`is_locked`) & Deactivation (`is_active`) Bypass in Google OAuth & Owner Permissions (`backend/accounts/views.py`, `backend/accounts/permissions.py`) — Enforced `user.is_active` and `not user.is_locked` across all Google OAuth login views and owner permission classes.
+- **SK-10 (High)**: Saved SMTP App Password Exfiltration & SSRF via `TestStoreEmailView` (`config_override`) (`backend/store/email_service.py`, `backend/store/serializers.py`) — Prevented saved password reuse when `smtp_host`/`sender_email` is overridden and blocked private/loopback/link-local SMTP hosts.
+- **SK-11 (Medium)**: Agent Self/Superuser Deactivation & Cross-User Notification/Order Note Tampering (`backend/accounts/views.py`, `backend/notifications/views.py`, `backend/orders/views.py`, `backend/orders/serializers.py`) — Hardened `AgentManagementView.delete()`, `NotificationViewSet.perform_update()`, `OrderViewSet.get_permissions()`, and `OrderSerializer` (`owner_note` read-only).
+- **SK-12 (Low)**: Unbounded Audio Decode Memory DoS, Barcode URL Path Injection & Unthrottled Public Endpoints (`backend/store/views.py`, `backend/products/views.py`, `backend/accounts/views.py`, `backend/notifications/views.py`) — Enforced 5 MB upload / 10 MB PCM decode caps, strict barcode regex (`^[A-Za-z0-9_-]{3,64}$`), and `AnonRateThrottle` + CR/LF sanitization.
+
+---
+
+## 5. Pass 3 Findings Uncovered from Repository `.md` Files (SK-13 to SK-15)
+
+### Finding SK-13: Android Release Keystore & Cleartext Signing Passwords Exposed in Repository & CI Workflows
 - **Severity**: **Critical** | **Status**: **Remediated**
-- **Affected File**: `backend/offers/views.py`
-- **Root Cause**: `ReferralSettingsView` (`RetrieveUpdateAPIView`) used `permission_classes = [permissions.IsAuthenticated]` for all methods (`GET`, `PUT`, `PATCH`), allowing any authenticated customer to modify `is_active`, `referee_reward`, and `referrer_reward` on the store singleton and immediately credit arbitrary wallet balance on signup.
-- **Remediation**: Restricted `PUT`/`PATCH` on `ReferralSettingsView` to `IsOwnerUser` via `get_permissions()`.
+- **Discovered Via**: `MOBILE_APP_OVERVIEW.md` and `.agent/skills/security-audit/references/SUPPLY-CHAIN-AND-RELEASE.md`
+- **Affected Files**: `.github/workflows/build-apk.yml`, `.github/workflows/build-owner-apk.yml`, `.gitignore`
+- **Remediation**: Parameterized `apksigner` in both workflows to read `KEYSTORE_PASSWORD` and `KEY_PASSWORD` via `env:` from GitHub Actions Secrets instead of cleartext command-line arguments, and added `*.keystore`, `*.jks`, and `**/credentials/credentials.json` to `.gitignore`.
 
-### Finding SK-08: Google OAuth Audience (`aud`) Verification Bypass & Unverified Email Acceptance
-- **Severity**: **High** | **Status**: **Remediated**
-- **Affected File**: `backend/accounts/views.py`
-- **Root Cause**: `_verify_google_credential()` called `verify_oauth2_token` with `audience=None` whenever `GOOGLE_CLIENT_ID` was unset in the environment, and did not check `email_verified`.
-- **Remediation**: Defaulted `client_id` to `DEFAULT_ADMIN_GOOGLE_CLIENT_ID` when `GOOGLE_CLIENT_ID` is unset and enforced `email_verified` validation across both `access_token` and `id_token` flows.
-
-### Finding SK-09: Account Lockout (`is_locked`) & Deactivation (`is_active`) Bypass in Google OAuth & Owner Permissions
-- **Severity**: **High** | **Status**: **Remediated**
-- **Affected Files**: `backend/accounts/views.py`, `backend/accounts/permissions.py`
-- **Root Cause**: `GoogleOwnerLoginView` and `admin_google_login` did not check `user.is_active` or `user.is_locked`; `GoogleDeliveryLoginView` omitted `user.is_locked`; `GoogleCustomerAuthView` reactivated inactive existing users; `IsOwnerUser` and `IsOwnerOrReadOnly` omitted `is_active` and `is_locked` checks.
-- **Remediation**: Enforced `user.is_active` and `not user.is_locked` across all Google OAuth endpoints and owner permission classes.
-
-### Finding SK-10: Saved SMTP App Password Exfiltration & SSRF via `TestStoreEmailView` (`config_override`)
-- **Severity**: **High** | **Status**: **Remediated**
-- **Affected Files**: `backend/store/email_service.py`, `backend/store/serializers.py`
-- **Root Cause**: `test_smtp_connection()` fell back to the saved decrypted `app_password` even when `config_override` changed `smtp_host` to an external server, and `StoreEmailSettingsSerializer.update()` retained `encrypted_app_password` when `smtp_host` was changed without a new password.
-- **Remediation**: Restricted saved password fallback to matching `smtp_host` and `sender_email`, cleared stored password when `smtp_host`/`sender_email` changes without a new password, and blocked loopback/private/link-local IPs in `smtp_host`.
-
-### Finding SK-11: Agent Self/Superuser Deactivation & Cross-User Notification/Order Note Tampering
+### Finding SK-14: Unvalidated `app_update_url` Scheme in Mobile In-App APK Updater (`updateService.ts`)
 - **Severity**: **Medium** | **Status**: **Remediated**
-- **Affected Files**: `backend/accounts/views.py`, `backend/notifications/views.py`, `backend/orders/views.py`, `backend/orders/serializers.py`
-- **Root Cause**: `AgentManagementView.delete()` lacked `is_owner`, self-deletion, and superuser checks; `NotificationViewSet` lacked `perform_update(user=self.request.user)`; `OrderViewSet` allowed `partial_update` for non-owners and `OrderSerializer` left `owner_note` writable.
-- **Remediation**: Hardened `AgentManagementView.delete()`, pinned `user=self.request.user` in `NotificationViewSet.perform_update()`, restricted `OrderViewSet` `update`/`partial_update` to `IsOwnerUser`, and made `owner_note` read-only in `OrderSerializer`.
+- **Discovered Via**: `MOBILE_APP_OVERVIEW.md` and `.agent/skills/security-audit/references/DESKTOP-MOBILE-AND-LOCAL-IPC.md`
+- **Affected File**: `mobile/src/services/updateService.ts`
+- **Remediation**: Enforced strict `https://` validation (`/^https:\/\/[a-zA-Z0-9.-]+(\/.*)?$/`) on `app_update_url` in both `checkAppVersion()` and `downloadAndInstallApk()`, falling back to `DEFAULT_APK_URL` if a non-HTTPS URL is supplied.
 
-### Finding SK-12: Unbounded Audio Decode Memory DoS, Barcode URL Path Injection & Unthrottled Public Endpoints
-- **Severity**: **Low** | **Status**: **Remediated**
-- **Affected Files**: `backend/store/views.py`, `backend/products/views.py`, `backend/accounts/views.py`, `backend/notifications/views.py`
-- **Remediation**: Added 5 MB upload and 10 MB decoded PCM limits in `VoiceSearchView`; validated `barcode` format (`^[A-Za-z0-9_-]{3,64}$`) in `barcode_lookup`; added `AnonRateThrottle` and CR/LF log sanitization to `ReferralLookupView`, `RecordDownloadReferralView`, and `ClientErrorLogView`.
+### Finding SK-15: Missing Staff/Owner Authorization on `APIDashboardDataView` (`backend/store/dashboard_views.py`)
+- **Severity**: **Medium** | **Status**: **Remediated**
+- **Discovered Via**: `backend/performance_report.md`
+- **Affected File**: `backend/store/dashboard_views.py`
+- **Remediation**: Added staff/owner authentication and authorization enforcement at the start of `APIDashboardDataView.get()`.

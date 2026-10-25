@@ -29,3 +29,6 @@ backend/venv/
 venv_temp/
 *.apk
 backend/staticfiles/
+*.keystore
+*.jks
+**/credentials/credentials.json

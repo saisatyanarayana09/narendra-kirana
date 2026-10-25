@@ -60,7 +60,9 @@ export function checkAppVersion(
   // Ensure we use a direct APK URL for in-app downloads, not a Play Store redirect
   const isPlayStore =
     rawUrl.includes("play.google.com") || rawUrl.startsWith("market://");
-  const updateUrl = rawUrl && !isPlayStore ? rawUrl : DEFAULT_APK_URL;
+  const isSecureHttps = /^https:\/\/[a-zA-Z0-9.-]+(\/.*)?$/.test(rawUrl);
+  const updateUrl =
+    rawUrl && !isPlayStore && isSecureHttps ? rawUrl : DEFAULT_APK_URL;
   const updateMessage =
     settings?.app_update_message ||
     "A new and improved version of Narendra Kirana is available. Please update to continue shopping.";
@@ -117,10 +119,11 @@ export async function downloadAndInstallApk(
 ): Promise<{ success: boolean; uri?: string; error?: string }> {
   let cleanUrl = apkUrl?.trim() || DEFAULT_APK_URL;
 
-  // If a Play Store URL was passed, fall back to the direct APK URL so Android downloads within the app
+  // If a Play Store URL or non-HTTPS URL was passed, fall back to the direct HTTPS APK URL
   if (
     cleanUrl.includes("play.google.com") ||
-    cleanUrl.startsWith("market://")
+    cleanUrl.startsWith("market://") ||
+    !/^https:\/\/[a-zA-Z0-9.-]+(\/.*)?$/.test(cleanUrl)
   ) {
     cleanUrl = DEFAULT_APK_URL;
   }

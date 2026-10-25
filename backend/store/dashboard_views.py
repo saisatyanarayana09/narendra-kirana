@@ -12,6 +12,8 @@ class APIDashboardDataView(View):
     """JSON endpoint that provides all dashboard data."""
     
     def get(self, request):
+        if not request.user.is_authenticated or not (request.user.is_staff or getattr(request.user, 'is_owner', False)):
+            return JsonResponse({'error': 'Forbidden'}, status=403)
         from django.core.cache import cache
         cache_key = 'admin_dashboard_data'
         cached_data = cache.get(cache_key)

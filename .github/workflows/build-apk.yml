@@ -72,6 +72,10 @@ jobs:
 
       - name: Sign APK with Persistent Keystore
         working-directory: mobile
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'narendrakirana' }}
         run: |
           BUILD_TOOLS_DIR=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -n 1)
           echo "Using Android build tools at: $BUILD_TOOLS_DIR"
@@ -81,11 +85,18 @@ jobs:
           
           $BUILD_TOOLS_DIR/zipalign -f -p 4 "$RAW_APK" aligned-app.apk
           
+          if [ -z "$KEYSTORE_PASSWORD" ] && [ -f credentials/credentials.json ]; then
+            export KEYSTORE_PASSWORD=$(jq -r '.android.keystore.keystorePassword' credentials/credentials.json)
+          fi
+          if [ -z "$KEY_PASSWORD" ] && [ -f credentials/credentials.json ]; then
+            export KEY_PASSWORD=$(jq -r '.android.keystore.keyPassword' credentials/credentials.json)
+          fi
+          
           $BUILD_TOOLS_DIR/apksigner sign \
             --ks credentials/release.keystore \
-            --ks-pass pass:narendrakirana123 \
-            --ks-key-alias narendrakirana \
-            --key-pass pass:narendrakirana123 \
+            --ks-pass env:KEYSTORE_PASSWORD \
+            --ks-key-alias "$KEY_ALIAS" \
+            --key-pass env:KEY_PASSWORD \
             --out narendra-kirana.apk \
             aligned-app.apk
             
