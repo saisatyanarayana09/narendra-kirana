@@ -135,7 +135,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['delete'], permission_classes=[IsOwnerUser])
     def delete_gallery_image(self, request, pk=None):
         product = self.get_object()
-        image_id = request.data.get('image_id')
+        image_id = request.data.get('image_id') or request.query_params.get('image_id')
         if not image_id:
             return Response({'error': 'image_id is required'}, status=400)
         try:
@@ -258,6 +258,8 @@ class FavoriteViewSet(viewsets.ModelViewSet):
     pagination_class = None
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False) or not getattr(self.request, 'user', None) or not self.request.user.is_authenticated:
+            return Favorite.objects.none()
         return Favorite.objects.select_related(
             'product',
             'product__category'

@@ -435,4 +435,33 @@ class StoreSettingsAndOrderFeaturesTest(TestCase):
         self.assertIsNotNone(schema)
         self.assertIn('paths', schema)
 
+    def test_store_email_settings_preserves_password_with_masked_bullets(self):
+        from store.views import StoreEmailSettingsView
+        from store.models import StoreEmailSettings
+
+        view = StoreEmailSettingsView.as_view()
+        req1 = self.factory.patch(
+            '/api/v1/store/email-settings/',
+            {'sender_email': 'store@example.com', 'app_password': 'abcd efgh ijkl mnop', 'is_active': True},
+            format='json'
+        )
+        force_authenticate(req1, user=self.owner)
+        resp1 = view(req1)
+        self.assertEqual(resp1.status_code, 200)
+        self.assertTrue(resp1.data['has_password'])
+        self.assertEqual(resp1.data['masked_password'], '••••••••••••••••')
+
+        # Subsequent PATCH with masked bullets must preserve the stored password
+        req2 = self.factory.patch(
+            '/api/v1/store/email-settings/',
+            {'sender_email': 'store@example.com', 'app_password': resp1.data['masked_password'], 'sender_name': 'Updated Name'},
+            format='json'
+        )
+        force_authenticate(req2, user=self.owner)
+        resp2 = view(req2)
+        self.assertEqual(resp2.status_code, 200)
+        self.assertTrue(resp2.data['has_password'])
+        cfg = StoreEmailSettings.load()
+        self.assertEqual(cfg.get_decrypted_password(), 'abcd efgh ijkl mnop')
+
 

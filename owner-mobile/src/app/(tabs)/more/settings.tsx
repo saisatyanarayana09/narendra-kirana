@@ -166,7 +166,7 @@ export default function SettingsScreen() {
             ...prev,
             ...em,
             sender_email: em.sender_email || prev.sender_email || '',
-            app_password: em.app_password || '',
+            app_password: em.app_password || em.masked_password || '',
           }));
           if (em.sender_email && !testRecipient) {
             setTestRecipient(em.sender_email);
@@ -302,7 +302,7 @@ export default function SettingsScreen() {
       setEmailSettings((prev: any) => ({
         ...prev,
         ...res.data,
-        app_password: res.data?.app_password ?? payload.app_password ?? prev.app_password,
+        app_password: res.data?.app_password || res.data?.masked_password || '',
       }));
       (api as ApiInstance).clearCache();
       showAlert('Success', 'Store Email & SMTP credentials saved!');

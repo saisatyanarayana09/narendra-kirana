@@ -133,8 +133,8 @@ def test_smtp_connection(to_email: str, config_override: dict = None):
         if config_override and config_override.get('sender_email'):
             host = config_override.get('smtp_host') or 'smtp.gmail.com'
             port = int(config_override.get('smtp_port') or 587)
-            user = config_override.get('sender_email', '').strip()
-            raw_pwd = config_override.get('app_password', '').strip()
+            user = (config_override.get('sender_email') or '').strip()
+            raw_pwd = (config_override.get('app_password') or '').strip()
             
             # If no password passed in override, fall back to existing saved password
             pass
