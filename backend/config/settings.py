@@ -250,13 +250,17 @@ frontend_url = os.environ.get('FRONTEND_URL', '').rstrip('/')
 if frontend_url and frontend_url not in CORS_ALLOWED_ORIGINS:
     CORS_ALLOWED_ORIGINS.append(frontend_url)
 CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https://.*\.vercel\.app$",
+    r"^https://(narendra-kirana|smart-kirana)[a-zA-Z0-9_-]*\.vercel\.app$",
     r"^http://localhost(:\d+)?$",
     r"^http://127\.0\.0\.1(:\d+)?$",
     r"^http://192\.168\.\d+\.\d+(:\d+)?$",
     r"^http://10\.\d+\.\d+\.\d+(:\d+)?$",
 ]
-CSRF_TRUSTED_ORIGINS = ['https://*.vercel.app', 'https://*.onrender.com']
+CSRF_TRUSTED_ORIGINS = [
+    'https://narendra-kirana.vercel.app',
+    'https://smart-kirana.vercel.app',
+    'https://narendra-kirana.onrender.com',
+] + ([frontend_url] if frontend_url and frontend_url.startswith('https://') else [])
 
 from corsheaders.defaults import default_headers
 CORS_ALLOW_HEADERS = list(default_headers) + [
@@ -276,9 +280,13 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+    'DEFAULT_THROTTLE_CLASSES': () if IS_TESTING else (
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ),
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '20/minute',
-        'user': '60/minute',
+        'anon': '60/minute',
+        'user': '120/minute',
         'burst': '5/minute'
     }
 }

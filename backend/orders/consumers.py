@@ -170,6 +170,14 @@ class OrderTrackingConsumer(AsyncWebsocketConsumer):
 
         # Rider streams their live GPS position
         if msg_type == 'RIDER_LOCATION_UPDATE':
+            is_authorized_rider = bool(
+                getattr(self.user, 'is_delivery_partner', False) or
+                getattr(self.user, 'is_owner', False) or
+                self.user.is_staff or
+                self.user.is_superuser
+            )
+            if not is_authorized_rider:
+                return
             lat = payload.get('latitude')
             lng = payload.get('longitude')
             heading = payload.get('heading', 0)

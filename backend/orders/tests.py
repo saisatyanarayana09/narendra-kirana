@@ -305,3 +305,37 @@ class StoreSettingsAndOrderFeaturesTest(TestCase):
         resp_other = view(req_other, pk=order.id)
         self.assertIn(resp_other.status_code, [403, 404])
 
+    def test_delivery_otp_brute_force_lockout(self):
+        from orders.delivery_views import DeliveryVerifyAndCompleteView
+        from django.core.cache import cache
+
+        rider = User.objects.create_user(
+            username='rider_test',
+            password='password123',
+            email='rider_test@example.com',
+            is_delivery_partner=True
+        )
+        order = Order.objects.create(
+            customer=self.user,
+            delivery_partner=rider,
+            total_amount=Decimal("150.00"),
+            order_type="DELIVERY",
+            delivery_otp="9876",
+            status=Order.Status.OUT_FOR_DELIVERY
+        )
+        cache.delete(f"delivery_otp_attempts:{order.id}")
+        view = DeliveryVerifyAndCompleteView.as_view()
+
+        # 5 wrong attempts return 400
+        for _ in range(5):
+            req = self.factory.post(f'/api/v1/delivery/orders/{order.id}/complete/', {'otp': '0000'}, format='json')
+            force_authenticate(req, user=rider)
+            resp = view(req, pk=order.id)
+            self.assertEqual(resp.status_code, 400)
+
+        # 6th attempt even with right or wrong OTP is locked out with 429
+        req_locked = self.factory.post(f'/api/v1/delivery/orders/{order.id}/complete/', {'otp': '9876'}, format='json')
+        force_authenticate(req_locked, user=rider)
+        resp_locked = view(req_locked, pk=order.id)
+        self.assertEqual(resp_locked.status_code, 429)
+

@@ -48,7 +48,7 @@ class StoreEmailSettingsSerializer(serializers.ModelSerializer):
             except Exception:
                 pass
         # Decrypt password so the store owner can view and manage their App Password
-        data['app_password'] = instance.get_decrypted_password() or ""
+        data['app_password'] = ""
         return data
 
     def update(self, instance, validated_data):

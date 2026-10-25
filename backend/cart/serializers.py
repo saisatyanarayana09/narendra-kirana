@@ -82,7 +82,18 @@ class CartSerializer(serializers.ModelSerializer):
                     promo_eligible_total += cur_price * qty
 
             promo_discount = Decimal('0.00')
-            if cart.promo_code and cart.promo_code.is_active and items_total >= cart.promo_code.min_order_amount:
+            from django.utils import timezone
+            is_promo_valid = bool(
+                cart.promo_code and
+                cart.promo_code.is_active and
+                not (cart.promo_code.expiration_date and cart.promo_code.expiration_date < timezone.now()) and
+                items_total >= cart.promo_code.min_order_amount
+            )
+            if is_promo_valid and getattr(cart.promo_code, 'max_uses_per_user', 0) > 0 and cart.customer_id:
+                from offers.models import PromoUsage
+                if PromoUsage.objects.filter(promo_code=cart.promo_code, user_id=cart.customer_id).count() >= cart.promo_code.max_uses_per_user:
+                    is_promo_valid = False
+            if is_promo_valid:
                 if promo_eligible_total > Decimal('0.00'):
                     if cart.promo_code.discount_type == 'PERCENTAGE':
                         promo_discount = (promo_eligible_total * cart.promo_code.discount_value / Decimal('100.00')).quantize(Decimal('0.01'))

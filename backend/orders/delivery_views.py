@@ -1,5 +1,8 @@
 from decimal import Decimal
 import logging
+import secrets
+from django.core.cache import cache
+from rest_framework.throttling import UserRateThrottle
 import threading
 from django.db import transaction
 from django.utils import timezone
@@ -209,6 +212,7 @@ class DeliveryNotifyArrivalView(APIView):
 
 
 class DeliveryVerifyAndCompleteView(APIView):
+    throttle_classes = [UserRateThrottle]
     permission_classes = [IsDeliveryPartnerUser]
 
     def post(self, request, pk):
@@ -232,8 +236,19 @@ class DeliveryVerifyAndCompleteView(APIView):
 
         # Verify OTP if order has delivery_otp and not overridden by owner
         if order.delivery_otp and not is_owner_or_staff:
-            if not entered_otp or entered_otp != order.delivery_otp.strip():
+            attempt_cache_key = f"delivery_otp_attempts:{order.id}"
+            failed_attempts = cache.get(attempt_cache_key, 0)
+            if failed_attempts >= 5:
+                return Response(
+                    {'detail': 'Too many failed OTP attempts. Please wait 15 minutes or ask the store owner to verify.'},
+                    status=status.HTTP_429_TOO_MANY_REQUESTS
+                )
+            expected_otp = order.delivery_otp.strip()
+            if not entered_otp or not secrets.compare_digest(entered_otp, expected_otp):
+                failed_attempts += 1
+                cache.set(attempt_cache_key, failed_attempts, timeout=900)
                 return Response({'detail': 'Invalid delivery OTP. Please verify with customer.'}, status=status.HTTP_400_BAD_REQUEST)
+            cache.delete(attempt_cache_key)
 
         with transaction.atomic():
             order.status = Order.Status.COMPLETED
