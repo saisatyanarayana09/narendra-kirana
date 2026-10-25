@@ -504,7 +504,7 @@ export default function CommonSmartScannerScreen() {
                         {scanResult.product.sku}
                       </Text>
                     </View>
-                    {scanResult.product.unit && (
+                    {Boolean(scanResult.product.unit) && (
                       <Text style={[styles.unitBadge, { color: colors.textMuted }]}>
                         {scanResult.product.unit}
                       </Text>

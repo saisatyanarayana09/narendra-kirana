@@ -339,3 +339,77 @@ class StoreSettingsAndOrderFeaturesTest(TestCase):
         resp_locked = view(req_locked, pk=order.id)
         self.assertEqual(resp_locked.status_code, 429)
 
+    def test_reject_item_with_wallet_discount_records_refund_transaction(self):
+        from orders.models import OrderItem
+        wallet = Wallet.objects.create(user=self.user, balance=Decimal("50.00"))
+        order = Order.objects.create(
+            customer=self.user,
+            total_amount=Decimal("130.00"),
+            wallet_discount=Decimal("50.00"),
+            status=Order.Status.NEW
+        )
+        item1 = OrderItem.objects.create(
+            order=order,
+            product=self.product,
+            product_name_snapshot=self.product.name,
+            unit_snapshot="1 kg",
+            price_snapshot=Decimal("90.00"),
+            quantity=1,
+            subtotal=Decimal("90.00")
+        )
+        OrderItem.objects.create(
+            order=order,
+            product=self.product,
+            product_name_snapshot="Second Item",
+            unit_snapshot="1 kg",
+            price_snapshot=Decimal("90.00"),
+            quantity=1,
+            subtotal=Decimal("90.00")
+        )
+        view = OrderViewSet.as_view({'post': 'reject_item'})
+        req = self.factory.post(f'/api/orders/{order.id}/reject_item/', {'item_id': item1.id}, format='json')
+        force_authenticate(req, user=self.owner)
+        resp = view(req, pk=order.id)
+        self.assertEqual(resp.status_code, 200)
+        wallet.refresh_from_db()
+        # 50% of 50.00 wallet discount = 25.00 refunded to wallet
+        self.assertEqual(wallet.balance, Decimal("75.00"))
+        tx = WalletTransaction.objects.filter(
+            wallet=wallet,
+            transaction_type=WalletTransaction.TransactionType.REFUND
+        ).first()
+        self.assertIsNotNone(tx)
+        self.assertEqual(tx.amount, Decimal("25.00"))
+
+    def test_referral_approve_creates_wallet_if_referrer_has_no_wallet(self):
+        from offers.models import Referral, ReferralSettings
+        from offers.views import ReferralHistoryViewSet
+        referrer = User.objects.create_user(
+            username='referrer_no_wallet',
+            password='password123',
+            email='referrer_nw@example.com'
+        )
+        referred = User.objects.create_user(
+            username='referred_user_test',
+            password='password123',
+            email='referred_nw@example.com'
+        )
+        # Ensure referrer has no Wallet row initially
+        Wallet.objects.filter(user=referrer).delete()
+        ref_settings = ReferralSettings.load()
+        ref_settings.referrer_reward = Decimal("40.00")
+        ref_settings.save()
+        referral = Referral.objects.create(
+            referrer=referrer,
+            referred_user=referred,
+            status=Referral.Status.AWAITING_APPROVAL
+        )
+        view = ReferralHistoryViewSet.as_view({'post': 'approve'})
+        req = self.factory.post(f'/api/offers/referrals/{referral.id}/approve/', format='json')
+        force_authenticate(req, user=self.owner)
+        resp = view(req, pk=referral.id)
+        self.assertEqual(resp.status_code, 200)
+        referrer_wallet = Wallet.objects.get(user=referrer)
+        self.assertEqual(referrer_wallet.balance, Decimal("40.00"))
+
+

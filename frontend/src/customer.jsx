@@ -215,7 +215,7 @@ export const ProductCard = React.memo(function ProductCard({ product, priority =
 
           <div className="mt-auto pt-3 flex items-center gap-2 mb-1">
             <span className="text-lg font-black text-slate-900 dark:text-white">₹{price}</span>
-            {product.offer_price && (
+            {Boolean(product.offer_price) && regPrice > offPrice && (
               <span className="text-xs text-slate-400 line-through font-semibold">₹{product.regular_price}</span>
             )}
           </div>

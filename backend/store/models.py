@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.db import models
 
 class StoreSettings(models.Model):
@@ -14,8 +15,8 @@ class StoreSettings(models.Model):
     invoice_signature = models.ImageField(upload_to='signatures/', null=True, blank=True, help_text="Upload a signature image with a white or transparent background.")
     
     # Order Constraints
-    min_order_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    packaging_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    min_order_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    packaging_fee = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     
     # Inventory
     low_stock_threshold = models.IntegerField(default=5, help_text="Alert when stock falls below this number")
@@ -23,13 +24,13 @@ class StoreSettings(models.Model):
     # Delivery (For future use or V1)
     delivery_mode = models.CharField(max_length=20, choices=[('PICKUP', 'Store Pickup Only'), ('DELIVERY', 'Delivery Only'), ('BOTH', 'Both')], default='PICKUP')
     is_home_delivery_active = models.BooleanField(default=False)
-    delivery_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    free_delivery_threshold = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    min_delivery_order_amount = models.DecimalField(max_digits=10, decimal_places=2, default=150.00)
+    delivery_fee = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    free_delivery_threshold = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    min_delivery_order_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('150.00'))
     allowed_pincodes = models.TextField(blank=True, default="", help_text="Comma-separated list of allowed pincodes")
-    store_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, default=17.385044, help_text="Store latitude for GPS & maps")
-    store_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, default=78.486671, help_text="Store longitude for GPS & maps")
-    delivery_radius_km = models.DecimalField(max_digits=5, decimal_places=2, default=5.00, help_text="Maximum home delivery radius in kilometers")
+    store_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, default=Decimal('17.385044'), help_text="Store latitude for GPS & maps")
+    store_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, default=Decimal('78.486671'), help_text="Store longitude for GPS & maps")
+    delivery_radius_km = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('5.00'), help_text="Maximum home delivery radius in kilometers")
     enforce_delivery_radius = models.BooleanField(default=False, help_text="Block checkout if customer address is beyond delivery radius")
     
     # Automation
@@ -120,11 +121,11 @@ class StoreSettings(models.Model):
     )
 
     # Loyalty Wallet & Referral Rules
-    referral_bonus_referrer = models.DecimalField(max_digits=10, decimal_places=2, default=50.00)
-    referral_bonus_referee = models.DecimalField(max_digits=10, decimal_places=2, default=50.00)
-    referral_min_order_amount = models.DecimalField(max_digits=10, decimal_places=2, default=200.00)
+    referral_bonus_referrer = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('50.00'))
+    referral_bonus_referee = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('50.00'))
+    referral_min_order_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('200.00'))
     max_wallet_usage_percentage = models.IntegerField(default=50)
-    order_cashback_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=2.00)
+    order_cashback_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('2.00'))
 
     # Announcement Marquee & Festive Popup
     enable_announcement_bar = models.BooleanField(default=True)

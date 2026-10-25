@@ -90,12 +90,12 @@ const OfferCard = React.memo<OfferCardProps>(
           <Text style={[styles.ruleText, { color: colors.textMuted }]}>
             Min order: ₹{item?.min_order_amount ?? 0}
           </Text>
-          {item?.applicable_category_name && (
+          {Boolean(item?.applicable_category_name) && (
             <Text style={[styles.ruleText, { color: colors.textMuted }]}>
               • On: {item.applicable_category_name}
             </Text>
           )}
-          {item?.max_discount && (
+          {Boolean(item?.max_discount && Number(item.max_discount) > 0) && (
             <Text style={[styles.ruleText, { color: colors.textMuted }]}>
               • Max discount: ₹{item.max_discount}
             </Text>

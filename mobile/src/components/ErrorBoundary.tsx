@@ -295,23 +295,23 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
                         <Text style={styles.devErrorText} selectable>
                           {this.state.error?.name}: {this.state.error?.message}
                         </Text>
-                        {this.state.error?.stack && (
+                        {Boolean(this.state.error?.stack) && (
                           <>
                             <Text style={styles.devStackTitle}>
                               Call Stack:
                             </Text>
                             <Text style={styles.devStackText} selectable>
-                              {this.state.error.stack}
+                              {this.state.error?.stack}
                             </Text>
                           </>
                         )}
-                        {this.state.errorInfo?.componentStack && (
+                        {Boolean(this.state.errorInfo?.componentStack) && (
                           <>
                             <Text style={styles.devStackTitle}>
                               Component Stack:
                             </Text>
                             <Text style={styles.devStackText} selectable>
-                              {this.state.errorInfo.componentStack}
+                              {this.state.errorInfo?.componentStack}
                             </Text>
                           </>
                         )}

@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.db import models
 from django.conf import settings
 from django.core.validators import MinValueValidator
@@ -65,13 +66,13 @@ class PromoCode(models.Model):
 
 class ReferralSettings(models.Model):
     is_active = models.BooleanField(default=False)
-    referrer_reward = models.DecimalField(max_digits=10, decimal_places=2, default=50.00, help_text="Amount given to the person whose code was used")
-    referee_reward = models.DecimalField(max_digits=10, decimal_places=2, default=50.00, help_text="Amount given to the new user who signs up")
+    referrer_reward = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('50.00'), help_text="Amount given to the person whose code was used")
+    referee_reward = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('50.00'), help_text="Amount given to the new user who signs up")
     share_text_template = models.TextField(
         default="I buy my groceries from Narendra Kirana! Use my referral code {code} to get ₹{reward} instantly in your wallet! Shop now: {link}"
     )
     require_min_spend = models.BooleanField(default=False, help_text="Require referrer to meet a minimum spend before they can earn rewards")
-    min_spend_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    min_spend_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     
     class SpendPeriod(models.TextChoices):
         WEEK = 'WEEK', 'Past 7 Days'

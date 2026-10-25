@@ -510,7 +510,8 @@ class OrderViewSet(ModelViewSet):
             try:
                 from .ws_broadcast import broadcast_order_created
                 cust_name = request.user.get_full_name() or request.user.username
-                cust_phone = getattr(getattr(request.user, 'customer_profile', None), 'phone_number', '')
+                cust_profile = getattr(request.user, 'customer_profile', None)
+                cust_phone = getattr(cust_profile, 'mobile_number', None) or getattr(cust_profile, 'phone_number', '') or ''
                 broadcast_order_created(order, cust_name, cust_phone, order.items.count())
             except Exception as ws_err:
                 logger.debug("WS order creation broadcast error: %s", ws_err)
@@ -835,7 +836,7 @@ class OrderViewSet(ModelViewSet):
                 WalletTransaction.objects.create(
                     wallet=wallet,
                     amount=item_wallet_refund,
-                    transaction_type=WalletTransaction.TransactionType.CREDIT,
+                    transaction_type=WalletTransaction.TransactionType.REFUND,
                     description=f"Refund for rejected {item.product_name_snapshot} in order #{order.id}"
                 )
 

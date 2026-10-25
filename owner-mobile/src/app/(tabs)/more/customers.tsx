@@ -1048,7 +1048,7 @@ export default function CustomersScreen() {
                     </View>
                   )}
 
-                  {customerDetails?.last_failed_login_ip && (
+                  {Boolean(customerDetails?.last_failed_login_ip) && (
                     <View
                       style={[
                         styles.ipBox,
@@ -1061,7 +1061,7 @@ export default function CustomersScreen() {
                           {customerDetails.last_failed_login_ip}
                         </Text>
                       </Text>
-                      {customerDetails.last_failed_login_at && (
+                      {Boolean(customerDetails.last_failed_login_at) && (
                         <Text style={[styles.ipTimeText, { color: colors.textMuted }]}>
                           {new Date(customerDetails.last_failed_login_at).toLocaleString()}
                         </Text>
@@ -1116,7 +1116,7 @@ export default function CustomersScreen() {
                   </View>
 
                   {/* Phone & WhatsApp Action Shortcuts */}
-                  {customerDetails?.customer_profile?.mobile_number && (
+                  {Boolean(customerDetails?.customer_profile?.mobile_number) && (
                     <View style={styles.contactShortcuts}>
                       <TouchableOpacity
                         style={[styles.shortcutBtn, { backgroundColor: '#3b82f6' }]}
@@ -1158,7 +1158,7 @@ export default function CustomersScreen() {
                           <Text style={[styles.addressText, { color: colors.text }]}>
                             {addr.address_line || addr.address || 'Address line'}
                           </Text>
-                          {addr.pincode && (
+                          {Boolean(addr.pincode) && (
                             <Text style={[styles.addressPin, { color: colors.textMuted }]}>
                               Pincode: {addr.pincode}
                             </Text>

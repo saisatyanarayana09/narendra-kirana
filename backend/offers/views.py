@@ -253,7 +253,7 @@ class ReferralHistoryViewSet(viewsets.ReadOnlyModelViewSet):
             referral.completed_at = timezone.now()
             referral.save()
             
-            referrer_wallet = Wallet.objects.select_for_update().get(user=referral.referrer)
+            referrer_wallet, _ = Wallet.objects.select_for_update().get_or_create(user=referral.referrer)
 
             if settings.referrer_reward > 0:
                 referrer_wallet.balance += settings.referrer_reward

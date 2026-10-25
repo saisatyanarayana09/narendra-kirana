@@ -384,7 +384,7 @@ export function ProductDetailScreen({
             </Text>
           </View>
 
-          {product.brand && (
+          {Boolean(product.brand) && (
             <Text style={[styles.brand, { color: colors.textSecondary }]}>
               {product.brand}
             </Text>
@@ -397,7 +397,7 @@ export function ProductDetailScreen({
           </Text>
 
           {/* Tags Chips */}
-          {product.tags && (
+          {Boolean(product.tags) && (
             <View style={styles.tagsRow}>
               {product.tags.split(",").map((tag: string, i: number) => (
                 <View
@@ -422,7 +422,7 @@ export function ProductDetailScreen({
               <Text style={[styles.price, { color: colors.text }]}>
                 ₹{price}
               </Text>
-              {product.offer_price && (
+              {Boolean(product.offer_price) && regPrice > offPrice && (
                 <Text style={styles.mrp}>₹{product.regular_price}</Text>
               )}
             </View>

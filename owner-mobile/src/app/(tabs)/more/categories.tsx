@@ -718,7 +718,7 @@ export default function CategoriesScreen() {
                   )}
                 </TouchableOpacity>
 
-                {categoryImageUri && (
+                {Boolean(categoryImageUri) && (
                   <TouchableOpacity
                     style={[styles.removeImgBtn, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}
                     onPress={handleClearImage}
