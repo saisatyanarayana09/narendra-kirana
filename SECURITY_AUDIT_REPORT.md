@@ -28,32 +28,33 @@ Across all three passes, **15 concrete vulnerabilities** (`SK-01` through `SK-15
 
 Every `.md` file in the repository was read and analyzed against the codebase:
 
-1. `.agent/skills/security-audit/SKILL.md`
-2. `.agent/skills/security-audit/ATTACK-CLASSES.md`
-3. `.agent/skills/security-audit/references/RECONNAISSANCE.md`
-4. `.agent/skills/security-audit/references/HUNTING.md`
-5. `.agent/skills/security-audit/references/WEB-PROTOCOL-AND-AUTH.md`
-6. `.agent/skills/security-audit/references/CLIENT-SIDE.md`
-7. `.agent/skills/security-audit/references/DESKTOP-MOBILE-AND-LOCAL-IPC.md`
-8. `.agent/skills/security-audit/references/PROTOCOLS-RPC-AND-MESSAGING.md`
-9. `.agent/skills/security-audit/references/DATA-ISOLATION-AND-LIFECYCLE.md`
-10. `.agent/skills/security-audit/references/RESOURCE-EXHAUSTION-AND-AVAILABILITY.md`
-11. `.agent/skills/security-audit/references/CLOUD-AND-DEPLOYMENT.md`
-12. `.agent/skills/security-audit/references/SUPPLY-CHAIN-AND-RELEASE.md`
-13. `.agent/skills/security-audit/references/AI-AND-LLM.md`
-14. `.agent/skills/security-audit/references/MEMORY-SAFETY-AND-BINARY.md`
-15. `.agent/skills/security-audit/references/VALIDATION-AND-REPORTING.md`
-16. `README.md`
-17. `DEPLOYMENT.md`
-18. `PROJECT_STATUS.md`
-19. `MOBILE_APP_OVERVIEW.md`
-20. `backend/performance_report.md`
-21. `frontend/README.md`
-22. `mobile/AGENTS.md`
-23. `mobile/CLAUDE.md`
-24. `owner-mobile/AGENTS.md`
-25. `owner-mobile/README.md`
-26. `SECURITY_AUDIT_REPORT.md`
+1. `README.md` (Upstream `cloudflare/security-audit-skill` repository root)
+2. `.agent/skills/security-audit/SKILL.md`
+3. `.agent/skills/security-audit/ATTACK-CLASSES.md`
+4. `.agent/skills/security-audit/RECONNAISSANCE.md`
+5. `.agent/skills/security-audit/HUNTING.md`
+6. `.agent/skills/security-audit/WEB-PROTOCOL-AND-AUTH.md`
+7. `.agent/skills/security-audit/CLIENT-SIDE.md`
+8. `.agent/skills/security-audit/DESKTOP-MOBILE-AND-LOCAL-IPC.md`
+9. `.agent/skills/security-audit/PROTOCOLS-RPC-AND-MESSAGING.md`
+10. `.agent/skills/security-audit/DATA-ISOLATION-AND-LIFECYCLE.md`
+11. `.agent/skills/security-audit/RESOURCE-EXHAUSTION-AND-AVAILABILITY.md`
+12. `.agent/skills/security-audit/CLOUD-AND-DEPLOYMENT.md`
+13. `.agent/skills/security-audit/SUPPLY-CHAIN-AND-RELEASE.md`
+14. `.agent/skills/security-audit/AI-AND-LLM.md`
+15. `.agent/skills/security-audit/MEMORY-SAFETY-AND-BINARY.md`
+16. `.agent/skills/security-audit/VALIDATION-AND-REPORTING.md`
+17. `README.md`
+18. `DEPLOYMENT.md`
+19. `PROJECT_STATUS.md`
+20. `MOBILE_APP_OVERVIEW.md`
+21. `backend/performance_report.md`
+22. `frontend/README.md`
+23. `mobile/AGENTS.md`
+24. `mobile/CLAUDE.md`
+25. `owner-mobile/AGENTS.md`
+26. `owner-mobile/README.md`
+27. `SECURITY_AUDIT_REPORT.md`
 
 ---
 
@@ -83,13 +84,13 @@ Every `.md` file in the repository was read and analyzed against the codebase:
 
 ### Finding SK-13: Android Release Keystore & Cleartext Signing Passwords Exposed in Repository & CI Workflows
 - **Severity**: **Critical** | **Status**: **Remediated**
-- **Discovered Via**: `MOBILE_APP_OVERVIEW.md` and `.agent/skills/security-audit/references/SUPPLY-CHAIN-AND-RELEASE.md`
+- **Discovered Via**: `MOBILE_APP_OVERVIEW.md` and `.agent/skills/security-audit/SUPPLY-CHAIN-AND-RELEASE.md`
 - **Affected Files**: `.github/workflows/build-apk.yml`, `.github/workflows/build-owner-apk.yml`, `.gitignore`
 - **Remediation**: Parameterized `apksigner` in both workflows to read `KEYSTORE_PASSWORD` and `KEY_PASSWORD` via `env:` from GitHub Actions Secrets instead of cleartext command-line arguments, and added `*.keystore`, `*.jks`, and `**/credentials/credentials.json` to `.gitignore`.
 
 ### Finding SK-14: Unvalidated `app_update_url` Scheme in Mobile In-App APK Updater (`updateService.ts`)
 - **Severity**: **Medium** | **Status**: **Remediated**
-- **Discovered Via**: `MOBILE_APP_OVERVIEW.md` and `.agent/skills/security-audit/references/DESKTOP-MOBILE-AND-LOCAL-IPC.md`
+- **Discovered Via**: `MOBILE_APP_OVERVIEW.md` and `.agent/skills/security-audit/DESKTOP-MOBILE-AND-LOCAL-IPC.md`
 - **Affected File**: `mobile/src/services/updateService.ts`
 - **Remediation**: Enforced strict `https://` validation (`/^https:\/\/[a-zA-Z0-9.-]+(\/.*)?$/`) on `app_update_url` in both `checkAppVersion()` and `downloadAndInstallApk()`, falling back to `DEFAULT_APK_URL` if a non-HTTPS URL is supplied.
 
