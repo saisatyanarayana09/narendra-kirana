@@ -37,12 +37,13 @@ class UserSerializer(serializers.ModelSerializer):
     delivery_profile = DeliveryPartnerProfileSerializer(read_only=True)
     avatar = serializers.SerializerMethodField()
     profile_completion = serializers.SerializerMethodField()
+    phone_number = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name', 
-            'is_customer', 'is_owner', 'is_delivery_partner', 'customer_profile', 
+            'is_customer', 'is_owner', 'is_staff', 'is_delivery_partner', 'phone_number', 'customer_profile', 
             'delivery_profile', 'password', 
             'profile_picture', 'avatar', 'profile_completion', 'is_active', 'failed_login_attempts', 
             'is_locked', 'locked_at', 'lockout_until', 'lockout_reason', 
@@ -73,6 +74,13 @@ class UserSerializer(serializers.ModelSerializer):
             if profile.avatar_url:
                 return profile.avatar_url
         return None
+
+    def get_phone_number(self, obj):
+        if hasattr(obj, 'delivery_profile') and obj.delivery_profile and obj.delivery_profile.phone_number:
+            return obj.delivery_profile.phone_number
+        if hasattr(obj, 'customer_profile') and obj.customer_profile and obj.customer_profile.mobile_number:
+            return obj.customer_profile.mobile_number
+        return ''
 
     def get_profile_completion(self, obj):
         if not obj.is_customer:

@@ -99,7 +99,9 @@ const OwnerLayout = () => {
     const currentPath = location.pathname.replace(/\/$/, '') || '/';
     const targetPath = path.replace(/\/$/, '') || '/';
     if (targetPath === '/owner') return currentPath === '/owner';
-    return currentPath.startsWith(targetPath);
+    if (targetPath === '/owner') return currentPath === '/owner' || currentPath === '/';
+    const strippedTarget = targetPath.replace(/^\/owner/, '');
+    return currentPath.startsWith(targetPath) || Boolean(strippedTarget && currentPath.startsWith(strippedTarget));
   };
 
   const currentSection = allNavItems.find(item => isActive(item.href)) || allNavItems[0];

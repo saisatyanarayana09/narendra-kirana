@@ -447,6 +447,7 @@ function App() {
                     <Route path="/cart" element={<CartPage />} />
                     <Route path="/download" element={<DownloadPage />} />
                     <Route path="/downloads" element={<Navigate to="/download" replace />} />
+                    <Route path="/download-apk/*" element={<Navigate to="/download" replace />} />
                     <Route path="/checkout" element={<CustomerGuard><CheckoutPage /></CustomerGuard>} />
                     <Route path="/orders/:id" element={<CustomerGuard><OrderDetailPage /></CustomerGuard>} />
                     <Route path="/order/:id" element={<CustomerGuard><OrderDetailPage /></CustomerGuard>} />

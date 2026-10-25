@@ -1413,7 +1413,8 @@ class AgentManagementView(APIView):
 
     def get(self, request, user_id=None, *args, **kwargs):
         agents = User.objects.filter(
-            models.Q(is_owner=True) | models.Q(is_staff=True) | models.Q(is_delivery_partner=True)
+            models.Q(is_owner=True) | models.Q(is_staff=True) | models.Q(is_delivery_partner=True),
+            is_active=True,
         ).distinct()
         serializer = UserSerializer(agents, many=True)
         return Response(serializer.data)
@@ -1434,6 +1435,29 @@ class AgentManagementView(APIView):
         if role not in ['staff', 'delivery']:
             return Response({'error': 'Role must be staff or delivery.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        existing_inactive = User.objects.filter(models.Q(username__iexact=email) | models.Q(email__iexact=email), is_active=False).first()
+        if existing_inactive:
+            existing_inactive.first_name = first_name or existing_inactive.first_name
+            existing_inactive.last_name = last_name or existing_inactive.last_name
+            existing_inactive.is_active = True
+            if role == 'staff':
+                existing_inactive.is_owner = True
+                existing_inactive.is_staff = True
+            elif role == 'delivery':
+                existing_inactive.is_delivery_partner = True
+            if password:
+                existing_inactive.set_password(password)
+            existing_inactive.save()
+            if role == 'delivery':
+                dp, _ = DeliveryPartnerProfile.objects.get_or_create(user=existing_inactive)
+                if phone_number:
+                    dp.phone_number = phone_number
+                    dp.save(update_fields=['phone_number'])
+            elif phone_number:
+                cp, _ = CustomerProfile.objects.get_or_create(user=existing_inactive)
+                cp.mobile_number = phone_number
+                cp.save(update_fields=['mobile_number'])
+            return Response(UserSerializer(existing_inactive).data, status=status.HTTP_201_CREATED)
         if User.objects.filter(username__iexact=email).exists() or User.objects.filter(email__iexact=email).exists():
             return Response({'error': 'User with this email already exists.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1462,6 +1486,10 @@ class AgentManagementView(APIView):
                 phone_number=phone_number
             )
             
+        elif phone_number:
+            cp, _ = CustomerProfile.objects.get_or_create(user=user)
+            cp.mobile_number = phone_number
+            cp.save(update_fields=['mobile_number'])
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
 
     def delete(self, request, user_id=None, *args, **kwargs):

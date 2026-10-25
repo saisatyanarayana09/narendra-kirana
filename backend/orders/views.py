@@ -192,7 +192,9 @@ class OrderViewSet(ModelViewSet):
                 portal_header == 'owner' or 
                 as_owner_param or 
                 scope_param in ('all', 'store', 'owner') or 
-                '/owner' in referer or 
+                '/owner' in referer or
+                'owner' in referer.lower() or
+                'owner' in str(self.request.META.get('HTTP_ORIGIN', '')).lower() or
                 self.action in ['status', 'assign_partner', 'reject_item', 'owner_note', 'sales_summary', 'dispatch', 'invoice']
             ):
                 return queryset

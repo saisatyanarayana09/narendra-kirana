@@ -387,7 +387,10 @@ class VoiceSearchView(views.APIView):
             return response.Response({'error': 'Audio file exceeds 5 MB limit.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            import av
+            try:
+                import av
+            except ImportError:
+                av = None
             import speech_recognition as sr
         except ImportError:
             return response.Response(
@@ -397,6 +400,18 @@ class VoiceSearchView(views.APIView):
 
         try:
             input_bytes = audio_file.read()
+            if input_bytes[:4] == b'RIFF' and av is None:
+                out_buf = io.BytesIO(input_bytes)
+                recognizer = sr.Recognizer()
+                with sr.AudioFile(out_buf) as source:
+                    audio_data = recognizer.record(source)
+                query = recognizer.recognize_google(audio_data, language=language)
+                return response.Response({'query': query, 'text': query})
+            if av is None:
+                return response.Response(
+                    {'error': 'Audio processing library (av) not installed on server.', 'query': '', 'text': ''},
+                    status=status.HTTP_501_NOT_IMPLEMENTED
+                )
             in_buf = io.BytesIO(input_bytes)
             container = av.open(in_buf)
             resampler = av.AudioResampler(format='s16', layout='mono', rate=16000)

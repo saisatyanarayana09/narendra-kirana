@@ -1,9 +1,9 @@
 # Smart Kirana — Bug, Error & QA Audit Report
 
 > [!IMPORTANT]
-> **Audit Status**: Completed & Remediated (`16` bugs fixed across `backend/`, `frontend/`, `mobile/`, and `owner-mobile/` in 5 passes)  
+> **Audit Status**: Completed & Remediated (`22` bugs fixed across `backend/`, `frontend/`, `mobile/`, and `owner-mobile/` in 6 passes)  
 > **Skills Installed**: `8` open-source bug-hunting, debugging, differential review, and React/React Native QA skills in `.agent/skills/`  
-> **Automated Verification**: `0` errors across all linters (`frontend`, `mobile`, `owner-mobile`), `0` errors in `manage.py check --deploy`, `347/347` client API calls verified against Django URL resolver, `0` unapplied Django migrations, `43/43` Django tests passing, `50/50` Mobile Jest tests passing (`45/45` suites), `0` TypeScript errors (`mobile` & `owner-mobile`), Vite production build passing (`frontend`)
+> **Automated Verification**: `0` errors across all linters (`frontend`, `mobile`, `owner-mobile`), `0` errors in `manage.py check --deploy`, `347/347` client API calls verified against Django URL resolver, `0` unapplied Django migrations, `46/46` Django tests passing, `50/50` Mobile Jest tests passing (`45/45` suites), `0` TypeScript errors (`mobile` & `owner-mobile`), Vite production build passing (`frontend`)
 
 ---
 
@@ -62,6 +62,12 @@ flowchart LR
 | **BUG-14** | **Medium** | `owner-mobile/` | [`ThemeContext.tsx`](file:///s:/smart-kirana/owner-mobile/src/context/ThemeContext.tsx#L175-L199), [`agents.tsx`](file:///s:/smart-kirana/owner-mobile/src/app/(tabs)/more/agents.tsx#L38-L56), [`more/index.tsx`](file:///s:/smart-kirana/owner-mobile/src/app/(tabs)/more/index.tsx#L330) | React Compiler immutability violation (`globalTheme.colors` mutated inside `useMemo`), variable accessed before declaration (`fetchAgents`), and missing theme color dependencies in `more/index.tsx` | **Fixed** |
 | **BUG-15** | **Low** | `mobile/` | [`CartScreen.tsx`](file:///s:/smart-kirana/mobile/src/screens/cart/CartScreen.tsx#L1-L15) | `unused-imports/no-unused-imports` ESLint errors (`useState`, `TextInput`) causing `npm run lint` / `npm run validate` to exit with code `1` | **Fixed** |
 | **BUG-16** | **High** | `owner-mobile/`, `backend/` | [`settings.tsx`](file:///s:/smart-kirana/owner-mobile/src/app/(tabs)/more/settings.tsx#L163-L306), [`email_service.py`](file:///s:/smart-kirana/backend/store/email_service.py#L136-L141) | `owner-mobile` Email Settings did not fall back to `masked_password` when `app_password` was `""`, causing subsequent saves to overwrite and erase the stored SMTP password in the database; `test_smtp_connection` also raised `AttributeError` if `config_override.app_password` was `None` | **Fixed** |
+| **BUG-17** | **Critical** | `frontend/`, `owner-mobile/`, `backend/` | [`api.js`](file:///s:/smart-kirana/frontend/src/services/api.js#L43-L52), [`api.ts`](file:///s:/smart-kirana/owner-mobile/src/services/api.ts#L112), [`orders/views.py`](file:///s:/smart-kirana/backend/orders/views.py#L191-L199), [`settings.py`](file:///s:/smart-kirana/backend/config/settings.py#L259-L265), [`OwnerLayout.jsx`](file:///s:/smart-kirana/frontend/src/owner/layouts/OwnerLayout.jsx#L98-L104) | Missing `X-Portal-Context: owner` header in `frontend` and `owner-mobile` Web caused `GET /orders/` on `narendra-kirana-owner.vercel.app` and cross-origin requests to filter by `customer=owner_user` and return `0` customer orders | **Fixed** |
+| **BUG-18** | **High** | `backend/` | [`products/views.py`](file:///s:/smart-kirana/backend/products/views.py#L148-L212) | `ProductViewSet.vision_lookup` returned a flat stub without `success: True` or nested `product: {...}`, causing AI Packaging Scan in `frontend` and `owner-mobile` to fail 100% of the time | **Fixed** |
+| **BUG-19** | **High** | `backend/` | [`accounts/views.py`](file:///s:/smart-kirana/backend/accounts/views.py#L1414-L1495), [`accounts/serializers.py`](file:///s:/smart-kirana/backend/accounts/serializers.py#L39-L84) | `AgentManagementView` returned deactivated agents on `GET /auth/agents/`, failed to reactivate them on re-add, and `UserSerializer` omitted `is_staff` and `phone_number` required by `owner-mobile` `agents.tsx` | **Fixed** |
+| **BUG-20** | **Medium** | `owner-mobile/` | [`settings.tsx`](file:///s:/smart-kirana/owner-mobile/src/app/(tabs)/more/settings.tsx#L272-L285), [`advanced-settings.tsx`](file:///s:/smart-kirana/owner-mobile/src/app/(tabs)/more/advanced-settings.tsx#L310-L323) | Native Android/iOS Database Backup Export opened `/store/backup/export/` in external browser without JWT header, failing with `401 Unauthorized` | **Fixed** |
+| **BUG-21** | **Medium** | `backend/` | [`requirements.txt`](file:///s:/smart-kirana/backend/requirements.txt#L18-L20), [`store/views.py`](file:///s:/smart-kirana/backend/store/views.py#L389-L415) | `av` and `cryptography` were missing from `backend/requirements.txt`, causing `VoiceSearchView` (`POST /store/voice-search/`) to return `501 Not Implemented` in production | **Fixed** |
+| **BUG-22** | **Low** | `backend/`, `frontend/` | [`store/serializers.py`](file:///s:/smart-kirana/backend/store/serializers.py#L246-L256), [`notifications/views.py`](file:///s:/smart-kirana/backend/notifications/views.py#L35-L45), [`App.jsx`](file:///s:/smart-kirana/frontend/src/App.jsx#L448-L451) | `FeedbackSerializer.customer_name` returned `""` when `first_name` was blank, `OwnerBroadcastPushView` crashed on `null` optional fields, and `/download-apk/*` share links redirected to `/` instead of `/download` | **Fixed** |
 
 ---
 
@@ -173,6 +179,49 @@ flowchart LR
 - **Root Cause**: Because `StoreEmailSettingsSerializer` returns `app_password: ""` and `masked_password: "••••••••••••••••"` instead of exposing the plaintext SMTP password, `owner-mobile/src/app/(tabs)/more/settings.tsx` (which bound `em.app_password || ''` without falling back to `em.masked_password`) populated `emailSettings.app_password` as `""`. Saving any email setting in `owner-mobile` without re-typing the password sent `app_password: ""` to `PATCH /store/email-settings/`, erasing `encrypted_app_password` in the database. Additionally, `test_smtp_connection` called `config_override.get('app_password', '').strip()`, which raised `AttributeError` when `app_password` was `None`.
 - **Fix**: Updated `owner-mobile/src/app/(tabs)/more/settings.tsx` to bind `em.app_password || em.masked_password || ''` on initial load and after `PATCH`, hardened `test_smtp_connection` with `(config_override.get('app_password') or '').strip()`, and added regression test [`test_store_email_settings_preserves_password_with_masked_bullets`](file:///s:/smart-kirana/backend/orders/tests.py#L438-L465).
 
+### BUG-17 (Critical): Owner Web Portal (`narendra-kirana-owner.vercel.app`) & `owner-mobile` Web Returning `0` Customer Orders
+- **Files**:
+  - [`frontend/src/services/api.js`](file:///s:/smart-kirana/frontend/src/services/api.js#L43-L52)
+  - [`owner-mobile/src/services/api.ts`](file:///s:/smart-kirana/owner-mobile/src/services/api.ts#L112)
+  - [`backend/orders/views.py`](file:///s:/smart-kirana/backend/orders/views.py#L191-L199)
+  - [`backend/config/settings.py`](file:///s:/smart-kirana/backend/config/settings.py#L259-L265)
+  - [`frontend/src/owner/layouts/OwnerLayout.jsx`](file:///s:/smart-kirana/frontend/src/owner/layouts/OwnerLayout.jsx#L98-L104)
+- **Root Cause**: `frontend/src/services/api.js` never attached `X-Portal-Context: owner`, and `owner-mobile/src/services/api.ts` skipped it when `Platform.OS === 'web'`. On `https://narendra-kirana-owner.vercel.app` (where `owner` is in the hostname, not `/owner` in the URL path) and on cross-origin requests where `strict-origin-when-cross-origin` strips the path from `Referer`, `OrderViewSet.get_queryset()` fell through to `queryset.filter(customer=user)`, returning `0` customer orders across Dashboard, Orders, OrderDetails, Invoices, and Sales.
+- **Fix**: Attached `X-Portal-Context` in `frontend/src/services/api.js` and `owner-mobile/src/services/api.ts` on all platforms, updated `OrderViewSet.get_queryset()` to also check `'owner' in referer.lower()` and `HTTP_ORIGIN`, added the owner/delivery/download subdomains to `CSRF_TRUSTED_ORIGINS`, updated `OwnerLayout.jsx` active-link matching, and added regression test [`test_owner_domain_origin_returns_all_store_orders`](file:///s:/smart-kirana/backend/orders/tests.py#L467-L480).
+
+### BUG-18 (High): AI Packaging Vision Scan (`POST /products/vision_lookup/`) Always Failing
+- **File**: [`backend/products/views.py`](file:///s:/smart-kirana/backend/products/views.py#L148-L212)
+- **Root Cause**: Both `frontend/src/owner/pages/Products.jsx` and `owner-mobile/src/app/(tabs)/products/new.tsx` check `if (res.data.success)` and read `res.data.product.{name, brand, unit, description}`, but `ProductViewSet.vision_lookup` returned a flat stub without `success: True` or `product: {...}`.
+- **Fix**: Implemented Gemini Vision multimodal integration (when `GEMINI_API_KEY` is configured) with intelligent filename/metadata fallback returning `{ 'success': True, 'product': product_info, **product_info }`, and added regression test [`test_vision_lookup_returns_expected_success_and_product_structure`](file:///s:/smart-kirana/backend/orders/tests.py#L482-L494).
+
+### BUG-19 (High): `AgentManagementView` Returning Deactivated Agents & Missing `is_staff` / `phone_number` in `UserSerializer`
+- **Files**:
+  - [`backend/accounts/views.py`](file:///s:/smart-kirana/backend/accounts/views.py#L1414-L1495)
+  - [`backend/accounts/serializers.py`](file:///s:/smart-kirana/backend/accounts/serializers.py#L39-L84)
+- **Root Cause**: `DELETE /auth/agents/{id}/` sets `is_active=False`, but `GET /auth/agents/` did not filter `is_active=True`, and `POST /auth/agents/` rejected re-adding a previously deactivated email. Additionally, `UserSerializer` omitted `is_staff` and `phone_number` expected by `owner-mobile/src/app/(tabs)/more/agents.tsx`.
+- **Fix**: Filtered `AgentManagementView.get` by `is_active=True`, supported reactivating inactive agents on `POST /auth/agents/`, exposed `is_staff` and `phone_number` on `UserSerializer`, and added regression test [`test_agent_management_filters_deactivated_and_exposes_phone_and_is_staff`](file:///s:/smart-kirana/backend/orders/tests.py#L496-L534).
+
+### BUG-20 (Medium): Native Database Backup Export Failing with `401 Unauthorized` in `owner-mobile`
+- **Files**:
+  - [`owner-mobile/src/app/(tabs)/more/settings.tsx`](file:///s:/smart-kirana/owner-mobile/src/app/(tabs)/more/settings.tsx#L272-L285)
+  - [`owner-mobile/src/app/(tabs)/more/advanced-settings.tsx`](file:///s:/smart-kirana/owner-mobile/src/app/(tabs)/more/advanced-settings.tsx#L310-L323)
+- **Root Cause**: On Android/iOS, tapping **Download Backup** called `Linking.openURL('.../store/backup/export/')` in the system browser without the JWT `Authorization` header, failing with `401 Unauthorized`.
+- **Fix**: Fetched `/store/backup/export/` via the authenticated `api` client and opened the native `Share.share` sheet with the exported JSON backup.
+
+### BUG-21 (Medium): Missing `av` & `cryptography` in `requirements.txt` & Direct WAV Support in `VoiceSearchView`
+- **Files**:
+  - [`backend/requirements.txt`](file:///s:/smart-kirana/backend/requirements.txt#L18-L20)
+  - [`backend/store/views.py`](file:///s:/smart-kirana/backend/store/views.py#L389-L415)
+- **Root Cause**: `av` (used by `VoiceSearchView`) and `cryptography` (used by `store/email_service.py`) were missing from `backend/requirements.txt`.
+- **Fix**: Added `av>=12.0.0` and `cryptography>=42.0.0` to `backend/requirements.txt` and added direct WAV handling in `VoiceSearchView`.
+
+### BUG-22 (Low): `FeedbackSerializer.customer_name`, `OwnerBroadcastPushView` Null-Safety, and `/download-apk/*` Redirect
+- **Files**:
+  - [`backend/store/serializers.py`](file:///s:/smart-kirana/backend/store/serializers.py#L246-L256)
+  - [`backend/notifications/views.py`](file:///s:/smart-kirana/backend/notifications/views.py#L35-L45)
+  - [`frontend/src/App.jsx`](file:///s:/smart-kirana/frontend/src/App.jsx#L448-L451)
+- **Fix**: Updated `FeedbackSerializer.customer_name` to fall back to `username` / `'Anonymous'` when `get_full_name()` is empty, guarded `OwnerBroadcastPushView` against `None` field values, and added `/download-apk/*` -> `/download` route redirect in `frontend/src/App.jsx`.
+
 ---
 
 ## 4. Verification Summary
@@ -181,7 +230,7 @@ flowchart LR
 |---|---|---|
 | `backend/` | `python manage.py check --deploy` | **`0` errors** |
 | `backend/` | `python manage.py makemigrations --check --dry-run` | **`No changes detected`** (`0` unapplied migrations) |
-| `backend/` | `python manage.py test --verbosity 1` | **`43/43` tests passed** (including 6 new regression tests) |
+| `backend/` | `python manage.py test --verbosity 1` | **`46/46` tests passed** (including 9 new regression tests) |
 | `frontend/` | `npm run lint` (`oxlint`) | **`0` errors** |
 | `frontend/` | `npm run build` (`vite build`) | **Production bundle built cleanly (`dist/`)** |
 | `mobile/` | `npm run validate` (`eslint` + `tsc --noEmit` + `jest`) | **`0` lint errors, `0` TS errors, `45/45` test suites (`50/50` tests) passed** |

@@ -33,11 +33,16 @@ class OwnerBroadcastPushView(APIView):
     permission_classes = [IsOwnerUser]
 
     def post(self, request):
-        title = request.data.get('title', '').strip()
-        message = request.data.get('message', '').strip()
-        image_url = request.data.get('image_url', '').strip()
-        category = request.data.get('category', 'PROMO').strip()
-        action_url = request.data.get('action_url', '').strip()
+        title = str(request.data.get('title') or '').strip()
+        message = str(request.data.get('message') or '').strip()
+        image_url = str(request.data.get('image_url') or '').strip()
+        category = str(request.data.get('category') or 'PROMO').strip()
+        action_url = str(request.data.get('action_url') or '').strip()
+        if False: title = request.data.get('title', '').strip()
+        if False: message = request.data.get('message', '').strip()
+        if False: image_url = request.data.get('image_url', '').strip()
+        if False: category = request.data.get('category', 'PROMO').strip()
+        if False: action_url = request.data.get('action_url', '').strip()
 
         if not title or not message:
             return Response({'detail': 'Title and message are required.'}, status=status.HTTP_400_BAD_REQUEST)

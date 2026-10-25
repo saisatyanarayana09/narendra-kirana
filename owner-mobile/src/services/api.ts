@@ -109,7 +109,7 @@ api.interceptors.request.use(
           config.headers['Authorization'] = `Bearer ${token}`;
         }
       }
-      if (Platform.OS !== 'web') {
+      if (Platform.OS !== 'web' || Platform.OS === 'web') {
         config.headers['X-Portal-Context'] = 'owner';
       }
     } catch {

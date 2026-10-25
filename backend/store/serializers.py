@@ -244,7 +244,13 @@ class HomepageSectionSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'section_type', 'banner_image', 'banner_link', 'display_order', 'is_active', 'section_products']
 
 class FeedbackSerializer(serializers.ModelSerializer):
-    customer_name = serializers.CharField(source='customer.get_full_name', read_only=True, default='Anonymous')
+    customer_name = serializers.SerializerMethodField()
+
+    def get_customer_name(self, obj):
+        if getattr(obj, 'customer', None):
+            full_name = (obj.customer.get_full_name() or '').strip()
+            return full_name or obj.customer.username or 'Anonymous'
+        return 'Anonymous'
     
     class Meta:
         model = Feedback

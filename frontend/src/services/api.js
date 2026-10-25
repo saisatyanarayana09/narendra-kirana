@@ -43,6 +43,13 @@ api.interceptors.request.use(
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
+    if (prefix === 'smart-kirana-owner') {
+      config.headers['X-Portal-Context'] = 'owner';
+    } else if (prefix === 'smart-kirana-delivery') {
+      config.headers['X-Portal-Context'] = 'delivery';
+    } else {
+      config.headers['X-Portal-Context'] = 'customer';
+    }
     return config;
   },
   (error) => {

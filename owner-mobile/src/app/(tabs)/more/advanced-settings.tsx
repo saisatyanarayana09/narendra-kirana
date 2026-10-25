@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Platform,
   Linking,
+  Share,
   RefreshControl,
 } from 'react-native';
 import ModernSwitch from '../../../components/ModernSwitch';
@@ -309,7 +310,14 @@ export default function AdvancedSettingsScreen() {
       } else {
         const baseUrl = api.defaults.baseURL || 'https://narendra-kirana.onrender.com/api/v1';
         const exportUrl = `${baseUrl.replace(/\/+$/, '')}/store/backup/export/`;
-        await Linking.openURL(exportUrl);
+        const res = await api.get('/store/backup/export/');
+        const jsonStr = typeof res.data === 'string' ? res.data : JSON.stringify(res.data, null, 2);
+        const dateStr = new Date().toISOString().slice(0, 10);
+        await Share.share({
+          title: `narendra_kirana_backup_${dateStr}.json`,
+          message: jsonStr,
+        });
+        if (false) await Linking.openURL(exportUrl);
         showAlert('Export Initiated', 'Backup file download initiated in your browser.');
       }
     } catch (err) {

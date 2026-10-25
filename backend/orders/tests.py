@@ -464,4 +464,74 @@ class StoreSettingsAndOrderFeaturesTest(TestCase):
         cfg = StoreEmailSettings.load()
         self.assertEqual(cfg.get_decrypted_password(), 'abcd efgh ijkl mnop')
 
+    def test_owner_domain_origin_returns_all_store_orders(self):
+        Order.objects.create(
+            customer=self.user,
+            total_amount=Decimal("180.00"),
+            payment_method="COD",
+            status=Order.Status.NEW
+        )
+        view = OrderViewSet.as_view({'get': 'list'})
+        req = self.factory.get('/api/v1/orders/', HTTP_ORIGIN='https://narendra-kirana-owner.vercel.app')
+        force_authenticate(req, user=self.owner)
+        resp = view(req)
+        self.assertEqual(resp.status_code, 200)
+        results = resp.data.get('results', resp.data)
+        self.assertGreaterEqual(len(results), 1)
+
+    def test_vision_lookup_returns_expected_success_and_product_structure(self):
+        from products.views import ProductViewSet
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        view = ProductViewSet.as_view({'post': 'vision_lookup'})
+        img_file = SimpleUploadedFile('aashirvaad_atta.jpg', b'fake-image-bytes', content_type='image/jpeg')
+        req = self.factory.post('/api/v1/products/vision_lookup/', {'image': img_file}, format='multipart')
+        force_authenticate(req, user=self.owner)
+        resp = view(req)
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.data.get('success'))
+        self.assertIn('product', resp.data)
+        self.assertEqual(resp.data['product']['name'], 'Aashirvaad Atta')
+
+    def test_agent_management_filters_deactivated_and_exposes_phone_and_is_staff(self):
+        from accounts.views import AgentManagementView
+
+        view = AgentManagementView.as_view()
+        req_add = self.factory.post(
+            '/api/v1/auth/agents/',
+            {'first_name': 'Ravi', 'last_name': 'Kumar', 'email': 'ravi.agent@example.com', 'phone_number': '9876543210', 'role': 'delivery'},
+            format='json'
+        )
+        force_authenticate(req_add, user=self.owner)
+        resp_add = view(req_add)
+        self.assertEqual(resp_add.status_code, 201)
+        agent_id = resp_add.data['id']
+        self.assertEqual(resp_add.data['phone_number'], '9876543210')
+        self.assertIn('is_staff', resp_add.data)
+
+        # Deactivate agent
+        req_del = self.factory.delete(f'/api/v1/auth/agents/{agent_id}/')
+        force_authenticate(req_del, user=self.owner)
+        resp_del = view(req_del, user_id=agent_id)
+        self.assertEqual(resp_del.status_code, 200)
+
+        # Verify deactivated agent is excluded from GET /auth/agents/
+        req_list = self.factory.get('/api/v1/auth/agents/')
+        force_authenticate(req_list, user=self.owner)
+        resp_list = view(req_list)
+        self.assertEqual(resp_list.status_code, 200)
+        ids = [a['id'] for a in resp_list.data]
+        self.assertNotIn(agent_id, ids)
+
+        # Re-adding the same email reactivates the agent cleanly
+        req_readd = self.factory.post(
+            '/api/v1/auth/agents/',
+            {'first_name': 'Ravi', 'last_name': 'Kumar', 'email': 'ravi.agent@example.com', 'phone_number': '9876543210', 'role': 'delivery'},
+            format='json'
+        )
+        force_authenticate(req_readd, user=self.owner)
+        resp_readd = view(req_readd)
+        self.assertEqual(resp_readd.status_code, 201)
+        self.assertEqual(resp_readd.data['id'], agent_id)
+
 

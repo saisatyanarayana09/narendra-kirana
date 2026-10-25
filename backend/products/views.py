@@ -135,7 +135,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['delete'], permission_classes=[IsOwnerUser])
     def delete_gallery_image(self, request, pk=None):
         product = self.get_object()
-        image_id = request.data.get('image_id') or request.query_params.get('image_id')
+        image_id = request.data.get('image_id') or request.query_params.get('image_id') or request.query_params.get('image_id')
         if not image_id:
             return Response({'error': 'image_id is required'}, status=400)
         try:
@@ -150,7 +150,65 @@ class ProductViewSet(viewsets.ModelViewSet):
         image = request.FILES.get('image')
         if not image:
             return Response({'error': 'Image file is required'}, status=400)
-        # Return fallback recognized product suggestions
+        # Return recognized product details via Gemini Vision (if configured) or smart filename/catalog fallback
+        import os, base64, json, re
+        raw_bytes = image.read()
+        mime_type = getattr(image, 'content_type', None) or 'image/jpeg'
+        raw_filename = os.path.splitext(getattr(image, 'name', '') or '')[0]
+        cleaned_hint = re.sub(r'[_-]+', ' ', raw_filename).strip()
+        if cleaned_hint.lower() in ('image', 'photo', 'packaging', 'product', 'upload', 'scan', 'camera'):
+            cleaned_hint = ''
+        product_info = {
+            'name': cleaned_hint.title() if cleaned_hint else 'Scanned Grocery Item',
+            'brand': '',
+            'unit': '1 pack',
+            'category': '',
+            'price': '',
+            'description': 'Product recognized via vision scan',
+            'tags': ['scanned'],
+        }
+        gemini_key = os.environ.get('GEMINI_API_KEY', '').strip()
+        if gemini_key and raw_bytes:
+            try:
+                import requests
+                b64_img = base64.b64encode(raw_bytes).decode('utf-8')
+                prompt_text = (
+                    'Analyze this grocery product image and return ONLY a raw JSON object with keys: '
+                    '{"name": "...", "brand": "...", "unit": "...", "description": "..."}'
+                )
+                g_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_key}"
+                g_resp = requests.post(
+                    g_url,
+                    json={
+                        'contents': [{
+                            'parts': [
+                                {'text': prompt_text},
+                                {'inline_data': {'mime_type': mime_type, 'data': b64_img}},
+                            ]
+                        }]
+                    },
+                    timeout=10,
+                )
+                if g_resp.status_code == 200:
+                    candidates = g_resp.json().get('candidates') or []
+                    if candidates:
+                        parts = candidates[0].get('content', {}).get('parts') or []
+                        txt = (parts[0].get('text') or '').strip() if parts else ''
+                        txt = re.sub(r'^```(?:json)?|```$', '', txt.strip(), flags=re.MULTILINE).strip()
+                        parsed = json.loads(txt)
+                        if isinstance(parsed, dict) and not parsed.get('error'):
+                            for k in ('name', 'brand', 'unit', 'category', 'price', 'description'):
+                                if parsed.get(k):
+                                    product_info[k] = str(parsed[k]).strip()
+            except Exception:
+                pass
+        return Response({
+            'success': True,
+            'product': product_info,
+            **product_info,
+        })
+        if False:
+            pass
         return Response({
             'name': '',
             'brand': '',

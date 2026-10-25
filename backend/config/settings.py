@@ -258,6 +258,9 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 ]
 CSRF_TRUSTED_ORIGINS = [
     'https://narendra-kirana.vercel.app',
+    'https://narendra-kirana-owner.vercel.app',
+    'https://narendra-kirana-delivery.vercel.app',
+    'https://narendra-kirana-download.vercel.app',
     'https://smart-kirana.vercel.app',
     'https://narendra-kirana.onrender.com',
 ] + ([frontend_url] if frontend_url and frontend_url.startswith('https://') else [])

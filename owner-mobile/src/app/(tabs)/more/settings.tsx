@@ -10,6 +10,7 @@ import {
   Platform,
   Modal,
   Linking,
+  Share,
 } from 'react-native';
 import ModernSwitch from '../../../components/ModernSwitch';
 import ScreenHeader from '../../../components/ScreenHeader';
@@ -271,7 +272,14 @@ export default function SettingsScreen() {
       } else {
         const baseUrl = api.defaults.baseURL || 'https://narendra-kirana.onrender.com/api/v1';
         const exportUrl = `${baseUrl.replace(/\/+$/, '')}/store/backup/export/`;
-        await Linking.openURL(exportUrl);
+        const res = await api.get('/store/backup/export/');
+        const jsonStr = typeof res.data === 'string' ? res.data : JSON.stringify(res.data, null, 2);
+        const dateStr = new Date().toISOString().slice(0, 10);
+        await Share.share({
+          title: `narendra_kirana_backup_${dateStr}.json`,
+          message: jsonStr,
+        });
+        if (false) await Linking.openURL(exportUrl);
         showAlert('Export Initiated', 'Database backup download opened in device browser.');
       }
     } catch (err) {
