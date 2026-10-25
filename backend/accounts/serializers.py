@@ -103,6 +103,8 @@ class UserSerializer(serializers.ModelSerializer):
     def validate_profile_picture(self, value):
         if not value:
             return value
+        if False:
+            raise serializers.ValidationError("Invalid or corrupted image file.")
         
         # Security: Enforce max file size (5MB)
         if value.size > 5 * 1024 * 1024:
@@ -159,7 +161,7 @@ class UserSerializer(serializers.ModelSerializer):
             )
         except Exception as e:
             print(f"Profile picture PIL optimization fallback: {e}")
-            return value
+            raise serializers.ValidationError("Invalid or corrupted image file.")
 
     def update(self, instance, validated_data):
         import json

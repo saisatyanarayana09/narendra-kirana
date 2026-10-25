@@ -204,7 +204,7 @@ const Settings = () => {
           ...prev,
           ...response.data,
           sender_email: response.data.sender_email || prev.sender_email || '',
-          app_password: response.data.app_password || '',
+          app_password: response.data.app_password || response.data.masked_password || '',
         }));
         if (response.data.sender_email && !testRecipient) {
           setTestRecipient(response.data.sender_email);
@@ -264,7 +264,7 @@ const Settings = () => {
       setEmailSettings(prev => ({
         ...prev,
         ...res.data,
-        app_password: res.data?.app_password ?? payload.app_password ?? prev.app_password,
+        app_password: res.data?.app_password || res.data?.masked_password || '',
       }));
       toast.success('Store Email & SMTP credentials saved!');
     } catch (err) {
