@@ -144,7 +144,7 @@ class OrderViewSet(ModelViewSet):
     search_fields = ['id']
 
     def get_permissions(self):
-        if self.action == 'status':
+        if self.action in ['status', 'update', 'partial_update']:
             return [IsOwnerUser()]
         if self.action == 'create':
             return [IsAuthenticated(), IsCustomerUser()]

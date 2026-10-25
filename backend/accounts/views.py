@@ -205,6 +205,8 @@ def _verify_google_credential(token, token_type='id_token'):
         if not response.ok:
             raise ValueError('Invalid Google access token.')
         info = response.json()
+        if info.get('email_verified') is False:
+            raise ValueError('Google email address is not verified.')
         email = info.get('email')
         if not email:
             raise ValueError('Google account has no email address.')
@@ -215,11 +217,13 @@ def _verify_google_credential(token, token_type='id_token'):
             'picture': info.get('picture') or '',
         }
     else:
-        client_id = os.getenv('GOOGLE_CLIENT_ID')
+        client_id = os.getenv('GOOGLE_CLIENT_ID') or DEFAULT_ADMIN_GOOGLE_CLIENT_ID
         if client_id:
             idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), client_id)
         else:
             idinfo = id_token.verify_oauth2_token(token, google_requests.Request())
+        if idinfo.get('email_verified') is False:
+            raise ValueError('Google email address is not verified.')
         email = idinfo.get('email')
         if not email:
             raise ValueError('Google account has no email address.')
@@ -336,7 +340,7 @@ class GoogleCustomerAuthView(APIView):
         with transaction.atomic():
             user.save()
 
-            if user.is_locked:
+            if user.is_locked or (not is_new and not user.is_active):
                 return Response({
                     'detail': 'Your account has been locked. Please contact store support.'
                 }, status=403)
@@ -345,7 +349,7 @@ class GoogleCustomerAuthView(APIView):
             if not user.is_customer:
                 user.is_customer = True
                 fields_to_save.append('is_customer')
-            if not user.is_active:
+            if not user.is_active or getattr(user, 'is_locked', False):
                 user.is_active = True
                 fields_to_save.append('is_active')
             if not user.first_name and first_name:
@@ -440,7 +444,7 @@ class GoogleDeliveryLoginView(APIView):
                 'detail': f'Access denied. No Delivery Partner account is registered with this Google account ({email}). Please contact the store owner to register your account.'
             }, status=403)
 
-        if not user.is_active:
+        if not user.is_active or getattr(user, 'is_locked', False):
             return Response({
                 'detail': 'Your delivery partner account has been deactivated. Contact the store owner.'
             }, status=403)
@@ -480,6 +484,8 @@ class GoogleOwnerLoginView(APIView):
             user = User.objects.filter(email__iexact=email).first()
             if not user or not (getattr(user, 'is_owner', False) or user.is_staff or user.is_superuser):
                 return Response({'detail': f'No owner/staff account associated with Google account {email}.'}, status=403)
+            if not user.is_active or getattr(user, 'is_locked', False):
+                return Response({'detail': 'Your owner/staff account has been deactivated or locked.'}, status=403)
                 
             # Auto-sync permissions
             needs_update = False
@@ -1282,6 +1288,8 @@ def admin_google_login(request):
                     client_id, 
                     clock_skew_in_seconds=15
                 )
+                if idinfo.get('email_verified') is False:
+                    raise ValueError('Google email address is not verified.')
                 email = idinfo.get('email')
             except Exception as lib_err:
                 logger.warning(f"Local id_token verification failed: {lib_err}. Trying Google tokeninfo API fallback.")
@@ -1305,7 +1313,7 @@ def admin_google_login(request):
 
             user = User.objects.filter(email__iexact=email).first()
             
-            if user and (user.is_staff or getattr(user, 'is_owner', False) or user.is_superuser):
+            if user and user.is_active and not getattr(user, 'is_locked', False) and (user.is_staff or getattr(user, 'is_owner', False) or user.is_superuser):
                 # Auto-sync permissions
                 needs_update = False
                 fields_to_update = []
@@ -1332,6 +1340,8 @@ def admin_google_login(request):
 
 
 class ReferralLookupView(APIView):
+    permission_classes = [AllowAny]
+    throttle_classes = [AnonRateThrottle]
     permission_classes = [AllowAny]
     
     def get(self, request):
@@ -1370,6 +1380,8 @@ class ReferralLookupView(APIView):
 
 
 class RecordDownloadReferralView(APIView):
+    permission_classes = [AllowAny]
+    throttle_classes = [AnonRateThrottle]
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -1451,10 +1463,18 @@ class AgentManagementView(APIView):
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
 
     def delete(self, request, user_id=None, *args, **kwargs):
+        if not getattr(request.user, 'is_owner', False):
+            return Response({'error': 'Only store owners can deactivate agents.'}, status=status.HTTP_403_FORBIDDEN)
+        if not user_id:
+            return Response({'error': 'User ID is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        if str(user_id) == str(request.user.id):
+            return Response({'error': 'You cannot deactivate your own account.'}, status=status.HTTP_400_BAD_REQUEST)
         if not user_id:
             return Response({'error': 'User ID is required.'}, status=status.HTTP_400_BAD_REQUEST)
         try:
             user = User.objects.get(id=user_id)
+            if user.is_superuser and not request.user.is_superuser:
+                return Response({'error': 'Cannot deactivate a superuser account.'}, status=status.HTTP_403_FORBIDDEN)
             user.is_active = False
             user.save(update_fields=['is_active'])
             return Response({'message': 'User deactivated successfully.'}, status=status.HTTP_200_OK)

@@ -3,7 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db import transaction, models
 from django.utils import timezone
-from accounts.permissions import IsOwnerUser
+from accounts.permissions import IsOwnerUser, IsOwnerOrReadOnly
 from .models import Banner, PromoCode
 from .serializers import BannerSerializer, PromoCodeSerializer
 
@@ -122,6 +122,10 @@ from rest_framework import generics
 
 class ReferralSettingsView(generics.RetrieveUpdateAPIView):
     serializer_class = ReferralSettingsSerializer
+    def get_permissions(self):
+        if self.request.method in permissions.SAFE_METHODS:
+            return [permissions.IsAuthenticated()]
+        return [IsOwnerUser()]
     permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):

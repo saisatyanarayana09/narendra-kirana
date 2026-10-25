@@ -16,6 +16,9 @@ class NotificationViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+    def perform_update(self, serializer):
+        serializer.save(user=self.request.user)
+
 class OwnerNotificationCreateView(generics.CreateAPIView):
     permission_classes = [IsOwnerUser]
     serializer_class = NotificationSerializer
@@ -119,11 +122,20 @@ class UnregisterPushTokenView(APIView):
 import logging
 client_logger = logging.getLogger('client_errors')
 
+from rest_framework.throttling import AnonRateThrottle
+
 class ClientErrorLogView(APIView):
+    permission_classes = []
+    throttle_classes = [AnonRateThrottle]
     permission_classes = []
 
     def post(self, request):
-        error_name = str(request.data.get('error_name', 'Unknown'))
+        error_name = str(request.data.get('error_name', 'Unknown'))[:200].replace('\r', ' ').replace('\n', ' ')
+        error_message = str(request.data.get('error_message', ''))[:500].replace('\r', ' ').replace('\n', ' ')
+        stack = str(request.data.get('stack', ''))[:4000]
+        component_stack = str(request.data.get('component_stack', ''))[:4000]
+        app_version = str(request.data.get('app_version', ''))[:64].replace('\r', ' ').replace('\n', ' ')
+        platform = str(request.data.get('platform', ''))[:64].replace('\r', ' ').replace('\n', ' ')
         error_message = str(request.data.get('error_message', ''))
         stack = str(request.data.get('stack', ''))
         component_stack = str(request.data.get('component_stack', ''))

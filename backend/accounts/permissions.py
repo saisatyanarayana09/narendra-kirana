@@ -7,14 +7,26 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return True
-        return request.user and request.user.is_authenticated and (request.user.is_owner or request.user.is_staff)
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and getattr(request.user, 'is_active', True)
+            and not getattr(request.user, 'is_locked', False)
+            and (request.user.is_owner or request.user.is_staff)
+        )
 
 class IsOwnerUser(permissions.BasePermission):
     """
     Custom permission to only allow owners to access the view.
     """
     def has_permission(self, request, view):
-        return request.user and request.user.is_authenticated and (request.user.is_owner or request.user.is_staff)
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and getattr(request.user, 'is_active', True)
+            and not getattr(request.user, 'is_locked', False)
+            and (request.user.is_owner or request.user.is_staff)
+        )
 
 
 class IsCustomerUser(permissions.BasePermission):

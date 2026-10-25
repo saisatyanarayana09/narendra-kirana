@@ -116,7 +116,7 @@ class OrderSerializer(serializers.ModelSerializer):
         read_only_fields = [
             'id', 'customer', 'customer_name', 'customer_email', 'customer_phone', 'status', 'total_amount',
             'discount_applied', 'promo_discount', 'wallet_discount',
-            'packaging_fee', 'items', 'created_at', 'updated_at',
+            'packaging_fee', 'owner_note', 'items', 'created_at', 'updated_at',
             'order_type', 'delivery_address', 'delivery_pincode',
             'delivery_latitude', 'delivery_longitude', 'delivery_fee',
             'delivery_slot_date', 'delivery_slot_label', 'payment_method', 'upi_transaction_id',

@@ -137,12 +137,31 @@ def test_smtp_connection(to_email: str, config_override: dict = None):
             raw_pwd = config_override.get('app_password', '').strip()
             
             # If no password passed in override, fall back to existing saved password
-            if not raw_pwd:
-                saved = StoreEmailSettings.load()
-                raw_pwd = saved.get_decrypted_password()
+            pass
+            pass
+            pass
 
+            pass
+            if not raw_pwd or all(c in ('•', '*') for c in raw_pwd):
+                saved_cfg = StoreEmailSettings.load()
+                saved_host = (saved_cfg.smtp_host or 'smtp.gmail.com').strip().lower()
+                saved_user = (saved_cfg.sender_email or '').strip().lower()
+                if host.strip().lower() == saved_host and user.lower() == saved_user:
+                    raw_pwd = saved_cfg.get_decrypted_password()
+                else:
+                    raw_pwd = ""
             if not raw_pwd:
                 return False, "Please provide the 16-character Google App Password to test."
+            import ipaddress
+            host_clean = host.strip().lower()
+            if host_clean in ('localhost', '0.0.0.0'):
+                return False, "Invalid SMTP host."
+            try:
+                ip_obj = ipaddress.ip_address(host_clean)
+                if ip_obj.is_loopback or ip_obj.is_private or ip_obj.is_link_local or ip_obj.is_reserved:
+                    return False, "Private or loopback SMTP hosts are not permitted."
+            except ValueError:
+                pass
 
             use_tls = bool(config_override.get('use_tls', True))
             use_ssl = bool(config_override.get('use_ssl', False))

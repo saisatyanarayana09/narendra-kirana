@@ -167,7 +167,12 @@ class ProductViewSet(viewsets.ModelViewSet):
             throttle = AnonRateThrottle()
             if not throttle.allow_request(request, self):
                 return Response({'error': 'Rate limit exceeded. Please wait.'}, status=429)
-        barcode = request.query_params.get('barcode')
+        barcode = (request.query_params.get('barcode') or '').strip()
+        if not barcode:
+            return Response({'error': 'Barcode is required'}, status=400)
+        import re
+        if not re.match(r'^[A-Za-z0-9_-]{3,64}$', barcode):
+            return Response({'error': 'Invalid barcode format'}, status=400)
         if not barcode:
             return Response({'error': 'Barcode is required'}, status=400)
             

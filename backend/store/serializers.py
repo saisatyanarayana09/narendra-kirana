@@ -53,6 +53,26 @@ class StoreEmailSettingsSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         raw_password = validated_data.pop('app_password', None)
+        new_host = validated_data.get('smtp_host', instance.smtp_host)
+        new_sender = validated_data.get('sender_email', instance.sender_email)
+        host_or_sender_changed = (
+            (new_host or '').strip().lower() != (instance.smtp_host or '').strip().lower()
+            or (new_sender or '').strip().lower() != (instance.sender_email or '').strip().lower()
+        )
+        password_updated = False
+        if raw_password is not None:
+            raw_password_str = raw_password.strip()
+            if raw_password_str:
+                if not all(c in ('•', '*') for c in raw_password_str):
+                    instance.set_app_password(raw_password_str)
+                    password_updated = True
+            else:
+                instance.encrypted_app_password = ""
+                password_updated = True
+        if host_or_sender_changed and not password_updated:
+            instance.encrypted_app_password = ""
+        return super().update(instance, validated_data)
+        raw_password = validated_data.pop('app_password', None)
         if raw_password is not None:
             raw_password_str = raw_password.strip()
             if raw_password_str:

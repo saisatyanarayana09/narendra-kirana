@@ -377,6 +377,8 @@ class VoiceSearchView(views.APIView):
         language = request.data.get('language', 'en-IN')
         if not audio_file:
             return response.Response({'error': 'No audio file provided.'}, status=status.HTTP_400_BAD_REQUEST)
+        if getattr(audio_file, 'size', 0) > 5 * 1024 * 1024:
+            return response.Response({'error': 'Audio file exceeds 5 MB limit.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             import av
@@ -402,6 +404,8 @@ class VoiceSearchView(views.APIView):
                 for frame in container.decode(audio=0):
                     for r in resampler.resample(frame):
                         wav_file.writeframes(r.to_ndarray().tobytes())
+                        if out_buf.tell() > 10 * 1024 * 1024:
+                            raise ValueError("Decoded audio exceeds maximum permitted duration.")
             out_buf.seek(0)
 
             recognizer = sr.Recognizer()
