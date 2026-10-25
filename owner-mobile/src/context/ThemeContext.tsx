@@ -185,15 +185,18 @@ export const AppThemeProvider = ({ children }: { children: React.ReactNode }) =>
         base.secondary = storeTheme.secondary;
       }
     }
-    // Synchronize static globalTheme for any components that import it directly
-    globalTheme.colors.primary = base.primary as HexColor;
-    globalTheme.colors.primaryDark = base.primaryDark as HexColor;
-    globalTheme.colors.indigo = base.indigo as HexColor;
-    if (base.accent) globalTheme.colors.accent = base.accent as HexColor;
-    if (base.secondary) globalTheme.colors.secondary = base.secondary as HexColor;
 
     return base;
   }, [isDark, storeTheme]);
+
+  useEffect(() => {
+    // Synchronize static globalTheme for any components that import it directly
+    globalTheme.colors.primary = colors.primary as HexColor;
+    globalTheme.colors.primaryDark = colors.primaryDark as HexColor;
+    globalTheme.colors.indigo = colors.indigo as HexColor;
+    if (colors.accent) globalTheme.colors.accent = colors.accent as HexColor;
+    if (colors.secondary) globalTheme.colors.secondary = colors.secondary as HexColor;
+  }, [colors]);
 
   return (
     <ThemeContext.Provider value={{ theme, isDark, toggleTheme, colors, refreshTheme: loadStoreTheme }}>

@@ -1,12 +1,11 @@
 import { Feather } from "@expo/vector-icons";
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useMemo, useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  TextInput,
   ActivityIndicator,
   Alert,
   LayoutAnimation,

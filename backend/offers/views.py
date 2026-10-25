@@ -123,7 +123,7 @@ from rest_framework import generics
 class ReferralSettingsView(generics.RetrieveUpdateAPIView):
     serializer_class = ReferralSettingsSerializer
     def get_permissions(self):
-        if self.request.method in permissions.SAFE_METHODS:
+        if getattr(self, 'request', None) and self.request.method in permissions.SAFE_METHODS:
             return [permissions.IsAuthenticated()]
         return [IsOwnerUser()]
     permission_classes = [permissions.IsAuthenticated]

@@ -428,4 +428,11 @@ class StoreSettingsAndOrderFeaturesTest(TestCase):
         self.assertEqual(section.section_products.count(), 1)
         self.assertEqual(section.section_products.first().product_id, self.product.id)
 
+    def test_openapi_schema_generation_succeeds_without_errors(self):
+        from drf_spectacular.generators import SchemaGenerator
+        generator = SchemaGenerator()
+        schema = generator.get_schema(request=None, public=True)
+        self.assertIsNotNone(schema)
+        self.assertIn('paths', schema)
+
 

@@ -35,10 +35,6 @@ export default function AgentsScreen() {
   });
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchAgents();
-  }, []);
-
   const fetchAgents = async (forceRefresh = false) => {
     try {
       const res = await cachedGet('/auth/agents/', {
@@ -53,6 +49,10 @@ export default function AgentsScreen() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchAgents();
+  }, []);
 
   const handleAddAgent = async () => {
     if (!formData.name || !formData.email || !formData.phone_number) {

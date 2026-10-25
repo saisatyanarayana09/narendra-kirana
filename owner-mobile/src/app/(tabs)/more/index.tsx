@@ -327,7 +327,7 @@ export default function ProfileScreen() {
         },
       ],
     },
-  ], [user?.is_owner]);
+  ], [user?.is_owner, colors.primary, colors.primaryDark]);
 
   const displayName = useMemo(() => {
     if (user?.first_name || user?.last_name) {

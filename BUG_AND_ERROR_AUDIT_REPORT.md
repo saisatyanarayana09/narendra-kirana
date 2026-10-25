@@ -1,9 +1,9 @@
 # Smart Kirana — Bug, Error & QA Audit Report
 
 > [!IMPORTANT]
-> **Audit Status**: Completed & Remediated (`12` bugs fixed across `backend/`, `frontend/`, `mobile/`, and `owner-mobile/` in 3 passes)  
+> **Audit Status**: Completed & Remediated (`15` bugs fixed across `backend/`, `frontend/`, `mobile/`, and `owner-mobile/` in 4 passes)  
 > **Skills Installed**: `8` open-source bug-hunting, debugging, differential review, and React/React Native QA skills in `.agent/skills/`  
-> **Automated Verification**: `347/347` client API calls verified against Django URL resolver, `0` unapplied Django migrations, `41/41` Django tests passing, `50/50` Mobile Jest tests passing (`45/45` suites), `0` TypeScript errors (`mobile` & `owner-mobile`), Vite production build passing (`frontend`)
+> **Automated Verification**: `0` errors across all linters (`frontend`, `mobile`, `owner-mobile`), `0` errors in `manage.py check --deploy`, `347/347` client API calls verified against Django URL resolver, `0` unapplied Django migrations, `42/42` Django tests passing, `50/50` Mobile Jest tests passing (`45/45` suites), `0` TypeScript errors (`mobile` & `owner-mobile`), Vite production build passing (`frontend`)
 
 ---
 
@@ -40,6 +40,9 @@ To complement the existing Cloudflare security audit skill (`.agent/skills/secur
 | **BUG-10** | **Low** | `backend/`, `mobile/` | [`store/models.py`](file:///s:/smart-kirana/backend/store/models.py#L31-L32), [`CartContext.tsx`](file:///s:/smart-kirana/mobile/src/context/CartContext.tsx#L1087-L1093), [`AuthContext.tsx`](file:///s:/smart-kirana/mobile/src/context/AuthContext.tsx#L124-L138), [`LoginScreen.tsx`](file:///s:/smart-kirana/mobile/src/screens/auth/LoginScreen.tsx#L284-L289) | Migration drift on `store_latitude`/`store_longitude` defaults (`makemigrations --check`), plus redundant re-throw `try/catch` blocks and unused ternary expression in `mobile/` | **Fixed** |
 | **BUG-11** | **High** | `backend/`, `owner-mobile/` | [`store/views.py`](file:///s:/smart-kirana/backend/store/views.py#L303-L337), [`showcase.tsx`](file:///s:/smart-kirana/owner-mobile/src/app/(tabs)/more/showcase.tsx#L964-L968) | `owner-mobile` Showcase curator called `POST /store/homepage-sections/{id}/set-products/` with `{products: [{product_id, position}]}`, which did not exist on `HomepageSectionViewSet` (HTTP 404) | **Fixed** |
 | **BUG-12** | **Low** | `backend/` | [`store/serializers.py`](file:///s:/smart-kirana/backend/store/serializers.py#L54-L74) | Unreachable duplicate `update()` block after `return super().update(...)` in `StoreEmailSettingsSerializer` | **Fixed** |
+| **BUG-13** | **High** | `backend/` | [`store/views.py`](file:///s:/smart-kirana/backend/store/views.py#L116-L125), [`offers/views.py`](file:///s:/smart-kirana/backend/offers/views.py#L125-L128), [`accounts/views.py`](file:///s:/smart-kirana/backend/accounts/views.py#L568-L572), [`notifications/views.py`](file:///s:/smart-kirana/backend/notifications/views.py#L13-L16), [`cart/views.py`](file:///s:/smart-kirana/backend/cart/views.py#L75-L78) | `drf_spectacular.E001` crash (`'NoneType' object has no attribute 'method'`) in `manage.py check --deploy` and `/api/schema/` when `self.request` is `None` or `AnonymousUser` during OpenAPI schema introspection | **Fixed** |
+| **BUG-14** | **Medium** | `owner-mobile/` | [`ThemeContext.tsx`](file:///s:/smart-kirana/owner-mobile/src/context/ThemeContext.tsx#L175-L199), [`agents.tsx`](file:///s:/smart-kirana/owner-mobile/src/app/(tabs)/more/agents.tsx#L38-L56), [`more/index.tsx`](file:///s:/smart-kirana/owner-mobile/src/app/(tabs)/more/index.tsx#L330) | React Compiler immutability violation (`globalTheme.colors` mutated inside `useMemo`), variable accessed before declaration (`fetchAgents`), and missing theme color dependencies in `more/index.tsx` | **Fixed** |
+| **BUG-15** | **Low** | `mobile/` | [`CartScreen.tsx`](file:///s:/smart-kirana/mobile/src/screens/cart/CartScreen.tsx#L1-L15) | `unused-imports/no-unused-imports` ESLint errors (`useState`, `TextInput`) causing `npm run lint` / `npm run validate` to exit with code `1` | **Fixed** |
 
 ---
 

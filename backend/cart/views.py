@@ -73,6 +73,8 @@ class CartItemDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated, IsCustomerUser]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False) or not getattr(self.request, 'user', None) or not self.request.user.is_authenticated:
+            return CartItem.objects.none()
         return CartItem.objects.filter(cart__customer=self.request.user).select_related('product')
 
     @transaction.atomic

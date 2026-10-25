@@ -114,12 +114,12 @@ class StoreSettingsView(views.APIView):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_authenticators(self):
-        if self.request.method in ['GET', 'OPTIONS', 'HEAD']:
+        if getattr(self, 'request', None) and self.request.method in ['GET', 'OPTIONS', 'HEAD']:
             return []
         return super().get_authenticators()
 
     def get_permissions(self):
-        if self.request.method in ['GET', 'OPTIONS', 'HEAD']:
+        if getattr(self, 'request', None) and self.request.method in ['GET', 'OPTIONS', 'HEAD']:
             return [AllowAny()]
         return [IsOwnerUser()]
 

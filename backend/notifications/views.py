@@ -11,6 +11,8 @@ class NotificationViewSet(viewsets.ModelViewSet):
     serializer_class = NotificationSerializer
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False) or not getattr(self.request, 'user', None) or not self.request.user.is_authenticated:
+            return Notification.objects.none()
         return Notification.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):

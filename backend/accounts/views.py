@@ -566,6 +566,8 @@ class AddressViewSet(viewsets.ModelViewSet):
     serializer_class = AddressSerializer
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False) or not getattr(self.request, 'user', None) or not self.request.user.is_authenticated:
+            return Address.objects.none()
         return Address.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
