@@ -118,3 +118,19 @@ class SecondPassSecurityAuditTests(TestCase):
         self.client.force_authenticate(user=self.customer)
         res = self.client.get('/api/v1/products/barcode_lookup/?barcode=../../etc/passwd')
         self.assertEqual(res.status_code, 400)
+
+    def test_sk15_api_dashboard_data_view_requires_staff_or_owner(self):
+        """SK-15: APIDashboardDataView rejects anonymous/customer requests and allows owner/staff."""
+        from django.test import RequestFactory
+        from store.dashboard_views import APIDashboardDataView
+
+        rf = RequestFactory()
+        req_customer = rf.get('/admin/dashboard-data/')
+        req_customer.user = self.customer
+        resp_customer = APIDashboardDataView.as_view()(req_customer)
+        self.assertEqual(resp_customer.status_code, 403)
+
+        req_owner = rf.get('/admin/dashboard-data/')
+        req_owner.user = self.owner
+        resp_owner = APIDashboardDataView.as_view()(req_owner)
+        self.assertEqual(resp_owner.status_code, 200)
