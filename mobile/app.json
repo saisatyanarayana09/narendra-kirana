@@ -23,7 +23,14 @@
       "policy": "appVersion"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.narendrakirana.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow Narendra Kirana to access camera to scan barcodes and take product photos.",
+        "NSLocationWhenInUseUsageDescription": "Narendra Kirana needs your location to deliver groceries to your address and show nearby store availability.",
+        "NSMicrophoneUsageDescription": "Allow microphone access for voice search of groceries.",
+        "NSPhotoLibraryUsageDescription": "Allow access to photo library to select a profile picture or product image."
+      }
     },
     "android": {
       "package": "com.narendrakirana.app",

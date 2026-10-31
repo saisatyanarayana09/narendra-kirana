@@ -17,7 +17,14 @@
       "policy": "appVersion"
     },
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "supportsTablet": true,
+      "bundleIdentifier": "com.narendrakirana.owner",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow Narendra Kirana Store to access camera for scanning barcodes and QR codes.",
+        "NSLocationWhenInUseUsageDescription": "Allow store location access to set delivery radius coordinates.",
+        "NSPhotoLibraryUsageDescription": "Allow access to photos to upload product photos and invoice signature."
+      }
     },
     "android": {
       "package": "com.narendrakirana.owner",
